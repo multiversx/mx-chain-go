@@ -140,7 +140,7 @@ func createFloodPreventer(
 	blackListHandler process.BlackListHandler,
 ) (process.FloodPreventer, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(antifloodCacheConfig)
-	blackListCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
+	blackListCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func createFloodPreventer(
 		return nil, err
 	}
 
-	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
+	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
 	if err != nil {
 		return nil, err
 	}

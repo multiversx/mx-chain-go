@@ -338,8 +338,8 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 		sizeProcessedMessages: 8,
 	}
 
-	cacher.HasOrAdd(key1, quota1)
-	cacher.HasOrAdd(key2, quota2)
+	cacher.HasOrAdd(key1, quota1, quota1.Size())
+	cacher.HasOrAdd(key2, quota2, quota2.Size())
 
 	resetStatisticsCalled := false
 	quota1Compared := false

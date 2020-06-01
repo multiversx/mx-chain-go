@@ -29,8 +29,9 @@
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
-        Size = 300
-        Type = "LRU"
+        Capacity = 300
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
         Type = "LvlDBSerial"
@@ -40,8 +41,9 @@
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
     [PeerBlockBodyStorage.DB]
         FilePath = "PeerBlocks"
         Type = "LvlDBSerial"
@@ -51,8 +53,9 @@
 
 [BlockHeaderStorage]
     [BlockHeaderStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
     [BlockHeaderStorage.DB]
         FilePath = "BlockHeaders"
         Type = "LvlDBSerial"
@@ -62,7 +65,7 @@
 
 [BootstrapStorage]
     [BootstrapStorage.Cache]
-        Size = 1000
+        Capacity = 1000
         Type = "LRU"
     [BootstrapStorage.DB]
         FilePath = "BootstrapData"
@@ -73,8 +76,9 @@
 
 [MetaBlockStorage]
     [MetaBlockStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
         Type = "LvlDBSerial"
@@ -84,8 +88,9 @@
 
 [TxStorage]
     [TxStorage.Cache]
-        Size = 75000
-        Type = "LRU"
+        Capacity = 75000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
     [TxStorage.DB]
         FilePath = "Transactions"
         Type = "LvlDBSerial"
@@ -95,8 +100,9 @@
 
 [TxLogsStorage]
     [TxLogsStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
     [TxLogsStorage.DB]
         FilePath = "Logs"
         Type = "LvlDBSerial"
@@ -106,8 +112,9 @@
 
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
-        Size = 75000
-        Type = "LRU"
+        Capacity = 75000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
     [UnsignedTransactionStorage.DB]
         FilePath = "UnsignedTransactions"
         Type = "LvlDBSerial"
@@ -117,8 +124,9 @@
 
 [RewardTxStorage]
     [RewardTxStorage.Cache]
-        Size = 75000
-        Type = "LRU"
+        Capacity = 75000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
     [RewardTxStorage.DB]
         FilePath = "RewardTransactions"
         Type = "LvlDBSerial"
@@ -128,7 +136,7 @@
 
 [StatusMetricsStorage]
     [StatusMetricsStorage.Cache]
-        Size = 1000
+        Capacity = 1000
         Type = "LRU"
     [StatusMetricsStorage.DB]
         FilePath = "StatusMetricsStorageDB"
@@ -139,8 +147,9 @@
 
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
     [ShardHdrNonceHashStorage.DB]
         FilePath = "ShardHdrHashNonce"
         Type = "LvlDBSerial"
@@ -150,8 +159,9 @@
 
 [MetaHdrNonceHashStorage]
     [MetaHdrNonceHashStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
     [MetaHdrNonceHashStorage.DB]
         FilePath = "MetaHdrHashNonce"
         Type = "LvlDBSerial"
@@ -161,8 +171,9 @@
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
-        Size = 75000
-        Type = "LRU"
+        Capacity = 75000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie/MainDB"
         Type = "LvlDBSerial"
@@ -193,8 +204,9 @@
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
-        Size = 5000
-        Type = "LRU"
+        Capacity = 5000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
     [PeerAccountsTrieStorage.DB]
         FilePath = "PeerAccountsTrie/MainDB"
         Type = "LvlDBSerial"
@@ -207,19 +219,22 @@
     NumElementsToRemoveOnEviction = 200
 
 [BadBlocksCache]
-    Size = 1000
-    Type = "LRU"
+    Capacity = 1000
+    Type = "SizeLRU"
+    SizeInBytes = 3145728 #3MB
 
 [TxBlockBodyDataPool]
-    Size = 300
-    Type = "LRU"
+    Capacity = 300
+    Type = "SizeLRU"
+    SizeInBytes = 314572800 #300MB
 
 [PeerBlockBodyDataPool]
-    Size = 1000
-    Type = "LRU"
+    Capacity = 1000
+    Type = "SizeLRU"
+    SizeInBytes = 314572800 #300MB
 
 [TxDataPool]
-    Size = 900000
+    Capacity = 900000
     SizePerSender = 20000
     SizeInBytes = 524288000
     SizeInBytesPerSender = 12288000
@@ -227,41 +242,44 @@
     Shards = 16
 
 [TrieNodesDataPool]
-    Size = 50000
-    Type = "LRU"
+    Capacity = 50000
+    Type = "SizeLRU"
+    SizeInBytes = 104857600 #100MB
 
 [WhiteListPool]
-    Size = 100000
+    Capacity = 100000
     Type = "FIFOSharded"
     Shards = 10
 
 [WhiteListerVerifiedTxs]
-    Size = 50000
+    Capacity = 50000
     Type = "FIFOSharded"
     Shards = 50
 
 [UnsignedTransactionDataPool]
-    Size = 75000
-    Type = "LRU"
+    Capacity = 75000
+    Type = "SizeLRU"
+    SizeInBytes = 314572800 #300MB
 
 [RewardTransactionDataPool]
-    Size = 75000
-    Type = "LRU"
+    Capacity = 75000
+    Type = "SizeLRU"
+    SizeInBytes = 104857600 #100MB
 
 #PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
-    Size = 30000
+    Capacity = 30000
     Type = "LRU"
 
 #PublicKeyShardId is the fallback cache used to map public keys to the shard they belong.
 [PublicKeyShardId]
-    Size = 30000
+    Capacity = 30000
     Type = "LRU"
 
 #PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
 # Used mainly for observers.
 [PeerIdShardId]
-    Size = 30000
+    Capacity = 30000
     Type = "LRU"
 
 [Antiflood]
@@ -302,7 +320,7 @@
         TotalSizePerInterval     = 1048576
 
     [Antiflood.Cache]
-        Size = 5000
+        Capacity = 5000
         Type = "LRU"
     [Antiflood.Topic]
         DefaultMaxMessagesPerSec = 10000
@@ -394,7 +412,7 @@
    DurationToConsiderUnresponsiveInSec  = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
-           Size = 1000
+           Capacity = 1000
            Type = "LRU"
        [Heartbeat.HeartbeatStorage.DB]
            FilePath = "HeartbeatStorage"
@@ -449,7 +467,7 @@
 	ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
 	[HardFork.ExportStateStorageConfig]
 	    [HardFork.ExportStateStorageConfig.Cache]
-            Size = 5000
+            Capacity = 5000
             Type = "LRU"
         [HardFork.ExportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
@@ -459,7 +477,7 @@
             MaxOpenFiles = 10
     [HardFork.ExportTriesStorageConfig]
         [HardFork.ExportTriesStorageConfig.Cache]
-            Size = 5000
+            Capacity = 5000
             Type = "LRU"
         [HardFork.ExportTriesStorageConfig.DB]
             FilePath = "ExportTrieStorage/MainTrie"
@@ -469,7 +487,7 @@
             MaxOpenFiles = 10
 	[HardFork.ImportStateStorageConfig]
 	    [HardFork.ImportStateStorageConfig.Cache]
-            Size = 5000
+            Capacity = 5000
             Type = "LRU"
         [HardFork.ImportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"

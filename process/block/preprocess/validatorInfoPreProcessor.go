@@ -95,7 +95,7 @@ func (vip *validatorInfoPreprocessor) RestoreTxBlockIntoPools(
 			return validatorsInfoRestored, err
 		}
 
-		miniBlockPool.Put(miniBlockHash, miniBlock)
+		miniBlockPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
 
 		validatorsInfoRestored += len(miniBlock.TxHashes)
 	}

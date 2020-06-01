@@ -81,8 +81,8 @@ func TestImmunityCache_AddThenRemove(t *testing.T) {
 
 	_, _ = cache.Add(newCacheItem("a"))
 	_, _ = cache.Add(newCacheItem("b"))
-	_, _ = cache.HasOrAdd(nil, newCacheItem("c")) // Same as Add()
-	_ = cache.Put(nil, newCacheItem("d"))         // Same as Add()
+	_, _ = cache.HasOrAdd(nil, newCacheItem("c"), 0) // Same as Add()
+	_ = cache.Put(nil, newCacheItem("d"), 0)         // Same as Add()
 	require.Equal(t, 4, cache.Len())
 	require.True(t, cache.Has([]byte("a")))
 	require.True(t, cache.Has([]byte("c")))
