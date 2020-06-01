@@ -339,13 +339,11 @@ func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.Return
 func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
-		log.Debug("setConfig function was not called by the owner address")
 		s.eei.AddReturnMessage("setConfig function was not called by the owner address")
 		return vmcommon.UserError
 	}
 
 	if len(args.Arguments) != 7 {
-		log.Debug("setConfig function called with wrong number of arguments", "expected", 7, "got", len(args.Arguments))
 		retMessage := fmt.Sprintf("setConfig function called with wrong number of arguments expected %d, got %d", 7, len(args.Arguments))
 		s.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
@@ -362,7 +360,6 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 
 	configData, err := json.Marshal(config)
 	if err != nil {
-		log.Debug("setConfig marshal config error")
 		s.eei.AddReturnMessage("setConfig marshal config error")
 		return vmcommon.UserError
 	}
@@ -423,7 +420,6 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 func (s *stakingAuctionSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
 	if ownerAddress != nil {
-		log.Error("smart contract was already initialized")
 		s.eei.AddReturnMessage("smart contract was already initialized")
 		return vmcommon.UserError
 	}
@@ -471,7 +467,7 @@ func (s *stakingAuctionSC) registerBLSKeys(
 ) ([][]byte, error) {
 	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
 	if uint64(len(args)) < maxNodesToRun+1 {
-		log.Debug("not enough arguments to process stake function")
+		s.eei.AddReturnMessage(fmt.Sprintf("not enough arguments to process stake function: expected min %d, got %d", maxNodesToRun+1, len(args)))
 		return nil, vm.ErrNotEnoughArgumentsToStake
 	}
 
@@ -500,7 +496,6 @@ func (s *stakingAuctionSC) registerBLSKeys(
 
 func (s *stakingAuctionSC) updateStakeValue(registrationData *AuctionData, caller []byte) vmcommon.ReturnCode {
 	if len(registrationData.BlsPubKeys) == 0 {
-		log.Debug("no bls keys has been provided")
 		s.eei.AddReturnMessage("no bls keys has been provided")
 		return vmcommon.UserError
 	}
@@ -588,7 +583,6 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	if !isNumArgsCorrectToStake(args.Arguments) {
-		log.Debug("invalid number of arguments to call stake", "numArgs", args.Arguments)
 		s.eei.AddReturnMessage("invalid number of arguments to call stake")
 		return vmcommon.UserError
 	}
@@ -852,7 +846,6 @@ func getBLSPublicKeys(registrationData *AuctionData, args *vmcommon.ContractCall
 		}
 
 		if !found {
-			log.Debug("bls key for validator not found")
 			return nil, vm.ErrBLSPublicKeyMissmatch
 		}
 	}
@@ -930,7 +923,6 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
 	if err != nil {
-		log.Debug("transfer error on unBond function")
 		s.eei.AddReturnMessage("transfer error on unBond function")
 		return vmcommon.UserError
 	}
@@ -942,7 +934,6 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		s.deleteUnBondedKeys(registrationData, unBondedKeys)
 		err := s.saveRegistrationData(args.CallerAddr, registrationData)
 		if err != nil {
-			log.Debug("cannot save registration data change")
 			s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
 			return vmcommon.UserError
 		}
@@ -994,7 +985,6 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 	registrationData.TotalStakeValue.Set(registrationData.LockedStake)
 	err = s.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
-		log.Debug("cannot save registration data", "error", err.Error())
 		s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
