@@ -334,7 +334,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		return nil, err
 	}
 	leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
-	log.Debug("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
+	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
 	err = vs.updateValidatorInfo(
 		consensusGroup,
 		previousHeader.GetPubKeysBitmap(),
