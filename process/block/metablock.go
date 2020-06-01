@@ -760,22 +760,22 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
 ) (*block.Body, error) {
+	var miniBlocks block.MiniBlockSlice
 
 	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		return nil, process.ErrAccountStateDirty
+		log.Error("metaProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty)
+		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
 	if !haveTime() {
-		log.Debug("time is up after entered in createMiniBlocks method")
-		return nil, process.ErrTimeIsOut
+		log.Debug("metaProcessor.createMiniBlocks", "error", process.ErrTimeIsOut)
+		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
 	mbsToMe, numTxs, numShardHeaders, err := mp.createAndProcessCrossMiniBlocksDstMe(haveTime)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
-
-	var miniBlocks block.MiniBlockSlice
 
 	if len(mbsToMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsToMe...)
