@@ -730,12 +730,12 @@ func (g *governanceContract) getOrCreateValidatorData(address []byte, numNodes i
 }
 
 func (g *governanceContract) delegateVotePower(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	log.Trace("delegateVotePower not yet implemented")
+	g.eei.AddReturnMessage("delegateVotePower not yet implemented")
 	return vmcommon.UserError
 }
 
 func (g *governanceContract) revokeVotePower(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	log.Trace("revokeVotePower not yet implemented")
+	g.eei.AddReturnMessage("revokeVotePower not yet implemented")
 	return vmcommon.UserError
 }
 
