@@ -6,18 +6,19 @@ import (
 
 // ShardedDataStub -
 type ShardedDataStub struct {
-	RegisterHandlerCalled         func(func(key []byte, value interface{}))
-	ShardDataStoreCalled          func(cacheId string) (c storage.Cacher)
-	AddDataCalled                 func(key []byte, data interface{}, cacheId string)
-	SearchFirstDataCalled         func(key []byte) (value interface{}, ok bool)
-	RemoveDataCalled              func(key []byte, cacheId string)
-	RemoveDataFromAllShardsCalled func(key []byte)
-	MergeShardStoresCalled        func(sourceCacheId, destCacheId string)
-	MoveDataCalled                func(sourceCacheId, destCacheId string, key [][]byte)
-	ClearCalled                   func()
-	ClearShardStoreCalled         func(cacheId string)
-	RemoveSetOfDataFromPoolCalled func(keys [][]byte, destCacheId string)
-	CreateShardStoreCalled        func(destCacheId string)
+	RegisterHandlerCalled                  func(func(key []byte, value interface{}))
+	ShardDataStoreCalled                   func(cacheId string) (c storage.Cacher)
+	AddDataCalled                          func(key []byte, data interface{}, cacheId string)
+	SearchFirstDataCalled                  func(key []byte) (value interface{}, ok bool)
+	RemoveDataCalled                       func(key []byte, cacheId string)
+	RemoveDataFromAllShardsCalled          func(key []byte)
+	MergeShardStoresCalled                 func(sourceCacheId, destCacheId string)
+	MoveDataCalled                         func(sourceCacheId, destCacheId string, key [][]byte)
+	ClearCalled                            func()
+	ClearShardStoreCalled                  func(cacheId string)
+	RemoveSetOfDataFromPoolCalled          func(keys [][]byte, destCacheId string)
+	ImmunizeSetOfDataAgainstEvictionCalled func(keys [][]byte, cacheId string)
+	CreateShardStoreCalled                 func(destCacheId string)
 }
 
 // RegisterHandler -
@@ -68,6 +69,13 @@ func (sd *ShardedDataStub) ClearShardStore(cacheId string) {
 // RemoveSetOfDataFromPool -
 func (sd *ShardedDataStub) RemoveSetOfDataFromPool(keys [][]byte, cacheId string) {
 	sd.RemoveSetOfDataFromPoolCalled(keys, cacheId)
+}
+
+// ImmunizeSetOfDataAgainstEviction -
+func (sd *ShardedDataStub) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string) {
+	if sd.ImmunizeSetOfDataAgainstEvictionCalled != nil {
+		sd.ImmunizeSetOfDataAgainstEvictionCalled(keys, cacheId)
+	}
 }
 
 // CreateShardStore -

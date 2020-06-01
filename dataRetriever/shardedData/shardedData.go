@@ -3,7 +3,7 @@ package shardedData
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -152,6 +152,10 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheId string) {
 	for _, key := range keys {
 		sd.RemoveData(key, cacheId)
 	}
+}
+
+// ImmunizeSetOfDataAgainstEviction does nothing
+func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string) {
 }
 
 // RemoveData will remove data hash from the corresponding shard store
