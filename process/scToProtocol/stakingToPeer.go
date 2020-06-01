@@ -164,9 +164,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		// no data under key -> peer can be deleted from trie
 		if len(data) == 0 {
 			err = stp.peerState.RemoveAccount(blsPubKey)
-			if err != nil {
-				return err
-			}
+			log.LogIfError(err, "staking to protocol RemoveAccount blsPubKey", blsPubKey)
 
 			continue
 		}

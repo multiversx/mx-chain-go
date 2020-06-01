@@ -708,8 +708,9 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 			continue
 		}
 
+		isPreProcessMiniBlock := miniBlock.Type == block.TxBlock
 		preproc := tc.getPreProcessor(miniBlock.Type)
-		if !check.IfNil(preproc) {
+		if !check.IfNil(preproc) && isPreProcessMiniBlock {
 			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
 			if ok {
 				//preproc supports marshalizing items
@@ -723,7 +724,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 		}
 
 		interimProc := tc.getInterimProcessor(miniBlock.Type)
-		if !check.IfNil(interimProc) {
+		if !check.IfNil(interimProc) && !isPreProcessMiniBlock {
 			dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
 			if ok {
 				//interimProc supports marshalizing items
