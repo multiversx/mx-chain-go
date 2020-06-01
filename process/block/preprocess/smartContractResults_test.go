@@ -568,6 +568,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		dataPool.UnsignedTransactions().AddData(
 			transactionsHashes[idx],
 			tx,
+			tx.Size(),
 			process.ShardCacherIdentifier(senderShardId, destinationShardId),
 		)
 	}
@@ -577,6 +578,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 	dataPool.UnsignedTransactions().AddData(
 		computeHash(txRandom, marshalizer, hasher),
 		txRandom,
+		txRandom.Size(),
 		process.ShardCacherIdentifier(3, 4),
 	)
 
@@ -996,7 +998,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 	dataPool := mock.NewPoolsHolderMock()
 
 	shardedDataStub := &mock.ShardedDataStub{
-		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+		AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
 		},
 		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 		},

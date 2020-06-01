@@ -30,6 +30,11 @@ func (v *validator) Index() uint32 {
 	return v.index
 }
 
+// Size -
+func (v *validator) Size() int {
+	return len(v.pubKey) + 8
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (v *validator) IsInterfaceNil() bool {
 	return v == nil

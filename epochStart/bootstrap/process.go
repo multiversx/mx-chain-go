@@ -207,6 +207,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storageUnit.CacheType(epochStartProvider.generalConfig.WhiteListPool.Type),
 		epochStartProvider.generalConfig.WhiteListPool.Size,
 		epochStartProvider.generalConfig.WhiteListPool.Shards,
+		epochStartProvider.generalConfig.WhiteListPool.SizeInBytes,
 	)
 	if err != nil {
 		return nil, err

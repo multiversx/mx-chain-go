@@ -446,7 +446,7 @@ func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
 		if err != nil {
 			return
 		}
-		wrk.poolAdder.Put(hash, miniblock)
+		wrk.poolAdder.Put(hash, miniblock, miniblock.Size())
 	}
 }
 

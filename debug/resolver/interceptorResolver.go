@@ -37,6 +37,16 @@ type event struct {
 	timestamp    int64
 }
 
+// Size returns the number of bytes taken by an event line
+func (ev *event) Size() int {
+	size := len(ev.eventType) + len(ev.hash) + len(ev.topic) + 8*6
+	if ev.lastErr != nil {
+		size += len(ev.lastErr.Error())
+	}
+
+	return size
+}
+
 func (ev *event) String() string {
 	strErr := ""
 	if ev.lastErr != nil {
@@ -165,7 +175,7 @@ func (ir *interceptorResolver) incrementNumOfPrints() {
 		}
 
 		ev.numPrints++
-		ir.cache.Put(key, ev)
+		ir.cache.Put(key, ev, ev.Size())
 	}
 }
 
@@ -208,7 +218,7 @@ func (ir *interceptorResolver) logRequestedData(topic string, hash []byte, numRe
 			lastErr:      nil,
 			timestamp:    ir.timestampHandler(),
 		}
-		ir.cache.Put(identifier, req)
+		ir.cache.Put(identifier, req, req.Size())
 
 		return
 	}
@@ -221,7 +231,7 @@ func (ir *interceptorResolver) logRequestedData(topic string, hash []byte, numRe
 	req.numReqCross += numReqCross
 	req.numReqIntra += numReqIntra
 	req.timestamp = ir.timestampHandler()
-	ir.cache.Put(identifier, req)
+	ir.cache.Put(identifier, req, req.Size())
 }
 
 // LogReceivedHashes is called whenever request hashes have been received
@@ -249,7 +259,7 @@ func (ir *interceptorResolver) logReceivedHash(topic string, hash []byte) {
 
 	req.numReceived++
 	req.timestamp = ir.timestampHandler()
-	ir.cache.Put(identifier, req)
+	ir.cache.Put(identifier, req, req.Size())
 }
 
 // LogProcessedHashes is called whenever request hashes have been processed
@@ -279,7 +289,7 @@ func (ir *interceptorResolver) logProcessedHash(topic string, hash []byte, err e
 		req.numProcessed++
 		req.timestamp = ir.timestampHandler()
 		req.lastErr = err
-		ir.cache.Put(identifier, req)
+		ir.cache.Put(identifier, req, req.Size())
 
 		return
 	}
@@ -359,7 +369,7 @@ func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte,
 			lastErr:      err,
 			timestamp:    ir.timestampHandler(),
 		}
-		ir.cache.Put(identifier, req)
+		ir.cache.Put(identifier, req, req.Size())
 
 		return
 	}
@@ -372,7 +382,7 @@ func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte,
 	ev.numReceived++
 	ev.timestamp = ir.timestampHandler()
 	ev.lastErr = err
-	ir.cache.Put(identifier, ev)
+	ir.cache.Put(identifier, ev, ev.Size())
 }
 
 // LogSucceededToResolveData removes the recording that the resolver did not resolved a hash in the past

@@ -36,6 +36,7 @@ type HasherType string
 // LRUCache is currently the only supported Cache type
 const (
 	LRUCache         CacheType = "LRU"
+	SizeLRUCache     CacheType = "SizeLRU"
 	FIFOShardedCache CacheType = "FIFOSharded"
 )
 
@@ -58,6 +59,8 @@ const (
 	Fnv HasherType = "Fnv"
 )
 
+const minimumSizeForLRUCache = 1024
+
 // UnitConfig holds the configurable elements of the storage unit
 type UnitConfig struct {
 	CacheConf CacheConfig
@@ -68,7 +71,7 @@ type UnitConfig struct {
 // CacheConfig holds the configurable elements of a cache
 type CacheConfig struct {
 	Type                 CacheType
-	SizeInBytes          uint32
+	SizeInBytes          uint64
 	SizeInBytesPerSender uint32
 	Size                 uint32
 	SizePerSender        uint32
@@ -104,7 +107,7 @@ func (u *Unit) Put(key, data []byte) error {
 	u.lock.Lock()
 	defer u.lock.Unlock()
 
-	u.cacher.Put(key, data)
+	u.cacher.Put(key, data, len(data))
 
 	err := u.persister.Put(key, data)
 	if err != nil {
@@ -146,13 +149,12 @@ func (u *Unit) Get(key []byte) ([]byte, error) {
 		// search it in second persistence medium
 		if u.bloomFilter == nil || u.bloomFilter.MayContain(key) {
 			v, err = u.persister.Get(key)
-
 			if err != nil {
 				return nil, err
 			}
 
 			// if found in persistence unit, add it in cache
-			u.cacher.Put(key, v)
+			u.cacher.Put(key, v, len(v.([]byte)))
 		} else {
 			return nil, fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(key))
 		}
@@ -297,7 +299,7 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		return nil, storage.ErrCacheSizeIsLowerThanBatchSize
 	}
 
-	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards)
+	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards, cacheConf.SizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -328,13 +330,27 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 
 //NewCache creates a new cache from a cache config
 //TODO: add a cacher factory or a cacheConfig param instead
-func NewCache(cacheType CacheType, size uint32, shards uint32) (storage.Cacher, error) {
+func NewCache(cacheType CacheType, size uint32, shards uint32, sizeInBytes uint64) (storage.Cacher, error) {
 	var cacher storage.Cacher
 	var err error
 
 	switch cacheType {
 	case LRUCache:
+		if sizeInBytes != 0 {
+			return nil, storage.ErrLRUCacheWithProvidedSize
+		}
+
 		cacher, err = lrucache.NewCache(int(size))
+	case SizeLRUCache:
+		if sizeInBytes < minimumSizeForLRUCache {
+			return nil, fmt.Errorf("%w, provided %d, minimum %d",
+				storage.ErrLRUCacheInvalidSize,
+				sizeInBytes,
+				minimumSizeForLRUCache,
+			)
+		}
+
+		cacher, err = lrucache.NewCacheWithSizeInBytes(int(size), int64(sizeInBytes))
 	case FIFOShardedCache:
 		cacher, err = fifocache.NewShardedCache(int(size), int(shards))
 		if err != nil {

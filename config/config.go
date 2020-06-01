@@ -5,7 +5,7 @@ type CacheConfig struct {
 	Type                 string `json:"type"`
 	Size                 uint32 `json:"size"`
 	SizePerSender        uint32 `json:"sizePerSender"`
-	SizeInBytes          uint32 `json:"sizeInBytes"`
+	SizeInBytes          uint64 `json:"sizeInBytes"`
 	SizeInBytesPerSender uint32 `json:"sizeInBytesPerSender"`
 	Shards               uint32 `json:"shards"`
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -14,7 +15,7 @@ var log = logger.GetOrCreate("storage/lrucache")
 
 // LRUCache implements a Least Recently Used eviction cache
 type LRUCache struct {
-	cache   *lru.Cache
+	cache   storage.SizeLRUCacheHandler
 	maxsize int
 
 	mutAddedDataHandlers sync.RWMutex
@@ -24,7 +25,25 @@ type LRUCache struct {
 // NewCache creates a new LRU cache instance
 func NewCache(size int) (*LRUCache, error) {
 	cache, err := lru.New(size)
+	if err != nil {
+		return nil, err
+	}
 
+	lruCache := &LRUCache{
+		cache: &simpleLRUCacheAdapter{
+			LRUCacheHandler: cache,
+		},
+		maxsize:              size,
+		mutAddedDataHandlers: sync.RWMutex{},
+		addedDataHandlers:    make([]func(key []byte, value interface{}), 0),
+	}
+
+	return lruCache, nil
+}
+
+// NewCacheWithSizeInBytes creates a new sized LRU cache instance
+func NewCacheWithSizeInBytes(size int, sizeInBytes int64) (*LRUCache, error) {
+	cache, err := capacity.NewCapacityLRU(size, sizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +64,8 @@ func (c *LRUCache) Clear() {
 }
 
 // Put adds a value to the cache.  Returns true if an eviction occurred.
-func (c *LRUCache) Put(key []byte, value interface{}) (evicted bool) {
-	evicted = c.cache.Add(string(key), value)
+func (c *LRUCache) Put(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+	evicted = c.cache.AddSized(string(key), value, int64(sizeInBytes))
 
 	c.callAddedDataHandlers(key, value)
 
@@ -91,8 +110,8 @@ func (c *LRUCache) Peek(key []byte) (value interface{}, ok bool) {
 // HasOrAdd checks if a key is in the cache  without updating the
 // recent-ness or deleting it for being stale,  and if not, adds the value.
 // Returns whether found and whether an eviction occurred.
-func (c *LRUCache) HasOrAdd(key []byte, value interface{}) (found, evicted bool) {
-	found, evicted = c.cache.ContainsOrAdd(string(key), value)
+func (c *LRUCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (found, evicted bool) {
+	found, evicted = c.cache.ContainsOrAddSized(string(key), value, int64(sizeInBytes))
 
 	if !found {
 		c.callAddedDataHandlers(key, value)
@@ -112,11 +131,6 @@ func (c *LRUCache) callAddedDataHandlers(key []byte, value interface{}) {
 // Remove removes the provided key from the cache.
 func (c *LRUCache) Remove(key []byte) {
 	c.cache.Remove(string(key))
-}
-
-// RemoveOldest removes the oldest item from the cache.
-func (c *LRUCache) RemoveOldest() {
-	c.cache.RemoveOldest()
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.

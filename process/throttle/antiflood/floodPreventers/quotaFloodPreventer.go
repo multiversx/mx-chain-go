@@ -23,6 +23,11 @@ type quota struct {
 	sizeProcessedMessages uint64
 }
 
+// Size returns the size of a quota object
+func (q *quota) Size() int {
+	return 24
+}
+
 // quotaFloodPreventer represents a cache of quotas per peer used in antiflooding mechanism
 type quotaFloodPreventer struct {
 	maxMessagesPerPeer uint32
@@ -138,7 +143,7 @@ func (qfp *quotaFloodPreventer) putDefaultQuota(identifier string, size uint64) 
 		numProcessedMessages:  initNumMessages,
 		sizeProcessedMessages: size,
 	}
-	qfp.cacher.Put([]byte(identifier), q)
+	qfp.cacher.Put([]byte(identifier), q, q.Size())
 }
 
 // Reset clears all map values

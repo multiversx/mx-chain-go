@@ -61,9 +61,13 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.Root()
-	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(&mock.CacherStub{PutCalled: func(key []byte, value interface{}) (evicted bool) {
-		return false
-	}})
+	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
+		&mock.CacherStub{
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+				return false
+			},
+		},
+	)
 	requestHandler, _ := requestHandlers.NewResolverRequestHandler(
 		nRequester.ResolverFinder,
 		&mock.RequestedItemsHandlerStub{},
