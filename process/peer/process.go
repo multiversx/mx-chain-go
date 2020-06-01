@@ -280,8 +280,11 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 
 	previousHeader, ok := cache[string(header.GetPrevHash())]
 	if !ok {
-		log.Warn("UpdatePeerState could not get meta header from cache", "error", process.ErrMissingHeader.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
-		return nil, process.ErrMissingHeader
+		return nil, fmt.Errorf("%w - updatePeerState get header from cache - hash: %s, round: %v, nonce: %v",
+			process.ErrMissingHeader,
+			hex.EncodeToString(header.GetPrevHash()),
+			header.GetRound(),
+			header.GetNonce())
 	}
 
 	epoch := computeEpoch(header)
