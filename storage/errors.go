@@ -55,6 +55,9 @@ var ErrDestroyingUnit = errors.New("destroy unit didn't remove all the persister
 // ErrNilConfig signals that a nil configuration has been received
 var ErrNilConfig = errors.New("nil config")
 
+// ErrInvalidConfig signals an invalid config
+var ErrInvalidConfig = errors.New("invalid config")
+
 // ErrNilShardCoordinator signals that a nil shard coordinator has been provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
@@ -93,3 +96,9 @@ var ErrNilMarshalizer = errors.New("nil marshalizer")
 
 // ErrWrongTypeAssertion is thrown when a wrong type assertion is spotted
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrFailedCacheEviction signals a failed eviction within a cache
+var ErrFailedCacheEviction = errors.New("failed eviction within cache")
+
+// ErrItemAlreadyInCache signals that an item is already in cache
+var ErrItemAlreadyInCache = errors.New("item already in cache")
