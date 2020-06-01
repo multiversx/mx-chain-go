@@ -600,6 +600,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 
 func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPreviousMetaBlock_SameEpoch(t *testing.T) {
 	t.Parallel()
+
 	consensusGroup := make(map[string][]sharding.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
@@ -675,6 +676,7 @@ func generateTestShardBlockHeaders(cache map[string]data.HeaderHandler) (*block.
 
 func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_SameEpoch(t *testing.T) {
 	t.Parallel()
+
 	consensusGroup := make(map[string][]sharding.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
@@ -718,6 +720,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 
 func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPreviousMetaBlock_StartOfEpoch(t *testing.T) {
 	t.Parallel()
+
 	consensusGroup := make(map[string][]sharding.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
@@ -757,6 +760,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 
 func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_StartOfEpoch(t *testing.T) {
 	t.Parallel()
+
 	consensusGroup := make(map[string][]sharding.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
@@ -801,6 +805,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 
 func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPreviousMetaBlock_PrevStartOfEpoch(t *testing.T) {
 	t.Parallel()
+
 	consensusGroup := make(map[string][]sharding.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
@@ -842,6 +847,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 
 func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_PrevStartOfEpoch(t *testing.T) {
 	t.Parallel()
+
 	consensusGroup := make(map[string][]sharding.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
@@ -887,6 +893,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_P
 
 func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensusCurrentShardBlock_SameEpoch(t *testing.T) {
 	t.Parallel()
+
 	consensusGroup := make(map[string][]sharding.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
@@ -943,6 +950,7 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensu
 
 func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedShardBlock_SameEpoch(t *testing.T) {
 	t.Parallel()
+
 	consensusGroup := make(map[string][]sharding.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
@@ -1006,6 +1014,7 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedSh
 
 func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensusShardBlock_StartOfEpoch(t *testing.T) {
 	t.Parallel()
+
 	consensusGroup := make(map[string][]sharding.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)
@@ -1066,6 +1075,7 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensu
 
 func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedShardBlock_StartOfEpoch(t *testing.T) {
 	t.Parallel()
+
 	consensusGroup := make(map[string][]sharding.Validator)
 
 	arguments := createUpdateTestArgs(consensusGroup)

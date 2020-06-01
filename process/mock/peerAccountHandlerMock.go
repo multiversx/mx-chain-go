@@ -109,6 +109,7 @@ func (p *PeerAccountHandlerMock) IncreaseLeaderSuccessRate(val uint32) {
 func (p *PeerAccountHandlerMock) DecreaseLeaderSuccessRate(val uint32) {
 	if p.DecreaseLeaderSuccessRateCalled != nil {
 		p.DecreaseLeaderSuccessRateCalled(val)
+		return
 	}
 	p.DecreaseLeaderSuccessRateValue += val
 }
@@ -117,6 +118,7 @@ func (p *PeerAccountHandlerMock) DecreaseLeaderSuccessRate(val uint32) {
 func (p *PeerAccountHandlerMock) IncreaseValidatorSuccessRate(val uint32) {
 	if p.IncreaseValidatorSuccessRateCalled != nil {
 		p.IncreaseValidatorSuccessRateCalled(val)
+		return
 	}
 	p.IncreaseValidatorSuccessRateValue += val
 }
@@ -125,6 +127,7 @@ func (p *PeerAccountHandlerMock) IncreaseValidatorSuccessRate(val uint32) {
 func (p *PeerAccountHandlerMock) DecreaseValidatorSuccessRate(val uint32) {
 	if p.DecreaseValidatorSuccessRateCalled != nil {
 		p.DecreaseValidatorSuccessRateCalled(val)
+		return
 	}
 	p.DecreaseValidatorSuccessRateValue += val
 }

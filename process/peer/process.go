@@ -359,7 +359,7 @@ func computeEpoch(header data.HeaderHandler) uint32 {
 	// TODO: change if start of epoch block needs to be validated by the new epoch nodes
 	// previous block was proposed by the consensus group of the previous epoch
 	epoch := header.GetEpoch()
-	if (header.IsStartOfEpochBlock()) && epoch > 0 {
+	if header.IsStartOfEpochBlock() && epoch > 0 {
 		epoch = epoch - 1
 	}
 
@@ -754,7 +754,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 		if !ok {
 			return fmt.Errorf("%w - updateShardDataPeerState header from cache - hash: %s, round: %v, nonce: %v",
 				process.ErrMissingHeader,
-				hex.EncodeToString(h.GetPrevHash()),
+				hex.EncodeToString(h.HeaderHash),
 				h.GetRound(),
 				h.GetNonce())
 		}
