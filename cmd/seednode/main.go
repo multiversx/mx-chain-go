@@ -191,6 +191,7 @@ func displayMessengerInfo(messenger p2p.Messenger) {
 		return strings.Compare(mesConnectedAddrs[i], mesConnectedAddrs[j]) < 0
 	})
 
+	log.Info("known peers", "num peers", len(messenger.Peers()))
 	headerConnectedAddresses := []string{fmt.Sprintf("Seednode is connected to %d peers:", len(mesConnectedAddrs))}
 	connAddresses := make([]*display.LineData, len(mesConnectedAddrs))
 

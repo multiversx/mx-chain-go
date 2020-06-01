@@ -43,7 +43,8 @@ func (c *FIFOShardedCache) Clear() {
 }
 
 // Put adds a value to the cache.  Returns true if an eviction occurred.
-func (c *FIFOShardedCache) Put(key []byte, value interface{}) (evicted bool) {
+// the int parameter for size is not used as, for now, fifo sharded cache can not count for its contained data size
+func (c *FIFOShardedCache) Put(key []byte, value interface{}, _ int) (evicted bool) {
 	c.cache.Set(string(key), value)
 	c.callAddedDataHandlers(key, value)
 
@@ -82,7 +83,7 @@ func (c *FIFOShardedCache) Peek(key []byte) (value interface{}, ok bool) {
 // HasOrAdd checks if a key is in the cache  without updating the
 // recent-ness or deleting it for being stale,  and if not, adds the value.
 // Returns whether found and whether an eviction occurred.
-func (c *FIFOShardedCache) HasOrAdd(key []byte, value interface{}) (found, evicted bool) {
+func (c *FIFOShardedCache) HasOrAdd(key []byte, value interface{}, _ int) (found, evicted bool) {
 	added := c.cache.SetIfAbsent(string(key), value)
 
 	if added {
@@ -103,12 +104,6 @@ func (c *FIFOShardedCache) callAddedDataHandlers(key []byte, value interface{}) 
 // Remove removes the provided key from the cache.
 func (c *FIFOShardedCache) Remove(key []byte) {
 	c.cache.Remove(string(key))
-}
-
-// RemoveOldest removes the oldest item from the cache.
-func (c *FIFOShardedCache) RemoveOldest() {
-	// nothing to do, oldest is automatically removed when adding a new item.
-	log.Debug("remove oldest item not done, oldest item will be automatically cleared on reaching capacity")
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.

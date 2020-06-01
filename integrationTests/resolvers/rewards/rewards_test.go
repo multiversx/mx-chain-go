@@ -28,7 +28,7 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingOtherShard(t *testin
 
 	//add reward with round 0 in pool
 	cacheId := process.ShardCacherIdentifier(shardIdRequester, core.MetachainShardId)
-	nResolver.DataPool.RewardTransactions().AddData(hash, reward, cacheId)
+	nResolver.DataPool.RewardTransactions().AddData(hash, reward, reward.Size(), cacheId)
 
 	//setup header received event
 	nRequester.DataPool.RewardTransactions().RegisterHandler(

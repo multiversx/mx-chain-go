@@ -26,9 +26,9 @@ import (
 
 func getDummyConfig() (storageUnit.CacheConfig, storageUnit.DBConfig, storageUnit.BloomConfig) {
 	cacheConf := storageUnit.CacheConfig{
-		Size:   10,
-		Type:   "LRU",
-		Shards: 3,
+		Capacity: 10,
+		Type:     "LRU",
+		Shards:   3,
 	}
 	dbConf := storageUnit.DBConfig{
 		FilePath:          "path/Epoch_0/Shard_1",
@@ -67,7 +67,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 
 func getDefaultArgsSerialDB() *pruning.StorerArgs {
 	cacheConf, dbConf, blConf := getDummyConfig()
-	cacheConf.Size = 40
+	cacheConf.Capacity = 40
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
 			return leveldb.NewSerialDB(path, 1, 20, 10)

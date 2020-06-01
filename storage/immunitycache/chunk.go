@@ -167,8 +167,7 @@ func (chunk *immunityChunk) monitorEvictionNoLock(numRemoved int, err error) {
 }
 
 func (chunk *immunityChunk) itemExistsNoLock(item storage.CacheItem) bool {
-	key := string(item.GetKey())
-	_, exists := chunk.items[key]
+	_, exists := chunk.items[string(item.GetKey())]
 	return exists
 }
 
@@ -181,9 +180,7 @@ func (chunk *immunityChunk) addItemNoLock(item storage.CacheItem) {
 }
 
 func (chunk *immunityChunk) immunizeItemOnAddNoLock(item storage.CacheItem) {
-	key := string(item.GetKey())
-
-	if _, immunize := chunk.immuneKeys[key]; immunize {
+	if _, immunize := chunk.immuneKeys[string(item.GetKey())]; immunize {
 		item.ImmunizeAgainstEviction()
 		// We do not remove the key from "immuneKeys", we hold it there until item's removal.
 	}

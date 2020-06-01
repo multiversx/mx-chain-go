@@ -170,7 +170,7 @@ func TestSyncPendingTransactionsFor_ReceiveMissingTx(t *testing.T) {
 		tx := &dataTransaction.Transaction{
 			Nonce: 1, Value: big.NewInt(10), SndAddr: []byte("snd"), RcvAddr: []byte("rcv"),
 		}
-		pendingTxsSyncer.txPools[block.TxBlock].AddData(txHash, tx, "0")
+		pendingTxsSyncer.txPools[block.TxBlock].AddData(txHash, tx, tx.Size(), "0")
 
 		pendingTxsSyncer.receivedTransaction(txHash, tx)
 	}()
