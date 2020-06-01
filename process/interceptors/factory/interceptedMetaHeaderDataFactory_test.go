@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -42,7 +42,7 @@ func createMockSigner() crypto.SingleSigner {
 	}
 }
 
-func createMockPubkeyConverter() state.PubkeyConverter {
+func createMockPubkeyConverter() core.PubkeyConverter {
 	return mock.NewPubkeyConverterMock(32)
 }
 

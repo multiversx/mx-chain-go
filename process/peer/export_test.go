@@ -47,6 +47,13 @@ func (ptp *PeerTypeProvider) GetCache() map[string]*peerListAndShard {
 	return ptp.cache
 }
 
+// GetCache -
+func (ptp *validatorsProvider) GetCache() map[string]*state.ValidatorApiResponse {
+	ptp.lock.RLock()
+	defer ptp.lock.RUnlock()
+	return ptp.cache
+}
+
 // UpdateShardDataPeerState -
 func (vs *validatorStatistics) UpdateShardDataPeerState(
 	header data.HeaderHandler,

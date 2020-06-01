@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -14,7 +13,7 @@ import (
 var _ process.TxTypeHandler = (*txTypeHandler)(nil)
 
 type txTypeHandler struct {
-	pubkeyConv       state.PubkeyConverter
+	pubkeyConv       core.PubkeyConverter
 	shardCoordinator sharding.Coordinator
 	builtInFuncNames map[string]struct{}
 	argumentParser   process.ArgumentsParser
@@ -22,7 +21,7 @@ type txTypeHandler struct {
 
 // ArgNewTxTypeHandler defines the arguments needed to create a new tx type handler
 type ArgNewTxTypeHandler struct {
-	PubkeyConverter  state.PubkeyConverter
+	PubkeyConverter  core.PubkeyConverter
 	ShardCoordinator sharding.Coordinator
 	BuiltInFuncNames map[string]struct{}
 	ArgumentParser   process.ArgumentsParser

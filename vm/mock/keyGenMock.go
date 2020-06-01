@@ -49,6 +49,11 @@ func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, er
 	return keyGen.PublicKeyFromByteArrayCalled(b)
 }
 
+// CheckPublicKeyValid -
+func (keyGen *KeyGenMock) CheckPublicKeyValid(_ []byte) error {
+	return nil
+}
+
 // Suite -
 func (keyGen *KeyGenMock) Suite() crypto.Suite {
 	return nil

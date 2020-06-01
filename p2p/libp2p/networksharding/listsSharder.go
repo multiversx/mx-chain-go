@@ -232,7 +232,7 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 			switch peerInfo.PeerType {
 			case core.ValidatorPeer:
 				peerDistances[crossShardValidators] = append(peerDistances[crossShardValidators], pd)
-			case core.ObserverdPeer:
+			case core.ObserverPeer:
 				peerDistances[crossShardObservers] = append(peerDistances[crossShardObservers], pd)
 			}
 
@@ -242,7 +242,7 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 		switch peerInfo.PeerType {
 		case core.ValidatorPeer:
 			peerDistances[intraShardValidators] = append(peerDistances[intraShardValidators], pd)
-		case core.ObserverdPeer:
+		case core.ObserverPeer:
 			peerDistances[intraShardObservers] = append(peerDistances[intraShardObservers], pd)
 		}
 	}

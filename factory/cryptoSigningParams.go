@@ -9,13 +9,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // TODO: merge this with Crypto Components
 
 type cryptoSigningParamsLoader struct {
-	pubkeyConverter     state.PubkeyConverter
+	pubkeyConverter     core.PubkeyConverter
 	skIndex             int
 	skPemFileName       string
 	suite               crypto.Suite
@@ -24,7 +23,7 @@ type cryptoSigningParamsLoader struct {
 
 // NewCryptoSigningParamsLoader returns a new instance of cryptoSigningParamsLoader
 func NewCryptoSigningParamsLoader(
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
 	skIndex int,
 	skPemFileName string,
 	suite crypto.Suite,

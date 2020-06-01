@@ -42,7 +42,7 @@ type ArgValidatorStatisticsProcessor struct {
 	ShardCoordinator    sharding.Coordinator
 	DataPool            DataPool
 	StorageService      dataRetriever.StorageService
-	PubkeyConv          state.PubkeyConverter
+	PubkeyConv          core.PubkeyConverter
 	PeerAdapter         state.AccountsAdapter
 	Rater               sharding.PeerAccountListAndRatingHandler
 	RewardsHandler      process.RewardsHandler
@@ -58,7 +58,7 @@ type validatorStatistics struct {
 	storageService         dataRetriever.StorageService
 	nodesCoordinator       sharding.NodesCoordinator
 	shardCoordinator       sharding.Coordinator
-	pubkeyConv             state.PubkeyConverter
+	pubkeyConv             core.PubkeyConverter
 	peerAdapter            state.AccountsAdapter
 	rater                  sharding.PeerAccountListAndRatingHandler
 	rewardsHandler         process.RewardsHandler

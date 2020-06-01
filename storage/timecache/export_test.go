@@ -15,12 +15,21 @@ func (tc *TimeCache) KeyTime(key string) (time.Time, bool) {
 
 	val, ok := tc.data[key]
 
-	return val, ok
+	return val.timestamp, ok
+}
+
+func (tc *TimeCache) KeySpan(key string) (time.Duration, bool) {
+	tc.mut.Lock()
+	defer tc.mut.Unlock()
+
+	val, ok := tc.data[key]
+
+	return val.span, ok
 }
 
 func (tc *TimeCache) ClearMap() {
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
 
-	tc.data = make(map[string]time.Time)
+	tc.data = make(map[string]span)
 }
