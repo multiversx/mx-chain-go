@@ -26,7 +26,7 @@ var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
-	PubkeyConv  state.PubkeyConverter
+	PubkeyConv  core.PubkeyConverter
 	Hasher      hashing.Hasher
 	Marshalizer marshal.Marshalizer
 	PeerState   state.AccountsAdapter
@@ -41,7 +41,7 @@ type ArgStakingToPeer struct {
 // stakingToPeer defines the component which will translate changes from staking SC state
 // to validator statistics trie
 type stakingToPeer struct {
-	pubkeyConv  state.PubkeyConverter
+	pubkeyConv  core.PubkeyConverter
 	hasher      hashing.Hasher
 	marshalizer marshal.Marshalizer
 	peerState   state.AccountsAdapter

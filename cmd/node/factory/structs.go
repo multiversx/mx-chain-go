@@ -79,6 +79,8 @@ type EpochStartNotifier interface {
 	UnregisterHandler(handler epochStart.ActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
+	NotifyEpochChangeConfirmed(epoch uint32)
 	IsInterfaceNil() bool
 }
 
@@ -100,6 +102,7 @@ type Process struct {
 	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	RequestHandler           process.RequestHandler
 	TxLogsProcessor          process.TransactionLogProcessorDatabase
+	HeaderValidator          epochStart.HeaderValidator
 }
 
 type processComponentsFactoryArgs struct {
@@ -135,7 +138,7 @@ type processComponentsFactoryArgs struct {
 	minSizeInBytes            uint32
 	maxSizeInBytes            uint32
 	maxRating                 uint32
-	validatorPubkeyConverter  state.PubkeyConverter
+	validatorPubkeyConverter  core.PubkeyConverter
 	systemSCConfig            *config.SystemSmartContractsConfig
 	txLogsProcessor           process.TransactionLogProcessor
 	version                   string
@@ -173,7 +176,7 @@ func NewProcessComponentsFactoryArgs(
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
 	maxRating uint32,
-	validatorPubkeyConverter state.PubkeyConverter,
+	validatorPubkeyConverter core.PubkeyConverter,
 	ratingsData process.RatingsInfoHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
 	version string,
@@ -276,11 +279,18 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	validatorsProvider, err := peer.NewValidatorsProvider(
-		validatorStatisticsProcessor,
-		args.maxRating,
-		args.validatorPubkeyConverter,
-	)
+	cacheRefreshDuration := time.Duration(args.mainConfig.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
+	argVSP := peer.ArgValidatorsProvider{
+		NodesCoordinator:                  args.nodesCoordinator,
+		StartEpoch:                        args.startEpochNum,
+		EpochStartEventNotifier:           args.epochStartNotifier,
+		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
+		ValidatorStatistics:               validatorStatisticsProcessor,
+		MaxRating:                         args.maxRating,
+		PubKeyConverter:                   args.validatorPubkeyConverter,
+	}
+
+	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
 	if err != nil {
 		return nil, err
 	}
@@ -373,6 +383,15 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	txsPoolsCleaner.StartCleaning()
 
+	//TODO: Will be useful/used when the implementation of the cacher notifier about transactions which should be
+	// protected for eviction will be done
+	if args.shardCoordinator.SelfId() != core.MetachainShardId {
+		_, err = track.NewMiniBlockTrack(args.data.Datapool, args.shardCoordinator)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	interceptorContainerFactory, blackListHandler, err := newInterceptorContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
@@ -439,6 +458,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.accountsParser,
 		args.economicsData.GenesisNodePrice(),
 		args.validatorPubkeyConverter,
+		args.crypto.BlockSignKeyGen,
 	)
 	if err != nil {
 		return nil, err
@@ -466,6 +486,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
 		RequestHandler:           requestHandler,
 		TxLogsProcessor:          txLogsProcessor,
+		HeaderValidator:          headerValidator,
 	}, nil
 }
 
@@ -909,6 +930,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		TrieStorageManagers:      args.tries.TrieStorageManagers,
 		ChainID:                  string(args.coreComponents.ChainID),
 		SystemSCConfig:           *args.systemSCConfig,
+		BlockSignKeyGen:          args.crypto.BlockSignKeyGen,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)

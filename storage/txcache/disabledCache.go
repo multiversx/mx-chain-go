@@ -5,6 +5,7 @@ import (
 )
 
 var _ storage.Cacher = (*DisabledCache)(nil)
+var _ txCache = (*DisabledCache)(nil)
 
 // DisabledCache represents a disabled cache
 type DisabledCache struct {
@@ -98,6 +99,10 @@ func (cache *DisabledCache) MaxSize() int {
 
 // RegisterHandler does nothing
 func (cache *DisabledCache) RegisterHandler(func(key []byte, value interface{})) {
+}
+
+// NotifyAccountNonce does nothing
+func (cache *DisabledCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

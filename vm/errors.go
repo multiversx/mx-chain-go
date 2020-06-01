@@ -127,3 +127,6 @@ var ErrInvalidStartEndVoteNonce = errors.New("invalid start/end vote nonce")
 
 // ErrEmptyStorage signals that the storage is empty for given key
 var ErrEmptyStorage = errors.New("storage is nil for given key")
+
+// ErrNilPublicKey signals that nil public key has been provided
+var ErrNilPublicKey = errors.New("nil public key")

@@ -422,17 +422,11 @@ var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 // ErrNilEpochHandler signals that a nil epoch handler was provided
 var ErrNilEpochHandler = errors.New("nil epoch handler")
 
-// ErrNilValidatorsProvider signals that the validatorsProvider is nil
-var ErrNilValidatorsProvider = errors.New("nil validatorsProvider")
-
 // ErrNilEpochStartNotifier signals that the ErrNilEpochStartNotifier is nil
 var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
 
-// ErrInvalidPeerTypeRefreshIntervalInSec signals that the peerTypeRefreshIntervalInSec is invalid - zero or less
-var ErrInvalidPeerTypeRefreshIntervalInSec = errors.New("nil PeerTypeRefreshIntervalInSec")
-
-// ErrNilContext signals that the context is nil
-var ErrNilContext = errors.New("nil context")
+// ErrInvalidCacheRefreshIntervalInSec signals that the cacheRefreshIntervalInSec is invalid - zero or less
+var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshIntervalInSec")
 
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
@@ -784,3 +778,12 @@ var ErrBuiltInFunctionCalledWithValue = errors.New("built in function called wit
 
 // ErrEmptySoftwareVersion signals that empty software version was called
 var ErrEmptySoftwareVersion = errors.New("empty software version")
+
+// ErrEmptyFloodPreventerList signals that an empty flood preventer list has been provided
+var ErrEmptyFloodPreventerList = errors.New("empty flood preventer provided")
+
+// ErrNilTopicFloodPreventer signals that a nil topic flood preventer has been provided
+var ErrNilTopicFloodPreventer = errors.New("nil topic flood preventer")
+
+// ErrOriginatorIsBlacklisted signals that a message originator is blacklisted on the current node
+var ErrOriginatorIsBlacklisted = errors.New("originator is blacklisted")

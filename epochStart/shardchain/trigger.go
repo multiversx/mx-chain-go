@@ -457,6 +457,8 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 	if metaHdr.IsStartOfEpochBlock() {
 		t.newEpochHdrReceived = true
 		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
+		// waiting for late broadcast of mini blocks and transactions to be done and received
+		time.Sleep(core.ExtraDelayForRequestBlockInfo)
 	}
 
 	t.mapHashHdr[string(metaBlockHash)] = metaHdr
@@ -496,6 +498,7 @@ func (t *trigger) updateTriggerFromMeta() {
 			t.epochMetaBlockHash = []byte(currMetaInfo.hash)
 			t.epochStartMeta = currMetaInfo.hdr
 			t.saveCurrentState(currMetaInfo.hdr.GetRound())
+			t.epochStartNotifier.NotifyEpochChangeConfirmed(t.metaEpoch)
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.metaEpoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))

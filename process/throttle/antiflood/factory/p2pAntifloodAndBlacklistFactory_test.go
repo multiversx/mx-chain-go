@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,8 +34,8 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 	assert.NotNil(t, bl)
 	assert.Nil(t, err)
 
-	_, ok1 := af.(*disabledAntiFlood)
-	_, ok2 := bl.(*disabledBlacklistHandler)
+	_, ok1 := af.(*disabled.AntiFlood)
+	_, ok2 := bl.(*disabled.BlacklistHandler)
 	assert.True(t, ok1)
 	assert.True(t, ok2)
 }
@@ -50,22 +51,10 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 				Size:   10,
 				Shards: 2,
 			},
-			PeerMaxInput: config.AntifloodLimitsConfig{
-				MessagesPerSecond:  10,
-				TotalSizePerSecond: 10,
-			},
-			NetworkMaxInput: config.AntifloodLimitsConfig{
-				MessagesPerSecond:  10,
-				TotalSizePerSecond: 10,
-			},
+			FastReacting: createFloodPreventerConfig(),
+			SlowReacting: createFloodPreventerConfig(),
 			Topic: config.TopicAntifloodConfig{
 				DefaultMaxMessagesPerSec: 10,
-			},
-			BlackList: config.BlackListConfig{
-				ThresholdNumMessagesPerSecond: 10,
-				ThresholdSizePerSecond:        10,
-				NumFloodingRounds:             10,
-				PeerBanDurationInSeconds:      10,
 			},
 		},
 	}
@@ -75,4 +64,20 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 	assert.Nil(t, err)
 	assert.NotNil(t, af)
 	assert.NotNil(t, bl)
+}
+
+func createFloodPreventerConfig() config.FloodPreventerConfig {
+	return config.FloodPreventerConfig{
+		IntervalInSeconds: 1,
+		PeerMaxInput: config.AntifloodLimitsConfig{
+			MessagesPerInterval:  10,
+			TotalSizePerInterval: 10,
+		},
+		BlackList: config.BlackListConfig{
+			ThresholdNumMessagesPerInterval: 10,
+			ThresholdSizePerInterval:        10,
+			NumFloodingRounds:               10,
+			PeerBanDurationInSeconds:        10,
+		},
+	}
 }
