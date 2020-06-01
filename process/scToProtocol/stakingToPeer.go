@@ -165,7 +165,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		if len(data) == 0 {
 			err = stp.peerState.RemoveAccount(blsPubKey)
 			if err != nil {
-				return err
+				log.Debug("staking to protocol RemoveAccount error", "err", err, "blsPubKey", blsPubKey)
 			}
 
 			continue
