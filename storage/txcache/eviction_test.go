@@ -10,15 +10,15 @@ import (
 )
 
 func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
-	config := CacheConfig{
-		Name:                       "untitled",
-		NumChunksHint:              16,
-		CountThreshold:             100,
-		CountPerSenderThreshold:    math.MaxUint32,
-		NumSendersToEvictInOneStep: 20,
-		NumBytesThreshold:          math.MaxUint32,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		MinGasPriceNanoErd:         100,
+	config := ConfigSourceMe{
+		Name:                          "untitled",
+		NumChunks:                     16,
+		CountThreshold:                100,
+		CountPerSenderThreshold:       math.MaxUint32,
+		NumSendersToPreemptivelyEvict: 20,
+		NumBytesThreshold:             maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
+		MinGasPriceNanoErd:            100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -47,15 +47,15 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 	numBytesPerTx := uint32(1000)
 
-	config := CacheConfig{
-		Name:                       "untitled",
-		NumChunksHint:              16,
-		CountThreshold:             math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		NumBytesThreshold:          numBytesPerTx * 100,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		NumSendersToEvictInOneStep: 20,
-		MinGasPriceNanoErd:         100,
+	config := ConfigSourceMe{
+		Name:                          "untitled",
+		NumChunks:                     16,
+		CountThreshold:                math.MaxUint32,
+		CountPerSenderThreshold:       math.MaxUint32,
+		NumBytesThreshold:             numBytesPerTx * 100,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
+		NumSendersToPreemptivelyEvict: 20,
+		MinGasPriceNanoErd:            100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -82,15 +82,15 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 }
 
 func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
-	config := CacheConfig{
-		Name:                       "untitled",
-		NumChunksHint:              16,
-		NumBytesThreshold:          math.MaxUint32,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountThreshold:             2,
-		CountPerSenderThreshold:    math.MaxUint32,
-		NumSendersToEvictInOneStep: 2,
-		MinGasPriceNanoErd:         100,
+	config := ConfigSourceMe{
+		Name:                          "untitled",
+		NumChunks:                     16,
+		NumBytesThreshold:             maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
+		CountThreshold:                2,
+		CountPerSenderThreshold:       math.MaxUint32,
+		NumSendersToPreemptivelyEvict: 2,
+		MinGasPriceNanoErd:            100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -114,15 +114,15 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 }
 
 func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
-	config := CacheConfig{
-		Name:                       "untitled",
-		NumChunksHint:              16,
-		CountThreshold:             math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		NumBytesThreshold:          1000,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		NumSendersToEvictInOneStep: 2,
-		MinGasPriceNanoErd:         100,
+	config := ConfigSourceMe{
+		Name:                          "untitled",
+		NumChunks:                     16,
+		CountThreshold:                math.MaxUint32,
+		CountPerSenderThreshold:       math.MaxUint32,
+		NumBytesThreshold:             1000,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
+		NumSendersToPreemptivelyEvict: 2,
+		MinGasPriceNanoErd:            100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -150,14 +150,14 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 }
 
 func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
-	config := CacheConfig{
-		Name:                       "untitled",
-		NumChunksHint:              1,
-		CountThreshold:             0,
-		NumSendersToEvictInOneStep: 1,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
+	config := ConfigSourceMe{
+		Name:                          "untitled",
+		NumChunks:                     1,
+		CountThreshold:                0,
+		NumSendersToPreemptivelyEvict: 1,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
+		CountPerSenderThreshold:       math.MaxUint32,
+		MinGasPriceNanoErd:            100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -173,14 +173,14 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 }
 
 func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T) {
-	config := CacheConfig{
-		Name:                       "untitled",
-		NumChunksHint:              1,
-		CountThreshold:             0,
-		NumSendersToEvictInOneStep: 42,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
+	config := ConfigSourceMe{
+		Name:                          "untitled",
+		NumChunks:                     1,
+		CountThreshold:                0,
+		NumSendersToPreemptivelyEvict: 42,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
+		CountPerSenderThreshold:       math.MaxUint32,
+		MinGasPriceNanoErd:            100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -198,14 +198,14 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 }
 
 func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
-	config := CacheConfig{
-		Name:                       "untitled",
-		NumChunksHint:              1,
-		CountThreshold:             0,
-		NumSendersToEvictInOneStep: 1,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
+	config := ConfigSourceMe{
+		Name:                          "untitled",
+		NumChunks:                     1,
+		CountThreshold:                0,
+		NumSendersToPreemptivelyEvict: 1,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
+		CountPerSenderThreshold:       math.MaxUint32,
+		MinGasPriceNanoErd:            100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -227,19 +227,19 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 }
 
 // This seems to be the most reasonable "bad-enough" (not worst) scenario to benchmark:
-// 25000 senders with 10 transactions each, with default "NumSendersToEvictInOneStep".
+// 25000 senders with 10 transactions each, with default "NumSendersToPreemptivelyEvict".
 // ~1 second on average laptop.
 func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
-	config := CacheConfig{
-		Name:                       "untitled",
-		NumChunksHint:              16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          1000000000,
-		CountThreshold:             240000,
-		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
+	config := ConfigSourceMe{
+		Name:                          "untitled",
+		NumChunks:                     16,
+		EvictionEnabled:               true,
+		NumBytesThreshold:             1000000000,
+		CountThreshold:                240000,
+		NumSendersToPreemptivelyEvict: dataRetriever.TxPoolNumSendersToPreemptivelyEvict,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
+		CountPerSenderThreshold:       math.MaxUint32,
+		MinGasPriceNanoErd:            100,
 	}
 
 	numSenders := 25000
@@ -253,7 +253,7 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 
 	// Sometimes (due to map iteration non-determinism), more eviction happens - one more step of 100 senders.
 	require.LessOrEqual(t, uint32(cache.CountTx()), config.CountThreshold)
-	require.GreaterOrEqual(t, uint32(cache.CountTx()), config.CountThreshold-config.NumSendersToEvictInOneStep*uint32(numTxsPerSender))
+	require.GreaterOrEqual(t, uint32(cache.CountTx()), config.CountThreshold-config.NumSendersToPreemptivelyEvict*uint32(numTxsPerSender))
 }
 
 func Test_EvictSendersAndTheirTxs_Concurrently(t *testing.T) {
