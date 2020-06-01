@@ -126,6 +126,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	privateKey := &mock.PrivateKeyMock{}
 	singleSigner := &mock.SingleSignerMock{}
 	headersSubscriber := &mock.HeadersCacherStub{}
+	interceptosContainer := &mock.InterceptorsContainerStub{}
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
 		messenger,
@@ -133,6 +134,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		privateKey,
 		singleSigner,
 		headersSubscriber,
+		interceptosContainer,
 	)
 
 	assert.Nil(t, err)
@@ -151,6 +153,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	privateKey := &mock.PrivateKeyMock{}
 	singleSigner := &mock.SingleSignerMock{}
 	headersSubscriber := &mock.HeadersCacherStub{}
+	interceptosContainer := &mock.InterceptorsContainerStub{}
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
 		messenger,
@@ -158,6 +161,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		privateKey,
 		singleSigner,
 		headersSubscriber,
+		interceptosContainer,
 	)
 
 	assert.Nil(t, err)
@@ -172,6 +176,8 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		return 37
 	}
 	headersSubscriber := &mock.HeadersCacherStub{}
+	interceptosContainer := &mock.InterceptorsContainerStub{}
+
 	bm, err := sposFactory.GetBroadcastMessenger(
 		nil,
 		nil,
@@ -179,6 +185,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		nil,
 		nil,
 		headersSubscriber,
+		interceptosContainer,
 	)
 
 	assert.Nil(t, bm)

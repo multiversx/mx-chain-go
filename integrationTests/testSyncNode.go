@@ -117,6 +117,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.SingleSigner,
 		tpn.DataPool.Headers(),
+		tpn.InterceptorsContainer,
 	)
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()

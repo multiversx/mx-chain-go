@@ -36,6 +36,7 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t
 			return nil, err
 		},
 	}
+	interceptorsContainer := &mock.InterceptorsContainerStub{}
 
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
@@ -43,6 +44,7 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		interceptorsContainer,
 	)
 
 	msg := &consensus.Message{}
@@ -63,6 +65,7 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldWork(t *testing.T) {
 			return []byte(""), nil
 		},
 	}
+	interceptorsContainer := &mock.InterceptorsContainerStub{}
 
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
@@ -70,6 +73,7 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldWork(t *testing.T) {
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		interceptorsContainer,
 	)
 
 	msg := &consensus.Message{}
@@ -88,6 +92,7 @@ func TestCommonMessenger_SignMessageShouldErrWhenMarshalFail(t *testing.T) {
 		},
 	}
 	marshalizerMock.Fail = true
+	interceptorsContainer := &mock.InterceptorsContainerStub{}
 
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
@@ -95,6 +100,7 @@ func TestCommonMessenger_SignMessageShouldErrWhenMarshalFail(t *testing.T) {
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		interceptorsContainer,
 	)
 
 	msg := &consensus.Message{}
@@ -113,6 +119,7 @@ func TestCommonMessenger_SignMessageShouldErrWhenSignFail(t *testing.T) {
 			return nil, err
 		},
 	}
+	interceptorsContainer := &mock.InterceptorsContainerStub{}
 
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
@@ -120,6 +127,7 @@ func TestCommonMessenger_SignMessageShouldErrWhenSignFail(t *testing.T) {
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		interceptorsContainer,
 	)
 
 	msg := &consensus.Message{}

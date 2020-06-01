@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -31,13 +32,15 @@ func NewCommonMessenger(
 	privateKey crypto.PrivateKey,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
+	interceptorsContainer process.InterceptorsContainer,
 ) (*commonMessenger, error) {
 
 	return &commonMessenger{
-		marshalizer:      marshalizer,
-		messenger:        messenger,
-		privateKey:       privateKey,
-		shardCoordinator: shardCoordinator,
-		singleSigner:     singleSigner,
+		marshalizer:           marshalizer,
+		messenger:             messenger,
+		privateKey:            privateKey,
+		shardCoordinator:      shardCoordinator,
+		singleSigner:          singleSigner,
+		interceptorsContainer: interceptorsContainer,
 	}, nil
 }

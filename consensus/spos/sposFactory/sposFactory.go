@@ -65,11 +65,12 @@ func GetBroadcastMessenger(
 ) (consensus.BroadcastMessenger, error) {
 
 	commonMessengerArgs := broadcast.CommonMessengerArgs{
-		Marshalizer:      marshalizer,
-		Messenger:        messenger,
-		PrivateKey:       privateKey,
-		ShardCoordinator: shardCoordinator,
-		SingleSigner:     singleSigner,
+		Marshalizer:           marshalizer,
+		Messenger:             messenger,
+		PrivateKey:            privateKey,
+		ShardCoordinator:      shardCoordinator,
+		SingleSigner:          singleSigner,
+		InterceptorsContainer: interceptorsContainer,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
