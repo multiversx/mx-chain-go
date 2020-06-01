@@ -8,7 +8,7 @@ import (
 type ShardedDataStub struct {
 	RegisterHandlerCalled                  func(func(key []byte, value interface{}))
 	ShardDataStoreCalled                   func(cacheId string) (c storage.Cacher)
-	AddDataCalled                          func(key []byte, data interface{}, cacheId string)
+	AddDataCalled                          func(key []byte, data interface{}, sizeInBytes int, cacheId string)
 	SearchFirstDataCalled                  func(key []byte) (value interface{}, ok bool)
 	RemoveDataCalled                       func(key []byte, cacheId string)
 	RemoveDataFromAllShardsCalled          func(key []byte)

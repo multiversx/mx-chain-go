@@ -143,12 +143,12 @@ func Test_AddData(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 	cache := pool.getTxCache("0")
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
-	pool.AddData([]byte("hash-y"), createTx("alice", 43), "0")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "0")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), 0, "0")
 	require.Equal(t, 2, cache.Len())
 
 	// Try to add again, duplication does not occur
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "0")
 	require.Equal(t, 2, cache.Len())
 
 	_, ok := cache.GetByTxHash([]byte("hash-x"))
@@ -175,8 +175,8 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 	})
 
 	// Second addition is ignored (txhash-based deduplication)
-	pool.AddData([]byte("hash-1"), createTx("alice", 42), "0")
-	pool.AddData([]byte("hash-1"), createTx("alice", 42), "0")
+	pool.AddData([]byte("hash-1"), createTx("alice", 42), 0, "0")
+	pool.AddData([]byte("hash-1"), createTx("alice", 42), 0, "0")
 
 	waitABit()
 	require.Equal(t, uint32(1), atomic.LoadUint32(&numAdded))
@@ -187,9 +187,9 @@ func Test_SearchFirstData(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 
 	tx := createTx("alice", 42)
-	pool.AddData([]byte("hash-x"), tx, "0")
-	pool.AddData([]byte("hash-y"), tx, "0_1")
-	pool.AddData([]byte("hash-z"), tx, "2_3")
+	pool.AddData([]byte("hash-x"), tx, 0, "0")
+	pool.AddData([]byte("hash-y"), tx, 0, "0_1")
+	pool.AddData([]byte("hash-z"), tx, 0, "2_3")
 
 	foundTx, ok := pool.SearchFirstData([]byte("hash-x"))
 	require.True(t, ok)
@@ -226,8 +226,8 @@ func Test_RemoveSetOfDataFromPool(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 	cache := pool.getTxCache("0")
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
-	pool.AddData([]byte("hash-y"), createTx("bob", 43), "0")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "0")
+	pool.AddData([]byte("hash-y"), createTx("bob", 43), 0, "0")
 	require.Equal(t, 2, cache.Len())
 
 	pool.RemoveSetOfDataFromPool([][]byte{[]byte("hash-x"), []byte("hash-y")}, "0")
