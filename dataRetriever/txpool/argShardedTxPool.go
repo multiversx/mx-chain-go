@@ -1,6 +1,7 @@
 package txpool
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -15,6 +16,7 @@ type ArgShardedTxPool struct {
 	SelfShardID    uint32
 }
 
+// TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
 func (args *ArgShardedTxPool) verify() error {
 	config := args.Config
 
@@ -41,4 +43,10 @@ func (args *ArgShardedTxPool) verify() error {
 	}
 
 	return nil
+}
+
+// String returns a readable representation of the object
+func (args *ArgShardedTxPool) String() string {
+	bytes, _ := json.Marshal(args)
+	return string(bytes)
 }
