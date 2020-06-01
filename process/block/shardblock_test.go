@@ -1961,7 +1961,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	assert.Equal(t, 4, len(wasCalled))
 }
 
-func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
+func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 	journalLen := func() int { return 3 }
@@ -1977,13 +1977,11 @@ func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	bl, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, func() bool { return true })
-	// nil block
-	assert.Nil(t, bl)
-	// error
-	assert.Equal(t, process.ErrAccountStateDirty, err)
+	assert.Nil(t, err)
+	assert.Equal(t, &block.Body{}, bl)
 }
 
-func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T) {
+func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldReturnEmptyBody(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 	journalLen := func() int { return 0 }
@@ -2004,10 +2002,8 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 		return false
 	}
 	bl, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTimeTrue)
-	// no error
-	assert.Equal(t, process.ErrTimeIsOut, err)
-	// no miniblocks
-	assert.Nil(t, bl)
+	assert.Nil(t, err)
+	assert.Equal(t, &block.Body{}, bl)
 }
 
 func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
