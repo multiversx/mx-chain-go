@@ -32,8 +32,6 @@ type shardProcessor struct {
 
 	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
 	core                serviceContainer.Core
-
-	lowestNonceInSelfNotarizedHeaders uint64
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -857,10 +855,6 @@ func (sp *shardProcessor) CommitBlock(
 		Hash:    headerHash,
 	}
 
-	if len(selfNotarizedHeaders) > 0 {
-		sp.lowestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[0].GetNonce()
-	}
-
 	nodesCoordinatorKey := sp.nodesCoordinator.GetSavedStateKey()
 	epochStartKey := sp.epochStartTrigger.GetSavedStateKey()
 
@@ -868,7 +862,7 @@ func (sp *shardProcessor) CommitBlock(
 		headerInfo:                 headerInfo,
 		round:                      header.Round,
 		lastSelfNotarizedHeaders:   sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes),
-		highestFinalBlockNonce:     sp.lowestNonceInSelfNotarizedHeaders,
+		highestFinalBlockNonce:     sp.forkDetector.GetHighestFinalBlockNonce(),
 		processedMiniBlocks:        sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice(),
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
