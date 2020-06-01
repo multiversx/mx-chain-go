@@ -567,6 +567,10 @@ func (g *governanceContract) voteForProposal(
 	if err != nil {
 		return err
 	}
+	currentNonce := g.eei.BlockChainHook().CurrentNonce()
+	if generalProposal.EndVoteNonce > currentNonce {
+		return vm.ErrVotedForAnExpiredProposal
+	}
 
 	g.addVotedDataToProposal(generalProposal, oldValue, -oldNum)
 	g.addVotedDataToProposal(generalProposal, vote, numVotes)
