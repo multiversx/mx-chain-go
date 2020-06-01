@@ -26,6 +26,7 @@ var log = logger.GetOrCreate("p2p/antiflood/factory")
 const defaultSpan = 300 * time.Second
 const fastReactingIdentifier = "fast_reacting"
 const slowReactingIdentifier = "slow_reacting"
+const outputIdentifier = "output"
 
 // NewP2PAntiFloodAndBlackList will return instances of antiflood and blacklist, based on the config
 func NewP2PAntiFloodAndBlackList(

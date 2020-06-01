@@ -31,7 +31,7 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 	basePeerMaxMessagesPerInterval := mainConfig.Antiflood.PeerMaxOutput.BaseMessagesPerInterval
 	peerMaxTotalSizePerInterval := mainConfig.Antiflood.PeerMaxOutput.TotalSizePerInterval
 	arg := floodPreventers.ArgQuotaFloodPreventer{
-		Name:                      "output",
+		Name:                      outputIdentifier,
 		Cacher:                    antifloodCache,
 		StatusHandlers:            make([]floodPreventers.QuotaStatusHandler, 0),
 		BaseMaxNumMessagesPerPeer: basePeerMaxMessagesPerInterval,
