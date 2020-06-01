@@ -103,7 +103,7 @@ type journalEntryDataTrieUpdates struct {
 // NewJournalEntryDataTrieUpdates outputs a new JournalEntryDataTrieUpdates implementation used to revert an account's data trie
 func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account baseAccountHandler) (*journalEntryDataTrieUpdates, error) {
 	if check.IfNil(account) {
-		return nil, fmt.Errorf("%w in NewJournalEntryAccount", ErrNilAccountHandler)
+		return nil, fmt.Errorf("%w in NewJournalEntryDataTrieUpdates", ErrNilAccountHandler)
 	}
 	if len(trieUpdates) == 0 {
 		return nil, ErrNilOrEmptyDataTrieUpdates

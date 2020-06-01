@@ -467,7 +467,7 @@ func (s *stakingAuctionSC) registerBLSKeys(
 ) ([][]byte, error) {
 	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
 	if uint64(len(args)) < maxNodesToRun+1 {
-		s.eei.AddReturnMessage("not enough arguments to process stake function")
+		s.eei.AddReturnMessage(fmt.Sprintf("not enough arguments to process stake function: expected min %d, got %d", maxNodesToRun+1, len(args)))
 		return nil, vm.ErrNotEnoughArgumentsToStake
 	}
 
