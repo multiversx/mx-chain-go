@@ -243,6 +243,7 @@ type ShardedDataCacherNotifier interface {
 	SearchFirstData(key []byte) (value interface{}, ok bool)
 	RemoveData(key []byte, cacheId string)
 	RemoveSetOfDataFromPool(keys [][]byte, cacheId string)
+	ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string)
 	RemoveDataFromAllShards(key []byte)
 	MergeShardStores(sourceCacheID, destCacheID string)
 	Clear()

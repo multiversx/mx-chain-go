@@ -5,7 +5,6 @@ import (
 )
 
 var _ storage.Cacher = (*DisabledCache)(nil)
-var _ txCache = (*DisabledCache)(nil)
 
 // DisabledCache represents a disabled cache
 type DisabledCache struct {
@@ -32,13 +31,8 @@ func (cache *DisabledCache) SelectTransactions(_ int, _ int) []*WrappedTransacti
 }
 
 // RemoveTxByHash does nothing
-func (cache *DisabledCache) RemoveTxByHash(_ []byte) error {
-	return nil
-}
-
-// CountTx returns zero
-func (cache *DisabledCache) CountTx() uint64 {
-	return 0
+func (cache *DisabledCache) RemoveTxByHash(_ []byte) bool {
+	return false
 }
 
 // Len returns zero
@@ -99,6 +93,10 @@ func (cache *DisabledCache) RegisterHandler(func(key []byte, value interface{}))
 
 // NotifyAccountNonce does nothing
 func (cache *DisabledCache) NotifyAccountNonce(_ []byte, _ uint64) {
+}
+
+// ImmunizeTxsAgainstEviction does nothing
+func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

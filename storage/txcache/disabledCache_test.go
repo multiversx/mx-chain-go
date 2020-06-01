@@ -20,11 +20,8 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	selection := cache.SelectTransactions(42, 42)
 	require.Equal(t, 0, len(selection))
 
-	err := cache.RemoveTxByHash([]byte{})
-	require.Nil(t, err)
-
-	count := cache.CountTx()
-	require.Equal(t, uint64(0), count)
+	removed := cache.RemoveTxByHash([]byte{})
+	require.False(t, removed)
 
 	length := cache.Len()
 	require.Equal(t, 0, length)

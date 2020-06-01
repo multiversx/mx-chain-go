@@ -9,14 +9,13 @@ import (
 )
 
 var _ storage.Cacher = (*TxCache)(nil)
-var _ txCache = (*TxCache)(nil)
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
 	name                      string
 	txListBySender            *txListBySenderMap
 	txByHash                  *txByHashMap
-	config                    CacheConfig
+	config                    ConfigSourceMe
 	evictionMutex             sync.Mutex
 	evictionJournal           evictionJournal
 	evictionSnapshotOfSenders []*txListForSender
@@ -30,23 +29,23 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config CacheConfig) (*TxCache, error) {
-	log.Debug("NewTxCache", "config", config)
+func NewTxCache(config ConfigSourceMe) (*TxCache, error) {
+	log.Debug("NewTxCache", "config", config.String())
 
 	err := config.verify()
 	if err != nil {
 		return nil, err
 	}
 
-	// Note: for simplicity, we use the same "numChunksHint" for both internal concurrent maps
-	numChunksHint := config.NumChunksHint
+	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
+	numChunks := config.NumChunks
 	senderConstraints := config.getSenderConstraints()
 	scoreComputer := newDefaultScoreComputer(config.MinGasPriceNanoErd)
 
 	txCache := &TxCache{
 		name:            config.Name,
-		txListBySender:  newTxListBySenderMap(numChunksHint, senderConstraints, scoreComputer),
-		txByHash:        newTxByHashMap(numChunksHint),
+		txListBySender:  newTxListBySenderMap(numChunks, senderConstraints, scoreComputer),
+		txByHash:        newTxByHashMap(numChunks),
 		config:          config,
 		evictionJournal: evictionJournal{},
 	}
@@ -156,10 +155,10 @@ func (cache *TxCache) doAfterSelection() {
 }
 
 // RemoveTxByHash removes tx by hash
-func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
+func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
-		return errTxNotFound
+		return false
 	}
 
 	foundInBySender := cache.txListBySender.removeTx(tx)
@@ -175,7 +174,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 		log.Trace("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
 	}
 
-	return nil
+	return true
 }
 
 // NumBytes gets the approximate number of bytes stored in the cache
@@ -215,7 +214,8 @@ func (cache *TxCache) Put(_ []byte, _ interface{}, _ int) (evicted bool) {
 	return false
 }
 
-// Get gets a transaction by hash
+// Get gets a transaction (unwrapped) by hash
+// Implemented for compatibiltiy reasons (see txPoolsCleaner.go).
 func (cache *TxCache) Get(key []byte) (value interface{}, ok bool) {
 	tx, ok := cache.GetByTxHash(key)
 	if ok {
@@ -230,7 +230,8 @@ func (cache *TxCache) Has(key []byte) bool {
 	return ok
 }
 
-// Peek gets a transaction by hash
+// Peek gets a transaction (unwrapped) by hash
+// Implemented for compatibiltiy reasons (see transactions.go, common.go).
 func (cache *TxCache) Peek(key []byte) (value interface{}, ok bool) {
 	tx, ok := cache.GetByTxHash(key)
 	if ok {
@@ -270,6 +271,10 @@ func (cache *TxCache) RegisterHandler(func(key []byte, value interface{})) {
 // in order to inform the cache about initial nonce gap phenomena
 func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
+}
+
+// ImmunizeTxsAgainstEviction does nothing for this type of cache
+func (cache *TxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
