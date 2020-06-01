@@ -110,12 +110,6 @@ var ErrEmptySeed = errors.New("empty seed")
 // ErrEmptyBuffer signals that an empty buffer has been provided
 var ErrEmptyBuffer = errors.New("empty buffer")
 
-// ErrNilFloodPreventer signals that a nil flood preventer has been provided
-var ErrNilFloodPreventer = errors.New("nil flood preventer")
-
-// ErrNilTopicFloodPreventer signals that a nil topic flood preventer has been provided
-var ErrNilTopicFloodPreventer = errors.New("nil topic flood preventer")
-
 // ErrNilPeerBlacklistHandler signals that a nil peer black list handler was provided
 var ErrNilPeerBlacklistHandler = errors.New("nil peer black list handler")
 

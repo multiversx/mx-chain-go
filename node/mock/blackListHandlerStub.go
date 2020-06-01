@@ -1,10 +1,13 @@
 package mock
 
+import "time"
+
 // BlackListHandlerStub -
 type BlackListHandlerStub struct {
-	AddCalled   func(key string) error
-	HasCalled   func(key string) bool
-	SweepCalled func()
+	AddCalled         func(key string) error
+	AddWithSpanCalled func(key string, span time.Duration) error
+	HasCalled         func(key string) bool
+	SweepCalled       func()
 }
 
 // Sweep -
@@ -12,6 +15,15 @@ func (blhs *BlackListHandlerStub) Sweep() {
 	if blhs.SweepCalled != nil {
 		blhs.SweepCalled()
 	}
+}
+
+// AddWithSpan -
+func (blhs *BlackListHandlerStub) AddWithSpan(key string, span time.Duration) error {
+	if blhs.AddWithSpanCalled != nil {
+		return blhs.AddWithSpanCalled(key, span)
+	}
+
+	return nil
 }
 
 // Add -

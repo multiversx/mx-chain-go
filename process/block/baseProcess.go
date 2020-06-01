@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sort"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -1122,4 +1123,31 @@ func (bp *baseProcessor) restoreBlockBody(bodyHandler data.BodyHandler) {
 	}
 
 	go bp.txCounter.subtractRestoredTxs(restoredTxNr)
+}
+
+func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHandler) {
+	lastCrossNotarizedHeader, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(headerHandler.GetShardID())
+	if err != nil {
+		log.Debug("requestMiniBlocksIfNeeded.GetLastCrossNotarizedHeader",
+			"shard", headerHandler.GetShardID(),
+			"error", err.Error())
+		return
+	}
+
+	if headerHandler.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
+		return
+	}
+	if headerHandler.GetRound() <= lastCrossNotarizedHeader.GetRound() {
+		return
+	}
+
+	isHeaderOutOfRequestRange := headerHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
+	if isHeaderOutOfRequestRange {
+		return
+	}
+
+	// waiting for late broadcast of mini blocks and transactions to be done and received
+	time.Sleep(core.ExtraDelayForRequestBlockInfo)
+
+	bp.txCoordinator.RequestMiniBlocks(headerHandler)
 }

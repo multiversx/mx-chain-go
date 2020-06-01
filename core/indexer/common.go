@@ -17,14 +17,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 type commonProcessor struct {
-	addressPubkeyConverter   state.PubkeyConverter
-	validatorPubkeyConverter state.PubkeyConverter
+	addressPubkeyConverter   core.PubkeyConverter
+	validatorPubkeyConverter core.PubkeyConverter
 }
 
 func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
@@ -189,19 +188,19 @@ func (cm *commonProcessor) buildRewardTransaction(
 
 func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.SmartContractResult) ScResult {
 	decodedData := decodeScResultData(sc.Data)
-
 	return ScResult{
-		Nonce:        sc.Nonce,
-		GasLimit:     sc.GasLimit,
-		GasPrice:     sc.GasPrice,
-		Value:        sc.Value.String(),
-		Sender:       cm.addressPubkeyConverter.Encode(sc.SndAddr),
-		Receiver:     cm.addressPubkeyConverter.Encode(sc.RcvAddr),
-		Code:         string(sc.Code),
-		Data:         decodedData,
-		PreTxHash:    hex.EncodeToString(sc.PrevTxHash),
-		CallType:     string(sc.CallType),
-		CodeMetadata: string(sc.CodeMetadata),
+		Nonce:         sc.Nonce,
+		GasLimit:      sc.GasLimit,
+		GasPrice:      sc.GasPrice,
+		Value:         sc.Value.String(),
+		Sender:        cm.addressPubkeyConverter.Encode(sc.SndAddr),
+		Receiver:      cm.addressPubkeyConverter.Encode(sc.RcvAddr),
+		Code:          string(sc.Code),
+		Data:          decodedData,
+		PreTxHash:     hex.EncodeToString(sc.PrevTxHash),
+		CallType:      string(sc.CallType),
+		CodeMetadata:  string(sc.CodeMetadata),
+		ReturnMessage: string(sc.ReturnMessage),
 	}
 }
 

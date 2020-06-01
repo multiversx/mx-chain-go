@@ -42,7 +42,7 @@ type ArgValidatorStatisticsProcessor struct {
 	ShardCoordinator    sharding.Coordinator
 	DataPool            DataPool
 	StorageService      dataRetriever.StorageService
-	PubkeyConv          state.PubkeyConverter
+	PubkeyConv          core.PubkeyConverter
 	PeerAdapter         state.AccountsAdapter
 	Rater               sharding.PeerAccountListAndRatingHandler
 	RewardsHandler      process.RewardsHandler
@@ -58,7 +58,7 @@ type validatorStatistics struct {
 	storageService         dataRetriever.StorageService
 	nodesCoordinator       sharding.NodesCoordinator
 	shardCoordinator       sharding.Coordinator
-	pubkeyConv             state.PubkeyConverter
+	pubkeyConv             core.PubkeyConverter
 	peerAdapter            state.AccountsAdapter
 	rater                  sharding.PeerAccountListAndRatingHandler
 	rewardsHandler         process.RewardsHandler
@@ -750,12 +750,11 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 
 		currentHeader, ok := cacheMap[string(h.HeaderHash)]
 		if !ok {
-			log.Warn("updateShardDataPeerState could not get shard header from cache",
-				"error", process.ErrMissingHeader.Error(),
-				"hash", h.GetPrevHash(),
-				"round", h.GetRound(),
-				"nonce", h.GetNonce())
-			return process.ErrMissingHeader
+			return fmt.Errorf("%w - updateShardDataPeerState header from cache - hash: %s, round: %v, nonce: %v",
+				process.ErrMissingHeader,
+				hex.EncodeToString(h.GetPrevHash()),
+				h.GetRound(),
+				h.GetNonce())
 		}
 
 		epoch := computeEpoch(currentHeader)
