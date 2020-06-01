@@ -372,13 +372,13 @@ func (vs *validatorStatistics) DisplayRatings(epoch uint32) {
 		log.Warn("could not get ValidatorPublicKeys", "epoch", epoch)
 		return
 	}
-	log.Debug("started printing tempRatings")
+	log.Trace("started printing tempRatings")
 	for shardID, list := range validatorPKs {
 		for _, pk := range list {
-			log.Debug("tempRating", "PK", pk, "tempRating", vs.getTempRating(string(pk)), "ShardID", shardID)
+			log.Trace("tempRating", "PK", pk, "tempRating", vs.getTempRating(string(pk)), "ShardID", shardID)
 		}
 	}
-	log.Debug("finished printing tempRatings")
+	log.Trace("finished printing tempRatings")
 }
 
 // Commit commits the validator statistics trie and returns the root hash
@@ -716,7 +716,6 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 		if verr != nil {
 			return verr
 		}
-		log.Trace("decreaseForConsensusValidators", "pk", consensusGroup[j].PubKey())
 		vs.missedBlocksCounters.decreaseValidator(consensusGroup[j].PubKey())
 
 		newRating := vs.rater.ComputeDecreaseValidator(shardId, validatorPeerAccount.GetTempRating())
@@ -862,7 +861,6 @@ func (vs *validatorStatistics) updateValidatorInfo(
 	if len(signingBitmap) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}
-	log.Debug("update validator info")
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
@@ -879,19 +877,16 @@ func (vs *validatorStatistics) updateValidatorInfo(
 
 		switch actionType {
 		case leaderSuccess:
-			log.Trace("increasing leader success", "pk", peerAcc.GetBLSPublicKey())
 			peerAcc.IncreaseLeaderSuccessRate(1)
 			peerAcc.SetConsecutiveProposerMisses(0)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
 		case validatorSuccess:
-			log.Trace("increasing validator success", "pk", peerAcc.GetBLSPublicKey())
 			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 		case validatorFail:
 			if epoch >= vs.ratingEnableEpoch {
-				log.Trace("increasing validator fail", "pk", peerAcc.GetBLSPublicKey())
 				peerAcc.DecreaseValidatorSuccessRate(1)
 				newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 			}

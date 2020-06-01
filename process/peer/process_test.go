@@ -2124,7 +2124,7 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 	pad := state.PeerAccountData{
 		BLSPublicKey:  []byte("blsKey"),
 		ShardId:       7,
-		List:          "ValidatorStatus",
+		List:          "list",
 		IndexInList:   2,
 		TempRating:    51,
 		Rating:        70,
