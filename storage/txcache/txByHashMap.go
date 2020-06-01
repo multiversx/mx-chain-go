@@ -34,19 +34,18 @@ func (txMap *txByHashMap) addTx(tx *WrappedTransaction) bool {
 
 // removeTx removes a transaction from the map
 func (txMap *txByHashMap) removeTx(txHash string) (*WrappedTransaction, bool) {
-	tx, ok := txMap.getTx(txHash)
-	if !ok {
+	item, removed := txMap.backingMap.Remove(txHash)
+	if !removed {
 		return nil, false
 	}
 
-	// TODO / bugfix: when we concurrently try to remove the same transaction,
-	// we might end up decrementing the counters twice.
-	// Possible solution: use an "onItemRemoved" callback in the "backingMap"
-	// to decrement the counters.
+	tx := item.(*WrappedTransaction)
 
-	txMap.backingMap.Remove(txHash)
+	if removed {
 	txMap.counter.Decrement()
 	txMap.numBytes.Subtract(int64(estimateTxSize(tx)))
+	}
+
 	return tx, true
 }
 
