@@ -32,6 +32,8 @@ func TestSCCallingIntraShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:TRACE")
+
 	numOfShards := 1
 	nodesPerShard := 2
 	numMetachainNodes := 0

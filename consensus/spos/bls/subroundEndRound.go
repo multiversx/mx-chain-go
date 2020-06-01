@@ -247,6 +247,14 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 		return false
 	}
 
+	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+		err := sr.prepareBroadcastMiniBlocksAndTransactionsForValidator()
+		if err != nil {
+			log.Warn("validator in consensus group preparing for delayed broadcast",
+				"error", err.Error())
+		}
+	}
+
 	defer func() {
 		sr.SetProcessingBlock(false)
 	}()
@@ -404,7 +412,7 @@ func (sr *subroundEndRound) prepareBroadcastMiniBlocksAndTransactionsForValidato
 		if err != nil {
 			return err
 		}
-		metaMiniBlocks, metaTransactions := sr.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
+
 		miniBlockHashesCrossFromMe := sr.extractMiniBlockHashesCrossFromMe()
 
 		var idx int
@@ -420,15 +428,9 @@ func (sr *subroundEndRound) prepareBroadcastMiniBlocksAndTransactionsForValidato
 				uint8(idx),
 			)
 		}
-
-		if err != nil {
-			return err
-		}
-
-		return sr.broadcast(metaMiniBlocks, metaTransactions)
 	}
 
-	return sr.broadcast(miniBlocks, transactions)
+	return nil
 }
 
 func (sr *subroundEndRound) extractMiniBlockHashesCrossFromMe() map[uint32]map[string]struct{} {
