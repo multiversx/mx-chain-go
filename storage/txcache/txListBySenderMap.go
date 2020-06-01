@@ -102,18 +102,12 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 }
 
 func (txMap *txListBySenderMap) removeSender(sender string) bool {
-	if !txMap.backingMap.Has(sender) {
-		return false
+	_, removed := txMap.backingMap.Remove(sender)
+	if removed {
+		txMap.counter.Decrement()
 	}
 
-	// TODO / bugfix: when we concurrently try to remove the same sender,
-	// we might end up decrementing the counter twice.
-	// Possible solution: use an "onItemRemoved" callback in the "backingMap"
-	// to decrement the counter.
-
-	txMap.backingMap.Remove(sender)
-	txMap.counter.Decrement()
-	return true
+	return removed
 }
 
 // RemoveSendersBulk removes senders, in bulk
