@@ -131,7 +131,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	facade := mock.Facade{
 		GetTransactionHandler: func(hash string) (i *tr.ApiTransactionResult, e error) {
 			if hash != hs {
-				return nil, nil
+				return nil, errors.New("invalid hash")
 			}
 			return &tr.ApiTransactionResult{
 				Sender:   sender,
