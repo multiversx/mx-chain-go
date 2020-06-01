@@ -75,9 +75,6 @@ func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 	return numRemoved
 }
 
-// ForEachTransaction is an iterator callback
-type ForEachTransaction func(txHash []byte, value *WrappedTransaction)
-
 // forEach iterates over the senders
 func (txMap *txByHashMap) forEach(function ForEachTransaction) {
 	txMap.backingMap.IterCb(func(key string, item interface{}) {
