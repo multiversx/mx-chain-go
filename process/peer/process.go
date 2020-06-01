@@ -713,7 +713,7 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 		if verr != nil {
 			return verr
 		}
-
+		log.Trace("decreaseForConsensusValidators", "pk", consensusGroup[j].PubKey())
 		vs.missedBlocksCounters.decreaseValidator(consensusGroup[j].PubKey())
 
 		newRating := vs.rater.ComputeDecreaseValidator(shardId, validatorPeerAccount.GetTempRating())
