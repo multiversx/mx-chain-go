@@ -82,6 +82,7 @@ func (pbp *p2pBlackListProcessor) ResetStatistics() {
 			pid := p2p.PeerID(key)
 			log.Debug("added new peer to black list",
 				"peer ID", pid.Pretty(),
+				"ban period", pbp.banDuration,
 			)
 			_ = pbp.blacklistHandler.AddWithSpan(string(key), pbp.banDuration)
 		}

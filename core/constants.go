@@ -251,11 +251,17 @@ const MetricDenominationCoefficient = "erd_denomination_coefficient"
 // MetricRoundAtEpochStart is the metric for storing the first round of the current epoch
 const MetricRoundAtEpochStart = "erd_round_at_epoch_start"
 
+// MetricNonceAtEpochStart is the metric for storing the first nonce of the current epoch
+const MetricNonceAtEpochStart = "erd_nonce_at_epoch_start"
+
 // MetricRoundsPerEpoch is the metric that tells the number of rounds in an epoch
 const MetricRoundsPerEpoch = "erd_rounds_per_epoch"
 
 // MetricRoundsPassedInCurrentEpoch is the metric that tells the number of rounds passed in current epoch
 const MetricRoundsPassedInCurrentEpoch = "erd_rounds_passed_in_current_epoch"
+
+// MetricNoncesPassedInCurrentEpoch is the metric that tells the number of nonces passed in current epoch
+const MetricNoncesPassedInCurrentEpoch = "erd_nonces_passed_in_current_epoch"
 
 //MetricReceivedProposedBlock is the metric that specify the moment in the round when the received block has reached the
 //current node. The value is provided in percent (0 meaning it has been received just after the round started and
