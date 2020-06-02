@@ -35,6 +35,8 @@ func NewCryptoSigningParamsLoader(
 		return nil, ErrNilSuite
 	}
 
+	core.SK_INDEX = skIndex
+
 	cspf := &cryptoSigningParamsLoader{
 		pubkeyConverter: pubkeyConverter,
 		skIndex:         skIndex,
