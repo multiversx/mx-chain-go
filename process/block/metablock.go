@@ -533,7 +533,25 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, metaBlock.GetEpoch())
+	epoch := metaBlock.GetEpoch()
+	shardCoordinatorShardID := mp.shardCoordinator.SelfId()
+	nodesCoordinatorShardID, err := mp.nodesCoordinator.ShardIdForEpoch(epoch)
+	if err != nil {
+		log.Debug("indexBlock",
+			"epoch", epoch,
+			"error", err.Error())
+		return
+	}
+
+	if shardCoordinatorShardID != nodesCoordinatorShardID {
+		log.Debug("indexBlock",
+			"epoch", epoch,
+			"shardCoordinator.ShardID", shardCoordinatorShardID,
+			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
+		return
+	}
+
+	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, epoch)
 	if err != nil {
 		return
 	}
@@ -941,12 +959,14 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 	lastShardHdr map[uint32]data.HeaderHandler,
 ) {
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		log.Debug("shard hdrs added",
+		log.Debug("shard headers added",
 			"shard", shardID,
-			"nb", hdrsAddedForShard[shardID],
-			"lastShardHdr", lastShardHdr[shardID].GetNonce())
+			"num", hdrsAddedForShard[shardID],
+			"highest nonce", lastShardHdr[shardID].GetNonce())
 
-		if hdrsAddedForShard[shardID] == 0 {
+		roundTooOld := mp.rounder.Index() > int64(lastShardHdr[shardID].GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+		shouldRequestCrossHeaders := hdrsAddedForShard[shardID] == 0 && roundTooOld
+		if shouldRequestCrossHeaders {
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1
 			toNonce := fromNonce + uint64(mp.shardBlockFinality)
 			for nonce := fromNonce; nonce <= toNonce; nonce++ {

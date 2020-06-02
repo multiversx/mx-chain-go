@@ -6,6 +6,7 @@ import "github.com/ElrondNetwork/elrond-go/p2p"
 type P2PAntifloodHandlerStub struct {
 	CanProcessMessageCalled         func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	CanProcessMessagesOnTopicCalled func(peer p2p.PeerID, topic string, numMessages uint32) error
+	ApplyConsensusSizeCalled        func(size int)
 }
 
 // ResetForTopic -
@@ -14,6 +15,13 @@ func (p2pahs *P2PAntifloodHandlerStub) ResetForTopic(_ string) {
 
 // SetMaxMessagesForTopic -
 func (p2pahs *P2PAntifloodHandlerStub) SetMaxMessagesForTopic(_ string, _ uint32) {
+}
+
+// ApplyConsensusSize -
+func (p2pahs *P2PAntifloodHandlerStub) ApplyConsensusSize(size int) {
+	if p2pahs.ApplyConsensusSizeCalled != nil {
+		p2pahs.ApplyConsensusSizeCalled(size)
+	}
 }
 
 // CanProcessMessage -

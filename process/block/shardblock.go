@@ -32,8 +32,6 @@ type shardProcessor struct {
 
 	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
 	core                serviceContainer.Core
-
-	lowestNonceInSelfNotarizedHeaders uint64
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -550,6 +548,22 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
+	nodesCoordinatorShardID, err := sp.nodesCoordinator.ShardIdForEpoch(epoch)
+	if err != nil {
+		log.Debug("indexBlockIfNeeded",
+			"epoch", epoch,
+			"error", err.Error())
+		return
+	}
+
+	if shardId != nodesCoordinatorShardID {
+		log.Debug("indexBlockIfNeeded",
+			"epoch", epoch,
+			"shardCoordinator.ShardID", shardId,
+			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
+		return
+	}
+
 	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
 		log.Error("error indexing block header",
@@ -857,10 +871,6 @@ func (sp *shardProcessor) CommitBlock(
 		Hash:    headerHash,
 	}
 
-	if len(selfNotarizedHeaders) > 0 {
-		sp.lowestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[0].GetNonce()
-	}
-
 	nodesCoordinatorKey := sp.nodesCoordinator.GetSavedStateKey()
 	epochStartKey := sp.epochStartTrigger.GetSavedStateKey()
 
@@ -868,7 +878,7 @@ func (sp *shardProcessor) CommitBlock(
 		headerInfo:                 headerInfo,
 		round:                      header.Round,
 		lastSelfNotarizedHeaders:   sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes),
-		highestFinalBlockNonce:     sp.lowestNonceInSelfNotarizedHeaders,
+		highestFinalBlockNonce:     sp.forkDetector.GetHighestFinalBlockNonce(),
 		processedMiniBlocks:        sp.processedMiniBlocks.ConvertProcessedMiniBlocksMapToSlice(),
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
@@ -1585,12 +1595,14 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 }
 
 func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaHdr data.HeaderHandler) {
-	log.Debug("meta hdrs added",
-		"nb", hdrsAdded,
-		"lastMetaHdr", lastMetaHdr.GetNonce(),
+	log.Debug("meta headers added",
+		"num", hdrsAdded,
+		"highest nonce", lastMetaHdr.GetNonce(),
 	)
 
-	if hdrsAdded == 0 {
+	roundTooOld := sp.rounder.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+	shouldRequestCrossHeaders := hdrsAdded == 0 && roundTooOld
+	if shouldRequestCrossHeaders {
 		fromNonce := lastMetaHdr.GetNonce() + 1
 		toNonce := fromNonce + uint64(sp.metaBlockFinality)
 		for nonce := fromNonce; nonce <= toNonce; nonce++ {

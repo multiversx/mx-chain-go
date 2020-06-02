@@ -9,7 +9,9 @@ type QuotaStatusHandlerStub struct {
 
 // ResetStatistics -
 func (qshs *QuotaStatusHandlerStub) ResetStatistics() {
-	qshs.ResetStatisticsCalled()
+	if qshs.ResetStatisticsCalled != nil {
+		qshs.ResetStatisticsCalled()
+	}
 }
 
 // AddQuota -
@@ -20,7 +22,9 @@ func (qshs *QuotaStatusHandlerStub) AddQuota(
 	numProcessed uint32,
 	sizeProcessed uint64,
 ) {
-	qshs.AddQuotaCalled(identifier, numReceived, sizeReceived, numProcessed, sizeProcessed)
+	if qshs.AddQuotaCalled != nil {
+		qshs.AddQuotaCalled(identifier, numReceived, sizeReceived, numProcessed, sizeProcessed)
+	}
 }
 
 // IsInterfaceNil -

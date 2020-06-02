@@ -44,10 +44,9 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		Messenger:         &mock.MessengerStub{},
 		GeneralConfig: config.Config{
 			WhiteListPool: config.CacheConfig{
-				Type:        "LRU",
-				Size:        10,
-				SizeInBytes: 1000,
-				Shards:      10,
+				Type:     "LRU",
+				Capacity: 10,
+				Shards:   10,
 			},
 			EpochStartConfig: config.EpochStartConfig{
 				MinNumConnectedPeersToStart:       2,

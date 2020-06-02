@@ -3,7 +3,7 @@ package mock
 // NodesCoordinatorCacheMock -
 type NodesCoordinatorCacheMock struct {
 	ClearCalled func()
-	PutCalled   func(key []byte, value interface{}) (evicted bool)
+	PutCalled   func(key []byte, value interface{}, sieInBytes int) (evicted bool)
 	GetCalled   func(key []byte) (value interface{}, ok bool)
 }
 
@@ -15,9 +15,9 @@ func (rm *NodesCoordinatorCacheMock) Clear() {
 }
 
 // Put -
-func (rm *NodesCoordinatorCacheMock) Put(key []byte, value interface{}) (evicted bool) {
+func (rm *NodesCoordinatorCacheMock) Put(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 	if rm.PutCalled != nil {
-		return rm.PutCalled(key, value)
+		return rm.PutCalled(key, value, sizeInBytes)
 	}
 	return false
 }

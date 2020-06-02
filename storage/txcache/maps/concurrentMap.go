@@ -91,11 +91,14 @@ func (m *ConcurrentMap) Has(key string) bool {
 }
 
 // Remove removes an element from the map.
-func (m *ConcurrentMap) Remove(key string) {
+func (m *ConcurrentMap) Remove(key string) (interface{}, bool) {
 	chunk := m.getChunk(key)
 	chunk.mutex.Lock()
+	defer chunk.mutex.Unlock()
+
+	item := chunk.items[key]
 	delete(chunk.items, key)
-	chunk.mutex.Unlock()
+	return item, item != nil
 }
 
 func (m *ConcurrentMap) getChunk(key string) *concurrentMapChunk {

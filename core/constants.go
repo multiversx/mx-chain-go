@@ -17,6 +17,9 @@ const LeavingList PeerType = "leaving"
 // InactiveList represents the list of peers who were taken out because they were leaving
 const InactiveList PeerType = "inactive"
 
+// JailedList represents the list of peers who have stake but are in jail
+const JailedList PeerType = "jailed"
+
 // ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
 const ObserverList PeerType = "observer"
 
