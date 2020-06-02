@@ -162,6 +162,8 @@ func (cache *TxCache) doAfterSelection() {
 
 // RemoveTxByHash removes tx by hash
 func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
+	log.Debug("TxCache.RemoveTxByHash()", "tx", txHash)
+
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
 		return false
@@ -177,7 +179,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 		// - B reaches "cache.txByHash.RemoveTxsBulk()"
 		// - B reaches "cache.txListBySender.RemoveSendersBulk()"
 		// - A reaches "cache.txListBySender.removeTx()", but sender does not exist anymore
-		log.Trace("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
+		log.Debug("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
 	}
 
 	return true
