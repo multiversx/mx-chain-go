@@ -200,10 +200,10 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		return
 	}
 
-	if sr.ShardCoordinator().SelfId() != nodesCoordinatorShardID {
+	if shardId != nodesCoordinatorShardID {
 		log.Debug("initCurrentRound.ShardIdForEpoch",
 			"epoch", epoch,
-			"shardCoordinator.ShardID", sr.ShardCoordinator().SelfId(),
+			"shardCoordinator.ShardID", shardId,
 			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
 		return
 	}
