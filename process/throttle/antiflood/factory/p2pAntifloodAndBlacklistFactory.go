@@ -151,7 +151,7 @@ func createFloodPreventer(
 		floodPreventerConfig.BlackList.ThresholdNumMessagesPerInterval,
 		floodPreventerConfig.BlackList.ThresholdSizePerInterval,
 		floodPreventerConfig.BlackList.NumFloodingRounds,
-		time.Duration(floodPreventerConfig.IntervalInSeconds)*time.Second,
+		time.Duration(floodPreventerConfig.BlackList.PeerBanDurationInSeconds)*time.Second,
 	)
 	if err != nil {
 		return nil, err
