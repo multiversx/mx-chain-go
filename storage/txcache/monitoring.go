@@ -55,6 +55,10 @@ func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopW
 		"numSendersInGracePeriod", numSendersInGracePeriod,
 	)
 
+	for _, tx := range selection {
+		log.Debug("TxCache: selected tx", "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "nonce", tx.Tx.GetNonce())
+	}
+
 	cache.displaySendersHistogram()
 }
 
