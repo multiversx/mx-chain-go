@@ -14,7 +14,7 @@ func TestGetCacherFromConfig(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.CacheConfig{
-		Size:        100,
+		Capacity:    100,
 		Shards:      2,
 		Type:        "lru",
 		SizeInBytes: 128,
@@ -22,7 +22,7 @@ func TestGetCacherFromConfig(t *testing.T) {
 
 	storageCacheConfig := GetCacherFromConfig(cfg)
 	assert.Equal(t, storageUnit.CacheConfig{
-		Size:        cfg.Size,
+		Capacity:    cfg.Capacity,
 		SizeInBytes: cfg.SizeInBytes,
 		Type:        storageUnit.CacheType(cfg.Type),
 		Shards:      cfg.Shards,

@@ -209,7 +209,7 @@ func (cache *TxCache) Clear() {
 }
 
 // Put is not implemented
-func (cache *TxCache) Put(_ []byte, _ interface{}) (evicted bool) {
+func (cache *TxCache) Put(_ []byte, _ interface{}, _ int) (evicted bool) {
 	log.Error("TxCache.Put is not implemented")
 	return false
 }
@@ -224,7 +224,7 @@ func (cache *TxCache) Get(key []byte) (value interface{}, ok bool) {
 	return nil, false
 }
 
-// Has checks is a transaction exists
+// Has checks if a transaction exists
 func (cache *TxCache) Has(key []byte) bool {
 	_, ok := cache.GetByTxHash(key)
 	return ok
@@ -241,7 +241,7 @@ func (cache *TxCache) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd is not implemented
-func (cache *TxCache) HasOrAdd(_ []byte, _ interface{}) (ok, evicted bool) {
+func (cache *TxCache) HasOrAdd(_ []byte, _ interface{}, _ int) (ok, evicted bool) {
 	log.Error("TxCache.HasOrAdd is not implemented")
 	return false, false
 }
@@ -249,11 +249,6 @@ func (cache *TxCache) HasOrAdd(_ []byte, _ interface{}) (ok, evicted bool) {
 // Remove removes tx by hash
 func (cache *TxCache) Remove(key []byte) {
 	_ = cache.RemoveTxByHash(key)
-}
-
-// RemoveOldest is not implemented
-func (cache *TxCache) RemoveOldest() {
-	log.Error("TxCache.RemoveOldest is not implemented")
 }
 
 // Keys returns the tx hashes in the cache

@@ -27,7 +27,7 @@ func NewTrieNodesInterceptorProcessor(interceptedNodes storage.Cacher) (*TrieNod
 }
 
 // Validate checks if the intercepted data can be processed
-func (tnip *TrieNodeInterceptorProcessor) Validate(data process.InterceptedData, _ p2p.PeerID) error {
+func (tnip *TrieNodeInterceptorProcessor) Validate(_ process.InterceptedData, _ p2p.PeerID) error {
 	return nil
 }
 
@@ -38,7 +38,7 @@ func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ p
 		return process.ErrWrongTypeAssertion
 	}
 
-	tnip.interceptedNodes.Put(nodeData.Hash(), nodeData)
+	tnip.interceptedNodes.Put(nodeData.Hash(), nodeData, len(nodeData.EncodedNode()))
 	return nil
 }
 

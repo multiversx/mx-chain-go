@@ -35,7 +35,7 @@ func TestWhiteListDataVerifier_Add(t *testing.T) {
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
 	added := map[string]struct{}{}
 	cacher := &mock.CacherStub{
-		PutCalled: func(key []byte, value interface{}) (evicted bool) {
+		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 			added[string(key)] = struct{}{}
 			return false
 		},

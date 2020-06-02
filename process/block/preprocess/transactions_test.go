@@ -62,7 +62,7 @@ func shardedDataCacherNotifier() dataRetriever.ShardedDataCacherNotifier {
 				},
 			}
 		},
-		AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
+		AddDataCalled:                 func(key []byte, data interface{}, sizeInBytes int, cacheId string) {},
 		RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			if reflect.DeepEqual(key, []byte("tx1_hash")) {
@@ -103,7 +103,7 @@ func initDataPool() *mock.PoolsHolderStub {
 						},
 					}
 				},
-				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
+				AddDataCalled:                 func(key []byte, data interface{}, sizeInBytes int, cacheId string) {},
 				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
@@ -690,6 +690,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 		dataPool.Transactions().AddData(
 			transactionsHashes[idx],
 			tx,
+			tx.Size(),
 			process.ShardCacherIdentifier(senderShardId, destinationShardId),
 		)
 	}
@@ -699,6 +700,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 	dataPool.Transactions().AddData(
 		computeHash(txRandom, marshalizer, hasher),
 		txRandom,
+		txRandom.Size(),
 		process.ShardCacherIdentifier(3, 4),
 	)
 
@@ -803,7 +805,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		newTx := &transaction.Transaction{GasLimit: uint64(i)}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
-		txPool.AddData(txHash, newTx, strCache)
+		txPool.AddData(txHash, newTx, newTx.Size(), strCache)
 
 		addedTxs = append(addedTxs, newTx)
 	}
@@ -875,7 +877,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: []byte("012345678910")}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
-		txPool.AddData(txHash, newTx, strCache)
+		txPool.AddData(txHash, newTx, newTx.Size(), strCache)
 
 		addedTxs = append(addedTxs, newTx)
 	}
@@ -953,7 +955,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
-		txPool.AddData(txHash, newTx, strCache)
+		txPool.AddData(txHash, newTx, newTx.Size(), strCache)
 	}
 
 	sortedTxsAndHashes, _ := txs.computeSortedTxs(sndShardId, dstShardId)
@@ -1057,7 +1059,7 @@ func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
 	return txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:                 100000,
+				Capacity:             100000,
 				SizePerSender:        1000,
 				SizeInBytes:          1000000000,
 				SizeInBytesPerSender: 10000000,
@@ -1146,9 +1148,6 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 			},
 		},
 	}
-	haveTime := func() bool {
-		return true
-	}
 
 	preprocessor.AddTxForCurrentBlock(txHash, &tx, 1, 0)
 
@@ -1156,7 +1155,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(1), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
 
-	_ = preprocessor.ProcessTxsToMe(&body, haveTime)
+	_ = preprocessor.ProcessTxsToMe(&body, haveTimeTrue)
 
 	_, senderShardID, receiverShardID = preprocessor.GetTxInfoForCurrentBlock(txHash)
 	assert.Equal(t, uint32(2), senderShardID)

@@ -855,7 +855,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	nodesCacher, _ := lrucache.NewCache(100)
 	for i := range nodes {
 		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
-		nodesCacher.Put(node.hash, node)
+		nodesCacher.Put(node.hash, node, len(node.EncodedNode()))
 	}
 
 	en := getCollapsedEn(t, tr.root)

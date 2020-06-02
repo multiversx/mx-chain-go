@@ -108,12 +108,14 @@ func (sortedMap *BucketSortedMap) Has(key string) bool {
 }
 
 // Remove removes an element from the map
-func (sortedMap *BucketSortedMap) Remove(key string) {
+func (sortedMap *BucketSortedMap) Remove(key string) (interface{}, bool) {
 	chunk := sortedMap.getChunk(key)
 	item := chunk.removeItemByKey(key)
 	if item != nil {
 		removeFromScoreChunk(item)
 	}
+
+	return item, item != nil
 }
 
 // getChunk returns the chunk holding the given key.

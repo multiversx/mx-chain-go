@@ -25,6 +25,10 @@ func (nah *NilAntifloodHandler) CanProcessMessagesOnTopic(_ p2p.PeerID, _ string
 	return nil
 }
 
+// ApplyConsensusSize does nothing
+func (nah *NilAntifloodHandler) ApplyConsensusSize(_ int) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nah *NilAntifloodHandler) IsInterfaceNil() bool {
 	return nah == nil
