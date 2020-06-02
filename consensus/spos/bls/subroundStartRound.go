@@ -190,8 +190,25 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		currentHeader = sr.Blockchain().GetGenesisHeader()
 	}
 
+	epoch := currentHeader.GetEpoch()
 	shardId := sr.ShardCoordinator().SelfId()
-	signersIndexes, err := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys, currentHeader.GetEpoch())
+	nodesCoordinatorShardID, err := sr.NodesCoordinator().ShardIdForEpoch(epoch)
+	if err != nil {
+		log.Debug("initCurrentRound.ShardIdForEpoch",
+			"epoch", epoch,
+			"error", err.Error())
+		return
+	}
+
+	if shardId != nodesCoordinatorShardID {
+		log.Debug("initCurrentRound.ShardIdForEpoch",
+			"epoch", epoch,
+			"shardCoordinator.ShardID", shardId,
+			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
+		return
+	}
+
+	signersIndexes, err := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
 		log.Error(err.Error())
 		return
