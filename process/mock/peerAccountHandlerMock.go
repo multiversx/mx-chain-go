@@ -25,10 +25,15 @@ type PeerAccountHandlerMock struct {
 	GetConsecutiveProposerMissesCalled func() uint32
 	SetConsecutiveProposerMissesCalled func(rating uint32)
 	SetListAndIndexCalled              func(shardID uint32, list string, index uint32)
+	GetListCalled                      func() string
+	GetUnStakedEpochCalled             func() uint32
 }
 
 // GetUnStakedEpoch -
 func (p *PeerAccountHandlerMock) GetUnStakedEpoch() uint32 {
+	if p.GetUnStakedEpochCalled != nil {
+		return p.GetUnStakedEpochCalled()
+	}
 	return 0
 }
 
@@ -38,6 +43,9 @@ func (p *PeerAccountHandlerMock) SetUnStakedEpoch(_ uint32) {
 
 // GetList -
 func (p *PeerAccountHandlerMock) GetList() string {
+	if p.GetListCalled != nil {
+		return p.GetListCalled()
+	}
 	return ""
 }
 
