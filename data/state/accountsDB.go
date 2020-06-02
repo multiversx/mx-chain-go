@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -111,13 +110,7 @@ func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler) error {
 	if len(code) == 0 {
 		return nil
 	}
-
 	codeHash := adb.hasher.Compute(string(code))
-	currentCodeHash := accountHandler.GetCodeHash()
-	noUpdateNeeded := bytes.Equal(codeHash, currentCodeHash)
-	if noUpdateNeeded {
-		return nil
-	}
 
 	codeFromTrie, err := adb.mainTrie.Get(codeHash)
 	if err != nil {

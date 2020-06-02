@@ -940,3 +940,30 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	assert.True(t, recreateCalled)
 	assert.True(t, getAllLeavesCalled)
 }
+
+func TestAccountsDB_SaveAccountSavesCodeIfCodeHashIsSet(t *testing.T) {
+	t.Parallel()
+
+	marsh := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	accFactory := factory.NewAccountCreator()
+	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+
+	code := []byte("code")
+	userAcc.SetCode(code)
+	codeHash := mock.HasherMock{}.Compute(string(code))
+	userAcc.SetCodeHash(codeHash)
+
+	_ = adb.SaveAccount(acc)
+
+	codeFromTrie, err := tr.Get(codeHash)
+	assert.Nil(t, err)
+	assert.Equal(t, code, codeFromTrie)
+}
