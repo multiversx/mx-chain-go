@@ -61,6 +61,12 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		return false, false
 	}
 
+	log.Debug("TxCache.AddTx()", "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "nonce", tx.Tx.GetNonce())
+	if tx.Tx.GetNonce() == 0 {
+		log.Debug("TxCache.AddTx() nonce=0 not added")
+		return
+	}
+
 	if cache.config.EvictionEnabled {
 		cache.doEviction()
 	}
