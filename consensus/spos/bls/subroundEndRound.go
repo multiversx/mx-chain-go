@@ -112,7 +112,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 }
 
 func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
-	if sr.IsSelfLeaderInCurrentRound() {
+	if sr.ConsensusGroup() == nil || sr.IsSelfLeaderInCurrentRound() {
 		return
 	}
 
