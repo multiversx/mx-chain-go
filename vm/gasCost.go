@@ -21,6 +21,11 @@ type MetaChainSystemSCsCost struct {
 	UnJail              uint64
 	ESDTIssue           uint64
 	ESDTOperations      uint64
+	Proposal            uint64
+	Vote                uint64
+	DelegateVote        uint64
+	RevokeVote          uint64
+	CloseProposal       uint64
 }
 
 // BuiltInCost defines cost for built-in methods

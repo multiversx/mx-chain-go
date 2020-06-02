@@ -148,17 +148,17 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 	minQuorum, ok := big.NewInt(0).SetString(string(args.Arguments[1]), conversionBase)
-	if !ok || numNodes.Cmp(big.NewInt(0)) < 0 {
+	if !ok || minQuorum.Cmp(big.NewInt(0)) < 0 {
 		g.eei.AddReturnMessage("changeConfig second argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
 	minVeto, ok := big.NewInt(0).SetString(string(args.Arguments[2]), conversionBase)
-	if !ok || numNodes.Cmp(big.NewInt(0)) < 0 {
+	if !ok || minVeto.Cmp(big.NewInt(0)) < 0 {
 		g.eei.AddReturnMessage("changeConfig third argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
 	minPass, ok := big.NewInt(0).SetString(string(args.Arguments[3]), conversionBase)
-	if !ok || numNodes.Cmp(big.NewInt(0)) < 0 {
+	if !ok || minPass.Cmp(big.NewInt(0)) < 0 {
 		g.eei.AddReturnMessage("changeConfig fourth argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
@@ -203,6 +203,11 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 	if args.CallValue.Cmp(g.baseProposalCost) != 0 {
 		g.eei.AddReturnMessage("invalid callValue, needs exactly " + g.baseProposalCost.String())
 		return vmcommon.OutOfFunds
+	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Proposal)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
 	}
 	if len(args.Arguments) != 3 {
 		g.eei.AddReturnMessage("invalid number of arguments")
@@ -398,6 +403,11 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		g.eei.AddReturnMessage("invalid proposal cost, expected " + g.baseProposalCost.String())
 		return vmcommon.OutOfFunds
 	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Proposal)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
 	if len(args.Arguments) != 4 {
 		g.eei.AddReturnMessage("invalid number of arguments, expected 4")
 		return vmcommon.FunctionWrongSignature
@@ -482,6 +492,11 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		g.eei.AddReturnMessage("invalid proposal cost, expected " + g.baseProposalCost.String())
 		return vmcommon.OutOfFunds
 	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Proposal)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
 	if len(args.Arguments) != 4 {
 		g.eei.AddReturnMessage("invalid number of arguments, expected 4")
 		return vmcommon.FunctionWrongSignature
@@ -528,6 +543,11 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 	if args.CallValue.Cmp(zero) != 0 {
 		g.eei.AddReturnMessage("invalid proposal cost, expected 0")
 		return vmcommon.OutOfFunds
+	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Vote)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
 	}
 	if len(args.Arguments) < 2 || len(args.Arguments) > 3 {
 		g.eei.AddReturnMessage("invalid number of argument expected 2 or 3")
@@ -778,6 +798,12 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.eei.AddReturnMessage("invalid number of arguments expected 1")
 		return vmcommon.UserError
 	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.CloseProposal)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
+
 	proposal := args.Arguments[0]
 	generalProposal, err := g.getGeneralProposal(proposal)
 	if err != nil {
