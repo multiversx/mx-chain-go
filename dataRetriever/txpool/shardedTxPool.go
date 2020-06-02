@@ -50,8 +50,8 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 	configPrototypeSourceMe := txcache.ConfigSourceMe{
 		NumChunks:                     args.Config.Shards,
 		EvictionEnabled:               true,
-		NumBytesThreshold:             (args.Config.SizeInBytes / numPairs) * args.NumberOfShards,
-		CountThreshold:                (args.Config.Size / numPairs) * args.NumberOfShards,
+		NumBytesThreshold:             (uint32(args.Config.SizeInBytes) / numPairs) * args.NumberOfShards,
+		CountThreshold:                (args.Config.Capacity / numPairs) * args.NumberOfShards,
 		NumBytesPerSenderThreshold:    args.Config.SizeInBytesPerSender,
 		CountPerSenderThreshold:       args.Config.SizePerSender,
 		NumSendersToPreemptivelyEvict: dataRetriever.TxPoolNumSendersToPreemptivelyEvict,
@@ -60,8 +60,8 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 
 	configPrototypeDestinationMe := txcache.ConfigDestinationMe{
 		NumChunks:                   args.Config.Shards,
-		MaxNumBytes:                 args.Config.SizeInBytes / numPairs,
-		MaxNumItems:                 args.Config.Size / numPairs,
+		MaxNumBytes:                 uint32(args.Config.SizeInBytes) / numPairs,
+		MaxNumItems:                 args.Config.Capacity / numPairs,
 		NumItemsToPreemptivelyEvict: dataRetriever.TxPoolNumTxsToPreemptivelyEvict,
 	}
 
@@ -156,7 +156,7 @@ func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cac
 }
 
 // AddData adds the transaction to the cache
-func (txPool *shardedTxPool) AddData(key []byte, value interface{}, cacheID string) {
+func (txPool *shardedTxPool) AddData(key []byte, value interface{}, _ int, cacheID string) {
 	valueAsTransaction, ok := value.(data.TransactionHandler)
 	if !ok {
 		return

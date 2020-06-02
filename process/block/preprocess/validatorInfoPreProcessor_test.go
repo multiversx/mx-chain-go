@@ -223,7 +223,7 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 	blockBody := &block.Body{}
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
 	miniBlockPool := mock.NewCacherMock()
-	miniBlockPool.Put(mbHash, marshalizedMb)
+	miniBlockPool.Put(mbHash, marshalizedMb, len(marshalizedMb))
 
 	foundMb, ok := miniBlockPool.Get(mbHash)
 	assert.NotNil(t, foundMb)
@@ -262,7 +262,7 @@ func TestNewValidatorInfoPreprocessor_RemoveOtherTypeBlockFromPoolShouldNotRemov
 	blockBody := &block.Body{}
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
 	miniBlockPool := mock.NewCacherMock()
-	miniBlockPool.Put(mbHash, marshalizedMb)
+	miniBlockPool.Put(mbHash, marshalizedMb, len(marshalizedMb))
 
 	foundMb, ok := miniBlockPool.Get(mbHash)
 	assert.NotNil(t, foundMb)

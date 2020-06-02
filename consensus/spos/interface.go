@@ -124,7 +124,7 @@ type WorkerHandler interface {
 
 // PoolAdder adds data in a key-value pool
 type PoolAdder interface {
-	Put(key []byte, value interface{}) (evicted bool)
+	Put(key []byte, value interface{}, sizeInBytes int) (evicted bool)
 	IsInterfaceNil() bool
 }
 

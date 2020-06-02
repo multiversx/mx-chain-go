@@ -78,6 +78,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	nResolver.DataPool.UnsignedTransactions().AddData(
 		scrHash,
 		scr,
+		scr.Size(),
 		process.ShardCacherIdentifier(nResolver.ShardCoordinator.SelfId(), nResolver.ShardCoordinator.SelfId()),
 	)
 

@@ -23,7 +23,7 @@ func TestFIFOShardedCache_PutNotPresent(t *testing.T) {
 
 	assert.Zero(t, l, "cache expected to be empty")
 
-	c.Put(key, val)
+	c.Put(key, val, 0)
 	l = c.Len()
 
 	assert.Equal(t, l, 1, "cache size expected 1 but found %d", l)
@@ -35,8 +35,8 @@ func TestFIFOShardedCache_PutPresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	c.Put(key, val)
-	c.Put(key, val)
+	c.Put(key, val, 0)
+	c.Put(key, val, 0)
 
 	l := c.Len()
 	assert.Equal(t, l, 1, "cache size expected 1 but found %d", l)
@@ -50,8 +50,8 @@ func TestFIFOShardedCache_PutPresentRewrite(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	c.Put(key, val1)
-	c.Put(key, val2)
+	c.Put(key, val1, 0)
+	c.Put(key, val2, 0)
 
 	l := c.Len()
 	assert.Equal(t, l, 1, "cache size expected 1 but found %d", l)
@@ -77,7 +77,7 @@ func TestFIFOShardedCache_GetPresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	c.Put(key, val)
+	c.Put(key, val, 0)
 
 	v, ok := c.Get(key)
 
@@ -102,7 +102,7 @@ func TestFIFOShardedCache_HasPresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	c.Put(key, val)
+	c.Put(key, val, 0)
 
 	found := c.Has(key)
 
@@ -126,7 +126,7 @@ func TestFIFOShardedCache_PeekPresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	c.Put(key, val)
+	c.Put(key, val, 0)
 	v, ok := c.Peek(key)
 
 	assert.True(t, ok, "value expected but not found")
@@ -143,7 +143,7 @@ func TestFIFOShardedCache_HasOrAddNotPresent(t *testing.T) {
 
 	assert.False(t, ok, "not expected to find key %s", key)
 
-	c.HasOrAdd(key, val)
+	c.HasOrAdd(key, val, 0)
 	v, ok := c.Peek(key)
 
 	assert.True(t, ok, "value expected but not found")
@@ -160,7 +160,7 @@ func TestFIFOShardedCache_HasOrAddPresent(t *testing.T) {
 
 	assert.False(t, ok, "not expected to find key %s", key)
 
-	c.HasOrAdd(key, val)
+	c.HasOrAdd(key, val, 0)
 	v, ok := c.Peek(key)
 
 	assert.True(t, ok, "value expected but not found")
@@ -189,7 +189,7 @@ func TestFIFOShardedCache_RemovePresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	c.Put(key, val)
+	c.Put(key, val, 0)
 	found := c.Has(key)
 
 	assert.True(t, found, "expected to find key %s", key)
@@ -200,22 +200,6 @@ func TestFIFOShardedCache_RemovePresent(t *testing.T) {
 	assert.False(t, found, "not expected to find key %s", key)
 }
 
-func TestFIFOShardedCache_RemoveOldestEmpty(t *testing.T) {
-	c, err := fifocache.NewShardedCache(10, 2)
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-
-	l := c.Len()
-
-	assert.Zero(t, l, "expected size 0 but got %d", l)
-
-	c.RemoveOldest()
-
-	l = c.Len()
-
-	assert.Zero(t, l, "expected size 0 but got %d", l)
-}
-
 func TestFIFOShardedCache_Keys(t *testing.T) {
 	c, err := fifocache.NewShardedCache(10, 2)
 
@@ -223,7 +207,7 @@ func TestFIFOShardedCache_Keys(t *testing.T) {
 
 	for i := 0; i < 20; i++ {
 		key, val := []byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i))
-		c.Put(key, val)
+		c.Put(key, val, 0)
 	}
 
 	keys := c.Keys()
@@ -239,7 +223,7 @@ func TestFIFOShardedCache_Len(t *testing.T) {
 
 	for i := 0; i < 20; i++ {
 		key, val := []byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i))
-		c.Put(key, val)
+		c.Put(key, val, 0)
 	}
 
 	l := c.Len()
@@ -254,7 +238,7 @@ func TestFIFOShardedCache_Clear(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		key, val := []byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i))
-		c.Put(key, val)
+		c.Put(key, val, 0)
 	}
 
 	l := c.Len()
@@ -300,7 +284,7 @@ func TestFIFOShardedCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing
 	c, err := fifocache.NewShardedCache(100, 2)
 	assert.Nil(t, err)
 	c.RegisterHandler(f)
-	c.Put([]byte("aaaa"), "bbbb")
+	c.Put([]byte("aaaa"), "bbbb", 0)
 
 	select {
 	case <-chDone:
@@ -335,7 +319,7 @@ func TestFIFOShardedCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *te
 	c, err := fifocache.NewShardedCache(100, 2)
 	assert.Nil(t, err)
 	c.RegisterHandler(f)
-	c.HasOrAdd([]byte("aaaa"), "bbbb")
+	c.HasOrAdd([]byte("aaaa"), "bbbb", 0)
 
 	select {
 	case <-chDone:
@@ -366,10 +350,10 @@ func TestFIFOShardedCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNo
 	c, err := fifocache.NewShardedCache(100, 2)
 	assert.Nil(t, err)
 	//first add, no call
-	c.HasOrAdd([]byte("aaaa"), "bbbb")
+	c.HasOrAdd([]byte("aaaa"), "bbbb", 0)
 	c.RegisterHandler(f)
 	//second add, should not call as the data was found
-	c.HasOrAdd([]byte("aaaa"), "bbbb")
+	c.HasOrAdd([]byte("aaaa"), "bbbb", 0)
 
 	select {
 	case <-chDone:

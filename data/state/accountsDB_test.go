@@ -121,7 +121,7 @@ func TestAccountsDB_SaveAccountNilAccountShouldErr(t *testing.T) {
 	adb := generateAccountDBFromTrie(&mock.TrieStub{})
 
 	err := adb.SaveAccount(nil)
-	assert.Equal(t, state.ErrNilAccountHandler, err)
+	assert.True(t, errors.Is(err, state.ErrNilAccountHandler))
 }
 
 func TestAccountsDB_SaveAccountErrWhenGettingOldAccountShouldErr(t *testing.T) {

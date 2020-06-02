@@ -62,8 +62,8 @@ type ArgsExporter struct {
 	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
 	ValidityAttester         process.ValidityAttester
-	InputAntifloodHandler    dataRetriever.P2PAntifloodHandler
-	OutputAntifloodHandler   dataRetriever.P2PAntifloodHandler
+	InputAntifloodHandler    process.P2PAntifloodHandler
+	OutputAntifloodHandler   process.P2PAntifloodHandler
 }
 
 type exportHandlerFactory struct {
@@ -99,8 +99,8 @@ type exportHandlerFactory struct {
 	headerIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
 	validityAttester         process.ValidityAttester
 	resolverContainer        dataRetriever.ResolversContainer
-	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
-	outputAntifloodHandler   dataRetriever.P2PAntifloodHandler
+	inputAntifloodHandler    process.P2PAntifloodHandler
+	outputAntifloodHandler   process.P2PAntifloodHandler
 }
 
 // NewExportHandlerFactory creates an exporter factory

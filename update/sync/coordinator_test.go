@@ -159,11 +159,11 @@ func TestNewSyncState_Ok(t *testing.T) {
 		Transactions: createPendingTxSyncHandler(),
 	}
 
-	syncState, err := NewSyncState(args)
+	ss, err := NewSyncState(args)
 	require.Nil(t, err)
-	require.False(t, syncState.IsInterfaceNil())
+	require.False(t, ss.IsInterfaceNil())
 
-	err = syncState.SyncAllState(1)
+	err = ss.SyncAllState(1)
 	require.Nil(t, err)
 }
 
@@ -177,10 +177,10 @@ func TestNewSyncState_CannotSyncHeaderErr(t *testing.T) {
 		Transactions: createPendingTxSyncHandler(),
 	}
 
-	syncState, err := NewSyncState(args)
+	ss, err := NewSyncState(args)
 	require.Nil(t, err)
 
-	err = syncState.SyncAllState(1)
+	err = ss.SyncAllState(1)
 	require.NotNil(t, err)
 }
 
@@ -194,10 +194,10 @@ func TestNewSyncState_CannotSyncTriesErr(t *testing.T) {
 		Transactions: createPendingTxSyncHandler(),
 	}
 
-	syncState, err := NewSyncState(args)
+	ss, err := NewSyncState(args)
 	require.Nil(t, err)
 
-	err = syncState.SyncAllState(1)
+	err = ss.SyncAllState(1)
 	require.NotNil(t, err)
 }
 
@@ -223,10 +223,10 @@ func TestSyncState_SyncAllStatePendingMiniBlocksErr(t *testing.T) {
 		Transactions: &mock.PendingTransactionsSyncHandlerMock{},
 	}
 
-	syncState, err := NewSyncState(args)
+	ss, err := NewSyncState(args)
 	require.Nil(t, err)
 
-	err = syncState.SyncAllState(0)
+	err = ss.SyncAllState(0)
 	require.Equal(t, localErr, err)
 }
 
@@ -252,10 +252,10 @@ func TestSyncState_SyncAllStateGetMiniBlocksErr(t *testing.T) {
 		Transactions: &mock.PendingTransactionsSyncHandlerMock{},
 	}
 
-	syncState, err := NewSyncState(args)
+	ss, err := NewSyncState(args)
 	require.Nil(t, err)
 
-	err = syncState.SyncAllState(0)
+	err = ss.SyncAllState(0)
 	require.Equal(t, localErr, err)
 }
 
@@ -281,9 +281,9 @@ func TestSyncState_SyncAllStateSyncTxsErr(t *testing.T) {
 		},
 	}
 
-	syncState, err := NewSyncState(args)
+	ss, err := NewSyncState(args)
 	require.Nil(t, err)
 
-	err = syncState.SyncAllState(0)
+	err = ss.SyncAllState(0)
 	require.Equal(t, localErr, err)
 }

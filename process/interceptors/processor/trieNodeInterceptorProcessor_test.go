@@ -53,7 +53,7 @@ func TestTrieNodesInterceptorProcessor_SaveShouldPutInCacher(t *testing.T) {
 
 	putCalled := false
 	cacher := &mock.CacherStub{
-		PutCalled: func(key []byte, value interface{}) (evicted bool) {
+		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 			putCalled = true
 			return false
 		},

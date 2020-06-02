@@ -22,6 +22,7 @@ type Validator interface {
 	PubKey() []byte
 	Chances() uint32
 	Index() uint32
+	Size() int
 }
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
@@ -130,7 +131,7 @@ type Cacher interface {
 	// Clear is used to completely clear the cache.
 	Clear()
 	// Put adds a value to the cache.  Returns true if an eviction occurred.
-	Put(key []byte, value interface{}) (evicted bool)
+	Put(key []byte, value interface{}, sizeInBytes int) (evicted bool)
 	// Get looks up a key's value from the cache.
 	Get(key []byte) (value interface{}, ok bool)
 }

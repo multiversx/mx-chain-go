@@ -217,7 +217,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		_ = pendingMiniBlocksSyncer.pool.Put(mbHash, mb)
+		_ = pendingMiniBlocksSyncer.pool.Put(mbHash, mb, mb.Size())
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
