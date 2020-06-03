@@ -425,5 +425,5 @@ const ExtraDelayForBroadcastBlockInfo = 2 * time.Second
 // moment when its components, like mini blocks and transactions, would be requested too if they are still missing
 const ExtraDelayForRequestBlockInfo = 4 * time.Second
 
-// CommitMaxTime represents max time accepted for a put into storage action, after which a warn message is displayed
+// CommitMaxTime represents max time accepted for a put/commit action, after which a warn message is displayed
 const CommitMaxTime = time.Second
