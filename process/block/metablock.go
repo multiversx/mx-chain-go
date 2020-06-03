@@ -533,7 +533,25 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, metaBlock.GetEpoch())
+	epoch := metaBlock.GetEpoch()
+	shardCoordinatorShardID := mp.shardCoordinator.SelfId()
+	nodesCoordinatorShardID, err := mp.nodesCoordinator.ShardIdForEpoch(epoch)
+	if err != nil {
+		log.Debug("indexBlock",
+			"epoch", epoch,
+			"error", err.Error())
+		return
+	}
+
+	if shardCoordinatorShardID != nodesCoordinatorShardID {
+		log.Debug("indexBlock",
+			"epoch", epoch,
+			"shardCoordinator.ShardID", shardCoordinatorShardID,
+			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
+		return
+	}
+
+	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, epoch)
 	if err != nil {
 		return
 	}

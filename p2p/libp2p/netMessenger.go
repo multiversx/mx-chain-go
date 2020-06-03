@@ -61,7 +61,7 @@ var externalPackages = []string{"dht", "nat", "basichost", "pubsub"}
 
 func init() {
 	for _, external := range externalPackages {
-		_ = logger.GetOrCreate(fmt.Sprintf("p2p/libp2p/external/%s", external))
+		_ = logger.GetOrCreate(fmt.Sprintf("external/%s", external))
 	}
 }
 
@@ -132,7 +132,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 
 func setupExternalP2PLoggers() {
 	for _, external := range externalPackages {
-		logLevel := logger.GetLoggerLogLevel("p2p/libp2p/external/" + external)
+		logLevel := logger.GetLoggerLogLevel("external/" + external)
 		if logLevel > logger.LogTrace {
 			continue
 		}

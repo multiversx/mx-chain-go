@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
@@ -438,6 +439,203 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 	allValidatorsPublicKeys, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedValidatorsPubKeys, allValidatorsPublicKeys)
+}
+
+func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving(t *testing.T) {
+	t.Parallel()
+
+	minChances := uint32(5)
+	belowRatingThresholdChances := uint32(1)
+	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
+	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
+		GetChancesCalled: func(rating uint32) uint32 {
+			if rating == 0 {
+				return minChances
+			}
+			if rating < 10 {
+				return belowRatingThresholdChances
+			}
+			return 10
+		},
+	})
+
+	leavingValidator := &state.ShardValidatorInfo{
+		PublicKey:  []byte("eligible"),
+		ShardId:    core.MetachainShardId,
+		List:       string(core.EligibleList),
+		Index:      7,
+		TempRating: 5,
+	}
+
+	shardValidatorInfo := []*state.ShardValidatorInfo{
+		leavingValidator,
+	}
+
+	additionalLeaving, err := ihgs.ComputeAdditionalLeaving(shardValidatorInfo)
+	assert.NotNil(t, additionalLeaving)
+	assert.Nil(t, err)
+
+	found, shardId := searchInMap(additionalLeaving, leavingValidator.PublicKey)
+	assert.True(t, found)
+	assert.Equal(t, leavingValidator.ShardId, shardId)
+
+	val := additionalLeaving[shardId][0]
+	assert.Equal(t, leavingValidator.PublicKey, val.PubKey())
+	assert.Equal(t, belowRatingThresholdChances, val.Chances())
+	assert.Equal(t, leavingValidator.Index, val.Index())
+}
+
+func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddNewEligibleWaiting(t *testing.T) {
+	t.Parallel()
+
+	minChances := uint32(5)
+
+	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
+	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
+		GetChancesCalled: func(rating uint32) uint32 {
+			if rating == 0 {
+				return minChances
+			}
+			return 0
+		},
+	})
+
+	newValidator := &state.ShardValidatorInfo{
+		PublicKey:  []byte("new"),
+		ShardId:    0,
+		List:       string(core.NewList),
+		Index:      1,
+		TempRating: 5,
+	}
+	eligibleValidator := &state.ShardValidatorInfo{
+		PublicKey:  []byte("eligible"),
+		ShardId:    core.MetachainShardId,
+		List:       string(core.EligibleList),
+		Index:      1,
+		TempRating: 5,
+	}
+	waitingValidator := &state.ShardValidatorInfo{
+		PublicKey:  []byte("waiting"),
+		ShardId:    1,
+		List:       string(core.WaitingList),
+		Index:      1,
+		TempRating: 5,
+	}
+
+	shardValidatorInfo := []*state.ShardValidatorInfo{
+		newValidator,
+		eligibleValidator,
+		waitingValidator,
+	}
+
+	additionalLeaving, err := ihgs.ComputeAdditionalLeaving(shardValidatorInfo)
+	assert.NotNil(t, additionalLeaving)
+	assert.Nil(t, err)
+
+	foundNew, _ := searchInMap(additionalLeaving, newValidator.PublicKey)
+	assert.True(t, foundNew)
+
+	foundEligible, _ := searchInMap(additionalLeaving, eligibleValidator.PublicKey)
+	assert.True(t, foundEligible)
+
+	foundWaiting, _ := searchInMap(additionalLeaving, waitingValidator.PublicKey)
+	assert.True(t, foundWaiting)
+}
+
+func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldNotAddInactiveAndJailed(t *testing.T) {
+	t.Parallel()
+
+	minChances := uint32(5)
+
+	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
+	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
+		GetChancesCalled: func(rating uint32) uint32 {
+			if rating == 0 {
+				return minChances
+			}
+			return 0
+		},
+	})
+
+	inactiveValidator := &state.ShardValidatorInfo{
+		PublicKey:  []byte("inactive"),
+		ShardId:    0,
+		List:       string(core.InactiveList),
+		Index:      1,
+		TempRating: 5,
+	}
+	jailedValidator := &state.ShardValidatorInfo{
+		PublicKey:  []byte("jailed"),
+		ShardId:    core.MetachainShardId,
+		List:       string(core.JailedList),
+		Index:      1,
+		TempRating: 5,
+	}
+
+	shardValidatorInfo := []*state.ShardValidatorInfo{
+		inactiveValidator,
+		jailedValidator,
+	}
+
+	additionalLeaving, err := ihgs.ComputeAdditionalLeaving(shardValidatorInfo)
+	assert.NotNil(t, additionalLeaving)
+	assert.Nil(t, err)
+
+	foundInactive, _ := searchInMap(additionalLeaving, inactiveValidator.PublicKey)
+	assert.False(t, foundInactive)
+
+	foundJailed, _ := searchInMap(additionalLeaving, jailedValidator.PublicKey)
+	assert.False(t, foundJailed)
+}
+
+func TestIndexHashedGroupSelectorWithRater_ComputeAdditionalLeaving_ShouldAddBelowMinRating(t *testing.T) {
+	t.Parallel()
+
+	minRating := uint32(10)
+	minChances := uint32(5)
+
+	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
+	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{
+		GetChancesCalled: func(rating uint32) uint32 {
+			if rating == 0 {
+				return minChances
+			}
+			if rating < minRating {
+				return 0
+			}
+			return 10
+		},
+	})
+
+	eligibleValidator := &state.ShardValidatorInfo{
+		PublicKey:  []byte("eligible"),
+		ShardId:    0,
+		List:       string(core.EligibleList),
+		Index:      1,
+		TempRating: 50,
+	}
+	belowRatingValidator := &state.ShardValidatorInfo{
+		PublicKey:  []byte("eligibleBelow"),
+		ShardId:    core.MetachainShardId,
+		List:       string(core.EligibleList),
+		Index:      1,
+		TempRating: 5,
+	}
+
+	shardValidatorInfo := []*state.ShardValidatorInfo{
+		eligibleValidator,
+		belowRatingValidator,
+	}
+
+	additionalLeaving, err := ihgs.ComputeAdditionalLeaving(shardValidatorInfo)
+	assert.NotNil(t, additionalLeaving)
+	assert.Nil(t, err)
+
+	foundEligible, _ := searchInMap(additionalLeaving, eligibleValidator.PublicKey)
+	assert.False(t, foundEligible)
+
+	foundBelowRatingValidator, _ := searchInMap(additionalLeaving, belowRatingValidator.PublicKey)
+	assert.True(t, foundBelowRatingValidator)
 }
 
 func BenchmarkIndexHashedGroupSelectorWithRater_TestExpandList(b *testing.B) {
