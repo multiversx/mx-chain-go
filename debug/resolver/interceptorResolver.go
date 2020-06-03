@@ -105,6 +105,7 @@ func NewInterceptorResolver(config config.InterceptorResolverDebugConfig) (*inte
 
 	ir.printEventHandler = ir.printEvent
 	if config.EnablePrint {
+		//TODO add context stopping mechanism here
 		go ir.printContinously()
 	}
 

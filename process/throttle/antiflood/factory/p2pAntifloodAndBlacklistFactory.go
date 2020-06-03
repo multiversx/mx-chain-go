@@ -26,13 +26,14 @@ var log = logger.GetOrCreate("p2p/antiflood/factory")
 const defaultSpan = 300 * time.Second
 const fastReactingIdentifier = "fast_reacting"
 const slowReactingIdentifier = "slow_reacting"
+const outOfSpecsIdentifier = "out_of_specs"
 const outputIdentifier = "output"
 
 // NewP2PAntiFloodAndBlackList will return instances of antiflood and blacklist, based on the config
 func NewP2PAntiFloodAndBlackList(
 	config config.Config,
 	statusHandler core.AppStatusHandler,
-) (process.P2PAntifloodHandler, process.BlackListHandler, error) {
+) (process.P2PAntifloodHandler, process.PeerBlackListHandler, error) {
 	if check.IfNil(statusHandler) {
 		return nil, nil, p2p.ErrNilStatusHandler
 	}
@@ -40,14 +41,18 @@ func NewP2PAntiFloodAndBlackList(
 		return initP2PAntiFloodAndBlackList(config, statusHandler)
 	}
 
-	return &disabled.AntiFlood{}, &disabled.BlacklistHandler{}, nil
+	return &disabled.AntiFlood{}, &disabled.PeerBlacklistHandler{}, nil
 }
 
 func initP2PAntiFloodAndBlackList(
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
-) (process.P2PAntifloodHandler, process.BlackListHandler, error) {
-	p2pPeerBlackList := timecache.NewTimeCache(defaultSpan)
+) (process.P2PAntifloodHandler, process.PeerBlackListHandler, error) {
+	cache := timecache.NewTimeCache(defaultSpan)
+	p2pPeerBlackList, err := timecache.NewPeerTimeCache(cache)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	fastReactingFloodPreventer, err := createFloodPreventer(
 		mainConfig.Antiflood.FastReacting,
@@ -71,6 +76,17 @@ func initP2PAntiFloodAndBlackList(
 		return nil, nil, fmt.Errorf("%w when creating fast reacting flood preventer", err)
 	}
 
+	outOfSpecsFloodPreventer, err := createFloodPreventer(
+		mainConfig.Antiflood.OutOfSpecs,
+		mainConfig.Antiflood.Cache,
+		statusHandler,
+		outOfSpecsIdentifier,
+		p2pPeerBlackList,
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%w when creating out of specs flood preventer", err)
+	}
+
 	topicFloodPreventer, err := floodPreventers.NewTopicFloodPreventer(mainConfig.Antiflood.Topic.DefaultMaxMessagesPerSec)
 	if err != nil {
 		return nil, nil, err
@@ -84,6 +100,7 @@ func initP2PAntiFloodAndBlackList(
 		topicFloodPreventer,
 		fastReactingFloodPreventer,
 		slowReactingFloodPreventer,
+		outOfSpecsFloodPreventer,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -123,7 +140,7 @@ func startResettingTopicFloodPreventer(
 	}()
 }
 
-func startSweepingP2PPeerBlackList(p2pPeerBlackList process.BlackListHandler) {
+func startSweepingP2PPeerBlackList(p2pPeerBlackList process.PeerBlackListHandler) {
 	go func() {
 		for {
 			time.Sleep(durationSweepP2PBlacklist)
@@ -137,7 +154,7 @@ func createFloodPreventer(
 	antifloodCacheConfig config.CacheConfig,
 	statusHandler core.AppStatusHandler,
 	quotaIdentifier string,
-	blackListHandler process.BlackListHandler,
+	blackListHandler process.PeerBlackListHandler,
 ) (process.FloodPreventer, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(antifloodCacheConfig)
 	blackListCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
@@ -151,7 +168,7 @@ func createFloodPreventer(
 		floodPreventerConfig.BlackList.ThresholdNumMessagesPerInterval,
 		floodPreventerConfig.BlackList.ThresholdSizePerInterval,
 		floodPreventerConfig.BlackList.NumFloodingRounds,
-		time.Duration(floodPreventerConfig.IntervalInSeconds)*time.Second,
+		time.Duration(floodPreventerConfig.BlackList.PeerBanDurationInSeconds)*time.Second,
 	)
 	if err != nil {
 		return nil, err

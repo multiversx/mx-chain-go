@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding/sorting"
@@ -56,7 +57,7 @@ func (pbs *prioBitsSharder) GetShard(id peer.ID) uint32 {
 	pbs.mutResolver.RLock()
 	defer pbs.mutResolver.RUnlock()
 
-	pInfo := pbs.resolver.GetPeerInfo(p2p.PeerID(id))
+	pInfo := pbs.resolver.GetPeerInfo(core.PeerID(id))
 
 	return pInfo.ShardID
 }

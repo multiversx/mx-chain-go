@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -23,7 +24,7 @@ type topicFloodPreventer struct {
 	mutTopicMaxMessages       sync.RWMutex
 	topicMaxMessages          map[string]uint32
 	registeredTopics          map[string]struct{}
-	counterMap                map[string]map[string]uint32
+	counterMap                map[string]map[core.PeerID]uint32
 	defaultMaxMessagesPerPeer uint32
 }
 
@@ -42,7 +43,7 @@ func NewTopicFloodPreventer(
 
 	return &topicFloodPreventer{
 		topicMaxMessages:          make(map[string]uint32),
-		counterMap:                make(map[string]map[string]uint32),
+		counterMap:                make(map[string]map[core.PeerID]uint32),
 		registeredTopics:          make(map[string]struct{}),
 		defaultMaxMessagesPerPeer: maxMessagesPerPeer,
 	}, nil
@@ -50,18 +51,18 @@ func NewTopicFloodPreventer(
 
 // IncreaseLoad tries to increment the counter values held at "identifier" position for the given topic
 // It returns nil if it had succeeded incrementing (existing counter value is lower than provided maxMessagesPerPeer)
-func (tfp *topicFloodPreventer) IncreaseLoad(identifier string, topic string, numMessages uint32) error {
+func (tfp *topicFloodPreventer) IncreaseLoad(pid core.PeerID, topic string, numMessages uint32) error {
 	tfp.mutTopicMaxMessages.Lock()
 	defer tfp.mutTopicMaxMessages.Unlock()
 
 	_, ok := tfp.counterMap[topic]
 	if !ok {
-		tfp.counterMap[topic] = make(map[string]uint32)
+		tfp.counterMap[topic] = make(map[core.PeerID]uint32)
 	}
 
-	tfp.counterMap[topic][identifier] += numMessages
+	tfp.counterMap[topic][pid] += numMessages
 
-	limitExceeded := tfp.counterMap[topic][identifier] > tfp.maxMessagesForTopic(topic)
+	limitExceeded := tfp.counterMap[topic][pid] > tfp.maxMessagesForTopic(topic)
 	if limitExceeded {
 		return process.ErrSystemBusy
 	}
@@ -86,7 +87,7 @@ func (tfp *topicFloodPreventer) ResetForTopic(topic string) {
 	if strings.Contains(topic, WildcardCharacter) {
 		tfp.resetTopicWithWildCard(topic)
 	}
-	tfp.counterMap[topic] = make(map[string]uint32)
+	tfp.counterMap[topic] = make(map[core.PeerID]uint32)
 }
 
 // ResetForNotRegisteredTopics resets all topic counters that were not registered
@@ -100,7 +101,7 @@ func (tfp *topicFloodPreventer) ResetForNotRegisteredTopics() {
 			continue
 		}
 
-		tfp.counterMap[topic] = make(map[string]uint32)
+		tfp.counterMap[topic] = make(map[core.PeerID]uint32)
 	}
 }
 
@@ -127,7 +128,7 @@ func (tfp *topicFloodPreventer) resetTopicWithWildCard(topic string) {
 	topicWithoutWildcard := strings.Replace(topic, WildcardCharacter, "", 1)
 	for topicKey := range tfp.counterMap {
 		if strings.Contains(topicKey, topicWithoutWildcard) {
-			tfp.counterMap[topicKey] = make(map[string]uint32)
+			tfp.counterMap[topicKey] = make(map[core.PeerID]uint32)
 		}
 	}
 }

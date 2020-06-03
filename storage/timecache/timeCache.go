@@ -5,12 +5,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var _ dataRetriever.RequestedItemsHandler = (*TimeCache)(nil)
-var _ p2p.BlacklistHandler = (*TimeCache)(nil)
 
 type span struct {
 	timestamp time.Time
@@ -23,7 +21,6 @@ type span struct {
 type TimeCache struct {
 	mut         sync.Mutex
 	data        map[string]span
-	keys        []string
 	defaultSpan time.Duration
 }
 
@@ -31,7 +28,6 @@ type TimeCache struct {
 func NewTimeCache(defaultSpan time.Duration) *TimeCache {
 	return &TimeCache{
 		data:        make(map[string]span),
-		keys:        make([]string, 0),
 		defaultSpan: defaultSpan,
 	}
 }
@@ -59,7 +55,6 @@ func (tc *TimeCache) add(key string, duration time.Duration) error {
 		timestamp: time.Now(),
 		span:      duration,
 	}
-	tc.keys = append(tc.keys, key)
 	return nil
 }
 
@@ -75,25 +70,10 @@ func (tc *TimeCache) Sweep() {
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
 
-	for {
-		if len(tc.keys) == 0 {
-			return
-		}
-
-		firstElement := tc.keys[0]
-		t, ok := tc.data[firstElement]
-		if !ok {
-			//inconsistency handled
-			tc.keys = tc.keys[1:]
-			continue
-		}
-
-		isOldElement := time.Since(t.timestamp) > t.span
+	for key, element := range tc.data {
+		isOldElement := time.Since(element.timestamp) > element.span
 		if isOldElement {
-			tc.keys = tc.keys[1:]
-			delete(tc.data, firstElement)
-		} else {
-			return
+			delete(tc.data, key)
 		}
 	}
 }

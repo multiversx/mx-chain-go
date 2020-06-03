@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
@@ -56,7 +57,7 @@ func main() {
 
 	_ = mes1.RegisterMessageProcessor("test1",
 		&mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P, _ p2p.PeerID) error {
+			ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 				atomic.AddInt64(&bytesReceived1, int64(len(message.Data())))
 
 				return nil
@@ -64,7 +65,7 @@ func main() {
 		})
 
 	_ = mes1.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, _ p2p.PeerID) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 			atomic.AddInt64(&bytesReceived2, int64(len(message.Data())))
 
 			return nil
@@ -72,7 +73,7 @@ func main() {
 	})
 
 	_ = mes1.RegisterMessageProcessor("test3", &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, _ p2p.PeerID) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 			atomic.AddInt64(&bytesReceived3, int64(len(message.Data())))
 
 			return nil

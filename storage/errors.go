@@ -117,3 +117,6 @@ var ErrLRUCacheInvalidSize = errors.New("wrong size in bytes value for LRU cache
 
 // ErrNegativeSizeInBytes signals that the provided size in bytes value is negative
 var ErrNegativeSizeInBytes = errors.New("negative size in bytes")
+
+// ErrNilTimeCache signals that a nil time cache has been provided
+var ErrNilTimeCache = errors.New("nil time cache")

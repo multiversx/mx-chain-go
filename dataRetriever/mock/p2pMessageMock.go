@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // P2PMessageMock -
@@ -12,7 +12,7 @@ type P2PMessageMock struct {
 	TopicsField    []string
 	SignatureField []byte
 	KeyField       []byte
-	PeerField      p2p.PeerID
+	PeerField      core.PeerID
 }
 
 // From -
@@ -46,7 +46,7 @@ func (msg *P2PMessageMock) Key() []byte {
 }
 
 // Peer -
-func (msg *P2PMessageMock) Peer() p2p.PeerID {
+func (msg *P2PMessageMock) Peer() core.PeerID {
 	return msg.PeerField
 }
 

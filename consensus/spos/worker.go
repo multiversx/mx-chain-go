@@ -303,7 +303,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 }
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
-func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if check.IfNil(message) {
 		return ErrNilMessage
 	}
@@ -317,7 +317,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	topic := GetConsensusTopicIDFromShardCoordinator(wrk.shardCoordinator)
-	err = wrk.antifloodHandler.CanProcessMessagesOnTopic(message.Peer(), topic, 1)
+	err = wrk.antifloodHandler.CanProcessMessagesOnTopic(message.Peer(), topic, 1, uint64(len(message.Data())))
 	if err != nil {
 		return err
 	}
