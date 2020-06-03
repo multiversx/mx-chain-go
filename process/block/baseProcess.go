@@ -772,10 +772,17 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,
 	}
 
+	startTime := time.Now()
+
 	err := bp.bootStorer.Put(int64(args.round), bootData)
 	if err != nil {
 		log.Warn("cannot save boot data in storage",
 			"error", err.Error())
+	}
+
+	elapsedTime := time.Since(startTime)
+	if elapsedTime >= process.CommitMaxTime {
+		log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
 	}
 }
 
@@ -954,7 +961,7 @@ func (bp *baseProcessor) saveBody(body *block.Body) {
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= time.Second {
+	if elapsedTime >= process.CommitMaxTime {
 		log.Warn("saveBody", "elapsed time", elapsedTime)
 	}
 }
@@ -978,7 +985,7 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= time.Second {
+	if elapsedTime >= process.CommitMaxTime {
 		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
 	}
 }
@@ -999,7 +1006,7 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= time.Second {
+	if elapsedTime >= process.CommitMaxTime {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
 }

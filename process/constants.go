@@ -1,5 +1,7 @@
 package process
 
+import "time"
+
 // BlockHeaderState specifies which is the state of the block header received
 type BlockHeaderState int
 
@@ -107,3 +109,6 @@ const MaxRoundsToKeepUnprocessedMiniBlocks = 100
 
 // MaxRoundsToKeepUnprocessedTransactions defines the maximum number of rounds for which unprocessed transactions are kept in pool
 const MaxRoundsToKeepUnprocessedTransactions = 100
+
+// CommitMaxTime represents max time accepted for a put into storage action, after which a warn message is displayed
+const CommitMaxTime = time.Second
