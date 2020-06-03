@@ -47,9 +47,9 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 		Antiflood: config.AntifloodConfig{
 			Enabled: true,
 			Cache: config.CacheConfig{
-				Type:   "LRU",
-				Size:   10,
-				Shards: 2,
+				Type:     "LRU",
+				Capacity: 10,
+				Shards:   2,
 			},
 			FastReacting: createFloodPreventerConfig(),
 			SlowReacting: createFloodPreventerConfig(),
@@ -70,8 +70,8 @@ func createFloodPreventerConfig() config.FloodPreventerConfig {
 	return config.FloodPreventerConfig{
 		IntervalInSeconds: 1,
 		PeerMaxInput: config.AntifloodLimitsConfig{
-			MessagesPerInterval:  10,
-			TotalSizePerInterval: 10,
+			BaseMessagesPerInterval: 10,
+			TotalSizePerInterval:    10,
 		},
 		BlackList: config.BlackListConfig{
 			ThresholdNumMessagesPerInterval: 10,

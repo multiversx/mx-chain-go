@@ -1052,18 +1052,6 @@ func TestWithBootstrapRoundIndex(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithTxStorageSize(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-	txStorageSize := uint32(100)
-	opt := WithTxStorageSize(txStorageSize)
-
-	err := opt(node)
-	assert.Equal(t, txStorageSize, node.txStorageSize)
-	assert.Nil(t, err)
-}
-
 func TestWithEpochStartTrigger_NilEpoch(t *testing.T) {
 	t.Parallel()
 

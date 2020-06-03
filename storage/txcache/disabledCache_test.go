@@ -30,7 +30,7 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 
 	cache.Clear()
 
-	evicted := cache.Put(nil, nil)
+	evicted := cache.Put(nil, nil, 0)
 	require.False(t, evicted)
 
 	value, ok := cache.Get([]byte{})
@@ -44,12 +44,11 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	has := cache.Has([]byte{})
 	require.False(t, has)
 
-	has, evicted = cache.HasOrAdd([]byte{}, nil)
+	has, evicted = cache.HasOrAdd([]byte{}, nil, 0)
 	require.False(t, has)
 	require.False(t, evicted)
 
 	cache.Remove([]byte{})
-	cache.RemoveOldest()
 
 	keys := cache.Keys()
 	require.Equal(t, 0, len(keys))

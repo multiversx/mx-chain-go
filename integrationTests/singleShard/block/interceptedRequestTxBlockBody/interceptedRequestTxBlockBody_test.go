@@ -65,7 +65,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	txBlockBodyHash := hasher.Compute(string(txBlockBodyBuff))
 
 	//Step 2. resolver has the tx block body
-	nResolver.DataPool.MiniBlocks().HasOrAdd(txBlockBodyHash, miniBlock)
+	nResolver.DataPool.MiniBlocks().HasOrAdd(txBlockBodyHash, miniBlock, miniBlock.Size())
 	fmt.Printf("Added %s to dPoolResolver\n", base64.StdEncoding.EncodeToString(txBlockBodyHash))
 
 	//Step 3. wire up a received handler

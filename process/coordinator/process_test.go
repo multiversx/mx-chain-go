@@ -72,7 +72,7 @@ func createShardedDataChacherNotifier(
 				}
 				return nil, false
 			},
-			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+			AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
 			},
 		}
 	}
@@ -137,7 +137,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
 			cs.RemoveCalled = func(key []byte) {}
-			cs.PutCalled = func(key []byte, value interface{}) (evicted bool) {
+			cs.PutCalled = func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				return false
 			}
 			return cs
@@ -169,7 +169,7 @@ func initStore() *dataRetriever.ChainStorer {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1, 0)
 	return cache
 }
 
@@ -914,8 +914,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
-	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg := storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.LRUCache}
+	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 	tdp.MiniBlocksCalled = func() storage.Cacher {
 		return hdrPool
 	}
@@ -990,7 +990,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		for j := 0; j < len(metaHdr.ShardInfo[i].ShardMiniBlockHeaders); j++ {
 			mbHdr := metaHdr.ShardInfo[i].ShardMiniBlockHeaders[j]
 			mb := block.MiniBlock{SenderShardID: mbHdr.SenderShardID, ReceiverShardID: mbHdr.ReceiverShardID, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-			tdp.MiniBlocks().Put(mbHdr.Hash, &mb)
+			tdp.MiniBlocks().Put(mbHdr.Hash, &mb, mb.Size())
 		}
 	}
 
@@ -1007,8 +1007,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
-	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
-	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg := storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.LRUCache}
+	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 	tdp.MiniBlocksCalled = func() storage.Cacher {
 		return hdrPool
 	}
@@ -1080,7 +1080,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		for j := 0; j < len(metaHdr.ShardInfo[i].ShardMiniBlockHeaders); j++ {
 			mbHdr := metaHdr.ShardInfo[i].ShardMiniBlockHeaders[j]
 			mb := block.MiniBlock{SenderShardID: mbHdr.SenderShardID, ReceiverShardID: mbHdr.ReceiverShardID, Type: unknownPreprocessorType, TxHashes: [][]byte{txHash}}
-			tdp.MiniBlocks().Put(mbHdr.Hash, &mb)
+			tdp.MiniBlocks().Put(mbHdr.Hash, &mb, mb.Size())
 		}
 	}
 
@@ -1115,7 +1115,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
-		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+		AddDataCalled: func(_ []byte, _ interface{}, _ int, _ string) {
 		},
 	}
 
@@ -1283,7 +1283,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 		newTx := &transaction.Transaction{GasLimit: uint64(shId)}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
-		txPool.AddData(txHash, newTx, strCache)
+		txPool.AddData(txHash, newTx, newTx.Size(), strCache)
 	}
 
 	// we have one tx per shard.
@@ -1340,7 +1340,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
-		txPool.AddData(txHash, newTx, strCache)
+		txPool.AddData(txHash, newTx, newTx.Size(), strCache)
 
 	}
 
@@ -1408,7 +1408,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		newTx := &transaction.Transaction{GasLimit: gasLimit + gasLimit/uint64(numMiniBlocks), GasPrice: uint64(i), RcvAddr: scAddress}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
-		txPool.AddData(txHash, newTx, strCache)
+		txPool.AddData(txHash, newTx, newTx.Size(), strCache)
 	}
 
 	// we have one tx per shard.
@@ -1479,7 +1479,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 			newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
 
 			txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
-			txPool.AddData(txHash, newTx, shardCacher)
+			txPool.AddData(txHash, newTx, newTx.Size(), shardCacher)
 		}
 	}
 
@@ -1534,7 +1534,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		newTx := &transaction.Transaction{GasLimit: uint64(i)}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
-		txPool.AddData(txHash, newTx, strCache)
+		txPool.AddData(txHash, newTx, newTx.Size(), strCache)
 	}
 
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
@@ -2011,15 +2011,15 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
 		Data:  txHash1,
-	}, cacheId)
+	}, 0, cacheId)
 	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
 		Nonce: tx2Nonce,
 		Data:  txHash2,
-	}, cacheId)
+	}, 0, cacheId)
 	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
 		Nonce: tx3Nonce,
 		Data:  txHash3,
-	}, cacheId)
+	}, 0, cacheId)
 
 	tx1ExecutionResult := uint64(0)
 	tx2ExecutionResult := uint64(0)
@@ -2153,15 +2153,15 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
 		Data:  txHash1,
-	}, cacheId)
+	}, 0, cacheId)
 	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
 		Nonce: tx2Nonce,
 		Data:  txHash2,
-	}, cacheId)
+	}, 0, cacheId)
 	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
 		Nonce: tx3Nonce,
 		Data:  txHash3,
-	}, cacheId)
+	}, 0, cacheId)
 
 	currentJournalLen := 445
 	revertAccntStateCalled := false
@@ -2395,7 +2395,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 				}
 				return nil, false
 			},
-			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+			AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
 			},
 		}
 	}
@@ -2541,7 +2541,7 @@ func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
 	return txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:                 100000,
+				Capacity:             100000,
 				SizePerSender:        1000,
 				SizeInBytes:          1000000000,
 				SizeInBytesPerSender: 10000000,

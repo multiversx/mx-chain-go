@@ -24,7 +24,17 @@ func Test_NewShardedTxPool(t *testing.T) {
 }
 
 func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
-	goodArgs := ArgShardedTxPool{Config: storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 16}, MinGasPrice: 200000000000, NumberOfShards: 1}
+	goodArgs := ArgShardedTxPool{
+		Config: storageUnit.CacheConfig{
+			Capacity:             100,
+			SizePerSender:        10,
+			SizeInBytes:          409600,
+			SizeInBytesPerSender: 40960,
+			Shards:               16,
+		},
+		MinGasPrice:    200000000000,
+		NumberOfShards: 1,
+	}
 
 	args := goodArgs
 	args.Config.SizeInBytes = 0
@@ -41,7 +51,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidSizeInBytes.Error())
 
 	args = goodArgs
-	args.Config.Size = 0
+	args.Config.Capacity = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
@@ -77,7 +87,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
-	config := storageUnit.CacheConfig{SizeInBytes: 524288000, SizeInBytesPerSender: 614400, Size: 900000, SizePerSender: 1000, Shards: 1}
+	config := storageUnit.CacheConfig{SizeInBytes: 524288000, SizeInBytesPerSender: 614400, Capacity: 900000, SizePerSender: 1000, Shards: 1}
 	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 5}
 
 	poolAsInterface, err := NewShardedTxPool(args)
@@ -143,12 +153,12 @@ func Test_AddData(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 	cache := pool.getTxCache("0")
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
-	pool.AddData([]byte("hash-y"), createTx("alice", 43), "0")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "0")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), 0, "0")
 	require.Equal(t, 2, cache.Len())
 
 	// Try to add again, duplication does not occur
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "0")
 	require.Equal(t, 2, cache.Len())
 
 	_, ok := cache.GetByTxHash([]byte("hash-x"))
@@ -161,7 +171,7 @@ func Test_AddData_NoPanic_IfNotATransaction(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 
 	require.NotPanics(t, func() {
-		poolAsInterface.AddData([]byte("hash"), &thisIsNotATransaction{}, "1")
+		poolAsInterface.AddData([]byte("hash"), &thisIsNotATransaction{}, 0, "1")
 	})
 }
 
@@ -175,8 +185,8 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 	})
 
 	// Second addition is ignored (txhash-based deduplication)
-	pool.AddData([]byte("hash-1"), createTx("alice", 42), "0")
-	pool.AddData([]byte("hash-1"), createTx("alice", 42), "0")
+	pool.AddData([]byte("hash-1"), createTx("alice", 42), 0, "0")
+	pool.AddData([]byte("hash-1"), createTx("alice", 42), 0, "0")
 
 	waitABit()
 	require.Equal(t, uint32(1), atomic.LoadUint32(&numAdded))
@@ -187,9 +197,9 @@ func Test_SearchFirstData(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 
 	tx := createTx("alice", 42)
-	pool.AddData([]byte("hash-x"), tx, "0")
-	pool.AddData([]byte("hash-y"), tx, "0_1")
-	pool.AddData([]byte("hash-z"), tx, "2_3")
+	pool.AddData([]byte("hash-x"), tx, 0, "0")
+	pool.AddData([]byte("hash-y"), tx, 0, "0_1")
+	pool.AddData([]byte("hash-z"), tx, 0, "2_3")
 
 	foundTx, ok := pool.SearchFirstData([]byte("hash-x"))
 	require.True(t, ok)
@@ -208,8 +218,8 @@ func Test_RemoveData(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
-	pool.AddData([]byte("hash-y"), createTx("bob", 43), "1")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "0")
+	pool.AddData([]byte("hash-y"), createTx("bob", 43), 0, "1")
 
 	pool.RemoveData([]byte("hash-x"), "0")
 	pool.RemoveData([]byte("hash-y"), "1")
@@ -226,8 +236,8 @@ func Test_RemoveSetOfDataFromPool(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 	cache := pool.getTxCache("0")
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
-	pool.AddData([]byte("hash-y"), createTx("bob", 43), "0")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "0")
+	pool.AddData([]byte("hash-y"), createTx("bob", 43), 0, "0")
 	require.Equal(t, 2, cache.Len())
 
 	pool.RemoveSetOfDataFromPool([][]byte{[]byte("hash-x"), []byte("hash-y")}, "0")
@@ -238,8 +248,8 @@ func Test_RemoveDataFromAllShards(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "0")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "1")
 	pool.RemoveDataFromAllShards([]byte("hash-x"))
 
 	require.Zero(t, pool.getTxCache("0").Len())
@@ -250,8 +260,8 @@ func Test_MergeShardStores(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1_0")
-	pool.AddData([]byte("hash-y"), createTx("alice", 43), "2_0")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "1_0")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), 0, "2_0")
 	pool.MergeShardStores("1_0", "2_0")
 
 	require.Equal(t, 0, pool.getTxCache("1_0").Len())
@@ -262,8 +272,8 @@ func Test_Clear(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
-	pool.AddData([]byte("hash-y"), createTx("alice", 43), "1")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "0")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), 0, "1")
 
 	pool.Clear()
 	require.Zero(t, pool.getTxCache("0").Len())
@@ -274,9 +284,9 @@ func Test_ClearShardStore(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
-	pool.AddData([]byte("hash-y"), createTx("alice", 43), "1")
-	pool.AddData([]byte("hash-z"), createTx("alice", 15), "5")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "1")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), 0, "1")
+	pool.AddData([]byte("hash-z"), createTx("alice", 15), 0, "5")
 
 	pool.ClearShardStore("1")
 	require.Equal(t, 0, pool.getTxCache("1").Len())
@@ -299,9 +309,9 @@ func Test_GetCounts(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 
 	require.Equal(t, int64(0), pool.GetCounts().GetTotal())
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
-	pool.AddData([]byte("hash-y"), createTx("alice", 43), "1")
-	pool.AddData([]byte("hash-z"), createTx("bob", 15), "3")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "1")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), 0, "1")
+	pool.AddData([]byte("hash-z"), createTx("bob", 15), 0, "3")
 	require.Equal(t, int64(3), pool.GetCounts().GetTotal())
 	pool.RemoveDataFromAllShards([]byte("hash-x"))
 	require.Equal(t, int64(2), pool.GetCounts().GetTotal())
@@ -329,7 +339,13 @@ func Test_NotImplementedFunctions(t *testing.T) {
 }
 
 func Test_routeToCacheUnions(t *testing.T) {
-	config := storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 1}
+	config := storageUnit.CacheConfig{
+		Capacity:             100,
+		SizePerSender:        10,
+		SizeInBytes:          409600,
+		SizeInBytesPerSender: 40960,
+		Shards:               1,
+	}
 	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4, SelfShardID: 42}
 	poolAsInterface, _ := NewShardedTxPool(args)
 	pool := poolAsInterface.(*shardedTxPool)
@@ -358,7 +374,13 @@ type thisIsNotATransaction struct {
 }
 
 func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
-	config := storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 1}
+	config := storageUnit.CacheConfig{
+		Capacity:             100,
+		SizePerSender:        10,
+		SizeInBytes:          409600,
+		SizeInBytesPerSender: 40960,
+		Shards:               1,
+	}
 	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4, SelfShardID: 0}
 	return NewShardedTxPool(args)
 }

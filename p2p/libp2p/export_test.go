@@ -2,7 +2,7 @@ package libp2p
 
 import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
@@ -36,7 +36,7 @@ func (ds *directSender) Counter() uint64 {
 	return ds.counter
 }
 
-func (mh *MutexHolder) Mutexes() *lrucache.LRUCache {
+func (mh *MutexHolder) Mutexes() storage.Cacher {
 	return mh.mutexes
 }
 

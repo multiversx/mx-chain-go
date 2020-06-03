@@ -168,6 +168,9 @@ func TestValidatorsProvider_CallsPopulateAndRegister(t *testing.T) {
 			atomic.AddInt32(&numPopulateCacheCalled, 1)
 			return nil, nil
 		},
+		LastFinalizedRootHashCalled: func() []byte {
+			return []byte("rootHash")
+		},
 	}
 
 	_, _ = NewValidatorsProvider(arg)
@@ -182,7 +185,11 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 	expectedErr := errors.New("expectedError")
 	arg := createDefaultValidatorsProviderArg()
 
-	validatorStatistics := &mock.ValidatorStatisticsProcessorStub{}
+	validatorStatistics := &mock.ValidatorStatisticsProcessorStub{
+		LastFinalizedRootHashCalled: func() []byte {
+			return []byte("rootHash")
+		},
+	}
 	validatorStatistics.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 		return nil, expectedErr
 	}
@@ -262,7 +269,11 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 		},
 	}
 	arg := createDefaultValidatorsProviderArg()
-	validatorStatistics := &mock.ValidatorStatisticsProcessorStub{}
+	validatorStatistics := &mock.ValidatorStatisticsProcessorStub{
+		LastFinalizedRootHashCalled: func() []byte {
+			return []byte("rootHash")
+		},
+	}
 	validatorStatistics.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 		return validatorsMap, nil
 	}
@@ -502,7 +513,11 @@ func TestValidatorsProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 
 	arg := createDefaultValidatorsProviderArg()
 	arg.CacheRefreshIntervalDurationInSec = time.Millisecond * 10
-	validatorStatisticsProcessor := &mock.ValidatorStatisticsProcessorStub{}
+	validatorStatisticsProcessor := &mock.ValidatorStatisticsProcessorStub{
+		LastFinalizedRootHashCalled: func() []byte {
+			return []byte("rootHash")
+		},
+	}
 	validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 		atomic.AddInt32(populateCacheCalled, 1)
 		return nil, nil
@@ -539,7 +554,11 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	arg.CacheRefreshIntervalDurationInSec = 5 * time.Millisecond
 	pkEligibleInTrie := []byte("pk1")
 
-	validatorStatisticsProcessor := &mock.ValidatorStatisticsProcessorStub{}
+	validatorStatisticsProcessor := &mock.ValidatorStatisticsProcessorStub{
+		LastFinalizedRootHashCalled: func() []byte {
+			return []byte("rootHash")
+		},
+	}
 	validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 		callNumber++
 		// first call comes from the constructor
@@ -574,7 +593,11 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 	arg.CacheRefreshIntervalDurationInSec = 5 * time.Millisecond
 	pkEligibleInTrie := []byte("pk1")
 
-	validatorStatisticsProcessor := &mock.ValidatorStatisticsProcessorStub{}
+	validatorStatisticsProcessor := &mock.ValidatorStatisticsProcessorStub{
+		LastFinalizedRootHashCalled: func() []byte {
+			return []byte("rootHash")
+		},
+	}
 	validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 		callNumber++
 		// first call comes from the constructor
