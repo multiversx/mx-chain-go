@@ -175,6 +175,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	numRoundsToPropagateMultiShard := 15
 	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -200,6 +201,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 
 	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -276,6 +278,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	numRoundsToPropagateMultiShard := 15
 	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -311,6 +314,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 
 	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
 		integrationTests.SyncBlock(t, nodes, idxProposers, round)
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -570,14 +574,14 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	stakePerNode := shardNode.EconomicsData.GenesisNodePrice()
 	totalStake := stakePerNode // 1 node only in this test
 	nodeSharePer10000 := 3000
-	time_before_force_unstake := 680400
+	timeBeforeForceUnstake := 680400
 	stakerBLSKey, _ := hex.DecodeString(strings.Repeat("a", 96*2))
 	stakerBLSSignature, _ := hex.DecodeString(strings.Repeat("c", 32*2))
 
 	// deploy the delegation smart contract
 	delegateSCAddress := putDeploySCToDataPool(
 		"./testdata/delegate/delegation.wasm", delegateSCOwner, 0, big.NewInt(0),
-		fmt.Sprintf("@%x@%s@%x", nodeSharePer10000, hex.EncodeToString(factory2.AuctionSCAddress), time_before_force_unstake),
+		fmt.Sprintf("@%x@%s@%x", nodeSharePer10000, hex.EncodeToString(factory2.AuctionSCAddress), timeBeforeForceUnstake),
 		nodes)
 	shardNode.OwnAccount.Nonce++
 
@@ -733,7 +737,7 @@ func putDeploySCToDataPool(
 			continue
 		}
 		strCache := process.ShardCacherIdentifier(shId, shId)
-		node.DataPool.Transactions().AddData(txHash, tx, strCache)
+		node.DataPool.Transactions().AddData(txHash, tx, tx.Size(), strCache)
 	}
 
 	return scAddressBytes

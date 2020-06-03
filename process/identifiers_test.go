@@ -34,11 +34,11 @@ func assertParseShardCacherIdentifier(t *testing.T, cacheID string, source uint3
 	require.Equal(t, err, actualErr)
 }
 
-func TestIdentifiers_IsShardCacherIdentifierIntraShard(t *testing.T) {
-	require.True(t, IsShardCacherIdentifierIntraShard("0", 0))
-	require.True(t, IsShardCacherIdentifierIntraShard("1", 1))
-	require.False(t, IsShardCacherIdentifierIntraShard("2", 1))
-	require.False(t, IsShardCacherIdentifierIntraShard("2_2", 2)) // Bad format
-	require.False(t, IsShardCacherIdentifierIntraShard("", 0))
-	require.False(t, IsShardCacherIdentifierIntraShard("2_3", 2))
+func TestIdentifiers_IsShardCacherIdentifierForSourceMe(t *testing.T) {
+	require.True(t, IsShardCacherIdentifierForSourceMe("0", 0))
+	require.True(t, IsShardCacherIdentifierForSourceMe("1", 1))
+	require.False(t, IsShardCacherIdentifierForSourceMe("2", 1))
+	require.False(t, IsShardCacherIdentifierForSourceMe("2_2", 2)) // Bad format
+	require.False(t, IsShardCacherIdentifierForSourceMe("", 0))
+	require.False(t, IsShardCacherIdentifierForSourceMe("2_3", 2))
 }

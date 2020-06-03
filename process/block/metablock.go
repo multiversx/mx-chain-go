@@ -760,22 +760,22 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
 ) (*block.Body, error) {
+	var miniBlocks block.MiniBlockSlice
 
 	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		return nil, process.ErrAccountStateDirty
+		log.Error("metaProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty)
+		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
 	if !haveTime() {
-		log.Debug("time is up after entered in createMiniBlocks method")
-		return nil, process.ErrTimeIsOut
+		log.Debug("metaProcessor.createMiniBlocks", "error", process.ErrTimeIsOut)
+		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
 	mbsToMe, numTxs, numShardHeaders, err := mp.createAndProcessCrossMiniBlocksDstMe(haveTime)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
-
-	var miniBlocks block.MiniBlockSlice
 
 	if len(mbsToMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsToMe...)
@@ -941,12 +941,14 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 	lastShardHdr map[uint32]data.HeaderHandler,
 ) {
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		log.Debug("shard hdrs added",
+		log.Debug("shard headers added",
 			"shard", shardID,
-			"nb", hdrsAddedForShard[shardID],
-			"lastShardHdr", lastShardHdr[shardID].GetNonce())
+			"num", hdrsAddedForShard[shardID],
+			"highest nonce", lastShardHdr[shardID].GetNonce())
 
-		if hdrsAddedForShard[shardID] == 0 {
+		roundTooOld := mp.rounder.Index() > int64(lastShardHdr[shardID].GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+		shouldRequestCrossHeaders := hdrsAddedForShard[shardID] == 0 && roundTooOld
+		if shouldRequestCrossHeaders {
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1
 			toNonce := fromNonce + uint64(mp.shardBlockFinality)
 			for nonce := fromNonce; nonce <= toNonce; nonce++ {

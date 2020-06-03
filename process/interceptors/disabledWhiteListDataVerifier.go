@@ -14,7 +14,7 @@ func NewDisabledWhiteListDataVerifier() (*disabledWhiteListVerifier, error) {
 
 // IsWhiteListed return true if intercepted data is accepted
 func (w *disabledWhiteListVerifier) IsWhiteListed(_ process.InterceptedData) bool {
-	return false
+	return true
 }
 
 // Add adds all the list to the cache

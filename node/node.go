@@ -203,18 +203,6 @@ func (n *Node) CreateShardedStores() error {
 		return errors.New("nil header sharded data store")
 	}
 
-	shards := n.shardCoordinator.NumberOfShards()
-	currentShardId := n.shardCoordinator.SelfId()
-
-	transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(currentShardId, currentShardId))
-	for i := uint32(0); i < shards; i++ {
-		if i == n.shardCoordinator.SelfId() {
-			continue
-		}
-		transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(i, currentShardId))
-		transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(currentShardId, i))
-	}
-
 	return nil
 }
 
@@ -312,6 +300,8 @@ func (n *Node) StartConsensus() error {
 
 	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
 
+	// apply consensus group size on the input antiflooder just befor consensus creation topic
+	n.inputAntifloodHandler.ApplyConsensusSize(n.nodesCoordinator.ConsensusGroupSize(n.shardCoordinator.SelfId()))
 	err = n.createConsensusTopic(worker)
 	if err != nil {
 		return err
