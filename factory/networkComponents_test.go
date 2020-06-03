@@ -58,7 +58,6 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 		},
 		Sharding: config.ShardingConfig{
 			TargetPeerCount:         10,
-			PrioBits:                10,
 			MaxIntraShardValidators: 10,
 			MaxCrossShardValidators: 10,
 			MaxIntraShardObservers:  10,
