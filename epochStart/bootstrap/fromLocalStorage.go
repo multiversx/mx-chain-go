@@ -67,6 +67,11 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 
 	newShardId, isShuffledOut := e.checkIfShuffledOut(pubKey, e.nodesConfig)
 	if !isShuffledOut {
+		err = e.createTriesForNewShardId(e.shardCoordinator.SelfId())
+		if err != nil {
+			return Parameters{}, err
+		}
+
 		parameters := Parameters{
 			Epoch:       e.baseData.lastEpoch,
 			SelfShardId: e.baseData.shardId,
