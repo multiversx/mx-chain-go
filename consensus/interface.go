@@ -61,15 +61,7 @@ type BroadcastMessenger interface {
 	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
 	SetLeaderDelayBroadcast(headerHash []byte, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
-	SetValidatorDelayBroadcast(
-		headerHash []byte,
-		prevRandSeed []byte,
-		round uint64,
-		miniBlocks map[uint32][]byte,
-		miniBlockHashes map[uint32]map[string]struct{},
-		transactions map[string][][]byte,
-		order uint8,
-	) error
+	SetValidatorDelayBroadcast(headerHash []byte, prevRandSeed []byte, round uint64, miniBlocks map[uint32][]byte, miniBlockHashes map[uint32]map[string]struct{}, transactions map[string][][]byte, order uint32) error
 	IsInterfaceNil() bool
 }
 

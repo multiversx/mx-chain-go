@@ -17,7 +17,7 @@ type BroadcastMessengerMock struct {
 		miniBlocks map[uint32][]byte,
 		miniBlockHashes map[uint32]map[string]struct{},
 		transactions map[string][][]byte,
-		order uint8,
+		order uint32,
 	) error
 	BroadcastMiniBlocksCalled       func(map[uint32][]byte) error
 	BroadcastTransactionsCalled     func(map[string][][]byte) error
@@ -59,15 +59,7 @@ func (bmm *BroadcastMessengerMock) SetLeaderDelayBroadcast(
 }
 
 // SetValidatorDelayBroadcast -
-func (bmm *BroadcastMessengerMock) SetValidatorDelayBroadcast(
-	headerHash []byte,
-	prevRandSeed []byte,
-	round uint64,
-	miniBlocks map[uint32][]byte,
-	miniBlockHashes map[uint32]map[string]struct{},
-	transactions map[string][][]byte,
-	order uint8,
-) error {
+func (bmm *BroadcastMessengerMock) SetValidatorDelayBroadcast(headerHash []byte, prevRandSeed []byte, round uint64, miniBlocks map[uint32][]byte, miniBlockHashes map[uint32]map[string]struct{}, transactions map[string][][]byte, order uint32) error {
 	if bmm.SetValidatorDelayBroadcastCalled != nil {
 		return bmm.SetValidatorDelayBroadcastCalled(
 			headerHash,

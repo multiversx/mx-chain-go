@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
@@ -39,7 +41,13 @@ func (scm ShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) stri
 		return "_0_META"
 	}
 
-	return "_0"
+	if scm.SelfId() < destShardID {
+		return fmt.Sprintf("_%d_%d", scm.SelfId(), destShardID)
+	} else if scm.SelfId() > destShardID {
+		return fmt.Sprintf("_%d_%d", destShardID, scm.SelfId())
+	}
+
+	return fmt.Sprintf("_%d", scm.SelfId())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

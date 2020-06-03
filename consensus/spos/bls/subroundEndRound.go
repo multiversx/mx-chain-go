@@ -425,7 +425,7 @@ func (sr *subroundEndRound) prepareBroadcastMiniBlocksAndTransactionsForValidato
 				miniBlocks,
 				miniBlockHashesCrossFromMe,
 				transactions,
-				uint8(idx),
+				uint32(idx),
 			)
 		}
 	}

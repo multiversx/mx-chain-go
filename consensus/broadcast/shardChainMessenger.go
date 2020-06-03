@@ -26,7 +26,7 @@ type delayedBroadcastData struct {
 	miniblocks      map[uint32][]byte
 	miniBlockHashes map[uint32]map[string]struct{}
 	transactions    map[string][][]byte
-	order           uint8
+	order           uint32
 }
 
 type shardChainMessenger struct {
@@ -83,7 +83,7 @@ func NewShardChainMessenger(
 	}
 
 	scm.headersSubscriber.RegisterHandler(scm.headerReceived)
-	err = scm.registerInterceptorCallback()
+	err = scm.registerInterceptorCallback(scm.interceptedMiniBlockData)
 	if err != nil {
 		return nil, err
 	}
@@ -194,23 +194,18 @@ func (scm *shardChainMessenger) SetLeaderDelayBroadcast(
 // SetValidatorDelayBroadcast sets the miniBlocks and transactions to be broadcast with delay
 // The broadcast will only be done in case the consensus leader fails its broadcast
 // and all other validators with a lower order fail their broadcast as well.
-func (scm *shardChainMessenger) SetValidatorDelayBroadcast(
-	headerHash []byte,
-	prevRandSeed []byte,
-	round uint64,
-	miniBlocks map[uint32][]byte,
-	miniBlockHashes map[uint32]map[string]struct{},
-	transactions map[string][][]byte,
-	order uint8,
-) error {
+func (scm *shardChainMessenger) SetValidatorDelayBroadcast(headerHash []byte, prevRandSeed []byte, round uint64, miniBlocks map[uint32][]byte, miniBlockHashes map[uint32]map[string]struct{}, transactions map[string][][]byte, order uint32) error {
 	if len(headerHash) == 0 {
 		return spos.ErrNilHeaderHash
 	}
-	if len(miniBlocks) == 0 {
+	if len(prevRandSeed) == 0 {
+		return spos.ErrNilPrevRandSeed
+	}
+	if len(miniBlocks) == 0 && len(miniBlockHashes) == 0 {
 		return nil
 	}
-	if len(miniBlockHashes) == 0 {
-		return nil
+	if len(miniBlocks) == 0 || len(miniBlockHashes) == 0 {
+		return spos.ErrInvalidDataToBroadcast
 	}
 
 	scm.mutDataForBroadcast.Lock()
@@ -245,7 +240,7 @@ func (scm *shardChainMessenger) headerReceived(headerHandler data.HeaderHandler,
 		return
 	}
 
-	headerHashes, dataForValidators, err := getShardHeaderHashesFromMetachainBlock(headerHandler, scm.shardCoordinator.SelfId())
+	headerHashes, dataForValidators, err := getShardDataFromMetaChainBlock(headerHandler, scm.shardCoordinator.SelfId())
 	if err != nil {
 		log.Error("notifier headerReceived", "error", err.Error())
 		return
@@ -315,7 +310,7 @@ func (scm *shardChainMessenger) broadcastDelayedData(broadcastData []*delayedBro
 	}
 }
 
-func getShardHeaderHashesFromMetachainBlock(
+func getShardDataFromMetaChainBlock(
 	headerHandler data.HeaderHandler,
 	shardID uint32,
 ) ([][]byte, []*headerDataForValidator, error) {
@@ -340,7 +335,7 @@ func getShardHeaderHashesFromMetachainBlock(
 	return shardHeaderHashes, dataForValidators, nil
 }
 
-func (scm *shardChainMessenger) registerInterceptorCallback() error {
+func (scm *shardChainMessenger) registerInterceptorCallback(cb func(toShard uint32, data []byte)) error {
 	for idx := uint32(0); idx < scm.shardCoordinator.NumberOfShards(); idx++ {
 		// interested only in cross shard data
 		if idx == scm.shardCoordinator.SelfId() {
@@ -352,7 +347,7 @@ func (scm *shardChainMessenger) registerInterceptorCallback() error {
 			return err
 		}
 
-		interceptor.RegisterHandler(scm.interceptedMiniBlockData)
+		interceptor.RegisterHandler(cb)
 	}
 
 	return nil

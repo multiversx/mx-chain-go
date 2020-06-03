@@ -2,7 +2,7 @@ package broadcast_test
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/core"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -10,10 +10,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createDelayData(prefix string) ([]byte, map[uint32][]byte, map[string][][]byte) {
@@ -30,6 +34,44 @@ func createDelayData(prefix string) ([]byte, map[uint32][]byte, map[string][][]b
 	headerHash := []byte(prefix + "header hash")
 
 	return headerHash, miniblocks, transactions
+}
+
+func createInterceptorContainer() process.InterceptorsContainer {
+	return &mock.InterceptorsContainerStub{
+		GetCalled: func(topic string) (process.Interceptor, error) {
+			switch topic {
+			default:
+			}
+			return &mock.InterceptorStub{
+				ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
+					return nil
+				},
+			}, nil
+		},
+	}
+}
+
+type validatorDelayArgs struct {
+	headerHash      []byte
+	prevRandSeed    []byte
+	round           uint64
+	miniBlocks      map[uint32][]byte
+	miniBlockHashes map[uint32]map[string]struct{}
+	transactions    map[string][][]byte
+	order           uint32
+}
+
+func createValidatorDelayArgs(index int) *validatorDelayArgs {
+	iStr := strconv.Itoa(index)
+	return &validatorDelayArgs{
+		headerHash:      []byte("header hash" + iStr),
+		prevRandSeed:    []byte("prev rand seed" + iStr),
+		round:           uint64(0),
+		miniBlocks:      map[uint32][]byte{0: []byte("miniblock A" + iStr), 1: []byte("miniblock" + iStr)},
+		miniBlockHashes: map[uint32]map[string]struct{}{0: {"miniBlockHash0" + iStr: struct{}{}}, 1: {"miniBlockHash1" + iStr: struct{}{}}},
+		transactions:    map[string][][]byte{"topic": {[]byte("tx1" + iStr), []byte("tx2" + iStr)}},
+		order:           uint32(1),
+	}
 }
 
 func createMetaBlock() *block.MetaBlock {
@@ -81,7 +123,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	headersSubscriber := &mock.HeadersCacherStub{}
-	interceptorsContainer := &mock.InterceptorsContainerStub{}
+	interceptorsContainer := createInterceptorContainer()
 
 	return broadcast.ShardChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -92,8 +134,9 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			SingleSigner:          singleSignerMock,
 			InterceptorsContainer: interceptorsContainer,
 		},
-		HeadersSubscriber: headersSubscriber,
-		MaxDelayCacheSize: 1,
+		HeadersSubscriber:          headersSubscriber,
+		MaxDelayCacheSize:          1,
+		MaxValidatorDelayCacheSize: 1,
 	}
 }
 
@@ -534,4 +577,367 @@ func TestShardChainMessenger_HeaderReceivedForNextRegisteredDelayedDataShouldBro
 	assert.True(t, wasCalled)
 	assert.True(t, isIncluded(expectedSent, broadcastBuffer))
 	mutData.Unlock()
+}
+
+func TestShardChainMessenger_SetValidatorDelayBroadcastNilHeaderHashShouldErr(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+	vArgs.headerHash = nil
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+
+	require.Equal(t, spos.ErrNilHeaderHash, err)
+}
+
+func TestShardChainMessenger_SetValidatorDelayBroadcastInvalidMiniBlockDataShouldErr(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+	vArgs.miniBlocks = nil
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+
+	require.Equal(t, spos.ErrInvalidDataToBroadcast, err)
+}
+
+func TestShardChainMessenger_SetValidatorDelayBroadcastNoMiniBlocksShouldReturn(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+	vArgs.miniBlocks = nil
+	vArgs.miniBlockHashes = nil
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+
+	require.Equal(t, nil, err)
+}
+
+func TestShardChainMessenger_SetValidatorDelayBroadcastAccumulatedDataBounded(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+
+	vbd := scm.GetValidatorBroadcastData()
+	expectedLen := 0
+	require.Equal(t, expectedLen, len(vbd))
+
+	for i := 1; i < 100; i++ {
+		err := scm.SetValidatorDelayBroadcast(
+			vArgs.headerHash,
+			vArgs.prevRandSeed,
+			vArgs.round,
+			vArgs.miniBlocks,
+			vArgs.miniBlockHashes,
+			vArgs.transactions,
+			vArgs.order,
+		)
+		require.Nil(t, err)
+		vbd = scm.GetValidatorBroadcastData()
+		expectedLen = i
+		if i > int(args.MaxValidatorDelayCacheSize) {
+			expectedLen = int(args.MaxValidatorDelayCacheSize)
+		}
+		require.Equal(t, expectedLen, len(vbd))
+	}
+}
+
+func TestSharadChainMessenger_ScheduleValidatorBroadcastDifferentHeaderRoundShouldDoNothing(t *testing.T) {
+	wasCalled := false
+	mutData := &sync.Mutex{}
+	messenger := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			mutData.Lock()
+			wasCalled = true
+			mutData.Unlock()
+		},
+	}
+	args := createDefaultShardChainArgs()
+	args.Messenger = messenger
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+	require.Nil(t, err)
+	vbd := scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+
+	hdfv := &broadcast.HeaderDataForValidator{
+		Round:        vArgs.round + 1,
+		PrevRandSeed: vArgs.prevRandSeed,
+	}
+
+	scm.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
+	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
+	time.Sleep(timeToWait + 100*time.Millisecond)
+
+	// check there was no broadcast and validator delay data still present
+	mutData.Lock()
+	called := wasCalled
+	mutData.Unlock()
+	require.False(t, called)
+
+	vbd = scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+}
+
+func TestShardChainMessenger_ScheduleValidatorBroadcastDifferentPrevRandShouldDoNothing(t *testing.T) {
+	wasCalled := false
+	mutData := &sync.Mutex{}
+	messenger := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			mutData.Lock()
+			wasCalled = true
+			mutData.Unlock()
+		},
+	}
+	args := createDefaultShardChainArgs()
+	args.Messenger = messenger
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+	require.Nil(t, err)
+	vbd := scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+
+	prevRandSeed := make([]byte, len(vArgs.prevRandSeed))
+	copy(prevRandSeed, vArgs.prevRandSeed)
+	prevRandSeed[0] = ^prevRandSeed[0]
+
+	hdfv := &broadcast.HeaderDataForValidator{
+		Round:        vArgs.round,
+		PrevRandSeed: prevRandSeed,
+	}
+
+	scm.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
+	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
+	time.Sleep(timeToWait + 100*time.Millisecond)
+
+	// check there was no broadcast and validator delay data still present
+	mutData.Lock()
+	called := wasCalled
+	mutData.Unlock()
+	require.False(t, called)
+
+	vbd = scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+}
+
+func TestShardChainMessenger_ScheduleValidatorBroadcastSameRoundAndPrevRandShouldScheduleAlarm(t *testing.T) {
+	wasCalled := false
+	mutData := &sync.Mutex{}
+	messenger := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			mutData.Lock()
+			wasCalled = true
+			mutData.Unlock()
+		},
+	}
+	args := createDefaultShardChainArgs()
+	args.Messenger = messenger
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+	require.Nil(t, err)
+	vbd := scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+
+	hdfv := &broadcast.HeaderDataForValidator{
+		Round:        vArgs.round,
+		PrevRandSeed: vArgs.prevRandSeed,
+	}
+
+	scm.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
+	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
+	time.Sleep(timeToWait + 100*time.Millisecond)
+
+	// check there was a broadcast and validator delay data empty
+	mutData.Lock()
+	called := wasCalled
+	mutData.Unlock()
+	require.True(t, called)
+
+	vbd = scm.GetValidatorBroadcastData()
+	require.Equal(t, 0, len(vbd))
+}
+
+func TestShardChainMessenger_AlarmExpiredShouldBroadcastTheDataForRegisteredDelayedData(t *testing.T) {
+	wasCalled := false
+	mutData := &sync.Mutex{}
+	messenger := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			mutData.Lock()
+			wasCalled = true
+			mutData.Unlock()
+		},
+	}
+	args := createDefaultShardChainArgs()
+	args.Messenger = messenger
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+	require.Nil(t, err)
+	vbd := scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+
+	scm.AlarmExpired(string(vArgs.headerHash))
+	time.Sleep(time.Millisecond * 100)
+
+	// check there was a broadcast and validator delay data empty
+	mutData.Lock()
+	called := wasCalled
+	mutData.Unlock()
+	require.True(t, called)
+
+	vbd = scm.GetValidatorBroadcastData()
+	require.Equal(t, 0, len(vbd))
+}
+
+func TestShardChainMessenger_AlarmExpiredShouldDoNothingForNotRegisteredData(t *testing.T) {
+	wasCalled := false
+	mutData := &sync.Mutex{}
+	messenger := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			mutData.Lock()
+			wasCalled = true
+			mutData.Unlock()
+		},
+	}
+	args := createDefaultShardChainArgs()
+	args.Messenger = messenger
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+	require.Nil(t, err)
+	vbd := scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+
+	differentHeaderHash := make([]byte, len(vArgs.headerHash))
+	copy(differentHeaderHash, vArgs.headerHash)
+	differentHeaderHash[0] = ^differentHeaderHash[0]
+	scm.AlarmExpired(string(differentHeaderHash))
+	time.Sleep(time.Millisecond * 100)
+
+	// check there was no broadcast and validator delay data still present
+	mutData.Lock()
+	called := wasCalled
+	mutData.Unlock()
+	require.False(t, called)
+
+	vbd = scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+}
+
+func TestShardChainMessenger_RegisterInterceptorCallback(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	var cbs []func(toShard uint32, data []byte)
+	mutCbs := &sync.Mutex{}
+
+	registerHandler := func(handler func(toShard uint32, data []byte)) {
+		mutCbs.Lock()
+		cbs = append(cbs, handler)
+		mutCbs.Unlock()
+	}
+
+	args.InterceptorsContainer = &mock.InterceptorsContainerStub{
+		GetCalled: func(topic string) (process.Interceptor, error) {
+			return &mock.InterceptorStub{
+				RegisterHandlerCalled: registerHandler,
+			}, nil
+		},
+	}
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+	mutCbs.Lock()
+	nbRegistered := len(cbs)
+	mutCbs.Unlock()
+	require.Equal(t, 1, nbRegistered)
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+	require.Nil(t, err)
+
+	cb := func(toShard uint32, data []byte) {}
+	err = scm.RegisterInterceptorCallback(cb)
+	require.Nil(t, err)
+
+	mutCbs.Lock()
+	nbRegistered = len(cbs)
+	mutCbs.Unlock()
+	require.Equal(t, 2, nbRegistered)
 }
