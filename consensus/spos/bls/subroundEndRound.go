@@ -170,9 +170,13 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	startTime := time.Now()
 	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to commit block",
-		"time [s]", elapsedTime,
-	)
+	if elapsedTime >= core.CommitMaxTime {
+		log.Warn("doEndRoundJobByLeader.CommitBlock", "elapsed time", elapsedTime)
+	} else {
+		log.Debug("elapsed time to commit block",
+			"time [s]", elapsedTime,
+		)
+	}
 	if err != nil {
 		log.Debug("doEndRoundJob.CommitBlock", "error", err)
 		return false
@@ -271,9 +275,13 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	startTime := time.Now()
 	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to commit block",
-		"time [s]", elapsedTime,
-	)
+	if elapsedTime >= core.CommitMaxTime {
+		log.Warn("doEndRoundJobByParticipant.CommitBlock", "elapsed time", elapsedTime)
+	} else {
+		log.Debug("elapsed time to commit block",
+			"time [s]", elapsedTime,
+		)
+	}
 	if err != nil {
 		log.Debug("doEndRoundJobByParticipant.CommitBlock", "error", err.Error())
 		return false
