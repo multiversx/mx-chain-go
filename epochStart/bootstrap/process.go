@@ -361,9 +361,12 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 }
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
-	e.trieContainer.Put([]byte(factory.UserAccountTrie), disabled.NewTrie())
-	e.trieContainer.Put([]byte(factory.PeerAccountTrie), disabled.NewTrie())
-	err := e.createRequestHandler()
+	err := e.createTriesComponentsForShardId(core.MetachainShardId)
+	if err != nil {
+		return err
+	}
+
+	err = e.createRequestHandler()
 	if err != nil {
 		return err
 	}
