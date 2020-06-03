@@ -268,7 +268,7 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 }
 
 // UpdatePeerState takes a header, updates the peer state for all of the
-//  consensus members and returns the new root hash
+// consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
 	if header.GetNonce() == 0 {
 		return vs.peerAdapter.RootHash()
@@ -278,17 +278,16 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	vs.missedBlocksCounters.reset()
 	vs.mutValidatorStatistics.Unlock()
 
-	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
-	epoch := header.GetEpoch()
-	if header.IsStartOfEpochBlock() && epoch > 0 {
-		epoch = epoch - 1
-	}
-
 	previousHeader, ok := cache[string(header.GetPrevHash())]
 	if !ok {
-		log.Warn("UpdatePeerState could not get meta header from cache", "error", process.ErrMissingHeader.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
-		return nil, process.ErrMissingHeader
+		return nil, fmt.Errorf("%w - updatePeerState get header from cache - hash: %s, round: %v, nonce: %v",
+			process.ErrMissingHeader,
+			hex.EncodeToString(header.GetPrevHash()),
+			header.GetRound(),
+			header.GetNonce())
 	}
+
+	epoch := computeEpoch(header)
 
 	var err error
 	if previousHeader.IsStartOfEpochBlock() {
@@ -324,11 +323,13 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		return vs.peerAdapter.RootHash()
 	}
 	log.Trace("Increasing", "round", previousHeader.GetRound(), "prevRandSeed", previousHeader.GetPrevRandSeed())
+
+	consensusGroupEpoch := computeEpoch(previousHeader)
 	consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(
 		previousHeader.GetPrevRandSeed(),
 		previousHeader.GetRound(),
 		previousHeader.GetShardID(),
-		epoch)
+		consensusGroupEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +340,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		previousHeader.GetPubKeysBitmap(),
 		previousHeader.GetAccumulatedFees(),
 		previousHeader.GetShardID(),
-		epoch)
+		consensusGroupEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -352,6 +353,17 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	log.Trace("after updating validator stats", "rootHash", rootHash, "round", header.GetRound(), "selfId", vs.shardCoordinator.SelfId())
 
 	return rootHash, nil
+}
+
+func computeEpoch(header data.HeaderHandler) uint32 {
+	// TODO: change if start of epoch block needs to be validated by the new epoch nodes
+	// previous block was proposed by the consensus group of the previous epoch
+	epoch := header.GetEpoch()
+	if header.IsStartOfEpochBlock() && epoch > 0 {
+		epoch = epoch - 1
+	}
+
+	return epoch
 }
 
 func (vs *validatorStatistics) DisplayRatings(epoch uint32) {
@@ -704,7 +716,6 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 		if verr != nil {
 			return verr
 		}
-
 		vs.missedBlocksCounters.decreaseValidator(consensusGroup[j].PubKey())
 
 		newRating := vs.rater.ComputeDecreaseValidator(shardId, validatorPeerAccount.GetTempRating())
@@ -734,16 +745,21 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 		return process.ErrInvalidMetaHeader
 	}
 
-	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
-	epoch := header.GetEpoch()
-	if header.IsStartOfEpochBlock() && epoch > 0 {
-		epoch = epoch - 1
-	}
-
 	for _, h := range metaHeader.ShardInfo {
 		if h.Nonce == vs.genesisNonce {
 			continue
 		}
+
+		currentHeader, ok := cacheMap[string(h.HeaderHash)]
+		if !ok {
+			return fmt.Errorf("%w - updateShardDataPeerState header from cache - hash: %s, round: %v, nonce: %v",
+				process.ErrMissingHeader,
+				hex.EncodeToString(h.HeaderHash),
+				h.GetRound(),
+				h.GetNonce())
+		}
+
+		epoch := computeEpoch(currentHeader)
 
 		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
 		if shardInfoErr != nil {
@@ -845,7 +861,6 @@ func (vs *validatorStatistics) updateValidatorInfo(
 	if len(signingBitmap) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}
-
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())

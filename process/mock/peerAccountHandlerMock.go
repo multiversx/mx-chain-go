@@ -9,6 +9,11 @@ import (
 
 // PeerAccountHandlerMock -
 type PeerAccountHandlerMock struct {
+	IncreaseLeaderSuccessRateValue    uint32
+	DecreaseLeaderSuccessRateValue    uint32
+	IncreaseValidatorSuccessRateValue uint32
+	DecreaseValidatorSuccessRateValue uint32
+
 	IncreaseLeaderSuccessRateCalled    func(uint32)
 	DecreaseLeaderSuccessRateCalled    func(uint32)
 	IncreaseValidatorSuccessRateCalled func(uint32)
@@ -67,14 +72,14 @@ func (p *PeerAccountHandlerMock) GetStake() *big.Int {
 }
 
 // SetStake -
-func (p *PeerAccountHandlerMock) SetStake(*big.Int) error {
+func (p *PeerAccountHandlerMock) SetStake(_ *big.Int) error {
 	return nil
 }
 
 // GetAccumulatedFees -
 func (p *PeerAccountHandlerMock) GetAccumulatedFees() *big.Int {
 	if p.GetAccumulatedFeesCalled != nil {
-		p.GetAccumulatedFeesCalled()
+		return p.GetAccumulatedFeesCalled()
 	}
 	return big.NewInt(0)
 }
@@ -95,28 +100,36 @@ func (p *PeerAccountHandlerMock) GetShardId() uint32 {
 func (p *PeerAccountHandlerMock) IncreaseLeaderSuccessRate(val uint32) {
 	if p.IncreaseLeaderSuccessRateCalled != nil {
 		p.IncreaseLeaderSuccessRateCalled(val)
+		return
 	}
+	p.IncreaseLeaderSuccessRateValue += val
 }
 
 // DecreaseLeaderSuccessRate -
 func (p *PeerAccountHandlerMock) DecreaseLeaderSuccessRate(val uint32) {
 	if p.DecreaseLeaderSuccessRateCalled != nil {
 		p.DecreaseLeaderSuccessRateCalled(val)
+		return
 	}
+	p.DecreaseLeaderSuccessRateValue += val
 }
 
 // IncreaseValidatorSuccessRate -
 func (p *PeerAccountHandlerMock) IncreaseValidatorSuccessRate(val uint32) {
 	if p.IncreaseValidatorSuccessRateCalled != nil {
 		p.IncreaseValidatorSuccessRateCalled(val)
+		return
 	}
+	p.IncreaseValidatorSuccessRateValue += val
 }
 
 // DecreaseValidatorSuccessRate -
 func (p *PeerAccountHandlerMock) DecreaseValidatorSuccessRate(val uint32) {
 	if p.DecreaseValidatorSuccessRateCalled != nil {
 		p.DecreaseValidatorSuccessRateCalled(val)
+		return
 	}
+	p.DecreaseValidatorSuccessRateValue += val
 }
 
 // GetNumSelectedInSuccessBlocks -

@@ -58,3 +58,12 @@ func (pq *pidQueue) remove(pid p2p.PeerID) {
 
 	pq.data = newData
 }
+
+func (pq *pidQueue) size() int {
+	sum := 0
+	for _, pid := range pq.data {
+		sum += len(pid)
+	}
+
+	return sum
+}

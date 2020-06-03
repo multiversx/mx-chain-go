@@ -1106,8 +1106,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	whiteListCache, err := storageUnit.NewCache(
 		storageUnit.CacheType(generalConfig.WhiteListPool.Type),
-		generalConfig.WhiteListPool.Size,
+		generalConfig.WhiteListPool.Capacity,
 		generalConfig.WhiteListPool.Shards,
+		generalConfig.WhiteListPool.SizeInBytes,
 	)
 	if err != nil {
 		return err
@@ -2031,7 +2032,6 @@ func createNode(
 		node.WithResolversFinder(process.ResolversFinder),
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(crypto.TxSingleSigner),
-		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(coreData.StatusHandler),
 		node.WithIndexer(indexer),
@@ -2277,8 +2277,9 @@ func createApiResolver(
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
 	whiteListCacheVerified, err := storageUnit.NewCache(
 		storageUnit.CacheType(generalConfig.WhiteListerVerifiedTxs.Type),
-		generalConfig.WhiteListerVerifiedTxs.Size,
+		generalConfig.WhiteListerVerifiedTxs.Capacity,
 		generalConfig.WhiteListerVerifiedTxs.Shards,
+		generalConfig.WhiteListPool.SizeInBytes,
 	)
 	if err != nil {
 		return nil, err

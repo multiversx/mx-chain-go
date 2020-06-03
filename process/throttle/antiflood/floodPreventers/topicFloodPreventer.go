@@ -20,7 +20,7 @@ var log = logger.GetOrCreate("process/throttle/antiflood")
 
 // topicFloodPreventer represents a flood preventer based on limitations of messages per given topics
 type topicFloodPreventer struct {
-	mutTopicMaxMessages       *sync.RWMutex
+	mutTopicMaxMessages       sync.RWMutex
 	topicMaxMessages          map[string]uint32
 	registeredTopics          map[string]struct{}
 	counterMap                map[string]map[string]uint32
@@ -41,7 +41,6 @@ func NewTopicFloodPreventer(
 	}
 
 	return &topicFloodPreventer{
-		mutTopicMaxMessages:       &sync.RWMutex{},
 		topicMaxMessages:          make(map[string]uint32),
 		counterMap:                make(map[string]map[string]uint32),
 		registeredTopics:          make(map[string]struct{}),

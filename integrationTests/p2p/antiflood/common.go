@@ -41,21 +41,25 @@ func CreateTopicsAndMockInterceptors(
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
 		}
 
-		cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache, Shards: 1}
-		antifloodPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+		cacherCfg := storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.LRUCache, Shards: 1}
+		antifloodPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
 		interceptors[idx] = newMessageProcessor()
 		statusHandlers := []floodPreventers.QuotaStatusHandler{&nilQuotaStatusHandler{}}
 		if len(blacklistHandlers) == len(peers) {
 			statusHandlers = append(statusHandlers, blacklistHandlers[idx])
 		}
-		interceptors[idx].FloodPreventer, err = floodPreventers.NewQuotaFloodPreventer(
-			antifloodPool,
-			statusHandlers,
-			peerMaxNumMessages,
-			peerMaxSize,
-			0,
-		)
+		arg := floodPreventers.ArgQuotaFloodPreventer{
+			Name:                      "test",
+			Cacher:                    antifloodPool,
+			StatusHandlers:            statusHandlers,
+			BaseMaxNumMessagesPerPeer: peerMaxNumMessages,
+			MaxTotalSizePerPeer:       peerMaxSize,
+			PercentReserved:           0,
+			IncreaseThreshold:         0,
+			IncreaseFactor:            0,
+		}
+		interceptors[idx].FloodPreventer, err = floodPreventers.NewQuotaFloodPreventer(arg)
 		if err != nil {
 			return nil, err
 		}

@@ -108,6 +108,7 @@ type TransactionHandler interface {
 	SetData([]byte)
 	SetRcvAddr([]byte)
 	SetSndAddr([]byte)
+	Size() int
 }
 
 // LogHandler defines the type for a log resulted from executing a transaction or smart contract call
