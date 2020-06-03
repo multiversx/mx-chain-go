@@ -141,6 +141,7 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics[core.MetricChainId] = sm.loadStringMetric(core.MetricChainId)
 	configMetrics[core.MetricRoundDuration] = sm.loadUint64Metric(core.MetricRoundDuration)
 	configMetrics[core.MetricStartTime] = sm.loadUint64Metric(core.MetricStartTime)
+	configMetrics[core.MetricLatestTagSoftwareVersion] = sm.loadStringMetric(core.MetricLatestTagSoftwareVersion)
 
 	return configMetrics
 }
