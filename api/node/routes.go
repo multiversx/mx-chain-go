@@ -73,7 +73,7 @@ func HeartbeatStatus(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -86,7 +86,7 @@ func HeartbeatStatus(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: err.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -97,7 +97,7 @@ func HeartbeatStatus(c *gin.Context) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"heartbeats": hbStatus},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }
@@ -111,7 +111,7 @@ func Statistics(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -122,7 +122,7 @@ func Statistics(c *gin.Context) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"statistics": statsFromTpsBenchmark(ef.TpsBenchmark())},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }
@@ -136,7 +136,7 @@ func StatusMetrics(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -148,7 +148,7 @@ func StatusMetrics(c *gin.Context) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"metrics": details},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }
@@ -162,7 +162,7 @@ func P2pStatusMetrics(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -174,7 +174,7 @@ func P2pStatusMetrics(c *gin.Context) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"metrics": details},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }
@@ -218,7 +218,7 @@ func QueryDebug(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -232,7 +232,7 @@ func QueryDebug(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
-				Code:  string(shared.ReturnCodeRequestErrror),
+				Code:  shared.ReturnCodeRequestError,
 			},
 		)
 		return
@@ -245,7 +245,7 @@ func QueryDebug(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrQueryError.Error(), err.Error()),
-				Code:  string(shared.ReturnCodeRequestErrror),
+				Code:  shared.ReturnCodeRequestError,
 			},
 		)
 		return
@@ -256,7 +256,7 @@ func QueryDebug(c *gin.Context) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"result": qh.Query(gtx.Search)},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }

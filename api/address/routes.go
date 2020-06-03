@@ -45,7 +45,7 @@ func GetAccount(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -59,7 +59,7 @@ func GetAccount(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrCouldNotGetAccount.Error(), err.Error()),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -70,7 +70,7 @@ func GetAccount(c *gin.Context) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"account": accountResponseFromBaseAccount(addr, acc)},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }
@@ -84,7 +84,7 @@ func GetBalance(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -96,7 +96,7 @@ func GetBalance(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), errors.ErrEmptyAddress.Error()),
-				Code:  string(shared.ReturnCodeRequestErrror),
+				Code:  shared.ReturnCodeRequestError,
 			},
 		)
 		return
@@ -109,7 +109,7 @@ func GetBalance(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), err.Error()),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -119,7 +119,7 @@ func GetBalance(c *gin.Context) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"balance": balance.String()},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }

@@ -38,7 +38,7 @@ func Trigger(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -52,7 +52,7 @@ func Trigger(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
-				Code:  string(shared.ReturnCodeRequestErrror),
+				Code:  shared.ReturnCodeRequestError,
 			},
 		)
 		return
@@ -65,7 +65,7 @@ func Trigger(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: err.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -81,7 +81,7 @@ func Trigger(c *gin.Context) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"status": status},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }

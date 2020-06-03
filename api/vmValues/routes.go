@@ -134,7 +134,7 @@ func returnBadRequest(context *gin.Context, errScope string, err error) {
 		shared.GenericAPIResponse{
 			Data:  nil,
 			Error: message,
-			Code:  string(shared.ReturnCodeRequestErrror),
+			Code:  shared.ReturnCodeRequestError,
 		},
 	)
 }
@@ -145,7 +145,7 @@ func returnOkResponse(context *gin.Context, data interface{}) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"data": data},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }

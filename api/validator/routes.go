@@ -30,7 +30,7 @@ func Statistics(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -43,7 +43,7 @@ func Statistics(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: err.Error(),
-				Code:  string(shared.ReturnCodeRequestErrror),
+				Code:  shared.ReturnCodeRequestError,
 			},
 		)
 		return
@@ -54,7 +54,7 @@ func Statistics(c *gin.Context) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"statistics": valStats},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }

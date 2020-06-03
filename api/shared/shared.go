@@ -4,7 +4,7 @@ package shared
 type GenericAPIResponse struct {
 	Data  interface{} `json:"data"`
 	Error string      `json:"error"`
-	Code  string      `json:"code"`
+	Code  ReturnCode  `json:"code"`
 }
 
 // ReturnCode defines the type defines to identify return codes
@@ -14,7 +14,7 @@ type ReturnCode string
 const ReturnCodeSuccess ReturnCode = "successful"
 
 // ReturnCodeInternalError defines a request which hasn't been executed successfully due to an internal error
-const ReturnCodeInternalError ReturnCode = "internal issue"
+const ReturnCodeInternalError ReturnCode = "internal_issue"
 
-// ReturnCodeRequestErrror defines a request which hasn't been executed successfully due to a bad request received
-const ReturnCodeRequestErrror ReturnCode = "bad request"
+// ReturnCodeRequestError defines a request which hasn't been executed successfully due to a bad request received
+const ReturnCodeRequestError ReturnCode = "bad_request"

@@ -31,7 +31,7 @@ func ConfigData(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -43,7 +43,7 @@ func ConfigData(c *gin.Context) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"config": configMetrics},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }
@@ -57,7 +57,7 @@ func GetNetworkData(c *gin.Context) {
 			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(shared.ReturnCodeInternalError),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -69,7 +69,7 @@ func GetNetworkData(c *gin.Context) {
 		shared.GenericAPIResponse{
 			Data:  gin.H{"status": networkMetrics},
 			Error: "",
-			Code:  string(shared.ReturnCodeSuccess),
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }
