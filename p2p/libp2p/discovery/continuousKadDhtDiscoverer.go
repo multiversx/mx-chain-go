@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -15,6 +16,22 @@ import (
 
 var _ p2p.PeerDiscoverer = (*ContinuousKadDhtDiscoverer)(nil)
 var _ p2p.Reconnecter = (*ContinuousKadDhtDiscoverer)(nil)
+
+var log = logger.GetOrCreate("p2p/libp2p/kaddht")
+
+const kadDhtName = "kad-dht discovery"
+
+// ArgKadDht represents the kad-dht config argument DTO
+type ArgKadDht struct {
+	Context              context.Context
+	Host                 ConnectableHost
+	PeersRefreshInterval time.Duration
+	RandezVous           string
+	InitialPeersList     []string
+	BucketSize           uint32
+	RoutingTableRefresh  time.Duration
+	KddSharder           p2p.CommonSharder
+}
 
 // ContinuousKadDhtDiscoverer is the kad-dht discovery type implementation
 // This implementation does not support pausing and resuming of the discovery process

@@ -35,57 +35,6 @@ func TestNewPeerDiscoverer_NoDiscoveryEnabledShouldRetNullDiscoverer(t *testing.
 	assert.Nil(t, err)
 }
 
-func TestNewPeerDiscoverer_InvalidIntervalShouldErr(t *testing.T) {
-	t.Parallel()
-
-	p2pConfig := config.P2PConfig{
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: 0,
-		},
-		Sharding: config.ShardingConfig{
-			Type: p2p.PrioBitsSharder,
-		},
-	}
-
-	pDiscoverer, err := factory.NewPeerDiscoverer(
-		context.Background(),
-		&mock.ConnectableHostStub{},
-		&mock.SharderStub{},
-		p2pConfig,
-	)
-
-	assert.Nil(t, pDiscoverer)
-	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
-}
-
-func TestNewPeerDiscoverer_PrioBitsSharderShouldWork(t *testing.T) {
-	t.Parallel()
-
-	p2pConfig := config.P2PConfig{
-		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:                          true,
-			RefreshIntervalInSec:             1,
-			RoutingTableRefreshIntervalInSec: 300,
-		},
-		Sharding: config.ShardingConfig{
-			Type: p2p.PrioBitsSharder,
-		},
-	}
-
-	pDiscoverer, err := factory.NewPeerDiscoverer(
-		context.Background(),
-		&mock.ConnectableHostStub{},
-		&mock.SharderStub{},
-		p2pConfig,
-	)
-	_, ok := pDiscoverer.(*discovery.KadDhtDiscoverer)
-
-	assert.NotNil(t, pDiscoverer)
-	assert.True(t, ok)
-	assert.Nil(t, err)
-}
-
 func TestNewPeerDiscoverer_ListsSharderShouldWork(t *testing.T) {
 	t.Parallel()
 
