@@ -26,17 +26,6 @@ func createDefaultConfig() config.P2PConfig {
 	}
 }
 
-func TestConnectionsInNetworkShardingWithShardingWithPrioBits(t *testing.T) {
-	p2pConfig := createDefaultConfig()
-	p2pConfig.Sharding = config.ShardingConfig{
-		TargetPeerCount: 9,
-		PrioBits:        4,
-		Type:            p2p.PrioBitsSharder,
-	}
-
-	testConnectionsInNetworkSharding(t, p2pConfig)
-}
-
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 	p2pConfig := createDefaultConfig()
 	p2pConfig.Sharding = config.ShardingConfig{

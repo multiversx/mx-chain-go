@@ -793,6 +793,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	}
 
 	t.appStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, shardHdr.Round)
+	t.appStatusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, shardHdr.Nonce)
 
 	t.epoch = shardHdr.Epoch
 	if t.metaEpoch < t.epoch {
