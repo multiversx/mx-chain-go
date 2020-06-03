@@ -40,20 +40,22 @@ func TestTimeCache_AddShouldWork(t *testing.T) {
 	assert.True(t, ok)
 }
 
-func TestTimeCache_DoubleAddShouldErrAndRetainTheKey(t *testing.T) {
+func TestTimeCache_DoubleAddShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tc := timecache.NewTimeCache(time.Second)
 	key := "key1"
 
-	_ = tc.Add(key)
-	err := tc.Add(key)
+	_ = tc.AddWithSpan(key, time.Second)
+	newSpan := time.Second * 4
+	err := tc.AddWithSpan(key, newSpan)
+	assert.Nil(t, err)
 
 	keys := tc.Keys()
-	_, ok := tc.KeyTime(key)
-	assert.Equal(t, storage.ErrDuplicateKeyToAdd, err)
+	span, ok := tc.KeySpan(key)
 	assert.Equal(t, key, keys[0])
 	assert.True(t, ok)
+	assert.Equal(t, newSpan, span)
 }
 
 func TestTimeCache_DoubleAddAfterExpirationAndSweepShouldWork(t *testing.T) {

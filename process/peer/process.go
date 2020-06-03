@@ -424,6 +424,9 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 func getActualList(peerAccount state.PeerAccountHandler) string {
 	savedList := peerAccount.GetList()
 	if peerAccount.GetUnStakedEpoch() == 0 {
+		if savedList == string(core.InactiveList) {
+			return string(core.JailedList)
+		}
 		return savedList
 	}
 	if savedList == string(core.InactiveList) {
