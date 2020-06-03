@@ -23,7 +23,7 @@ type Facade struct {
 	BalanceHandler                    func(string) (*big.Int, error)
 	GetAccountHandler                 func(address string) (state.UserAccountHandler, error)
 	GenerateTransactionHandler        func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler             func(hash string) (*transaction.Transaction, error)
+	GetTransactionHandler             func(hash string) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler          func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler        func(tx *transaction.Transaction) error
 	SendBulkTransactionsHandler       func(txs []*transaction.Transaction) (uint64, error)
@@ -33,6 +33,13 @@ type Facade struct {
 	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
 	NodeConfigCalled                  func() map[string]interface{}
 	GetQueryHandlerCalled             func(name string) (debug.QueryHandler, error)
+	GetTransactionStatusCalled        func(hash string) (string, error)
+	GetValueForKeyCalled              func(address string, key string) (string, error)
+}
+
+// GetTransactionStatus -
+func (f *Facade) GetTransactionStatus(hash string) (string, error) {
+	return f.GetTransactionStatusCalled(hash)
 }
 
 // RestApiInterface -
@@ -68,6 +75,15 @@ func (f *Facade) GetBalance(address string) (*big.Int, error) {
 	return f.BalanceHandler(address)
 }
 
+// GetValueForKey is the mock implementation of a handler's GetValueForKey method
+func (f *Facade) GetValueForKey(address string, key string) (string, error) {
+	if f.GetValueForKeyCalled != nil {
+		return f.GetValueForKeyCalled(address, key)
+	}
+
+	return "", nil
+}
+
 // GetAccount is the mock implementation of a handler's GetAccount method
 func (f *Facade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return f.GetAccountHandler(address)
@@ -88,7 +104,7 @@ func (f *Facade) CreateTransaction(
 }
 
 // GetTransaction is the mock implementation of a handler's GetTransaction method
-func (f *Facade) GetTransaction(hash string) (*transaction.Transaction, error) {
+func (f *Facade) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
 	return f.GetTransactionHandler(hash)
 }
 

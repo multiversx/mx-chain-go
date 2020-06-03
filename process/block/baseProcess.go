@@ -772,10 +772,17 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,
 	}
 
+	startTime := time.Now()
+
 	err := bp.bootStorer.Put(int64(args.round), bootData)
 	if err != nil {
 		log.Warn("cannot save boot data in storage",
 			"error", err.Error())
+	}
+
+	elapsedTime := time.Since(startTime)
+	if elapsedTime >= core.CommitMaxTime {
+		log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
 	}
 }
 
@@ -931,6 +938,8 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 }
 
 func (bp *baseProcessor) saveBody(body *block.Body) {
+	startTime := time.Now()
+
 	errNotCritical := bp.txCoordinator.SaveBlockDataToStorage(body)
 	if errNotCritical != nil {
 		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
@@ -950,9 +959,16 @@ func (bp *baseProcessor) saveBody(body *block.Body) {
 			log.Warn("saveBody.Put -> MiniBlockUnit", "error", errNotCritical.Error())
 		}
 	}
+
+	elapsedTime := time.Since(startTime)
+	if elapsedTime >= core.CommitMaxTime {
+		log.Warn("saveBody", "elapsed time", elapsedTime)
+	}
 }
 
 func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
+	startTime := time.Now()
+
 	nonceToByteSlice := bp.uint64Converter.ToByteSlice(header.GetNonce())
 	hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(header.GetShardID())
 
@@ -967,9 +983,16 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	if errNotCritical != nil {
 		log.Warn("saveHeader.Put -> BlockHeaderUnit", "error", errNotCritical.Error())
 	}
+
+	elapsedTime := time.Since(startTime)
+	if elapsedTime >= core.CommitMaxTime {
+		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
+	}
 }
 
 func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
+	startTime := time.Now()
+
 	nonceToByteSlice := bp.uint64Converter.ToByteSlice(header.GetNonce())
 
 	errNotCritical := bp.store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, headerHash)
@@ -980,6 +1003,11 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	errNotCritical = bp.store.Put(dataRetriever.MetaBlockUnit, headerHash, marshalizedHeader)
 	if errNotCritical != nil {
 		log.Warn("saveMetaHeader.Put -> MetaBlockUnit", "error", errNotCritical.Error())
+	}
+
+	elapsedTime := time.Since(startTime)
+	if elapsedTime >= core.CommitMaxTime {
+		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
 }
 
