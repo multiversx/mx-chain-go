@@ -46,11 +46,6 @@ func (tc *TimeCache) add(key string, duration time.Duration) error {
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
 
-	_, ok := tc.data[key]
-	if ok {
-		return storage.ErrDuplicateKeyToAdd
-	}
-
 	tc.data[key] = span{
 		timestamp: time.Now(),
 		span:      duration,

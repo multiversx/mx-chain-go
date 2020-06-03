@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	ns "github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -139,55 +138,6 @@ func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T
 	mes, err := libp2p.NewNetworkMessenger(arg)
 
 	assert.NotNil(t, mes)
-	assert.Nil(t, err)
-
-	_ = mes.Close()
-}
-
-func TestNewNetworkMessenger_WithKadDiscovererPrioSharderInvalidPrioBitsShouldErr(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
-	arg := createMockNetworkArgs()
-	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
-		Enabled:                          true,
-		RefreshIntervalInSec:             10,
-		RandezVous:                       "/erd/kad/1.0.0",
-		InitialPeerList:                  nil,
-		BucketSize:                       100,
-		RoutingTableRefreshIntervalInSec: 10,
-	}
-	arg.P2pConfig.Sharding.Type = p2p.PrioBitsSharder
-	mes, err := libp2p.NewNetworkMessenger(arg)
-
-	assert.True(t, check.IfNil(mes))
-	assert.True(t, errors.Is(err, ns.ErrBadParams))
-}
-
-func TestNewNetworkMessenger_WithKadDiscovererPrioSharderShouldWork(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
-	arg := createMockNetworkArgs()
-	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
-		Enabled:                          true,
-		RefreshIntervalInSec:             10,
-		RandezVous:                       "/erd/kad/1.0.0",
-		InitialPeerList:                  nil,
-		BucketSize:                       100,
-		RoutingTableRefreshIntervalInSec: 10,
-	}
-	arg.P2pConfig.Sharding = config.ShardingConfig{
-		PrioBits: 1,
-		Type:     p2p.PrioBitsSharder,
-	}
-	mes, err := libp2p.NewNetworkMessenger(arg)
-
-	assert.False(t, check.IfNil(mes))
 	assert.Nil(t, err)
 
 	_ = mes.Close()

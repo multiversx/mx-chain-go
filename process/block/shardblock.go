@@ -548,6 +548,22 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
+	nodesCoordinatorShardID, err := sp.nodesCoordinator.ShardIdForEpoch(epoch)
+	if err != nil {
+		log.Debug("indexBlockIfNeeded",
+			"epoch", epoch,
+			"error", err.Error())
+		return
+	}
+
+	if shardId != nodesCoordinatorShardID {
+		log.Debug("indexBlockIfNeeded",
+			"epoch", epoch,
+			"shardCoordinator.ShardID", shardId,
+			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
+		return
+	}
+
 	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
 		log.Error("error indexing block header",

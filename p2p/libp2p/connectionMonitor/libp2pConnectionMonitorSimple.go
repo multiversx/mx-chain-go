@@ -9,6 +9,10 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+// DurationBetweenReconnectAttempts is used as to not call reconnecter.ReconnectToNetwork() too often
+// when there are a lot of peers disconnecting and reconnection to initial nodes succeeds
+var DurationBetweenReconnectAttempts = time.Second * 5
+
 type libp2pConnectionMonitorSimple struct {
 	chDoReconnect              chan struct{}
 	reconnecter                p2p.Reconnecter

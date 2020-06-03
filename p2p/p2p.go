@@ -3,7 +3,6 @@ package p2p
 import (
 	"encoding/hex"
 	"io"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 )
@@ -11,10 +10,6 @@ import (
 const displayLastPidChars = 12
 
 const (
-	// PrioBitsSharder is the variant that uses priority bits
-	PrioBitsSharder = "PrioBitsSharder"
-	// SimplePrioBitsSharder is the variant that computes the distance without prio bits
-	SimplePrioBitsSharder = "SimplePrioBitsSharder"
 	// ListsSharder is the variant that uses lists
 	ListsSharder = "ListsSharder"
 	// OneListSharder is the variant that is shard agnostic and uses one list
@@ -48,17 +43,6 @@ type PeerDiscoverer interface {
 type Reconnecter interface {
 	ReconnectToNetwork() <-chan struct{}
 	IsInterfaceNil() bool
-}
-
-// ReconnecterWithPauseResumeAndWatchdog defines a Reconnecter that supports pausing, resuming and watchdog
-type ReconnecterWithPauseResumeAndWatchdog interface {
-	Reconnecter
-	Pause()  // Pause the peer discovery
-	Resume() // Resume the peer discovery
-
-	StartWatchdog(time.Duration) error // StartWatchdog start a discovery resume watchdog
-	StopWatchdog() error               // StopWatchdog stops the watchdog
-	KickWatchdog() error               // KickWatchdog kicks the watchdog
 }
 
 // Messenger is the main struct used for communication with other peers
