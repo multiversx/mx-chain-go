@@ -735,22 +735,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
 
-	triesArgs := mainFactory.TriesComponentsFactoryArgs{
-		Marshalizer:      coreComponents.InternalMarshalizer,
-		Hasher:           coreComponents.Hasher,
-		PathManager:      pathManager,
-		ShardCoordinator: genesisShardCoordinator,
-		Config:           *generalConfig,
-	}
-	triesComponentsFactory, err := mainFactory.NewTriesComponentsFactory(triesArgs)
-	if err != nil {
-		return err
-	}
-	triesComponents, err := triesComponentsFactory.Create()
-	if err != nil {
-		return err
-	}
-
 	log.Trace("creating network components")
 	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
 	if err != nil {
@@ -872,8 +856,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		DefaultShardString:         defaultShardString,
 		Rater:                      rater,
 		DestinationShardAsObserver: destShardIdAsObserver,
-		TrieContainer:              triesComponents.TriesContainer,
-		TrieStorageManagers:        triesComponents.TrieStorageManagers,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
 		NodeShuffler:               nodesShuffler,
 		Rounder:                    rounder,
@@ -890,6 +872,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		log.Error("bootstrap return error", "error", err)
 		return err
+	}
+
+	trieContainer, trieStorageManager := bootstrapper.GetTriesComponents()
+	triesComponents := &mainFactory.TriesComponents{
+		TriesContainer:      trieContainer,
+		TrieStorageManagers: trieStorageManager,
 	}
 
 	log.Info("bootstrap parameters", "shardId", bootstrapParameters.SelfShardId, "epoch", bootstrapParameters.Epoch, "numShards", bootstrapParameters.NumOfShards)
