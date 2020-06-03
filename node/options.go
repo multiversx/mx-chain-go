@@ -378,14 +378,6 @@ func WithConsensusType(consensusType string) Option {
 	}
 }
 
-// WithTxStorageSize sets up a txStorageSize option for the Node
-func WithTxStorageSize(txStorageSize uint32) Option {
-	return func(n *Node) error {
-		n.txStorageSize = txStorageSize
-		return nil
-	}
-}
-
 // WithBootstrapRoundIndex sets up a bootstrapRoundIndex option for the Node
 func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	return func(n *Node) error {

@@ -39,6 +39,7 @@ type P2PAntifloodHandler interface {
 	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
+	ApplyConsensusSize(size int)
 	IsInterfaceNil() bool
 }
 
