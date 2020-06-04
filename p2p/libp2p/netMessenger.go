@@ -409,13 +409,26 @@ func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
 func (netMes *networkMessenger) Close() error {
 	netMes.cancelFunc()
 
-	err := netMes.outgoingPLB.Close()
-	log.LogIfError(err)
+	var err error
+	errOplb := netMes.outgoingPLB.Close()
+	if errOplb != nil {
+		err = errOplb
+		log.Warn("networkMessenger.Close",
+			"component", "outgoingPLB",
+			"error", err)
+	}
 
-	err = netMes.p2pHost.Close()
-	log.LogIfError(err)
+	errHost := netMes.p2pHost.Close()
+	if errHost != nil {
+		err = errHost
+		log.Warn("networkMessenger.Close",
+			"component", "host",
+			"error", err)
+	}
 
-	log.Debug("network messenger closed")
+	if err == nil {
+		log.Debug("network messenger closed successfully")
+	}
 
 	return err
 }
