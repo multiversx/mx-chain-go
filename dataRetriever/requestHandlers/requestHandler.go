@@ -350,6 +350,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		"topic", topic,
 		"shard", destShardID,
 		"num nodes", len(unrequestedHashes),
+		"firstHash", unrequestedHashes[0],
 	)
 
 	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
