@@ -34,7 +34,7 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 	}
 }
 
-func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
+func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
 	storer, err := e.storageOpenerHandler.GetMostRecentBootstrapStorageUnit()
 	defer func() {
 		if check.IfNil(storer) {
@@ -46,26 +46,35 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	}()
 
 	if err != nil {
-		return Parameters{}, err
+		return 0, false, err
 	}
 
 	_, e.nodesConfig, err = e.getLastBootstrapData(storer)
 	if err != nil {
-		return Parameters{}, err
+		return 0, false, err
 	}
 
 	pubKey, err := e.publicKey.ToByteArray()
 	if err != nil {
-		return Parameters{}, err
+		return 0, false, err
 	}
 
 	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storer)
 	if err != nil {
-		return Parameters{}, err
+		return 0, false, err
 	}
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.EpochStart.LastFinalizedHeaders))
 
 	newShardId, isShuffledOut := e.checkIfShuffledOut(pubKey, e.nodesConfig)
+	return newShardId, isShuffledOut, nil
+}
+
+func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
+	newShardId, isShuffledOut, err := e.getShardIDForLatestEpoch()
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	err = e.createTriesComponentsForShardId(newShardId)
 	if err != nil {
 		return Parameters{}, err
