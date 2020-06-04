@@ -81,8 +81,8 @@ func TestImmunityCache_AddThenRemove(t *testing.T) {
 
 	_, _ = cache.Add(newCacheItem("a"))
 	_, _ = cache.Add(newCacheItem("b"))
-	_, _ = cache.HasOrAdd(nil, newCacheItem("c")) // Same as Add()
-	_ = cache.Put(nil, newCacheItem("d"))         // Same as Add()
+	_, _ = cache.HasOrAdd(nil, newCacheItem("c"), 0) // Same as Add()
+	_ = cache.Put(nil, newCacheItem("d"), 0)         // Same as Add()
 	require.Equal(t, 4, cache.Len())
 	require.True(t, cache.Has([]byte("a")))
 	require.True(t, cache.Has([]byte("c")))
@@ -251,21 +251,6 @@ func TestImmunityCache_ClearConcurrentWithRangeOverChunks(t *testing.T) {
 	wg.Wait()
 }
 
-func newUnconstrainedCacheToTest(numChunks uint32) *ImmunityCache {
-	cache, err := NewImmunityCache(CacheConfig{
-		Name:                        "test",
-		NumChunks:                   numChunks,
-		MaxNumItems:                 math.MaxUint32,
-		MaxNumBytes:                 math.MaxUint32,
-		NumItemsToPreemptivelyEvict: math.MaxUint32,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("newUnconstrainedCacheToTest(): %s", err))
-	}
-
-	return cache
-}
-
 func newCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uint32) *ImmunityCache {
 	cache, err := NewImmunityCache(CacheConfig{
 		Name:                        "test",
@@ -281,8 +266,8 @@ func newCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uint32) *I
 	return cache
 }
 
-func (cache *ImmunityCache) addTestItems(keys ...string) {
+func (ic *ImmunityCache) addTestItems(keys ...string) {
 	for _, key := range keys {
-		_, _ = cache.Add(newCacheItem(key))
+		_, _ = ic.Add(newCacheItem(key))
 	}
 }

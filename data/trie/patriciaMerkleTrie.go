@@ -61,7 +61,7 @@ func NewTrie(
 	if maxTrieLevelInMemory <= 0 {
 		return nil, ErrInvalidLevelValue
 	}
-	log.Debug("created new trie", "max trie level in memory", maxTrieLevelInMemory)
+	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
 	return &patriciaMerkleTrie{
 		trieStorage:          trieStorage,

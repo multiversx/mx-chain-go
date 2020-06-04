@@ -24,16 +24,16 @@ func createWorkableConfig() config.Config {
 		Antiflood: config.AntifloodConfig{
 			Enabled: true,
 			Cache: config.CacheConfig{
-				Type:   "LRU",
-				Size:   5000,
-				Shards: 16,
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
 			},
 			FastReacting: config.FloodPreventerConfig{
 				IntervalInSeconds: 1,
 				ReservedPercent:   20,
 				PeerMaxInput: config.AntifloodLimitsConfig{
-					MessagesPerInterval:  75,
-					TotalSizePerInterval: 2097152,
+					BaseMessagesPerInterval: 75,
+					TotalSizePerInterval:    2097152,
 				},
 				BlackList: config.BlackListConfig{
 					ThresholdNumMessagesPerInterval: 480,
@@ -46,8 +46,8 @@ func createWorkableConfig() config.Config {
 				IntervalInSeconds: 30,
 				ReservedPercent:   20,
 				PeerMaxInput: config.AntifloodLimitsConfig{
-					MessagesPerInterval:  2500,
-					TotalSizePerInterval: 15728640,
+					BaseMessagesPerInterval: 2500,
+					TotalSizePerInterval:    15728640,
 				},
 				BlackList: config.BlackListConfig{
 					ThresholdNumMessagesPerInterval: 6000,

@@ -1,6 +1,8 @@
 package state
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
@@ -42,7 +44,7 @@ type journalEntryAccount struct {
 // NewJournalEntryAccount creates a new instance of JournalEntryAccount
 func NewJournalEntryAccount(account AccountHandler) (*journalEntryAccount, error) {
 	if check.IfNil(account) {
-		return nil, ErrNilAccountHandler
+		return nil, fmt.Errorf("%w in NewJournalEntryAccount", ErrNilAccountHandler)
 	}
 
 	return &journalEntryAccount{
@@ -101,7 +103,7 @@ type journalEntryDataTrieUpdates struct {
 // NewJournalEntryDataTrieUpdates outputs a new JournalEntryDataTrieUpdates implementation used to revert an account's data trie
 func NewJournalEntryDataTrieUpdates(trieUpdates map[string][]byte, account baseAccountHandler) (*journalEntryDataTrieUpdates, error) {
 	if check.IfNil(account) {
-		return nil, ErrNilAccountHandler
+		return nil, fmt.Errorf("%w in NewJournalEntryDataTrieUpdates", ErrNilAccountHandler)
 	}
 	if len(trieUpdates) == 0 {
 		return nil, ErrNilOrEmptyDataTrieUpdates

@@ -26,8 +26,8 @@ func (args *ArgShardedTxPool) verify() error {
 	if config.SizeInBytesPerSender == 0 {
 		return fmt.Errorf("%w: config.SizeInBytesPerSender is not valid", dataRetriever.ErrCacheConfigInvalidSizeInBytes)
 	}
-	if config.Size == 0 {
-		return fmt.Errorf("%w: config.Size is not valid", dataRetriever.ErrCacheConfigInvalidSize)
+	if config.Capacity == 0 {
+		return fmt.Errorf("%w: config.Capacity is not valid", dataRetriever.ErrCacheConfigInvalidSize)
 	}
 	if config.SizePerSender == 0 {
 		return fmt.Errorf("%w: config.SizePerSender is not valid", dataRetriever.ErrCacheConfigInvalidSize)

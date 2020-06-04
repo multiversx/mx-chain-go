@@ -69,7 +69,7 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 	syncTimerMock := &mock.SyncTimerMock{}
 	hasher := &mock.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
-	poolAdder := &mock.CacherMock{}
+	poolAdder := mock.NewCacherMock()
 
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         blsService,
@@ -1311,7 +1311,7 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 
 	assert.Nil(t, wrk.ReceivedMessages()[msgType][0])
 
-	wrk.Close()
+	_ = wrk.Close()
 }
 
 func TestWorker_CheckChannelsShouldWork(t *testing.T) {
@@ -1351,7 +1351,7 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, isBlockJobDone)
 
-	wrk.Close()
+	_ = wrk.Close()
 }
 
 func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
@@ -1490,7 +1490,7 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 	rcvMsg = wrk.ReceivedMessages()
 	assert.Equal(t, 0, len(rcvMsg[msgType]))
 
-	wrk.Close()
+	_ = wrk.Close()
 }
 
 func TestWorker_SetAppStatusHandlerNilShouldErr(t *testing.T) {
