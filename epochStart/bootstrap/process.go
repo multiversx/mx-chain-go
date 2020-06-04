@@ -312,7 +312,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		if e.shuffledOut {
 			// sync was already tried - not need to continue from here
-			return Parameters{}, err
+			return Parameters{}, errPrepare
 		}
 
 		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
