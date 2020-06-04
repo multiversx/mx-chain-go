@@ -120,10 +120,8 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	}
 
 	rrh.whiteList.Add(unrequestedHashes)
-	err = rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
-	if err != nil {
-		return
-	}
+
+	go rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
 
 	rrh.addRequestedItems(unrequestedHashes)
 }
@@ -131,7 +129,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 	unrequestedHashes [][]byte,
 	resolver HashSliceResolver,
-) error {
+) {
 	dataSplit := &partitioning.DataSplit{}
 	sliceBatches, err := dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
 	if err != nil {
@@ -140,7 +138,6 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 			"num txs", len(unrequestedHashes),
 			"max txs to request", rrh.maxTxsToRequest,
 		)
-		return err
 	}
 
 	for _, batch := range sliceBatches {
@@ -153,8 +150,6 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 			)
 		}
 	}
-
-	return nil
 }
 
 // RequestUnsignedTransactions method asks for unsigned transactions from the connected peers
@@ -407,10 +402,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		log.Trace("requestByHashes", "hash", txHash)
 	}
 
-	err = rrh.requestHashesWithDataSplit(itemsToRequest, trieResolver)
-	if err != nil {
-		return
-	}
+	go rrh.requestHashesWithDataSplit(itemsToRequest, trieResolver)
 
 	rrh.addRequestedItems(itemsToRequest)
 	rrh.lastTrieRequestTime = time.Now()
