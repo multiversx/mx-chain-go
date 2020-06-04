@@ -121,9 +121,10 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx conte
 		}(rootHash)
 
 		errMutex.Lock()
-		if errFound != nil {
-			returnErr := errFound
-			errMutex.Unlock()
+		returnErr := errFound
+		errMutex.Unlock()
+
+		if returnErr != nil {
 			return returnErr
 		}
 	}
@@ -137,12 +138,14 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ctx context.Context) 
 	u.syncerMutex.Lock()
 	dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher, u.maxTrieLevelInMemory)
 	if err != nil {
+		u.syncerMutex.Unlock()
 		return err
 	}
 
 	u.dataTries[string(rootHash)] = dataTrie
 	trieSyncer, err := trie.NewTrieSyncer(u.requestHandler, u.cacher, dataTrie, u.shardId, factory.AccountTrieNodesTopic)
 	if err != nil {
+		u.syncerMutex.Unlock()
 		return err
 	}
 	u.trieSyncers[string(rootHash)] = trieSyncer

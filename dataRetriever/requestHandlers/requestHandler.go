@@ -32,9 +32,9 @@ type resolverRequestHandler struct {
 	requestInterval       time.Duration
 	mutSweepTime          sync.Mutex
 
-	trieHashAccumulator [][]byte
-	lastTrieRequestTime time.Time
-	mutexTrieHashes     sync.Mutex
+	trieHashesAccumulator map[string]struct{}
+	lastTrieRequestTime   time.Time
+	mutexTrieHashes       sync.Mutex
 }
 
 // NewResolverRequestHandler creates a requestHandler interface implementation with request functions
@@ -71,7 +71,7 @@ func NewResolverRequestHandler(
 		maxTxsToRequest:       maxTxsToRequest,
 		whiteList:             whiteList,
 		requestInterval:       requestInterval,
-		trieHashAccumulator:   make([][]byte, 0),
+		trieHashesAccumulator: make(map[string]struct{}),
 	}
 
 	rrh.sweepTime = time.Now()
@@ -121,7 +121,9 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 
 	rrh.whiteList.Add(unrequestedHashes)
 
-	go rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
+	go func() {
+		_ = rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
+	}()
 
 	rrh.addRequestedItems(unrequestedHashes)
 }
@@ -129,7 +131,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 	unrequestedHashes [][]byte,
 	resolver HashSliceResolver,
-) {
+) error {
 	dataSplit := &partitioning.DataSplit{}
 	sliceBatches, err := dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
 	if err != nil {
@@ -138,7 +140,7 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 			"num txs", len(unrequestedHashes),
 			"max txs to request", rrh.maxTxsToRequest,
 		)
-		return
+		return err
 	}
 
 	for _, batch := range sliceBatches {
@@ -150,7 +152,10 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 				"batch size", len(batch),
 			)
 		}
+		return err
 	}
+
+	return nil
 }
 
 // RequestUnsignedTransactions method asks for unsigned transactions from the connected peers
@@ -358,18 +363,29 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	rrh.mutexTrieHashes.Lock()
 	defer rrh.mutexTrieHashes.Unlock()
 
-	rrh.trieHashAccumulator = append(rrh.trieHashAccumulator, unrequestedHashes...)
-	elapsedTime := time.Since(rrh.lastTrieRequestTime)
-	if len(rrh.trieHashAccumulator) < minHashesToRequest && elapsedTime < timeToAccumulateTrieHashes {
-		return
+	for _, hash := range unrequestedHashes {
+		rrh.trieHashesAccumulator[string(hash)] = struct{}{}
 	}
 
-	rrh.lastTrieRequestTime = time.Now()
+	index := 0
+	itemsToRequest := make([][]byte, len(rrh.trieHashesAccumulator))
+	for hash := range rrh.trieHashesAccumulator {
+		itemsToRequest[index] = []byte(hash)
+		index++
+	}
+
+	rrh.whiteList.Add(itemsToRequest)
+	rrh.addRequestedItems(itemsToRequest)
+
+	elapsedTime := time.Since(rrh.lastTrieRequestTime)
+	if len(rrh.trieHashesAccumulator) < minHashesToRequest && elapsedTime < timeToAccumulateTrieHashes {
+		return
+	}
 
 	log.Debug("requesting trie nodes from network",
 		"topic", topic,
 		"shard", destShardID,
-		"num nodes", len(rrh.trieHashAccumulator),
+		"num nodes", len(rrh.trieHashesAccumulator),
 		"firstHash", unrequestedHashes[0],
 	)
 
@@ -389,15 +405,17 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		return
 	}
 
-	for _, txHash := range rrh.trieHashAccumulator {
+	for _, txHash := range rrh.trieHashesAccumulator {
 		log.Trace("requestByHashes", "hash", txHash)
 	}
 
-	rrh.whiteList.Add(rrh.trieHashAccumulator)
-	rrh.requestHashesWithDataSplit(rrh.trieHashAccumulator, trieResolver)
-	rrh.addRequestedItems(rrh.trieHashAccumulator)
+	err = rrh.requestHashesWithDataSplit(itemsToRequest, trieResolver)
+	if err != nil {
+		return
+	}
 
-	rrh.trieHashAccumulator = rrh.trieHashAccumulator[:0]
+	rrh.lastTrieRequestTime = time.Now()
+	rrh.trieHashesAccumulator = make(map[string]struct{})
 }
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
