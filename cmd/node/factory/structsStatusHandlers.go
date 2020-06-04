@@ -84,7 +84,7 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 	}
 
 	if len(views) == 0 {
-		log.Warn("No views for current node")
+		log.Info("current mode is log-view")
 	}
 
 	statusMetrics := statusHandler.NewStatusMetrics()
