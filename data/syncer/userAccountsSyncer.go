@@ -122,14 +122,9 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx conte
 	}
 
 	errMutex.Lock()
-	returnErr := errFound
-	errMutex.Unlock()
+	defer errMutex.Unlock()
 
-	if returnErr != nil {
-		return returnErr
-	}
-
-	return nil
+	return errFound
 }
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ctx context.Context) error {

@@ -120,10 +120,10 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	}
 
 	rrh.whiteList.Add(unrequestedHashes)
-
-	go func() {
-		_ = rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
-	}()
+	err = rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
+	if err != nil {
+		return
+	}
 
 	rrh.addRequestedItems(unrequestedHashes)
 }
@@ -152,7 +152,6 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 				"batch size", len(batch),
 			)
 		}
-		return err
 	}
 
 	return nil
@@ -375,7 +374,6 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	}
 
 	rrh.whiteList.Add(itemsToRequest)
-	rrh.addRequestedItems(itemsToRequest)
 
 	elapsedTime := time.Since(rrh.lastTrieRequestTime)
 	if len(rrh.trieHashesAccumulator) < minHashesToRequest && elapsedTime < timeToAccumulateTrieHashes {
@@ -414,6 +412,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		return
 	}
 
+	rrh.addRequestedItems(itemsToRequest)
 	rrh.lastTrieRequestTime = time.Now()
 	rrh.trieHashesAccumulator = make(map[string]struct{})
 }
@@ -471,7 +470,7 @@ func (rrh *resolverRequestHandler) addRequestedItems(keys [][]byte) {
 			log.Trace("addRequestedItems",
 				"error", err.Error(),
 				"key", key)
-			return
+			continue
 		}
 	}
 }
