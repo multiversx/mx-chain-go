@@ -354,24 +354,24 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Debug("requesting trie nodes from network",
-		"topic", topic,
-		"shard", destShardID,
-		"num nodes", len(unrequestedHashes),
-		"firstHash", unrequestedHashes[0],
-	)
 
 	rrh.mutexTrieHashes.Lock()
-	rrh.trieHashAccumulator = append(rrh.trieHashAccumulator, unrequestedHashes...)
+	defer rrh.mutexTrieHashes.Unlock()
 
+	rrh.trieHashAccumulator = append(rrh.trieHashAccumulator, unrequestedHashes...)
 	elapsedTime := time.Since(rrh.lastTrieRequestTime)
 	if len(rrh.trieHashAccumulator) < minHashesToRequest && elapsedTime < timeToAccumulateTrieHashes {
-		rrh.mutexTrieHashes.Unlock()
 		return
 	}
 
 	rrh.lastTrieRequestTime = time.Now()
-	rrh.mutexTrieHashes.Unlock()
+
+	log.Debug("requesting trie nodes from network",
+		"topic", topic,
+		"shard", destShardID,
+		"num nodes", len(rrh.trieHashAccumulator),
+		"firstHash", unrequestedHashes[0],
+	)
 
 	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
 	if err != nil {
@@ -389,15 +389,13 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		return
 	}
 
-	for _, txHash := range hashes {
+	for _, txHash := range rrh.trieHashAccumulator {
 		log.Trace("requestByHashes", "hash", txHash)
 	}
 
-	rrh.whiteList.Add(unrequestedHashes)
-
-	go rrh.requestHashesWithDataSplit(unrequestedHashes, trieResolver)
-
-	rrh.addRequestedItems(unrequestedHashes)
+	rrh.whiteList.Add(rrh.trieHashAccumulator)
+	rrh.requestHashesWithDataSplit(rrh.trieHashAccumulator, trieResolver)
+	rrh.addRequestedItems(rrh.trieHashAccumulator)
 }
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
