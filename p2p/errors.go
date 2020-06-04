@@ -73,18 +73,6 @@ var ErrNilSharder = errors.New("nil sharder")
 // ErrNilPeerShardResolver signals that the peer shard resolver provided is nil
 var ErrNilPeerShardResolver = errors.New("nil PeerShardResolver")
 
-// ErrWatchdogAlreadyStarted signals that a peer discovery watchdog is already started
-var ErrWatchdogAlreadyStarted = errors.New("peer discovery watchdog is already started")
-
-// ErrWatchdogNotStarted signals that a peer discovery watchdog is not started
-var ErrWatchdogNotStarted = errors.New("peer discovery watchdog is not started")
-
-// ErrContextDone signals that an operation was canceled by context done
-var ErrContextDone = errors.New("context done")
-
-// ErrTimeout signals a timeout
-var ErrTimeout = errors.New("timeout")
-
 // ErrNilNetworkShardingCollector signals that the network sharding collector provided is nil
 var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
 
@@ -115,3 +103,6 @@ var ErrNilPeerBlacklistHandler = errors.New("nil peer black list handler")
 
 // ErrNilStatusHandler signals that a nil status handler has been provided
 var ErrNilStatusHandler = errors.New("nil status handler")
+
+// ErrNilCacher signals that a nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")

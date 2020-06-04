@@ -155,6 +155,7 @@ type Messenger interface {
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
 	SetPeerBlackListHandler(handler BlacklistHandler) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
+	SetMessageIdsCacher(cacher Cacher) error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -282,5 +283,11 @@ type BlacklistHandler interface {
 type ConnectionMonitorWrapper interface {
 	CheckConnectionsBlocking()
 	SetBlackListHandler(handler BlacklistHandler) error
+	IsInterfaceNil() bool
+}
+
+// Cacher defines the interface for a cacher used in p2p to better prevent the reprocessing of an old message
+type Cacher interface {
+	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool)
 	IsInterfaceNil() bool
 }
