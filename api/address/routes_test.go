@@ -200,7 +200,6 @@ func TestGetValueForKey_ShouldWork(t *testing.T) {
 	valueForKeyResponseObj := valueForKeyResponse{}
 	loadResponse(resp.Body, &valueForKeyResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
-
 	assert.Equal(t, testValue, valueForKeyResponseObj.Data.Value)
 }
 
