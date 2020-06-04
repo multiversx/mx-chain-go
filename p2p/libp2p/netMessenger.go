@@ -807,6 +807,8 @@ func (netMes *networkMessenger) SetMessageIdsCacher(cacher p2p.Cacher) error {
 	netMes.messageIdCacher = cacher
 	netMes.mutMessageIdCacher.Unlock()
 
+	log.Debug("added message ids cacher for the p2p network messenger")
+
 	return nil
 }
 

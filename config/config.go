@@ -131,6 +131,7 @@ type Config struct {
 	PublicKeyShardId CacheConfig
 	PublicKeyPeerId  CacheConfig
 	PeerIdShardId    CacheConfig
+	P2PCache         CacheConfig
 
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
