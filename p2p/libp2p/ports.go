@@ -37,18 +37,17 @@ func getPort(port string, handler testPortHandler) (int, error) {
 		return 0, p2p.ErrInvalidEndingPortValue
 	}
 
+	if startPort < minRangePortValue {
+		return 0, fmt.Errorf("%w, provided starting port should be >= %d", p2p.ErrInvalidValue, minRangePortValue)
+	}
 	if endPort < startPort {
-		return 0, p2p.ErrEndPortSmallerThanStartPort
+		return 0, p2p.ErrEndPortIsSmallerThanStartPort
 	}
 
 	return choosePort(startPort, endPort, handler)
 }
 
 func choosePort(startPort int, endPort int, handler testPortHandler) (int, error) {
-	if startPort < minRangePortValue {
-		return 0, fmt.Errorf("%w, provided starting port should be >= %d", p2p.ErrInvalidValue, minRangePortValue)
-	}
-
 	log.Info("generating random free port",
 		"range", fmt.Sprintf("%d-%d", startPort, endPort),
 	)

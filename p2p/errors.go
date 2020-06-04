@@ -79,8 +79,8 @@ var ErrInvalidStartingPortValue = errors.New("invalid starting port value")
 // ErrInvalidEndingPortValue signals that an invalid ending port value has been provided
 var ErrInvalidEndingPortValue = errors.New("invalid ending port value")
 
-// ErrEndPortSmallerThanStartPort signals that the ending port value is smaller than the starting port value
-var ErrEndPortSmallerThanStartPort = errors.New("ending port value is less than the starting port value")
+// ErrEndPortIsSmallerThanStartPort signals that the ending port value is smaller than the starting port value
+var ErrEndPortIsSmallerThanStartPort = errors.New("ending port value is smaller than the starting port value")
 
 // ErrNoFreePortInRange signals that no free port was found from provided range
 var ErrNoFreePortInRange = errors.New("no free port in range")

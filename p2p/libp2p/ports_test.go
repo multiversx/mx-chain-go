@@ -65,7 +65,7 @@ func TestGetPort_EndPortLargerThanSendPort(t *testing.T) {
 
 	port, err := getPort("10000-9999", testFreePort)
 	assert.Equal(t, 0, port)
-	assert.Equal(t, p2p.ErrEndPortSmallerThanStartPort, err)
+	assert.Equal(t, p2p.ErrEndPortIsSmallerThanStartPort, err)
 }
 
 func TestGetPort_RangeOfOneShouldWork(t *testing.T) {
