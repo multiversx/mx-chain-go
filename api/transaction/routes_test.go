@@ -40,14 +40,24 @@ type TransactionHashResponse struct {
 	TxHash string `json:"txHash,omitempty"`
 }
 
-type TransactionStatusResponse struct {
-	GeneralResponse
+type transactionStatusResponseData struct {
 	Status string `json:"status"`
 }
 
-type TransactionCostResponse struct {
-	GeneralResponse
+type TransactionStatusResponse struct {
+	Data  transactionStatusResponseData `json:"data"`
+	Error string                        `json:"error"`
+	Code  string                        `json:"code"`
+}
+
+type transactionCostResponseData struct {
 	Cost uint64 `json:"txGasUnits"`
+}
+
+type TransactionCostResponse struct {
+	Data  transactionCostResponseData `json:"data"`
+	Error string                      `json:"error"`
+	Code  string                      `json:"code"`
 }
 
 func init() {
@@ -75,7 +85,7 @@ func TestGetTransactionStatus(t *testing.T) {
 	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, "unknown", response.Status)
+	assert.Equal(t, "unknown", response.Data.Status)
 
 	req, _ = http.NewRequest("GET", "/transaction/"+rightHash+"/status", nil)
 	resp = httptest.NewRecorder()
@@ -85,7 +95,7 @@ func TestGetTransactionStatus(t *testing.T) {
 	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, "pending", response.Status)
+	assert.Equal(t, "pending", response.Data.Status)
 }
 
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
@@ -133,7 +143,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	txData := "data"
 	wrongHash := "wronghash"
 	facade := mock.Facade{
-		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
+		GetTransactionHandler: func(hash string) (*tr.ApiTransactionResult, error) {
 			if hash == wrongHash {
 				return nil, errors.New("local error")
 			}
@@ -435,7 +445,7 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 	loadResponse(resp.Body, &transactionCostResponse)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, expectedGasLimit, transactionCostResponse.Cost)
+	assert.Equal(t, expectedGasLimit, transactionCostResponse.Data.Cost)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

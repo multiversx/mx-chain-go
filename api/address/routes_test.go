@@ -39,6 +39,16 @@ type AccountResponse struct {
 	} `json:"account"`
 }
 
+type valueForKeyResponseData struct {
+	Value string `json:"value"`
+}
+
+type valueForKeyResponse struct {
+	Data  valueForKeyResponseData `json:"data"`
+	Error string                  `json:"error"`
+	Code  string                  `json:"code"`
+}
+
 func TestAddressRoute_EmptyTrailReturns404(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
@@ -191,7 +201,7 @@ func TestGetValueForKey_ShouldWork(t *testing.T) {
 	loadResponse(resp.Body, &valueForKeyResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	assert.Equal(t, testValue, valueForKeyResponseObj.Value)
+	assert.Equal(t, testValue, valueForKeyResponseObj.Data.Value)
 }
 
 func TestGetAccount_FailsWithWrongFacadeTypeConversion(t *testing.T) {

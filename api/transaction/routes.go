@@ -285,13 +285,51 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	response, err := txResponseFromTransaction(ef, tx)
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"transaction": tx},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetTransactionStatus returns the status of a transaction identified by the given hash
+func GetTransactionStatus(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(TxService)
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	txhash := c.Param("txhash")
+	if txhash == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyTxHash.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	status, err := ef.GetTransactionStatus(txhash)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: err.Error(),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetTransaction.Error(), err.Error()),
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
@@ -301,22 +339,11 @@ func GetTransaction(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"transaction": response},
+			Data:  gin.H{"status": status},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
-}
-
-func txResponseFromTransaction(ef TxService, tx *transaction.Transaction) (TxResponse, error) {
-	response := TxResponse{}
-	sender, err := ef.EncodeAddressPubkey(tx.SndAddr)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrGetTransaction.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"status": status})
 }
 
 // ComputeTransactionGasLimit returns how many gas units a transaction wil consume
