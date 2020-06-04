@@ -396,6 +396,8 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	rrh.whiteList.Add(rrh.trieHashAccumulator)
 	rrh.requestHashesWithDataSplit(rrh.trieHashAccumulator, trieResolver)
 	rrh.addRequestedItems(rrh.trieHashAccumulator)
+
+	rrh.trieHashAccumulator = rrh.trieHashAccumulator[:0]
 }
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
