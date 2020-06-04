@@ -19,7 +19,8 @@ type TxService interface {
 		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
-	GetTransaction(hash string) (*transaction.Transaction, error)
+	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
+	GetTransactionStatus(hash string) (string, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	IsInterfaceNil() bool
@@ -68,6 +69,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodPost, "/cost", ComputeTransactionGasLimit)
 	router.RegisterHandler(http.MethodPost, "/send-multiple", SendMultipleTransactions)
 	router.RegisterHandler(http.MethodGet, "/:txhash", GetTransaction)
+	router.RegisterHandler(http.MethodGet, "/:txhash/status", GetTransactionStatus)
 }
 
 // SendTransaction will receive a transaction from the client and propagate it for processing
@@ -310,24 +312,11 @@ func txResponseFromTransaction(ef TxService, tx *transaction.Transaction) (TxRes
 	response := TxResponse{}
 	sender, err := ef.EncodeAddressPubkey(tx.SndAddr)
 	if err != nil {
-		return response, fmt.Errorf("%w for sender adddress", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrGetTransaction.Error()})
+		return
 	}
 
-	receiver, err := ef.EncodeAddressPubkey(tx.RcvAddr)
-	if err != nil {
-		return response, fmt.Errorf("%w for sender adddress", err)
-	}
-
-	response.Nonce = tx.Nonce
-	response.Sender = sender
-	response.Receiver = receiver
-	response.Data = string(tx.Data)
-	response.Signature = hex.EncodeToString(tx.Signature)
-	response.Value = tx.Value.String()
-	response.GasLimit = tx.GasLimit
-	response.GasPrice = tx.GasPrice
-
-	return response, nil
+	c.JSON(http.StatusOK, gin.H{"status": status})
 }
 
 // ComputeTransactionGasLimit returns how many gas units a transaction wil consume

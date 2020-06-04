@@ -18,12 +18,12 @@ type FacadeHandler interface {
 
 // Routes defines address related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodGet, "/config", ConfigData)
-	router.RegisterHandler(http.MethodGet, "/status", GetNetworkData)
+	router.RegisterHandler(http.MethodGet, "/config", GetNetworkConfig)
+	router.RegisterHandler(http.MethodGet, "/status", GetNetworkStatus)
 }
 
-// ConfigData returns data about current configuration
-func ConfigData(c *gin.Context) {
+// GetNetworkConfig returns metrics related to the network configuration (shard independent)
+func GetNetworkConfig(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(
@@ -48,8 +48,8 @@ func ConfigData(c *gin.Context) {
 	)
 }
 
-// GetNetworkData returns data about current network metrics
-func GetNetworkData(c *gin.Context) {
+// GetNetworkStatus returns metrics related to the network status (shard specific)
+func GetNetworkStatus(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
 		c.JSON(

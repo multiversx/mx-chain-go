@@ -170,6 +170,30 @@ func TestGetBalance_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	assert.Equal(t, response.Error, errors2.ErrInvalidAppContext.Error())
 }
 
+func TestGetValueForKey_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	testValue := "value"
+	facade := mock.Facade{
+		GetValueForKeyCalled: func(_ string, _ string) (string, error) {
+			return testValue, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/key/test", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	valueForKeyResponseObj := valueForKeyResponse{}
+	loadResponse(resp.Body, &valueForKeyResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	assert.Equal(t, testValue, valueForKeyResponseObj.Value)
+}
+
 func TestGetAccount_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
 
@@ -282,6 +306,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 				[]config.RouteConfig{
 					{Name: "/:address", Open: true},
 					{Name: "/:address/balance", Open: true},
+					{Name: "/:address/key/:key", Open: true},
 				},
 			},
 		},

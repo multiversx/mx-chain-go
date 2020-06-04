@@ -141,6 +141,7 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics[core.MetricChainId] = sm.loadStringMetric(core.MetricChainId)
 	configMetrics[core.MetricRoundDuration] = sm.loadUint64Metric(core.MetricRoundDuration)
 	configMetrics[core.MetricStartTime] = sm.loadUint64Metric(core.MetricStartTime)
+	configMetrics[core.MetricLatestTagSoftwareVersion] = sm.loadStringMetric(core.MetricLatestTagSoftwareVersion)
 
 	return configMetrics
 }
@@ -152,12 +153,26 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 	currentRound := sm.loadUint64Metric(core.MetricCurrentRound)
 	roundNumberAtEpochStart := sm.loadUint64Metric(core.MetricRoundAtEpochStart)
 
-	networkMetrics[core.MetricNonce] = sm.loadUint64Metric(core.MetricNonce)
+	currentNonce := sm.loadUint64Metric(core.MetricNonce)
+	nonceAtEpochStart := sm.loadUint64Metric(core.MetricNonceAtEpochStart)
+
+	networkMetrics[core.MetricNonce] = currentNonce
 	networkMetrics[core.MetricCurrentRound] = currentRound
-	networkMetrics[core.MetricEpochNumber] = sm.loadUint64Metric(core.MetricEpochNumber)
 	networkMetrics[core.MetricRoundAtEpochStart] = roundNumberAtEpochStart
+	networkMetrics[core.MetricNonceAtEpochStart] = nonceAtEpochStart
+	networkMetrics[core.MetricEpochNumber] = sm.loadUint64Metric(core.MetricEpochNumber)
 	networkMetrics[core.MetricRoundsPerEpoch] = sm.loadUint64Metric(core.MetricRoundsPerEpoch)
-	networkMetrics[core.MetricRoundsPassedInCurrentEpoch] = currentRound - roundNumberAtEpochStart
+	roundsPassedInEpoch := uint64(0)
+	if currentRound >= roundNumberAtEpochStart {
+		roundsPassedInEpoch = currentRound - roundNumberAtEpochStart
+	}
+	networkMetrics[core.MetricRoundsPassedInCurrentEpoch] = roundsPassedInEpoch
+
+	noncesPassedInEpoch := uint64(0)
+	if currentNonce >= nonceAtEpochStart {
+		noncesPassedInEpoch = currentNonce - nonceAtEpochStart
+	}
+	networkMetrics[core.MetricNoncesPassedInCurrentEpoch] = noncesPassedInEpoch
 
 	return networkMetrics
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 )
 
 // ArgsConnectionMonitorFactory represents the argument for the connection monitor factory
@@ -24,13 +23,6 @@ func NewConnectionMonitor(arg ArgsConnectionMonitorFactory) (ConnectionMonitor, 
 	}
 
 	switch kadSharder := arg.Sharder.(type) {
-	case networksharding.Sharder:
-		reconn, ok := arg.Reconnecter.(p2p.ReconnecterWithPauseResumeAndWatchdog)
-		if !ok {
-			return nil, fmt.Errorf("%w provided reconnecter is not of type p2p.ReconnecterWithPauseResumeAndWatchdog", p2p.ErrWrongTypeAssertion)
-		}
-
-		return connectionMonitor.NewLibp2pConnectionMonitor(reconn, arg.ThresholdMinConnectedPeers, arg.TargetCount, kadSharder)
 	case connectionMonitor.Sharder:
 		return connectionMonitor.NewLibp2pConnectionMonitorSimple(arg.Reconnecter, arg.ThresholdMinConnectedPeers, kadSharder)
 	default:

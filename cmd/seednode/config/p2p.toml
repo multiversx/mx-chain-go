@@ -60,14 +60,10 @@
 [Sharding]
     # The targeted number of peer connections
     TargetPeerCount = 0
-    # Number of priority bits used
-    PrioBits = 0
     MaxIntraShard = 0
     MaxCrossShard = 0
     #available options:
     #  `ListsSharder` will split the peers based on the shard membership (intra, cross or unknown)
-    #  `PrioBitsSharder` will split the peers based on the shard membership (intra, other) using kademlia distance
-    #  `SimplePrioBitsSharder` will just select closest peers using kademlia distance (shard agnostic)
     #  `OneListSharder` will do just the connection triming (upto TargetPeerCount value) not taking into account
     #              the shard membership of the connected peers
     #  `NilListSharder` will disable conection trimming (sharder is off)
