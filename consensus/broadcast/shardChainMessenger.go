@@ -335,7 +335,7 @@ func getShardDataFromMetaChainBlock(
 	return shardHeaderHashes, dataForValidators, nil
 }
 
-func (scm *shardChainMessenger) registerInterceptorCallback(cb func(toShard uint32, data []byte)) error {
+func (scm *shardChainMessenger) registerInterceptorCallback(cb func(toShard uint32, hash []byte)) error {
 	for idx := uint32(0); idx < scm.shardCoordinator.NumberOfShards(); idx++ {
 		// interested only in cross shard data
 		if idx == scm.shardCoordinator.SelfId() {
@@ -353,14 +353,14 @@ func (scm *shardChainMessenger) registerInterceptorCallback(cb func(toShard uint
 	return nil
 }
 
-func (scm *shardChainMessenger) interceptedMiniBlockData(toShardTopic uint32, data []byte) {
+func (scm *shardChainMessenger) interceptedMiniBlockData(toShardTopic uint32, hash []byte) {
 	scm.mutDataForBroadcast.Lock()
 	defer scm.mutDataForBroadcast.Unlock()
 
 	for i, broadcastData := range scm.valBroadcastData {
 		mbHashesMap := broadcastData.miniBlockHashes
 		if len(mbHashesMap) > 0 && len(mbHashesMap[toShardTopic]) > 0 {
-			delete(broadcastData.miniBlockHashes[toShardTopic], string(data))
+			delete(broadcastData.miniBlockHashes[toShardTopic], string(hash))
 			if len(mbHashesMap[toShardTopic]) == 0 {
 				delete(mbHashesMap, toShardTopic)
 			}

@@ -80,6 +80,11 @@ func (scm *shardChainMessenger) RegisterInterceptorCallback(cb func(toShard uint
 	return scm.registerInterceptorCallback(cb)
 }
 
+// InterceptedMiniBlockData -
+func (scm *shardChainMessenger) InterceptedMiniBlockData(toShardTopic uint32, data []byte) {
+	scm.interceptedMiniBlockData(toShardTopic, data)
+}
+
 // NewCommonMessenger will return a new instance of a commonMessenger
 func NewCommonMessenger(
 	marshalizer marshal.Marshalizer,

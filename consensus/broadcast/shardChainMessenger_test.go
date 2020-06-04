@@ -67,11 +67,23 @@ func createValidatorDelayArgs(index int) *validatorDelayArgs {
 		headerHash:      []byte("header hash" + iStr),
 		prevRandSeed:    []byte("prev rand seed" + iStr),
 		round:           uint64(0),
-		miniBlocks:      map[uint32][]byte{0: []byte("miniblock A" + iStr), 1: []byte("miniblock" + iStr)},
+		miniBlocks:      map[uint32][]byte{0: []byte("miniblock data sh0" + iStr), 1: []byte("miniblock data sh1" + iStr)},
 		miniBlockHashes: map[uint32]map[string]struct{}{0: {"miniBlockHash0" + iStr: struct{}{}}, 1: {"miniBlockHash1" + iStr: struct{}{}}},
 		transactions:    map[string][][]byte{"topic": {[]byte("tx1" + iStr), []byte("tx2" + iStr)}},
 		order:           uint32(1),
 	}
+}
+
+func getDataToNotifyFromArgs(args *validatorDelayArgs) map[uint32][][]byte {
+	mbHashesToNotify := make(map[uint32][][]byte, 0)
+
+	for shardIdDest, hashesMap := range args.miniBlockHashes {
+		for mbHash := range hashesMap {
+			mbHashesToNotify[shardIdDest] = append(mbHashesToNotify[shardIdDest], []byte(mbHash))
+		}
+	}
+
+	return mbHashesToNotify
 }
 
 func createMetaBlock() *block.MetaBlock {
@@ -940,4 +952,234 @@ func TestShardChainMessenger_RegisterInterceptorCallback(t *testing.T) {
 	nbRegistered = len(cbs)
 	mutCbs.Unlock()
 	require.Equal(t, 2, nbRegistered)
+}
+
+func TestShardChainMessenger_GetShardDataFromMetaChainBlock(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	metaHeader := createMetaBlock()
+	shardID := uint32(0)
+
+	expHeaderHashes := make([][]byte, 0)
+	valData := make([]*broadcast.HeaderDataForValidator, 0)
+
+	for _, shInfo := range metaHeader.ShardInfo {
+		if shInfo.ShardID != shardID {
+			continue
+		}
+		valData = append(valData, &broadcast.HeaderDataForValidator{
+			Round:        shInfo.Round,
+			PrevRandSeed: shInfo.PrevRandSeed,
+		})
+		expHeaderHashes = append(expHeaderHashes, shInfo.HeaderHash)
+	}
+
+	headerHashes, dfv, err := scm.GetShardDataFromMetaChainBlock(metaHeader, shardID)
+	require.Nil(t, err)
+	require.Equal(t, expHeaderHashes, headerHashes)
+	require.Equal(t, valData, dfv)
+}
+
+func TestShardChainMessenger_InterceptedMiniBlockForNotSetValDataShouldBroadcast(t *testing.T) {
+	wasCalled := false
+	mutData := &sync.Mutex{}
+	messenger := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			mutData.Lock()
+			wasCalled = true
+			mutData.Unlock()
+		},
+	}
+	args := createDefaultShardChainArgs()
+	args.Messenger = messenger
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+	require.Nil(t, err)
+	vbd := scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+	hdfv := &broadcast.HeaderDataForValidator{
+		Round:        vArgs.round,
+		PrevRandSeed: vArgs.prevRandSeed,
+	}
+
+	scm.InterceptedMiniBlockData(1, []byte("some other miniBlock hash"))
+	vbd = scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+
+	scm.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
+	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
+	time.Sleep(timeToWait + 100*time.Millisecond)
+
+	// check there was a broadcast and validator delay data empty
+	mutData.Lock()
+	called := wasCalled
+	mutData.Unlock()
+	require.True(t, called)
+
+	vbd = scm.GetValidatorBroadcastData()
+	require.Equal(t, 0, len(vbd))
+}
+
+func TestShardChainMessenger_InterceptedMiniBlockOutOfManyForSetValDataShouldBroadcast(t *testing.T) {
+	wasCalled := false
+	mutData := &sync.Mutex{}
+	messenger := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			mutData.Lock()
+			wasCalled = true
+			mutData.Unlock()
+		},
+	}
+	args := createDefaultShardChainArgs()
+	args.Messenger = messenger
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+	miniBlockHashToNotify := []byte("miniBlockHash to notify")
+	destShardID := uint32(1)
+	vArgs.miniBlockHashes[destShardID][string(miniBlockHashToNotify)] = struct{}{}
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+	require.Nil(t, err)
+	vbd := scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+
+	hdfv := &broadcast.HeaderDataForValidator{
+		Round:        vArgs.round,
+		PrevRandSeed: vArgs.prevRandSeed,
+	}
+
+	scm.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
+	scm.InterceptedMiniBlockData(destShardID, miniBlockHashToNotify)
+	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
+	time.Sleep(timeToWait + 100*time.Millisecond)
+
+	// check there was a broadcast and validator delay data empty
+	mutData.Lock()
+	called := wasCalled
+	mutData.Unlock()
+	require.True(t, called)
+
+	vbd = scm.GetValidatorBroadcastData()
+	require.Equal(t, 0, len(vbd))
+}
+
+func TestShardChainMessengerInterceptedMiniBlockFinalForSetValDataShouldNotBroadcast(t *testing.T) {
+	wasCalled := false
+	mutData := &sync.Mutex{}
+	messenger := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			mutData.Lock()
+			wasCalled = true
+			mutData.Unlock()
+		},
+	}
+	args := createDefaultShardChainArgs()
+	args.Messenger = messenger
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+
+	mbHahsesToNotify := getDataToNotifyFromArgs(vArgs)
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+	require.Nil(t, err)
+	vbd := scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+
+	hdfv := &broadcast.HeaderDataForValidator{
+		Round:        vArgs.round,
+		PrevRandSeed: vArgs.prevRandSeed,
+	}
+
+	scm.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
+	for destShardID, hashes := range mbHahsesToNotify {
+		for _, hash := range hashes {
+			scm.InterceptedMiniBlockData(destShardID, hash)
+		}
+	}
+	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
+	time.Sleep(timeToWait + 100*time.Millisecond)
+
+	// check there was no broadcast and validator delay data empty
+	mutData.Lock()
+	called := wasCalled
+	mutData.Unlock()
+	require.False(t, called)
+
+	vbd = scm.GetValidatorBroadcastData()
+	require.Equal(t, 0, len(vbd))
+}
+
+func TestShardChainMessenger_Close(t *testing.T) {
+	wasCalled := false
+	mutData := &sync.Mutex{}
+	messenger := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			mutData.Lock()
+			wasCalled = true
+			mutData.Unlock()
+		},
+	}
+	args := createDefaultShardChainArgs()
+	args.Messenger = messenger
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+
+	err := scm.SetValidatorDelayBroadcast(
+		vArgs.headerHash,
+		vArgs.prevRandSeed,
+		vArgs.round,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.order,
+	)
+	require.Nil(t, err)
+	vbd := scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
+
+	hdfv := &broadcast.HeaderDataForValidator{
+		Round:        vArgs.round,
+		PrevRandSeed: vArgs.prevRandSeed,
+	}
+
+	scm.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
+	scm.Close()
+
+	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
+	time.Sleep(timeToWait + 100*time.Millisecond)
+
+	// check there was no broadcast
+	mutData.Lock()
+	called := wasCalled
+	mutData.Unlock()
+	require.False(t, called)
+
+	vbd = scm.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbd))
 }
