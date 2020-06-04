@@ -319,6 +319,7 @@ func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
 			"hash", header.GetRootHash(),
+			"error", err,
 		)
 
 		return err
