@@ -18,6 +18,9 @@ var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
+const minHashesToRequest = 10
+const timeToAccumulateTrieHashes = 100 * time.Millisecond
+
 type resolverRequestHandler struct {
 	epoch                 uint32
 	shardID               uint32
@@ -28,6 +31,10 @@ type resolverRequestHandler struct {
 	sweepTime             time.Time
 	requestInterval       time.Duration
 	mutSweepTime          sync.Mutex
+
+	trieHashAccumulator [][]byte
+	lastTrieRequestTime time.Time
+	mutexTrieHashes     sync.Mutex
 }
 
 // NewResolverRequestHandler creates a requestHandler interface implementation with request functions
@@ -64,6 +71,7 @@ func NewResolverRequestHandler(
 		maxTxsToRequest:       maxTxsToRequest,
 		whiteList:             whiteList,
 		requestInterval:       requestInterval,
+		trieHashAccumulator:   make([][]byte, 0),
 	}
 
 	rrh.sweepTime = time.Now()
@@ -352,6 +360,18 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		"num nodes", len(unrequestedHashes),
 		"firstHash", unrequestedHashes[0],
 	)
+
+	rrh.mutexTrieHashes.Lock()
+	rrh.trieHashAccumulator = append(rrh.trieHashAccumulator, unrequestedHashes...)
+
+	elapsedTime := time.Since(rrh.lastTrieRequestTime)
+	if len(rrh.trieHashAccumulator) < minHashesToRequest && elapsedTime < timeToAccumulateTrieHashes {
+		rrh.mutexTrieHashes.Unlock()
+		return
+	}
+
+	rrh.lastTrieRequestTime = time.Now()
+	rrh.mutexTrieHashes.Unlock()
 
 	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
 	if err != nil {
