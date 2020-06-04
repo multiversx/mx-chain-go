@@ -97,6 +97,9 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx conte
 	var errFound error
 	errMutex := sync.Mutex{}
 
+	wg := sync.WaitGroup{}
+	wg.Add(len(rootHashes))
+
 	for _, rootHash := range rootHashes {
 		for {
 			if u.throttler.CanProcess() {
@@ -118,8 +121,11 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx conte
 				errFound = newErr
 				errMutex.Unlock()
 			}
+			wg.Done()
 		}(rootHash)
 	}
+
+	wg.Wait()
 
 	errMutex.Lock()
 	defer errMutex.Unlock()
