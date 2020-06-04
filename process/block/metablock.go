@@ -1350,6 +1350,7 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
 			"hash", header.GetRootHash(),
+			"error", err.Error(),
 		)
 
 		return err
@@ -1360,6 +1361,7 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 		log.Debug("revert peer state with error for header",
 			"nonce", header.GetNonce(),
 			"validators root hash", header.GetValidatorStatsRootHash(),
+			"error", err.Error(),
 		)
 
 		return err
