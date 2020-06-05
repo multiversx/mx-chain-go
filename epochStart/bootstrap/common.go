@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 const baseErrorMessage = "error with epoch start bootstrapper arguments"
@@ -87,6 +88,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if args.GeneralConfig.EpochStartConfig.MinNumConnectedPeersToStart < minNumConnectedPeers {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNotEnoughNumConnectedPeers)
+	}
+	if check.IfNil(args.StatusHandler) {
+		args.StatusHandler = statusHandler.NewNilStatusHandler()
 	}
 
 	return nil

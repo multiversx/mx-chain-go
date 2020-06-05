@@ -74,6 +74,8 @@ func (psh *PersistentStatusHandler) initMap() {
 	psh.persistentMetrics.Store(core.MetricAverageBlockTxCount, zeroString)
 	psh.persistentMetrics.Store(core.MetricLastBlockTxCount, initUint)
 	psh.persistentMetrics.Store(core.MetricCurrentRound, initUint)
+	psh.persistentMetrics.Store(core.MetricNonceAtEpochStart, initUint)
+	psh.persistentMetrics.Store(core.MetricRoundAtEpochStart, initUint)
 }
 
 // SetStorage will set storage for persistent status handler
