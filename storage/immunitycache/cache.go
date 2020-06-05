@@ -230,8 +230,13 @@ func (ic *ImmunityCache) Keys() [][]byte {
 }
 
 // RegisterHandler is not implemented
-func (ic *ImmunityCache) RegisterHandler(func(key []byte, value interface{})) {
+func (ic *ImmunityCache) RegisterHandler(func(key []byte, value interface{}), string) {
 	log.Error("ImmunityCache.RegisterHandler is not implemented")
+}
+
+// UnRegisterHandler removes the handler from the list
+func (ic *ImmunityCache) UnRegisterHandler(_ string) {
+	log.Error("ImmunityCache.UnRegisterHandler is not implemented")
 }
 
 // ForEachItem iterates over the items in the cache

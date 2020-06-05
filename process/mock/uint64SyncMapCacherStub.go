@@ -6,12 +6,18 @@ import (
 
 // Uint64SyncMapCacherStub -
 type Uint64SyncMapCacherStub struct {
-	ClearCalled           func()
-	GetCalled             func(nonce uint64) (dataRetriever.ShardIdHashMap, bool)
-	MergeCalled           func(nonce uint64, src dataRetriever.ShardIdHashMap)
-	RemoveCalled          func(nonce uint64, shardId uint32)
-	RegisterHandlerCalled func(handler func(nonce uint64, shardId uint32, value []byte))
-	HasCalled             func(nonce uint64, shardId uint32) bool
+	ClearCalled             func()
+	GetCalled               func(nonce uint64) (dataRetriever.ShardIdHashMap, bool)
+	MergeCalled             func(nonce uint64, src dataRetriever.ShardIdHashMap)
+	RemoveCalled            func(nonce uint64, shardId uint32)
+	RegisterHandlerCalled   func(handler func(nonce uint64, shardId uint32, value []byte))
+	HasCalled               func(nonce uint64, shardId uint32) bool
+	UnRegisterHandlerCalled func(func(key []byte, value interface{}))
+}
+
+// UnRegisterHandler -
+func (usmcs *Uint64SyncMapCacherStub) UnRegisterHandler(handler func(key []byte, value interface{})) {
+	usmcs.UnRegisterHandlerCalled(handler)
 }
 
 // Clear -
