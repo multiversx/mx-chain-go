@@ -52,7 +52,7 @@ func NewPeerMiniBlockSyncer(arguments ArgPeerMiniBlockSyncer) (*peerMiniBlockSyn
 
 	//TODO: change the registerHandler for the miniblockPool to call
 	//directly with hash and value - like func (sp *shardProcessor) receivedMetaBlock
-	p.miniBlocksPool.RegisterHandler(p.receivedMiniBlock)
+	p.miniBlocksPool.RegisterHandler(p.receivedMiniBlock, core.UniqueIdentifier())
 
 	return p, nil
 }
