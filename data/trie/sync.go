@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -29,6 +30,7 @@ type trieSyncer struct {
 	requestHandler          RequestHandler
 	interceptedNodes        storage.Cacher
 	mutOperation            sync.RWMutex
+	handlerID               string
 }
 
 const maxNewMissingAddedPerTurn = 10
@@ -67,8 +69,8 @@ func NewTrieSyncer(
 		topic:                   topic,
 		shardId:                 shardId,
 		waitTimeBetweenRequests: time.Second,
+		handlerID:               core.UniqueIdentifier(),
 	}
-	ts.interceptedNodes.RegisterHandler(ts.trieNodeIntercepted)
 
 	return ts, nil
 }

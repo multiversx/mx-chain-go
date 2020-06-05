@@ -2,18 +2,24 @@ package mock
 
 // CacherStub -
 type CacherStub struct {
-	ClearCalled           func()
-	PutCalled             func(key []byte, value interface{}, sizeInBytes int) (evicted bool)
-	GetCalled             func(key []byte) (value interface{}, ok bool)
-	HasCalled             func(key []byte) bool
-	PeekCalled            func(key []byte) (value interface{}, ok bool)
-	HasOrAddCalled        func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool)
-	RemoveCalled          func(key []byte)
-	RemoveOldestCalled    func()
-	KeysCalled            func() [][]byte
-	LenCalled             func() int
-	MaxSizeCalled         func() int
-	RegisterHandlerCalled func(func(key []byte, val interface{}))
+	ClearCalled             func()
+	PutCalled               func(key []byte, value interface{}, sizeInBytes int) (evicted bool)
+	GetCalled               func(key []byte) (value interface{}, ok bool)
+	HasCalled               func(key []byte) bool
+	PeekCalled              func(key []byte) (value interface{}, ok bool)
+	HasOrAddCalled          func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool)
+	RemoveCalled            func(key []byte)
+	RemoveOldestCalled      func()
+	KeysCalled              func() [][]byte
+	LenCalled               func() int
+	MaxSizeCalled           func() int
+	RegisterHandlerCalled   func(func(key []byte, val interface{}))
+	UnRegisterHandlerCalled func(id string)
+}
+
+// UnRegisterHandler -
+func (cs *CacherStub) UnRegisterHandler(id string) {
+	cs.UnRegisterHandlerCalled(id)
 }
 
 // Clear -
@@ -67,7 +73,7 @@ func (cs *CacherStub) MaxSize() int {
 }
 
 // RegisterHandler -
-func (cs *CacherStub) RegisterHandler(handler func(key []byte, val interface{})) {
+func (cs *CacherStub) RegisterHandler(handler func(key []byte, value interface{}), _ string) {
 	cs.RegisterHandlerCalled(handler)
 }
 
