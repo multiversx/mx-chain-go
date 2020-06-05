@@ -8,6 +8,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -882,8 +883,10 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 }
 
 func (e *epochStartBootstrap) setEpochStartMetrics() {
-	e.statusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, e.epochStartMeta.Nonce)
-	e.statusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, e.epochStartMeta.Round)
+	if !check.IfNil(e.statusHandler) && e.epochStartMeta != nil {
+		e.statusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, e.epochStartMeta.Nonce)
+		e.statusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, e.epochStartMeta.Round)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
