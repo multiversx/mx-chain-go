@@ -18,7 +18,7 @@ type FIFOShardedCache struct {
 	maxsize int
 
 	mutAddedDataHandlers sync.RWMutex
-	addedDataHandlers    []func(key []byte, value interface{})
+	mapDataHandlers      map[string]func(key []byte, value interface{})
 }
 
 // NewShardedCache creates a new cache instance
@@ -28,7 +28,7 @@ func NewShardedCache(size int, shards int) (*FIFOShardedCache, error) {
 		cache:                cache,
 		maxsize:              size,
 		mutAddedDataHandlers: sync.RWMutex{},
-		addedDataHandlers:    make([]func(key []byte, value interface{}), 0),
+		mapDataHandlers:      make(map[string]func(key []byte, value interface{})),
 	}
 
 	return fifoShardedCache, nil
@@ -52,14 +52,21 @@ func (c *FIFOShardedCache) Put(key []byte, value interface{}, _ int) (evicted bo
 }
 
 // RegisterHandler registers a new handler to be called when a new data is added
-func (c *FIFOShardedCache) RegisterHandler(handler func(key []byte, value interface{})) {
+func (c *FIFOShardedCache) RegisterHandler(handler func(key []byte, value interface{}), id string) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler to a cacher object")
 		return
 	}
 
 	c.mutAddedDataHandlers.Lock()
-	c.addedDataHandlers = append(c.addedDataHandlers, handler)
+	c.mapDataHandlers[id] = handler
+	c.mutAddedDataHandlers.Unlock()
+}
+
+// UnRegisterHandler removes the handler from the list
+func (c *FIFOShardedCache) UnRegisterHandler(id string) {
+	c.mutAddedDataHandlers.Lock()
+	delete(c.mapDataHandlers, id)
 	c.mutAddedDataHandlers.Unlock()
 }
 
@@ -95,7 +102,7 @@ func (c *FIFOShardedCache) HasOrAdd(key []byte, value interface{}, _ int) (found
 
 func (c *FIFOShardedCache) callAddedDataHandlers(key []byte, value interface{}) {
 	c.mutAddedDataHandlers.RLock()
-	for _, handler := range c.addedDataHandlers {
+	for _, handler := range c.mapDataHandlers {
 		go handler(key, value)
 	}
 	c.mutAddedDataHandlers.RUnlock()
