@@ -521,11 +521,6 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
-	err = e.createTriesComponentsForShardId(e.shardCoordinator.SelfId())
-	if err != nil {
-		return Parameters{}, err
-	}
-
 	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
 	if err != nil {
 		return Parameters{}, err
@@ -537,6 +532,11 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 			return Parameters{}, err
 		}
 	} else {
+		err = e.createTriesComponentsForShardId(e.shardCoordinator.SelfId())
+		if err != nil {
+			return Parameters{}, err
+		}
+
 		err = e.requestAndProcessForShard()
 		if err != nil {
 			return Parameters{}, err
@@ -769,6 +769,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 }
 
 func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) error {
+
 	trieFactoryArgs := factory.TrieFactoryArgs{
 		EvictionWaitingListCfg:   e.generalConfig.EvictionWaitingList,
 		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,
