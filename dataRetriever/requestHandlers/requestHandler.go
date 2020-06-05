@@ -346,7 +346,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	logParts := []interface{}{
+	log.Debug("requesting trie nodes from network",
 		"topic", topic,
 		"shard", destShardID,
 		"num nodes", len(unrequestedHashes),

@@ -123,22 +123,13 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
-		TrieContainer: &mock.TriesHolderMock{
-			GetCalled: func(bytes []byte) data.Trie {
-				return &mock.TrieStub{}
-			},
-		},
-		TrieStorageManagers: map[string]data.StorageManager{
-			triesFactory.UserAccountTrie: &mock.StorageManagerStub{},
-			triesFactory.PeerAccountTrie: &mock.StorageManagerStub{},
-		},
-		Uint64Converter:           &mock.Uint64ByteSliceConverterMock{},
-		NodeShuffler:              &mock.NodeShufflerMock{},
-		Rounder:                   &mock.RounderStub{},
-		AddressPubkeyConverter:    &mock.PubkeyConverterMock{},
-		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
-		StorageUnitOpener:         &mock.UnitOpenerStub{},
-		ImportStartHandler:        &mock.ImportStartHandlerStub{},
+		Uint64Converter:            &mock.Uint64ByteSliceConverterMock{},
+		NodeShuffler:               &mock.NodeShufflerMock{},
+		Rounder:                    &mock.RounderStub{},
+		AddressPubkeyConverter:     &mock.PubkeyConverterMock{},
+		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
+		StorageUnitOpener:          &mock.UnitOpenerStub{},
+		ImportStartHandler:         &mock.ImportStartHandlerStub{},
 	}
 }
 
