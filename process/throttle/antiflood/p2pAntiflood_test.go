@@ -301,3 +301,23 @@ func TestP2pAntiflood_ResetForTopicSetMaxMessagesShouldWork(t *testing.T) {
 	assert.Equal(t, setMaxMessagesForTopic, setMaxMessagesForTopicParameter1)
 	assert.Equal(t, setMaxMessagesForTopicNum, setMaxMessagesForTopicParameter2)
 }
+
+func TestP2pAntiflood_ApplyConsensusSize(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	expectedSize := 878264
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
+		&mock.TopicAntiFloodStub{},
+		&mock.FloodPreventerStub{
+			ApplyConsensusSizeCalled: func(size int) {
+				assert.Equal(t, expectedSize, size)
+				wasCalled = true
+			},
+		},
+	)
+
+	afm.ApplyConsensusSize(expectedSize)
+	assert.True(t, wasCalled)
+}

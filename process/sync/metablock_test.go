@@ -374,7 +374,7 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	bs.StartSyncingBlocks()
 	time.Sleep(200 * time.Millisecond)
-	bs.Close()
+	_ = bs.Close()
 }
 
 func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
@@ -454,7 +454,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	bs.Close()
+	_ = bs.Close()
 }
 
 func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
@@ -492,7 +492,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{
-			HasOrAddCalled: func(key []byte, value interface{}) (ok, evicted bool) {
+			HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
 				return false, false
 			},
 			RegisterHandlerCalled: func(func(key []byte, value interface{})) {},

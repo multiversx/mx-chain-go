@@ -317,7 +317,9 @@ func createHardForkExporter(
 		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
 		exportConfig := config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 100000, Type: "LRU", Shards: 1,
+				Capacity: 100000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "ExportState" + fmt.Sprintf("%d", id),
@@ -344,7 +346,9 @@ func createHardForkExporter(
 			ExportFolder:      node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{
 				Cache: config.CacheConfig{
-					Size: 10000, Type: "LRU", Shards: 1,
+					Capacity: 10000,
+					Type:     "LRU",
+					Shards:   1,
 				},
 				DB: config.DBConfig{
 					FilePath:          "ExportTrie" + fmt.Sprintf("%d", id),

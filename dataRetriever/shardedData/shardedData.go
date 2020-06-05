@@ -3,8 +3,9 @@ package shardedData
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -59,7 +60,7 @@ func verifyCacherConfig(cacherConfig storageUnit.CacheConfig) error {
 
 // newShardStore is responsible for creating an empty shardStore
 func newShardStore(cacheId string, cacherConfig storageUnit.CacheConfig) (*shardStore, error) {
-	cacher, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Size, cacherConfig.Shards)
+	cacher, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Capacity, cacherConfig.Shards, cacherConfig.SizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +107,7 @@ func (sd *shardedData) ShardDataStore(cacheId string) (c storage.Cacher) {
 }
 
 // AddData will add data to the corresponding shard store
-func (sd *shardedData) AddData(key []byte, value interface{}, cacheId string) {
+func (sd *shardedData) AddData(key []byte, value interface{}, sizeInBytes int, cacheId string) {
 	var mp *shardStore
 
 	sd.mutShardedDataStore.Lock()
@@ -116,8 +117,7 @@ func (sd *shardedData) AddData(key []byte, value interface{}, cacheId string) {
 	}
 	sd.mutShardedDataStore.Unlock()
 
-	found, _ := mp.DataStore.HasOrAdd(key, value)
-
+	found, _ := mp.DataStore.HasOrAdd(key, value, sizeInBytes)
 	if !found {
 		sd.mutAddedDataHandlers.RLock()
 		for _, handler := range sd.addedDataHandlers {
@@ -154,6 +154,10 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheId string) {
 	}
 }
 
+// ImmunizeSetOfDataAgainstEviction does nothing
+func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(_ [][]byte, _ string) {
+}
+
 // RemoveData will remove data hash from the corresponding shard store
 func (sd *shardedData) RemoveData(key []byte, cacheId string) {
 	mpdata := sd.ShardDataStore(cacheId)
@@ -187,8 +191,19 @@ func (sd *shardedData) MergeShardStores(sourceCacheId, destCacheId string) {
 
 	if sourceStore != nil {
 		for _, key := range sourceStore.Keys() {
-			val, _ := sourceStore.Get(key)
-			sd.AddData(key, val, destCacheId)
+			val, ok := sourceStore.Get(key)
+			if !ok {
+				log.Warn("programming error in shardedData: Keys() function reported a key that can not be retrieved")
+				continue
+			}
+
+			valSizer, ok := val.(marshal.Sizer)
+			if !ok {
+				log.Warn("programming error in shardedData, objects contained are not of type marshal.Sizer")
+				continue
+			}
+
+			sd.AddData(key, valSizer, valSizer.Size(), destCacheId)
 		}
 	}
 

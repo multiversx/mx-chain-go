@@ -132,6 +132,13 @@ func (af *p2pAntiflood) ResetForTopic(topic string) {
 	af.topicPreventer.ResetForTopic(topic)
 }
 
+// ApplyConsensusSize applies the consensus size on all contained flood preventers
+func (af *p2pAntiflood) ApplyConsensusSize(size int) {
+	for _, fp := range af.floodPreventers {
+		fp.ApplyConsensusSize(size)
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (af *p2pAntiflood) IsInterfaceNil() bool {
 	return af == nil

@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -51,4 +52,17 @@ func (ptp *validatorsProvider) GetCache() map[string]*state.ValidatorApiResponse
 	ptp.lock.RLock()
 	defer ptp.lock.RUnlock()
 	return ptp.cache
+}
+
+// UpdateShardDataPeerState -
+func (vs *validatorStatistics) UpdateShardDataPeerState(
+	header data.HeaderHandler,
+	cacheMap map[string]data.HeaderHandler,
+) error {
+	return vs.updateShardDataPeerState(header, cacheMap)
+}
+
+// GetActualList -
+func GetActualList(peerAccount state.PeerAccountHandler) string {
+	return getActualList(peerAccount)
 }

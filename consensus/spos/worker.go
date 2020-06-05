@@ -411,9 +411,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			err)
 	}
 
-	if wrk.bootstrapper.GetNodeState() == core.NsSynchronized {
-		wrk.processReceivedHeaderMetric(cnsMsg)
-	}
+	wrk.processReceivedHeaderMetric(cnsMsg)
 
 	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 	if errNotCritical != nil {
@@ -446,12 +444,12 @@ func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
 		if err != nil {
 			return
 		}
-		wrk.poolAdder.Put(hash, miniblock)
+		wrk.poolAdder.Put(hash, miniblock, miniblock.Size())
 	}
 }
 
 func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
-	if !wrk.consensusState.IsNodeLeaderInCurrentRound(string(cnsDta.PubKey)) {
+	if wrk.consensusState.ConsensusGroup() == nil || !wrk.consensusState.IsNodeLeaderInCurrentRound(string(cnsDta.PubKey)) {
 		return
 	}
 
@@ -594,12 +592,6 @@ func (wrk *Worker) Extend(subroundId int) {
 	log.Debug("account state is reverted to snapshot")
 
 	wrk.blockProcessor.RevertAccountState(wrk.consensusState.Header)
-
-	shouldBroadcastLastCommittedHeader := wrk.consensusState.IsSelfLeaderInCurrentRound() &&
-		wrk.consensusService.IsSubroundSignature(subroundId)
-	if shouldBroadcastLastCommittedHeader {
-		//TODO: Should be analyzed if call of wrk.broadcastLastCommittedHeader() is still necessary
-	}
 }
 
 // DisplayStatistics logs the consensus messages split on proposed headers

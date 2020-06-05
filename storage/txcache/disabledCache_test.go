@@ -20,11 +20,8 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	selection := cache.SelectTransactions(42, 42)
 	require.Equal(t, 0, len(selection))
 
-	err := cache.RemoveTxByHash([]byte{})
-	require.Nil(t, err)
-
-	count := cache.CountTx()
-	require.Equal(t, uint64(0), count)
+	removed := cache.RemoveTxByHash([]byte{})
+	require.False(t, removed)
 
 	length := cache.Len()
 	require.Equal(t, 0, length)
@@ -33,7 +30,7 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 
 	cache.Clear()
 
-	evicted := cache.Put(nil, nil)
+	evicted := cache.Put(nil, nil, 0)
 	require.False(t, evicted)
 
 	value, ok := cache.Get([]byte{})
@@ -47,12 +44,11 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	has := cache.Has([]byte{})
 	require.False(t, has)
 
-	has, evicted = cache.HasOrAdd([]byte{}, nil)
+	has, evicted = cache.HasOrAdd([]byte{}, nil, 0)
 	require.False(t, has)
 	require.False(t, evicted)
 
 	cache.Remove([]byte{})
-	cache.RemoveOldest()
 
 	keys := cache.Keys()
 	require.Equal(t, 0, len(keys))

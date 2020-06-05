@@ -49,7 +49,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:                 100000,
+				Capacity:             100000,
 				SizePerSender:        1000,
 				SizeInBytes:          1000000000,
 				SizeInBytesPerSender: 10000000,
@@ -60,21 +60,21 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 		},
 	)
 
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
-	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1})
+	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 300, Type: storageUnit.LRUCache, Shards: 1})
 
 	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 
-	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg := storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	cacherCfg = storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
 
-	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache, Shards: 1}
-	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache, Shards: 1}
+	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
@@ -107,7 +107,7 @@ func initBasicTestData() (*mock.PoolsHolderMock, data.ChainHandler, []byte, *blo
 	tdp := mock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
-	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
+	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
 	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
@@ -971,7 +971,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	tx := &transaction.Transaction{}
-	tdp.Transactions().AddData(txHash, tx, shardCoordinator.CommunicationIdentifier(0))
+	tdp.Transactions().AddData(txHash, tx, tx.Size(), shardCoordinator.CommunicationIdentifier(0))
 
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -1420,7 +1420,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 
 	tdp := mock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
-	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
+	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
 	rootHash := []byte("rootHash")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -1961,7 +1961,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	assert.Equal(t, 4, len(wasCalled))
 }
 
-func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
+func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 	journalLen := func() int { return 3 }
@@ -1977,13 +1977,11 @@ func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	bl, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, func() bool { return true })
-	// nil block
-	assert.Nil(t, bl)
-	// error
-	assert.Equal(t, process.ErrAccountStateDirty, err)
+	assert.Nil(t, err)
+	assert.Equal(t, &block.Body{}, bl)
 }
 
-func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T) {
+func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldReturnEmptyBody(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 	journalLen := func() int { return 0 }
@@ -2004,10 +2002,8 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 		return false
 	}
 	bl, err := sp.CreateBlockBody(&block.Header{PrevRandSeed: []byte("randSeed")}, haveTimeTrue)
-	// no error
-	assert.Equal(t, process.ErrTimeIsOut, err)
-	// no miniblocks
-	assert.Nil(t, bl)
+	assert.Nil(t, err)
+	assert.Equal(t, &block.Body{}, bl)
 }
 
 func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
@@ -2462,7 +2458,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	metaBlockHash := []byte("metablock hash")
 	datapool.Headers().AddHeader(metaBlockHash, metaBlock)
 	//put the existing miniblock inside datapool
-	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
+	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{}, 0)
 
 	miniBlockHash1Requested := int32(0)
 	miniBlockHash2Requested := int32(0)
@@ -2549,7 +2545,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 	metaBlockHash := []byte("metablock hash")
 	datapool.Headers().AddHeader(metaBlockHash, metaBlock)
 	//put the existing miniblock inside datapool
-	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
+	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{}, 0)
 
 	noOfMissingMiniBlocks := int32(0)
 
@@ -2596,7 +2592,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 
 	tdp := mock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
-	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
+	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
 
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -2731,15 +2727,15 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	datapool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
 		Data:  txHash1,
-	}, cacheId)
+	}, 0, cacheId)
 	datapool.Transactions().AddData(txHash2, &transaction.Transaction{
 		Nonce: tx2Nonce,
 		Data:  txHash2,
-	}, cacheId)
+	}, 0, cacheId)
 	datapool.Transactions().AddData(txHash3, &transaction.Transaction{
 		Nonce: tx3Nonce,
 		Data:  txHash3,
-	}, cacheId)
+	}, 0, cacheId)
 
 	tx1ExecutionResult := uint64(0)
 	tx2ExecutionResult := uint64(0)

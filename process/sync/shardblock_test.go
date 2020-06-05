@@ -68,7 +68,7 @@ func createStore() *mock.ChainStorerMock {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1, 0)
 	return cache
 }
 
@@ -590,7 +590,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	bs.StartSyncingBlocks()
 	time.Sleep(200 * time.Millisecond)
-	bs.Close()
+	_ = bs.Close()
 }
 
 func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
@@ -689,7 +689,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	bs.Close()
+	_ = bs.Close()
 }
 
 func TestBootstrap_ShouldReturnNilErr(t *testing.T) {

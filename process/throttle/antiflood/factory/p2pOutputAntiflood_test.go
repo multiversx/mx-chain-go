@@ -32,13 +32,13 @@ func TestNewP2POutputAntiFlood_BadCacheConfigShouldErr(t *testing.T) {
 		Antiflood: config.AntifloodConfig{
 			Enabled: true,
 			Cache: config.CacheConfig{
-				Type:   "unknown type",
-				Size:   10,
-				Shards: 2,
+				Type:     "unknown type",
+				Capacity: 10,
+				Shards:   2,
 			},
 			PeerMaxOutput: config.AntifloodLimitsConfig{
-				MessagesPerInterval:  10,
-				TotalSizePerInterval: 10,
+				BaseMessagesPerInterval: 10,
+				TotalSizePerInterval:    10,
 			},
 		},
 	}
@@ -55,13 +55,13 @@ func TestNewP2POutputAntiFlood_BadConfigShouldErr(t *testing.T) {
 		Antiflood: config.AntifloodConfig{
 			Enabled: true,
 			Cache: config.CacheConfig{
-				Type:   "LRU",
-				Size:   10,
-				Shards: 2,
+				Type:     "LRU",
+				Capacity: 10,
+				Shards:   2,
 			},
 			PeerMaxOutput: config.AntifloodLimitsConfig{
-				MessagesPerInterval:  0,
-				TotalSizePerInterval: 10,
+				BaseMessagesPerInterval: 0,
+				TotalSizePerInterval:    10,
 			},
 		},
 	}
@@ -78,13 +78,13 @@ func TestNewP2POutputAntiFlood_ShouldWorkAndReturnOkImplementations(t *testing.T
 		Antiflood: config.AntifloodConfig{
 			Enabled: true,
 			Cache: config.CacheConfig{
-				Type:   "LRU",
-				Size:   10,
-				Shards: 2,
+				Type:     "LRU",
+				Capacity: 10,
+				Shards:   2,
 			},
 			PeerMaxOutput: config.AntifloodLimitsConfig{
-				MessagesPerInterval:  10,
-				TotalSizePerInterval: 10,
+				BaseMessagesPerInterval: 10,
+				TotalSizePerInterval:    10,
 			},
 		},
 	}

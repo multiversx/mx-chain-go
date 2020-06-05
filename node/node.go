@@ -93,6 +93,7 @@ type Node struct {
 	validatorsProvider            process.ValidatorsProvider
 	whiteListRequest              process.WhiteListHandler
 	whiteListerVerifiedTxs        process.WhiteListHandler
+	apiTransactionByHashThrottler Throttler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -204,18 +205,6 @@ func (n *Node) CreateShardedStores() error {
 		return errors.New("nil header sharded data store")
 	}
 
-	shards := n.shardCoordinator.NumberOfShards()
-	currentShardId := n.shardCoordinator.SelfId()
-
-	transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(currentShardId, currentShardId))
-	for i := uint32(0); i < shards; i++ {
-		if i == n.shardCoordinator.SelfId() {
-			continue
-		}
-		transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(i, currentShardId))
-		transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(currentShardId, i))
-	}
-
 	return nil
 }
 
@@ -313,6 +302,8 @@ func (n *Node) StartConsensus() error {
 
 	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
 
+	// apply consensus group size on the input antiflooder just befor consensus creation topic
+	n.inputAntifloodHandler.ApplyConsensusSize(n.nodesCoordinator.ConsensusGroupSize(n.shardCoordinator.SelfId()))
 	err = n.createConsensusTopic(worker)
 	if err != nil {
 		return err
@@ -403,6 +394,42 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 	}
 
 	return account.GetBalance(), nil
+}
+
+// GetValueForKey will return the value for a key from a given account
+func (n *Node) GetValueForKey(address string, key string) (string, error) {
+	keyBytes, err := hex.DecodeString(key)
+	if err != nil {
+		return "", fmt.Errorf("invalid key: %w", err)
+	}
+
+	if check.IfNil(n.addressPubkeyConverter) || check.IfNil(n.accounts) {
+		return "", fmt.Errorf("initialize AccountsAdapter and PubkeyConverter first")
+	}
+
+	addr, err := n.addressPubkeyConverter.Decode(address)
+	if err != nil {
+		return "", fmt.Errorf("invalid address, could not decode from: %w", err)
+	}
+	accWrp, err := n.accounts.GetExistingAccount(addr)
+	if err != nil {
+		return "", fmt.Errorf("could not fetch sender address from provided param: %w", err)
+	}
+
+	if check.IfNil(accWrp) {
+		return "", fmt.Errorf("account not found")
+	}
+	account, ok := accWrp.(state.UserAccountHandler)
+	if !ok {
+		return "", fmt.Errorf("account not found - cannot convert to UserAccountHandler")
+	}
+
+	valueBytes, err := account.DataTrieTracker().RetrieveValue(keyBytes)
+	if err != nil {
+		return "", fmt.Errorf("fetching value error: %w", err)
+	}
+
+	return hex.EncodeToString(valueBytes), nil
 }
 
 // createChronologyHandler method creates a chronology object
@@ -892,11 +919,6 @@ func (n *Node) CreateTransaction(
 	}
 
 	return tx, txHash, nil
-}
-
-//GetTransaction gets the transaction
-func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
-	return nil, fmt.Errorf("not yet implemented")
 }
 
 // GetAccount will return account details for a given address

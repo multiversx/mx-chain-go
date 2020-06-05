@@ -40,6 +40,7 @@ type P2PAntifloodHandler interface {
 	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
+	ApplyConsensusSize(size int)
 	IsInterfaceNil() bool
 }
 
@@ -59,5 +60,13 @@ type HardforkTrigger interface {
 	AddCloser(closer update.Closer) error
 	NotifyTriggerReceived() <-chan struct{}
 	IsSelfTrigger() bool
+	IsInterfaceNil() bool
+}
+
+// Throttler can monitor the number of the currently running go routines
+type Throttler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
 	IsInterfaceNil() bool
 }

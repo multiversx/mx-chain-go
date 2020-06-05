@@ -1,6 +1,7 @@
 package txpool
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -15,6 +16,7 @@ type ArgShardedTxPool struct {
 	SelfShardID    uint32
 }
 
+// TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
 func (args *ArgShardedTxPool) verify() error {
 	config := args.Config
 
@@ -24,8 +26,8 @@ func (args *ArgShardedTxPool) verify() error {
 	if config.SizeInBytesPerSender == 0 {
 		return fmt.Errorf("%w: config.SizeInBytesPerSender is not valid", dataRetriever.ErrCacheConfigInvalidSizeInBytes)
 	}
-	if config.Size == 0 {
-		return fmt.Errorf("%w: config.Size is not valid", dataRetriever.ErrCacheConfigInvalidSize)
+	if config.Capacity == 0 {
+		return fmt.Errorf("%w: config.Capacity is not valid", dataRetriever.ErrCacheConfigInvalidSize)
 	}
 	if config.SizePerSender == 0 {
 		return fmt.Errorf("%w: config.SizePerSender is not valid", dataRetriever.ErrCacheConfigInvalidSize)
@@ -41,4 +43,10 @@ func (args *ArgShardedTxPool) verify() error {
 	}
 
 	return nil
+}
+
+// String returns a readable representation of the object
+func (args *ArgShardedTxPool) String() string {
+	bytes, _ := json.Marshal(args)
+	return string(bytes)
 }
