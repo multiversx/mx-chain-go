@@ -267,7 +267,7 @@ func (cache *TxCache) RegisterHandler(func(key []byte, value interface{}), strin
 	log.Error("TxCache.RegisterHandler is not implemented")
 }
 
-// RegisterHandler is not implemented
+// UnRegisterHandler is not implemented
 func (cache *TxCache) UnRegisterHandler(string) {
 	log.Error("TxCache.UnRegisterHandler is not implemented")
 }
