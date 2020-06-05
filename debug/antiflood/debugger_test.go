@@ -114,7 +114,7 @@ func TestAntifloodDebugger_PrintShouldWork(t *testing.T) {
 	pid2 := core.PeerID("pid2")
 	numPid1Printed := int32(0)
 	numPid2Printed := int32(0)
-	d.printEventHandler = func(data string) {
+	d.printEventFunc = func(data string) {
 		if strings.Contains(data, pid1.Pretty()) {
 			atomic.AddInt32(&numPid1Printed, 1)
 		}
@@ -144,7 +144,7 @@ func TestAntifloodDebugger_NothingToPrintShouldWork(t *testing.T) {
 	})
 
 	numPrinted := int32(0)
-	d.printEventHandler = func(data string) {
+	d.printEventFunc = func(data string) {
 		atomic.AddInt32(&numPrinted, 1)
 	}
 
@@ -161,7 +161,7 @@ func TestAntifloodDebugger_CloseShouldWork(t *testing.T) {
 		IntervalAutoPrintInSeconds: 1,
 	})
 	numPrinted := int32(0)
-	d.printEventHandler = func(data string) {
+	d.printEventFunc = func(data string) {
 		atomic.AddInt32(&numPrinted, 1)
 	}
 	d.AddData("", "", 0, 0, true)

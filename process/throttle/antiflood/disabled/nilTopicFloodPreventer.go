@@ -1,4 +1,4 @@
-package floodPreventers
+package disabled
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"

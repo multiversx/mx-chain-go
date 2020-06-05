@@ -65,15 +65,10 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 		}
 	}
 
-	topics := message.Topics()
-	if len(topics) == 0 {
-		topics = []string{unidentifiedTopic}
-	}
-
 	if lastErrFound != nil {
 		af.recordDebugEvent(
 			fromConnectedPeer,
-			topics[0],
+			message.Topics(),
 			1,
 			uint64(len(message.Data())),
 			af.blacklistHandler.Has(fromConnectedPeer),
@@ -84,18 +79,22 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 
 	originatorIsBlacklisted := af.blacklistHandler.Has(message.Peer())
 	if originatorIsBlacklisted {
-		af.recordDebugEvent(message.Peer(), topics[0], 1, uint64(len(message.Data())), true)
+		af.recordDebugEvent(message.Peer(), message.Topics(), 1, uint64(len(message.Data())), true)
 		return fmt.Errorf("%w for pid %s", process.ErrOriginatorIsBlacklisted, message.Peer().Pretty())
 	}
 
 	return nil
 }
 
-func (af *p2pAntiflood) recordDebugEvent(pid core.PeerID, topic string, numRejected uint32, sizeRejected uint64, isBlacklisted bool) {
+func (af *p2pAntiflood) recordDebugEvent(pid core.PeerID, topics []string, numRejected uint32, sizeRejected uint64, isBlacklisted bool) {
+	if len(topics) == 0 {
+		topics = []string{unidentifiedTopic}
+	}
+
 	af.mutDebugger.RLock()
 	defer af.mutDebugger.RUnlock()
 
-	af.debugger.AddData(pid, topic, numRejected, sizeRejected, isBlacklisted)
+	af.debugger.AddData(pid, topics[0], numRejected, sizeRejected, isBlacklisted)
 }
 
 func (af *p2pAntiflood) canProcessMessage(fp process.FloodPreventer, message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -142,7 +141,7 @@ func (af *p2pAntiflood) CanProcessMessagesOnTopic(peer core.PeerID, topic string
 			"topic", topic,
 		)
 
-		af.recordDebugEvent(peer, topic, numMessages, totalSize, af.blacklistHandler.Has(peer))
+		af.recordDebugEvent(peer, []string{topic}, numMessages, totalSize, af.blacklistHandler.Has(peer))
 
 		return fmt.Errorf("%w in p2pAntiflood for connected peer %s",
 			err,

@@ -42,10 +42,10 @@ func (ev *event) String() string {
 }
 
 type debugger struct {
-	mutCriticalArea   sync.RWMutex
+	mut               sync.RWMutex
 	cache             storage.Cacher
 	intervalAutoPrint time.Duration
-	printEventHandler func(data string)
+	printEventFunc    func(data string)
 	cancelFunc        func()
 }
 
@@ -64,7 +64,7 @@ func NewAntifloodDebugger(config config.AntifloodDebugConfig) (*debugger, error)
 		intervalAutoPrint: time.Second * time.Duration(config.IntervalAutoPrintInSeconds),
 	}
 
-	d.printEventHandler = d.printEvent
+	d.printEventFunc = d.printEvent
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	d.cancelFunc = cancelFunc
 	go d.printContinuously(ctx)
@@ -82,8 +82,8 @@ func (d *debugger) AddData(
 ) {
 	identifier := d.computeIdentifier(pid, topic)
 
-	d.mutCriticalArea.Lock()
-	defer d.mutCriticalArea.Unlock()
+	d.mut.Lock()
+	defer d.mut.Unlock()
 
 	obj, ok := d.cache.Get(identifier)
 	if !ok {
@@ -128,17 +128,17 @@ func (d *debugger) printContinuously(ctx context.Context) {
 
 		events := []string{"Antiflood events:"}
 
-		d.mutCriticalArea.Lock()
+		d.mut.Lock()
 		events = append(events, d.getStringEvents()...)
 		d.cache.Clear()
-		d.mutCriticalArea.Unlock()
+		d.mut.Unlock()
 
 		if len(events) == 1 {
 			continue
 		}
 
 		stringEvent := strings.Join(events, newLineChar)
-		d.printEventHandler(stringEvent)
+		d.printEventFunc(stringEvent)
 	}
 }
 

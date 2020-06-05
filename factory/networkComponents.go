@@ -56,7 +56,7 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 		return nil, errNewAntiflood
 	}
 
-	if ncf.mainConfig.Antiflood.Enabled {
+	if ncf.mainConfig.Debug.Antiflood.Enabled {
 		debugger, err := antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
 		if err != nil {
 			return nil, err
