@@ -10,9 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-type testPortHandler = func(int) error
-
-func getPort(port string, handler testPortHandler) (int, error) {
+func getPort(port string, handler func(int) error) (int, error) {
 	val, err := strconv.Atoi(port)
 	if err == nil {
 		if val < 0 {
@@ -47,7 +45,7 @@ func getPort(port string, handler testPortHandler) (int, error) {
 	return choosePort(startPort, endPort, handler)
 }
 
-func choosePort(startPort int, endPort int, handler testPortHandler) (int, error) {
+func choosePort(startPort int, endPort int, handler func(int) error) (int, error) {
 	log.Info("generating random free port",
 		"range", fmt.Sprintf("%d-%d", startPort, endPort),
 	)
@@ -72,7 +70,7 @@ func choosePort(startPort int, endPort int, handler testPortHandler) (int, error
 	return 0, fmt.Errorf("%w, range %d-%d", p2p.ErrNoFreePortInRange, startPort, endPort)
 }
 
-func testFreePort(port int) error {
+func checkFreePort(port int) error {
 	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		return err

@@ -102,7 +102,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		return nil, err
 	}
 
-	port, err := getPort(args.P2pConfig.Node.Port, testFreePort)
+	port, err := getPort(args.P2pConfig.Node.Port, checkFreePort)
 	if err != nil {
 		return nil, err
 	}

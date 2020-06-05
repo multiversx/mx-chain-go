@@ -13,7 +13,7 @@ import (
 func TestGetPort_InvalidStringShouldErr(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("NaN", testFreePort)
+	port, err := getPort("NaN", checkFreePort)
 
 	assert.Equal(t, 0, port)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidPortsRangeString))
@@ -22,7 +22,7 @@ func TestGetPort_InvalidStringShouldErr(t *testing.T) {
 func TestGetPort_InvalidPortNumberShouldErr(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("-1", testFreePort)
+	port, err := getPort("-1", checkFreePort)
 	assert.Equal(t, 0, port)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidPortValue))
 }
@@ -30,32 +30,32 @@ func TestGetPort_InvalidPortNumberShouldErr(t *testing.T) {
 func TestGetPort_SinglePortShouldWork(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("0", testFreePort)
+	port, err := getPort("0", checkFreePort)
 	assert.Equal(t, 0, port)
 	assert.Nil(t, err)
 
 	p := 3638
-	port, err = getPort(fmt.Sprintf("%d", p), testFreePort)
+	port, err = getPort(fmt.Sprintf("%d", p), checkFreePort)
 	assert.Equal(t, p, port)
 	assert.Nil(t, err)
 }
 
-func TestGetPort_InvalidStartingPortShouldErr(t *testing.T) {
+func TestCheckFreePort_InvalidStartingPortShouldErr(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("NaN-10000", testFreePort)
+	port, err := getPort("NaN-10000", checkFreePort)
 	assert.Equal(t, 0, port)
 	assert.Equal(t, p2p.ErrInvalidStartingPortValue, err)
 
-	port, err = getPort("1024-10000", testFreePort)
+	port, err = getPort("1024-10000", checkFreePort)
 	assert.Equal(t, 0, port)
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
 
-func TestGetPort_InvalidEndingPortShouldErr(t *testing.T) {
+func TestCheckFreePort_InvalidEndingPortShouldErr(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("10000-NaN", testFreePort)
+	port, err := getPort("10000-NaN", checkFreePort)
 	assert.Equal(t, 0, port)
 	assert.Equal(t, p2p.ErrInvalidEndingPortValue, err)
 }
@@ -63,7 +63,7 @@ func TestGetPort_InvalidEndingPortShouldErr(t *testing.T) {
 func TestGetPort_EndPortLargerThanSendPort(t *testing.T) {
 	t.Parallel()
 
-	port, err := getPort("10000-9999", testFreePort)
+	port, err := getPort("10000-9999", checkFreePort)
 	assert.Equal(t, 0, port)
 	assert.Equal(t, p2p.ErrEndPortIsSmallerThanStartPort, err)
 }
@@ -105,19 +105,19 @@ func TestGetPort_RangeOccupiedShouldErrorShouldWork(t *testing.T) {
 	assert.Equal(t, 0, result)
 }
 
-func TestFreePort_PortZeroAlwaysWorks(t *testing.T) {
-	err := testFreePort(0)
+func TestCheckFreePort_PortZeroAlwaysWorks(t *testing.T) {
+	err := checkFreePort(0)
 
 	assert.Nil(t, err)
 }
 
-func TestFreePort_InvalidPortShouldErr(t *testing.T) {
-	err := testFreePort(-1)
+func TestCheckFreePort_InvalidPortShouldErr(t *testing.T) {
+	err := checkFreePort(-1)
 
 	assert.NotNil(t, err)
 }
 
-func TestFreePort_OccupiedPortShouldErr(t *testing.T) {
+func TestCheckFreePort_OccupiedPortShouldErr(t *testing.T) {
 	//1. get a free port from OS, open a TCP listner
 	//2. get the allocated port
 	//3. test if that port is occupied
@@ -136,7 +136,7 @@ func TestFreePort_OccupiedPortShouldErr(t *testing.T) {
 	port := l.Addr().(*net.TCPAddr).Port
 
 	fmt.Printf("testing port %d\n", port)
-	err = testFreePort(port)
+	err = checkFreePort(port)
 	assert.NotNil(t, err)
 
 	_ = l.Close()
