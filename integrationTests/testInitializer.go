@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"math/big"
 	"strings"
 	"sync"
@@ -300,19 +299,19 @@ func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier, selfShar
 		txPool, _ = createTxPool(selfShardID)
 	}
 
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
-	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1})
+	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 300, Type: storageUnit.LRUCache, Shards: 1})
 
 	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 
-	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg := storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
-	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache}
-	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
+	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
@@ -333,7 +332,10 @@ func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier, selfShar
 // CreateMemUnit returns an in-memory storer implementation (the vast majority of tests do not require effective
 // disk I/O)
 func CreateMemUnit() storage.Storer {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+	capacity := uint32(10)
+	shards := uint32(1)
+	sizeInBytes := uint64(0)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, capacity, shards, sizeInBytes)
 	persist, _ := memorydb.NewlruDB(100000)
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 
@@ -1524,7 +1526,7 @@ func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sy
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return nil
 		},
-		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+		AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
 			mutRecvTxs.Lock()
 			defer mutRecvTxs.Unlock()
 
@@ -1557,7 +1559,7 @@ func CreateResolversDataPool(
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
 		cacherIdentifier := process.ShardCacherIdentifier(1, 0)
-		txPool.AddData(txHash, tx, cacherIdentifier)
+		txPool.AddData(txHash, tx, tx.Size(), cacherIdentifier)
 		txHashes[i] = txHash
 		txsSndAddr = append(txsSndAddr, tx.SndAddr)
 	}
@@ -1990,10 +1992,10 @@ func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, 
 	return txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:                 100000,
-				SizePerSender:        math.MaxUint32,
-				SizeInBytes:          1000000000,
-				SizeInBytesPerSender: math.MaxUint32,
+				Capacity:             100_000,
+				SizePerSender:        1_000_000_000,
+				SizeInBytes:          1_000_000_000,
+				SizeInBytesPerSender: 33_554_432,
 				Shards:               16,
 			},
 			MinGasPrice:    200000000000,

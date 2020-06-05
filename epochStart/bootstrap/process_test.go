@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -44,10 +43,9 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		Messenger:         &mock.MessengerStub{},
 		GeneralConfig: config.Config{
 			WhiteListPool: config.CacheConfig{
-				Type:        "LRU",
-				Size:        10,
-				SizeInBytes: 1000,
-				Shards:      10,
+				Type:     "LRU",
+				Capacity: 10,
+				Shards:   10,
 			},
 			EpochStartConfig: config.EpochStartConfig{
 				MinNumConnectedPeersToStart:       2,
@@ -59,6 +57,56 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 				PeerStatePruningEnabled:     true,
 				MaxStateTrieLevelInMemory:   5,
 				MaxPeerTrieLevelInMemory:    5,
+			},
+			EvictionWaitingList: config.EvictionWaitingListConfig{
+				Size: 100,
+				DB: config.DBConfig{
+					FilePath:          "EvictionWaitingList",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
+			TrieSnapshotDB: config.DBConfig{
+				FilePath:          "TrieSnapshot",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+			AccountsTrieStorage: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Capacity: 10000,
+					Type:     "LRU",
+					Shards:   1,
+				},
+				DB: config.DBConfig{
+					FilePath:          "AccountsTrie/MainDB",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
+			PeerAccountsTrieStorage: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Capacity: 10000,
+					Type:     "LRU",
+					Shards:   1,
+				},
+				DB: config.DBConfig{
+					FilePath:          "PeerAccountsTrie/MainDB",
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 30,
+					MaxBatchSize:      6,
+					MaxOpenFiles:      10,
+				},
+			},
+			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
+				PruningBufferLen:   1000,
+				SnapshotsBufferLen: 10,
+				MaxSnapshots:       2,
 			},
 		},
 		EconomicsData:              &economics.EconomicsData{},
@@ -75,21 +123,12 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
-		TrieContainer: &mock.TriesHolderMock{
-			GetCalled: func(bytes []byte) data.Trie {
-				return &mock.TrieStub{}
-			},
-		},
-		TrieStorageManagers: map[string]data.StorageManager{
-			triesFactory.UserAccountTrie: &mock.StorageManagerStub{},
-			triesFactory.PeerAccountTrie: &mock.StorageManagerStub{},
-		},
-		Uint64Converter:           &mock.Uint64ByteSliceConverterMock{},
-		NodeShuffler:              &mock.NodeShufflerMock{},
-		Rounder:                   &mock.RounderStub{},
-		AddressPubkeyConverter:    &mock.PubkeyConverterMock{},
-		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
-		StorageUnitOpener:         &mock.UnitOpenerStub{},
+		Uint64Converter:            &mock.Uint64ByteSliceConverterMock{},
+		NodeShuffler:               &mock.NodeShufflerMock{},
+		Rounder:                    &mock.RounderStub{},
+		AddressPubkeyConverter:     &mock.PubkeyConverterMock{},
+		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
+		StorageUnitOpener:          &mock.UnitOpenerStub{},
 	}
 }
 
@@ -253,7 +292,7 @@ func TestSyncPeerAccountsState_NilRequestHandlerErr(t *testing.T) {
 			}
 		},
 	}
-
+	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId())
 	rootHash := []byte("rootHash")
 	err := epochStartProvider.syncPeerAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
@@ -264,7 +303,7 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 	args.GeneralConfig = getGeneralConfig()
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
-	err := epochStartProvider.createTriesForNewShardId(1)
+	err := epochStartProvider.createTriesComponentsForShardId(1)
 	assert.Nil(t, err)
 }
 
@@ -282,7 +321,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 			}
 		},
 	}
-
+	_ = epochStartProvider.createTriesComponentsForShardId(args.GenesisShardCoordinator.SelfId())
 	rootHash := []byte("rootHash")
 	err := epochStartProvider.syncUserAccountsState(rootHash)
 	assert.Equal(t, state.ErrNilRequestHandler, err)
@@ -327,6 +366,7 @@ func TestRequestAndProcessForShard(t *testing.T) {
 
 	epochStartProvider.shardCoordinator = shardCoordinator
 	epochStartProvider.epochStartMeta = metaBlock
+	_ = epochStartProvider.createTriesComponentsForShardId(shardCoordinator.SelfId())
 	err := epochStartProvider.requestAndProcessForShard()
 	assert.Equal(t, state.ErrNilRequestHandler, err)
 }

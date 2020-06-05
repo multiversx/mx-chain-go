@@ -687,19 +687,15 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	nrOfShards := uint32(2)
 	shardCoordinator.SetNoShards(nrOfShards)
-	dataPool := &mock.PoolsHolderStub{}
 
-	var txShardedStores []string
-	txShardedData := &mock.ShardedDataStub{}
-	txShardedData.CreateShardStoreCalled = func(cacherId string) {
-		txShardedStores = append(txShardedStores, cacherId)
-	}
+	dataPool := &mock.PoolsHolderStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return txShardedData
+		return &mock.ShardedDataStub{}
 	}
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{}
 	}
+
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
 		node.WithShardCoordinator(shardCoordinator),
@@ -714,10 +710,6 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 
 	err := n.CreateShardedStores()
 	assert.Nil(t, err)
-
-	assert.True(t, containString(process.ShardCacherIdentifier(0, 0), txShardedStores))
-	assert.True(t, containString(process.ShardCacherIdentifier(0, 1), txShardedStores))
-	assert.True(t, containString(process.ShardCacherIdentifier(1, 0), txShardedStores))
 }
 
 func TestNode_ConsensusTopicNilShardCoordinator(t *testing.T) {

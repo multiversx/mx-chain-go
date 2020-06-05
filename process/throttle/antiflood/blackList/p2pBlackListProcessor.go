@@ -15,6 +15,7 @@ var log = logger.GetOrCreate("process/throttle/antiflood/blacklist")
 
 const minBanDuration = time.Second
 const minFloodingRounds = 2
+const sizeBlacklistInfo = 4
 
 type p2pBlackListProcessor struct {
 	thresholdNumReceivedFlood  uint32
@@ -81,6 +82,7 @@ func (pbp *p2pBlackListProcessor) ResetStatistics() {
 			pid := p2p.PeerID(key)
 			log.Debug("added new peer to black list",
 				"peer ID", pid.Pretty(),
+				"ban period", pbp.banDuration,
 			)
 			_ = pbp.blacklistHandler.AddWithSpan(string(key), pbp.banDuration)
 		}
@@ -109,17 +111,17 @@ func (pbp *p2pBlackListProcessor) AddQuota(identifier string, numReceived uint32
 func (pbp *p2pBlackListProcessor) incrementStatsFloodingPeer(identifier string) {
 	obj, ok := pbp.cacher.Get([]byte(identifier))
 	if !ok {
-		pbp.cacher.Put([]byte(identifier), uint32(1))
+		pbp.cacher.Put([]byte(identifier), uint32(1), sizeBlacklistInfo)
 		return
 	}
 
 	val, ok := obj.(uint32)
 	if !ok {
-		pbp.cacher.Put([]byte(identifier), uint32(1))
+		pbp.cacher.Put([]byte(identifier), uint32(1), sizeBlacklistInfo)
 		return
 	}
 
-	pbp.cacher.Put([]byte(identifier), val+1)
+	pbp.cacher.Put([]byte(identifier), val+1, sizeBlacklistInfo)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

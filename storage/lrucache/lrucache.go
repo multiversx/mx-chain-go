@@ -5,16 +5,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
 	lru "github.com/hashicorp/golang-lru"
 )
 
-var _ storage.Cacher = (*LRUCache)(nil)
+var _ storage.Cacher = (*lruCache)(nil)
 
 var log = logger.GetOrCreate("storage/lrucache")
 
 // LRUCache implements a Least Recently Used eviction cache
-type LRUCache struct {
-	cache   *lru.Cache
+type lruCache struct {
+	cache   storage.SizedLRUCacheHandler
 	maxsize int
 
 	mutAddedDataHandlers sync.RWMutex
@@ -22,31 +23,49 @@ type LRUCache struct {
 }
 
 // NewCache creates a new LRU cache instance
-func NewCache(size int) (*LRUCache, error) {
+func NewCache(size int) (*lruCache, error) {
 	cache, err := lru.New(size)
-
 	if err != nil {
 		return nil, err
 	}
 
-	lruCache := &LRUCache{
+	c := &lruCache{
+		cache: &simpleLRUCacheAdapter{
+			LRUCacheHandler: cache,
+		},
+		maxsize:              size,
+		mutAddedDataHandlers: sync.RWMutex{},
+		addedDataHandlers:    make([]func(key []byte, value interface{}), 0),
+	}
+
+	return c, nil
+}
+
+// NewCacheWithSizeInBytes creates a new sized LRU cache instance
+func NewCacheWithSizeInBytes(size int, sizeInBytes int64) (*lruCache, error) {
+	cache, err := capacity.NewCapacityLRU(size, sizeInBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	c := &lruCache{
 		cache:                cache,
 		maxsize:              size,
 		mutAddedDataHandlers: sync.RWMutex{},
 		addedDataHandlers:    make([]func(key []byte, value interface{}), 0),
 	}
 
-	return lruCache, nil
+	return c, nil
 }
 
 // Clear is used to completely clear the cache.
-func (c *LRUCache) Clear() {
+func (c *lruCache) Clear() {
 	c.cache.Purge()
 }
 
 // Put adds a value to the cache.  Returns true if an eviction occurred.
-func (c *LRUCache) Put(key []byte, value interface{}) (evicted bool) {
-	evicted = c.cache.Add(string(key), value)
+func (c *lruCache) Put(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+	evicted = c.cache.AddSized(string(key), value, int64(sizeInBytes))
 
 	c.callAddedDataHandlers(key, value)
 
@@ -54,7 +73,7 @@ func (c *LRUCache) Put(key []byte, value interface{}) (evicted bool) {
 }
 
 // RegisterHandler registers a new handler to be called when a new data is added
-func (c *LRUCache) RegisterHandler(handler func(key []byte, value interface{})) {
+func (c *lruCache) RegisterHandler(handler func(key []byte, value interface{})) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler to a cacher object")
 		return
@@ -66,19 +85,19 @@ func (c *LRUCache) RegisterHandler(handler func(key []byte, value interface{})) 
 }
 
 // Get looks up a key's value from the cache.
-func (c *LRUCache) Get(key []byte) (value interface{}, ok bool) {
+func (c *lruCache) Get(key []byte) (value interface{}, ok bool) {
 	return c.cache.Get(string(key))
 }
 
 // Has checks if a key is in the cache, without updating the
 // recent-ness or deleting it for being stale.
-func (c *LRUCache) Has(key []byte) bool {
+func (c *lruCache) Has(key []byte) bool {
 	return c.cache.Contains(string(key))
 }
 
 // Peek returns the key value (or undefined if not found) without updating
 // the "recently used"-ness of the key.
-func (c *LRUCache) Peek(key []byte) (value interface{}, ok bool) {
+func (c *lruCache) Peek(key []byte) (value interface{}, ok bool) {
 	v, ok := c.cache.Peek(string(key))
 
 	if !ok {
@@ -91,8 +110,8 @@ func (c *LRUCache) Peek(key []byte) (value interface{}, ok bool) {
 // HasOrAdd checks if a key is in the cache  without updating the
 // recent-ness or deleting it for being stale,  and if not, adds the value.
 // Returns whether found and whether an eviction occurred.
-func (c *LRUCache) HasOrAdd(key []byte, value interface{}) (found, evicted bool) {
-	found, evicted = c.cache.ContainsOrAdd(string(key), value)
+func (c *lruCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (found, evicted bool) {
+	found, evicted = c.cache.AddSizedIfMissing(string(key), value, int64(sizeInBytes))
 
 	if !found {
 		c.callAddedDataHandlers(key, value)
@@ -101,7 +120,7 @@ func (c *LRUCache) HasOrAdd(key []byte, value interface{}) (found, evicted bool)
 	return
 }
 
-func (c *LRUCache) callAddedDataHandlers(key []byte, value interface{}) {
+func (c *lruCache) callAddedDataHandlers(key []byte, value interface{}) {
 	c.mutAddedDataHandlers.RLock()
 	for _, handler := range c.addedDataHandlers {
 		go handler(key, value)
@@ -110,17 +129,12 @@ func (c *LRUCache) callAddedDataHandlers(key []byte, value interface{}) {
 }
 
 // Remove removes the provided key from the cache.
-func (c *LRUCache) Remove(key []byte) {
+func (c *lruCache) Remove(key []byte) {
 	c.cache.Remove(string(key))
 }
 
-// RemoveOldest removes the oldest item from the cache.
-func (c *LRUCache) RemoveOldest() {
-	c.cache.RemoveOldest()
-}
-
 // Keys returns a slice of the keys in the cache, from oldest to newest.
-func (c *LRUCache) Keys() [][]byte {
+func (c *lruCache) Keys() [][]byte {
 	res := c.cache.Keys()
 	r := make([][]byte, len(res))
 
@@ -132,16 +146,16 @@ func (c *LRUCache) Keys() [][]byte {
 }
 
 // Len returns the number of items in the cache.
-func (c *LRUCache) Len() int {
+func (c *lruCache) Len() int {
 	return c.cache.Len()
 }
 
 // MaxSize returns the maximum number of items which can be stored in cache.
-func (c *LRUCache) MaxSize() int {
+func (c *lruCache) MaxSize() int {
 	return c.maxsize
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (c *LRUCache) IsInterfaceNil() bool {
+func (c *lruCache) IsInterfaceNil() bool {
 	return c == nil
 }

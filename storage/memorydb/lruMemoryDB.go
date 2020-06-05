@@ -25,7 +25,7 @@ func NewlruDB(size uint32) (*lruDB, error) {
 
 // Put adds the value to the (key, val) storage medium
 func (l *lruDB) Put(key, val []byte) error {
-	_ = l.cacher.Put(key, val)
+	_ = l.cacher.Put(key, val, len(val))
 	return nil
 }
 

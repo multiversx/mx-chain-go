@@ -54,6 +54,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ p2p.Pee
 	txip.shardedPool.AddData(
 		data.Hash(),
 		interceptedTx.Transaction(),
+		interceptedTx.Transaction().Size(),
 		cacherIdentifier,
 	)
 

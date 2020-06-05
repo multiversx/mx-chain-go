@@ -1,5 +1,8 @@
 package mock
 
+const uint32Size = 4
+const numUint32 = 2
+
 // ValidatorMock -
 type ValidatorMock struct {
 	pubKey  []byte
@@ -20,6 +23,11 @@ func (vm *ValidatorMock) PubKey() []byte {
 // Chances -
 func (vm *ValidatorMock) Chances() uint32 {
 	return vm.chances
+}
+
+// Size -
+func (vm *ValidatorMock) Size() int {
+	return len(vm.pubKey) + uint32Size*numUint32
 }
 
 // Index -

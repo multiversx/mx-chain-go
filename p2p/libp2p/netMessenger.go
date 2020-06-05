@@ -61,7 +61,7 @@ var externalPackages = []string{"dht", "nat", "basichost", "pubsub"}
 
 func init() {
 	for _, external := range externalPackages {
-		_ = logger.GetOrCreate(fmt.Sprintf("p2p/libp2p/external/%s", external))
+		_ = logger.GetOrCreate(fmt.Sprintf("external/%s", external))
 	}
 }
 
@@ -132,7 +132,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 
 func setupExternalP2PLoggers() {
 	for _, external := range externalPackages {
-		logLevel := logger.GetLoggerLogLevel("p2p/libp2p/external/" + external)
+		logLevel := logger.GetLoggerLogLevel("external/" + external)
 		if logLevel > logger.LogTrace {
 			continue
 		}
@@ -266,7 +266,6 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error {
 	args := factory.ArgsSharderFactory{
 		PeerShardResolver:       &unknownPeerShardResolver{},
-		PrioBits:                p2pConfig.Sharding.PrioBits,
 		Pid:                     netMes.p2pHost.ID(),
 		MaxConnectionCount:      p2pConfig.Sharding.TargetPeerCount,
 		MaxIntraShardValidators: int(p2pConfig.Sharding.MaxIntraShardValidators),

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
@@ -133,7 +134,7 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 
 		if incomingTx.sameAs(currentTx) {
 			// The incoming transaction will be discarded
-			return nil, errTxDuplicated
+			return nil, storage.ErrItemAlreadyInCache
 		}
 
 		if currentTxNonce == incomingNonce && currentTxGasPrice > incomingGasPrice {

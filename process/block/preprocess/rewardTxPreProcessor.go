@@ -182,7 +182,7 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 				return rewardTxsRestored, err
 			}
 
-			rtp.rewardTxPool.AddData([]byte(txHash), &tx, strCache)
+			rtp.rewardTxPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
 		}
 
 		miniBlockHash, err := core.CalculateHash(rtp.marshalizer, rtp.hasher, miniBlock)
@@ -190,7 +190,7 @@ func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
 			return rewardTxsRestored, err
 		}
 
-		miniBlockPool.Put(miniBlockHash, miniBlock)
+		miniBlockPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
 
 		rewardTxsRestored += len(miniBlock.TxHashes)
 	}

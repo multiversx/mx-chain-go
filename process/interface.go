@@ -682,6 +682,7 @@ type BlockTracker interface {
 // on a provided identifier between Reset calls
 type FloodPreventer interface {
 	IncreaseLoad(identifier string, size uint64) error
+	ApplyConsensusSize(size int)
 	Reset()
 	IsInterfaceNil() bool
 }
@@ -701,6 +702,7 @@ type TopicFloodPreventer interface {
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
+	ApplyConsensusSize(size int)
 	IsInterfaceNil() bool
 }
 

@@ -471,12 +471,12 @@ func (tpn *TestProcessorNode) initTestNode() {
 
 func (tpn *TestProcessorNode) initDataPools() {
 	tpn.DataPool = CreateTestDataPool(nil, tpn.ShardCoordinator.SelfId())
-	cacherCfg := storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache, Shards: 1}
-	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
+	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(cache)
 
-	cacherVerifiedCfg := storageUnit.CacheConfig{Size: 5000, Type: storageUnit.LRUCache, Shards: 1}
-	cacheVerified, _ := storageUnit.NewCache(cacherVerifiedCfg.Type, cacherVerifiedCfg.Size, cacherVerifiedCfg.Shards)
+	cacherVerifiedCfg := storageUnit.CacheConfig{Capacity: 5000, Type: storageUnit.LRUCache, Shards: 1}
+	cacheVerified, _ := storageUnit.NewCache(cacherVerifiedCfg.Type, cacherVerifiedCfg.Capacity, cacherVerifiedCfg.Shards, cacherVerifiedCfg.SizeInBytes)
 	tpn.WhiteListerVerifiedTxs, _ = interceptors.NewWhiteListDataVerifier(cacheVerified)
 }
 

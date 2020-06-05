@@ -187,7 +187,10 @@ func TestBucketSortedMap_Remove(t *testing.T) {
 	myMap.Set(newDummyItem("a"))
 	myMap.Set(newDummyItem("b"))
 
-	myMap.Remove("b")
+	_, ok := myMap.Remove("b")
+	require.True(t, ok)
+	_, ok = myMap.Remove("x")
+	require.False(t, ok)
 
 	require.True(t, myMap.Has("a"))
 	require.False(t, myMap.Has("b"))
@@ -370,7 +373,7 @@ func TestBucketSortedMap_ClearConcurrentWithWrite(t *testing.T) {
 	go func() {
 		for j := 0; j < 10000; j++ {
 			myMap.Set(newDummyItem("foobar"))
-			myMap.Remove("foobar")
+			_, _ = myMap.Remove("foobar")
 			myMap.NotifyScoreChange(newDummyItem("foobar"), 42)
 			simulateMutationThatChangesScore(myMap, "foobar")
 		}
@@ -410,7 +413,7 @@ func TestBucketSortedMap_NoForgottenItemsOnConcurrentScoreChanges(t *testing.T) 
 		require.Equal(t, uint32(1), myMap.CountSorted())
 		require.Equal(t, uint32(1), myMap.Count())
 
-		myMap.Remove("a")
+		_, _ = myMap.Remove("a")
 
 		require.Equal(t, uint32(0), myMap.CountSorted())
 		require.Equal(t, uint32(0), myMap.Count())
