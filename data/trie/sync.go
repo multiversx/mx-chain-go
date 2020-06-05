@@ -71,17 +71,12 @@ func NewTrieSyncer(
 		waitTimeBetweenRequests: time.Second,
 		handlerID:               core.UniqueIdentifier(),
 	}
-	ts.interceptedNodes.RegisterHandler(ts.trieNodeIntercepted, ts.handlerID)
 
 	return ts, nil
 }
 
 // StartSyncing completes the trie, asking for missing trie nodes on the network
 func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
-	defer func() {
-		ts.interceptedNodes.UnRegisterHandler(ts.handlerID)
-	}()
-
 	if len(rootHash) == 0 {
 		return nil
 	}
