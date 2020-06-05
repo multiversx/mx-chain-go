@@ -2,17 +2,23 @@ package mock
 
 // Uint64CacherStub -
 type Uint64CacherStub struct {
-	ClearCalled           func()
-	PutCalled             func(uint64, interface{}) bool
-	GetCalled             func(uint64) (interface{}, bool)
-	HasCalled             func(uint64) bool
-	PeekCalled            func(uint64) (interface{}, bool)
-	HasOrAddCalled        func(uint64, interface{}) (bool, bool)
-	RemoveCalled          func(uint64)
-	RemoveOldestCalled    func()
-	KeysCalled            func() []uint64
-	LenCalled             func() int
-	RegisterHandlerCalled func(handler func(nonce uint64))
+	ClearCalled             func()
+	PutCalled               func(uint64, interface{}) bool
+	GetCalled               func(uint64) (interface{}, bool)
+	HasCalled               func(uint64) bool
+	PeekCalled              func(uint64) (interface{}, bool)
+	HasOrAddCalled          func(uint64, interface{}) (bool, bool)
+	RemoveCalled            func(uint64)
+	RemoveOldestCalled      func()
+	KeysCalled              func() []uint64
+	LenCalled               func() int
+	RegisterHandlerCalled   func(handler func(nonce uint64))
+	UnRegisterHandlerCalled func(func(key []byte, value interface{}))
+}
+
+// UnRegisterHandler -
+func (ucs *Uint64CacherStub) UnRegisterHandler(handler func(key []byte, value interface{})) {
+	ucs.UnRegisterHandlerCalled(handler)
 }
 
 // Clear -
