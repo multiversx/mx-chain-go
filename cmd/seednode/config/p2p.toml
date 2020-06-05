@@ -20,7 +20,7 @@
     Seed = "seed"
 
     # The maximum peers that will connect to this node
-    MaximumExpectedPeerCount = 65535
+    MaximumExpectedPeerCount = 1024
 
 # P2P peer discovery section
 
