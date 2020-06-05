@@ -261,8 +261,8 @@ func checkExpectedPeerCount(p2pConfig config.P2PConfig) error {
 		"expected", maxExpectedPeerCount,
 	)
 
-	if maxExpectedPeerCount > rLimit.Max {
-		return fmt.Errorf("provided maxExpectedPeerCount is less than the max OS configured value")
+	if maxExpectedPeerCount > rLimit.Cur {
+		return fmt.Errorf("provided maxExpectedPeerCount is less than the current OS configured value")
 	}
 
 	return nil
