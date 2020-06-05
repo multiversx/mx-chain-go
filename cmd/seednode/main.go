@@ -138,6 +138,11 @@ func startNode(ctx *cli.Context) error {
 		p2pConfig.Node.Seed = ctx.GlobalString(p2pSeed.Name)
 	}
 
+	err = checkExpectedPeerCount(*p2pConfig)
+	if err != nil {
+		return err
+	}
+
 	messenger, err := createNode(*p2pConfig)
 	if err != nil {
 		return err
@@ -239,4 +244,26 @@ func getWorkingDir(log logger.Logger) string {
 	log.Trace("working directory", "path", workingDir)
 
 	return workingDir
+}
+
+func checkExpectedPeerCount(p2pConfig config.P2PConfig) error {
+	maxExpectedPeerCount := p2pConfig.Node.MaximumExpectedPeerCount
+
+	var rLimit syscall.Rlimit
+	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		return fmt.Errorf("%w while getting RLimits", err)
+	}
+
+	log.Info("file limits",
+		"current", rLimit.Cur,
+		"max", rLimit.Max,
+		"expected", maxExpectedPeerCount,
+	)
+
+	if maxExpectedPeerCount > rLimit.Max {
+		return fmt.Errorf("provided maxExpectedPeerCount is less than the max OS configured value")
+	}
+
+	return nil
 }
