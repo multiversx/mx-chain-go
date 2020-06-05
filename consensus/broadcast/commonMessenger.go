@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -25,23 +24,20 @@ type alarmScheduler interface {
 }
 
 type commonMessenger struct {
-	marshalizer           marshal.Marshalizer
-	messenger             consensus.P2PMessenger
-	privateKey            crypto.PrivateKey
-	shardCoordinator      sharding.Coordinator
-	singleSigner          crypto.SingleSigner
-	alarm                 alarmScheduler
-	interceptorsContainer process.InterceptorsContainer
+	marshalizer      marshal.Marshalizer
+	messenger        consensus.P2PMessenger
+	privateKey       crypto.PrivateKey
+	shardCoordinator sharding.Coordinator
+	singleSigner     crypto.SingleSigner
 }
 
 // CommonMessengerArgs holds the arguments for creating commonMessenger instance
 type CommonMessengerArgs struct {
-	Marshalizer           marshal.Marshalizer
-	Messenger             consensus.P2PMessenger
-	PrivateKey            crypto.PrivateKey
-	ShardCoordinator      sharding.Coordinator
-	SingleSigner          crypto.SingleSigner
-	InterceptorsContainer process.InterceptorsContainer
+	Marshalizer      marshal.Marshalizer
+	Messenger        consensus.P2PMessenger
+	PrivateKey       crypto.PrivateKey
+	ShardCoordinator sharding.Coordinator
+	SingleSigner     crypto.SingleSigner
 }
 
 func checkCommonMessengerNilParameters(
@@ -62,10 +58,6 @@ func checkCommonMessengerNilParameters(
 	if check.IfNil(args.SingleSigner) {
 		return spos.ErrNilSingleSigner
 	}
-	if check.IfNil(args.InterceptorsContainer) {
-		return spos.ErrNilInterceptorsContainer
-	}
-
 	return nil
 }
 

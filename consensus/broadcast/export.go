@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -22,15 +21,54 @@ func (cm *commonMessenger) SignMessage(message *consensus.Message) ([]byte, erro
 	return cm.signMessage(message)
 }
 
-// HeaderReceived is the callback registered by the shard chain messenger
-// to be called when a header is added to the headers pool
-func (scm *shardChainMessenger) HeaderReceived(headerHandler data.HeaderHandler, hash []byte) {
-	scm.headerReceived(headerHandler, hash)
+// CreateDelayBroadcastDataForValidator creates the delayed broadcast data
+func CreateDelayBroadcastDataForValidator(
+	headerHash []byte,
+	prevRandSeed []byte,
+	round uint64,
+	miniblocksData map[uint32][]byte,
+	miniBlockHashes map[uint32]map[string]struct{},
+	transactionsData map[string][][]byte,
+	order uint32,
+) *delayedBroadcastData {
+	return &delayedBroadcastData{
+		headerHash:      headerHash,
+		prevRandSeed:    prevRandSeed,
+		round:           round,
+		miniBlocksData:  miniblocksData,
+		miniBlockHashes: miniBlockHashes,
+		transactions:    transactionsData,
+		order:           order,
+	}
 }
 
-// GetValidatorBroadcastData returns the set validatr delayed broadcast data
-func (scm *shardChainMessenger) GetValidatorBroadcastData() []*delayedBroadcastData {
-	return scm.valBroadcastData
+// CreateDelayBroadcastDataForLeader -
+func CreateDelayBroadcastDataForLeader(
+	headerHash []byte,
+	miniblocks map[uint32][]byte,
+	transactions map[string][][]byte,
+) *delayedBroadcastData {
+	return &delayedBroadcastData{
+		headerHash:     headerHash,
+		miniBlocksData: miniblocks,
+		transactions:   transactions,
+	}
+}
+
+// HeaderReceived is the callback registered by the shard chain messenger
+// to be called when a header is added to the headers pool
+func (dbb *delayedBlockBroadcaster) HeaderReceived(headerHandler data.HeaderHandler, hash []byte) {
+	dbb.headerReceived(headerHandler, hash)
+}
+
+// GetValidatorBroadcastData returns the set validator delayed broadcast data
+func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*delayedBroadcastData {
+	return dbb.valBroadcastData
+}
+
+// GetLeaderBroadcastData returns the set leader delayed broadcast data
+func (dbb *delayedBlockBroadcaster) GetLeaderBroadcastData() []*delayedBroadcastData {
+	return dbb.delayedBroadcastData
 }
 
 // ValidatorDelayPerOrder -
@@ -39,7 +77,7 @@ func ValidatorDelayPerOrder() time.Duration {
 }
 
 // ScheduleValidatorBroadcast -
-func (scm *shardChainMessenger) ScheduleValidatorBroadcast(dataForValidators []*HeaderDataForValidator) {
+func (dbb *delayedBlockBroadcaster) ScheduleValidatorBroadcast(dataForValidators []*HeaderDataForValidator) {
 	dfv := make([]*headerDataForValidator, len(dataForValidators))
 	for i, d := range dataForValidators {
 		convDfv := &headerDataForValidator{
@@ -48,16 +86,16 @@ func (scm *shardChainMessenger) ScheduleValidatorBroadcast(dataForValidators []*
 		}
 		dfv[i] = convDfv
 	}
-	scm.scheduleValidatorBroadcast(dfv)
+	dbb.scheduleValidatorBroadcast(dfv)
 }
 
 // AlarmExpired -
-func (scm *shardChainMessenger) AlarmExpired(headerHash string) {
-	scm.alarmExpired(headerHash)
+func (dbb *delayedBlockBroadcaster) AlarmExpired(headerHash string) {
+	dbb.alarmExpired(headerHash)
 }
 
 // GetShardDataFromMetaChainBlock -
-func (scm *shardChainMessenger) GetShardDataFromMetaChainBlock(
+func GetShardDataFromMetaChainBlock(
 	headerHandler data.HeaderHandler,
 	shardID uint32,
 ) ([][]byte, []*HeaderDataForValidator, error) {
@@ -76,13 +114,13 @@ func (scm *shardChainMessenger) GetShardDataFromMetaChainBlock(
 }
 
 // RegisterInterceptorCallback -
-func (scm *shardChainMessenger) RegisterInterceptorCallback(cb func(toShard uint32, data []byte)) error {
-	return scm.registerInterceptorCallback(cb)
+func (dbb *delayedBlockBroadcaster) RegisterInterceptorCallback(cb func(toShard uint32, data []byte)) error {
+	return dbb.registerInterceptorCallback(cb)
 }
 
 // InterceptedMiniBlockData -
-func (scm *shardChainMessenger) InterceptedMiniBlockData(toShardTopic uint32, data []byte) {
-	scm.interceptedMiniBlockData(toShardTopic, data)
+func (dbb *delayedBlockBroadcaster) InterceptedMiniBlockData(toShardTopic uint32, data []byte) {
+	dbb.interceptedMiniBlockData(toShardTopic, data)
 }
 
 // NewCommonMessenger will return a new instance of a commonMessenger
@@ -92,15 +130,13 @@ func NewCommonMessenger(
 	privateKey crypto.PrivateKey,
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
-	interceptorsContainer process.InterceptorsContainer,
 ) (*commonMessenger, error) {
 
 	return &commonMessenger{
-		marshalizer:           marshalizer,
-		messenger:             messenger,
-		privateKey:            privateKey,
-		shardCoordinator:      shardCoordinator,
-		singleSigner:          singleSigner,
-		interceptorsContainer: interceptorsContainer,
+		marshalizer:      marshalizer,
+		messenger:        messenger,
+		privateKey:       privateKey,
+		shardCoordinator: shardCoordinator,
+		singleSigner:     singleSigner,
 	}, nil
 }

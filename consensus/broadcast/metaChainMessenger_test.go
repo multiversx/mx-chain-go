@@ -17,16 +17,14 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	interceptorContainer := &mock.InterceptorsContainerStub{}
 
 	return broadcast.MetaChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
-			Marshalizer:           marshalizerMock,
-			Messenger:             messengerMock,
-			PrivateKey:            privateKeyMock,
-			ShardCoordinator:      shardCoordinatorMock,
-			SingleSigner:          singleSignerMock,
-			InterceptorsContainer: interceptorContainer,
+			Marshalizer:      marshalizerMock,
+			Messenger:        messengerMock,
+			PrivateKey:       privateKeyMock,
+			ShardCoordinator: shardCoordinatorMock,
+			SingleSigner:     singleSignerMock,
 		},
 	}
 }
@@ -74,15 +72,6 @@ func TestMetaChainMessenger_NewMetaChainMessengerNilSingleSignerShouldFail(t *te
 
 	assert.Nil(t, mcm)
 	assert.Equal(t, spos.ErrNilSingleSigner, err)
-}
-
-func TestMetaChainMessenger_NewMetaChainMessengerNilInterceptorsContainerShouldFail(t *testing.T) {
-	args := createDefaultMetaChainArgs()
-	args.InterceptorsContainer = nil
-	mcm, err := broadcast.NewMetaChainMessenger(args)
-
-	assert.Nil(t, mcm)
-	assert.Equal(t, spos.ErrNilInterceptorsContainer, err)
 }
 
 func TestMetaChainMessenger_NewMetaChainMessengerShouldWork(t *testing.T) {
