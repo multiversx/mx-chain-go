@@ -63,12 +63,22 @@ func (dbb *delayedBlockBroadcaster) HeaderReceived(headerHandler data.HeaderHand
 
 // GetValidatorBroadcastData returns the set validator delayed broadcast data
 func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*delayedBroadcastData {
-	return dbb.valBroadcastData
+	dbb.mutDataForBroadcast.RLock()
+	copyValBroadcastData := make([]*delayedBroadcastData, len(dbb.valBroadcastData))
+	copy(copyValBroadcastData, dbb.valBroadcastData)
+	dbb.mutDataForBroadcast.RUnlock()
+
+	return copyValBroadcastData
 }
 
 // GetLeaderBroadcastData returns the set leader delayed broadcast data
 func (dbb *delayedBlockBroadcaster) GetLeaderBroadcastData() []*delayedBroadcastData {
-	return dbb.delayedBroadcastData
+	dbb.mutDataForBroadcast.RLock()
+	copyDelayBroadcastData := make([]*delayedBroadcastData, len(dbb.delayedBroadcastData))
+	copy(copyDelayBroadcastData, dbb.delayedBroadcastData)
+	dbb.mutDataForBroadcast.RUnlock()
+
+	return copyDelayBroadcastData
 }
 
 // ValidatorDelayPerOrder -
