@@ -46,6 +46,7 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
+			Port: "0",
 			Seed: "seed",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
