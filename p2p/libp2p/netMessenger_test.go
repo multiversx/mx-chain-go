@@ -1156,7 +1156,9 @@ func TestNetworkMessenger_MessageIdsCacherShouldPreventReprocessing(t *testing.T
 	args := libp2p.ArgsNetworkMessenger{
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
-			Node: config.NodeConfig{},
+			Node: config.NodeConfig{
+				Port: "0",
+			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
 			},
@@ -1220,7 +1222,9 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 	args := libp2p.ArgsNetworkMessenger{
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
-			Node: config.NodeConfig{},
+			Node: config.NodeConfig{
+				Port: "0",
+			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
 			},
@@ -1269,7 +1273,9 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 	args := libp2p.ArgsNetworkMessenger{
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
-			Node: config.NodeConfig{},
+			Node: config.NodeConfig{
+				Port: "0",
+			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
 			},
