@@ -49,6 +49,7 @@ const broadcastGoRoutines = 1000
 const timeBetweenPeerPrints = time.Second * 20
 const timeBetweenExternalLoggersCheck = time.Second * 20
 const defaultThresholdMinConnectedPeers = 3
+const minRangePortValue = 1025
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
@@ -104,7 +105,12 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		return nil, err
 	}
 
-	address := fmt.Sprintf(args.ListenAddress+"%d", args.P2pConfig.Node.Port)
+	port, err := getPort(args.P2pConfig.Node.Port, checkFreePort)
+	if err != nil {
+		return nil, err
+	}
+
+	address := fmt.Sprintf(args.ListenAddress+"%d", port)
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(address),
 		libp2p.Identity(p2pPrivKey),

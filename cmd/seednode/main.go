@@ -40,10 +40,11 @@ VERSION:
    {{end}}
 `
 	// port defines a flag for setting the port on which the node will listen for connections
-	port = cli.IntFlag{
-		Name:  "port",
-		Usage: "Port number on which the application will start",
-		Value: 10000,
+	port = cli.StringFlag{
+		Name: "port",
+		Usage: "The `[p2p port]` number on which the application will start. Can use single values such as " +
+			"`0, 10230, 15670` or range of ports such as `5000-10000`",
+		Value: "10000",
 	}
 	// p2pSeed defines a flag to be used as a seed when generating P2P credentials. Useful for seed nodes.
 	p2pSeed = cli.StringFlag{
@@ -132,7 +133,7 @@ func startNode(ctx *cli.Context) error {
 		"filename", p2pConfigurationFile,
 	)
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
+		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
 	if ctx.IsSet(p2pSeed.Name) {
 		p2pConfig.Node.Seed = ctx.GlobalString(p2pSeed.Name)

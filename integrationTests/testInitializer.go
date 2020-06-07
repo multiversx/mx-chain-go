@@ -104,7 +104,9 @@ func GetConnectableAddress(mes p2p.Messenger) string {
 
 func createP2PConfig(initialPeerList []string) config.P2PConfig {
 	return config.P2PConfig{
-		Node: config.NodeConfig{},
+		Node: config.NodeConfig{
+			Port: "0",
+		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
 			RefreshIntervalInSec:             2,
@@ -178,7 +180,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
-			Port: 0,
+			Port: "0",
 			Seed: "",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
