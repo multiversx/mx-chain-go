@@ -68,7 +68,7 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 	ncf, _ := NewNetworkComponentsFactory(
 		p2pConfig,
 		config.Config{
-			P2PCache: config.CacheConfig{
+			P2PMessageIDAdditionalCache: config.CacheConfig{
 				Type:     "LRU",
 				Capacity: 100,
 				Shards:   16,

@@ -77,10 +77,10 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 	}
 
 	cache, err := storageUnit.NewCache(
-		storageUnit.CacheType(ncf.mainConfig.P2PCache.Type),
-		ncf.mainConfig.P2PCache.Capacity,
-		ncf.mainConfig.P2PCache.Shards,
-		ncf.mainConfig.P2PCache.SizeInBytes,
+		storageUnit.CacheType(ncf.mainConfig.P2PMessageIDAdditionalCache.Type),
+		ncf.mainConfig.P2PMessageIDAdditionalCache.Capacity,
+		ncf.mainConfig.P2PMessageIDAdditionalCache.Shards,
+		ncf.mainConfig.P2PMessageIDAdditionalCache.SizeInBytes,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating p2p cacher", err)
