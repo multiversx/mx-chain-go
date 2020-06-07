@@ -37,7 +37,7 @@ updateSeednodeConfig() {
   pushd $TESTNETDIR/seednode/config
   cp p2p.toml p2p_edit.toml
 
-  updateTOMLValue p2p_edit.toml "Port" $PORT_SEEDNODE
+  updateTOMLValue p2p_edit.toml "Port" "\"$PORT_SEEDNODE\""
 
   cp p2p_edit.toml p2p.toml
   rm p2p_edit.toml

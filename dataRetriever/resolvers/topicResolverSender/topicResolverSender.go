@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	resolverDebug "github.com/ElrondNetwork/elrond-go/debug/resolver"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -145,7 +146,7 @@ func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendR
 	}
 
 	indexes := createIndexList(len(peerList))
-	shuffledIndexes := fisherYatesShuffle(indexes, trs.randomizer)
+	shuffledIndexes := random.FisherYatesShuffle(indexes, trs.randomizer)
 
 	msgSentCounter := 0
 	for idx := range shuffledIndexes {
@@ -219,18 +220,6 @@ func (trs *topicResolverSender) RequestTopic() string {
 // TargetShardID returns the target shard ID for this resolver should serve data
 func (trs *topicResolverSender) TargetShardID() uint32 {
 	return trs.targetShardId
-}
-
-func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) []int {
-	newIndexes := make([]int, len(indexes))
-	copy(newIndexes, indexes)
-
-	for i := len(newIndexes) - 1; i > 0; i-- {
-		j := randomizer.Intn(i + 1)
-		newIndexes[i], newIndexes[j] = newIndexes[j], newIndexes[i]
-	}
-
-	return newIndexes
 }
 
 // SetNumPeersToQuery will set the number of intra shard and cross shard number of peers to query
