@@ -5,12 +5,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var _ dataRetriever.RequestedItemsHandler = (*TimeCache)(nil)
-var _ p2p.BlacklistHandler = (*TimeCache)(nil)
 
 type span struct {
 	timestamp time.Time

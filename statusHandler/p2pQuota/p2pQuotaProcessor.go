@@ -19,7 +19,7 @@ type quota struct {
 // statusHandler the processed p2p quota information
 type p2pQuotaProcessor struct {
 	mutStatistics    sync.Mutex
-	statistics       map[string]*quota
+	statistics       map[core.PeerID]*quota
 	peakPeerQuota    *quota
 	peakNumReceivers uint64
 	handler          core.AppStatusHandler
@@ -33,7 +33,7 @@ func NewP2PQuotaProcessor(handler core.AppStatusHandler, quotaIdentifier string)
 	}
 
 	return &p2pQuotaProcessor{
-		statistics:      make(map[string]*quota),
+		statistics:      make(map[core.PeerID]*quota),
 		peakPeerQuota:   &quota{},
 		handler:         handler,
 		quotaIdentifier: quotaIdentifier,
@@ -51,7 +51,7 @@ func (pqp *p2pQuotaProcessor) ResetStatistics() {
 
 	pqp.moveStatisticsInAppStatusHandler(peakPeerQuota, numPeers, pqp.peakNumReceivers)
 
-	pqp.statistics = make(map[string]*quota)
+	pqp.statistics = make(map[core.PeerID]*quota)
 }
 
 func (pqp *p2pQuotaProcessor) computePeerStatistics() *quota {
@@ -102,7 +102,7 @@ func (pqp *p2pQuotaProcessor) getMetric(metric string) string {
 
 // AddQuota adds a quota statistics
 func (pqp *p2pQuotaProcessor) AddQuota(
-	identifier string,
+	pid core.PeerID,
 	numReceived uint32,
 	sizeReceived uint64,
 	numProcessed uint32,
@@ -116,7 +116,7 @@ func (pqp *p2pQuotaProcessor) AddQuota(
 	}
 
 	pqp.mutStatistics.Lock()
-	pqp.statistics[identifier] = q
+	pqp.statistics[pid] = q
 	pqp.mutStatistics.Unlock()
 }
 
