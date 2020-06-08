@@ -56,6 +56,6 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	maxSize := cache.MaxSize()
 	require.Equal(t, 0, maxSize)
 
-	require.NotPanics(t, func() { cache.RegisterHandler(func(_ []byte, _ interface{}) {}) })
+	require.NotPanics(t, func() { cache.RegisterHandler(func(_ []byte, _ interface{}) {}, "") })
 	require.False(t, cache.IsInterfaceNil())
 }

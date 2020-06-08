@@ -1409,7 +1409,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 		tpn.DataPool.Transactions().RegisterHandler(txHandler)
 		tpn.DataPool.RewardTransactions().RegisterHandler(txHandler)
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
-		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers)
+		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers, core.UniqueIdentifier())
 	}
 }
 

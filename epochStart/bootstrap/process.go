@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -47,6 +48,7 @@ const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
 const roundGracePeriod = 25
+const numConcurrentTrieSyncers = 50
 
 // Parameters defines the DTO for the result produced by the bootstrap component
 type Parameters struct {
@@ -520,11 +522,6 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
-	err = e.createTriesComponentsForShardId(e.shardCoordinator.SelfId())
-	if err != nil {
-		return Parameters{}, err
-	}
-
 	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
 	if err != nil {
 		return Parameters{}, err
@@ -536,6 +533,11 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 			return Parameters{}, err
 		}
 	} else {
+		err = e.createTriesComponentsForShardId(e.shardCoordinator.SelfId())
+		if err != nil {
+			return Parameters{}, err
+		}
+
 		err = e.requestAndProcessForShard()
 		if err != nil {
 			return Parameters{}, err
@@ -735,6 +737,11 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 }
 
 func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
+	thr, err := throttler.NewNumGoRoutinesThrottler(numConcurrentTrieSyncers)
+	if err != nil {
+		return err
+	}
+
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:               e.hasher,
@@ -745,7 +752,8 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			Cacher:               e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		},
-		ShardId: e.shardCoordinator.SelfId(),
+		ShardId:   e.shardCoordinator.SelfId(),
+		Throttler: thr,
 	}
 	accountsDBSyncer, err := syncer.NewUserAccountsSyncer(argsUserAccountsSyncer)
 	if err != nil {
@@ -762,6 +770,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 }
 
 func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) error {
+
 	trieFactoryArgs := factory.TrieFactoryArgs{
 		EvictionWaitingListCfg:   e.generalConfig.EvictionWaitingList,
 		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,

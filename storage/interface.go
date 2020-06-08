@@ -70,7 +70,9 @@ type Cacher interface {
 	// MaxSize returns the maximum number of items which can be stored in the cache.
 	MaxSize() int
 	// RegisterHandler registers a new handler to be called when a new data is added
-	RegisterHandler(func(key []byte, value interface{}))
+	RegisterHandler(handler func(key []byte, value interface{}), id string)
+	// UnRegisterHandler deletes the handler from the list
+	UnRegisterHandler(id string)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
