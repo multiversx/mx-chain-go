@@ -597,6 +597,8 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		feeHandler,
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		vmcommon.NewAtArgumentParser(),
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	alice := []byte("12345678901234567890123456789111")

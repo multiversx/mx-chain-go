@@ -933,6 +933,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.EconomicsData,
 		receiptsHandler,
 		badBlocskHandler,
+		tpn.ArgsParser,
+		tpn.ScrForwarder,
 	)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(

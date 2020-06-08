@@ -89,6 +89,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		AddressPubkeyConverter:    &mock.PubkeyConverterMock{},
 		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:         &mock.UnitOpenerStub{},
+		ArgumentsParser:           &mock.ArgumentParserMock{},
 	}
 }
 
