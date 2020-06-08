@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"math/big"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -185,4 +187,33 @@ func TestCommunicationIdentifierBetweenShards_Metachain(t *testing.T) {
 		core.MetachainShardId,
 		core.MetachainShardId,
 	))
+}
+
+func TestConvertToEvenHex(t *testing.T) {
+	t.Parallel()
+
+	numCompares := 100000
+	for i := 0; i < numCompares; i++ {
+		str := core.ConvertToEvenHex(i)
+
+		assert.True(t, len(str)%2 == 0)
+		recovered, err := strconv.ParseInt(str, 16, 32)
+		assert.Nil(t, err)
+		assert.Equal(t, i, int(recovered))
+	}
+}
+
+func TestConvertToEvenHexBigInt(t *testing.T) {
+	t.Parallel()
+
+	numCompares := 100000
+	for i := 0; i < numCompares; i++ {
+		bigInt := big.NewInt(int64(i))
+		str := core.ConvertToEvenHexBigInt(bigInt)
+
+		assert.True(t, len(str)%2 == 0)
+		recovered, err := strconv.ParseInt(str, 16, 32)
+		assert.Nil(t, err)
+		assert.Equal(t, i, int(recovered))
+	}
 }
