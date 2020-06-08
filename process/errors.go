@@ -793,3 +793,6 @@ var ErrShardIsStuck = errors.New("shard is stuck")
 
 // ErrInvalidAddressInRelayedTx signals that an invalid address was provided in the relayed tx
 var ErrInvalidAddressInRelayedTx = errors.New("invalid address in relayed tx")
+
+// ErrInvalidVMType signals that invalid vm type was provided
+var ErrInvalidVMType = errors.New("invalid VM type")

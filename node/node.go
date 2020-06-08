@@ -47,6 +47,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // SendTransactionsPipe is the pipe used for sending new transactions
@@ -785,7 +786,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	argumentParser := vmcommon.NewAtArgumentParser()
+	argumentParser := parsers.NewCallArgsParser()
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
 		n.internalMarshalizer,

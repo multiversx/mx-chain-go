@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -473,16 +474,29 @@ type RequestHandler interface {
 	IsInterfaceNil() bool
 }
 
+// CallArgumentsParser defines the functionality to parse transaction data into call arguments
+type CallArgumentsParser interface {
+	ParseData(data string) (string, [][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// DeployArgumentsParser defines the functionality to parse transaction data into call arguments
+type DeployArgumentsParser interface {
+	ParseData(data string) (*parsers.DeployArgs, error)
+	IsInterfaceNil() bool
+}
+
+// StorageArgumentsParser defines the functionality to parse transaction data into call arguments
+type StorageArgumentsParser interface {
+	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
+	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
+	IsInterfaceNil() bool
+}
+
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
-	GetFunctionArguments() ([][]byte, error)
-	GetConstructorArguments() ([][]byte, error)
-	GetCode() ([]byte, error)
-	GetCodeDecoded() ([]byte, error)
-	GetVMType() ([]byte, error)
-	GetCodeMetadata() (vmcommon.CodeMetadata, error)
-	GetFunction() (string, error)
-	ParseData(data string) error
+	ParseCallData(data string) (string, [][]byte, error)
+	ParseDeployData(data string) (*parsers.DeployArgs, error)
 
 	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
 	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
