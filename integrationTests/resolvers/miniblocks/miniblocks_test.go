@@ -27,14 +27,12 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingSameShard(t *testi
 	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock, miniblock.Size())
 
 	//setup header received event
-	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte, value interface{}) {
-			if bytes.Equal(key, hash) {
-				resolvers.Log.Info("received miniblock", "hash", key)
-				rm.Done()
-			}
-		},
-	)
+	nRequester.DataPool.MiniBlocks().RegisterHandler(func(key []byte, value interface{}) {
+		if bytes.Equal(key, hash) {
+			resolvers.Log.Info("received miniblock", "hash", key)
+			rm.Done()
+		}
+	}, core.UniqueIdentifier())
 
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
@@ -64,14 +62,12 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock, miniblock.Size())
 
 	//setup header received event
-	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte, value interface{}) {
-			if bytes.Equal(key, hash) {
-				resolvers.Log.Info("received miniblock", "hash", key)
-				rm.Done()
-			}
-		},
-	)
+	nRequester.DataPool.MiniBlocks().RegisterHandler(func(key []byte, value interface{}) {
+		if bytes.Equal(key, hash) {
+			resolvers.Log.Info("received miniblock", "hash", key)
+			rm.Done()
+		}
+	}, core.UniqueIdentifier())
 
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardIdResolver)
@@ -101,14 +97,12 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock, miniblock.Size())
 
 	//setup header received event
-	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte, value interface{}) {
-			if bytes.Equal(key, hash) {
-				resolvers.Log.Info("received miniblock", "hash", key)
-				rm.Done()
-			}
-		},
-	)
+	nRequester.DataPool.MiniBlocks().RegisterHandler(func(key []byte, value interface{}) {
+		if bytes.Equal(key, hash) {
+			resolvers.Log.Info("received miniblock", "hash", key)
+			rm.Done()
+		}
+	}, core.UniqueIdentifier())
 
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.MetachainShardId)
@@ -137,14 +131,12 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock, miniblock.Size())
 
 	//setup header received event
-	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte, value interface{}) {
-			if bytes.Equal(key, hash) {
-				resolvers.Log.Info("received miniblock", "hash", key)
-				rm.Done()
-			}
-		},
-	)
+	nRequester.DataPool.MiniBlocks().RegisterHandler(func(key []byte, value interface{}) {
+		if bytes.Equal(key, hash) {
+			resolvers.Log.Info("received miniblock", "hash", key)
+			rm.Done()
+		}
+	}, core.UniqueIdentifier())
 
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
@@ -174,14 +166,12 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingSameShard(t *t
 	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock, miniblock.Size())
 
 	//setup header received event
-	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte, value interface{}) {
-			if bytes.Equal(key, hash) {
-				resolvers.Log.Info("received miniblock", "hash", key)
-				rm.Done()
-			}
-		},
-	)
+	nRequester.DataPool.MiniBlocks().RegisterHandler(func(key []byte, value interface{}) {
+		if bytes.Equal(key, hash) {
+			resolvers.Log.Info("received miniblock", "hash", key)
+			rm.Done()
+		}
+	}, core.UniqueIdentifier())
 
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
@@ -212,14 +202,12 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingOtherShard(t *
 	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock, miniblock.Size())
 
 	//setup header received event
-	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte, value interface{}) {
-			if bytes.Equal(key, hash) {
-				resolvers.Log.Info("received miniblock", "hash", key)
-				rm.Done()
-			}
-		},
-	)
+	nRequester.DataPool.MiniBlocks().RegisterHandler(func(key []byte, value interface{}) {
+		if bytes.Equal(key, hash) {
+			resolvers.Log.Info("received miniblock", "hash", key)
+			rm.Done()
+		}
+	}, core.UniqueIdentifier())
 
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
@@ -249,14 +237,12 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingMeta(t *testin
 	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock, miniblock.Size())
 
 	//setup header received event
-	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte, value interface{}) {
-			if bytes.Equal(key, hash) {
-				resolvers.Log.Info("received miniblock", "hash", key)
-				rm.Done()
-			}
-		},
-	)
+	nRequester.DataPool.MiniBlocks().RegisterHandler(func(key []byte, value interface{}) {
+		if bytes.Equal(key, hash) {
+			resolvers.Log.Info("received miniblock", "hash", key)
+			rm.Done()
+		}
+	}, core.UniqueIdentifier())
 
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
@@ -285,14 +271,12 @@ func TestRequestResolvePeerMiniblockByHashRequestingMetaResolvingShard(t *testin
 	_, _ = nResolver.DataPool.MiniBlocks().HasOrAdd(hash, miniblock, miniblock.Size())
 
 	//setup header received event
-	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte, value interface{}) {
-			if bytes.Equal(key, hash) {
-				resolvers.Log.Info("received miniblock", "hash", key)
-				rm.Done()
-			}
-		},
-	)
+	nRequester.DataPool.MiniBlocks().RegisterHandler(func(key []byte, value interface{}) {
+		if bytes.Equal(key, hash) {
+			resolvers.Log.Info("received miniblock", "hash", key)
+			rm.Done()
+		}
+	}, core.UniqueIdentifier())
 
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
