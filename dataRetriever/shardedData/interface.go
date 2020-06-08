@@ -1,4 +1,4 @@
-package txpool
+package shardedData
 
 import (
 	"github.com/ElrondNetwork/elrond-go/storage"

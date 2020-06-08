@@ -41,8 +41,8 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 		},
 	)
 
-	phf.unsignedTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache})
-	phf.rewardTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.LRUCache})
+	phf.unsignedTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.FIFOShardedWithImmunityCache})
+	phf.rewardTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.FIFOShardedWithImmunityCache})
 	phf.headers, _ = headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 	phf.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1, 0)
 	phf.peerChangesBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1, 0)
