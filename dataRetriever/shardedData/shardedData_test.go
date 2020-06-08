@@ -1,4 +1,4 @@
-package shardedData_test
+package shardedData
 
 import (
 	"bytes"

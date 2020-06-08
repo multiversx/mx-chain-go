@@ -113,7 +113,7 @@
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
         Capacity = 75000
-        Type = "SizeLRU"
+        Type = "FIFOShardedWithImmunity"
         SizeInBytes = 314572800 #300MB
     [UnsignedTransactionStorage.DB]
         FilePath = "UnsignedTransactions"
@@ -125,7 +125,7 @@
 [RewardTxStorage]
     [RewardTxStorage.Cache]
         Capacity = 75000
-        Type = "SizeLRU"
+        Type = "FIFOShardedWithImmunity"
         SizeInBytes = 104857600 #100MB
     [RewardTxStorage.DB]
         FilePath = "RewardTransactions"

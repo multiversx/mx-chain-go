@@ -137,6 +137,7 @@ func (ic *ImmunityCache) Peek(key []byte) (value interface{}, ok bool) {
 func (ic *ImmunityCache) HasOrAdd(_ []byte, value interface{}, _ int) (ok, evicted bool) {
 	valueAsCacheItem, ok := value.(storage.CacheItem)
 	if !ok {
+		log.Error("ImmunityCache.HasOrAdd: cannot cast to storage.CacheItem")
 		return false, false
 	}
 

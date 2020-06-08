@@ -39,6 +39,8 @@ type shardStore struct {
 
 // NewShardedData is responsible for creating an empty pool of data
 func NewShardedData(cacherConfig storageUnit.CacheConfig) (*shardedData, error) {
+	log.Info("NewShardedData", "config", cacherConfig.String())
+
 	err := verifyCacherConfig(cacherConfig)
 	if err != nil {
 		return nil, err
@@ -81,7 +83,7 @@ func (sd *shardedData) CreateShardStore(cacheId string) {
 func (sd *shardedData) newShardStoreNoLock(cacheId string) *shardStore {
 	shardStoreObject, err := newShardStore(cacheId, sd.cacherConfig)
 	if err != nil {
-		log.Debug("newShardStore", "error", err.Error())
+		log.Error("newShardStoreNoLock", "error", err.Error())
 	}
 
 	sd.shardedDataStore[cacheId] = shardStoreObject
@@ -90,6 +92,7 @@ func (sd *shardedData) newShardStoreNoLock(cacheId string) *shardStore {
 
 // ShardStore returns a shard store of data associated with a given destination cacheId
 func (sd *shardedData) ShardStore(cacheId string) *shardStore {
+	// TODO: remove from interface
 	sd.mutShardedDataStore.RLock()
 	mp := sd.shardedDataStore[cacheId]
 	sd.mutShardedDataStore.RUnlock()
@@ -117,6 +120,7 @@ func (sd *shardedData) AddData(key []byte, value interface{}, sizeInBytes int, c
 	}
 	sd.mutShardedDataStore.Unlock()
 
+	// TODO: Check HasOrAdd works fine.
 	found, _ := mp.DataStore.HasOrAdd(key, value, sizeInBytes)
 	if !found {
 		sd.mutAddedDataHandlers.RLock()
@@ -154,8 +158,19 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheId string) {
 	}
 }
 
-// ImmunizeSetOfDataAgainstEviction does nothing
-func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(_ [][]byte, _ string) {
+// ImmunizeSetOfDataAgainstEviction  marks the items as non-evictable (if the underlying cache supports this operation)
+func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
+	cache := sd.ShardDataStore(cacheID)
+	if cache == nil {
+		return
+	}
+
+	cacheAsImmunityCache, ok := cache.(immunityCache)
+	if !ok {
+		return
+	}
+
+	cacheAsImmunityCache.ImmunizeTxsAgainstEviction(keys)
 }
 
 // RemoveData will remove data hash from the corresponding shard store
