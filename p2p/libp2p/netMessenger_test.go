@@ -493,14 +493,21 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 			err := mes.BroadcastOnChannelBlocking("test", "test", msg)
 			if err == p2p.ErrTooManyGoroutines {
 				atomic.AddUint32(&numErrors, 1)
+				wg.Done()
 			}
-			wg.Done()
 		}()
 	}
 
 	wg.Wait()
 
+	// cleanup stuck go routines that are trying to write on the ch channel
+	for i := 0; i < libp2p.BroadcastGoRoutines; i++ {
+		<-ch
+	}
+
 	assert.Equal(t, atomic.LoadUint32(&numErrors), uint32(numBroadcasts-libp2p.BroadcastGoRoutines))
+
+	_ = mes.Close()
 }
 
 func TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork(t *testing.T) {

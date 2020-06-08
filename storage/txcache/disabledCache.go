@@ -88,7 +88,11 @@ func (cache *DisabledCache) MaxSize() int {
 }
 
 // RegisterHandler does nothing
-func (cache *DisabledCache) RegisterHandler(func(key []byte, value interface{})) {
+func (cache *DisabledCache) RegisterHandler(func(key []byte, value interface{}), string) {
+}
+
+// RegisterHandler does nothing
+func (cache *DisabledCache) UnRegisterHandler(string) {
 }
 
 // NotifyAccountNonce does nothing

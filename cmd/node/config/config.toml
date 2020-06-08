@@ -242,9 +242,9 @@
     Shards = 16
 
 [TrieNodesDataPool]
-    Capacity = 50000
+    Capacity = 900000
     Type = "SizeLRU"
-    SizeInBytes = 104857600 #100MB
+    SizeInBytes = 314572800 #300MB
 
 [WhiteListPool]
     Capacity = 100000
