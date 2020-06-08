@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	resolverDebug "github.com/ElrondNetwork/elrond-go/debug/resolver"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -138,13 +140,13 @@ func createIndexList(listLength int) []int {
 	return indexes
 }
 
-func (trs *topicResolverSender) sendOnTopic(peerList []p2p.PeerID, topicToSendRequest string, buff []byte, maxToSend int) int {
+func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendRequest string, buff []byte, maxToSend int) int {
 	if len(peerList) == 0 || maxToSend == 0 {
 		return 0
 	}
 
 	indexes := createIndexList(len(peerList))
-	shuffledIndexes := fisherYatesShuffle(indexes, trs.randomizer)
+	shuffledIndexes := random.FisherYatesShuffle(indexes, trs.randomizer)
 
 	msgSentCounter := 0
 	for idx := range shuffledIndexes {
@@ -166,11 +168,11 @@ func (trs *topicResolverSender) sendOnTopic(peerList []p2p.PeerID, topicToSendRe
 
 // Send is used to send an array buffer to a connected peer
 // It is used when replying to a request
-func (trs *topicResolverSender) Send(buff []byte, peer p2p.PeerID) error {
+func (trs *topicResolverSender) Send(buff []byte, peer core.PeerID) error {
 	return trs.sendToConnectedPeer(trs.topicName, buff, peer)
 }
 
-func (trs *topicResolverSender) sendToConnectedPeer(topic string, buff []byte, peer p2p.PeerID) error {
+func (trs *topicResolverSender) sendToConnectedPeer(topic string, buff []byte, peer core.PeerID) error {
 	msg := &message.Message{
 		DataField:   buff,
 		PeerField:   peer,
@@ -218,18 +220,6 @@ func (trs *topicResolverSender) RequestTopic() string {
 // TargetShardID returns the target shard ID for this resolver should serve data
 func (trs *topicResolverSender) TargetShardID() uint32 {
 	return trs.targetShardId
-}
-
-func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) []int {
-	newIndexes := make([]int, len(indexes))
-	copy(newIndexes, indexes)
-
-	for i := len(newIndexes) - 1; i > 0; i-- {
-		j := randomizer.Intn(i + 1)
-		newIndexes[i], newIndexes[j] = newIndexes[j], newIndexes[i]
-	}
-
-	return newIndexes
 }
 
 // SetNumPeersToQuery will set the number of intra shard and cross shard number of peers to query

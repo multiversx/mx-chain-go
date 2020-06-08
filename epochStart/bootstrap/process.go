@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
+	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -100,6 +101,7 @@ type epochStartBootstrap struct {
 	nodeShuffler               sharding.NodesShuffler
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     core.PubkeyConverter
+	statusHandler              core.AppStatusHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -162,6 +164,7 @@ type ArgsEpochStartBootstrap struct {
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
 	AddressPubkeyConverter     core.PubkeyConverter
+	StatusHandler              core.AppStatusHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -198,6 +201,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storageOpenerHandler:       args.StorageUnitOpener,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
+		statusHandler:              args.StatusHandler,
 		shuffledOut:                false,
 	}
 
@@ -216,7 +220,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		return nil, err
 	}
 
-	epochStartProvider.whiteListerVerifiedTxs, err = interceptors.NewDisabledWhiteListDataVerifier()
+	epochStartProvider.whiteListerVerifiedTxs, err = disabledInterceptors.NewDisabledWhiteListDataVerifier()
 	if err != nil {
 		return nil, err
 	}
@@ -330,6 +334,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
+	e.setEpochStartMetrics()
 
 	err = e.createSyncers()
 	if err != nil {
@@ -885,6 +890,13 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		timeBetweenRequests,
 	)
 	return err
+}
+
+func (e *epochStartBootstrap) setEpochStartMetrics() {
+	if e.epochStartMeta != nil {
+		e.statusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, e.epochStartMeta.Nonce)
+		e.statusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, e.epochStartMeta.Round)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

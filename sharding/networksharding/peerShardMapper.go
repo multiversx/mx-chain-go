@@ -81,7 +81,7 @@ func NewPeerShardMapper(
 
 // GetPeerInfo returns the corresponding shard ID of a given peer ID.
 // It also returns the type of provided peer
-func (psm *PeerShardMapper) GetPeerInfo(pid p2p.PeerID) core.P2PPeerInfo {
+func (psm *PeerShardMapper) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 	var pInfo *core.P2PPeerInfo
 	var pk []byte
 	var ok bool
@@ -115,7 +115,7 @@ func (psm *PeerShardMapper) GetPeerInfo(pid p2p.PeerID) core.P2PPeerInfo {
 	return *pInfo
 }
 
-func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (*core.P2PPeerInfo, []byte, bool) {
+func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*core.P2PPeerInfo, []byte, bool) {
 	pkObj, ok := psm.peerIdPk.Get([]byte(pid))
 	if !ok {
 		return &core.P2PPeerInfo{
@@ -174,7 +174,7 @@ func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) 
 	return shard, true
 }
 
-func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid p2p.PeerID) *core.P2PPeerInfo {
+func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.PeerID) *core.P2PPeerInfo {
 	shardObj, ok := psm.fallbackPidShard.Get([]byte(pid))
 	if !ok {
 		return &core.P2PPeerInfo{
@@ -202,7 +202,7 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid p2p.PeerI
 // UpdatePeerIdPublicKey updates the peer ID - public key pair in the corresponding map
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
 // the same Elrond PK that will make the node prone to an eclipse attack
-func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte) {
+func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid core.PeerID, pk []byte) {
 	//mutUpdatePeerIdPublicKey is used as to consider this function a critical section
 	psm.mutUpdatePeerIdPublicKey.Lock()
 	defer psm.mutUpdatePeerIdPublicKey.Unlock()
@@ -243,7 +243,7 @@ func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte) {
 	psm.peerIdPk.Put([]byte(pid), pk, len(pk))
 }
 
-func (psm *PeerShardMapper) removePidAssociation(pid p2p.PeerID) {
+func (psm *PeerShardMapper) removePidAssociation(pid core.PeerID) {
 	oldPk, found := psm.peerIdPk.Get([]byte(pid))
 	if !found {
 		return
@@ -281,7 +281,7 @@ func (psm *PeerShardMapper) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
 }
 
 // UpdatePeerIdShardId updates the fallback search map containing peer IDs and shard IDs
-func (psm *PeerShardMapper) UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32) {
+func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
 	psm.fallbackPidShard.HasOrAdd([]byte(pid), shardId, uint32Size)
 }
 

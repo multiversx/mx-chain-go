@@ -209,7 +209,7 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 	}
 
 	ls.mutResolver.RLock()
-	selfPeerInfo := ls.peerShardResolver.GetPeerInfo(p2p.PeerID(ls.selfPeerId))
+	selfPeerInfo := ls.peerShardResolver.GetPeerInfo(core.PeerID(ls.selfPeerId))
 	ls.mutResolver.RUnlock()
 
 	for _, p := range peers {
@@ -217,7 +217,7 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 			ID:       p,
 			Distance: ls.computeDistance(p, ls.selfPeerId),
 		}
-		pid := p2p.PeerID(p)
+		pid := core.PeerID(p)
 		ls.mutResolver.RLock()
 		peerInfo := ls.peerShardResolver.GetPeerInfo(pid)
 		ls.mutResolver.RUnlock()

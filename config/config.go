@@ -128,9 +128,10 @@ type Config struct {
 	VmMarshalizer               TypeConfig
 	TxSignMarshalizer           TypeConfig
 
-	PublicKeyShardId CacheConfig
-	PublicKeyPeerId  CacheConfig
-	PeerIdShardId    CacheConfig
+	PublicKeyShardId            CacheConfig
+	PublicKeyPeerId             CacheConfig
+	PeerIdShardId               CacheConfig
+	P2PMessageIDAdditionalCache CacheConfig
 
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
@@ -245,6 +246,7 @@ type TxAccumulatorConfig struct {
 type AntifloodConfig struct {
 	Enabled                   bool
 	NumConcurrentResolverJobs int32
+	OutOfSpecs                FloodPreventerConfig
 	FastReacting              FloodPreventerConfig
 	SlowReacting              FloodPreventerConfig
 	PeerMaxOutput             AntifloodLimitsConfig
@@ -312,6 +314,7 @@ type HardforkConfig struct {
 // DebugConfig will hold debugging configuration
 type DebugConfig struct {
 	InterceptorResolver InterceptorResolverDebugConfig
+	Antiflood           AntifloodDebugConfig
 }
 
 // InterceptorResolverDebugConfig will hold the interceptor-resolver debug configuration
@@ -323,6 +326,13 @@ type InterceptorResolverDebugConfig struct {
 	NumRequestsThreshold       int
 	NumResolveFailureThreshold int
 	DebugLineExpiration        int
+}
+
+// AntifloodDebugConfig will hold the antiflood debug configuration
+type AntifloodDebugConfig struct {
+	Enabled                    bool
+	CacheSize                  int
+	IntervalAutoPrintInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes

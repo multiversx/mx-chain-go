@@ -1,19 +1,20 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // MessengerStub -
 type MessengerStub struct {
 	CloseCalled                       func() error
-	IDCalled                          func() p2p.PeerID
-	PeersCalled                       func() []p2p.PeerID
+	IDCalled                          func() core.PeerID
+	PeersCalled                       func() []core.PeerID
 	AddressesCalled                   func() []string
 	ConnectToPeerCalled               func(address string) error
 	TrimConnectionsCalled             func()
-	IsConnectedCalled                 func(peerID p2p.PeerID) bool
-	ConnectedPeersCalled              func() []p2p.PeerID
+	IsConnectedCalled                 func(peerID core.PeerID) bool
+	ConnectedPeersCalled              func() []core.PeerID
 	CreateTopicCalled                 func(name string, createChannelForTopic bool) error
 	HasTopicCalled                    func(name string) bool
 	HasTopicValidatorCalled           func(name string) bool
@@ -21,7 +22,7 @@ type MessengerStub struct {
 	BroadcastCalled                   func(topic string, buff []byte)
 	RegisterMessageProcessorCalled    func(topic string, handler p2p.MessageProcessor) error
 	UnregisterMessageProcessorCalled  func(topic string) error
-	SendToConnectedPeerCalled         func(topic string, buff []byte, peerID p2p.PeerID) error
+	SendToConnectedPeerCalled         func(topic string, buff []byte, peerID core.PeerID) error
 	OutgoingChannelLoadBalancerCalled func() p2p.ChannelLoadBalancer
 	BootstrapCalled                   func() error
 }
@@ -52,12 +53,12 @@ func (ms *MessengerStub) Close() error {
 }
 
 // ID -
-func (ms *MessengerStub) ID() p2p.PeerID {
+func (ms *MessengerStub) ID() core.PeerID {
 	return ms.IDCalled()
 }
 
 // Peers -
-func (ms *MessengerStub) Peers() []p2p.PeerID {
+func (ms *MessengerStub) Peers() []core.PeerID {
 	return ms.PeersCalled()
 }
 
@@ -77,12 +78,12 @@ func (ms *MessengerStub) TrimConnections() {
 }
 
 // IsConnected -
-func (ms *MessengerStub) IsConnected(peerID p2p.PeerID) bool {
+func (ms *MessengerStub) IsConnected(peerID core.PeerID) bool {
 	return ms.IsConnectedCalled(peerID)
 }
 
 // ConnectedPeers -
-func (ms *MessengerStub) ConnectedPeers() []p2p.PeerID {
+func (ms *MessengerStub) ConnectedPeers() []core.PeerID {
 	return ms.ConnectedPeersCalled()
 }
 
@@ -107,7 +108,7 @@ func (ms *MessengerStub) BroadcastOnChannel(channel string, topic string, buff [
 }
 
 // SendToConnectedPeer -
-func (ms *MessengerStub) SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
+func (ms *MessengerStub) SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error {
 	return ms.SendToConnectedPeerCalled(topic, buff, peerID)
 }
 

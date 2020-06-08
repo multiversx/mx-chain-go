@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 var _ dataRetriever.PeerListCreator = (*DiffPeerListCreator)(nil)
@@ -46,14 +46,14 @@ func NewDiffPeerListCreator(
 }
 
 // PeerList will return the generated list of peers
-func (dplc *DiffPeerListCreator) PeerList() []p2p.PeerID {
+func (dplc *DiffPeerListCreator) PeerList() []core.PeerID {
 	allConnectedPeers := dplc.messenger.ConnectedPeersOnTopic(dplc.mainTopic)
 	mainTopicHasPeers := len(allConnectedPeers) != 0
 	if !mainTopicHasPeers {
 		return allConnectedPeers
 	}
 
-	excludedConnectedPeers := make([]p2p.PeerID, 0)
+	excludedConnectedPeers := make([]core.PeerID, 0)
 	isExcludedTopicSet := len(dplc.excludePeersFromTopic) > 0
 	if isExcludedTopicSet {
 		excludedConnectedPeers = dplc.messenger.ConnectedPeersOnTopic(dplc.excludePeersFromTopic)
@@ -69,7 +69,7 @@ func (dplc *DiffPeerListCreator) PeerList() []p2p.PeerID {
 }
 
 // IntraShardPeerList returns the intra shard peer list
-func (dplc *DiffPeerListCreator) IntraShardPeerList() []p2p.PeerID {
+func (dplc *DiffPeerListCreator) IntraShardPeerList() []core.PeerID {
 	return dplc.messenger.ConnectedPeersOnTopic(dplc.intraShardTopic)
 }
 
@@ -79,15 +79,15 @@ func (dplc *DiffPeerListCreator) IsInterfaceNil() bool {
 }
 
 func makeDiffList(
-	allConnectedPeers []p2p.PeerID,
-	excludedConnectedPeers []p2p.PeerID,
-) []p2p.PeerID {
+	allConnectedPeers []core.PeerID,
+	excludedConnectedPeers []core.PeerID,
+) []core.PeerID {
 
 	if len(excludedConnectedPeers) == 0 {
 		return allConnectedPeers
 	}
 
-	diff := make([]p2p.PeerID, 0)
+	diff := make([]core.PeerID, 0)
 	for _, pid := range allConnectedPeers {
 		isPeerExcluded := false
 
