@@ -18,14 +18,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
+var fromConnectedPeerId = core.PeerID("from connected peer Id")
 
 func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 	return &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
 		},
-		CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error {
 			return nil
 		},
 	}
@@ -71,7 +71,7 @@ func createMockArgHeartbeatMonitor() process.ArgHeartbeatMonitor {
 		Timer:                              mock.NewTimerMock(),
 		AntifloodHandler:                   createMockP2PAntifloodHandler(),
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
-		PeerBlackListHandler:               &mock.BlackListHandlerStub{},
+		PeerBlackListHandler:               &mock.PeerBlackListHandlerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(96),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
@@ -539,7 +539,7 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 		Timer:                              timer,
 		AntifloodHandler:                   createMockP2PAntifloodHandler(),
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
-		PeerBlackListHandler:               &mock.BlackListHandlerStub{},
+		PeerBlackListHandler:               &mock.PeerBlackListHandlerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(32),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
@@ -573,7 +573,7 @@ func TestMonitor_ProcessReceivedMessageImpersonatedMessageShouldErr(t *testing.T
 	t.Parallel()
 
 	pubKey := "pk1"
-	originator := p2p.PeerID("message originator")
+	originator := core.PeerID("message originator")
 
 	arg := createMockArgHeartbeatMonitor()
 	arg.Marshalizer = &mock.MarshalizerStub{
@@ -593,12 +593,12 @@ func TestMonitor_ProcessReceivedMessageImpersonatedMessageShouldErr(t *testing.T
 	}
 	originatorWasBlacklisted := false
 	connectedPeerWasBlacklisted := false
-	arg.PeerBlackListHandler = &mock.BlackListHandlerStub{
-		AddCalled: func(key string) error {
-			if key == originator.Pretty() {
+	arg.PeerBlackListHandler = &mock.PeerBlackListHandlerStub{
+		AddCalled: func(pid core.PeerID) error {
+			if pid == originator {
 				originatorWasBlacklisted = true
 			}
-			if key == fromConnectedPeerId.Pretty() {
+			if pid == fromConnectedPeerId {
 				connectedPeerWasBlacklisted = true
 			}
 

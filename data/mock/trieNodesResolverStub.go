@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -20,7 +21,7 @@ func (tnrs *TrieNodesResolverStub) RequestDataFromHash(hash []byte, _ uint32) er
 }
 
 // ProcessReceivedMessage -
-func (tnrs *TrieNodesResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
+func (tnrs *TrieNodesResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
 	if tnrs.ProcessReceivedMessageCalled != nil {
 		return tnrs.ProcessReceivedMessageCalled(message)
 	}

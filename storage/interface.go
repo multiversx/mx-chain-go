@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
@@ -206,4 +208,13 @@ type SizedLRUCacheHandler interface {
 	Keys() []interface{}
 	Len() int
 	Purge()
+}
+
+// TimeCacheHandler defines the cache that can keep a record for a bounded time
+type TimeCacheHandler interface {
+	Add(key string) error
+	AddWithSpan(key string, span time.Duration) error
+	Has(key string) bool
+	Sweep()
+	IsInterfaceNil() bool
 }
