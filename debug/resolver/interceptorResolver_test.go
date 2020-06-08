@@ -409,7 +409,7 @@ func TestInterceptorResolver_NumPrintsShouldWork(t *testing.T) {
 	cfg.NumRequestsThreshold = 1
 	cfg.DebugLineExpiration = 2
 	ir, _ := NewInterceptorResolver(cfg)
-	ir.printEventHandler = func(data string) {
+	ir.printEventFunc = func(data string) {
 		atomic.AddUint32(&numPrintCalls, 1)
 	}
 

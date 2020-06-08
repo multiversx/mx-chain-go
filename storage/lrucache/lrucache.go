@@ -19,7 +19,7 @@ type lruCache struct {
 	maxsize int
 
 	mutAddedDataHandlers sync.RWMutex
-	addedDataHandlers    []func(key []byte, value interface{})
+	mapDataHandlers      map[string]func(key []byte, value interface{})
 }
 
 // NewCache creates a new LRU cache instance
@@ -35,7 +35,7 @@ func NewCache(size int) (*lruCache, error) {
 		},
 		maxsize:              size,
 		mutAddedDataHandlers: sync.RWMutex{},
-		addedDataHandlers:    make([]func(key []byte, value interface{}), 0),
+		mapDataHandlers:      make(map[string]func(key []byte, value interface{})),
 	}
 
 	return c, nil
@@ -52,7 +52,7 @@ func NewCacheWithSizeInBytes(size int, sizeInBytes int64) (*lruCache, error) {
 		cache:                cache,
 		maxsize:              size,
 		mutAddedDataHandlers: sync.RWMutex{},
-		addedDataHandlers:    make([]func(key []byte, value interface{}), 0),
+		mapDataHandlers:      make(map[string]func(key []byte, value interface{})),
 	}
 
 	return c, nil
@@ -73,14 +73,21 @@ func (c *lruCache) Put(key []byte, value interface{}, sizeInBytes int) (evicted 
 }
 
 // RegisterHandler registers a new handler to be called when a new data is added
-func (c *lruCache) RegisterHandler(handler func(key []byte, value interface{})) {
+func (c *lruCache) RegisterHandler(handler func(key []byte, value interface{}), id string) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler to a cacher object")
 		return
 	}
 
 	c.mutAddedDataHandlers.Lock()
-	c.addedDataHandlers = append(c.addedDataHandlers, handler)
+	c.mapDataHandlers[id] = handler
+	c.mutAddedDataHandlers.Unlock()
+}
+
+// UnRegisterHandler removes the handler from the list
+func (c *lruCache) UnRegisterHandler(id string) {
+	c.mutAddedDataHandlers.Lock()
+	delete(c.mapDataHandlers, id)
 	c.mutAddedDataHandlers.Unlock()
 }
 
@@ -122,7 +129,7 @@ func (c *lruCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (fou
 
 func (c *lruCache) callAddedDataHandlers(key []byte, value interface{}) {
 	c.mutAddedDataHandlers.RLock()
-	for _, handler := range c.addedDataHandlers {
+	for _, handler := range c.mapDataHandlers {
 		go handler(key, value)
 	}
 	c.mutAddedDataHandlers.RUnlock()

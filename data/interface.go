@@ -232,3 +232,11 @@ type ShardValidatorInfoHandler interface {
 	String() string
 	IsInterfaceNil() bool
 }
+
+// GoRoutineThrottler can monitor the number of the currently running go routines
+type GoRoutineThrottler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
+	IsInterfaceNil() bool
+}
