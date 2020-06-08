@@ -35,6 +35,7 @@ export NODE_NICENESS=10
 # Delays after running executables.
 export SEEDNODE_DELAY=5
 export GENESIS_DELAY=30
+export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
 export NODE_DELAY=10
 
 # Types of keys to generate

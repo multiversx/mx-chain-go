@@ -2,6 +2,7 @@
 
 export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
+source "$ELRONDTESTNETSCRIPTSDIR/include/config.sh"
 
 # Load local overrides, .gitignored
 LOCAL_OVERRIDES="$ELRONDTESTNETSCRIPTSDIR/local.sh"
@@ -26,3 +27,18 @@ cmd=(printf "$(curl -d '{"epoch":'"$epoch"'}' -H 'Content-Type: application/json
 "${cmd[@]}"
 
 echo " done curl"
+
+# change the setting from config.toml: AfterHardFork to true
+#TODO change to both configs after merging with antiflood-fixes branch
+sed -i '/AfterHardFork/,/AfterHardFork/ s/false/true/' "$TESTNETDIR/node/config/config.toml"
+
+# change nodesSetup.json genesis time to a new value
+let startTime="$(date +%s) + $HARDFORK_DELAY"
+updateJSONValue "$TESTNETDIR/node/config/nodesSetup.json" "startTime" "$startTime"
+
+# copy back the configs
+if [ $COPY_BACK_CONFIGS -eq 1 ]; then
+  copyBackConfigs
+fi
+
+echo "done hardfork reconfig"
