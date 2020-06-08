@@ -603,9 +603,13 @@ func (boot *baseBootstrap) syncBlock() error {
 	startCommitBlockTime := time.Now()
 	err = boot.blockProcessor.CommitBlock(header, body)
 	elapsedTime = time.Since(startCommitBlockTime)
-	log.Debug("elapsed time to commit block",
-		"time [s]", elapsedTime,
-	)
+	if elapsedTime >= core.CommitMaxTime {
+		log.Warn("syncBlock.CommitBlock", "elapsed time", elapsedTime)
+	} else {
+		log.Debug("elapsed time to commit block",
+			"time [s]", elapsedTime,
+		)
+	}
 	if err != nil {
 		return err
 	}
@@ -953,7 +957,7 @@ func (boot *baseBootstrap) init() {
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedMiniBlocks(nil)
 
-	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock)
+	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock, core.UniqueIdentifier())
 	boot.headers.RegisterHandler(boot.processReceivedHeader)
 
 	boot.statusHandler = statusHandler.NewNilStatusHandler()

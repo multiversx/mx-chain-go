@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 type networkComponentsFactory struct {
@@ -73,6 +74,21 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 	err = netMessenger.SetPeerBlackListHandler(p2pPeerBlackList)
 	if err != nil {
 		return nil, err
+	}
+
+	cache, err := storageUnit.NewCache(
+		storageUnit.CacheType(ncf.mainConfig.P2PMessageIDAdditionalCache.Type),
+		ncf.mainConfig.P2PMessageIDAdditionalCache.Capacity,
+		ncf.mainConfig.P2PMessageIDAdditionalCache.Shards,
+		ncf.mainConfig.P2PMessageIDAdditionalCache.SizeInBytes,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating p2p cacher", err)
+	}
+
+	err = netMessenger.SetMessageIdsCacher(cache)
+	if err != nil {
+		return nil, fmt.Errorf("%w while setting p2p cacher", err)
 	}
 
 	return &NetworkComponents{

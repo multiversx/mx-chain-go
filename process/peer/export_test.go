@@ -61,3 +61,8 @@ func (vs *validatorStatistics) UpdateShardDataPeerState(
 ) error {
 	return vs.updateShardDataPeerState(header, cacheMap)
 }
+
+// GetActualList -
+func GetActualList(peerAccount state.PeerAccountHandler) string {
+	return getActualList(peerAccount)
+}

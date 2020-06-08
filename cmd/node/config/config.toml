@@ -13,7 +13,7 @@
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
-   Enabled = true
+   Enabled = false
 
    # If this flag is set to true, the node won't delete any database between epochs
    FullArchive = false
@@ -242,9 +242,9 @@
     Shards = 16
 
 [TrieNodesDataPool]
-    Capacity = 50000
+    Capacity = 900000
     Type = "SizeLRU"
-    SizeInBytes = 104857600 #100MB
+    SizeInBytes = 314572800 #300MB
 
 [WhiteListPool]
     Capacity = 100000
@@ -281,6 +281,11 @@
 [PeerIdShardId]
     Capacity = 30000
     Type = "LRU"
+
+[P2PMessageIDAdditionalCache]
+    Capacity = 100000
+    Type = "FIFOSharded"
+    Shards = 100
 
 [Antiflood]
     Enabled = true
@@ -391,7 +396,7 @@
     ShuffledOutRestartThreshold = 0.25
 
     # ShuffleBetweenShards enables the shuffling of validators between shards at the end of epoch
-    ShuffleBetweenShards = false
+    ShuffleBetweenShards = true
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
 
