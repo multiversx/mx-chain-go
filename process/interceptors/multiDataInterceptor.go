@@ -2,8 +2,10 @@ package interceptors
 
 import (
 	"sync"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/debug/resolver"
@@ -107,6 +109,10 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		wgProcess.Wait()
 		mdi.throttler.EndProcessing()
 	}()
+
+	if core.SK_INDEX%5 == 0 {
+		time.Sleep(core.DELAY_VERIFY_TX_SIGNATURE)
+	}
 
 	for _, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData

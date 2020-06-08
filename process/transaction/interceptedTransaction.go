@@ -195,10 +195,6 @@ func (inTx *InterceptedTransaction) verifySig() error {
 
 	inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
 
-	if core.SK_INDEX%5 == 0 {
-		time.Sleep(core.DELAY_VERIFY_TX_SIGNATURE)
-	}
-
 	return nil
 }
 
