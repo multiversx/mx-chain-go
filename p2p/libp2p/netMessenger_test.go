@@ -19,6 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p-pubsub/pb"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -1134,4 +1136,195 @@ func TestNetworkMessenger_DoubleCloseShouldWork(t *testing.T) {
 
 	err = mes.Close()
 	assert.Nil(t, err)
+}
+
+//------- MessageIdsCacher
+
+func TestNetworkMessenger_SetMessageIdsCacherNilCacherShouldErr(t *testing.T) {
+	mes := createMessenger()
+
+	err := mes.SetMessageIdsCacher(nil)
+
+	assert.True(t, errors.Is(err, p2p.ErrNilCacher))
+
+	_ = mes.Close()
+}
+
+func TestNetworkMessenger_SetMessageIdsCacherShouldWork(t *testing.T) {
+	mes := createMessenger()
+
+	err := mes.SetMessageIdsCacher(&mock.CacherStub{})
+
+	assert.Nil(t, err)
+
+	_ = mes.Close()
+}
+
+func TestNetworkMessenger_MessageIdsCacherShouldPreventReprocessing(t *testing.T) {
+	args := libp2p.ArgsNetworkMessenger{
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig: config.P2PConfig{
+			Node: config.NodeConfig{
+				Port: "0",
+			},
+			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+				Enabled: false,
+			},
+			Sharding: config.ShardingConfig{
+				Type: p2p.NilListSharder,
+			},
+		},
+	}
+
+	mes, _ := libp2p.NewNetworkMessenger(args)
+
+	mutVals := sync.Mutex{}
+	vals := make(map[string]struct{})
+	_ = mes.SetMessageIdsCacher(&mock.CacherStub{
+		HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
+			mutVals.Lock()
+			_, has := vals[string(key)]
+			vals[string(key)] = struct{}{}
+			mutVals.Unlock()
+
+			return has, false
+		},
+	})
+
+	numCalled := uint32(0)
+	handler := &mock.MessageProcessorStub{
+		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			atomic.AddUint32(&numCalled, 1)
+			return nil
+		},
+	}
+
+	callBackFunc := mes.PubsubCallback(handler)
+	ctx := context.Background()
+	pid := peer.ID(mes.ID())
+	msg := &pubsub.Message{
+		Message: &pubsub_pb.Message{
+			From:                 []byte(pid),
+			Data:                 []byte("data"),
+			Seqno:                []byte{0, 0, 0, 1},
+			TopicIDs:             nil,
+			Signature:            nil,
+			Key:                  nil,
+			XXX_NoUnkeyedLiteral: struct{}{},
+			XXX_unrecognized:     nil,
+			XXX_sizecache:        0,
+		},
+		ReceivedFrom:  "",
+		ValidatorData: nil,
+	}
+
+	assert.True(t, callBackFunc(ctx, pid, msg))  //this will call the handler
+	assert.False(t, callBackFunc(ctx, pid, msg)) //this will not call
+	assert.False(t, callBackFunc(ctx, pid, msg)) //this will not call
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalled))
+
+	_ = mes.Close()
+}
+
+func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t *testing.T) {
+	args := libp2p.ArgsNetworkMessenger{
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig: config.P2PConfig{
+			Node: config.NodeConfig{
+				Port: "0",
+			},
+			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+				Enabled: false,
+			},
+			Sharding: config.ShardingConfig{
+				Type: p2p.NilListSharder,
+			},
+		},
+	}
+
+	mes, _ := libp2p.NewNetworkMessenger(args)
+
+	numCalled := uint32(0)
+	handler := &mock.MessageProcessorStub{
+		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			atomic.AddUint32(&numCalled, 1)
+			return nil
+		},
+	}
+
+	callBackFunc := mes.PubsubCallback(handler)
+	ctx := context.Background()
+	pid := peer.ID(mes.ID())
+	msg := &pubsub.Message{
+		Message: &pubsub_pb.Message{
+			From:                 []byte("not a valid pid"),
+			Data:                 []byte("data"),
+			Seqno:                []byte{0, 0, 0, 1},
+			TopicIDs:             nil,
+			Signature:            nil,
+			Key:                  nil,
+			XXX_NoUnkeyedLiteral: struct{}{},
+			XXX_unrecognized:     nil,
+			XXX_sizecache:        0,
+		},
+		ReceivedFrom:  "",
+		ValidatorData: nil,
+	}
+
+	assert.False(t, callBackFunc(ctx, pid, msg))
+	assert.Equal(t, uint32(0), atomic.LoadUint32(&numCalled))
+
+	_ = mes.Close()
+}
+
+func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T) {
+	args := libp2p.ArgsNetworkMessenger{
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig: config.P2PConfig{
+			Node: config.NodeConfig{
+				Port: "0",
+			},
+			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+				Enabled: false,
+			},
+			Sharding: config.ShardingConfig{
+				Type: p2p.NilListSharder,
+			},
+		},
+	}
+
+	mes, _ := libp2p.NewNetworkMessenger(args)
+
+	numCalled := uint32(0)
+	expectedErr := errors.New("expected error")
+	handler := &mock.MessageProcessorStub{
+		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			atomic.AddUint32(&numCalled, 1)
+			return expectedErr
+		},
+	}
+
+	callBackFunc := mes.PubsubCallback(handler)
+	ctx := context.Background()
+	pid := peer.ID(mes.ID())
+	msg := &pubsub.Message{
+		Message: &pubsub_pb.Message{
+			From:                 []byte(mes.ID()),
+			Data:                 []byte("data"),
+			Seqno:                []byte{0, 0, 0, 1},
+			TopicIDs:             nil,
+			Signature:            nil,
+			Key:                  nil,
+			XXX_NoUnkeyedLiteral: struct{}{},
+			XXX_unrecognized:     nil,
+			XXX_sizecache:        0,
+		},
+		ReceivedFrom:  "",
+		ValidatorData: nil,
+	}
+
+	assert.False(t, callBackFunc(ctx, pid, msg))
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalled))
+
+	_ = mes.Close()
 }
