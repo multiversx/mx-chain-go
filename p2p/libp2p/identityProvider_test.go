@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
@@ -313,7 +314,7 @@ func TestIdentityProvider_ProcessReceivedDataShouldUpdateCollector(t *testing.T)
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
 		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {
+			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {
 				updateWasCalled = true
 			},
 		},
@@ -342,7 +343,7 @@ func TestIdentityProvider_HandleStreamsReceivedMessageShouldUpdateCollector(t *t
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
 		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {
+			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {
 				updateWasCalled = true
 			},
 		},
@@ -376,7 +377,7 @@ func TestIdentityProvider_HandleStreamsTimeoutShouldNotFailOrWrite(t *testing.T)
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
 		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {
+			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {
 				updateWasCalled = true
 			},
 		},
@@ -409,7 +410,7 @@ func TestIdentityProvider_HandleStreamsClosedStreamShouldNotFailOrWrite(t *testi
 	ip, _ := libp2p.NewIdentityProvider(
 		host,
 		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {
+			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {
 				updateWasCalled = true
 			},
 		},

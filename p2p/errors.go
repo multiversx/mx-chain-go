@@ -67,23 +67,29 @@ var ErrTooManyGoroutines = errors.New(" number of goroutines exceeded")
 // ErrInvalidValue signals that an invalid value has been provided
 var ErrInvalidValue = errors.New("invalid value")
 
+// ErrInvalidPortValue signals that an invalid port value has been provided
+var ErrInvalidPortValue = errors.New("invalid port value")
+
+// ErrInvalidPortsRangeString signals that an invalid ports range string has been provided
+var ErrInvalidPortsRangeString = errors.New("invalid ports range string")
+
+// ErrInvalidStartingPortValue signals that an invalid starting port value has been provided
+var ErrInvalidStartingPortValue = errors.New("invalid starting port value")
+
+// ErrInvalidEndingPortValue signals that an invalid ending port value has been provided
+var ErrInvalidEndingPortValue = errors.New("invalid ending port value")
+
+// ErrEndPortIsSmallerThanStartPort signals that the ending port value is smaller than the starting port value
+var ErrEndPortIsSmallerThanStartPort = errors.New("ending port value is smaller than the starting port value")
+
+// ErrNoFreePortInRange signals that no free port was found from provided range
+var ErrNoFreePortInRange = errors.New("no free port in range")
+
 // ErrNilSharder signals that the provided sharder is nil
 var ErrNilSharder = errors.New("nil sharder")
 
 // ErrNilPeerShardResolver signals that the peer shard resolver provided is nil
 var ErrNilPeerShardResolver = errors.New("nil PeerShardResolver")
-
-// ErrWatchdogAlreadyStarted signals that a peer discovery watchdog is already started
-var ErrWatchdogAlreadyStarted = errors.New("peer discovery watchdog is already started")
-
-// ErrWatchdogNotStarted signals that a peer discovery watchdog is not started
-var ErrWatchdogNotStarted = errors.New("peer discovery watchdog is not started")
-
-// ErrContextDone signals that an operation was canceled by context done
-var ErrContextDone = errors.New("context done")
-
-// ErrTimeout signals a timeout
-var ErrTimeout = errors.New("timeout")
 
 // ErrNilNetworkShardingCollector signals that the network sharding collector provided is nil
 var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
@@ -115,3 +121,6 @@ var ErrNilPeerBlacklistHandler = errors.New("nil peer black list handler")
 
 // ErrNilStatusHandler signals that a nil status handler has been provided
 var ErrNilStatusHandler = errors.New("nil status handler")
+
+// ErrNilCacher signals that a nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")

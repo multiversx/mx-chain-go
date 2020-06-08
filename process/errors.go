@@ -770,8 +770,8 @@ var ErrNilBalanceComputationHandler = errors.New("nil balance computation handle
 // ErrNilRatingsInfoHandler signals that nil ratings info handler has been provided
 var ErrNilRatingsInfoHandler = errors.New("nil ratings info handler")
 
-// ErrNilInterceptedDebugHandler signals that a nil intercepted debug handler has been provided
-var ErrNilInterceptedDebugHandler = errors.New("nil intercepted debug handler")
+// ErrNilDebugger signals that a nil debug handler has been provided
+var ErrNilDebugger = errors.New("nil debug handler")
 
 // ErrBuiltInFunctionCalledWithValue signals that builtin function was called with value that is not allowed
 var ErrBuiltInFunctionCalledWithValue = errors.New("built in function called with tx value is not allowed")

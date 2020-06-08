@@ -1,6 +1,10 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
+)
 
 // NilAntifloodHandler is an empty implementation of P2PAntifloodHandler
 // it does nothing
@@ -16,12 +20,17 @@ func (nah *NilAntifloodHandler) SetMaxMessagesForTopic(_ string, _ uint32) {
 }
 
 // CanProcessMessage will always return nil, allowing messages to go to interceptors
-func (nah *NilAntifloodHandler) CanProcessMessage(_ p2p.MessageP2P, _ p2p.PeerID) error {
+func (nah *NilAntifloodHandler) CanProcessMessage(_ p2p.MessageP2P, _ core.PeerID) error {
 	return nil
 }
 
 // CanProcessMessagesOnTopic will always return nil, allowing messages to go to interceptors
-func (nah *NilAntifloodHandler) CanProcessMessagesOnTopic(_ p2p.PeerID, _ string, _ uint32) error {
+func (nah *NilAntifloodHandler) CanProcessMessagesOnTopic(_ core.PeerID, _ string, _ uint32, _ uint64) error {
+	return nil
+}
+
+// SetDebugger returns nil
+func (nah *NilAntifloodHandler) SetDebugger(_ process.AntifloodDebugger) error {
 	return nil
 }
 

@@ -100,7 +100,7 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 	processors := make([]*messageProcessor, 0, len(peers))
 	for i := 0; i < len(peers); i++ {
 		var antiflood process.P2PAntifloodHandler
-		var blackListHandler process.BlackListHandler
+		var blackListHandler process.PeerBlackListHandler
 		var err error
 
 		if intInSlice(i, idxBadPeers) {
@@ -174,7 +174,7 @@ func displayProcessors(processors []*messageProcessor, idxBadPeers []int, idxRou
 
 func startFlooding(peers []p2p.Messenger, topic string, idxBadPeers []int, maxSize int, msgSize int) {
 	lastUpdated := time.Now()
-	m := make(map[p2p.PeerID]int)
+	m := make(map[core.PeerID]int)
 
 	for {
 		for idx, p := range peers {
@@ -184,7 +184,7 @@ func startFlooding(peers []p2p.Messenger, topic string, idxBadPeers []int, maxSi
 			}
 
 			if time.Since(lastUpdated) > time.Second {
-				m = make(map[p2p.PeerID]int)
+				m = make(map[core.PeerID]int)
 				//comment the following line to make the test generate a large number of messages/sec
 				lastUpdated = time.Now()
 			}
