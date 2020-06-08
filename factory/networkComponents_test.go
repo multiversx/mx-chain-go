@@ -74,6 +74,13 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 				Capacity: 100,
 				Shards:   16,
 			},
+			Debug: config.DebugConfig{
+				Antiflood: config.AntifloodDebugConfig{
+					Enabled:                    true,
+					CacheSize:                  100,
+					IntervalAutoPrintInSeconds: 1,
+				},
+			},
 		},
 		&mock.AppStatusHandlerMock{},
 	)

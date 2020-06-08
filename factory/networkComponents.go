@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -54,6 +55,18 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 	)
 	if errNewAntiflood != nil {
 		return nil, errNewAntiflood
+	}
+
+	if ncf.mainConfig.Debug.Antiflood.Enabled {
+		debugger, err := antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
+		if err != nil {
+			return nil, err
+		}
+
+		err = inAntifloodHandler.SetDebugger(debugger)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	inputAntifloodHandler, ok := inAntifloodHandler.(P2PAntifloodHandler)

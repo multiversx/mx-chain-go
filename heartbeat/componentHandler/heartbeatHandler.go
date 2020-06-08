@@ -40,7 +40,7 @@ type ArgHeartbeat struct {
 	PrivKey                  crypto.PrivateKey
 	HardforkTrigger          heartbeat.HardforkTrigger
 	AntifloodHandler         heartbeat.P2PAntifloodHandler
-	PeerBlackListHandler     heartbeat.BlackListHandler
+	PeerBlackListHandler     heartbeat.PeerBlackListHandler
 	ValidatorPubkeyConverter core.PubkeyConverter
 	EpochStartTrigger        sharding.EpochHandler
 	EpochStartRegistration   sharding.EpochStartEventNotifier

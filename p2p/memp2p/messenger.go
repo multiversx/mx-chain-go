@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -31,7 +32,7 @@ var log = logger.GetOrCreate("p2p/memp2p")
 // network.
 type Messenger struct {
 	network         *Network
-	p2pID           p2p.PeerID
+	p2pID           core.PeerID
 	address         string
 	topics          map[string]struct{}
 	topicValidators map[string]p2p.MessageProcessor
@@ -55,7 +56,7 @@ func NewMessenger(network *Network) (*Messenger, error) {
 
 	messenger := &Messenger{
 		network:         network,
-		p2pID:           p2p.PeerID(ID),
+		p2pID:           core.PeerID(ID),
 		address:         Address,
 		topics:          make(map[string]struct{}),
 		topicValidators: make(map[string]p2p.MessageProcessor),
@@ -69,7 +70,7 @@ func NewMessenger(network *Network) (*Messenger, error) {
 }
 
 // ID returns the P2P ID of the messenger
-func (messenger *Messenger) ID() p2p.PeerID {
+func (messenger *Messenger) ID() core.PeerID {
 	return messenger.p2pID
 }
 
@@ -77,11 +78,11 @@ func (messenger *Messenger) ID() p2p.PeerID {
 // has knowledge of. Since this is an in-memory network structured as a fully
 // connected graph, this function returns the list of the P2P IDs of all the
 // peers in the network (assuming this Messenger is connected).
-func (messenger *Messenger) Peers() []p2p.PeerID {
+func (messenger *Messenger) Peers() []core.PeerID {
 	// If the messenger is connected to the network, it has knowledge of all
 	// other peers.
 	if !messenger.IsConnectedToNetwork() {
-		return []p2p.PeerID{}
+		return []core.PeerID{}
 	}
 	return messenger.network.PeerIDs()
 }
@@ -116,7 +117,7 @@ func (messenger *Messenger) IsConnectedToNetwork() bool {
 // IsConnected returns true if this Messenger is connected to the peer with the
 // specified ID. It always returns true if the Messenger is connected to the
 // network and false otherwise, regardless of the provided peer ID.
-func (messenger *Messenger) IsConnected(_ p2p.PeerID) bool {
+func (messenger *Messenger) IsConnected(_ core.PeerID) bool {
 	return messenger.IsConnectedToNetwork()
 }
 
@@ -125,9 +126,9 @@ func (messenger *Messenger) IsConnected(_ p2p.PeerID) bool {
 // network, then the function returns a slice containing the IDs of all the
 // other peers connected to the network. Returns false if the Messenger is
 // not connected.
-func (messenger *Messenger) ConnectedPeers() []p2p.PeerID {
+func (messenger *Messenger) ConnectedPeers() []core.PeerID {
 	if !messenger.IsConnectedToNetwork() {
-		return []p2p.PeerID{}
+		return []core.PeerID{}
 	}
 	return messenger.network.PeerIDsExceptOne(messenger.ID())
 }
@@ -143,15 +144,15 @@ func (messenger *Messenger) ConnectedAddresses() []string {
 }
 
 // PeerAddress creates the address string from a given peer ID.
-func (messenger *Messenger) PeerAddress(pid p2p.PeerID) string {
+func (messenger *Messenger) PeerAddress(pid core.PeerID) string {
 	return fmt.Sprintf("/memp2p/%s", string(pid))
 }
 
 // ConnectedPeersOnTopic returns a slice of IDs belonging to the peers in the
 // network that have declared their interest in the given topic and are
 // listening to messages on that topic.
-func (messenger *Messenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
-	var filteredPeers []p2p.PeerID
+func (messenger *Messenger) ConnectedPeersOnTopic(topic string) []core.PeerID {
+	var filteredPeers []core.PeerID
 	if !messenger.IsConnectedToNetwork() {
 		return filteredPeers
 	}
@@ -340,7 +341,7 @@ func (messenger *Messenger) processFromQueue() {
 }
 
 // SendToConnectedPeer sends a message directly to the peer specified by the ID.
-func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
+func (messenger *Messenger) SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error {
 	if messenger.IsConnectedToNetwork() {
 		seqNo := atomic.AddUint64(&messenger.seqNo, 1)
 		messageObject := newMessage(topic, buff, messenger.ID(), seqNo)
@@ -393,7 +394,7 @@ func (messenger *Messenger) SetPeerShardResolver(_ p2p.PeerShardResolver) error 
 }
 
 // SetPeerBlackListHandler does nothing
-func (messenger *Messenger) SetPeerBlackListHandler(_ p2p.BlacklistHandler) error {
+func (messenger *Messenger) SetPeerBlackListHandler(_ p2p.PeerBlacklistHandler) error {
 	return nil
 }
 
