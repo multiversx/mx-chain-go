@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -161,6 +162,12 @@ func TestIsStartInEpochZero(t *testing.T) {
 func TestEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs()
 
+	err := errors.New("localErr")
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetCalled: func() (storage.LatestDataFromStorage, error) {
+			return storage.LatestDataFromStorage{}, err
+		},
+	}
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
 	params, err := epochStartProvider.Bootstrap()
