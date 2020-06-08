@@ -200,6 +200,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storageOpenerHandler:       args.StorageUnitOpener,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
+		statusHandler:              args.StatusHandler,
 		shuffledOut:                false,
 	}
 
