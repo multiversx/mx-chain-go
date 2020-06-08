@@ -20,8 +20,8 @@
     #p2p identity generation
     Seed = "seed"
 
-    # The targeted number of peer connections
-    TargetPeerCount = 100000
+    # The maximum peers that will connect to this node
+    MaximumExpectedPeerCount = 1024
 
 # P2P peer discovery section
 
