@@ -191,10 +191,11 @@ VERSION:
 		Value: "./config/gasSchedule.toml",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections
-	port = cli.IntFlag{
-		Name:  "port",
-		Usage: "The `[p2p port]` number on which the application will start",
-		Value: 0,
+	port = cli.StringFlag{
+		Name: "port",
+		Usage: "The `[p2p port]` number on which the application will start. Can use single values such as " +
+			"`0, 10230, 15670` or range of ports such as `5000-10000`",
+		Value: "0",
 	}
 	// profileMode defines a flag for profiling the binary
 	// If enabled, it will open the pprof routes over the default gin rest webserver.
@@ -553,7 +554,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("config", "file", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
+		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
 
 	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.AddressPubkeyConverter)

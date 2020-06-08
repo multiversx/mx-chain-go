@@ -35,7 +35,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 	assert.Nil(t, err)
 
 	_, ok1 := af.(*disabled.AntiFlood)
-	_, ok2 := bl.(*disabled.BlacklistHandler)
+	_, ok2 := bl.(*disabled.PeerBlacklistHandler)
 	assert.True(t, ok1)
 	assert.True(t, ok2)
 }
@@ -53,6 +53,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 			},
 			FastReacting: createFloodPreventerConfig(),
 			SlowReacting: createFloodPreventerConfig(),
+			OutOfSpecs:   createFloodPreventerConfig(),
 			Topic: config.TopicAntifloodConfig{
 				DefaultMaxMessagesPerSec: 10,
 			},

@@ -1335,7 +1335,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 		node.WithBlockBlackListHandler(tpn.BlockBlackListHandler),
-		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
+		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{}),
 		node.WithDataPool(tpn.DataPool),
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
@@ -1410,7 +1410,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 		tpn.DataPool.Transactions().RegisterHandler(txHandler)
 		tpn.DataPool.RewardTransactions().RegisterHandler(txHandler)
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
-		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers)
+		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers, core.UniqueIdentifier())
 	}
 }
 

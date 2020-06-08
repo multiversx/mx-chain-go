@@ -1,6 +1,8 @@
 package floodPreventers
 
-func (tfp *topicFloodPreventer) CountForTopicAndIdentifier(topic string, identifier string) uint32 {
+import "github.com/ElrondNetwork/elrond-go/core"
+
+func (tfp *topicFloodPreventer) CountForTopicAndIdentifier(topic string, pid core.PeerID) uint32 {
 	tfp.mutTopicMaxMessages.RLock()
 	defer tfp.mutTopicMaxMessages.RUnlock()
 
@@ -8,7 +10,7 @@ func (tfp *topicFloodPreventer) CountForTopicAndIdentifier(topic string, identif
 	if !ok {
 		return 0
 	}
-	countForId, ok := mapForTopic[identifier]
+	countForId, ok := mapForTopic[pid]
 	if !ok {
 		return 0
 	}

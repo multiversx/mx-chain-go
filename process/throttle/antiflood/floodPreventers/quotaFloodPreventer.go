@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -115,29 +116,29 @@ func NewQuotaFloodPreventer(arg ArgQuotaFloodPreventer) (*quotaFloodPreventer, e
 	}, nil
 }
 
-// IncreaseLoad tries to increment the counter values held at "identifier" position
+// IncreaseLoad tries to increment the counter values held at "pid" position
 // It returns true if it had succeeded incrementing (existing counter value is lower or equal with provided maxOperations)
 // We need the mutOperation here as the get and put should be done atomically.
 // Otherwise we might yield a slightly higher number of false valid increments
 // This method also checks the global sum quota but does not increment its values
-func (qfp *quotaFloodPreventer) IncreaseLoad(identifier string, size uint64) error {
+func (qfp *quotaFloodPreventer) IncreaseLoad(pid core.PeerID, size uint64) error {
 	qfp.mutOperation.Lock()
 	defer qfp.mutOperation.Unlock()
 
-	return qfp.increaseLoad(identifier, size)
+	return qfp.increaseLoad(pid, size)
 }
 
-func (qfp *quotaFloodPreventer) increaseLoad(identifier string, size uint64) error {
-	valueQuota, ok := qfp.cacher.Get([]byte(identifier))
+func (qfp *quotaFloodPreventer) increaseLoad(pid core.PeerID, size uint64) error {
+	valueQuota, ok := qfp.cacher.Get(pid.Bytes())
 	if !ok {
-		qfp.putDefaultQuota(identifier, size)
+		qfp.putDefaultQuota(pid, size)
 
 		return nil
 	}
 
 	q, isQuota := valueQuota.(*quota)
 	if !isQuota {
-		qfp.putDefaultQuota(identifier, size)
+		qfp.putDefaultQuota(pid, size)
 
 		return nil
 	}
@@ -149,7 +150,7 @@ func (qfp *quotaFloodPreventer) increaseLoad(identifier string, size uint64) err
 	maxSizeMessagesReached := qfp.isMaximumReached(qfp.maxTotalSizePerPeer, q.sizeReceivedMessages)
 	isPeerQuotaReached := maxNumMessagesReached || maxSizeMessagesReached
 	if isPeerQuotaReached {
-		return fmt.Errorf("%w for pid %s", process.ErrSystemBusy, identifier)
+		return fmt.Errorf("%w for pid %s", process.ErrSystemBusy, pid.Pretty())
 	}
 
 	q.numProcessedMessages++
@@ -164,14 +165,14 @@ func (qfp *quotaFloodPreventer) isMaximumReached(absoluteMax uint64, counted uin
 	return counted > max
 }
 
-func (qfp *quotaFloodPreventer) putDefaultQuota(identifier string, size uint64) {
+func (qfp *quotaFloodPreventer) putDefaultQuota(pid core.PeerID, size uint64) {
 	q := &quota{
 		numReceivedMessages:   initNumMessages,
 		sizeReceivedMessages:  size,
 		numProcessedMessages:  initNumMessages,
 		sizeProcessedMessages: size,
 	}
-	qfp.cacher.Put([]byte(identifier), q, q.Size())
+	qfp.cacher.Put(pid.Bytes(), q, q.Size())
 }
 
 // Reset clears all map values
@@ -207,7 +208,7 @@ func (qfp *quotaFloodPreventer) createStatistics() {
 		}
 
 		qfp.addQuota(
-			string(k),
+			core.PeerID(k),
 			q.numReceivedMessages,
 			q.sizeReceivedMessages,
 			q.numProcessedMessages,
@@ -217,14 +218,14 @@ func (qfp *quotaFloodPreventer) createStatistics() {
 }
 
 func (qfp *quotaFloodPreventer) addQuota(
-	identifier string,
+	pid core.PeerID,
 	numReceived uint32,
 	sizeReceived uint64,
 	numProcessed uint32,
 	sizeProcessed uint64,
 ) {
 	for _, statusHandler := range qfp.statusHandlers {
-		statusHandler.AddQuota(identifier, numReceived, sizeReceived, numProcessed, sizeProcessed)
+		statusHandler.AddQuota(pid, numReceived, sizeReceived, numProcessed, sizeProcessed)
 	}
 }
 

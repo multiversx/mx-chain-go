@@ -68,7 +68,7 @@ func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMi
 		waitTimeBetweenRequests: args.RequestHandler.RequestInterval(),
 	}
 
-	p.pool.RegisterHandler(p.receivedMiniBlock)
+	p.pool.RegisterHandler(p.receivedMiniBlock, core.UniqueIdentifier())
 
 	return p, nil
 }

@@ -1,6 +1,9 @@
-package floodPreventers
+package disabled
 
-import "github.com/ElrondNetwork/elrond-go/process"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/process"
+)
 
 var _ process.TopicFloodPreventer = (*nilTopicFloodPreventer)(nil)
 
@@ -15,7 +18,7 @@ func NewNilTopicFloodPreventer() *nilTopicFloodPreventer {
 }
 
 // IncreaseLoad will always return nil
-func (ntfp *nilTopicFloodPreventer) IncreaseLoad(_ string, _ string, _ uint32) error {
+func (ntfp *nilTopicFloodPreventer) IncreaseLoad(_ core.PeerID, _ string, _ uint32) error {
 	return nil
 }
 

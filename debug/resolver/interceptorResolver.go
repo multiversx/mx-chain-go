@@ -82,7 +82,7 @@ type interceptorResolver struct {
 	requestsThreshold    int
 	resolveFailThreshold int
 	maxNumPrints         int
-	printEventHandler    func(data string)
+	printEventFunc       func(data string)
 	timestampHandler     func() int64
 }
 
@@ -103,8 +103,9 @@ func NewInterceptorResolver(config config.InterceptorResolverDebugConfig) (*inte
 		return nil, err
 	}
 
-	ir.printEventHandler = ir.printEvent
+	ir.printEventFunc = ir.printEvent
 	if config.EnablePrint {
+		//TODO add context stopping mechanism here
 		go ir.printContinously()
 	}
 
@@ -153,7 +154,7 @@ func (ir *interceptorResolver) printContinously() {
 		}
 
 		stringEvent := strings.Join(events, newLineChar)
-		ir.printEventHandler(stringEvent)
+		ir.printEventFunc(stringEvent)
 	}
 }
 

@@ -444,7 +444,7 @@ func createConsensusOnlyNode(
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
 		node.WithBlockBlackListHandler(&mock.BlackListHandlerStub{}),
-		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
+		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{}),
 		node.WithEpochStartTrigger(epochStartTrigger),
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithNetworkShardingCollector(mock.NewNetworkShardingCollectorMock()),

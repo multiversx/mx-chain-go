@@ -184,7 +184,7 @@ assembleCommand_startObserverNode() {
         -port $PORT -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation -rest-api-interface localhost:$RESTAPIPORT \
         -destination-shard-as-observer $SHARD \
         -sk-index $KEY_INDEX \
-        -working-directory $WORKING_DIR"
+        -working-directory $WORKING_DIR -config ./config/config_observer.toml"
 
   if [ -n "$NODE_NICENESS" ]
   then
@@ -209,7 +209,7 @@ assembleCommand_startValidatorNode() {
   local nodeCommand="./node \
         -port $PORT -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation -rest-api-interface localhost:$RESTAPIPORT \
         -sk-index $KEY_INDEX \
-        -working-directory $WORKING_DIR"
+        -working-directory $WORKING_DIR -config ./config/config_validator.toml"
 
   if [ -n "$NODE_NICENESS" ]
   then

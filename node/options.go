@@ -440,7 +440,7 @@ func WithBlockBlackListHandler(blackListHandler process.BlackListHandler) Option
 }
 
 // WithPeerBlackListHandler sets up a block black list handler for the Node
-func WithPeerBlackListHandler(blackListHandler process.BlackListHandler) Option {
+func WithPeerBlackListHandler(blackListHandler process.PeerBlackListHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(blackListHandler) {
 			return fmt.Errorf("%w for WithPeerBlackListHandler", ErrNilBlackListHandler)

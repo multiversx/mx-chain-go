@@ -159,7 +159,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 			},
 		}),
 		node.WithHardforkTrigger(hardforkTrigger),
-		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
+		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{}),
 		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
 		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 	)

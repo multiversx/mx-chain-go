@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
@@ -18,7 +19,9 @@ func createMessenger() p2p.Messenger {
 	args := libp2p.ArgsNetworkMessenger{
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
-			Node: config.NodeConfig{},
+			Node: config.NodeConfig{
+				Port: "0",
+			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled: false,
 			},
@@ -74,7 +77,7 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 
 	_ = mes2.CreateTopic(topic, false)
 	_ = mes2.RegisterMessageProcessor(topic, &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, _ p2p.PeerID) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 			if bytes.Equal(message.Data(), largePacket) {
 				largePacketReceived.Store(true)
 			}
