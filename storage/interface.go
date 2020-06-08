@@ -171,16 +171,8 @@ type ShardCoordinator interface {
 	IsInterfaceNil() bool
 }
 
-// CacheItem defines the interface of a cache item
-type CacheItem interface {
-	GetKey() []byte
-	Size() int
-	IsImmuneToEviction() bool
-	ImmunizeAgainstEviction()
-}
-
 // ForEachItem is an iterator callback
-type ForEachItem func(key []byte, value CacheItem)
+type ForEachItem func(key []byte, value interface{})
 
 // LRUCacheHandler is the interface for LRU cache.
 type LRUCacheHandler interface {

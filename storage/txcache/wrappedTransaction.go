@@ -28,20 +28,11 @@ func (wrappedTx *WrappedTransaction) Size() int {
 	return int(estimateTxSize(wrappedTx))
 }
 
-// IsImmuneToEviction returns whether the transaction is immune to eviction
-func (wrappedTx *WrappedTransaction) IsImmuneToEviction() bool {
-	return wrappedTx.isImmuneToEvictionFlag.IsSet()
-}
-
-// ImmunizeAgainstEviction marks the transaction as immune to eviction
-func (wrappedTx *WrappedTransaction) ImmunizeAgainstEviction() {
-	wrappedTx.isImmuneToEvictionFlag.Set()
-}
-
 func (wrappedTx *WrappedTransaction) sameAs(another *WrappedTransaction) bool {
 	return bytes.Equal(wrappedTx.TxHash, another.TxHash)
 }
 
+// TODO: Remove this.
 // estimateTxSize returns an approximation
 func estimateTxSize(tx *WrappedTransaction) uint64 {
 	sizeOfData := uint64(len(tx.Tx.GetData()))

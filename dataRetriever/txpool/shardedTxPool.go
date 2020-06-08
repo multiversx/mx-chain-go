@@ -168,6 +168,7 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, _ int, cache
 		return
 	}
 
+	// TODO: receive size here
 	wrapper := &txcache.WrappedTransaction{
 		Tx:              valueAsTransaction,
 		TxHash:          key,

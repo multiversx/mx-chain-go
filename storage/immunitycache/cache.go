@@ -95,13 +95,6 @@ func (ic *ImmunityCache) getChunkByIndexWithLock(index uint32) *immunityChunk {
 	return ic.chunks[index]
 }
 
-// Add adds an item in the cache
-func (ic *ImmunityCache) Add(item storage.CacheItem) (ok bool, added bool) {
-	key := string(item.GetKey())
-	chunk := ic.getChunkByKeyWithLock(key)
-	return chunk.AddItem(item)
-}
-
 func (ic *ImmunityCache) getChunkByKeyWithLock(key string) *immunityChunk {
 	ic.mutex.RLock()
 	defer ic.mutex.RUnlock()
@@ -112,11 +105,16 @@ func (ic *ImmunityCache) getChunkByKeyWithLock(key string) *immunityChunk {
 
 // Get gets an item (payload) by key
 func (ic *ImmunityCache) Get(key []byte) (value interface{}, ok bool) {
-	return ic.GetItem(key)
+	cacheItem, ok := ic.getItem(key)
+	if ok {
+		return cacheItem.payload, true
+	}
+
+	return nil, false
 }
 
 // GetItem gets an item by key
-func (ic *ImmunityCache) GetItem(key []byte) (storage.CacheItem, bool) {
+func (ic *ImmunityCache) getItem(key []byte) (*cacheItem, bool) {
 	chunk := ic.getChunkByKeyWithLock(string(key))
 	return chunk.GetItem(string(key))
 }
@@ -134,20 +132,15 @@ func (ic *ImmunityCache) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd adds an item in the cache
-func (ic *ImmunityCache) HasOrAdd(_ []byte, value interface{}, _ int) (ok, evicted bool) {
-	valueAsCacheItem, ok := value.(storage.CacheItem)
-	if !ok {
-		log.Error("ImmunityCache.HasOrAdd: cannot cast to storage.CacheItem")
-		return false, false
-	}
-
-	ok, _ = ic.Add(valueAsCacheItem)
-	return ok, false
+func (ic *ImmunityCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
+	cacheItem := newCacheItem(value, string(key), sizeInBytes)
+	chunk := ic.getChunkByKeyWithLock(string(key))
+	return chunk.AddItem(cacheItem)
 }
 
 // Put adds an item in the cache
-func (ic *ImmunityCache) Put(key []byte, value interface{}, _ int) (evicted bool) {
-	ic.HasOrAdd(key, value, 0)
+func (ic *ImmunityCache) Put(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+	ic.HasOrAdd(key, value, sizeInBytes)
 	return false
 }
 

@@ -37,12 +37,12 @@ func TestImmunityChunk_AddItemIgnoresDuplicates(t *testing.T) {
 	chunk.addTestItems("x", "y", "z")
 	require.Equal(t, 3, chunk.Count())
 
-	ok, added := chunk.AddItem(newCacheItem("a"))
+	ok, added := chunk.AddItem(newCacheItem("foo", "a", 1))
 	require.True(t, ok)
 	require.True(t, added)
 	require.Equal(t, 4, chunk.Count())
 
-	ok, added = chunk.AddItem(newCacheItem("x"))
+	ok, added = chunk.AddItem(newCacheItem("bar", "x", 1))
 	require.True(t, ok)
 	require.False(t, added)
 	require.Equal(t, 4, chunk.Count())
@@ -70,7 +70,7 @@ func TestImmunityChunk_AddItemDoesNotEvictImmuneItems(t *testing.T) {
 	require.Equal(t, []string{"x", "y", "b"}, keysAsStrings(chunk.KeysInOrder()))
 
 	_, _ = chunk.ImmunizeKeys(keysAsBytes([]string{"b"}))
-	ok, added := chunk.AddItem(newCacheItem("c"))
+	ok, added := chunk.AddItem(newCacheItem("foo", "c", 1))
 	require.False(t, ok)
 	require.False(t, added)
 	require.Equal(t, []string{"x", "y", "b"}, keysAsStrings(chunk.KeysInOrder()))
@@ -98,6 +98,6 @@ func newChunkToTest(maxNumItems uint32, numMaxBytes uint32) *immunityChunk {
 
 func (chunk *immunityChunk) addTestItems(keys ...string) {
 	for _, key := range keys {
-		_, _ = chunk.AddItem(newCacheItem(key))
+		_, _ = chunk.AddItem(newCacheItem("foo", key, 100))
 	}
 }
