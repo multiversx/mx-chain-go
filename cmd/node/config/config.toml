@@ -282,6 +282,11 @@
     Capacity = 30000
     Type = "LRU"
 
+[P2PMessageIDAdditionalCache]
+    Capacity = 100000
+    Type = "FIFOSharded"
+    Shards = 100
+
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
