@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -668,20 +669,26 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 
 func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 	return func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+		wrappedMsg, err := NewMessage(message)
+		if err != nil {
+			log.Trace("p2p validator - new message", "error", err.Error(), "topics", message.TopicIDs)
+			return false
+		}
+
 		identifier := append(message.From, message.Seqno...)
 		netMes.mutMessageIdCacher.RLock()
 		has, _ := netMes.messageIdCacher.HasOrAdd(identifier, struct{}{}, len(identifier))
 		netMes.mutMessageIdCacher.RUnlock()
 		if has {
 			//not reprocessing nor rebrodcasting the same message over and over again
+			log.Trace("received an old message",
+				"originator pid", p2p.MessageOriginatorPid(wrappedMsg),
+				"from connected pid", p2p.PeerIdToShortString(p2p.PeerID(pid)),
+				"sequence", hex.EncodeToString(wrappedMsg.SeqNo()),
+			)
 			return false
 		}
 
-		wrappedMsg, err := NewMessage(message)
-		if err != nil {
-			log.Trace("p2p validator - new message", "error", err.Error(), "topics", message.TopicIDs)
-			return false
-		}
 		err = handler.ProcessReceivedMessage(wrappedMsg, p2p.PeerID(pid))
 		if err != nil {
 			log.Trace("p2p validator",
