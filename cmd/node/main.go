@@ -864,6 +864,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     addressPubkeyConverter,
 		LatestStorageDataProvider:  latestStorageDataProvider,
+		ArgumentsParser:            smartContract.NewArgumentParser(),
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
