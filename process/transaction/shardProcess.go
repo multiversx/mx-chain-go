@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"bytes"
 	"errors"
 	"math/big"
 
@@ -25,6 +26,8 @@ type txProcessor struct {
 	txTypeHandler    process.TxTypeHandler
 	receiptForwarder process.IntermediateTransactionHandler
 	badTxForwarder   process.IntermediateTransactionHandler
+	argsParser       process.ArgumentsParser
+	scrForwarder     process.IntermediateTransactionHandler
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -40,6 +43,8 @@ func NewTxProcessor(
 	economicsFee process.FeeHandler,
 	receiptForwarder process.IntermediateTransactionHandler,
 	badTxForwarder process.IntermediateTransactionHandler,
+	argsParser process.ArgumentsParser,
+	scrForwarder process.IntermediateTransactionHandler,
 ) (*txProcessor, error) {
 
 	if check.IfNil(accounts) {
@@ -75,6 +80,12 @@ func NewTxProcessor(
 	if check.IfNil(badTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
 	}
+	if check.IfNil(argsParser) {
+		return nil, process.ErrNilArgumentParser
+	}
+	if check.IfNil(scrForwarder) {
+		return nil, process.ErrNilIntermediateTransactionHandler
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:         accounts,
@@ -92,6 +103,8 @@ func NewTxProcessor(
 		txTypeHandler:    txTypeHandler,
 		receiptForwarder: receiptForwarder,
 		badTxForwarder:   badTxForwarder,
+		argsParser:       argsParser,
+		scrForwarder:     scrForwarder,
 	}, nil
 }
 
@@ -142,6 +155,8 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	case process.BuiltInFunctionCall:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
+	case process.RelayedTx:
+		return txProc.processRelayedTx(tx, tx.SndAddr, tx.RcvAddr)
 	}
 
 	return process.ErrWrongTransaction
@@ -388,6 +403,86 @@ func (txProc *txProcessor) moveBalances(
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (txProc *txProcessor) processRelayedTx(
+	tx *transaction.Transaction,
+	adrSrc, adrDst []byte,
+) error {
+	err := txProc.argsParser.ParseData(string(tx.GetData()))
+	if err != nil {
+		return err
+	}
+
+	args, err := txProc.argsParser.GetFunctionArguments()
+	if err != nil {
+		return err
+	}
+
+	if len(args) != 1 {
+		return process.ErrInvalidArguments
+	}
+
+	userTx := &transaction.Transaction{}
+	err = txProc.marshalizer.Unmarshal(userTx, args[0])
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(userTx.SndAddr, tx.RcvAddr) {
+		return process.ErrInvalidAddressInRelayedTx
+	}
+
+	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	if err != nil {
+		return err
+	}
+
+	relayerFee := txProc.economicsFee.ComputeFee(tx)
+	totalFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+	remainingFee := big.NewInt(0).Sub(totalFee, relayerFee)
+
+	if !check.IfNil(acntSrc) {
+		err = acntSrc.SubFromBalance(tx.GetValue())
+		if err != nil {
+			return err
+		}
+
+		err = acntSrc.SubFromBalance(totalFee)
+		if err != nil {
+			return err
+		}
+
+		acntSrc.IncreaseNonce(1)
+		err = txProc.accounts.SaveAccount(acntSrc)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !check.IfNil(acntDst) {
+		err = acntDst.AddToBalance(tx.GetValue())
+		if err != nil {
+			return err
+		}
+
+		err = acntDst.AddToBalance(remainingFee)
+		if err != nil {
+			return err
+		}
+
+		err = txProc.accounts.SaveAccount(acntDst)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = txProc.ProcessTransaction(userTx)
+	if err != nil {
+		return err
 	}
 
 	return nil

@@ -790,3 +790,6 @@ var ErrOriginatorIsBlacklisted = errors.New("originator is blacklisted")
 
 // ErrShardIsStuck signals that a shard is stuck
 var ErrShardIsStuck = errors.New("shard is stuck")
+
+// ErrInvalidAddressInRelayedTx signals that an invalid address was provided in the relayed tx
+var ErrInvalidAddressInRelayedTx = errors.New("invalid address in relayed tx")
