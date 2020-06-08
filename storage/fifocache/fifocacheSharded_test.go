@@ -256,7 +256,7 @@ func TestFIFOShardedCache_CacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t
 
 	c, err := fifocache.NewShardedCache(100, 2)
 	assert.Nil(t, err)
-	c.RegisterHandler(nil)
+	c.RegisterHandler(nil, "")
 
 	assert.Equal(t, 0, len(c.AddedDataHandlers()))
 }
@@ -283,7 +283,7 @@ func TestFIFOShardedCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing
 
 	c, err := fifocache.NewShardedCache(100, 2)
 	assert.Nil(t, err)
-	c.RegisterHandler(f)
+	c.RegisterHandler(f, "")
 	c.Put([]byte("aaaa"), "bbbb", 0)
 
 	select {
@@ -318,7 +318,7 @@ func TestFIFOShardedCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *te
 
 	c, err := fifocache.NewShardedCache(100, 2)
 	assert.Nil(t, err)
-	c.RegisterHandler(f)
+	c.RegisterHandler(f, "")
 	c.HasOrAdd([]byte("aaaa"), "bbbb", 0)
 
 	select {
@@ -351,7 +351,7 @@ func TestFIFOShardedCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNo
 	assert.Nil(t, err)
 	//first add, no call
 	c.HasOrAdd([]byte("aaaa"), "bbbb", 0)
-	c.RegisterHandler(f)
+	c.RegisterHandler(f, "")
 	//second add, should not call as the data was found
 	c.HasOrAdd([]byte("aaaa"), "bbbb", 0)
 
