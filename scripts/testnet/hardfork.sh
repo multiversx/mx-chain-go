@@ -29,8 +29,8 @@ cmd=(printf "$(curl -d '{"epoch":'"$epoch"'}' -H 'Content-Type: application/json
 echo " done curl"
 
 # change the setting from config.toml: AfterHardFork to true
-#TODO change to both configs after merging with antiflood-fixes branch
-sed -i '/AfterHardFork/,/AfterHardFork/ s/false/true/' "$TESTNETDIR/node/config/config.toml"
+sed -i '/AfterHardFork/,/AfterHardFork/ s/false/true/' "$TESTNETDIR/node/config/config_validator.toml"
+sed -i '/AfterHardFork/,/AfterHardFork/ s/false/true/' "$TESTNETDIR/node/config/config_observer.toml"
 
 # change nodesSetup.json genesis time to a new value
 let startTime="$(date +%s) + $HARDFORK_DELAY"
