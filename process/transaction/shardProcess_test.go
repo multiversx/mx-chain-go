@@ -72,6 +72,8 @@ func createTxProcessor() txproc.TxProcessor {
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	return txProc
@@ -94,6 +96,8 @@ func TestNewTxProcessor_NilAccountsShouldErr(t *testing.T) {
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -114,6 +118,8 @@ func TestNewTxProcessor_NilHasherShouldErr(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -136,6 +142,8 @@ func TestNewTxProcessor_NilPubkeyConverterMockShouldErr(t *testing.T) {
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
@@ -156,6 +164,8 @@ func TestNewTxProcessor_NilMarshalizerMockShouldErr(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -178,6 +188,8 @@ func TestNewTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -198,6 +210,8 @@ func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -220,6 +234,8 @@ func TestNewTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	assert.Equal(t, process.ErrNilUnsignedTxHandler, err)
@@ -240,6 +256,8 @@ func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -265,6 +283,8 @@ func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -294,6 +314,8 @@ func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -340,6 +362,8 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -396,6 +420,8 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
@@ -436,6 +462,8 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	a1, a2, err := execTx.GetAccounts(adr1, adr2)
@@ -466,6 +494,8 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -646,6 +676,8 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	tx := transaction.Transaction{}
@@ -686,6 +718,8 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -746,6 +780,8 @@ func testProcessCheck(t *testing.T, nonce uint64, value *big.Int) {
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	err = execTx.ProcessTransaction(&tx)
@@ -786,6 +822,8 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -831,6 +869,8 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -889,6 +929,8 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 		&mock.TxTypeHandlerMock{},
 		feeHandler,
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -951,6 +993,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	err = execTx.ProcessTransaction(&tx)
@@ -1004,6 +1048,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		}},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -1073,6 +1119,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	err = execTx.ProcessTransaction(&tx)
@@ -1101,6 +1149,8 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 			},
 		},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 	tx := &transaction.Transaction{
@@ -1141,6 +1191,8 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 			},
 		},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 	tx := &transaction.Transaction{
@@ -1204,6 +1256,8 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 		},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
@@ -1260,6 +1314,8 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 		},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 

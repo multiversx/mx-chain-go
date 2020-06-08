@@ -1227,6 +1227,8 @@ func newShardBlockProcessor(
 		economics,
 		receiptTxInterim,
 		badTxInterim,
+		argsParser,
+		scForwarder,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())

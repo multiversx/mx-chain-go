@@ -43,6 +43,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	AddressPubkeyConv      core.PubkeyConverter
 	NonceConverter         typeConverters.Uint64ByteSliceConverter
 	ChainID                []byte
+	ArgumentsParser        process.ArgumentsParser
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but will many disabled
@@ -95,6 +96,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		AntifloodHandler:        antiFloodHandler,
 		NonceConverter:          args.NonceConverter,
+		ArgumentsParser:         args.ArgumentsParser,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
