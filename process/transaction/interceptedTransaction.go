@@ -149,11 +149,7 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 }
 
 func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transaction) error {
-	err := inTx.argsParser.ParseData(string(tx.Data))
-	if err != nil {
-		return nil
-	}
-	funcName, err := inTx.argsParser.GetFunction()
+	funcName, userTxArgs, err := inTx.argsParser.ParseCallData(string(tx.Data))
 	if err != nil {
 		return nil
 	}
@@ -161,10 +157,6 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 		return nil
 	}
 
-	userTxArgs, err := inTx.argsParser.GetFunctionArguments()
-	if err != nil {
-		return err
-	}
 	if len(userTxArgs) != 1 {
 		return process.ErrInvalidArguments
 	}

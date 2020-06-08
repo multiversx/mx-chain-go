@@ -412,12 +412,7 @@ func (txProc *txProcessor) processRelayedTx(
 	tx *transaction.Transaction,
 	adrSrc, adrDst []byte,
 ) error {
-	err := txProc.argsParser.ParseData(string(tx.GetData()))
-	if err != nil {
-		return err
-	}
-
-	args, err := txProc.argsParser.GetFunctionArguments()
+	_, args, err := txProc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {
 		return err
 	}

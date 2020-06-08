@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
@@ -219,8 +220,8 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 
 	parseError := fmt.Errorf("fooError")
-	argParser.ParseDataCalled = func(data string) error {
-		return parseError
+	argParser.ParseDeployDataCalled = func(data string) (*parsers.DeployArgs, error) {
+		return nil, parseError
 	}
 
 	_ = sc.DeploySmartContract(tx, acntSrc)
@@ -231,7 +232,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	t.Parallel()
 
 	vmContainer := &mock.VMContainerMock{}
-	argParser := vmcommon.NewAtArgumentParser()
+	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
@@ -290,7 +291,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := vmcommon.NewAtArgumentParser()
+	argParser := NewArgumentParser()
 	accntState := &mock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
@@ -397,9 +398,9 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	acntDst.SetCode([]byte("code"))
 	tmpError := errors.New("error")
 	called := false
-	argParser.ParseDataCalled = func(data string) error {
+	argParser.ParseCallDataCalled = func(data string) (string, [][]byte, error) {
 		called = true
-		return tmpError
+		return "", nil, tmpError
 	}
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.True(t, called)
@@ -533,8 +534,8 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
-	argParser.GetFunctionCalled = func() (s string, e error) {
-		return "", tmpError
+	argParser.ParseCallDataCalled = func(data string) (string, [][]byte, error) {
+		return "", nil, tmpError
 	}
 	input, err := sc.createVMCallInput(tx)
 	require.Nil(t, input)
@@ -582,7 +583,7 @@ func TestScProcessor_CreateVMDeployBadCode(t *testing.T) {
 	tx.Value = big.NewInt(0)
 
 	badCodeError := errors.New("fooError")
-	argParser.GetCodeDecodedCalled = func() (code []byte, e error) {
+	argParser.ParseDeployDataCalled = func(data string) (*parsers.DeployArgs, error) {
 		return nil, badCodeError
 	}
 
@@ -613,11 +614,13 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 
 	expectedVMType := []byte{5, 6}
 	expectedCodeMetadata := vmcommon.CodeMetadata{Upgradeable: true}
-	argParser.GetVMTypeCalled = func() ([]byte, error) {
-		return expectedVMType, nil
-	}
-	argParser.GetCodeMetadataCalled = func() (vmcommon.CodeMetadata, error) {
-		return expectedCodeMetadata, nil
+	argParser.ParseDeployDataCalled = func(data string) (*parsers.DeployArgs, error) {
+		return &parsers.DeployArgs{
+			Code:         []byte("code"),
+			VMType:       expectedVMType,
+			CodeMetadata: expectedCodeMetadata,
+			Arguments:    nil,
+		}, nil
 	}
 
 	input, vmType, err := sc.createVMDeployInput(tx)
@@ -633,7 +636,7 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := vmcommon.NewAtArgumentParser()
+	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -651,7 +654,7 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	input, vmType, err := sc.createVMDeployInput(tx)
 	require.Nil(t, input)
 	require.Nil(t, vmType)
-	require.Equal(t, vmcommon.ErrInvalidDeployArguments, err)
+	require.Equal(t, parsers.ErrInvalidDeployArguments, err)
 }
 
 func TestScProcessor_CreateVMDeployInputWrongArgument(t *testing.T) {
@@ -674,7 +677,7 @@ func TestScProcessor_CreateVMDeployInputWrongArgument(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("fooError")
-	argParser.GetConstructorArgumentsCalled = func() (ints [][]byte, e error) {
+	argParser.ParseDeployDataCalled = func(data string) (*parsers.DeployArgs, error) {
 		return nil, tmpError
 	}
 	input, vmType, err := sc.createVMDeployInput(tx)

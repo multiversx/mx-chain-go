@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
 )
@@ -174,12 +175,12 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return vm, nil
 		}}
-	argsParser := vmcommon.NewAtArgumentParser()
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   argsParser,
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
@@ -187,7 +188,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:  vmContainer,
-		ArgsParser:   argsParser,
+		ArgsParser:   smartContract.NewArgumentParser(),
 		Hasher:       testHasher,
 		Marshalizer:  testMarshalizer,
 		AccountsDB:   accnts,
@@ -222,7 +223,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		&mock.FeeHandlerStub{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
-		argsParser,
+		smartContract.NewArgumentParser(),
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -319,12 +320,12 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	vmContainer process.VirtualMachinesContainer,
 	blockChainHook *hooks.BlockChainHookImpl,
 ) (process.TransactionProcessor, process.SmartContractProcessor) {
-	argsParser := vmcommon.NewAtArgumentParser()
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: blockChainHook.GetBuiltInFunctions().Keys(),
-		ArgumentParser:   argsParser,
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
@@ -332,7 +333,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:  vmContainer,
-		ArgsParser:   argsParser,
+		ArgsParser:   smartContract.NewArgumentParser(),
 		Hasher:       testHasher,
 		Marshalizer:  testMarshalizer,
 		AccountsDB:   accnts,
@@ -368,7 +369,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		&mock.FeeHandlerStub{},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
-		vmcommon.NewAtArgumentParser(),
+		smartContract.NewArgumentParser(),
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 

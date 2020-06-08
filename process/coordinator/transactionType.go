@@ -16,7 +16,7 @@ type txTypeHandler struct {
 	pubkeyConv       core.PubkeyConverter
 	shardCoordinator sharding.Coordinator
 	builtInFuncNames map[string]struct{}
-	argumentParser   process.ArgumentsParser
+	argumentParser   process.CallArgumentsParser
 }
 
 // ArgNewTxTypeHandler defines the arguments needed to create a new tx type handler
@@ -24,7 +24,7 @@ type ArgNewTxTypeHandler struct {
 	PubkeyConverter  core.PubkeyConverter
 	ShardCoordinator sharding.Coordinator
 	BuiltInFuncNames map[string]struct{}
-	ArgumentParser   process.ArgumentsParser
+	ArgumentParser   process.CallArgumentsParser
 }
 
 // NewTxTypeHandler creates a transaction type handler
@@ -104,12 +104,7 @@ func (tth *txTypeHandler) getFunctionFromArguments(txData []byte) string {
 		return ""
 	}
 
-	err := tth.argumentParser.ParseData(string(txData))
-	if err != nil {
-		return ""
-	}
-
-	function, err := tth.argumentParser.GetFunction()
+	function, _, err := tth.argumentParser.ParseData(string(txData))
 	if err != nil {
 		return ""
 	}
