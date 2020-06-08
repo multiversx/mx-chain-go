@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -119,10 +120,30 @@ func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, 
 }
 
 func createTestDataPool(selfShardID uint32) dataRetriever.PoolsHolder {
-	txPool, _ := createTxPool(selfShardID)
+	txPool, err := createTxPool(selfShardID)
+	if err != nil {
+		panic(fmt.Sprintf("createTestDataPool: %s", err))
+	}
 
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.FIFOShardedWithImmunityCache, Shards: 1})
-	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 300, Type: storageUnit.FIFOShardedWithImmunityCache, Shards: 1})
+	uTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
+		Type:        storageUnit.FIFOShardedWithImmunityCache,
+		Capacity:    100000,
+		SizeInBytes: 1000000000,
+		Shards:      1,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("createTestDataPool: %s", err))
+	}
+
+	rewardsTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
+		Type:        storageUnit.FIFOShardedWithImmunityCache,
+		Capacity:    300,
+		SizeInBytes: 300000,
+		Shards:      1,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("createTestDataPool: %s", err))
+	}
 
 	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 

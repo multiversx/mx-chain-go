@@ -41,8 +41,10 @@ func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 	t.Parallel()
 
 	cacheConfigBad := storageUnit.CacheConfig{
-		Capacity: 10,
-		Type:     storageUnit.FIFOShardedWithImmunityCache,
+		Capacity:    10,
+		SizeInBytes: 10000,
+		Shards:      1,
+		Type:        storageUnit.FIFOShardedWithImmunityCache,
 	}
 
 	sd, err := NewShardedData(cacheConfigBad)
@@ -111,7 +113,7 @@ func TestShardedData_StorageEvictsData(t *testing.T) {
 		sd.AddData(key, &transaction.Transaction{Nonce: uint64(i)}, 0, "1")
 	}
 
-	assert.Equal(t, int(defaultTestConfig.Capacity), sd.ShardDataStore("1").Len(),
+	assert.Less(t, sd.ShardDataStore("1").Len(), int(defaultTestConfig.Capacity),
 		"Transaction pool entries excedes the maximum configured number")
 }
 

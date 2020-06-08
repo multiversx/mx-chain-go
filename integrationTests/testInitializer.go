@@ -295,12 +295,34 @@ func ClosePeers(peers []p2p.Messenger) {
 
 // CreateTestDataPool creates a test data pool for shard nodes
 func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier, selfShardID uint32) dataRetriever.PoolsHolder {
+	var err error
+
 	if txPool == nil {
-		txPool, _ = createTxPool(selfShardID)
+		txPool, err = createTxPool(selfShardID)
+		if err != nil {
+			panic(fmt.Sprintf("CreateTestDataPool: %s", err))
+		}
 	}
 
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.FIFOShardedWithImmunityCache, Shards: 1})
-	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 300, Type: storageUnit.FIFOShardedWithImmunityCache, Shards: 1})
+	uTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
+		Type:        storageUnit.FIFOShardedWithImmunityCache,
+		Capacity:    100000,
+		SizeInBytes: 1000000000,
+		Shards:      1,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("CreateTestDataPool: %s", err))
+	}
+
+	rewardsTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
+		Type:        storageUnit.FIFOShardedWithImmunityCache,
+		Capacity:    300,
+		SizeInBytes: 300000,
+		Shards:      1,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("CreateTestDataPool: %s", err))
+	}
 
 	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 

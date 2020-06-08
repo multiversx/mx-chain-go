@@ -7,7 +7,7 @@ type CacherStub struct {
 	GetCalled               func(key []byte) (value interface{}, ok bool)
 	HasCalled               func(key []byte) bool
 	PeekCalled              func(key []byte) (value interface{}, ok bool)
-	HasOrAddCalled          func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool)
+	HasOrAddCalled          func(key []byte, value interface{}, sizeInBytes int) (added bool)
 	RemoveCalled            func(key []byte)
 	RemoveOldestCalled      func()
 	KeysCalled              func() [][]byte
@@ -50,7 +50,7 @@ func (cs *CacherStub) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd -
-func (cs *CacherStub) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
+func (cs *CacherStub) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (added bool) {
 	return cs.HasOrAddCalled(key, value, sizeInBytes)
 }
 

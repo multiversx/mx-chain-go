@@ -70,7 +70,7 @@ func (cache *CrossTxCache) diagnose() {
 
 // AddTx adds a transaction in the cache
 func (cache *CrossTxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
-	return cache.HasOrAdd(tx.GetKey(), tx, tx.Size())
+	return true, cache.HasOrAdd(tx.GetKey(), tx, tx.Size())
 }
 
 // GetByTxHash gets the transaction by hash

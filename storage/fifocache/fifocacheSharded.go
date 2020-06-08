@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	cmap "github.com/ElrondNetwork/concurrent-map"
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -87,17 +87,17 @@ func (c *FIFOShardedCache) Peek(key []byte) (value interface{}, ok bool) {
 	return c.cache.Get(string(key))
 }
 
-// HasOrAdd checks if a key is in the cache  without updating the
-// recent-ness or deleting it for being stale,  and if not, adds the value.
-// Returns whether found and whether an eviction occurred.
-func (c *FIFOShardedCache) HasOrAdd(key []byte, value interface{}, _ int) (found, evicted bool) {
-	added := c.cache.SetIfAbsent(string(key), value)
+// HasOrAdd checks if a key is in the cache without updating the
+// recent-ness or deleting it for being stale, and if not, adds the value.
+// Returns whether item was added.
+func (c *FIFOShardedCache) HasOrAdd(key []byte, value interface{}, _ int) (added bool) {
+	added = c.cache.SetIfAbsent(string(key), value)
 
 	if added {
 		c.callAddedDataHandlers(key, value)
 	}
 
-	return !added, true
+	return added
 }
 
 func (c *FIFOShardedCache) callAddedDataHandlers(key []byte, value interface{}) {

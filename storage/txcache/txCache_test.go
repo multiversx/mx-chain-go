@@ -394,9 +394,8 @@ func Test_NotImplementedFunctions(t *testing.T) {
 	evicted := cache.Put(nil, nil, 0)
 	require.False(t, evicted)
 
-	ok, evicted := cache.HasOrAdd(nil, nil, 0)
+	ok := cache.HasOrAdd(nil, nil, 0)
 	require.False(t, ok)
-	require.False(t, evicted)
 
 	require.NotPanics(t, func() { cache.RegisterHandler(nil, "") })
 	require.Zero(t, cache.MaxSize())

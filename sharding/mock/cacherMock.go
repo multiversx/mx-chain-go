@@ -64,16 +64,17 @@ func (cm *CacherMock) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd -
-func (cm *CacherMock) HasOrAdd(key []byte, value interface{}, _ int) (bool, bool) {
+func (cm *CacherMock) HasOrAdd(key []byte, value interface{}, _ int) (added bool) {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
 
 	_, ok := cm.dataMap[string(key)]
-	if !ok {
-		cm.dataMap[string(key)] = value
+	if ok {
+		return false
 	}
 
-	return ok, false
+	cm.dataMap[string(key)] = value
+	return true
 }
 
 // Remove -

@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -25,8 +27,10 @@ type PoolsHolderMock struct {
 
 // NewPoolsHolderMock -
 func NewPoolsHolderMock() *PoolsHolderMock {
+	var err error
 	phf := &PoolsHolderMock{}
-	phf.transactions, _ = txpool.NewShardedTxPool(
+
+	phf.transactions, err = txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
 				Capacity:             100000,
@@ -39,8 +43,30 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 			NumberOfShards: 1,
 		},
 	)
-	phf.unsignedTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.FIFOShardedWithImmunityCache})
-	phf.rewardTransactions, _ = shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.FIFOShardedWithImmunityCache})
+	if err != nil {
+		panic(fmt.Sprintf("NewPoolsHolderMock: %s", err))
+	}
+
+	phf.unsignedTransactions, err = shardedData.NewShardedData(storageUnit.CacheConfig{
+		Type:        storageUnit.FIFOShardedWithImmunityCache,
+		Capacity:    10000,
+		SizeInBytes: 1000000000,
+		Shards:      1,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("NewPoolsHolderMock: %s", err))
+	}
+
+	phf.rewardTransactions, err = shardedData.NewShardedData(storageUnit.CacheConfig{
+		Capacity:    100,
+		Type:        storageUnit.FIFOShardedWithImmunityCache,
+		SizeInBytes: 100000,
+		Shards:      1,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("NewPoolsHolderMock: %s", err))
+	}
+
 	phf.headers, _ = headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 	phf.miniBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1, 0)
 	phf.peerChangesBlocks, _ = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1, 0)

@@ -160,7 +160,9 @@ func createTestStore() dataRetriever.StorageService {
 }
 
 func createTestShardDataPool() dataRetriever.PoolsHolder {
-	txPool, _ := txpool.NewShardedTxPool(
+	var err error
+
+	txPool, err := txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
 				Capacity:             100000,
@@ -173,9 +175,29 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 			NumberOfShards: 1,
 		},
 	)
+	if err != nil {
+		panic(fmt.Sprintf("createTestShardDataPool: %s", err))
+	}
 
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.FIFOShardedWithImmunityCache})
-	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.FIFOShardedWithImmunityCache})
+	uTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
+		Type:        storageUnit.FIFOShardedWithImmunityCache,
+		Capacity:    100000,
+		SizeInBytes: 1000000000,
+		Shards:      1,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("createTestShardDataPool: %s", err))
+	}
+
+	rewardsTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
+		Type:        storageUnit.FIFOShardedWithImmunityCache,
+		Capacity:    100,
+		SizeInBytes: 100000,
+		Shards:      1,
+	})
+	if err != nil {
+		panic(fmt.Sprintf("createTestShardDataPool: %s", err))
+	}
 
 	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 
