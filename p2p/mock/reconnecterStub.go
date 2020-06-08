@@ -13,7 +13,7 @@ func (rs *ReconnecterStub) ReconnectToNetwork() <-chan struct{} {
 		return rs.ReconnectToNetworkCalled()
 	}
 
-	return make(chan struct{}, 1000)
+	return make(chan struct{})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
