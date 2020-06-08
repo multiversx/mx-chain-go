@@ -581,7 +581,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	// deploy the delegation smart contract
 	delegateSCAddress := putDeploySCToDataPool(
 		"./testdata/delegate/delegation.wasm", delegateSCOwner, 0, big.NewInt(0),
-		fmt.Sprintf("@%x@%s@%x", nodeSharePer10000, hex.EncodeToString(factory2.AuctionSCAddress), timeBeforeForceUnstake),
+		"@"+core.ConvertToEvenHex(nodeSharePer10000)+"@"+hex.EncodeToString(factory2.AuctionSCAddress)+"@"+core.ConvertToEvenHex(timeBeforeForceUnstake),
 		nodes)
 	shardNode.OwnAccount.Nonce++
 
