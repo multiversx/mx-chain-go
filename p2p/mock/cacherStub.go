@@ -1,16 +1,16 @@
 package mock
 
 type CacherStub struct {
-	HasOrAddCalled func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool)
+	HasOrAddCalled func(key []byte, value interface{}, sizeInBytes int) (added bool)
 }
 
 // HasOrAdd -
-func (cs *CacherStub) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
+func (cs *CacherStub) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (added bool) {
 	if cs.HasOrAddCalled != nil {
 		return cs.HasOrAddCalled(key, value, sizeInBytes)
 	}
 
-	return false, false
+	return false
 }
 
 // IsInterfaceNil -
