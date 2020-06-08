@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -53,7 +55,7 @@ func TestNode_GetTransactionStatus_ShouldFindInTxCacheAndReturnReceived(t *testi
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled: getCacherHandler(true),
+		TransactionsCalled: getCacherHandler(true, ""),
 	}
 	n, _ := node.NewNode(
 		node.WithApiTransactionByHashThrottler(throttler),
@@ -73,8 +75,8 @@ func TestNode_GetTransactionStatus_ShouldFindInRwdTxCacheAndReturnReceived(t *te
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:       getCacherHandler(false),
-		RewardTransactionsCalled: getCacherHandler(true),
+		TransactionsCalled:       getCacherHandler(false, ""),
+		RewardTransactionsCalled: getCacherHandler(true, ""),
 	}
 	n, _ := node.NewNode(
 		node.WithApiTransactionByHashThrottler(throttler),
@@ -94,9 +96,9 @@ func TestNode_GetTransactionStatus_ShouldFindInUnsignedTxCacheAndReturnReceived(
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false),
-		RewardTransactionsCalled:   getCacherHandler(false),
-		UnsignedTransactionsCalled: getCacherHandler(true),
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(true, ""),
 	}
 	n, _ := node.NewNode(
 		node.WithApiTransactionByHashThrottler(throttler),
@@ -116,9 +118,9 @@ func TestNode_GetTransactionStatus_ShouldFindInTxStorageAndReturnExecuted(t *tes
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false),
-		RewardTransactionsCalled:   getCacherHandler(false),
-		UnsignedTransactionsCalled: getCacherHandler(false),
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
 	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -144,9 +146,9 @@ func TestNode_GetTransactionStatus_ShouldFindInRwdTxStorageAndReturnExecuted(t *
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false),
-		RewardTransactionsCalled:   getCacherHandler(false),
-		UnsignedTransactionsCalled: getCacherHandler(false),
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
 	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -176,9 +178,9 @@ func TestNode_GetTransactionStatus_ShouldFindInUnsignedTxStorageAndReturnExecute
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false),
-		RewardTransactionsCalled:   getCacherHandler(false),
-		UnsignedTransactionsCalled: getCacherHandler(false),
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
 	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -209,9 +211,9 @@ func TestNode_GetTransactionStatus_ShouldNotFindAndReturnUnknown(t *testing.T) {
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false),
-		RewardTransactionsCalled:   getCacherHandler(false),
-		UnsignedTransactionsCalled: getCacherHandler(false),
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
 	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -267,7 +269,7 @@ func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled: getCacherHandler(true),
+		TransactionsCalled: getCacherHandler(true, ""),
 	}
 	n, _ := node.NewNode(
 		node.WithApiTransactionByHashThrottler(throttler),
@@ -275,7 +277,7 @@ func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
-	expectedTx, _ := getDummyTx()
+	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
@@ -290,8 +292,8 @@ func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:       getCacherHandler(false),
-		RewardTransactionsCalled: getCacherHandler(true),
+		TransactionsCalled:       getCacherHandler(false, ""),
+		RewardTransactionsCalled: getCacherHandler(true, "reward"),
 	}
 	n, _ := node.NewNode(
 		node.WithApiTransactionByHashThrottler(throttler),
@@ -299,7 +301,7 @@ func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
-	expectedTx, _ := getDummyTx()
+	expectedTx, _ := getDummyRewardTx()
 	tx, err := n.GetTransaction("aaaa")
 	assert.NoError(t, err)
 	assert.Equal(t, hex.EncodeToString(expectedTx.RcvAddr), tx.Receiver)
@@ -314,9 +316,9 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) 
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false),
-		RewardTransactionsCalled:   getCacherHandler(false),
-		UnsignedTransactionsCalled: getCacherHandler(true),
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(true, "unsigned"),
 	}
 	n, _ := node.NewNode(
 		node.WithApiTransactionByHashThrottler(throttler),
@@ -324,7 +326,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) 
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
-	expectedTx, _ := getDummyTx()
+	expectedTx, _ := getUnsignedTx()
 	tx, err := n.GetTransaction("aaaa")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
@@ -339,9 +341,9 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false),
-		RewardTransactionsCalled:   getCacherHandler(false),
-		UnsignedTransactionsCalled: getCacherHandler(false),
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
 	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -355,7 +357,7 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
-	expectedTx, _ := getDummyTx()
+	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
@@ -370,9 +372,9 @@ func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false),
-		RewardTransactionsCalled:   getCacherHandler(false),
-		UnsignedTransactionsCalled: getCacherHandler(false),
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
 	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -390,7 +392,7 @@ func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
-	expectedTx, _ := getDummyTx()
+	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
 	assert.NoError(t, err)
 	assert.Equal(t, hex.EncodeToString(expectedTx.RcvAddr), tx.Receiver)
@@ -405,9 +407,9 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false),
-		RewardTransactionsCalled:   getCacherHandler(false),
-		UnsignedTransactionsCalled: getCacherHandler(false),
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
 	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -426,7 +428,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
-	expectedTx, _ := getDummyTx()
+	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
@@ -443,9 +445,9 @@ func TestNode_GetTransaction_ShouldFindInStorageButErrorUnmarshaling(t *testing.
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false),
-		RewardTransactionsCalled:   getCacherHandler(false),
-		UnsignedTransactionsCalled: getCacherHandler(false),
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
 	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -481,9 +483,9 @@ func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
 		},
 	}
 	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false),
-		RewardTransactionsCalled:   getCacherHandler(false),
-		UnsignedTransactionsCalled: getCacherHandler(false),
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
 	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -500,17 +502,42 @@ func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func getCacherHandler(find bool) func() dataRetriever.ShardedDataCacherNotifier {
+func getCacherHandler(find bool, cacherType string) func() dataRetriever.ShardedDataCacherNotifier {
 	return func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			SearchFirstDataCalled: func(_ []byte) (interface{}, bool) {
-				if find {
-					_, txBytes := getDummyTx()
-					return txBytes, true
-				}
+		switch cacherType {
+		case "reward":
+			return &mock.ShardedDataStub{
+				SearchFirstDataCalled: func(_ []byte) (interface{}, bool) {
+					if find {
+						tx, _ := getDummyRewardTx()
+						return tx, true
+					}
 
-				return nil, false
-			},
+					return nil, false
+				},
+			}
+		case "unsigned":
+			return &mock.ShardedDataStub{
+				SearchFirstDataCalled: func(_ []byte) (interface{}, bool) {
+					if find {
+						tx, _ := getUnsignedTx()
+						return tx, true
+					}
+
+					return nil, false
+				},
+			}
+		default:
+			return &mock.ShardedDataStub{
+				SearchFirstDataCalled: func(_ []byte) (interface{}, bool) {
+					if find {
+						tx, _ := getDummyNormalTx()
+						return tx, true
+					}
+
+					return nil, false
+				},
+			}
 		}
 	}
 }
@@ -527,14 +554,28 @@ func getStorerStub(find bool) storage.Storer {
 			if !find {
 				return nil, errors.New("key not found")
 			}
-			_, txBytes := getDummyTx()
+			_, txBytes := getDummyNormalTx()
 			return txBytes, nil
 		},
 	}
 }
 
-func getDummyTx() (*transaction.Transaction, []byte) {
+func getDummyNormalTx() (*transaction.Transaction, []byte) {
 	tx := transaction.Transaction{Nonce: 37, RcvAddr: []byte("rcvr")}
+	marshalizer := &mock.MarshalizerFake{}
+	txBytes, _ := marshalizer.Marshal(&tx)
+	return &tx, txBytes
+}
+
+func getDummyRewardTx() (*rewardTx.RewardTx, []byte) {
+	tx := rewardTx.RewardTx{RcvAddr: []byte("rcvr")}
+	marshalizer := &mock.MarshalizerFake{}
+	txBytes, _ := marshalizer.Marshal(&tx)
+	return &tx, txBytes
+}
+
+func getUnsignedTx() (*smartContractResult.SmartContractResult, []byte) {
+	tx := smartContractResult.SmartContractResult{RcvAddr: []byte("rcvr")}
 	marshalizer := &mock.MarshalizerFake{}
 	txBytes, _ := marshalizer.Marshal(&tx)
 	return &tx, txBytes
