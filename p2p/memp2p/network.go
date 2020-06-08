@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // Network provides in-memory connectivity for the Messenger
@@ -13,7 +13,7 @@ import (
 // `peers` map; otherwise, they are disconnected.
 type Network struct {
 	mutex sync.RWMutex
-	peers map[p2p.PeerID]*Messenger
+	peers map[core.PeerID]*Messenger
 }
 
 // NewNetwork constructs a new Network instance with an empty
@@ -21,14 +21,14 @@ type Network struct {
 func NewNetwork() *Network {
 	network := Network{
 		mutex: sync.RWMutex{},
-		peers: make(map[p2p.PeerID]*Messenger),
+		peers: make(map[core.PeerID]*Messenger),
 	}
 
 	return &network
 }
 
 // ListAddressesExceptOne provides the addresses of the known peers, except a specified one.
-func (network *Network) ListAddressesExceptOne(peerIDToExclude p2p.PeerID) []string {
+func (network *Network) ListAddressesExceptOne(peerIDToExclude core.PeerID) []string {
 	network.mutex.RLock()
 	resultingLength := len(network.peers) - 1
 	addresses := make([]string, resultingLength)
@@ -46,8 +46,8 @@ func (network *Network) ListAddressesExceptOne(peerIDToExclude p2p.PeerID) []str
 }
 
 // Peers provides a copy of its internal map of peers
-func (network *Network) Peers() map[p2p.PeerID]*Messenger {
-	peersCopy := make(map[p2p.PeerID]*Messenger)
+func (network *Network) Peers() map[core.PeerID]*Messenger {
+	peersCopy := make(map[core.PeerID]*Messenger)
 
 	network.mutex.RLock()
 	for peerID, peer := range network.peers {
@@ -59,8 +59,8 @@ func (network *Network) Peers() map[p2p.PeerID]*Messenger {
 }
 
 // PeersExceptOne provides a copy of its internal map of peers, excluding a specific peer.
-func (network *Network) PeersExceptOne(peerIDToExclude p2p.PeerID) map[p2p.PeerID]*Messenger {
-	peersCopy := make(map[p2p.PeerID]*Messenger)
+func (network *Network) PeersExceptOne(peerIDToExclude core.PeerID) map[core.PeerID]*Messenger {
+	peersCopy := make(map[core.PeerID]*Messenger)
 
 	network.mutex.RLock()
 	for peerID, peer := range network.peers {
@@ -75,9 +75,9 @@ func (network *Network) PeersExceptOne(peerIDToExclude p2p.PeerID) map[p2p.PeerI
 }
 
 // PeerIDs provides a copy of its internal slice of peerIDs
-func (network *Network) PeerIDs() []p2p.PeerID {
+func (network *Network) PeerIDs() []core.PeerID {
 	network.mutex.RLock()
-	peerIDsCopy := make([]p2p.PeerID, len(network.peers))
+	peerIDsCopy := make([]core.PeerID, len(network.peers))
 	idx := 0
 	for peerID := range network.peers {
 		peerIDsCopy[idx] = peerID
@@ -89,9 +89,9 @@ func (network *Network) PeerIDs() []p2p.PeerID {
 }
 
 //PeerIDsExceptOne provides a copy of its internal slice of peerIDs, excluding a specific peer.
-func (network *Network) PeerIDsExceptOne(peerIDToExclude p2p.PeerID) []p2p.PeerID {
+func (network *Network) PeerIDsExceptOne(peerIDToExclude core.PeerID) []core.PeerID {
 	network.mutex.RLock()
-	peerIDsCopy := make([]p2p.PeerID, len(network.peers)-1)
+	peerIDsCopy := make([]core.PeerID, len(network.peers)-1)
 	idx := 0
 	for peerID := range network.peers {
 		if peerID == peerIDToExclude {
@@ -114,7 +114,7 @@ func (network *Network) RegisterPeer(messenger *Messenger) {
 
 // UnregisterPeer removes a messenger from the Peers map and its PeerID from
 // the peerIDs slice.
-func (network *Network) UnregisterPeer(peerID p2p.PeerID) {
+func (network *Network) UnregisterPeer(peerID core.PeerID) {
 	network.mutex.Lock()
 	delete(network.peers, peerID)
 	network.mutex.Unlock()
@@ -123,7 +123,7 @@ func (network *Network) UnregisterPeer(peerID p2p.PeerID) {
 // IsPeerConnected returns true if the peer represented by the provided ID is
 // found in the inner `peers` map of the Network instance, which
 // determines whether it is connected to the network or not.
-func (network *Network) IsPeerConnected(peerID p2p.PeerID) bool {
+func (network *Network) IsPeerConnected(peerID core.PeerID) bool {
 	network.mutex.RLock()
 	_, found := network.peers[peerID]
 	network.mutex.RUnlock()

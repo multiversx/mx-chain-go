@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -19,13 +20,13 @@ func TestMessageProcessor_CanProcessErrorsShouldErr(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	mp := &messageProcessor{
 		antifloodHandler: &mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return expectedErr
 			},
 		},
 	}
 
-	err := mp.canProcessMessage(nil, "")
+	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
 
 	assert.True(t, errors.Is(err, expectedErr))
 }
@@ -36,16 +37,16 @@ func TestMessageProcessor_CanProcessOnTopicErrorsShouldErr(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	mp := &messageProcessor{
 		antifloodHandler: &mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
-			CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error {
 				return expectedErr
 			},
 		},
 	}
 
-	err := mp.canProcessMessage(nil, "")
+	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
 
 	assert.True(t, errors.Is(err, expectedErr))
 }
@@ -56,10 +57,10 @@ func TestMessageProcessor_CanProcessThrottlerNotAllowingShouldErr(t *testing.T) 
 	canProcessWasCalled := false
 	mp := &messageProcessor{
 		antifloodHandler: &mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
-			CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error {
 				return nil
 			},
 		},
@@ -71,7 +72,7 @@ func TestMessageProcessor_CanProcessThrottlerNotAllowingShouldErr(t *testing.T) 
 		},
 	}
 
-	err := mp.canProcessMessage(nil, "")
+	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
 
 	assert.True(t, errors.Is(err, dataRetriever.ErrSystemBusy))
 	assert.True(t, canProcessWasCalled)
@@ -83,10 +84,10 @@ func TestMessageProcessor_CanProcessShouldWork(t *testing.T) {
 	canProcessWasCalled := false
 	mp := &messageProcessor{
 		antifloodHandler: &mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
-			CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error {
 				return nil
 			},
 		},
@@ -98,7 +99,7 @@ func TestMessageProcessor_CanProcessShouldWork(t *testing.T) {
 		},
 	}
 
-	err := mp.canProcessMessage(nil, "")
+	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
 
 	assert.Nil(t, err)
 	assert.True(t, canProcessWasCalled)

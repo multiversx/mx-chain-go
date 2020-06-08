@@ -1,4 +1,4 @@
-package interceptors
+package disabled
 
 import (
 	"github.com/ElrondNetwork/elrond-go/process"
