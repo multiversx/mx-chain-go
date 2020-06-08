@@ -9,7 +9,11 @@ type ReconnecterStub struct {
 
 // ReconnectToNetwork -
 func (rs *ReconnecterStub) ReconnectToNetwork() <-chan struct{} {
-	return rs.ReconnectToNetworkCalled()
+	if rs.ReconnectToNetworkCalled != nil {
+		return rs.ReconnectToNetworkCalled()
+	}
+
+	return make(chan struct{}, 1000)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
