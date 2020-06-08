@@ -66,7 +66,17 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 			Type:                    "NilListSharder",
 		},
 	}
-	ncf, _ := NewNetworkComponentsFactory(p2pConfig, config.Config{}, &mock.AppStatusHandlerMock{})
+	ncf, _ := NewNetworkComponentsFactory(
+		p2pConfig,
+		config.Config{
+			P2PMessageIDAdditionalCache: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 100,
+				Shards:   16,
+			},
+		},
+		&mock.AppStatusHandlerMock{},
+	)
 
 	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
 
