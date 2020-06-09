@@ -496,6 +496,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocksZeroValueShouldNotAdd(t *
 		},
 	}
 
+	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
 	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(miniBlocks[0].TxHashes))
@@ -538,6 +539,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 		},
 	}
 
+	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
 	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks)
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
