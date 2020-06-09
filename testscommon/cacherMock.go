@@ -78,18 +78,18 @@ func (cacher *CacherMock) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd -
-func (cacher *CacherMock) HasOrAdd(key []byte, value interface{}, _ int) (added bool) {
+func (cacher *CacherMock) HasOrAdd(key []byte, value interface{}, _ int) (has, added bool) {
 	cacher.mut.Lock()
 	defer cacher.mut.Unlock()
 
-	_, ok := cacher.dataMap[string(key)]
-	if ok {
-		return false
+	_, has = cacher.dataMap[string(key)]
+	if has {
+		return true, false
 	}
 
 	cacher.dataMap[string(key)] = value
 	cacher.callAddedDataHandlers(key, value)
-	return true
+	return false, true
 }
 
 // Remove -

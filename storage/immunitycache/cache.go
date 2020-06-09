@@ -132,11 +132,11 @@ func (ic *ImmunityCache) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd adds an item in the cache
-func (ic *ImmunityCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (added bool) {
+func (ic *ImmunityCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
 	cacheItem := newCacheItem(value, string(key), sizeInBytes)
 	chunk := ic.getChunkByKeyWithLock(string(key))
-	_, added = chunk.AddItem(cacheItem)
-	return added
+	has, added = chunk.AddItem(cacheItem)
+	return has, added
 }
 
 // Put adds an item in the cache

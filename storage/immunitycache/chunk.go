@@ -68,7 +68,7 @@ func (chunk *immunityChunk) getItemNoLock(key string) (*cacheItem, bool) {
 	return wrapper.item, true
 }
 
-func (chunk *immunityChunk) AddItem(item *cacheItem) (ok bool, added bool) {
+func (chunk *immunityChunk) AddItem(item *cacheItem) (has, added bool) {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 
@@ -86,7 +86,7 @@ func (chunk *immunityChunk) AddItem(item *cacheItem) (ok bool, added bool) {
 	chunk.addItemNoLock(item)
 	chunk.immunizeItemOnAddNoLock(item)
 	chunk.trackNumBytesOnAddNoLock(item)
-	return true, true
+	return false, true
 }
 
 func (chunk *immunityChunk) evictItemsIfCapacityExceededNoLock() error {

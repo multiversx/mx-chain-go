@@ -274,6 +274,6 @@ type ConnectionMonitorWrapper interface {
 
 // Cacher defines the interface for a cacher used in p2p to better prevent the reprocessing of an old message
 type Cacher interface {
-	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (added bool)
+	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool)
 	IsInterfaceNil() bool
 }

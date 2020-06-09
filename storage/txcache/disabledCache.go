@@ -69,8 +69,8 @@ func (cache *DisabledCache) Peek(_ []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd returns false, does nothing
-func (cache *DisabledCache) HasOrAdd(_ []byte, _ interface{}, _ int) (added bool) {
-	return false
+func (cache *DisabledCache) HasOrAdd(_ []byte, _ interface{}, _ int) (has, added bool) {
+	return false, false
 }
 
 // Remove does nothing

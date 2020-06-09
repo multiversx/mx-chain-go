@@ -44,7 +44,8 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	has := cache.Has([]byte{})
 	require.False(t, has)
 
-	added = cache.HasOrAdd([]byte{}, nil, 0)
+	has, added = cache.HasOrAdd([]byte{}, nil, 0)
+	require.False(t, has)
 	require.False(t, added)
 
 	cache.Remove([]byte{})

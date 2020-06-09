@@ -4,9 +4,9 @@ package disabled
 type Cacher struct {
 }
 
-// HasOrAdd does nothing and returns true
-func (c *Cacher) HasOrAdd(_ []byte, _ interface{}, _ int) (added bool) {
-	return true
+// HasOrAdd does nothing and returns (false, false)
+func (c *Cacher) HasOrAdd(_ []byte, _ interface{}, _ int) (has, added bool) {
+	return false, false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

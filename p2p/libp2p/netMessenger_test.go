@@ -1182,13 +1182,13 @@ func TestNetworkMessenger_MessageIdsCacherShouldPreventReprocessing(t *testing.T
 	mutVals := sync.Mutex{}
 	vals := make(map[string]struct{})
 	_ = mes.SetMessageIdsCacher(&testscommon.CacherStub{
-		HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (added bool) {
+		HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
 			mutVals.Lock()
-			_, has := vals[string(key)]
+			_, has = vals[string(key)]
 			vals[string(key)] = struct{}{}
 			mutVals.Unlock()
 
-			return !has
+			return has, !has
 		},
 	})
 

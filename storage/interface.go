@@ -59,7 +59,7 @@ type Cacher interface {
 	Peek(key []byte) (value interface{}, ok bool)
 	// HasOrAdd checks if a key is in the cache without updating the
 	// recent-ness or deleting it for being stale, and if not adds the value.
-	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (added bool)
+	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool)
 	// Remove removes the provided key from the cache.
 	Remove(key []byte)
 	// Keys returns a slice of the keys in the cache, from oldest to newest.

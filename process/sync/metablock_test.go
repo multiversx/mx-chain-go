@@ -491,8 +491,8 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		sds := &testscommon.CacherStub{
-			HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (added bool) {
-				return true
+			HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
+				return false, true
 			},
 			RegisterHandlerCalled: func(func(key []byte, value interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {

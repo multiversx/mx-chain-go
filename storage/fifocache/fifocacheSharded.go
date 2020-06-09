@@ -90,14 +90,14 @@ func (c *FIFOShardedCache) Peek(key []byte) (value interface{}, ok bool) {
 // HasOrAdd checks if a key is in the cache without updating the
 // recent-ness or deleting it for being stale, and if not, adds the value.
 // Returns whether item was added.
-func (c *FIFOShardedCache) HasOrAdd(key []byte, value interface{}, _ int) (added bool) {
+func (c *FIFOShardedCache) HasOrAdd(key []byte, value interface{}, _ int) (has, added bool) {
 	added = c.cache.SetIfAbsent(string(key), value)
 
 	if added {
 		c.callAddedDataHandlers(key, value)
 	}
 
-	return added
+	return !added, added
 }
 
 func (c *FIFOShardedCache) callAddedDataHandlers(key []byte, value interface{}) {

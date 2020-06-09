@@ -120,7 +120,7 @@ func (sd *shardedData) AddData(key []byte, value interface{}, sizeInBytes int, c
 	}
 	sd.mutShardedDataStore.Unlock()
 
-	added := mp.DataStore.HasOrAdd(key, value, sizeInBytes)
+	_, added := mp.DataStore.HasOrAdd(key, value, sizeInBytes)
 	if added {
 		sd.mutAddedDataHandlers.RLock()
 		for _, handler := range sd.addedDataHandlers {

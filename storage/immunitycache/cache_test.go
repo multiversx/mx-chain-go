@@ -79,16 +79,16 @@ func TestImmunityCache_ImmunizeAgainstEviction(t *testing.T) {
 func TestImmunityCache_AddThenRemove(t *testing.T) {
 	cache := newCacheToTest(1, 8, maxNumBytesUpperBound)
 
-	_ = cache.HasOrAdd([]byte("a"), "foo-a", 1)
-	_ = cache.HasOrAdd([]byte("b"), "foo-b", 1)
-	_ = cache.HasOrAdd([]byte("c"), "foo-c", 0)
+	_, _ = cache.HasOrAdd([]byte("a"), "foo-a", 1)
+	_, _ = cache.HasOrAdd([]byte("b"), "foo-b", 1)
+	_, _ = cache.HasOrAdd([]byte("c"), "foo-c", 0)
 	_ = cache.Put([]byte("d"), "foo-d", 0) // Same as HasOrAdd()
 	require.Equal(t, 4, cache.Len())
 	require.True(t, cache.Has([]byte("a")))
 	require.True(t, cache.Has([]byte("c")))
 
 	// Duplicates are not added
-	added := cache.HasOrAdd([]byte("a"), "foo-a", 1)
+	_, added := cache.HasOrAdd([]byte("a"), "foo-a", 1)
 	require.False(t, added)
 
 	// Won't remove if not exists
@@ -118,9 +118,9 @@ func TestImmunityCache_Get(t *testing.T) {
 
 	a := "foo-a"
 	b := "foo-b"
-	added := cache.HasOrAdd([]byte("a"), a, 1)
+	_, added := cache.HasOrAdd([]byte("a"), a, 1)
 	require.True(t, added)
-	added = cache.HasOrAdd([]byte("b"), b, 1)
+	_, added = cache.HasOrAdd([]byte("b"), b, 1)
 	require.True(t, added)
 
 	item, ok := cache.Get([]byte("a"))
@@ -163,23 +163,23 @@ func TestImmunityCache_Get(t *testing.T) {
 func TestImmunityCache_AddThenRemove_ChangesNumBytes(t *testing.T) {
 	cache := newCacheToTest(1, 8, 1000)
 
-	_ = cache.HasOrAdd([]byte("a"), "foo-a", 100)
-	_ = cache.HasOrAdd([]byte("b"), "foo-b", 300)
+	_, _ = cache.HasOrAdd([]byte("a"), "foo-a", 100)
+	_, _ = cache.HasOrAdd([]byte("b"), "foo-b", 300)
 	require.Equal(t, 400, cache.NumBytes())
 
-	_ = cache.HasOrAdd([]byte("c"), "foo-c", 400)
-	_ = cache.HasOrAdd([]byte("d"), "foo-d", 200)
+	_, _ = cache.HasOrAdd([]byte("c"), "foo-c", 400)
+	_, _ = cache.HasOrAdd([]byte("d"), "foo-d", 200)
 	require.Equal(t, 1000, cache.NumBytes())
 
 	// Eviction takes place
-	_ = cache.HasOrAdd([]byte("e"), "foo-e", 500)
+	_, _ = cache.HasOrAdd([]byte("e"), "foo-e", 500)
 	// Edge case, added item overflows.
 	// Should not be an issue in practice, when we preemptively evict a large number of items.
 	require.Equal(t, 1400, cache.NumBytes())
 	require.ElementsMatch(t, []string{"b", "c", "d", "e"}, keysAsStrings(cache.Keys()))
 
 	// "b" and "c" (300 + 400) will be evicted
-	_ = cache.HasOrAdd([]byte("f"), "foo-f", 400)
+	_, _ = cache.HasOrAdd([]byte("f"), "foo-f", 400)
 	require.Equal(t, 1100, cache.NumBytes())
 }
 
@@ -191,7 +191,7 @@ func TestImmunityCache_AddDoesNotWork_WhenFullWithImmune(t *testing.T) {
 	require.Equal(t, 4, numNow)
 	require.Equal(t, 0, numFuture)
 
-	added := cache.HasOrAdd([]byte("x"), "foo-x", 1)
+	_, added := cache.HasOrAdd([]byte("x"), "foo-x", 1)
 	require.False(t, added)
 	require.False(t, cache.Has([]byte("x")))
 }
@@ -266,6 +266,6 @@ func newCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uint32) *I
 
 func (ic *ImmunityCache) addTestItems(keys ...string) {
 	for _, key := range keys {
-		_ = ic.HasOrAdd([]byte(key), fmt.Sprintf("foo-%s", key), 100)
+		_, _ = ic.HasOrAdd([]byte(key), fmt.Sprintf("foo-%s", key), 100)
 	}
 }

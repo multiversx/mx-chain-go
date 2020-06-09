@@ -677,9 +677,9 @@ func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor) fun
 
 		identifier := append(message.From, message.Seqno...)
 		netMes.mutMessageIdCacher.RLock()
-		added := netMes.messageIdCacher.HasOrAdd(identifier, struct{}{}, len(identifier))
+		has, _ := netMes.messageIdCacher.HasOrAdd(identifier, struct{}{}, len(identifier))
 		netMes.mutMessageIdCacher.RUnlock()
-		if !added {
+		if has {
 			//not reprocessing nor rebrodcasting the same message over and over again
 			log.Trace("received an old message",
 				"originator pid", p2p.MessageOriginatorPid(wrappedMsg),
