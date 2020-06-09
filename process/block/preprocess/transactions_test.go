@@ -16,13 +16,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -756,7 +754,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := createTxPool()
+	txPool, _ := testscommon.CreateTxPool(2, 0)
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -826,7 +824,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCalls(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := createTxPool()
+	txPool, _ := testscommon.CreateTxPool(2, 0)
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -898,7 +896,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCall(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := createTxPool()
+	txPool, _ := testscommon.CreateTxPool(2, 0)
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -1054,22 +1052,6 @@ func BenchmarkSortTransactionsByNonceAndSender_WhenReversedNonces(b *testing.B) 
 	for i := 0; i < b.N; i++ {
 		SortTransactionsBySenderAndNonce(txs)
 	}
-}
-
-func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
-	return txpool.NewShardedTxPool(
-		txpool.ArgShardedTxPool{
-			Config: storageUnit.CacheConfig{
-				Capacity:             100000,
-				SizePerSender:        1000,
-				SizeInBytes:          1000000000,
-				SizeInBytesPerSender: 10000000,
-				Shards:               16,
-			},
-			MinGasPrice:    200000000000,
-			NumberOfShards: 1,
-		},
-	)
 }
 
 func createGoodPreprocessor(dataPool dataRetriever.PoolsHolder) *transactions {

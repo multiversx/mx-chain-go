@@ -37,7 +37,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/display"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -301,7 +300,7 @@ func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier, selfShar
 	var err error
 
 	if txPool == nil {
-		txPool, err = createTxPool(selfShardID)
+		txPool, err = testscommon.CreateTxPool(1, selfShardID)
 		if err != nil {
 			panic(fmt.Sprintf("CreateTestDataPool: %s", err))
 		}
@@ -1577,7 +1576,7 @@ func CreateResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 	txsSndAddr := make([][]byte, 0)
-	txPool, _ := createTxPool(shardCoordinator.SelfId())
+	txPool, _ := testscommon.CreateTxPool(1, shardCoordinator.SelfId())
 
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
@@ -2009,23 +2008,6 @@ func proposeBlocks(
 		crtNonce := atomic.LoadUint64(nonces[idx])
 		ProposeBlock(nodes, []int{proposer}, crtRound, crtNonce)
 	}
-}
-
-func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, error) {
-	return txpool.NewShardedTxPool(
-		txpool.ArgShardedTxPool{
-			Config: storageUnit.CacheConfig{
-				Capacity:             100_000,
-				SizePerSender:        1_000_000_000,
-				SizeInBytes:          1_000_000_000,
-				SizeInBytesPerSender: 33_554_432,
-				Shards:               16,
-			},
-			MinGasPrice:    200000000000,
-			NumberOfShards: 1,
-			SelfShardID:    selfShardID,
-		},
-	)
 }
 
 // WaitOperationToBeDone -

@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -1249,12 +1248,12 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := createTxPool()
+	nrShards := uint32(5)
+	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
 	}
-	nrShards := uint32(5)
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -1297,7 +1296,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	t.Parallel()
 
 	nrShards := uint32(5)
-	txPool, _ := createTxPool()
+	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1360,7 +1359,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	numMiniBlocks := allTxs / numTxsToAdd
 
 	nrShards := uint32(5)
-	txPool, _ := createTxPool()
+	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1426,7 +1425,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
 
 	nrShards := uint32(5)
-	txPool, _ := createTxPool()
+	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1492,12 +1491,12 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := createTxPool()
+	nrShards := uint32(5)
+	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
 	}
-	nrShards := uint32(5)
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -2536,20 +2535,4 @@ func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *tes
 	lastKey := tc.keysTxPreProcs[preProcLen-1]
 
 	assert.Equal(t, block.RewardsBlock, lastKey)
-}
-
-func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
-	return txpool.NewShardedTxPool(
-		txpool.ArgShardedTxPool{
-			Config: storageUnit.CacheConfig{
-				Capacity:             100000,
-				SizePerSender:        1000,
-				SizeInBytes:          1000000000,
-				SizeInBytesPerSender: 10000000,
-				Shards:               16,
-			},
-			MinGasPrice:    200000000000,
-			NumberOfShards: 1,
-		},
-	)
 }
