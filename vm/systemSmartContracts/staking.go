@@ -612,7 +612,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if registrationData.JailedRound != math.MaxUint64 {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for jailed key %s", args.Arguments[0]))
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for jailed key %s", string(args.Arguments[0])))
 		return vmcommon.UserError
 	}
 	if !r.canUnBond() || r.eei.IsValidator(args.Arguments[0]) {

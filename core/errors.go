@@ -46,7 +46,7 @@ var ErrNilAppStatusHandler = errors.New("appStatusHandler is nil")
 // ErrNilStatusTagProvider signals that a nil status tag provider has been given as parameter
 var ErrNilStatusTagProvider = errors.New("nil status tag provider")
 
-// ErrInvalidPollingInterval signals that a invalid polling interval has been provided
+// ErrInvalidPollingInterval signals that an invalid polling interval has been provided
 var ErrInvalidPollingInterval = errors.New("invalid polling interval ")
 
 // ErrInvalidIdentifierForEpochStartBlockRequest signals that an invalid identifier for epoch start block request
