@@ -47,13 +47,11 @@ func NewTermuiConsole(presenter view.Presenter) (*TermuiConsole, error) {
 }
 
 // Start method - will start termui console
-func (tc *TermuiConsole) Start() error {
-	if err := ui.Init(); err != nil {
-		return err
-	}
-
+func (tc *TermuiConsole) Start(chanStart chan bool) error {
 	go func() {
 		defer ui.Close()
+		<-chanStart
+		_ = ui.Init()
 		tc.eventLoop()
 	}()
 

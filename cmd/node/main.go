@@ -457,10 +457,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
 	workingDir := getWorkingDir(ctx, log)
 
+	var logFile *os.File
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
-		_, err = prepareLogFile(workingDir)
+		logFile, err = prepareLogFile(workingDir)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
@@ -730,7 +731,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.InternalMarshalizer, coreComponents.Uint64ByteSliceConverter)
+	chanCreateViews := make(chan bool)
+	chanLogRewrite := make(chan bool)
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(
+		useLogView.Name,
+		ctx,
+		coreComponents.InternalMarshalizer,
+		coreComponents.Uint64ByteSliceConverter,
+		chanCreateViews,
+		chanLogRewrite,
+		logFile,
+	)
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -877,6 +888,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Error("bootstrap return error", "error", err)
 		return err
 	}
+
+	chanLogRewrite <- true
+	chanCreateViews <- true
 
 	trieContainer, trieStorageManager := bootstrapper.GetTriesComponents()
 	triesComponents := &mainFactory.TriesComponents{

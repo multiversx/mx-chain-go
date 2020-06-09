@@ -3,8 +3,9 @@ package factory
 import (
 	"io"
 	"math/big"
+	"os"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/metrics"
@@ -26,6 +27,9 @@ type ArgStatusHandlers struct {
 	Ctx                          *cli.Context
 	Marshalizer                  marshal.Marshalizer
 	Uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
+	ChanStartViews               chan bool
+	ChanLogRewrite               chan bool
+	LogFile                      *os.File
 }
 
 // StatusHandlersInfo is struct that stores all components that are returned when status handlers are created
@@ -43,12 +47,18 @@ func NewStatusHandlersFactoryArgs(
 	ctx *cli.Context,
 	marshalizer marshal.Marshalizer,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+	chanStartViews chan bool,
+	chanLogRewrite chan bool,
+	logFile *os.File,
 ) *ArgStatusHandlers {
 	return &ArgStatusHandlers{
 		LogViewName:              logViewName,
 		Ctx:                      ctx,
 		Marshalizer:              marshalizer,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
+		ChanStartViews:           chanStartViews,
+		ChanLogRewrite:           chanLogRewrite,
+		LogFile:                  logFile,
 	}
 }
 
@@ -63,19 +73,28 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 
 	useTermui := !arguments.Ctx.GlobalBool(arguments.LogViewName)
 	if useTermui {
-		views, err = createViews(presenterStatusHandler)
+		views, err = createViews(presenterStatusHandler, arguments.ChanStartViews)
 		if err != nil {
 			return nil, err
 		}
 
-		writer, ok := presenterStatusHandler.(io.Writer)
-		if ok {
-			logger.ClearLogObservers()
-			err = logger.AddLogObserver(writer, &logger.PlainFormatter{})
-			if err != nil {
-				return nil, err
+		go func() {
+			<-arguments.ChanLogRewrite
+			writer, ok := presenterStatusHandler.(io.Writer)
+			if ok {
+				logger.ClearLogObservers()
+				err = logger.AddLogObserver(writer, &logger.PlainFormatter{})
+				if err != nil {
+					log.Warn("cannot add log observer for TermUI", "error", err)
+				}
+				if arguments.LogFile != nil {
+					err = logger.AddLogObserver(arguments.LogFile, &logger.PlainFormatter{})
+					if err != nil {
+						log.Warn("cannot add log observer for file", "error", err)
+					}
+				}
 			}
-		}
+		}()
 
 		appStatusHandler, ok := presenterStatusHandler.(core.AppStatusHandler)
 		if ok {
@@ -200,7 +219,7 @@ func createStatusHandlerPresenter() view.Presenter {
 }
 
 // CreateViews will start an termui console  and will return an object if cannot create and start termuiConsole
-func createViews(presenter view.Presenter) ([]factoryViews.Viewer, error) {
+func createViews(presenter view.Presenter, chanStart chan bool) ([]factoryViews.Viewer, error) {
 	viewsFactory, err := factoryViews.NewViewsFactory(presenter)
 	if err != nil {
 		return nil, err
@@ -212,7 +231,7 @@ func createViews(presenter view.Presenter) ([]factoryViews.Viewer, error) {
 	}
 
 	for _, v := range views {
-		err = v.Start()
+		err = v.Start(chanStart)
 		if err != nil {
 			return nil, err
 		}
