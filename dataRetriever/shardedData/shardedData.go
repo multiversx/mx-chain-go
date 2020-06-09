@@ -85,7 +85,7 @@ func (sd *shardedData) shardStore(cacheID string) *shardStore {
 
 // AddData will add data to the corresponding shard store
 func (sd *shardedData) AddData(key []byte, value interface{}, sizeInBytes int, cacheID string) {
-	log.Trace("shardedData.AddData()", "name", sd.name, "cacheID", cacheID)
+	log.Trace("shardedData.AddData()", "name", sd.name, "cacheID", cacheID, "key", key, "size", sizeInBytes)
 
 	var store *shardStore
 
