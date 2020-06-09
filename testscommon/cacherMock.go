@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 import (
 	"sync"
@@ -6,9 +6,8 @@ import (
 
 // CacherMock -
 type CacherMock struct {
-	mut     sync.Mutex
-	dataMap map[string]interface{}
-
+	mut                  sync.Mutex
+	dataMap              map[string]interface{}
 	mutAddedDataHandlers sync.RWMutex
 	addedDataHandlers    []func(key []byte, val interface{})
 }
@@ -16,7 +15,8 @@ type CacherMock struct {
 // NewCacherMock -
 func NewCacherMock() *CacherMock {
 	return &CacherMock{
-		dataMap: make(map[string]interface{}),
+		dataMap:           make(map[string]interface{}),
+		addedDataHandlers: make([]func(key []byte, val interface{}), 0),
 	}
 }
 
@@ -34,10 +34,17 @@ func (cm *CacherMock) Put(key []byte, value interface{}, _ int) (evicted bool) {
 	defer cm.mut.Unlock()
 
 	cm.dataMap[string(key)] = value
-
 	cm.callAddedDataHandlers(key, value)
 
 	return false
+}
+
+func (cm *CacherMock) callAddedDataHandlers(key []byte, val interface{}) {
+	cm.mutAddedDataHandlers.RLock()
+	for _, handler := range cm.addedDataHandlers {
+		go handler(key, val)
+	}
+	cm.mutAddedDataHandlers.RUnlock()
 }
 
 // Get -
@@ -81,6 +88,7 @@ func (cm *CacherMock) HasOrAdd(key []byte, value interface{}, _ int) (added bool
 	}
 
 	cm.dataMap[string(key)] = value
+	cm.callAddedDataHandlers(key, value)
 	return true
 }
 
@@ -94,7 +102,14 @@ func (cm *CacherMock) Remove(key []byte) {
 
 // Keys -
 func (cm *CacherMock) Keys() [][]byte {
-	panic("implement me")
+	keys := make([][]byte, len(cm.dataMap))
+	idx := 0
+	for k := range cm.dataMap {
+		keys[idx] = []byte(k)
+		idx++
+	}
+
+	return keys
 }
 
 // Len -
@@ -123,14 +138,6 @@ func (cm *CacherMock) RegisterHandler(handler func(key []byte, value interface{}
 
 // UnRegisterHandler -
 func (cm *CacherMock) UnRegisterHandler(string) {
-}
-
-func (cm *CacherMock) callAddedDataHandlers(key []byte, val interface{}) {
-	cm.mutAddedDataHandlers.RLock()
-	for _, handler := range cm.addedDataHandlers {
-		go handler(key, val)
-	}
-	cm.mutAddedDataHandlers.RUnlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

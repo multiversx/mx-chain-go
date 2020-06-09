@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1036,7 +1037,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 	}
 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
-	miniblockPool := mock.NewCacherMock()
+	miniblockPool := testscommon.NewCacherMock()
 	scrRestored, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
 
 	assert.Equal(t, scrRestored, 1)

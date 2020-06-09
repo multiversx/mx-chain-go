@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +23,7 @@ func TestNewTrieNodesInterceptorProcessor_NilCacherShouldErr(t *testing.T) {
 func TestNewTrieNodesInterceptorProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tnip, err := processor.NewTrieNodesInterceptorProcessor(&mock.CacherMock{})
+	tnip, err := processor.NewTrieNodesInterceptorProcessor(testscommon.NewCacherMock())
 	assert.Nil(t, err)
 	assert.NotNil(t, tnip)
 }
@@ -32,7 +33,7 @@ func TestNewTrieNodesInterceptorProcessor_OkValsShouldWork(t *testing.T) {
 func TestTrieNodesInterceptorProcessor_ValidateShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tnip, _ := processor.NewTrieNodesInterceptorProcessor(&mock.CacherMock{})
+	tnip, _ := processor.NewTrieNodesInterceptorProcessor(testscommon.NewCacherMock())
 
 	assert.Nil(t, tnip.Validate(nil, ""))
 }
@@ -42,7 +43,7 @@ func TestTrieNodesInterceptorProcessor_ValidateShouldWork(t *testing.T) {
 func TestTrieNodesInterceptorProcessor_SaveWrongTypeAssertion(t *testing.T) {
 	t.Parallel()
 
-	tnip, _ := processor.NewTrieNodesInterceptorProcessor(&mock.CacherMock{})
+	tnip, _ := processor.NewTrieNodesInterceptorProcessor(testscommon.NewCacherMock())
 
 	err := tnip.Save(nil, "")
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)

@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,7 +70,7 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 	syncTimerMock := &mock.SyncTimerMock{}
 	hasher := &mock.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
-	poolAdder := mock.NewCacherMock()
+	poolAdder := testscommon.NewCacherMock()
 
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         blsService,

@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -190,7 +191,7 @@ func TestReceivedBlockTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-						return &mock.CacherMock{}
+						return testscommon.NewCacherMock()
 					},
 				}
 			},
@@ -217,7 +218,7 @@ func TestReceivedRewardTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 			RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-						return &mock.CacherMock{}
+						return testscommon.NewCacherMock()
 					},
 				}
 			},
@@ -241,7 +242,7 @@ func TestReceivedUnsignedTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-						return &mock.CacherMock{}
+						return testscommon.NewCacherMock()
 					},
 				}
 			},
@@ -272,7 +273,7 @@ func TestCleanTxsPoolsIfNeeded_CannotFindTxInPoolShouldBeRemovedFromMap(t *testi
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-						return &mock.CacherMock{}
+						return testscommon.NewCacherMock()
 					},
 				}
 			},

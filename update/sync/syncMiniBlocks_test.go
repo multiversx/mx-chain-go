@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
@@ -191,7 +192,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 				return nil, localErr
 			},
 		},
-		Cache:          mock.NewCacherMock(),
+		Cache:          testscommon.NewCacherMock(),
 		Marshalizer:    &mock.MarshalizerFake{},
 		RequestHandler: &mock.RequestHandlerStub{},
 	}
