@@ -35,7 +35,7 @@ const (
 )
 
 // waitingAllSigsMaxTimeThreshold specifies the max allocated time for waiting all signatures from the total time of the subround signature
-const waitingAllSigsMaxTimeThreshold = 0.75
+const waitingAllSigsMaxTimeThreshold = 0.5
 
 // processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
 const processingThresholdPercent = 85

@@ -71,6 +71,7 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 			message.Topics(),
 			1,
 			uint64(len(message.Data())),
+			message.SeqNo(),
 			af.blacklistHandler.Has(fromConnectedPeer),
 		)
 
@@ -79,14 +80,14 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 
 	originatorIsBlacklisted := af.blacklistHandler.Has(message.Peer())
 	if originatorIsBlacklisted {
-		af.recordDebugEvent(message.Peer(), message.Topics(), 1, uint64(len(message.Data())), true)
+		af.recordDebugEvent(message.Peer(), message.Topics(), 1, uint64(len(message.Data())), message.SeqNo(), true)
 		return fmt.Errorf("%w for pid %s", process.ErrOriginatorIsBlacklisted, message.Peer().Pretty())
 	}
 
 	return nil
 }
 
-func (af *p2pAntiflood) recordDebugEvent(pid core.PeerID, topics []string, numRejected uint32, sizeRejected uint64, isBlacklisted bool) {
+func (af *p2pAntiflood) recordDebugEvent(pid core.PeerID, topics []string, numRejected uint32, sizeRejected uint64, sequence []byte, isBlacklisted bool) {
 	if len(topics) == 0 {
 		topics = []string{unidentifiedTopic}
 	}
@@ -94,7 +95,7 @@ func (af *p2pAntiflood) recordDebugEvent(pid core.PeerID, topics []string, numRe
 	af.mutDebugger.RLock()
 	defer af.mutDebugger.RUnlock()
 
-	af.debugger.AddData(pid, topics[0], numRejected, sizeRejected, isBlacklisted)
+	af.debugger.AddData(pid, topics[0], numRejected, sizeRejected, sequence, isBlacklisted)
 }
 
 func (af *p2pAntiflood) canProcessMessage(fp process.FloodPreventer, message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -132,7 +133,7 @@ func (af *p2pAntiflood) canProcessMessage(fp process.FloodPreventer, message p2p
 }
 
 // CanProcessMessagesOnTopic signals if a p2p message can be processed or not for a given topic
-func (af *p2pAntiflood) CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error {
+func (af *p2pAntiflood) CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 	err := af.topicPreventer.IncreaseLoad(peer, topic, numMessages)
 	if err != nil {
 		log.Trace("topicFloodPreventer.Accumulate peer",
@@ -141,7 +142,7 @@ func (af *p2pAntiflood) CanProcessMessagesOnTopic(peer core.PeerID, topic string
 			"topic", topic,
 		)
 
-		af.recordDebugEvent(peer, []string{topic}, numMessages, totalSize, af.blacklistHandler.Has(peer))
+		af.recordDebugEvent(peer, []string{topic}, numMessages, totalSize, sequence, af.blacklistHandler.Has(peer))
 
 		return fmt.Errorf("%w in p2pAntiflood for connected peer %s",
 			err,
