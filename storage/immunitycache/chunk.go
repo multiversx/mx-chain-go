@@ -277,8 +277,8 @@ func (chunk *immunityChunk) ForEachItem(function storage.ForEachItem) {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
 
-	for key, value := range chunk.items {
-		function([]byte(key), value.item.payload)
+	for key, itemWrapper := range chunk.items {
+		function([]byte(key), itemWrapper.item.payload)
 	}
 }
 

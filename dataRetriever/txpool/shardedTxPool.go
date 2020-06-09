@@ -156,7 +156,7 @@ func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cac
 }
 
 // AddData adds the transaction to the cache
-func (txPool *shardedTxPool) AddData(key []byte, value interface{}, _ int, cacheID string) {
+func (txPool *shardedTxPool) AddData(key []byte, value interface{}, sizeInBytes int, cacheID string) {
 	valueAsTransaction, ok := value.(data.TransactionHandler)
 	if !ok {
 		return
@@ -168,12 +168,12 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, _ int, cache
 		return
 	}
 
-	// TODO: receive size here
 	wrapper := &txcache.WrappedTransaction{
 		Tx:              valueAsTransaction,
 		TxHash:          key,
 		SenderShardID:   sourceShardID,
 		ReceiverShardID: destinationShardID,
+		Size:            int64(sizeInBytes),
 	}
 
 	txPool.addTx(wrapper, cacheID)
