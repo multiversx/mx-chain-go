@@ -26,7 +26,7 @@ func (mp *messageProcessor) canProcessMessage(message p2p.MessageP2P, fromConnec
 	if err != nil {
 		return fmt.Errorf("%w on resolver topic %s", err, mp.topic)
 	}
-	err = mp.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, mp.topic, 1, uint64(len(message.Data())))
+	err = mp.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, mp.topic, 1, uint64(len(message.Data())), message.SeqNo())
 	if err != nil {
 		return fmt.Errorf("%w on resolver topic %s", err, mp.topic)
 	}
