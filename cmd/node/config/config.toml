@@ -242,9 +242,9 @@
     Shards = 16
 
 [TrieNodesDataPool]
-    Capacity = 50000
+    Capacity = 900000
     Type = "SizeLRU"
-    SizeInBytes = 104857600 #100MB
+    SizeInBytes = 314572800 #300MB
 
 [WhiteListPool]
     Capacity = 100000
@@ -282,6 +282,11 @@
     Capacity = 30000
     Type = "LRU"
 
+[P2PMessageIDAdditionalCache]
+    Capacity = 100000
+    Type = "FIFOSharded"
+    Shards = 100
+
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
@@ -312,6 +317,21 @@
         [Antiflood.SlowReacting.BlackList]
             ThresholdNumMessagesPerInterval = 6000
             ThresholdSizePerInterval = 37748736 # 18MB/interval
+            NumFloodingRounds = 2
+            PeerBanDurationInSeconds = 3600
+
+    [Antiflood.OutOfSpecs]
+        IntervalInSeconds = 1
+        ReservedPercent   = 0.0
+        [Antiflood.OutOfSpecs.PeerMaxInput]
+            BaseMessagesPerInterval = 3000
+            TotalSizePerInterval = 10485760 # 10MB/interval
+            [Antiflood.OutOfSpecs.PeerMaxInput.IncreaseFactor]
+                Threshold = 0 #if consensus size will exceed this value, then
+                Factor = 0     #increase the base value with [factor*consensus size]
+        [Antiflood.OutOfSpecs.BlackList]
+            ThresholdNumMessagesPerInterval = 3600
+            ThresholdSizePerInterval = 12582912 # 12MB/interval
             NumFloodingRounds = 2
             PeerBanDurationInSeconds = 3600
 
@@ -505,3 +525,7 @@
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3
         DebugLineExpiration = 10 #Will remove the debug line after a `DebugLineExpiration` number of prints
+    [Debug.Antiflood]
+        Enabled = true
+        CacheSize = 10000
+        IntervalAutoPrintInSeconds = 20

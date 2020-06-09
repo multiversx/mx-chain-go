@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
@@ -68,7 +70,9 @@ type Cacher interface {
 	// MaxSize returns the maximum number of items which can be stored in the cache.
 	MaxSize() int
 	// RegisterHandler registers a new handler to be called when a new data is added
-	RegisterHandler(func(key []byte, value interface{}))
+	RegisterHandler(handler func(key []byte, value interface{}), id string)
+	// UnRegisterHandler deletes the handler from the list
+	UnRegisterHandler(id string)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -204,4 +208,13 @@ type SizedLRUCacheHandler interface {
 	Keys() []interface{}
 	Len() int
 	Purge()
+}
+
+// TimeCacheHandler defines the cache that can keep a record for a bounded time
+type TimeCacheHandler interface {
+	Add(key string) error
+	AddWithSpan(key string, span time.Duration) error
+	Has(key string) bool
+	Sweep()
+	IsInterfaceNil() bool
 }
