@@ -208,3 +208,39 @@ func TestAntifloodDebugger_DifferentSequenceShouldAppend(t *testing.T) {
 	assert.True(t, strings.Contains(evLine, fmt.Sprintf("%d", seq1)))
 	assert.True(t, strings.Contains(evLine, fmt.Sprintf("%d", seq2)))
 }
+
+func TestAntifloodDebugger_MoreSequencesShouldTrim(t *testing.T) {
+	t.Parallel()
+
+	d, _ := NewAntifloodDebugger(config.AntifloodDebugConfig{
+		CacheSize:                  100,
+		IntervalAutoPrintInSeconds: 1,
+	})
+
+	pid := core.PeerID("pid")
+	topic := "topic"
+	startValue := uint64(33946384)
+	numVals := 10
+	for i := 0; i < numVals; i++ {
+		seq := startValue + uint64(i)
+		seqBuff := make([]byte, 8)
+		binary.BigEndian.PutUint64(seqBuff, seq)
+
+		d.AddData(pid, topic, 0, 0, seqBuff, true)
+	}
+
+	ev := d.GetData(d.computeIdentifier(pid, topic))
+	evLine := ev.String()
+	fmt.Println(evLine)
+	for i := 0; i < maxSequencesToPrint; i++ {
+		val := startValue + uint64(i)
+		assert.False(t, strings.Contains(evLine, fmt.Sprintf("%d", val)))
+	}
+
+	for i := maxSequencesToPrint; i < numVals; i++ {
+		val := startValue + uint64(i)
+		assert.True(t, strings.Contains(evLine, fmt.Sprintf("%d", val)))
+	}
+
+	assert.True(t, strings.Contains(evLine, moreSequencesPresent))
+}

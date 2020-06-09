@@ -22,6 +22,8 @@ const sizeUint64 = 8
 const sizeBool = 1
 const newLineChar = "\n"
 const minIntervalInSeconds = 1
+const maxSequencesToPrint = 5
+const moreSequencesPresent = "..."
 
 var log = logger.GetOrCreate("debug/antiflood")
 
@@ -48,6 +50,10 @@ func (ev *event) String() string {
 	sort.Slice(sequences, func(i, j int) bool {
 		return sequences[i] < sequences[j]
 	})
+
+	if len(sequences) > maxSequencesToPrint {
+		sequences = append([]string{moreSequencesPresent}, sequences[len(sequences)-maxSequencesToPrint:]...)
+	}
 
 	return fmt.Sprintf("pid: %s; topic: %s; num rejected: %d; size rejected: %d; seqences: %s; is blacklisted: %v",
 		ev.pid.Pretty(), ev.topic, ev.numRejected, ev.sizeRejected, strings.Join(sequences, ", "), ev.isBlackListed)
