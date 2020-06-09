@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var timeoutWaitForWaitGroups = time.Second * 2
@@ -100,7 +99,7 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 
-	vals := int(sd.configPrototype.MaxNumItems)
+	vals := int(defaultTestConfig.Capacity)
 	wg.Add(vals)
 
 	for i := 0; i < vals; i++ {
@@ -116,7 +115,7 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 	//checking
 	for i := 0; i < vals; i++ {
 		key := []byte(strconv.Itoa(i))
-		require.True(t, sd.ShardStore("1").DataStore.Has(key), fmt.Sprintf("for val %d", i))
+		assert.True(t, sd.ShardStore("1").DataStore.Has(key), fmt.Sprintf("for val %d", i))
 	}
 }
 

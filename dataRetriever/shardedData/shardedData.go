@@ -42,15 +42,11 @@ type shardStore struct {
 func NewShardedData(config storageUnit.CacheConfig) (*shardedData, error) {
 	log.Info("NewShardedData", "config", config.String())
 
-	// TODO: Receive number of shards.
-	numShards := 5
-	numPairs := uint32(2*numShards - 1)
-
 	configPrototype := immunitycache.CacheConfig{
-		Name:                        "untitled",
+		Name:                        "prototype",
 		NumChunks:                   config.Shards,
-		MaxNumItems:                 config.Capacity / numPairs,
-		MaxNumBytes:                 uint32(config.SizeInBytes) / numPairs,
+		MaxNumItems:                 config.Capacity,
+		MaxNumBytes:                 uint32(config.SizeInBytes),
 		NumItemsToPreemptivelyEvict: dataRetriever.TxPoolNumTxsToPreemptivelyEvict,
 	}
 

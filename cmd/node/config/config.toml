@@ -234,10 +234,10 @@
     SizeInBytes = 314572800 #300MB
 
 [TxDataPool]
-    Capacity = 900000
+    Capacity = 900000               # in total, pairs (sourceShard, destinationShard)
     SizePerSender = 20000
-    SizeInBytes = 524288000
-    SizeInBytesPerSender = 12288000
+    SizeInBytes = 524288000         # 500MB in total, pairs (sourceShard, destinationShard)
+    SizeInBytesPerSender = 12582912 # 12MB
     Shards = 16
 
 [TrieNodesDataPool]
@@ -256,13 +256,13 @@
     Shards = 50
 
 [UnsignedTransactionDataPool]
-    Capacity = 75000
-    SizeInBytes = 314572800 #300MB
+    Capacity = 75000        # per each pair (sourceShard, destinationShard)
+    SizeInBytes = 31457280  # 30MB per each pair (sourceShard, destinationShard)
     Shards = 4
 
 [RewardTransactionDataPool]
-    Capacity = 75000
-    SizeInBytes = 104857600 #100MB
+    Capacity = 75000        # per each pair (metachain, destinationShard)
+    SizeInBytes = 26214400  # 25MB per each pair (metachain, destinationShard)
     Shards = 4
 
 #PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
