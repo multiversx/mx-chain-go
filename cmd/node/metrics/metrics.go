@@ -82,6 +82,7 @@ func InitMetrics(
 	appStatusHandler.SetStringValue(core.MetricDenominationCoefficient, economicsConfig.RewardsSettings.DenominationCoefficientForView)
 	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, initString)
+	appStatusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, initString)
 
 	appStatusHandler.SetStringValue(core.MetricP2PNumConnectedPeersClassification, initString)
 	appStatusHandler.SetStringValue(core.MetricP2PPeerInfo, initString)

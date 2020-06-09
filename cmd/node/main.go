@@ -889,9 +889,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	chanLogRewrite <- true
-	chanCreateViews <- true
-
 	trieContainer, trieStorageManager := bootstrapper.GetTriesComponents()
 	triesComponents := &mainFactory.TriesComponents{
 		TriesContainer:      trieContainer,
@@ -957,6 +954,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	chanLogRewrite <- true
+	chanCreateViews <- true
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
