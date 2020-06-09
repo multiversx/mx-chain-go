@@ -605,8 +605,11 @@ func newEpochStartTrigger(
 
 // CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
 // is available
-func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwareVersion.SoftwareVersionChecker, error) {
-	softwareVersionCheckerFactory, err := factorySoftwareVersion.NewSoftwareVersionFactory(statusHandler)
+func CreateSoftwareVersionChecker(
+	statusHandler core.AppStatusHandler,
+	config config.SoftwareVersionConfig,
+) (*softwareVersion.SoftwareVersionChecker, error) {
+	softwareVersionCheckerFactory, err := factorySoftwareVersion.NewSoftwareVersionFactory(statusHandler, config)
 	if err != nil {
 		return nil, err
 	}
@@ -1726,8 +1729,8 @@ func PrepareNetworkShardingCollector(
 		return nil, err
 	}
 
-	localId := network.NetMessenger.ID()
-	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
+	localID := network.NetMessenger.ID()
+	networkShardingCollector.UpdatePeerIdShardId(localID, coordinator.SelfId())
 
 	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector)
 	if err != nil {
@@ -1751,21 +1754,21 @@ func createNetworkShardingCollector(
 	}
 
 	cacheConfig = config.PublicKeyShardId
-	cachePkShardId, err := createCache(cacheConfig)
+	cachePkShardID, err := createCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	cacheConfig = config.PeerIdShardId
-	cachePidShardId, err := createCache(cacheConfig)
+	cachePidShardID, err := createCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	psm, err := networksharding.NewPeerShardMapper(
 		cachePkPid,
-		cachePkShardId,
-		cachePidShardId,
+		cachePkShardID,
+		cachePidShardID,
 		nodesCoordinator,
 		epochStart,
 	)
