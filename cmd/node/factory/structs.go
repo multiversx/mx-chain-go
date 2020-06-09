@@ -1576,13 +1576,12 @@ func newMetaBlockProcessor(
 	}
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:         core.InternalMarshalizer,
-		Hasher:              core.Hasher,
-		Store:               data.Store,
-		ShardCoordinator:    shardCoordinator,
-		NodesConfigProvider: nodesCoordinator,
-		RewardsHandler:      economicsData,
-		RoundTime:           rounder,
+		Marshalizer:      core.InternalMarshalizer,
+		Hasher:           core.Hasher,
+		Store:            data.Store,
+		ShardCoordinator: shardCoordinator,
+		RewardsHandler:   economicsData,
+		RoundTime:        rounder,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -1592,14 +1591,15 @@ func newMetaBlockProcessor(
 	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
 	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
-		ShardCoordinator: shardCoordinator,
-		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
-		RewardsStorage:   rewardsStorage,
-		MiniBlockStorage: miniBlockStorage,
-		Hasher:           core.Hasher,
-		Marshalizer:      core.InternalMarshalizer,
-		DataPool:         data.Datapool,
-		CommunityAddress: economicsData.CommunityAddress(),
+		ShardCoordinator:    shardCoordinator,
+		PubkeyConverter:     stateComponents.AddressPubkeyConverter,
+		RewardsStorage:      rewardsStorage,
+		MiniBlockStorage:    miniBlockStorage,
+		Hasher:              core.Hasher,
+		Marshalizer:         core.InternalMarshalizer,
+		DataPool:            data.Datapool,
+		CommunityAddress:    economicsData.CommunityAddress(),
+		NodesConfigProvider: nodesCoordinator,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {
