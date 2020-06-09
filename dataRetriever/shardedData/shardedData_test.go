@@ -43,25 +43,6 @@ func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(sd))
 }
 
-func TestNewShardedData_CreateShardStore(t *testing.T) {
-	t.Parallel()
-
-	sd, err := NewShardedData(defaultTestConfig)
-	require.Nil(t, err)
-
-	id := "id"
-	key := []byte("key")
-	sd.CreateShardStore(id)
-	sd.AddData(key, key, len(key), id)
-
-	shardStore := sd.ShardDataStore(id)
-	require.NotNil(t, shardStore)
-
-	sd.RemoveSetOfDataFromPool([][]byte{key}, id)
-	_, found := sd.SearchFirstData(key)
-	require.False(t, found)
-}
-
 func TestShardedData_AddData(t *testing.T) {
 	t.Parallel()
 

@@ -331,13 +331,6 @@ func Test_IsInterfaceNil(t *testing.T) {
 	require.True(t, check.IfNil(thisIsNil))
 }
 
-func Test_NotImplementedFunctions(t *testing.T) {
-	poolAsInterface, _ := newTxPoolToTest()
-	pool := poolAsInterface.(*shardedTxPool)
-
-	require.NotPanics(t, func() { pool.CreateShardStore("foo") })
-}
-
 func Test_routeToCacheUnions(t *testing.T) {
 	config := storageUnit.CacheConfig{
 		Capacity:             100,

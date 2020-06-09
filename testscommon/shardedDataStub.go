@@ -85,11 +85,6 @@ func (shardedData *ShardedDataStub) ImmunizeSetOfDataAgainstEviction(keys [][]by
 	}
 }
 
-// CreateShardStore -
-func (shardedData *ShardedDataStub) CreateShardStore(cacheID string) {
-	shardedData.CreateShardStoreCalled(cacheID)
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (shardedData *ShardedDataStub) IsInterfaceNil() bool {
 	return shardedData == nil

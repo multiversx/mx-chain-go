@@ -80,14 +80,6 @@ func (sd *shardedData) newShardStore(cacheId string) (*shardStore, error) {
 	}, nil
 }
 
-// CreateShardStore is a ShardedData method that is responsible for creating
-//  a new shardStore with cacheId index in the shardedDataStore map
-func (sd *shardedData) CreateShardStore(cacheId string) {
-	sd.mutShardedDataStore.Lock()
-	sd.newShardStoreNoLock(cacheId)
-	sd.mutShardedDataStore.Unlock()
-}
-
 func (sd *shardedData) newShardStoreNoLock(cacheId string) *shardStore {
 	shardStoreObject, err := sd.newShardStore(cacheId)
 	if err != nil {

@@ -295,10 +295,6 @@ func (txPool *shardedTxPool) ClearShardStore(cacheID string) {
 	shard.Cache.Clear()
 }
 
-// CreateShardStore is not implemented for this pool, since shard creations is managed internally
-func (txPool *shardedTxPool) CreateShardStore(_ string) {
-}
-
 // RegisterHandler registers a new handler to be called when a new transaction is added
 func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte, value interface{})) {
 	if handler == nil {

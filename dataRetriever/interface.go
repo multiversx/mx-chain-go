@@ -249,7 +249,6 @@ type ShardedDataCacherNotifier interface {
 	MergeShardStores(sourceCacheID, destCacheID string)
 	Clear()
 	ClearShardStore(cacheId string)
-	CreateShardStore(cacheId string)
 }
 
 // ShardIdHashMap represents a map for shardId and hash
