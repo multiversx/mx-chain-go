@@ -308,6 +308,7 @@ func (tsm *trieStorageManager) GetDbThatContainsHash(rootHash []byte) data.DBWri
 
 	hashPresent := err == nil
 	if hashPresent {
+		log.Trace("hash present in main trie db", "hash", rootHash)
 		return tsm.db
 	}
 
@@ -323,6 +324,7 @@ func (tsm *trieStorageManager) getSnapshotDbThatContainsHash(rootHash []byte) da
 
 		hashPresent := err == nil
 		if hashPresent {
+			log.Trace("hash present in snapshot trie db", "hash", rootHash)
 			return tsm.snapshots[i]
 		}
 	}
@@ -364,7 +366,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh m
 		return
 	}
 
-	log.Debug("trie snapshot started", "rootHash", snapshot.rootHash)
+	log.Debug("trie snapshot started", "rootHash", snapshot.rootHash, "newDB", snapshot.newDb)
 
 	newRoot, err := newSnapshotNode(tsm.db, msh, hsh, snapshot.rootHash)
 	if err != nil {
@@ -418,6 +420,7 @@ func (tsm *trieStorageManager) removeSnapshot() {
 	}
 	tsm.snapshots = tsm.snapshots[1:]
 
+	log.Debug("remove trie snapshot db", "snapshot ID", dbUniqueId)
 	removePath := path.Join(tsm.snapshotDbCfg.FilePath, dbUniqueId)
 	go removeDirectory(removePath)
 }
@@ -461,6 +464,7 @@ func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
 		snapshotPath = path.Join(tsm.snapshotDbCfg.FilePath, strconv.Itoa(tsm.snapshotId))
 	}
 
+	log.Debug("create new trie snapshot db", "snapshot ID", tsm.snapshotId)
 	arg := storageUnit.ArgDB{
 		DBType:            storageUnit.DBType(tsm.snapshotDbCfg.Type),
 		Path:              snapshotPath,

@@ -464,6 +464,9 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.Root()
 
+	dirtyHashes, _ := tr.GetDirtyHashes()
+	tr.SetNewHashes(dirtyHashes)
+
 	tr.TakeSnapshot(rootHash)
 	time.Sleep(time.Second)
 	tr.Prune(rootHash, data.NewRoot)
