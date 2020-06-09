@@ -242,9 +242,9 @@
     Shards = 16
 
 [TrieNodesDataPool]
-    Capacity = 900000
+    Capacity = 50000
     Type = "SizeLRU"
-    SizeInBytes = 314572800 #300MB
+    SizeInBytes = 104857600 #100MB
 
 [WhiteListPool]
     Capacity = 100000
@@ -281,11 +281,6 @@
 [PeerIdShardId]
     Capacity = 30000
     Type = "LRU"
-
-[P2PMessageIDAdditionalCache]
-    Capacity = 100000
-    Type = "FIFOSharded"
-    Shards = 100
 
 [Antiflood]
     Enabled = true
@@ -404,8 +399,8 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 200
-    RoundsPerEpoch         = 200
+    MinRoundsBetweenEpochs = 20
+    RoundsPerEpoch         = 20
     # ShuffledOutRestartThreshold represents the maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     ShuffledOutRestartThreshold = 0.25
@@ -474,12 +469,18 @@
         MessagesMarshalizer = "json"
         MaxLoopTime = 1000
 
+
+[P2PMessageIDAdditionalCache]
+    Capacity = 100000
+    Type = "FIFOSharded"
+    Shards = 100
+
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true
-    PublicKeyToListenFrom = "b5ea539180627040b2703cabde8ebece0ded59a0c9d2d4a8a73a299fb7bc11d36ac3d1a620501c230059cffa983a7419d192a50ca55ed8aa07254658dda27aba1e54f50fd7cfbb9e66ce1715d72f9c1b0b05272388f9825742161a211debff15"
+    PublicKeyToListenFrom = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
 	CloseAfterExportInMinutes = 10
-	AfterHardFork = false
+	AfterHardFork = true
 	ImportFolder = "export"
 	StartRound = 10000
 	StartNonce = 10000
