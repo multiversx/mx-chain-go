@@ -1,7 +1,9 @@
 package antiflood
 
 import (
+	"encoding/binary"
 	"errors"
+	"fmt"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -65,7 +67,7 @@ func TestAntifloodDebugger_AddDataNotExistingShouldAdd(t *testing.T) {
 	topic := "topic"
 	numRejected := uint32(272)
 	sizeRejected := uint64(7272)
-	d.AddData(pid, topic, numRejected, sizeRejected, true)
+	d.AddData(pid, topic, numRejected, sizeRejected, make([]byte, 8), true)
 
 	assert.Equal(t, 1, d.cache.Len())
 	ev := d.GetData([]byte(string(pid) + topic))
@@ -89,8 +91,8 @@ func TestAntifloodDebugger_AddDataExistingShouldChange(t *testing.T) {
 	topic := "topic"
 	numRejected := uint32(272)
 	sizeRejected := uint64(7272)
-	d.AddData(pid, topic, numRejected, sizeRejected, true)
-	d.AddData(pid, topic, numRejected, sizeRejected, false)
+	d.AddData(pid, topic, numRejected, sizeRejected, nil, true)
+	d.AddData(pid, topic, numRejected, sizeRejected, nil, false)
 
 	assert.Equal(t, 1, d.cache.Len())
 	ev := d.GetData([]byte(string(pid) + topic))
@@ -126,8 +128,8 @@ func TestAntifloodDebugger_PrintShouldWork(t *testing.T) {
 	topic := "topic"
 	numRejected := uint32(272)
 	sizeRejected := uint64(7272)
-	d.AddData(pid1, topic, numRejected, sizeRejected, true)
-	d.AddData(pid2, topic, numRejected, sizeRejected, false)
+	d.AddData(pid1, topic, numRejected, sizeRejected, nil, true)
+	d.AddData(pid2, topic, numRejected, sizeRejected, nil, false)
 
 	time.Sleep(time.Millisecond * 1500)
 
@@ -164,7 +166,7 @@ func TestAntifloodDebugger_CloseShouldWork(t *testing.T) {
 	d.printEventFunc = func(data string) {
 		atomic.AddInt32(&numPrinted, 1)
 	}
-	d.AddData("", "", 0, 0, true)
+	d.AddData("", "", 0, 0, nil, true)
 
 	time.Sleep(time.Millisecond * 2500)
 	assert.True(t, atomic.LoadInt32(&numPrinted) > 0)
@@ -177,4 +179,32 @@ func TestAntifloodDebugger_CloseShouldWork(t *testing.T) {
 	time.Sleep(time.Millisecond * 2500)
 
 	assert.Equal(t, int32(0), atomic.LoadInt32(&numPrinted))
+}
+
+func TestAntifloodDebugger_DifferentSequenceShouldAppend(t *testing.T) {
+	t.Parallel()
+
+	d, _ := NewAntifloodDebugger(config.AntifloodDebugConfig{
+		CacheSize:                  100,
+		IntervalAutoPrintInSeconds: 1,
+	})
+
+	seq1 := uint64(2347234)
+	seq1Buff := make([]byte, 8)
+	binary.BigEndian.PutUint64(seq1Buff, seq1)
+
+	seq2 := uint64(110)
+	seq2Buff := make([]byte, 8)
+	binary.BigEndian.PutUint64(seq2Buff, seq2)
+
+	pid := core.PeerID("pid")
+	topic := "topic"
+	d.AddData(pid, topic, 0, 0, seq1Buff, true)
+	d.AddData(pid, topic, 0, 0, seq2Buff, true)
+
+	ev := d.GetData(d.computeIdentifier(pid, topic))
+	evLine := ev.String()
+	fmt.Println(evLine)
+	assert.True(t, strings.Contains(evLine, fmt.Sprintf("%d", seq1)))
+	assert.True(t, strings.Contains(evLine, fmt.Sprintf("%d", seq2)))
 }

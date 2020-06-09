@@ -2,7 +2,9 @@ package antiflood
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -25,6 +27,7 @@ var log = logger.GetOrCreate("debug/antiflood")
 
 type event struct {
 	pid           core.PeerID
+	sequences     map[uint64]struct{}
 	topic         string
 	numRejected   uint32
 	sizeRejected  uint64
@@ -37,8 +40,17 @@ func (ev *event) Size() int {
 }
 
 func (ev *event) String() string {
-	return fmt.Sprintf("pid: %s, topic: %s, num rejected: %d, size rejected: %d, is blacklisted: %v",
-		ev.pid.Pretty(), ev.topic, ev.numRejected, ev.sizeRejected, ev.isBlackListed)
+	sequences := make([]string, 0, len(ev.sequences))
+	for seq := range ev.sequences {
+		sequences = append(sequences, fmt.Sprintf("%d", seq))
+	}
+
+	sort.Slice(sequences, func(i, j int) bool {
+		return sequences[i] < sequences[j]
+	})
+
+	return fmt.Sprintf("pid: %s; topic: %s; num rejected: %d; size rejected: %d; seqences: %s; is blacklisted: %v",
+		ev.pid.Pretty(), ev.topic, ev.numRejected, ev.sizeRejected, strings.Join(sequences, ", "), ev.isBlackListed)
 }
 
 type debugger struct {
@@ -78,9 +90,15 @@ func (d *debugger) AddData(
 	topic string,
 	numRejected uint32,
 	sizeRejected uint64,
+	sequence []byte,
 	isBlacklisted bool,
 ) {
 	identifier := d.computeIdentifier(pid, topic)
+
+	seqVal := uint64(0)
+	if len(sequence) >= 8 {
+		seqVal = binary.BigEndian.Uint64(sequence)
+	}
 
 	d.mut.Lock()
 	defer d.mut.Unlock()
@@ -93,6 +111,7 @@ func (d *debugger) AddData(
 			numRejected:   0,
 			sizeRejected:  0,
 			isBlackListed: false,
+			sequences:     map[uint64]struct{}{seqVal: {}},
 		}
 	}
 
@@ -104,12 +123,14 @@ func (d *debugger) AddData(
 			numRejected:   0,
 			sizeRejected:  0,
 			isBlackListed: false,
+			sequences:     map[uint64]struct{}{seqVal: {}},
 		}
 	}
 
 	ev.numRejected += numRejected
 	ev.sizeRejected += sizeRejected
 	ev.isBlackListed = isBlacklisted
+	ev.sequences[seqVal] = struct{}{}
 
 	d.cache.Put(identifier, ev, ev.Size())
 }

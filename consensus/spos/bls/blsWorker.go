@@ -12,9 +12,10 @@ import (
 //    adds an extra 1 to the total value, reaching value 4;
 // 3. Because the leader might be selected in the next round and might have an empty data pool, it can send the newly
 //    empty proposed block at the very beginning of the next round. One extra message here, yielding to a total of 5.
+// 4. If we consider the forks that can appear on the system wee need to add one more to the value.
 // Validators only send one signature message in a round, treating the edge case of a delayed message, will need at most
 // 2 messages per round (which is ok as it is below the set value of 5)
-const peerMaxMessagesPerSec = uint32(5)
+const peerMaxMessagesPerSec = uint32(6)
 
 // worker defines the data needed by spos to communicate between nodes which are in the validators group
 type worker struct {
