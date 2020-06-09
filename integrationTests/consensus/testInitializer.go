@@ -24,10 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -47,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 const blsConsensusType = "bls"
@@ -157,71 +154,6 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
 	return store
-}
-
-func createTestShardDataPool() dataRetriever.PoolsHolder {
-	var err error
-
-	txPool, err := txpool.NewShardedTxPool(
-		txpool.ArgShardedTxPool{
-			Config: storageUnit.CacheConfig{
-				Capacity:             100000,
-				SizePerSender:        1000,
-				SizeInBytes:          1000000000,
-				SizeInBytesPerSender: 10000000,
-				Shards:               16,
-			},
-			MinGasPrice:    200000000000,
-			NumberOfShards: 1,
-		},
-	)
-	if err != nil {
-		panic(fmt.Sprintf("createTestShardDataPool: %s", err))
-	}
-
-	uTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
-		Capacity:    100000,
-		SizeInBytes: 1000000000,
-		Shards:      1,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("createTestShardDataPool: %s", err))
-	}
-
-	rewardsTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
-		Capacity:    100,
-		SizeInBytes: 100000,
-		Shards:      1,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("createTestShardDataPool: %s", err))
-	}
-
-	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
-
-	cacherCfg := storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	cacherCfg = storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache}
-	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	cacherCfg = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	currTxs, _ := dataPool.NewCurrentBlockPool()
-
-	dPool, _ := dataPool.NewDataPool(
-		txPool,
-		uTxPool,
-		rewardsTxPool,
-		hdrPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		currTxs,
-	)
-
-	return dPool
 }
 
 func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
@@ -458,7 +390,7 @@ func createConsensusOnlyNode(
 		node.WithTxSingleSigner(singlesigner),
 		node.WithPubKey(privKey.GeneratePublic()),
 		node.WithBlockProcessor(blockProcessor),
-		node.WithDataPool(createTestShardDataPool()),
+		node.WithDataPool(testscommon.CreatePoolsHolder(1, 0)),
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
