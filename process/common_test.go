@@ -1569,7 +1569,7 @@ func TestGetTransactionHandlerShouldErrNilShardedDataCacherNotifier(t *testing.T
 func TestGetTransactionHandlerShouldErrNilStorage(t *testing.T) {
 	hash := []byte("X")
 
-	shardedDataCacherNotifier := &mock.ShardedDataStub{}
+	shardedDataCacherNotifier := testscommon.NewShardedDataStub()
 	marshalizer := &mock.MarshalizerMock{}
 
 	tx, err := process.GetTransactionHandler(
@@ -1589,7 +1589,7 @@ func TestGetTransactionHandlerShouldErrNilMarshalizer(t *testing.T) {
 	hash := []byte("X")
 
 	storageService := &mock.ChainStorerMock{}
-	shardedDataCacherNotifier := &mock.ShardedDataStub{}
+	shardedDataCacherNotifier := testscommon.NewShardedDataStub()
 
 	tx, err := process.GetTransactionHandler(
 		0,
@@ -1609,7 +1609,7 @@ func TestGetTransactionHandlerShouldGetTransactionFromPool(t *testing.T) {
 	txFromPool := &transaction.Transaction{Nonce: 1}
 
 	storageService := &mock.ChainStorerMock{}
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1650,7 +1650,7 @@ func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
 			return nil, errors.New("error")
 		},
 	}
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1690,7 +1690,7 @@ func TestGetTransactionHandlerFromPoolShouldErrNilShardedDataCacherNotifier(t *t
 func TestGetTransactionHandlerFromPoolShouldErrNilStorage(t *testing.T) {
 	hash := []byte("X")
 
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return nil
 		},
@@ -1710,7 +1710,7 @@ func TestGetTransactionHandlerFromPoolShouldErrNilStorage(t *testing.T) {
 func TestGetTransactionHandlerFromPoolShouldErrTxNotFound(t *testing.T) {
 	hash := []byte("X")
 
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1734,7 +1734,7 @@ func TestGetTransactionHandlerFromPoolShouldErrTxNotFound(t *testing.T) {
 func TestGetTransactionHandlerFromPoolShouldErrInvalidTxInPool(t *testing.T) {
 	hash := []byte("X")
 
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1759,7 +1759,7 @@ func TestGetTransactionHandlerFromPoolShouldWork(t *testing.T) {
 	hash := []byte("X")
 	txFromPool := &transaction.Transaction{Nonce: 1}
 
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {

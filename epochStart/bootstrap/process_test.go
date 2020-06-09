@@ -216,18 +216,18 @@ func TestCreateSyncers(t *testing.T) {
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
-	epochStartProvider.dataPool = &mock.PoolsHolderStub{
+	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		MiniBlocksCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()
@@ -285,7 +285,7 @@ func TestSyncHeadersFrom_MockHeadersSyncerShouldSyncHeaders(t *testing.T) {
 func TestSyncPeerAccountsState_NilRequestHandlerErr(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs()
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
-	epochStartProvider.dataPool = &mock.PoolsHolderStub{
+	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
 			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -314,7 +314,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
-	epochStartProvider.dataPool = &mock.PoolsHolderStub{
+	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
 			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -356,7 +356,7 @@ func TestRequestAndProcessForShard(t *testing.T) {
 			}, nil
 		},
 	}
-	epochStartProvider.dataPool = &mock.PoolsHolderStub{
+	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
 			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -454,7 +454,7 @@ func TestRequestAndProcessing(t *testing.T) {
 			}, nil
 		},
 	}
-	epochStartProvider.dataPool = &mock.PoolsHolderStub{
+	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
 		MiniBlocksCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()
 		},

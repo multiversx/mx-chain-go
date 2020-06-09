@@ -58,7 +58,7 @@ func createShardedDataChacherNotifier(
 	testHash []byte,
 ) func() dataRetriever.ShardedDataCacherNotifier {
 	return func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
+		return &testscommon.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.CacherStub{
@@ -92,7 +92,7 @@ func createShardedDataChacherNotifier(
 	}
 }
 
-func initDataPool(testHash []byte) *mock.PoolsHolderStub {
+func initDataPool(testHash []byte) *testscommon.PoolsHolderStub {
 	rwdTx := &rewardTx.RewardTx{
 		Round:   1,
 		Epoch:   0,
@@ -103,7 +103,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	unsignedTxCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
 	rewardTransactionsCalled := createShardedDataChacherNotifier(rwdTx, testHash)
 
-	sdp := &mock.PoolsHolderStub{
+	sdp := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         txCalled,
 		UnsignedTransactionsCalled: unsignedTxCalled,
 		RewardTransactionsCalled:   rewardTransactionsCalled,

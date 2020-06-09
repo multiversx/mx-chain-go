@@ -48,7 +48,7 @@ func createShardedDataChacherNotifier(
 	testHash []byte,
 ) func() dataRetriever.ShardedDataCacherNotifier {
 	return func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
+		return &testscommon.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.CacherStub{
@@ -79,7 +79,7 @@ func createShardedDataChacherNotifier(
 	}
 }
 
-func initDataPool(testHash []byte) *mock.PoolsHolderStub {
+func initDataPool(testHash []byte) *testscommon.PoolsHolderStub {
 	tx := &transaction.Transaction{
 		Nonce: 10,
 		Value: big.NewInt(0),
@@ -91,7 +91,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	unsignedTxHandler := createShardedDataChacherNotifier(sc, testHash)
 	rewardTxCalled := createShardedDataChacherNotifier(rTx, testHash)
 
-	sdp := &mock.PoolsHolderStub{
+	sdp := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         txCalled,
 		UnsignedTransactionsCalled: unsignedTxHandler,
 		RewardTransactionsCalled:   rewardTxCalled,
@@ -1097,7 +1097,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToProcess(t *testing.T) {
 	t.Parallel()
 
-	shardedCacheMock := &mock.ShardedDataStub{
+	shardedCacheMock := &testscommon.ShardedDataStub{
 		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
@@ -1126,7 +1126,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		initStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		&mock.PoolsHolderStub{
+		&testscommon.PoolsHolderStub{
 			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return shardedCacheMock
 			},
@@ -2371,7 +2371,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	}
 
 	tdp.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
+		return &testscommon.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.CacherStub{

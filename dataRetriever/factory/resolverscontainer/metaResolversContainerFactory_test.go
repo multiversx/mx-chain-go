@@ -46,7 +46,7 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 }
 
 func createDataPoolsForMeta() dataRetriever.PoolsHolder {
-	pools := &mock.PoolsHolderStub{
+	pools := &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -54,13 +54,13 @@ func createDataPoolsForMeta() dataRetriever.PoolsHolder {
 			return testscommon.NewCacherStub()
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 	}
 

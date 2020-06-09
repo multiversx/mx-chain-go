@@ -26,7 +26,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 			},
 		},
 		Uint64Converter: &mock.Uint64ByteSliceConverterMock{},
-		DataPool: &mock.PoolsHolderStub{
+		DataPool: &testscommon.PoolsHolderStub{
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return &mock.HeadersCacherStub{}
 			},
@@ -188,7 +188,7 @@ func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
-	args.DataPool = &mock.PoolsHolderStub{
+	args.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},
@@ -353,7 +353,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 	noncesToHeader[fmt.Sprint(newHeader101.Nonce)] = newHeaderHash101
 	noncesToHeader[fmt.Sprint(newHeader102.Nonce)] = newHeaderHash102
 
-	args.DataPool = &mock.PoolsHolderStub{
+	args.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, err error) {

@@ -496,7 +496,7 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 
 	dataPool := testscommon.NewPoolsHolderMock()
 
-	shardedDataStub := &mock.ShardedDataStub{
+	shardedDataStub := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -887,7 +887,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 	tdp := initDataPool()
 
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
+		return &testscommon.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.CacherStub{
@@ -998,7 +998,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 
 	dataPool := testscommon.NewPoolsHolderMock()
 
-	shardedDataStub := &mock.ShardedDataStub{
+	shardedDataStub := &testscommon.ShardedDataStub{
 		AddDataCalled: func(_ []byte, _ interface{}, _ int, _ string) {
 		},
 		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {

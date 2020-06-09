@@ -591,7 +591,7 @@ func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
 
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	messenger := getMessenger()
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -631,7 +631,7 @@ func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
@@ -658,9 +658,9 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
@@ -689,9 +689,9 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	nrOfShards := uint32(2)
 	shardCoordinator.SetNoShards(nrOfShards)
 
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{}
@@ -915,7 +915,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 	}
 
 	n, _ := node.NewNode(
-		node.WithDataPool(&mock.PoolsHolderStub{
+		node.WithDataPool(&testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
@@ -1084,7 +1084,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(shardingCoordinator),
 		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithDataPool(&mock.PoolsHolderStub{}),
+		node.WithDataPool(testscommon.NewPoolsHolderStub()),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 	)
 
@@ -1115,7 +1115,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 
 	localErr := errors.New("err")
 	n, _ := node.NewNode(
-		node.WithDataPool(&mock.PoolsHolderStub{
+		node.WithDataPool(&testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
@@ -1198,7 +1198,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	n, _ := node.NewNode(
-		node.WithDataPool(&mock.PoolsHolderStub{
+		node.WithDataPool(&testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
@@ -1280,7 +1280,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	n, _ := node.NewNode(
-		node.WithDataPool(&mock.PoolsHolderStub{
+		node.WithDataPool(&testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
@@ -1722,9 +1722,9 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		},
 	}
 
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 					return nil
 				},

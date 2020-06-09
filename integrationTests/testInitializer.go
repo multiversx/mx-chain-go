@@ -55,6 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -1541,7 +1542,7 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 // CreateRequesterDataPool creates a datapool with a mock txPool
 func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, selfShardID uint32) dataRetriever.PoolsHolder {
 	//not allowed to request data from the same shard
-	return CreateTestDataPool(&mock.ShardedDataStub{
+	return CreateTestDataPool(&testscommon.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},

@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +23,7 @@ var connectedPeerId = core.PeerID("connected peer id")
 func createMockArgTxResolver() resolvers.ArgTxResolver {
 	return resolvers.ArgTxResolver{
 		SenderResolver:   &mock.TopicResolverSenderStub{},
-		TxPool:           &mock.ShardedDataStub{},
+		TxPool:           testscommon.NewShardedDataStub(),
 		TxStorage:        &mock.StorerStub{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		DataPacker:       &mock.DataPackerStub{},
@@ -200,7 +201,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *te
 	txReturned := &transaction.Transaction{
 		Nonce: 10,
 	}
-	txPool := &mock.ShardedDataStub{}
+	txPool := testscommon.NewShardedDataStub()
 	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal([]byte("aaa"), key) {
 			searchWasCalled = true
@@ -250,7 +251,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetN
 	txReturned := &transaction.Transaction{
 		Nonce: 10,
 	}
-	txPool := &mock.ShardedDataStub{}
+	txPool := testscommon.NewShardedDataStub()
 	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal([]byte("aaa"), key) {
 			return txReturned, true
@@ -280,7 +281,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 
 	marshalizer := &mock.MarshalizerMock{}
 
-	txPool := &mock.ShardedDataStub{}
+	txPool := testscommon.NewShardedDataStub()
 	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		//not found in txPool
 		return nil, false
@@ -330,7 +331,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 
 	marshalizer := &mock.MarshalizerMock{}
 
-	txPool := &mock.ShardedDataStub{}
+	txPool := testscommon.NewShardedDataStub()
 	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		//not found in txPool
 		return nil, false
@@ -377,7 +378,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCal
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txPool := &mock.ShardedDataStub{}
+	txPool := testscommon.NewShardedDataStub()
 	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(txHash1, key) {
 			return tx1, true
@@ -436,7 +437,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txPool := &mock.ShardedDataStub{}
+	txPool := testscommon.NewShardedDataStub()
 	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(txHash1, key) {
 			return tx1, true

@@ -18,8 +18,8 @@ func TestNewDataPool_NilTransactionsShouldErr(t *testing.T) {
 
 	tdp, err := dataPool.NewDataPool(
 		nil,
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
 		&mock.HeadersCacherStub{},
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
@@ -35,9 +35,9 @@ func TestNewDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
-		&mock.ShardedDataStub{},
+		testscommon.NewShardedDataStub(),
 		nil,
-		&mock.ShardedDataStub{},
+		testscommon.NewShardedDataStub(),
 		&mock.HeadersCacherStub{},
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
@@ -53,8 +53,8 @@ func TestNewDataPool_NilRewardTransactionsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
 		nil,
 		&mock.HeadersCacherStub{},
 		testscommon.NewCacherStub(),
@@ -71,9 +71,9 @@ func TestNewDataPool_NilHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
 		nil,
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
@@ -89,9 +89,9 @@ func TestNewDataPool_NilTxBlocksShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
 		&mock.HeadersCacherStub{},
 		nil,
 		testscommon.NewCacherStub(),
@@ -107,9 +107,9 @@ func TestNewDataPool_NilTrieNodesShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
 		&mock.HeadersCacherStub{},
 		testscommon.NewCacherStub(),
 		testscommon.NewCacherStub(),
@@ -125,9 +125,9 @@ func TestNewDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp, err := dataPool.NewDataPool(
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
+		testscommon.NewShardedDataStub(),
 		&mock.HeadersCacherStub{},
 		testscommon.NewCacherStub(),
 		nil,
@@ -140,9 +140,9 @@ func TestNewDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 }
 
 func TestNewDataPool_NilCurrBlockShouldErr(t *testing.T) {
-	transactions := &mock.ShardedDataStub{}
-	scResults := &mock.ShardedDataStub{}
-	rewardTransactions := &mock.ShardedDataStub{}
+	transactions := testscommon.NewShardedDataStub()
+	scResults := testscommon.NewShardedDataStub()
+	rewardTransactions := testscommon.NewShardedDataStub()
 	headers := &mock.HeadersCacherStub{}
 	txBlocks := testscommon.NewCacherStub()
 	peersBlock := testscommon.NewCacherStub()
@@ -164,9 +164,9 @@ func TestNewDataPool_NilCurrBlockShouldErr(t *testing.T) {
 }
 
 func TestNewDataPool_OkValsShouldWork(t *testing.T) {
-	transactions := &mock.ShardedDataStub{}
-	scResults := &mock.ShardedDataStub{}
-	rewardTransactions := &mock.ShardedDataStub{}
+	transactions := testscommon.NewShardedDataStub()
+	scResults := testscommon.NewShardedDataStub()
+	rewardTransactions := testscommon.NewShardedDataStub()
 	headers := &mock.HeadersCacherStub{}
 	txBlocks := testscommon.NewCacherStub()
 	peersBlock := testscommon.NewCacherStub()

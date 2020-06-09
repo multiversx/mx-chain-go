@@ -25,7 +25,7 @@ func TestNewMiniBlockTrack_NilDataPoolHolderErr(t *testing.T) {
 func TestNewMiniBlockTrack_NilTxsPoolErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return nil
 		},
@@ -39,9 +39,9 @@ func TestNewMiniBlockTrack_NilTxsPoolErr(t *testing.T) {
 func TestNewMiniBlockTrack_NilRewardTxsPoolErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return nil
@@ -56,12 +56,12 @@ func TestNewMiniBlockTrack_NilRewardTxsPoolErr(t *testing.T) {
 func TestNewMiniBlockTrack_NilUnsignedTxsPoolErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return nil
@@ -76,15 +76,15 @@ func TestNewMiniBlockTrack_NilUnsignedTxsPoolErr(t *testing.T) {
 func TestNewMiniBlockTrack_NilMiniBlockPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		MiniBlocksCalled: func() storage.Cacher {
 			return nil
@@ -123,7 +123,7 @@ func TestReceivedMiniBlock_ShouldReturnIfKeyIsNil(t *testing.T) {
 	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock())
 
 	wasCalled := false
-	blockTransactionsPool := &mock.ShardedDataStub{
+	blockTransactionsPool := &testscommon.ShardedDataStub{
 		ImmunizeSetOfDataAgainstEvictionCalled: func(keys [][]byte, destCacheId string) {
 			wasCalled = true
 		},
@@ -141,7 +141,7 @@ func TestReceivedMiniBlock_ShouldReturnIfWrongTypeAssertion(t *testing.T) {
 	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock())
 
 	wasCalled := false
-	blockTransactionsPool := &mock.ShardedDataStub{
+	blockTransactionsPool := &testscommon.ShardedDataStub{
 		ImmunizeSetOfDataAgainstEvictionCalled: func(keys [][]byte, destCacheId string) {
 			wasCalled = true
 		},
@@ -159,7 +159,7 @@ func TestReceivedMiniBlock_ShouldReturnIfMiniBlockIsNotCrossShardDestMe(t *testi
 	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock())
 
 	wasCalled := false
-	blockTransactionsPool := &mock.ShardedDataStub{
+	blockTransactionsPool := &testscommon.ShardedDataStub{
 		ImmunizeSetOfDataAgainstEvictionCalled: func(keys [][]byte, destCacheId string) {
 			wasCalled = true
 		},
@@ -177,7 +177,7 @@ func TestReceivedMiniBlock_ShouldReturnIfMiniBlockTypeIsWrong(t *testing.T) {
 	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock())
 
 	wasCalled := false
-	blockTransactionsPool := &mock.ShardedDataStub{
+	blockTransactionsPool := &testscommon.ShardedDataStub{
 		ImmunizeSetOfDataAgainstEvictionCalled: func(keys [][]byte, destCacheId string) {
 			wasCalled = true
 		},
@@ -200,7 +200,7 @@ func TestReceivedMiniBlock_ShouldWork(t *testing.T) {
 	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock())
 
 	wasCalled := false
-	blockTransactionsPool := &mock.ShardedDataStub{
+	blockTransactionsPool := &testscommon.ShardedDataStub{
 		ImmunizeSetOfDataAgainstEvictionCalled: func(keys [][]byte, destCacheId string) {
 			wasCalled = true
 		},
@@ -219,22 +219,22 @@ func TestReceivedMiniBlock_ShouldWork(t *testing.T) {
 func TestGetTransactionPool_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blockTransactionsPool := &mock.ShardedDataStub{
+	blockTransactionsPool := &testscommon.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			return &block.MiniBlock{Type: block.TxBlock}, true
 		},
 	}
-	rewardTransactionsPool := &mock.ShardedDataStub{
+	rewardTransactionsPool := &testscommon.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			return &block.MiniBlock{Type: block.RewardsBlock}, true
 		},
 	}
-	unsignedTransactionsPool := &mock.ShardedDataStub{
+	unsignedTransactionsPool := &testscommon.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			return &block.MiniBlock{Type: block.SmartContractResultBlock}, true
 		},
 	}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return blockTransactionsPool
 		},
@@ -264,15 +264,15 @@ func TestGetTransactionPool_ShouldWork(t *testing.T) {
 }
 
 func createDataPool() dataRetriever.PoolsHolder {
-	return &mock.PoolsHolderStub{
+	return &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		MiniBlocksCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()

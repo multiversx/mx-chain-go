@@ -114,7 +114,7 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 		MiniBlockStorage: createMemUnit(),
 		Hasher:           &mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
-		DataPool: &mock.PoolsHolderStub{
+		DataPool: &testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return &testscommon.CacherStub{
 					RemoveCalled: func(key []byte) {},

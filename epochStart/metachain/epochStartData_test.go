@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -74,7 +75,7 @@ func createMockEpochStartCreatorArguments() ArgsNewEpochStartData {
 		Marshalizer:       &mock.MarshalizerMock{},
 		Hasher:            &mock.HasherStub{},
 		Store:             createMetaStore(),
-		DataPool:          &mock.PoolsHolderStub{},
+		DataPool:          testscommon.NewPoolsHolderStub(),
 		BlockTracker:      mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 		ShardCoordinator:  shardCoordinator,
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
@@ -290,9 +291,9 @@ func TestEpochStartCreator_getLastFinalizedMetaHashForShardShouldWork(t *testing
 		},
 	}
 
-	dPool := &mock.PoolsHolderStub{}
+	dPool := testscommon.NewPoolsHolderStub()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	metaHash1 := []byte("hash1")
 	metaHash2 := []byte("hash2")
@@ -395,9 +396,9 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	hdr.Nonce = 1
 	startHeaders[0] = hdr
 
-	dPool := &mock.PoolsHolderStub{}
+	dPool := testscommon.NewPoolsHolderStub()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	metaHash1 := []byte("hash1")
 	metaHash2 := []byte("hash2")

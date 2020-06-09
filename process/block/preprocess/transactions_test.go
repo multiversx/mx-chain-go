@@ -42,7 +42,7 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 }
 
 func shardedDataCacherNotifier() dataRetriever.ShardedDataCacherNotifier {
-	return &mock.ShardedDataStub{
+	return &testscommon.ShardedDataStub{
 		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
@@ -77,8 +77,8 @@ func shardedDataCacherNotifier() dataRetriever.ShardedDataCacherNotifier {
 	}
 }
 
-func initDataPool() *mock.PoolsHolderStub {
-	sdp := &mock.PoolsHolderStub{
+func initDataPool() *testscommon.PoolsHolderStub {
+	sdp := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return shardedDataCacherNotifier()
 		},
@@ -86,7 +86,7 @@ func initDataPool() *mock.PoolsHolderStub {
 			return shardedDataCacherNotifier()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &testscommon.CacherStub{
@@ -626,7 +626,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 
 	dataPool := testscommon.NewPoolsHolderMock()
 
-	shardedDataStub := &mock.ShardedDataStub{
+	shardedDataStub := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {

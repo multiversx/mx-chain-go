@@ -211,7 +211,7 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 	t.Parallel()
 
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.PoolsHolder = &mock.PoolsHolderStub{
+	shardArguments.PoolsHolder = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},
@@ -222,7 +222,7 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 	assert.Nil(t, sbt)
 
 	metaArguments := CreateShardTrackerMockArguments()
-	metaArguments.PoolsHolder = &mock.PoolsHolderStub{
+	metaArguments.PoolsHolder = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},
@@ -315,7 +315,7 @@ func TestShardGetSelfHeaders_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.PoolsHolder = &mock.PoolsHolderStub{
+	shardArguments.PoolsHolder = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
@@ -352,7 +352,7 @@ func TestMetaGetSelfHeaders_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	metaArguments := CreateMetaTrackerMockArguments()
-	metaArguments.PoolsHolder = &mock.PoolsHolderStub{
+	metaArguments.PoolsHolder = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {

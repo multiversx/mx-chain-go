@@ -91,7 +91,7 @@ func TestSyncValidatorStatus_NodesConfigFromMetaBlock(t *testing.T) {
 
 func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 	return ArgsNewSyncValidatorStatus{
-		DataPool: &mock.PoolsHolderStub{
+		DataPool: &testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return testscommon.NewCacherStub()
 			},

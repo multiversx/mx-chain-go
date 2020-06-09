@@ -2201,7 +2201,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	expectedMiniBlock2 := &block.MiniBlock{TxHashes: [][]byte{[]byte("hash2")}}
 	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
@@ -2361,7 +2361,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	miniBlock2 := &block.MiniBlock{TxHashes: [][]byte{hash2}}
 	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
@@ -2453,7 +2453,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
 	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}

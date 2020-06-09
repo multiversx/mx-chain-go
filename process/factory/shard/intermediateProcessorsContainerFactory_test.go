@@ -13,9 +13,9 @@ import (
 )
 
 func createDataPools() dataRetriever.PoolsHolder {
-	pools := &mock.PoolsHolderStub{}
+	pools := testscommon.NewPoolsHolderStub()
 	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{}
@@ -30,10 +30,10 @@ func createDataPools() dataRetriever.PoolsHolder {
 		return testscommon.NewCacherStub()
 	}
 	pools.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	pools.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	pools.TrieNodesCalled = func() storage.Cacher {
 		return testscommon.NewCacherStub()
