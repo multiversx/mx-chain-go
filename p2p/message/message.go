@@ -1,6 +1,9 @@
 package message
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+)
 
 var _ p2p.MessageP2P = (*Message)(nil)
 
@@ -12,7 +15,7 @@ type Message struct {
 	TopicsField    []string
 	SignatureField []byte
 	KeyField       []byte
-	PeerField      p2p.PeerID
+	PeerField      core.PeerID
 }
 
 // From returns the message originator's peer ID
@@ -46,7 +49,7 @@ func (m *Message) Key() []byte {
 }
 
 // Peer returns the peer that originated the message
-func (m *Message) Peer() p2p.PeerID {
+func (m *Message) Peer() core.PeerID {
 	return m.PeerField
 }
 

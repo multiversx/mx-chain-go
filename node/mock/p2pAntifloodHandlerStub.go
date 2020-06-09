@@ -1,11 +1,14 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+)
 
 // P2PAntifloodHandlerStub -
 type P2PAntifloodHandlerStub struct {
-	CanProcessMessageCalled         func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
-	CanProcessMessagesOnTopicCalled func(peer p2p.PeerID, topic string, numMessages uint32) error
+	CanProcessMessageCalled         func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessagesOnTopicCalled func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error
 	ApplyConsensusSizeCalled        func(size int)
 }
 
@@ -25,7 +28,7 @@ func (p2pahs *P2PAntifloodHandlerStub) ApplyConsensusSize(size int) {
 }
 
 // CanProcessMessage -
-func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if p2pahs.CanProcessMessageCalled == nil {
 		return nil
 	}
@@ -34,12 +37,12 @@ func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message p2p.MessageP2P,
 }
 
 // CanProcessMessagesOnTopic -
-func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error {
+func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error {
 	if p2pahs.CanProcessMessagesOnTopicCalled == nil {
 		return nil
 	}
 
-	return p2pahs.CanProcessMessagesOnTopicCalled(peer, topic, numMessages)
+	return p2pahs.CanProcessMessagesOnTopicCalled(peer, topic, numMessages, totalSize)
 }
 
 // IsInterfaceNil -

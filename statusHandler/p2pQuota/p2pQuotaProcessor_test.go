@@ -33,8 +33,8 @@ func TestP2PQuotaProcessor_AddQuotaShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pqp, _ := p2pQuota.NewP2PQuotaProcessor(&mock.AppStatusHandlerStub{}, "identifier")
-	nonExistingIdentifier := "non existing identifier"
-	identifier := "identifier"
+	nonExistingIdentifier := core.PeerID("non existing identifier")
+	identifier := core.PeerID("identifier")
 	numReceived := uint32(1)
 	sizeReceived := uint64(2)
 	numProcessed := uint32(3)
@@ -57,7 +57,7 @@ func TestP2PQuotaProcessor_AddQuotaShouldWork(t *testing.T) {
 func TestP2PQuotaProcessor_ResetStatisticsShouldEmptyStatsAndCallSetOnAllMetrics(t *testing.T) {
 	t.Parallel()
 
-	identifier := "identifier"
+	identifier := core.PeerID("identifier")
 	numReceived := uint64(1)
 	sizeReceived := uint64(2)
 	numProcessed := uint64(3)
@@ -81,13 +81,13 @@ func TestP2PQuotaProcessor_ResetStatisticsShouldEmptyStatsAndCallSetOnAllMetrics
 func TestP2PQuotaProcessor_ResetStatisticsShouldSetPeerStatisticsTops(t *testing.T) {
 	t.Parallel()
 
-	identifier1 := "identifier"
+	identifier1 := core.PeerID("identifier")
 	numReceived1 := uint64(10)
 	sizeReceived1 := uint64(20)
 	numProcessed1 := uint64(30)
 	sizeProcessed1 := uint64(40)
 
-	identifier2 := "identifier"
+	identifier2 := core.PeerID("identifier")
 	numReceived2 := uint64(1)
 	sizeReceived2 := uint64(2)
 	numProcessed2 := uint64(3)

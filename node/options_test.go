@@ -1122,7 +1122,7 @@ func TestWithPeerBlackListHandler_OkHandlerShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	blackListHandler := &mock.BlackListHandlerStub{}
+	blackListHandler := &mock.PeerBlackListHandlerStub{}
 	opt := WithPeerBlackListHandler(blackListHandler)
 	err := opt(node)
 
