@@ -2,7 +2,6 @@ package storageUnit
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"sync"
@@ -18,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go/storage/fifocache"
-	"github.com/ElrondNetwork/elrond-go/storage/immunitycache"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -37,10 +35,9 @@ type HasherType string
 
 // LRUCache is currently the only supported Cache type
 const (
-	LRUCache                     CacheType = "LRU"
-	SizeLRUCache                 CacheType = "SizeLRU"
-	FIFOShardedCache             CacheType = "FIFOSharded"
-	FIFOShardedWithImmunityCache CacheType = "FIFOShardedWithImmunity"
+	LRUCache         CacheType = "LRU"
+	SizeLRUCache     CacheType = "SizeLRU"
+	FIFOShardedCache CacheType = "FIFOSharded"
 )
 
 var log = logger.GetOrCreate("storage/storageUnit")
@@ -79,16 +76,6 @@ type CacheConfig struct {
 	Capacity             uint32
 	SizePerSender        uint32
 	Shards               uint32
-}
-
-// String returns a readable representation of the object
-func (config *CacheConfig) String() string {
-	bytes, err := json.Marshal(config)
-	if err != nil {
-		log.Error("CacheConfig.String()", "err", err)
-	}
-
-	return string(bytes)
 }
 
 // DBConfig holds the configurable elements of a database
@@ -371,17 +358,6 @@ func NewCache(cacheType CacheType, capacity uint32, shards uint32, sizeInBytes u
 		cacher, err = lrucache.NewCacheWithSizeInBytes(int(capacity), int64(sizeInBytes))
 	case FIFOShardedCache:
 		cacher, err = fifocache.NewShardedCache(int(capacity), int(shards))
-		if err != nil {
-			return nil, err
-		}
-	case FIFOShardedWithImmunityCache:
-		cacher, err = immunitycache.NewImmunityCache(immunitycache.CacheConfig{
-			Name:                        "untitled",
-			NumChunks:                   shards,
-			MaxNumItems:                 capacity,
-			MaxNumBytes:                 uint32(sizeInBytes),
-			NumItemsToPreemptivelyEvict: capacity / 10,
-		})
 		if err != nil {
 			return nil, err
 		}
