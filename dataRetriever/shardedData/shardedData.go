@@ -65,6 +65,58 @@ func NewShardedData(name string, config storageUnit.CacheConfig) (*shardedData, 
 	}, nil
 }
 
+// ShardDataStore returns the shard data store containing data hashes
+// associated with a given destination cacheID
+func (sd *shardedData) ShardDataStore(cacheID string) (c storage.Cacher) {
+	store := sd.shardStore(cacheID)
+	if store == nil {
+		return nil
+	}
+
+	return store.cache
+}
+
+func (sd *shardedData) shardStore(cacheID string) *shardStore {
+	sd.mutShardedDataStore.RLock()
+	store := sd.shardedDataStore[cacheID]
+	sd.mutShardedDataStore.RUnlock()
+	return store
+}
+
+// AddData will add data to the corresponding shard store
+func (sd *shardedData) AddData(key []byte, value interface{}, sizeInBytes int, cacheID string) {
+	log.Trace("shardedData.AddData()", "name", sd.name, "cacheID", cacheID)
+
+	var store *shardStore
+
+	sd.mutShardedDataStore.Lock()
+	store = sd.shardedDataStore[cacheID]
+	if store == nil {
+		store = sd.newShardStoreNoLock(cacheID)
+	}
+	sd.mutShardedDataStore.Unlock()
+
+	_, added := store.cache.HasOrAdd(key, value, sizeInBytes)
+	if added {
+		sd.mutAddedDataHandlers.RLock()
+		for _, handler := range sd.addedDataHandlers {
+			go handler(key, value)
+		}
+		sd.mutAddedDataHandlers.RUnlock()
+	}
+}
+
+func (sd *shardedData) newShardStoreNoLock(cacheID string) *shardStore {
+	store, err := sd.newShardStore(cacheID)
+	if err != nil {
+		log.Error("newShardStoreNoLock", "error", err.Error())
+		return nil
+	}
+
+	sd.shardedDataStore[cacheID] = store
+	return store
+}
+
 func (sd *shardedData) newShardStore(cacheID string) (*shardStore, error) {
 	config := sd.configPrototype
 	config.Name = fmt.Sprintf("%s:%s", sd.name, cacheID)
@@ -79,74 +131,19 @@ func (sd *shardedData) newShardStore(cacheID string) (*shardStore, error) {
 	}, nil
 }
 
-func (sd *shardedData) newShardStoreNoLock(cacheID string) *shardStore {
-	shardStoreObject, err := sd.newShardStore(cacheID)
-	if err != nil {
-		log.Error("newShardStoreNoLock", "error", err.Error())
-	}
-
-	sd.shardedDataStore[cacheID] = shardStoreObject
-	return shardStoreObject
-}
-
-func (sd *shardedData) shardStore(cacheID string) *shardStore {
-	sd.mutShardedDataStore.RLock()
-	mp := sd.shardedDataStore[cacheID]
-	sd.mutShardedDataStore.RUnlock()
-	return mp
-}
-
-// ShardDataStore returns the shard data store containing data hashes
-// associated with a given destination cacheID
-func (sd *shardedData) ShardDataStore(cacheID string) (c storage.Cacher) {
-	mp := sd.shardStore(cacheID)
-	if mp == nil {
-		return nil
-	}
-	return mp.cache
-}
-
-// AddData will add data to the corresponding shard store
-func (sd *shardedData) AddData(key []byte, value interface{}, sizeInBytes int, cacheID string) {
-	log.Trace("shardedData.AddData()", "name", sd.name, "cacheID", cacheID)
-
-	var mp *shardStore
-
-	sd.mutShardedDataStore.Lock()
-	mp = sd.shardedDataStore[cacheID]
-	if mp == nil {
-		mp = sd.newShardStoreNoLock(cacheID)
-	}
-	sd.mutShardedDataStore.Unlock()
-
-	_, added := mp.cache.HasOrAdd(key, value, sizeInBytes)
-	if added {
-		sd.mutAddedDataHandlers.RLock()
-		for _, handler := range sd.addedDataHandlers {
-			go handler(key, value)
-		}
-		sd.mutAddedDataHandlers.RUnlock()
-	}
-}
-
 // SearchFirstData searches the key against all shard data store, retrieving first value found
 func (sd *shardedData) SearchFirstData(key []byte) (value interface{}, ok bool) {
 	sd.mutShardedDataStore.RLock()
-	for k := range sd.shardedDataStore {
-		m := sd.shardedDataStore[k]
-		if m == nil || m.cache == nil {
-			continue
-		}
+	defer sd.mutShardedDataStore.RUnlock()
 
-		if m.cache.Has(key) {
-			value, _ = m.cache.Peek(key)
-			sd.mutShardedDataStore.RUnlock()
-			return value, true
+	for _, store := range sd.shardedDataStore {
+		value, ok = store.cache.Peek(key)
+		if ok {
+			return
 		}
 	}
-	sd.mutShardedDataStore.RUnlock()
 
-	return nil, false
+	return
 }
 
 // RemoveSetOfDataFromPool removes a list of keys from the corresponding pool
@@ -179,33 +176,32 @@ func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID s
 
 // RemoveData will remove data hash from the corresponding shard store
 func (sd *shardedData) RemoveData(key []byte, cacheID string) {
-	mpdata := sd.ShardDataStore(cacheID)
-
-	if mpdata != nil {
-		mpdata.Remove(key)
+	store := sd.shardStore(cacheID)
+	if store == nil {
+		return
 	}
+
+	store.cache.Remove(key)
 }
 
 // RemoveDataFromAllShards will remove data from the store given only
 //  the data hash. It will iterate over all shard store map and will remove it everywhere
 func (sd *shardedData) RemoveDataFromAllShards(key []byte) {
 	sd.mutShardedDataStore.RLock()
-	for k := range sd.shardedDataStore {
-		m := sd.shardedDataStore[k]
-		if m == nil || m.cache == nil {
-			continue
-		}
+	defer sd.mutShardedDataStore.RUnlock()
 
-		if m.cache.Has(key) {
-			m.cache.Remove(key)
-		}
+	for _, store := range sd.shardedDataStore {
+		store.cache.Remove(key)
 	}
-	sd.mutShardedDataStore.RUnlock()
 }
 
 // MergeShardStores will take all data associated with the sourceCacheId and move them
 // to the destCacheId. It will then remove the sourceCacheId key from the store map
 func (sd *shardedData) MergeShardStores(sourceCacheID, destCacheID string) {
+	// store := sd.shardStore(cacheID)
+	// if store == nil {
+	// 	return
+	// }
 	sourceStore := sd.ShardDataStore(sourceCacheID)
 
 	if sourceStore != nil {
@@ -234,19 +230,21 @@ func (sd *shardedData) MergeShardStores(sourceCacheID, destCacheID string) {
 // Clear will delete all shard stores and associated data
 func (sd *shardedData) Clear() {
 	sd.mutShardedDataStore.Lock()
+	defer sd.mutShardedDataStore.Unlock()
+
 	for m := range sd.shardedDataStore {
 		delete(sd.shardedDataStore, m)
 	}
-	sd.mutShardedDataStore.Unlock()
 }
 
 // ClearShardStore will delete all data associated with a given destination cacheID
 func (sd *shardedData) ClearShardStore(cacheID string) {
-	mp := sd.ShardDataStore(cacheID)
-	if mp == nil {
+	store := sd.shardStore(cacheID)
+	if store == nil {
 		return
 	}
-	mp.Clear()
+
+	store.cache.Clear()
 }
 
 // RegisterHandler registers a new handler to be called when a new data is added
