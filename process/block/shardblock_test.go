@@ -64,7 +64,6 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	}
 
 	uTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
-		Type:        storageUnit.FIFOShardedWithImmunityCache,
 		Capacity:    100000,
 		SizeInBytes: 1000000000,
 		Shards:      1,
@@ -74,7 +73,6 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	}
 
 	rewardsTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
-		Type:        storageUnit.FIFOShardedWithImmunityCache,
 		Capacity:    300,
 		SizeInBytes: 1000000000,
 		Shards:      1,

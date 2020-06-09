@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/immunitycache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -39,7 +40,7 @@ type shardStore struct {
 
 // NewShardedData is responsible for creating an empty pool of data
 func NewShardedData(cacherConfig storageUnit.CacheConfig) (*shardedData, error) {
-	log.Info("NewShardedData", "config", cacherConfig.String())
+	//log.Info("NewShardedData", "config", cacherConfig.String())
 
 	err := verifyCacherConfig(cacherConfig)
 	if err != nil {
@@ -56,13 +57,21 @@ func NewShardedData(cacherConfig storageUnit.CacheConfig) (*shardedData, error) 
 }
 
 func verifyCacherConfig(cacherConfig storageUnit.CacheConfig) error {
-	_, err := newShardStore("", cacherConfig)
+	_, err := newShardStore("untitled", cacherConfig)
 	return err
 }
 
 // newShardStore is responsible for creating an empty shardStore
 func newShardStore(cacheId string, cacherConfig storageUnit.CacheConfig) (*shardStore, error) {
-	cacher, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Capacity, cacherConfig.Shards, cacherConfig.SizeInBytes)
+	// TODO: divide capacity
+
+	cacher, err := immunitycache.NewImmunityCache(immunitycache.CacheConfig{
+		Name:                        cacheId,
+		NumChunks:                   cacherConfig.Shards,
+		MaxNumItems:                 cacherConfig.Capacity,
+		MaxNumBytes:                 uint32(cacherConfig.SizeInBytes),
+		NumItemsToPreemptivelyEvict: 100,
+	})
 	if err != nil {
 		return nil, err
 	}

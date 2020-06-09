@@ -238,7 +238,6 @@
     SizePerSender = 20000
     SizeInBytes = 524288000
     SizeInBytesPerSender = 12288000
-    Type = "TxCache"
     Shards = 16
 
 [TrieNodesDataPool]
@@ -258,13 +257,13 @@
 
 [UnsignedTransactionDataPool]
     Capacity = 75000
-    Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
+    Shards = 4
 
 [RewardTransactionDataPool]
     Capacity = 75000
-    Type = "SizeLRU"
     SizeInBytes = 104857600 #100MB
+    Shards = 4
 
 #PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
 [PublicKeyPeerId]

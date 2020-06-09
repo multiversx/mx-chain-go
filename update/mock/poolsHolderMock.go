@@ -48,7 +48,6 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	}
 
 	phf.unsignedTransactions, err = shardedData.NewShardedData(storageUnit.CacheConfig{
-		Type:        storageUnit.FIFOShardedWithImmunityCache,
 		Capacity:    10000,
 		SizeInBytes: 1000000000,
 		Shards:      1,
@@ -59,7 +58,6 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 
 	phf.rewardTransactions, err = shardedData.NewShardedData(storageUnit.CacheConfig{
 		Capacity:    100,
-		Type:        storageUnit.FIFOShardedWithImmunityCache,
 		SizeInBytes: 100000,
 		Shards:      1,
 	})

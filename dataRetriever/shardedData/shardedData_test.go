@@ -21,7 +21,6 @@ var defaultTestConfig = storageUnit.CacheConfig{
 	Capacity:    1000,
 	SizeInBytes: 1000000,
 	Shards:      1,
-	Type:        storageUnit.FIFOShardedWithImmunityCache,
 }
 
 func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
@@ -29,7 +28,6 @@ func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
 
 	cacheConfigBad := storageUnit.CacheConfig{
 		Capacity: 0,
-		Type:     storageUnit.FIFOShardedWithImmunityCache,
 	}
 
 	sd, err := NewShardedData(cacheConfigBad)
@@ -44,7 +42,6 @@ func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 		Capacity:    10,
 		SizeInBytes: 10000,
 		Shards:      1,
-		Type:        storageUnit.FIFOShardedWithImmunityCache,
 	}
 
 	sd, err := NewShardedData(cacheConfigBad)
@@ -59,7 +56,6 @@ func TestNewShardedData_CreateShardStore(t *testing.T) {
 		Capacity:    10,
 		SizeInBytes: 1000,
 		Shards:      1,
-		Type:        storageUnit.FIFOShardedWithImmunityCache,
 	}
 
 	sd, err := NewShardedData(cacheConfigBad)
