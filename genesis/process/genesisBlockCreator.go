@@ -59,6 +59,13 @@ func mustDoHardForkImportProcess(arg ArgsGenesisBlockCreator) bool {
 	return arg.ImportStartHandler.ShouldStartImport() && arg.StartEpochNum <= arg.HardForkConfig.StartEpoch
 }
 
+func getGenesisBlocksRoundNonceEpoch(arg ArgsGenesisBlockCreator) (uint64, uint64, uint32) {
+	if arg.HardForkConfig.AfterHardFork {
+		return arg.HardForkConfig.StartRound, arg.HardForkConfig.StartNonce, arg.HardForkConfig.StartEpoch
+	}
+	return 0, 0, 0
+}
+
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	importFolder := filepath.Join(gbc.arg.WorkingDir, gbc.arg.HardForkConfig.ImportFolder)
 

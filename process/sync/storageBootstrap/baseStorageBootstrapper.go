@@ -68,8 +68,9 @@ func (st *storageBootstrapper) loadBlocks() error {
 	var err error
 	var headerInfo bootstrapStorage.BootstrapData
 
+	minRound := st.blkc.GetGenesisHeader().GetRound()
 	round := st.bootStorer.GetHighestRound()
-	if round == 0 {
+	if round <= int64(minRound) {
 		log.Debug("Load blocks does nothing as start from genesis")
 		err = st.bootStorer.SaveLastRound(0)
 		log.LogIfError(err, "bootstorer")

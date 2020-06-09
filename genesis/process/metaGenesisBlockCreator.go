@@ -58,6 +58,8 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		return nil, err
 	}
 
+	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
+
 	header := &block.MetaBlock{
 		RootHash:               rootHash,
 		PrevHash:               rootHash,
@@ -71,6 +73,9 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		ChainID:                []byte(arg.ChainID),
 		SoftwareVersion:        []byte(""),
 		TimeStamp:              arg.GenesisTime,
+		Round:                  round,
+		Nonce:                  nonce,
+		Epoch:                  epoch,
 	}
 	header.EpochStart.Economics = block.Economics{
 		TotalSupply:            big.NewInt(0).Set(arg.Economics.GenesisTotalSupply()),
