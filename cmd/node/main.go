@@ -731,9 +731,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	chanCreateViews := make(chan bool)
-	chanLogRewrite := make(chan bool)
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(
+	chanCreateViews := make(chan struct{}, 1)
+	chanLogRewrite := make(chan struct{}, 1)
+	handlersArgs, err := factory.NewStatusHandlersFactoryArgs(
 		useLogView.Name,
 		ctx,
 		coreComponents.InternalMarshalizer,
@@ -742,6 +742,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		chanLogRewrite,
 		logFile,
 	)
+	if err != nil {
+		return err
+	}
+
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -955,8 +959,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	chanLogRewrite <- true
-	chanCreateViews <- true
+	chanLogRewrite <- struct{}{}
+	chanCreateViews <- struct{}{}
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {

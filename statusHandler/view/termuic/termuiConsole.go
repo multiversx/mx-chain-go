@@ -47,7 +47,10 @@ func NewTermuiConsole(presenter view.Presenter) (*TermuiConsole, error) {
 }
 
 // Start method - will start termui console
-func (tc *TermuiConsole) Start(chanStart chan bool) error {
+func (tc *TermuiConsole) Start(chanStart chan struct{}) error {
+	if chanStart == nil {
+		return statusHandler.ErrNilTermUIStartChannel
+	}
 	go func() {
 		defer ui.Close()
 		<-chanStart

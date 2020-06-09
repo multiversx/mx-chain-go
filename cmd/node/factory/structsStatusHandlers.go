@@ -1,12 +1,14 @@
 package factory
 
 import (
+	"fmt"
 	"io"
 	"math/big"
 	"os"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/metrics"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -27,8 +29,8 @@ type ArgStatusHandlers struct {
 	Ctx                          *cli.Context
 	Marshalizer                  marshal.Marshalizer
 	Uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
-	ChanStartViews               chan bool
-	ChanLogRewrite               chan bool
+	ChanStartViews               chan struct{}
+	ChanLogRewrite               chan struct{}
 	LogFile                      *os.File
 }
 
@@ -47,10 +49,27 @@ func NewStatusHandlersFactoryArgs(
 	ctx *cli.Context,
 	marshalizer marshal.Marshalizer,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-	chanStartViews chan bool,
-	chanLogRewrite chan bool,
+	chanStartViews chan struct{},
+	chanLogRewrite chan struct{},
 	logFile *os.File,
-) *ArgStatusHandlers {
+) (*ArgStatusHandlers, error) {
+	baseErrMessage := "error creating status handler factory arguments"
+	if ctx == nil {
+		return nil, fmt.Errorf("%s: nil context", baseErrMessage)
+	}
+	if check.IfNil(marshalizer) {
+		return nil, fmt.Errorf("%s: nil marshalizer", baseErrMessage)
+	}
+	if check.IfNil(uint64ByteSliceConverter) {
+		return nil, fmt.Errorf("%s: nil uint64 byte slice converter", baseErrMessage)
+	}
+	if chanLogRewrite == nil {
+		return nil, fmt.Errorf("%s: nil log rewrite channel", baseErrMessage)
+	}
+	if chanStartViews == nil {
+		return nil, fmt.Errorf("%s: nil views start channel", baseErrMessage)
+	}
+
 	return &ArgStatusHandlers{
 		LogViewName:              logViewName,
 		Ctx:                      ctx,
@@ -59,7 +78,7 @@ func NewStatusHandlersFactoryArgs(
 		ChanStartViews:           chanStartViews,
 		ChanLogRewrite:           chanLogRewrite,
 		LogFile:                  logFile,
-	}
+	}, nil
 }
 
 // CreateStatusHandlers will return a slice of status handlers
@@ -81,18 +100,20 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 		go func() {
 			<-arguments.ChanLogRewrite
 			writer, ok := presenterStatusHandler.(io.Writer)
-			if ok {
-				logger.ClearLogObservers()
-				err = logger.AddLogObserver(writer, &logger.PlainFormatter{})
-				if err != nil {
-					log.Warn("cannot add log observer for TermUI", "error", err)
-				}
-				if arguments.LogFile != nil {
-					err = logger.AddLogObserver(arguments.LogFile, &logger.PlainFormatter{})
-					if err != nil {
-						log.Warn("cannot add log observer for file", "error", err)
-					}
-				}
+			if !ok {
+				return
+			}
+			logger.ClearLogObservers()
+			err = logger.AddLogObserver(writer, &logger.PlainFormatter{})
+			if err != nil {
+				log.Warn("cannot add log observer for TermUI", "error", err)
+			}
+			if arguments.LogFile == nil {
+				return
+			}
+			err = logger.AddLogObserver(arguments.LogFile, &logger.PlainFormatter{})
+			if err != nil {
+				log.Warn("cannot add log observer for file", "error", err)
 			}
 		}()
 
@@ -219,7 +240,7 @@ func createStatusHandlerPresenter() view.Presenter {
 }
 
 // CreateViews will start an termui console  and will return an object if cannot create and start termuiConsole
-func createViews(presenter view.Presenter, chanStart chan bool) ([]factoryViews.Viewer, error) {
+func createViews(presenter view.Presenter, chanStart chan struct{}) ([]factoryViews.Viewer, error) {
 	viewsFactory, err := factoryViews.NewViewsFactory(presenter)
 	if err != nil {
 		return nil, err
