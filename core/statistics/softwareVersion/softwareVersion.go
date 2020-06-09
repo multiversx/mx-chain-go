@@ -19,6 +19,7 @@ type SoftwareVersionChecker struct {
 	stableTagProvider         StableTagProviderHandler
 	mostRecentSoftwareVersion string
 	checkInterval             time.Duration
+	ctx                       context.Context
 	cancelFunc                func()
 }
 
@@ -42,28 +43,29 @@ func NewSoftwareVersionChecker(
 
 	checkInterval := time.Duration(pollingIntervalInMinutes) * time.Minute
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	return &SoftwareVersionChecker{
 		statusHandler:             appStatusHandler,
 		stableTagProvider:         stableTagProvider,
 		mostRecentSoftwareVersion: "",
 		checkInterval:             checkInterval,
+		ctx:                       ctx,
+		cancelFunc:                cancelFunc,
 	}, nil
 }
 
 // StartCheckSoftwareVersion will check on a specific interval if a new software version is available
 func (svc *SoftwareVersionChecker) StartCheckSoftwareVersion() {
-	var ctx context.Context
-	ctx, svc.cancelFunc = context.WithCancel(context.Background())
-
-	go svc.checkSoftwareVersion(ctx)
+	go svc.checkSoftwareVersion()
 }
 
-func (svc *SoftwareVersionChecker) checkSoftwareVersion(ctx context.Context) {
+func (svc *SoftwareVersionChecker) checkSoftwareVersion() {
 	for {
 		svc.readLatestStableVersion()
 
 		select {
-		case <-ctx.Done():
+		case <-svc.ctx.Done():
 			log.Debug("softwareVersionChecker's go routine is stopping...")
 			return
 		case <-time.After(svc.checkInterval):
@@ -73,9 +75,7 @@ func (svc *SoftwareVersionChecker) checkSoftwareVersion(ctx context.Context) {
 
 // Close will close the endless running go routine
 func (svc *SoftwareVersionChecker) Close() error {
-	if svc.cancelFunc != nil {
-		svc.cancelFunc()
-	}
+	svc.cancelFunc()
 
 	return nil
 }

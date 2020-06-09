@@ -587,7 +587,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 1 {
-		r.eei.AddReturnMessage("not enough arguments, needed BLS key and reward address")
+		r.eei.AddReturnMessage("not enough arguments, needed BLS key")
 		return vmcommon.UserError
 	}
 
@@ -597,26 +597,26 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
-		r.eei.AddReturnMessage("cannot unBond a key that is not registered")
+		r.eei.AddReturnMessage(fmt.Sprintf("cannot unBond key %s that is not registered", string(args.Arguments[0])))
 		return vmcommon.UserError
 	}
 
 	if registrationData.Staked {
-		r.eei.AddReturnMessage("unBond is not possible for address which is staked")
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for address %s which is staked", string(args.Arguments[0])))
 		return vmcommon.UserError
 	}
 
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
 	if currentNonce-registrationData.UnStakedNonce < r.unBondPeriod {
-		r.eei.AddReturnMessage("unBond is not possible for address because unBond period did not pass")
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for address %s because unBond period did not pass", string(args.Arguments[0])))
 		return vmcommon.UserError
 	}
 	if registrationData.JailedRound != math.MaxUint64 {
-		r.eei.AddReturnMessage("unBond is not possible for jailed nodes")
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for jailed key %s", args.Arguments[0]))
 		return vmcommon.UserError
 	}
 	if !r.canUnBond() || r.eei.IsValidator(args.Arguments[0]) {
-		r.eei.AddReturnMessage("unBond is not possible as not enough remaining")
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible as not enough remaining, key %s", string(args.Arguments[0])))
 		return vmcommon.UserError
 	}
 
