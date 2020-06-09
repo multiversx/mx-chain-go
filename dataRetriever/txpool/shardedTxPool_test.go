@@ -377,3 +377,5 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4, SelfShardID: 0}
 	return NewShardedTxPool(args)
 }
+
+// TODO: Add high load test, reach maximum capacity and inspect RAM usage. EN-6735.

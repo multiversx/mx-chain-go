@@ -295,3 +295,5 @@ func TestShardedData_SearchFirstDataFoundShouldRetResults(t *testing.T) {
 	assert.NotNil(t, value)
 	assert.True(t, ok)
 }
+
+// TODO: Add high load test, reach maximum capacity and inspect RAM usage. EN-6735.
