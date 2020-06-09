@@ -151,7 +151,7 @@ func (ic *ImmunityCache) Remove(key []byte) {
 }
 
 // RemoveWithResult removes an item
-// TODO: In the future, add this method to the "storage.Cacher" interface
+// TODO: In the future, add this method to the "storage.Cacher" interface. EN-6739.
 func (ic *ImmunityCache) RemoveWithResult(key []byte) bool {
 	chunk := ic.getChunkByKeyWithLock(string(key))
 	return chunk.RemoveItem(string(key))

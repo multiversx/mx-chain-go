@@ -6,5 +6,6 @@ import (
 
 type immunityCache interface {
 	storage.Cacher
-	ImmunizeTxsAgainstEviction(keys [][]byte)
+	ImmunizeKeys(keys [][]byte) (numNowTotal, numFutureTotal int)
+	RemoveWithResult(key []byte) bool
 }

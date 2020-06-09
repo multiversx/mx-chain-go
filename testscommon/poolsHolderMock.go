@@ -43,14 +43,14 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	)
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.unsignedTransactions, err = shardedData.NewShardedData(storageUnit.CacheConfig{
+	holder.unsignedTransactions, err = shardedData.NewShardedData("unsignedTxPool", storageUnit.CacheConfig{
 		Capacity:    10000,
 		SizeInBytes: 1000000000,
 		Shards:      1,
 	})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.rewardTransactions, err = shardedData.NewShardedData(storageUnit.CacheConfig{
+	holder.rewardTransactions, err = shardedData.NewShardedData("rewardsTxPool", storageUnit.CacheConfig{
 		Capacity:    100,
 		SizeInBytes: 100000,
 		Shards:      1,

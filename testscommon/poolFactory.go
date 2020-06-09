@@ -34,14 +34,14 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 
 	txPool, err := CreateTxPool(numShards, selfShard)
 
-	unsignedTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
+	unsignedTxPool, err := shardedData.NewShardedData("unsignedTxPool", storageUnit.CacheConfig{
 		Capacity:    100000,
 		SizeInBytes: 1000000000,
 		Shards:      1,
 	})
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	rewardsTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
+	rewardsTxPool, err := shardedData.NewShardedData("rewardsTxPool", storageUnit.CacheConfig{
 		Capacity:    300,
 		SizeInBytes: 300000,
 		Shards:      1,
@@ -88,14 +88,14 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	var err error
 
-	unsignedTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
+	unsignedTxPool, err := shardedData.NewShardedData("unsignedTxPool", storageUnit.CacheConfig{
 		Capacity:    100000,
 		SizeInBytes: 1000000000,
 		Shards:      1,
 	})
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	rewardsTxPool, err := shardedData.NewShardedData(storageUnit.CacheConfig{
+	rewardsTxPool, err := shardedData.NewShardedData("rewardsTxPool", storageUnit.CacheConfig{
 		Capacity:    300,
 		SizeInBytes: 300000,
 		Shards:      1,

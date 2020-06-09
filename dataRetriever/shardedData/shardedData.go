@@ -17,11 +17,12 @@ var _ dataRetriever.ShardedDataCacherNotifier = (*shardedData)(nil)
 
 // shardedData holds the list of data organised by destination shard
 //
-// The shardStores field maps a cacher, containing data
+//  The shardStores field maps a cacher, containing data
 //  hashes, to a corresponding identifier. It is able to add or remove
 //  data given the shard id it is associated with. It can
 //  also merge and split pools when required
 type shardedData struct {
+	name                string
 	mutShardedDataStore sync.RWMutex
 	// shardedDataStore is a key value store
 	// Each key represents a destination shard id and the value will contain all
@@ -34,13 +35,13 @@ type shardedData struct {
 }
 
 type shardStore struct {
-	CacheID   string
-	DataStore storage.Cacher
+	cacheID string
+	cache   immunityCache
 }
 
 // NewShardedData is responsible for creating an empty pool of data
-func NewShardedData(config storageUnit.CacheConfig) (*shardedData, error) {
-	log.Info("NewShardedData", "config", config.String())
+func NewShardedData(name string, config storageUnit.CacheConfig) (*shardedData, error) {
+	log.Info("NewShardedData", "name", name, "config", config.String())
 
 	configPrototype := immunitycache.CacheConfig{
 		Name:                        "prototype",
@@ -56,6 +57,7 @@ func NewShardedData(config storageUnit.CacheConfig) (*shardedData, error) {
 	}
 
 	return &shardedData{
+		name:              name,
 		configPrototype:   configPrototype,
 		shardedDataStore:  make(map[string]*shardStore),
 		addedDataHandlers: make([]func(key []byte, value interface{}), 0),
@@ -65,14 +67,14 @@ func NewShardedData(config storageUnit.CacheConfig) (*shardedData, error) {
 func (sd *shardedData) newShardStore(cacheId string) (*shardStore, error) {
 	config := sd.configPrototype
 	config.Name = cacheId
-	cacher, err := immunitycache.NewImmunityCache(config)
+	cache, err := immunitycache.NewImmunityCache(config)
 	if err != nil {
 		return nil, err
 	}
 
 	return &shardStore{
-		CacheID:   cacheId,
-		DataStore: cacher,
+		cacheID: cacheId,
+		cache:   cache,
 	}, nil
 }
 
@@ -86,9 +88,7 @@ func (sd *shardedData) newShardStoreNoLock(cacheId string) *shardStore {
 	return shardStoreObject
 }
 
-// ShardStore returns a shard store of data associated with a given destination cacheId
-func (sd *shardedData) ShardStore(cacheId string) *shardStore {
-	// TODO: remove from interface
+func (sd *shardedData) shardStore(cacheId string) *shardStore {
 	sd.mutShardedDataStore.RLock()
 	mp := sd.shardedDataStore[cacheId]
 	sd.mutShardedDataStore.RUnlock()
@@ -98,25 +98,27 @@ func (sd *shardedData) ShardStore(cacheId string) *shardStore {
 // ShardDataStore returns the shard data store containing data hashes
 //  associated with a given destination cacheId
 func (sd *shardedData) ShardDataStore(cacheId string) (c storage.Cacher) {
-	mp := sd.ShardStore(cacheId)
+	mp := sd.shardStore(cacheId)
 	if mp == nil {
 		return nil
 	}
-	return mp.DataStore
+	return mp.cache
 }
 
 // AddData will add data to the corresponding shard store
-func (sd *shardedData) AddData(key []byte, value interface{}, sizeInBytes int, cacheId string) {
+func (sd *shardedData) AddData(key []byte, value interface{}, sizeInBytes int, cacheID string) {
+	log.Trace("shardedData.AddData()", "name", sd.name, "cacheID", cacheID)
+
 	var mp *shardStore
 
 	sd.mutShardedDataStore.Lock()
-	mp = sd.shardedDataStore[cacheId]
+	mp = sd.shardedDataStore[cacheID]
 	if mp == nil {
-		mp = sd.newShardStoreNoLock(cacheId)
+		mp = sd.newShardStoreNoLock(cacheID)
 	}
 	sd.mutShardedDataStore.Unlock()
 
-	_, added := mp.DataStore.HasOrAdd(key, value, sizeInBytes)
+	_, added := mp.cache.HasOrAdd(key, value, sizeInBytes)
 	if added {
 		sd.mutAddedDataHandlers.RLock()
 		for _, handler := range sd.addedDataHandlers {
@@ -131,12 +133,12 @@ func (sd *shardedData) SearchFirstData(key []byte) (value interface{}, ok bool) 
 	sd.mutShardedDataStore.RLock()
 	for k := range sd.shardedDataStore {
 		m := sd.shardedDataStore[k]
-		if m == nil || m.DataStore == nil {
+		if m == nil || m.cache == nil {
 			continue
 		}
 
-		if m.DataStore.Has(key) {
-			value, _ = m.DataStore.Peek(key)
+		if m.cache.Has(key) {
+			value, _ = m.cache.Peek(key)
 			sd.mutShardedDataStore.RUnlock()
 			return value, true
 		}
@@ -147,26 +149,31 @@ func (sd *shardedData) SearchFirstData(key []byte) (value interface{}, ok bool) 
 }
 
 // RemoveSetOfDataFromPool removes a list of keys from the corresponding pool
-func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheId string) {
-	for _, key := range keys {
-		sd.RemoveData(key, cacheId)
+func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
+	store := sd.shardStore(cacheID)
+	if store == nil {
+		return
 	}
+
+	numRemoved := 0
+	for _, key := range keys {
+		if store.cache.RemoveWithResult(key) {
+			numRemoved++
+		}
+	}
+
+	log.Debug("shardedData.removeTxBulk()", "name", sd.name, "cacheID", cacheID, "numToRemove", len(keys), "numRemoved", numRemoved)
 }
 
 // ImmunizeSetOfDataAgainstEviction  marks the items as non-evictable (if the underlying cache supports this operation)
 func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
-	cache := sd.ShardDataStore(cacheID)
-	if cache == nil {
+	store := sd.shardStore(cacheID)
+	if store == nil {
 		return
 	}
 
-	cacheAsImmunityCache, ok := cache.(immunityCache)
-	if !ok {
-		log.Error("shardedData.ImmunizeSetOfDataAgainstEviction(): programming error, cache is not of expected type")
-		return
-	}
-
-	cacheAsImmunityCache.ImmunizeTxsAgainstEviction(keys)
+	numNow, numFuture := store.cache.ImmunizeKeys(keys)
+	log.Debug("shardedData.ImmunizeSetOfDataAgainstEviction()", "name", sd.name, "cacheID", cacheID, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
 }
 
 // RemoveData will remove data hash from the corresponding shard store
@@ -184,12 +191,12 @@ func (sd *shardedData) RemoveDataFromAllShards(key []byte) {
 	sd.mutShardedDataStore.RLock()
 	for k := range sd.shardedDataStore {
 		m := sd.shardedDataStore[k]
-		if m == nil || m.DataStore == nil {
+		if m == nil || m.cache == nil {
 			continue
 		}
 
-		if m.DataStore.Has(key) {
-			m.DataStore.Remove(key)
+		if m.cache.Has(key) {
+			m.cache.Remove(key)
 		}
 	}
 	sd.mutShardedDataStore.RUnlock()
