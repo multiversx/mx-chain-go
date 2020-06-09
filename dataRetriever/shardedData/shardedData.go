@@ -198,15 +198,11 @@ func (sd *shardedData) RemoveDataFromAllShards(key []byte) {
 // MergeShardStores will take all data associated with the sourceCacheId and move them
 // to the destCacheId. It will then remove the sourceCacheId key from the store map
 func (sd *shardedData) MergeShardStores(sourceCacheID, destCacheID string) {
-	// store := sd.shardStore(cacheID)
-	// if store == nil {
-	// 	return
-	// }
-	sourceStore := sd.ShardDataStore(sourceCacheID)
+	sourceStore := sd.shardStore(sourceCacheID)
 
 	if sourceStore != nil {
-		for _, key := range sourceStore.Keys() {
-			val, ok := sourceStore.Get(key)
+		for _, key := range sourceStore.cache.Keys() {
+			val, ok := sourceStore.cache.Get(key)
 			if !ok {
 				log.Warn("programming error in shardedData: Keys() function reported a key that can not be retrieved")
 				continue
