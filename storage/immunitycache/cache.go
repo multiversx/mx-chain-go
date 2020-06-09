@@ -22,7 +22,7 @@ type ImmunityCache struct {
 func NewImmunityCache(config CacheConfig) (*ImmunityCache, error) {
 	log.Debug("NewImmunityCache", "config", config.String())
 
-	err := config.verify()
+	err := config.Verify()
 	if err != nil {
 		return nil, err
 	}

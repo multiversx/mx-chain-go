@@ -25,9 +25,9 @@ type shardedData struct {
 	mutShardedDataStore sync.RWMutex
 	// shardedDataStore is a key value store
 	// Each key represents a destination shard id and the value will contain all
-	//  data hashes that have that shard as destination
+	// data hashes that have that shard as destination
 	shardedDataStore map[string]*shardStore
-	cacherConfig     storageUnit.CacheConfig
+	configPrototype  immunitycache.CacheConfig
 
 	mutAddedDataHandlers sync.RWMutex
 	addedDataHandlers    []func(key []byte, value interface{})
@@ -39,42 +39,41 @@ type shardStore struct {
 }
 
 // NewShardedData is responsible for creating an empty pool of data
-func NewShardedData(cacherConfig storageUnit.CacheConfig) (*shardedData, error) {
-	//log.Info("NewShardedData", "config", cacherConfig.String())
+func NewShardedData(config storageUnit.CacheConfig) (*shardedData, error) {
+	log.Info("NewShardedData", "config", config.String())
 
-	err := verifyCacherConfig(cacherConfig)
+	// TODO: Receive number of shards.
+	numShards := 5
+	numPairs := uint32(2*numShards - 1)
+
+	configPrototype := immunitycache.CacheConfig{
+		Name:                        "untitled",
+		NumChunks:                   config.Shards,
+		MaxNumItems:                 config.Capacity / numPairs,
+		MaxNumBytes:                 uint32(config.SizeInBytes) / numPairs,
+		NumItemsToPreemptivelyEvict: dataRetriever.TxPoolNumTxsToPreemptivelyEvict,
+	}
+
+	err := configPrototype.Verify()
 	if err != nil {
 		return nil, err
 	}
 
 	return &shardedData{
-		cacherConfig:         cacherConfig,
-		mutShardedDataStore:  sync.RWMutex{},
-		shardedDataStore:     make(map[string]*shardStore),
-		mutAddedDataHandlers: sync.RWMutex{},
-		addedDataHandlers:    make([]func(key []byte, value interface{}), 0),
+		configPrototype:   configPrototype,
+		shardedDataStore:  make(map[string]*shardStore),
+		addedDataHandlers: make([]func(key []byte, value interface{}), 0),
 	}, nil
 }
 
-func verifyCacherConfig(cacherConfig storageUnit.CacheConfig) error {
-	_, err := newShardStore("untitled", cacherConfig)
-	return err
-}
-
-// newShardStore is responsible for creating an empty shardStore
-func newShardStore(cacheId string, cacherConfig storageUnit.CacheConfig) (*shardStore, error) {
-	// TODO: divide capacity
-
-	cacher, err := immunitycache.NewImmunityCache(immunitycache.CacheConfig{
-		Name:                        cacheId,
-		NumChunks:                   cacherConfig.Shards,
-		MaxNumItems:                 cacherConfig.Capacity,
-		MaxNumBytes:                 uint32(cacherConfig.SizeInBytes),
-		NumItemsToPreemptivelyEvict: 100,
-	})
+func (sd *shardedData) newShardStore(cacheId string) (*shardStore, error) {
+	config := sd.configPrototype
+	config.Name = cacheId
+	cacher, err := immunitycache.NewImmunityCache(config)
 	if err != nil {
 		return nil, err
 	}
+
 	return &shardStore{
 		CacheID:   cacheId,
 		DataStore: cacher,
@@ -90,7 +89,7 @@ func (sd *shardedData) CreateShardStore(cacheId string) {
 }
 
 func (sd *shardedData) newShardStoreNoLock(cacheId string) *shardStore {
-	shardStoreObject, err := newShardStore(cacheId, sd.cacherConfig)
+	shardStoreObject, err := sd.newShardStore(cacheId)
 	if err != nil {
 		log.Error("newShardStoreNoLock", "error", err.Error())
 	}
@@ -175,6 +174,7 @@ func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID s
 
 	cacheAsImmunityCache, ok := cache.(immunityCache)
 	if !ok {
+		log.Error("shardedData.ImmunizeSetOfDataAgainstEviction(): programming error, cache is not of expected type")
 		return
 	}
 

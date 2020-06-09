@@ -18,8 +18,8 @@ import (
 var timeoutWaitForWaitGroups = time.Second * 2
 
 var defaultTestConfig = storageUnit.CacheConfig{
-	Capacity:    1000,
-	SizeInBytes: 1000000,
+	Capacity:    75000,
+	SizeInBytes: 104857600,
 	Shards:      1,
 }
 
@@ -38,13 +38,7 @@ func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
 func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cacheConfigBad := storageUnit.CacheConfig{
-		Capacity:    10,
-		SizeInBytes: 10000,
-		Shards:      1,
-	}
-
-	sd, err := NewShardedData(cacheConfigBad)
+	sd, err := NewShardedData(defaultTestConfig)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sd))
 }
@@ -52,14 +46,8 @@ func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 func TestNewShardedData_CreateShardStore(t *testing.T) {
 	t.Parallel()
 
-	cacheConfigBad := storageUnit.CacheConfig{
-		Capacity:    10,
-		SizeInBytes: 1000,
-		Shards:      1,
-	}
-
-	sd, err := NewShardedData(cacheConfigBad)
-	assert.Nil(t, err)
+	sd, err := NewShardedData(defaultTestConfig)
+	require.Nil(t, err)
 
 	id := "id"
 	key := []byte("key")
@@ -131,7 +119,7 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 
-	vals := int(defaultTestConfig.Capacity)
+	vals := int(sd.configPrototype.MaxNumItems)
 	wg.Add(vals)
 
 	for i := 0; i < vals; i++ {
@@ -147,7 +135,7 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 	//checking
 	for i := 0; i < vals; i++ {
 		key := []byte(strconv.Itoa(i))
-		assert.True(t, sd.ShardStore("1").DataStore.Has(key), fmt.Sprintf("for val %d", i))
+		require.True(t, sd.ShardStore("1").DataStore.Has(key), fmt.Sprintf("for val %d", i))
 	}
 }
 
