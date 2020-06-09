@@ -549,7 +549,8 @@ func (bfd *baseForkDetector) shouldSignalFork(
 
 	higherHashForSameRound := headerInfo.round == lastForkRound &&
 		bytes.Compare(headerInfo.hash, lastForkHash) > 0
-	shouldSignalFork := headerInfo.round > lastForkRound || higherHashForSameRound
+	higherNonceReceived := bfd.highestNonceReceived() > headerInfo.nonce
+	shouldSignalFork := headerInfo.round > lastForkRound || (higherHashForSameRound && !higherNonceReceived)
 
 	return shouldSignalFork
 }
