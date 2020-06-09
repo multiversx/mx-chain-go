@@ -32,6 +32,7 @@ type ArgsBaseStorageBootstrapper struct {
 	NodesCoordinator    sharding.NodesCoordinator
 	EpochStartTrigger   process.EpochStartTriggerHandler
 	BlockTracker        process.BlockTracker
+	ChainID             string
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -62,6 +63,7 @@ type storageBootstrapper struct {
 	bootstrapper         storageBootstrapperHandler
 	headerNonceHashStore storage.Storer
 	highestNonce         uint64
+	chainID              string
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -201,6 +203,13 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 	if err != nil {
 		log.Debug("cannot get header ", "nonce", hdrInfo.LastHeader.Nonce, "error", err.Error())
 		return err
+	}
+
+	if string(headerFromStorage.GetChainID()) != st.chainID {
+		log.Debug("cannot applyHeadInfo chainID missmatch",
+			"reference", []byte(st.chainID),
+			"fromStorage", headerFromStorage.GetChainID())
+		return process.ErrInvalidChainID
 	}
 
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage)

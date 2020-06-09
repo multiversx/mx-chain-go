@@ -243,6 +243,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		BlockTracker: &mock.BlockTrackerStub{
 			RestoreToGenesisCalled: func() {},
 		},
+		ChainID: string(integrationTests.ChainID),
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)

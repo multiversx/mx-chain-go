@@ -485,6 +485,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
+		ChainID:             string(n.chainID),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -544,6 +545,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
+		ChainID:             string(n.chainID),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
