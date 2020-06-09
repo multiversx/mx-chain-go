@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -124,8 +125,8 @@ func initAccountsMock() *mock.AccountsStub {
 	}
 }
 
-func initBasicTestData() (*mock.PoolsHolderMock, data.ChainHandler, []byte, *block.Body, [][]byte, *mock.HasherMock, *mock.MarshalizerMock, error, []byte) {
-	tdp := mock.NewPoolsHolderMock()
+func initBasicTestData() (*testscommon.PoolsHolderMock, data.ChainHandler, []byte, *block.Body, [][]byte, *mock.HasherMock, *mock.MarshalizerMock, error, []byte) {
+	tdp := testscommon.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
@@ -1425,7 +1426,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 	t.Parallel()
 
-	tdp := mock.NewPoolsHolderMock()
+	tdp := testscommon.NewPoolsHolderMock()
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -1439,7 +1440,7 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing.T) {
 	t.Parallel()
 
-	tdp := mock.NewPoolsHolderMock()
+	tdp := testscommon.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
 	rootHash := []byte("rootHash")
@@ -1527,7 +1528,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldReturnNilWhenNoMetaBlocksAreUsed(t *testing.T) {
 	t.Parallel()
 
-	tdp := mock.NewPoolsHolderMock()
+	tdp := testscommon.NewPoolsHolderMock()
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 	sp, _ := blproc.NewShardProcessorEmptyWith3shards(
 		tdp,
@@ -2452,7 +2453,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := mock.NewPoolsHolderMock()
+	datapool := testscommon.NewPoolsHolderMock()
 
 	//we will have a metablock that will return 3 miniblock hashes
 	//1 miniblock hash will be in cache
@@ -2538,7 +2539,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := mock.NewPoolsHolderMock()
+	datapool := testscommon.NewPoolsHolderMock()
 
 	//we will have a metablock that will return 3 miniblock hashes
 	//1 miniblock hash will be in cache
@@ -2611,7 +2612,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	t.Parallel()
 
-	tdp := mock.NewPoolsHolderMock()
+	tdp := testscommon.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
 
@@ -2649,7 +2650,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	haveTimeTrue := func() bool {
 		return true
 	}
-	tdp := mock.NewPoolsHolderMock()
+	tdp := testscommon.NewPoolsHolderMock()
 	destShardId := uint32(2)
 
 	hasher := &mock.HasherStub{}
@@ -2728,7 +2729,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := mock.NewPoolsHolderMock()
+	datapool := testscommon.NewPoolsHolderMock()
 
 	//we will have a 3 txs in pool
 
@@ -2884,7 +2885,7 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := mock.NewPoolsHolderMock()
+	datapool := testscommon.NewPoolsHolderMock()
 
 	miniblockHashes := make([][]byte, 6)
 
@@ -2976,7 +2977,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 
 	txHash := []byte("tx hash 1")
 
-	datapool := mock.NewPoolsHolderMock()
+	datapool := testscommon.NewPoolsHolderMock()
 	marshalizerMock := &mock.MarshalizerMock{}
 	hasherMock := &mock.HasherStub{}
 
@@ -3225,7 +3226,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := mock.NewPoolsHolderMock()
+	datapool := testscommon.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}
 	highNonce := uint64(500)
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
@@ -3379,7 +3380,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := mock.NewPoolsHolderMock()
+	datapool := testscommon.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}
 	highNonce := uint64(500)
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
@@ -3512,7 +3513,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	datapool := mock.NewPoolsHolderMock()
+	datapool := testscommon.NewPoolsHolderMock()
 	forkDetector := &mock.ForkDetectorMock{}
 	highNonce := uint64(500)
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
@@ -3768,7 +3769,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 
-	poolFake := mock.NewPoolsHolderMock()
+	poolFake := testscommon.NewPoolsHolderMock()
 
 	metaBlock := block.MetaBlock{
 		Nonce:     1,
@@ -4099,7 +4100,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	poolMock := mock.NewPoolsHolderMock()
+	poolMock := testscommon.NewPoolsHolderMock()
 
 	storer := &mock.ChainStorerMock{}
 	shardC := mock.NewMultiShardsCoordinatorMock(3)
@@ -4177,7 +4178,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	pruneTrieWasCalled := false
 	cancelPruneWasCalled := false
 	rootHash := []byte("root-hash")
-	poolMock := mock.NewPoolsHolderMock()
+	poolMock := testscommon.NewPoolsHolderMock()
 
 	hdrStore := &mock.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {

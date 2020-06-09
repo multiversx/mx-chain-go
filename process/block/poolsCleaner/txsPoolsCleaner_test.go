@@ -17,7 +17,7 @@ func TestNewTxsPoolsCleaner_NilAddrConverterErr(t *testing.T) {
 	t.Parallel()
 
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		nil, &mock.PoolsHolderMock{}, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		nil, testscommon.NewPoolsHolderMock(), &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)

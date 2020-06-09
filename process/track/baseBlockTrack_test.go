@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -112,7 +113,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
-			PoolsHolder:      mock.NewPoolsHolderMock(),
+			PoolsHolder:      testscommon.NewPoolsHolderMock(),
 			WhitelistHandler: whitelistHandler,
 		},
 	}
@@ -140,7 +141,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
-			PoolsHolder:      mock.NewPoolsHolderMock(),
+			PoolsHolder:      testscommon.NewPoolsHolderMock(),
 		},
 	}
 
