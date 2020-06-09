@@ -28,6 +28,8 @@ type economics struct {
 	nodesConfigProvider epochStart.NodesConfigProvider
 	rewardsHandler      process.RewardsHandler
 	roundTime           process.RoundTimeDurationHandler
+	genesisEpoch        uint32
+	genesisNonce        uint64
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
@@ -39,6 +41,8 @@ type ArgsNewEpochEconomics struct {
 	NodesConfigProvider epochStart.NodesConfigProvider
 	RewardsHandler      process.RewardsHandler
 	RoundTime           process.RoundTimeDurationHandler
+	GenesisEpoch        uint32
+	GenesisNonce        uint64
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -73,6 +77,8 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		nodesConfigProvider: args.NodesConfigProvider,
 		rewardsHandler:      args.RewardsHandler,
 		roundTime:           args.RoundTime,
+		genesisEpoch:        args.GenesisEpoch,
+		genesisNonce:        args.GenesisNonce,
 	}
 	return e, nil
 }
@@ -234,7 +240,7 @@ func (e *economics) computeNumOfTotalCreatedBlocks(
 func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, *block.MetaBlock, error) {
 	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
-		mapShardIdNonce[i] = 0
+		mapShardIdNonce[i] = e.genesisNonce
 	}
 	mapShardIdNonce[core.MetachainShardId] = 0
 
@@ -244,7 +250,7 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 		return nil, nil, err
 	}
 
-	if epoch == 0 {
+	if epoch == e.genesisEpoch {
 		return mapShardIdNonce, previousEpochStartMeta, nil
 	}
 

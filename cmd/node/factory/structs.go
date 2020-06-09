@@ -1569,6 +1569,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	genesisHdr := data.Blkc.GetGenesisHeader()
 	argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
 		Marshalizer:       core.InternalMarshalizer,
 		Hasher:            core.Hasher,
@@ -1578,6 +1579,7 @@ func newMetaBlockProcessor(
 		ShardCoordinator:  shardCoordinator,
 		EpochStartTrigger: epochStartTrigger,
 		RequestHandler:    requestHandler,
+		GenesisEpoch:      genesisHdr.GetEpoch(),
 	}
 	epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
 	if err != nil {
@@ -1592,6 +1594,8 @@ func newMetaBlockProcessor(
 		NodesConfigProvider: nodesCoordinator,
 		RewardsHandler:      economicsData,
 		RoundTime:           rounder,
+		GenesisNonce:        genesisHdr.GetNonce(),
+		GenesisEpoch:        genesisHdr.GetEpoch(),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
