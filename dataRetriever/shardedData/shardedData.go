@@ -163,7 +163,7 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
 	log.Debug("shardedData.removeTxBulk()", "name", sd.name, "cacheID", cacheID, "numToRemove", len(keys), "numRemoved", numRemoved)
 }
 
-// ImmunizeSetOfDataAgainstEviction  marks the items as non-evictable (if the underlying cache supports this operation)
+// ImmunizeSetOfDataAgainstEviction  marks the items as non-evictable
 func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
 	store := sd.shardStore(cacheID)
 	if store == nil {
@@ -226,11 +226,8 @@ func (sd *shardedData) MergeShardStores(sourceCacheID, destCacheID string) {
 // Clear will delete all shard stores and associated data
 func (sd *shardedData) Clear() {
 	sd.mutShardedDataStore.Lock()
-	defer sd.mutShardedDataStore.Unlock()
-
-	for m := range sd.shardedDataStore {
-		delete(sd.shardedDataStore, m)
-	}
+	sd.shardedDataStore = make(map[string]*shardStore)
+	sd.mutShardedDataStore.Unlock()
 }
 
 // ClearShardStore will delete all data associated with a given destination cacheID
