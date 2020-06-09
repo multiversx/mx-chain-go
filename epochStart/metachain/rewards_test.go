@@ -474,7 +474,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocksZeroValueShouldNotAdd(t *
 
 	epochStartEconomics := getDefaultEpochStart()
 	epochStartEconomics.Economics.RewardsForCommunity = big.NewInt(0)
-	epochStartEconomics.Economics.RewardsPerBlockPerNode = big.NewInt(0)
+	epochStartEconomics.Economics.RewardsPerBlock = big.NewInt(0)
 
 	mb := &block.MetaBlock{
 		EpochStart: epochStartEconomics,
@@ -624,25 +624,26 @@ func TestRewardsCreator_AddCommunityRewardZeroValueShouldNotAdd(t *testing.T) {
 func getDefaultEpochStart() block.EpochStart {
 	return block.EpochStart{
 		Economics: block.Economics{
-			TotalSupply:            big.NewInt(10000),
-			TotalToDistribute:      big.NewInt(10000),
-			TotalNewlyMinted:       big.NewInt(10000),
-			RewardsPerBlockPerNode: big.NewInt(10000),
-			NodePrice:              big.NewInt(10000),
-			RewardsForCommunity:    big.NewInt(50),
+			TotalSupply:         big.NewInt(10000),
+			TotalToDistribute:   big.NewInt(10000),
+			TotalNewlyMinted:    big.NewInt(10000),
+			RewardsPerBlock:     big.NewInt(10000),
+			NodePrice:           big.NewInt(10000),
+			RewardsForCommunity: big.NewInt(50),
 		},
 	}
 }
 
 func getRewardsArguments() ArgsNewRewardsCreator {
 	return ArgsNewRewardsCreator{
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
-		PubkeyConverter:  mock.NewPubkeyConverterMock(32),
-		RewardsStorage:   &mock.StorerStub{},
-		MiniBlockStorage: &mock.StorerStub{},
-		Hasher:           &mock.HasherMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		DataPool:         &mock.PoolsHolderStub{},
-		CommunityAddress: "11", // string hex => 17 decimal
+		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(2),
+		PubkeyConverter:     mock.NewPubkeyConverterMock(32),
+		RewardsStorage:      &mock.StorerStub{},
+		MiniBlockStorage:    &mock.StorerStub{},
+		Hasher:              &mock.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		DataPool:            &mock.PoolsHolderStub{},
+		CommunityAddress:    "11", // string hex => 17 decimal
+		NodesConfigProvider: &mock.NodesCoordinatorStub{},
 	}
 }
