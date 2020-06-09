@@ -529,3 +529,8 @@
         Enabled = true
         CacheSize = 10000
         IntervalAutoPrintInSeconds = 20
+
+[SoftwareVersionConfig]
+    StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
+    PollingIntervalInMinutes = 65
+
