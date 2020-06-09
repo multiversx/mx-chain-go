@@ -67,6 +67,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -469,7 +470,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	tpn.DataPool = CreateTestDataPool(nil, tpn.ShardCoordinator.SelfId())
+	tpn.DataPool = testscommon.CreatePoolsHolder(1, tpn.ShardCoordinator.SelfId())
 	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
 	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(cache)

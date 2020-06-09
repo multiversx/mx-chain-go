@@ -1,8 +1,6 @@
 package testscommon
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
@@ -43,44 +41,38 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 			NumberOfShards: 1,
 		},
 	)
-	holder.panicIfError(err)
+	panicIfError("NewPoolsHolderMock", err)
 
 	holder.unsignedTransactions, err = shardedData.NewShardedData(storageUnit.CacheConfig{
 		Capacity:    10000,
 		SizeInBytes: 1000000000,
 		Shards:      1,
 	})
-	holder.panicIfError(err)
+	panicIfError("NewPoolsHolderMock", err)
 
 	holder.rewardTransactions, err = shardedData.NewShardedData(storageUnit.CacheConfig{
 		Capacity:    100,
 		SizeInBytes: 100000,
 		Shards:      1,
 	})
-	holder.panicIfError(err)
+	panicIfError("NewPoolsHolderMock", err)
 
 	holder.headers, err = headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
-	holder.panicIfError(err)
+	panicIfError("NewPoolsHolderMock", err)
 
 	holder.miniBlocks, err = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1, 0)
-	holder.panicIfError(err)
+	panicIfError("NewPoolsHolderMock", err)
 
 	holder.peerChangesBlocks, err = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1, 0)
-	holder.panicIfError(err)
+	panicIfError("NewPoolsHolderMock", err)
 
 	holder.currBlockTxs, err = dataPool.NewCurrentBlockPool()
-	holder.panicIfError(err)
+	panicIfError("NewPoolsHolderMock", err)
 
 	holder.trieNodes, err = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1, 0)
-	holder.panicIfError(err)
+	panicIfError("NewPoolsHolderMock", err)
 
 	return holder
-}
-
-func (holder *PoolsHolderMock) panicIfError(err error) {
-	if err != nil {
-		panic(fmt.Sprintf("PoolsHolderMock: %s", err))
-	}
 }
 
 // CurrentBlockTxs -
