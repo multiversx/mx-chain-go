@@ -33,41 +33,42 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	var err error
 
 	txPool, err := CreateTxPool(numShards, selfShard)
+	panicIfError("CreatePoolsHolder", err)
 
 	unsignedTxPool, err := shardedData.NewShardedData("unsignedTxPool", storageUnit.CacheConfig{
 		Capacity:    100000,
 		SizeInBytes: 1000000000,
 		Shards:      1,
 	})
-	panicIfError("CreatePoolsHolderWithTxPool", err)
+	panicIfError("CreatePoolsHolder", err)
 
 	rewardsTxPool, err := shardedData.NewShardedData("rewardsTxPool", storageUnit.CacheConfig{
 		Capacity:    300,
 		SizeInBytes: 300000,
 		Shards:      1,
 	})
-	panicIfError("CreatePoolsHolderWithTxPool", err)
+	panicIfError("CreatePoolsHolder", err)
 
 	headersPool, err := headersCache.NewHeadersPool(config.HeadersPoolConfig{
 		MaxHeadersPerShard:            1000,
 		NumElementsToRemoveOnEviction: 100,
 	})
-	panicIfError("CreatePoolsHolderWithTxPool", err)
+	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig := storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	txBlockBody, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Capacity, cacherConfig.Shards, cacherConfig.SizeInBytes)
-	panicIfError("CreatePoolsHolderWithTxPool", err)
+	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
 	peerChangeBlockBody, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Capacity, cacherConfig.Shards, cacherConfig.SizeInBytes)
-	panicIfError("CreatePoolsHolderWithTxPool", err)
+	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
 	trieNodes, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Capacity, cacherConfig.Shards, cacherConfig.SizeInBytes)
-	panicIfError("CreatePoolsHolderWithTxPool", err)
+	panicIfError("CreatePoolsHolder", err)
 
 	currentTx, err := dataPool.NewCurrentBlockPool()
-	panicIfError("CreatePoolsHolderWithTxPool", err)
+	panicIfError("CreatePoolsHolder", err)
 
 	holder, err := dataPool.NewDataPool(
 		txPool,
@@ -79,7 +80,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		trieNodes,
 		currentTx,
 	)
-	panicIfError("CreatePoolsHolderWithTxPool", err)
+	panicIfError("CreatePoolsHolder", err)
 
 	return holder
 }

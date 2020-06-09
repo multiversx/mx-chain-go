@@ -1,6 +1,7 @@
 package shardedData
 
 import (
+	"fmt"
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -64,41 +65,41 @@ func NewShardedData(name string, config storageUnit.CacheConfig) (*shardedData, 
 	}, nil
 }
 
-func (sd *shardedData) newShardStore(cacheId string) (*shardStore, error) {
+func (sd *shardedData) newShardStore(cacheID string) (*shardStore, error) {
 	config := sd.configPrototype
-	config.Name = cacheId
+	config.Name = fmt.Sprintf("%s:%s", sd.name, cacheID)
 	cache, err := immunitycache.NewImmunityCache(config)
 	if err != nil {
 		return nil, err
 	}
 
 	return &shardStore{
-		cacheID: cacheId,
+		cacheID: cacheID,
 		cache:   cache,
 	}, nil
 }
 
-func (sd *shardedData) newShardStoreNoLock(cacheId string) *shardStore {
-	shardStoreObject, err := sd.newShardStore(cacheId)
+func (sd *shardedData) newShardStoreNoLock(cacheID string) *shardStore {
+	shardStoreObject, err := sd.newShardStore(cacheID)
 	if err != nil {
 		log.Error("newShardStoreNoLock", "error", err.Error())
 	}
 
-	sd.shardedDataStore[cacheId] = shardStoreObject
+	sd.shardedDataStore[cacheID] = shardStoreObject
 	return shardStoreObject
 }
 
-func (sd *shardedData) shardStore(cacheId string) *shardStore {
+func (sd *shardedData) shardStore(cacheID string) *shardStore {
 	sd.mutShardedDataStore.RLock()
-	mp := sd.shardedDataStore[cacheId]
+	mp := sd.shardedDataStore[cacheID]
 	sd.mutShardedDataStore.RUnlock()
 	return mp
 }
 
 // ShardDataStore returns the shard data store containing data hashes
-//  associated with a given destination cacheId
-func (sd *shardedData) ShardDataStore(cacheId string) (c storage.Cacher) {
-	mp := sd.shardStore(cacheId)
+// associated with a given destination cacheID
+func (sd *shardedData) ShardDataStore(cacheID string) (c storage.Cacher) {
+	mp := sd.shardStore(cacheID)
 	if mp == nil {
 		return nil
 	}
@@ -177,8 +178,8 @@ func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID s
 }
 
 // RemoveData will remove data hash from the corresponding shard store
-func (sd *shardedData) RemoveData(key []byte, cacheId string) {
-	mpdata := sd.ShardDataStore(cacheId)
+func (sd *shardedData) RemoveData(key []byte, cacheID string) {
+	mpdata := sd.ShardDataStore(cacheID)
 
 	if mpdata != nil {
 		mpdata.Remove(key)
@@ -204,8 +205,8 @@ func (sd *shardedData) RemoveDataFromAllShards(key []byte) {
 
 // MergeShardStores will take all data associated with the sourceCacheId and move them
 // to the destCacheId. It will then remove the sourceCacheId key from the store map
-func (sd *shardedData) MergeShardStores(sourceCacheId, destCacheId string) {
-	sourceStore := sd.ShardDataStore(sourceCacheId)
+func (sd *shardedData) MergeShardStores(sourceCacheID, destCacheID string) {
+	sourceStore := sd.ShardDataStore(sourceCacheID)
 
 	if sourceStore != nil {
 		for _, key := range sourceStore.Keys() {
@@ -221,12 +222,12 @@ func (sd *shardedData) MergeShardStores(sourceCacheId, destCacheId string) {
 				continue
 			}
 
-			sd.AddData(key, valSizer, valSizer.Size(), destCacheId)
+			sd.AddData(key, valSizer, valSizer.Size(), destCacheID)
 		}
 	}
 
 	sd.mutShardedDataStore.Lock()
-	delete(sd.shardedDataStore, sourceCacheId)
+	delete(sd.shardedDataStore, sourceCacheID)
 	sd.mutShardedDataStore.Unlock()
 }
 
@@ -239,9 +240,9 @@ func (sd *shardedData) Clear() {
 	sd.mutShardedDataStore.Unlock()
 }
 
-// ClearShardStore will delete all data associated with a given destination cacheId
-func (sd *shardedData) ClearShardStore(cacheId string) {
-	mp := sd.ShardDataStore(cacheId)
+// ClearShardStore will delete all data associated with a given destination cacheID
+func (sd *shardedData) ClearShardStore(cacheID string) {
+	mp := sd.ShardDataStore(cacheID)
 	if mp == nil {
 		return
 	}
