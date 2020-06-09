@@ -245,12 +245,12 @@ func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}},
 			Economics: block.Economics{
-				TotalSupply:            big.NewInt(0),
-				TotalToDistribute:      big.NewInt(0),
-				TotalNewlyMinted:       big.NewInt(0),
-				RewardsPerBlockPerNode: big.NewInt(0),
-				NodePrice:              big.NewInt(0),
-				PrevEpochStartRound:    0,
+				TotalSupply:         big.NewInt(0),
+				TotalToDistribute:   big.NewInt(0),
+				TotalNewlyMinted:    big.NewInt(0),
+				RewardsPerBlock:     big.NewInt(0),
+				NodePrice:           big.NewInt(0),
+				PrevEpochStartRound: 0,
 			}}}
 	epochStartTrigger.SetProcessed(metaHdr, nil)
 	ret = epochStartTrigger.IsEpochStart()
@@ -336,12 +336,12 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}},
 			Economics: block.Economics{
-				TotalSupply:            big.NewInt(0),
-				TotalToDistribute:      big.NewInt(0),
-				TotalNewlyMinted:       big.NewInt(0),
-				RewardsPerBlockPerNode: big.NewInt(0),
-				NodePrice:              big.NewInt(0),
-				PrevEpochStartRound:    0,
+				TotalSupply:         big.NewInt(0),
+				TotalToDistribute:   big.NewInt(0),
+				TotalNewlyMinted:    big.NewInt(0),
+				RewardsPerBlock:     big.NewInt(0),
+				NodePrice:           big.NewInt(0),
+				PrevEpochStartRound: 0,
 			}}}
 	epochStartTrigger.SetProcessed(metaHdr, nil)
 	ret = epochStartTrigger.IsEpochStart()
