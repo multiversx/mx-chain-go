@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,7 +54,7 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 			return &mock.HeadersCacherStub{}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{}
@@ -62,7 +63,7 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 			return &mock.ShardedDataStub{}
 		},
 		TrieNodesCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{}

@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,7 +52,7 @@ func TestTrieNodesInterceptorProcessor_SaveShouldPutInCacher(t *testing.T) {
 	t.Parallel()
 
 	putCalled := false
-	cacher := &mock.CacherStub{
+	cacher := &testscommon.CacherStub{
 		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 			putCalled = true
 			return false

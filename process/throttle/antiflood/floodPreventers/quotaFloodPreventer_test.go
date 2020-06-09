@@ -18,7 +18,7 @@ import (
 func createDefaultArgument() ArgQuotaFloodPreventer {
 	return ArgQuotaFloodPreventer{
 		Name:                      "test",
-		Cacher:                    &mock.CacherStub{},
+		Cacher:                    testscommon.NewCacherStub(),
 		StatusHandlers:            []QuotaStatusHandler{&mock.QuotaStatusHandlerStub{}},
 		BaseMaxNumMessagesPerPeer: minMessages,
 		MaxTotalSizePerPeer:       minTotalSize,
@@ -136,7 +136,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadIdentifierNotPresentPutQuotaAndRetur
 	putWasCalled := false
 	size := uint64(minTotalSize * 5)
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
@@ -168,7 +168,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadNotQuotaSavedInCacheShouldPutQuotaAn
 	putWasCalled := false
 	size := uint64(minTotalSize * 5)
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return "bad value", true
 		},
@@ -205,7 +205,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadUnderMaxValuesShouldIncrementAndRetu
 	}
 	size := uint64(minTotalSize * 2)
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return existingQuota, true
 		},
@@ -231,7 +231,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerNumMessagesShouldNotPutAn
 		sizeReceivedMessages: existingSize,
 	}
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return existingQuota, true
 		},
@@ -260,7 +260,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerSizeShouldNotPutAndReturn
 		sizeReceivedMessages: existingSize,
 	}
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return existingQuota, true
 		},
@@ -306,7 +306,7 @@ func TestCountersMap_ResetShouldCallCacherClear(t *testing.T) {
 
 	clearCalled := false
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		ClearCalled: func() {
 			clearCalled = true
 		},

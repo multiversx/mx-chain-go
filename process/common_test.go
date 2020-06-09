@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1610,7 +1611,7 @@ func TestGetTransactionHandlerShouldGetTransactionFromPool(t *testing.T) {
 	storageService := &mock.ChainStorerMock{}
 	shardedDataCacherNotifier := &mock.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return txFromPool, true
 				},
@@ -1651,7 +1652,7 @@ func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
 	}
 	shardedDataCacherNotifier := &mock.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, false
 				},
@@ -1711,7 +1712,7 @@ func TestGetTransactionHandlerFromPoolShouldErrTxNotFound(t *testing.T) {
 
 	shardedDataCacherNotifier := &mock.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, false
 				},
@@ -1735,7 +1736,7 @@ func TestGetTransactionHandlerFromPoolShouldErrInvalidTxInPool(t *testing.T) {
 
 	shardedDataCacherNotifier := &mock.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, true
 				},
@@ -1760,7 +1761,7 @@ func TestGetTransactionHandlerFromPoolShouldWork(t *testing.T) {
 
 	shardedDataCacherNotifier := &mock.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return txFromPool, true
 				},

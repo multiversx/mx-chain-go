@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +19,7 @@ var testHasher = mock.HasherMock{}
 
 func createMockMiniblockArgument() *processor.ArgMiniblockInterceptorProcessor {
 	return &processor.ArgMiniblockInterceptorProcessor{
-		MiniblockCache:   &mock.CacherStub{},
+		MiniblockCache:   testscommon.NewCacherStub(),
 		Marshalizer:      testMarshalizer,
 		Hasher:           testHasher,
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
@@ -127,7 +128,7 @@ func TestMiniblockInterceptorProcessor_NilMiniblockShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockMiniblockArgument()
-	cacher := arg.MiniblockCache.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*testscommon.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (added bool) {
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return
@@ -150,7 +151,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockNotForCurrentShardShouldNotA
 	}
 
 	arg := createMockMiniblockArgument()
-	cacher := arg.MiniblockCache.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*testscommon.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (added bool) {
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return
@@ -172,7 +173,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockWithSenderInSameShardShouldA
 	}
 
 	arg := createMockMiniblockArgument()
-	cacher := arg.MiniblockCache.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*testscommon.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (added bool) {
 		_, ok := value.(*block.MiniBlock)
 		if !ok {
@@ -202,7 +203,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblocksWithReceiverInSameShardShou
 	}
 
 	arg := createMockMiniblockArgument()
-	cacher := arg.MiniblockCache.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*testscommon.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (added bool) {
 		_, ok := value.(*block.MiniBlock)
 		if !ok {
@@ -238,7 +239,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblocksMarshalizerFailShouldNotAdd
 			return nil, errExpected
 		},
 	}
-	cacher := arg.MiniblockCache.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*testscommon.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (added bool) {
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return
@@ -266,7 +267,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeNotWhiteListe
 		return false
 	}
 
-	cacher := arg.MiniblockCache.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*testscommon.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (added bool) {
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return
@@ -295,7 +296,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeWhiteListedSh
 	}
 
 	addedInPool := false
-	cacher := arg.MiniblockCache.(*mock.CacherStub)
+	cacher := arg.MiniblockCache.(*testscommon.CacherStub)
 	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (added bool) {
 		addedInPool = true
 		return true

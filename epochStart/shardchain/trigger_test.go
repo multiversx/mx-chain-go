@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +31,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				return &mock.HeadersCacherStub{}
 			},
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{}
+				return testscommon.NewCacherStub()
 			},
 		},
 		Storage: &mock.ChainStorerStub{
@@ -192,7 +193,7 @@ func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
 			return nil
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 	}
 	epochStartTrigger, err := NewEpochStartTrigger(args)
@@ -368,7 +369,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if bytes.Equal(key, peerMiniBlockHash) {
 						return peerMiniblock, true

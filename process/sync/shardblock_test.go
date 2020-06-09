@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +41,7 @@ func createMockPools() *mock.PoolsHolderStub {
 		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{
+		cs := &testscommon.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
@@ -392,7 +393,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			wasCalled++
 		}
@@ -632,7 +633,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -722,7 +723,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -799,7 +800,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -1751,7 +1752,7 @@ func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
 
 		return cs
@@ -1790,7 +1791,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 

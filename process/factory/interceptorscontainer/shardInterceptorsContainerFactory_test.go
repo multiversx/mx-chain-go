@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,13 +49,13 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+		return testscommon.NewCacherStub()
 	}
 	pools.PeerChangesBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+		return testscommon.NewCacherStub()
 	}
 	pools.MetaBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+		return testscommon.NewCacherStub()
 	}
 	pools.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
@@ -63,7 +64,7 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 		return &mock.ShardedDataStub{}
 	}
 	pools.TrieNodesCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+		return testscommon.NewCacherStub()
 	}
 	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
 		return &mock.TxForCurrentBlockStub{}

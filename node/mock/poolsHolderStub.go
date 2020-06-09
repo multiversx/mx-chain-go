@@ -3,6 +3,7 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 // PoolsHolderStub -
@@ -43,7 +44,7 @@ func (phs *PoolsHolderStub) MiniBlocks() storage.Cacher {
 		return phs.MiniBlocksCalled()
 	}
 
-	return &CacherStub{}
+	return testscommon.NewCacherStub()
 }
 
 // UnsignedTransactions -

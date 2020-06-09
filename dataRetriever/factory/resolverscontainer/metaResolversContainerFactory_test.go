@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +51,7 @@ func createDataPoolsForMeta() dataRetriever.PoolsHolder {
 			return &mock.HeadersCacherStub{}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{}

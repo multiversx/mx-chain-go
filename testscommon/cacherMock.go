@@ -21,90 +21,90 @@ func NewCacherMock() *CacherMock {
 }
 
 // Clear -
-func (cm *CacherMock) Clear() {
-	cm.mut.Lock()
-	defer cm.mut.Unlock()
+func (cacher *CacherMock) Clear() {
+	cacher.mut.Lock()
+	defer cacher.mut.Unlock()
 
-	cm.dataMap = make(map[string]interface{})
+	cacher.dataMap = make(map[string]interface{})
 }
 
 // Put -
-func (cm *CacherMock) Put(key []byte, value interface{}, _ int) (evicted bool) {
-	cm.mut.Lock()
-	defer cm.mut.Unlock()
+func (cacher *CacherMock) Put(key []byte, value interface{}, _ int) (evicted bool) {
+	cacher.mut.Lock()
+	defer cacher.mut.Unlock()
 
-	cm.dataMap[string(key)] = value
-	cm.callAddedDataHandlers(key, value)
+	cacher.dataMap[string(key)] = value
+	cacher.callAddedDataHandlers(key, value)
 
 	return false
 }
 
-func (cm *CacherMock) callAddedDataHandlers(key []byte, val interface{}) {
-	cm.mutAddedDataHandlers.RLock()
-	for _, handler := range cm.addedDataHandlers {
+func (cacher *CacherMock) callAddedDataHandlers(key []byte, val interface{}) {
+	cacher.mutAddedDataHandlers.RLock()
+	for _, handler := range cacher.addedDataHandlers {
 		go handler(key, val)
 	}
-	cm.mutAddedDataHandlers.RUnlock()
+	cacher.mutAddedDataHandlers.RUnlock()
 }
 
 // Get -
-func (cm *CacherMock) Get(key []byte) (value interface{}, ok bool) {
-	cm.mut.Lock()
-	defer cm.mut.Unlock()
+func (cacher *CacherMock) Get(key []byte) (value interface{}, ok bool) {
+	cacher.mut.Lock()
+	defer cacher.mut.Unlock()
 
-	val, ok := cm.dataMap[string(key)]
+	val, ok := cacher.dataMap[string(key)]
 
 	return val, ok
 }
 
 // Has -
-func (cm *CacherMock) Has(key []byte) bool {
-	cm.mut.Lock()
-	defer cm.mut.Unlock()
+func (cacher *CacherMock) Has(key []byte) bool {
+	cacher.mut.Lock()
+	defer cacher.mut.Unlock()
 
-	_, ok := cm.dataMap[string(key)]
+	_, ok := cacher.dataMap[string(key)]
 
 	return ok
 }
 
 // Peek -
-func (cm *CacherMock) Peek(key []byte) (value interface{}, ok bool) {
-	cm.mut.Lock()
-	defer cm.mut.Unlock()
+func (cacher *CacherMock) Peek(key []byte) (value interface{}, ok bool) {
+	cacher.mut.Lock()
+	defer cacher.mut.Unlock()
 
-	val, ok := cm.dataMap[string(key)]
+	val, ok := cacher.dataMap[string(key)]
 
 	return val, ok
 }
 
 // HasOrAdd -
-func (cm *CacherMock) HasOrAdd(key []byte, value interface{}, _ int) (added bool) {
-	cm.mut.Lock()
-	defer cm.mut.Unlock()
+func (cacher *CacherMock) HasOrAdd(key []byte, value interface{}, _ int) (added bool) {
+	cacher.mut.Lock()
+	defer cacher.mut.Unlock()
 
-	_, ok := cm.dataMap[string(key)]
+	_, ok := cacher.dataMap[string(key)]
 	if ok {
 		return false
 	}
 
-	cm.dataMap[string(key)] = value
-	cm.callAddedDataHandlers(key, value)
+	cacher.dataMap[string(key)] = value
+	cacher.callAddedDataHandlers(key, value)
 	return true
 }
 
 // Remove -
-func (cm *CacherMock) Remove(key []byte) {
-	cm.mut.Lock()
-	defer cm.mut.Unlock()
+func (cacher *CacherMock) Remove(key []byte) {
+	cacher.mut.Lock()
+	defer cacher.mut.Unlock()
 
-	delete(cm.dataMap, string(key))
+	delete(cacher.dataMap, string(key))
 }
 
 // Keys -
-func (cm *CacherMock) Keys() [][]byte {
-	keys := make([][]byte, len(cm.dataMap))
+func (cacher *CacherMock) Keys() [][]byte {
+	keys := make([][]byte, len(cacher.dataMap))
 	idx := 0
-	for k := range cm.dataMap {
+	for k := range cacher.dataMap {
 		keys[idx] = []byte(k)
 		idx++
 	}
@@ -113,34 +113,34 @@ func (cm *CacherMock) Keys() [][]byte {
 }
 
 // Len -
-func (cm *CacherMock) Len() int {
-	cm.mut.Lock()
-	defer cm.mut.Unlock()
+func (cacher *CacherMock) Len() int {
+	cacher.mut.Lock()
+	defer cacher.mut.Unlock()
 
-	return len(cm.dataMap)
+	return len(cacher.dataMap)
 }
 
 // MaxSize -
-func (cm *CacherMock) MaxSize() int {
+func (cacher *CacherMock) MaxSize() int {
 	return 10000
 }
 
 // RegisterHandler -
-func (cm *CacherMock) RegisterHandler(handler func(key []byte, value interface{}), _ string) {
+func (cacher *CacherMock) RegisterHandler(handler func(key []byte, value interface{}), _ string) {
 	if handler == nil {
 		return
 	}
 
-	cm.mutAddedDataHandlers.Lock()
-	cm.addedDataHandlers = append(cm.addedDataHandlers, handler)
-	cm.mutAddedDataHandlers.Unlock()
+	cacher.mutAddedDataHandlers.Lock()
+	cacher.addedDataHandlers = append(cacher.addedDataHandlers, handler)
+	cacher.mutAddedDataHandlers.Unlock()
 }
 
 // UnRegisterHandler -
-func (cm *CacherMock) UnRegisterHandler(string) {
+func (cacher *CacherMock) UnRegisterHandler(string) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (cm *CacherMock) IsInterfaceNil() bool {
-	return cm == nil
+func (cacher *CacherMock) IsInterfaceNil() bool {
+	return cacher == nil
 }

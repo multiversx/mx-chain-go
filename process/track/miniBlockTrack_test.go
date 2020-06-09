@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -244,7 +245,7 @@ func TestGetTransactionPool_ShouldWork(t *testing.T) {
 			return unsignedTransactionsPool
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 	}
 	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock())
@@ -274,7 +275,7 @@ func createDataPool() dataRetriever.PoolsHolder {
 			return &mock.ShardedDataStub{}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 	}
 }

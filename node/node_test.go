@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -916,7 +917,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithDataPool(&mock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},
@@ -1116,7 +1117,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithDataPool(&mock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},
@@ -1199,7 +1200,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithDataPool(&mock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},
@@ -1281,7 +1282,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithDataPool(&mock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},

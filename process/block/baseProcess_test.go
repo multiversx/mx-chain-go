@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,7 +61,7 @@ func createShardedDataChacherNotifier(
 		return &mock.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
 						if reflect.DeepEqual(key, testHash) {
 							return handler, true
@@ -107,7 +108,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 		UnsignedTransactionsCalled: unsignedTxCalled,
 		RewardTransactionsCalled:   rewardTransactionsCalled,
 		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
@@ -134,7 +135,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			cs := &mock.CacherStub{}
+			cs := testscommon.NewCacherStub()
 			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			}
 			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {

@@ -498,7 +498,7 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 
 	shardedDataStub := &mock.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return &smartContractResult.SmartContractResult{}, true
 				},
@@ -890,7 +890,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		return &mock.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
 						if reflect.DeepEqual(key, []byte("tx1_hash")) {
 							return &smartContractResult.SmartContractResult{Nonce: 10}, true

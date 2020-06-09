@@ -306,7 +306,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooSmallShouldNotBeRemoved(t *testing.T)
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-						return &mock.CacherStub{
+						return &testscommon.CacherStub{
 							GetCalled: func(key []byte) (value interface{}, ok bool) {
 								return nil, true
 							},
@@ -347,7 +347,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T) {
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-						return &mock.CacherStub{
+						return &testscommon.CacherStub{
 							GetCalled: func(key []byte) (value interface{}, ok bool) {
 								return nil, true
 							},

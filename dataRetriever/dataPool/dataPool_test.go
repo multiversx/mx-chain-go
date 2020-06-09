@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,9 +21,9 @@ func TestNewDataPool_NilTransactionsShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.HeadersCacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
 		&mock.TxForCurrentBlockStub{},
 	)
 
@@ -38,9 +39,9 @@ func TestNewDataPool_NilUnsignedTransactionsShouldErr(t *testing.T) {
 		nil,
 		&mock.ShardedDataStub{},
 		&mock.HeadersCacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
 		&mock.TxForCurrentBlockStub{},
 	)
 
@@ -56,9 +57,9 @@ func TestNewDataPool_NilRewardTransactionsShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		nil,
 		&mock.HeadersCacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
 		&mock.TxForCurrentBlockStub{},
 	)
 
@@ -74,9 +75,9 @@ func TestNewDataPool_NilHeadersShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		nil,
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
 		&mock.TxForCurrentBlockStub{},
 	)
 
@@ -93,8 +94,8 @@ func TestNewDataPool_NilTxBlocksShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.HeadersCacherStub{},
 		nil,
-		&mock.CacherStub{},
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
 		&mock.TxForCurrentBlockStub{},
 	)
 
@@ -110,8 +111,8 @@ func TestNewDataPool_NilTrieNodesShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.HeadersCacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
+		testscommon.NewCacherStub(),
 		nil,
 		&mock.TxForCurrentBlockStub{},
 	)
@@ -128,9 +129,9 @@ func TestNewDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		&mock.HeadersCacherStub{},
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
 		nil,
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
 		&mock.TxForCurrentBlockStub{},
 	)
 
@@ -143,9 +144,9 @@ func TestNewDataPool_NilCurrBlockShouldErr(t *testing.T) {
 	scResults := &mock.ShardedDataStub{}
 	rewardTransactions := &mock.ShardedDataStub{}
 	headers := &mock.HeadersCacherStub{}
-	txBlocks := &mock.CacherStub{}
-	peersBlock := &mock.CacherStub{}
-	trieNodes := &mock.CacherStub{}
+	txBlocks := testscommon.NewCacherStub()
+	peersBlock := testscommon.NewCacherStub()
+	trieNodes := testscommon.NewCacherStub()
 
 	tdp, err := dataPool.NewDataPool(
 		transactions,
@@ -167,9 +168,9 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	scResults := &mock.ShardedDataStub{}
 	rewardTransactions := &mock.ShardedDataStub{}
 	headers := &mock.HeadersCacherStub{}
-	txBlocks := &mock.CacherStub{}
-	peersBlock := &mock.CacherStub{}
-	trieNodes := &mock.CacherStub{}
+	txBlocks := testscommon.NewCacherStub()
+	peersBlock := testscommon.NewCacherStub()
+	trieNodes := testscommon.NewCacherStub()
 	currBlock := &mock.TxForCurrentBlockStub{}
 
 	tdp, err := dataPool.NewDataPool(

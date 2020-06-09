@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,10 +59,10 @@ func createDataPoolsForShard() dataRetriever.PoolsHolder {
 		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+		return testscommon.NewCacherStub()
 	}
 	pools.PeerChangesBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+		return testscommon.NewCacherStub()
 	}
 	pools.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}

@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -489,7 +490,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{
+		sds := &testscommon.CacherStub{
 			HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (added bool) {
 				return true
 			},
