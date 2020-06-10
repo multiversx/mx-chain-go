@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -12,7 +13,7 @@ import (
 // it buffers the data and refresh the peers list continuously (in refreshInterval intervals)
 type peersOnChannel struct {
 	mutPeers    sync.RWMutex
-	peers       map[string][]p2p.PeerID
+	peers       map[string][]core.PeerID
 	lastUpdated map[string]time.Time
 
 	refreshInterval   time.Duration
@@ -39,7 +40,7 @@ func newPeersOnChannel(
 	}
 
 	poc := &peersOnChannel{
-		peers:             make(map[string][]p2p.PeerID),
+		peers:             make(map[string][]core.PeerID),
 		lastUpdated:       make(map[string]time.Time),
 		refreshInterval:   refreshInterval,
 		ttlInterval:       ttlInterval,
@@ -58,7 +59,7 @@ func (poc *peersOnChannel) clockTime() time.Time {
 
 // ConnectedPeersOnChannel returns the known peers on a topic
 // if the list was not initialized, it will trigger a manual fetch
-func (poc *peersOnChannel) ConnectedPeersOnChannel(topic string) []p2p.PeerID {
+func (poc *peersOnChannel) ConnectedPeersOnChannel(topic string) []core.PeerID {
 	poc.mutPeers.RLock()
 	peers := poc.peers[topic]
 	poc.mutPeers.RUnlock()
@@ -71,7 +72,7 @@ func (poc *peersOnChannel) ConnectedPeersOnChannel(topic string) []p2p.PeerID {
 }
 
 // updateConnectedPeersOnTopic updates the connected peers on a topic and the last update timestamp
-func (poc *peersOnChannel) updateConnectedPeersOnTopic(topic string, connectedPeers []p2p.PeerID) {
+func (poc *peersOnChannel) updateConnectedPeersOnTopic(topic string, connectedPeers []core.PeerID) {
 	poc.mutPeers.Lock()
 	poc.peers[topic] = connectedPeers
 	poc.lastUpdated[topic] = poc.getTimeHandler()
@@ -103,11 +104,11 @@ func (poc *peersOnChannel) refreshPeersOnAllKnownTopics() {
 }
 
 // refreshPeersOnTopic
-func (poc *peersOnChannel) refreshPeersOnTopic(topic string) []p2p.PeerID {
+func (poc *peersOnChannel) refreshPeersOnTopic(topic string) []core.PeerID {
 	list := poc.fetchPeersHandler(topic)
-	connectedPeers := make([]p2p.PeerID, len(list))
+	connectedPeers := make([]core.PeerID, len(list))
 	for i, pid := range list {
-		connectedPeers[i] = p2p.PeerID(pid)
+		connectedPeers[i] = core.PeerID(pid)
 	}
 
 	poc.updateConnectedPeersOnTopic(topic, connectedPeers)

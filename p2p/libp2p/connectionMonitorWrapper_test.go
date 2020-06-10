@@ -1,8 +1,10 @@
 package libp2p
 
 import (
+	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
@@ -48,7 +50,7 @@ func TestConnectionMonitorNotifier_ConnectedBlackListedShouldCallClose(t *testin
 		&mock.NetworkStub{},
 		&mock.ConnectionMonitorStub{},
 		&mock.BlacklistHandlerStub{
-			HasCalled: func(key string) bool {
+			HasCalled: func(pid core.PeerID) bool {
 				return true
 			},
 		},
@@ -72,7 +74,7 @@ func TestConnectionMonitorNotifier_ConnectedNotBlackListedShouldCallConnected(t 
 			},
 		},
 		&mock.BlacklistHandlerStub{
-			HasCalled: func(key string) bool {
+			HasCalled: func(pid core.PeerID) bool {
 				return false
 			},
 		},
@@ -186,8 +188,8 @@ func TestConnectionMonitorWrapper_CheckConnectionsBlockingShouldWork(t *testing.
 		},
 		&mock.ConnectionMonitorStub{},
 		&mock.BlacklistHandlerStub{
-			HasCalled: func(key string) bool {
-				return key == blackListPeer.Pretty()
+			HasCalled: func(pid core.PeerID) bool {
+				return bytes.Equal(core.PeerID(blackListPeer).Bytes(), pid.Bytes())
 			},
 		},
 	)

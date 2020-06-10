@@ -957,7 +957,7 @@ func (boot *baseBootstrap) init() {
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedMiniBlocks(nil)
 
-	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock)
+	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock, core.UniqueIdentifier())
 	boot.headers.RegisterHandler(boot.processReceivedHeader)
 
 	boot.statusHandler = statusHandler.NewNilStatusHandler()

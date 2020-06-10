@@ -35,12 +35,12 @@ func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult,
 		return nil, err
 	}
 
-	txBytes, txType, found := n.getTxBytesFromDataPool(hash)
+	txObj, txType, found := n.getTxObjFromDataPool(hash)
 	if found {
-		return n.unmarshalTransaction(txBytes, txType)
+		return n.castObjToTransaction(txObj, txType)
 	}
 
-	txBytes, txType, found = n.getTxBytesFromStorage(hash)
+	txBytes, txType, found := n.getTxBytesFromStorage(hash)
 	if found {
 		return n.unmarshalTransaction(txBytes, txType)
 	}
@@ -62,7 +62,7 @@ func (n *Node) GetTransactionStatus(txHash string) (string, error) {
 		return "", err
 	}
 
-	_, _, foundInDataPool := n.getTxBytesFromDataPool(hash)
+	_, _, foundInDataPool := n.getTxObjFromDataPool(hash)
 	if foundInDataPool {
 		return string(core.TxStatusReceived), nil
 	}
@@ -75,23 +75,23 @@ func (n *Node) GetTransactionStatus(txHash string) (string, error) {
 	return string(core.TxStatusUnknown), nil
 }
 
-func (n *Node) getTxBytesFromDataPool(hash []byte) ([]byte, transactionType, bool) {
+func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transactionType, bool) {
 	txsPool := n.dataPool.Transactions()
-	txBytes, found := txsPool.SearchFirstData(hash)
-	if found && txBytes != nil {
-		return txBytes.([]byte), normalTx, true
+	txObj, found := txsPool.SearchFirstData(hash)
+	if found && txObj != nil {
+		return txObj, normalTx, true
 	}
 
 	rewardTxsPool := n.dataPool.RewardTransactions()
-	txBytes, found = rewardTxsPool.SearchFirstData(hash)
-	if found && txBytes != nil {
-		return txBytes.([]byte), rewardTx, true
+	txObj, found = rewardTxsPool.SearchFirstData(hash)
+	if found && txObj != nil {
+		return txObj, rewardTx, true
 	}
 
 	unsignedTxsPool := n.dataPool.UnsignedTransactions()
-	txBytes, found = unsignedTxsPool.SearchFirstData(hash)
-	if found && txBytes != nil {
-		return txBytes.([]byte), unsignedTx, true
+	txObj, found = unsignedTxsPool.SearchFirstData(hash)
+	if found && txObj != nil {
+		return txObj, unsignedTx, true
 	}
 
 	return nil, invalidTx, false
@@ -137,6 +137,25 @@ func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transactionType, bool
 	return nil, invalidTx, false
 }
 
+func (n *Node) castObjToTransaction(txObj interface{}, txType transactionType) (*transaction.ApiTransactionResult, error) {
+	switch txType {
+	case normalTx:
+		if tx, ok := txObj.(*transaction.Transaction); ok {
+			return n.prepareNormalTx(tx)
+		}
+	case rewardTx:
+		if tx, ok := txObj.(*rewardTxData.RewardTx); ok {
+			return n.prepareRewardTx(tx)
+		}
+	case unsignedTx:
+		if tx, ok := txObj.(*smartContractResult.SmartContractResult); ok {
+			return n.prepareUnsignedTx(tx)
+		}
+	}
+
+	return &transaction.ApiTransactionResult{Type: string(invalidTx)}, nil // this shouldn't happen
+}
+
 func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*transaction.ApiTransactionResult, error) {
 	switch txType {
 	case normalTx:
@@ -145,30 +164,14 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 		if err != nil {
 			return nil, err
 		}
-		return &transaction.ApiTransactionResult{
-			Type:      string(normalTx),
-			Nonce:     tx.Nonce,
-			Value:     tx.Value.String(),
-			Receiver:  n.addressPubkeyConverter.Encode(tx.RcvAddr),
-			Sender:    n.addressPubkeyConverter.Encode(tx.SndAddr),
-			GasPrice:  tx.GasPrice,
-			GasLimit:  tx.GasLimit,
-			Data:      string(tx.Data),
-			Signature: hex.EncodeToString(tx.Signature),
-		}, nil
+		return n.prepareNormalTx(&tx)
 	case rewardTx:
 		var tx rewardTxData.RewardTx
 		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		return &transaction.ApiTransactionResult{
-			Type:     string(rewardTx),
-			Round:    tx.GetRound(),
-			Epoch:    tx.GetEpoch(),
-			Value:    tx.GetValue().String(),
-			Receiver: n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
-		}, nil
+		return n.prepareRewardTx(&tx)
 
 	case unsignedTx:
 		var tx smartContractResult.SmartContractResult
@@ -176,19 +179,47 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 		if err != nil {
 			return nil, err
 		}
-		return &transaction.ApiTransactionResult{
-			Type:      string(unsignedTx),
-			Nonce:     tx.GetNonce(),
-			Value:     tx.GetValue().String(),
-			Receiver:  n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
-			Sender:    n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
-			GasPrice:  tx.GetGasPrice(),
-			GasLimit:  tx.GetGasLimit(),
-			Data:      string(tx.GetData()),
-			Code:      string(tx.GetCode()),
-			Signature: "",
-		}, nil
+		return n.prepareUnsignedTx(&tx)
 	default:
 		return &transaction.ApiTransactionResult{Type: string(invalidTx)}, nil // this shouldn't happen
 	}
+}
+
+func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
+	return &transaction.ApiTransactionResult{
+		Type:      string(normalTx),
+		Nonce:     tx.Nonce,
+		Value:     tx.Value.String(),
+		Receiver:  n.addressPubkeyConverter.Encode(tx.RcvAddr),
+		Sender:    n.addressPubkeyConverter.Encode(tx.SndAddr),
+		GasPrice:  tx.GasPrice,
+		GasLimit:  tx.GasLimit,
+		Data:      string(tx.Data),
+		Signature: hex.EncodeToString(tx.Signature),
+	}, nil
+}
+
+func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTransactionResult, error) {
+	return &transaction.ApiTransactionResult{
+		Type:     string(rewardTx),
+		Round:    tx.GetRound(),
+		Epoch:    tx.GetEpoch(),
+		Value:    tx.GetValue().String(),
+		Receiver: n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
+	}, nil
+}
+
+func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
+	return &transaction.ApiTransactionResult{
+		Type:      string(unsignedTx),
+		Nonce:     tx.GetNonce(),
+		Value:     tx.GetValue().String(),
+		Receiver:  n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
+		Sender:    n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
+		GasPrice:  tx.GetGasPrice(),
+		GasLimit:  tx.GetGasLimit(),
+		Data:      string(tx.GetData()),
+		Code:      string(tx.GetCode()),
+		Signature: "",
+	}, nil
 }

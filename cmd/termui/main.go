@@ -131,10 +131,12 @@ func startTermuiViewer() error {
 		return err
 	}
 
-	err = termuiConsole.Start()
+	chanStartTermUI := make(chan struct{})
+	err = termuiConsole.Start(chanStartTermUI)
 	if err != nil {
 		return err
 	}
+	chanStartTermUI <- struct{}{}
 
 	provider.StartListeningOnWebSocket(presenterStatusHandler)
 
