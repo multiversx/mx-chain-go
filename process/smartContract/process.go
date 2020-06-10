@@ -827,6 +827,7 @@ func (sc *scProcessor) createSmartContractResult(
 	result.GasLimit = outAcc.GasLimit
 	result.GasPrice = tx.GetGasPrice()
 	result.PrevTxHash = txHash
+	result.CallType = outAcc.CallType
 	setOriginalTxHash(result, txHash, tx)
 
 	return result

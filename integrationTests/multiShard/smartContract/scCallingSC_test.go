@@ -519,11 +519,11 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
-	shardConsensusGroupSize := 2
-	metaConsensusGroupSize := 2
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+	shardConsensusGroupSize := 1
+	metaConsensusGroupSize := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
@@ -674,16 +674,15 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput3.ReturnData[0])) == 0)
 
 	// check that the stake got activated
-	// TODO: figure out why callBack doesn't get called, then uncomment
-	//scQuery4 := &process.SCQuery{
-	//	ScAddress: delegateSCAddress,
-	//	FuncName:  "getUserActiveStake",
-	//	Arguments: [][]byte{delegateSCOwner},
-	//}
-	//vmOutput4, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
-	//assert.NotNil(t, vmOutput4)
-	//assert.Equal(t, len(vmOutput4.ReturnData), 1)
-	//assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput4.ReturnData[0])) == 0)
+	scQuery4 := &process.SCQuery{
+		ScAddress: delegateSCAddress,
+		FuncName:  "getUserActiveStake",
+		Arguments: [][]byte{delegateSCOwner},
+	}
+	vmOutput4, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
+	assert.NotNil(t, vmOutput4)
+	assert.Equal(t, len(vmOutput4.ReturnData), 1)
+	assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput4.ReturnData[0])) == 0)
 
 	// check that the staking system smart contract has the value
 	for _, node := range nodes {
