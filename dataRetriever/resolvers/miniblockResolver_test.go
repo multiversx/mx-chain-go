@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -16,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
+var fromConnectedPeerId = core.PeerID("from connected peer Id")
 
 func createMockArgMiniblockResolver() resolvers.ArgMiniblockResolver {
 	return resolvers.ArgMiniblockResolver{
@@ -147,7 +148,7 @@ func TestMiniblockResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T)
 	expectedErr := errors.New("expected error")
 	arg := createMockArgMiniblockResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return expectedErr
 		},
 	}
@@ -210,7 +211,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(
 
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSent = true
 			return nil
 		},
@@ -313,7 +314,7 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSend = true
 			return nil
 		},
@@ -357,7 +358,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSent = true
 			return nil
 		},

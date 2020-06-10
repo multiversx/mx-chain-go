@@ -110,7 +110,7 @@ func (cm *CacherMock) MaxSize() int {
 }
 
 // RegisterHandler -
-func (cm *CacherMock) RegisterHandler(handler func(key []byte, val interface{})) {
+func (cm *CacherMock) RegisterHandler(handler func(key []byte, value interface{}), _ string) {
 	if handler == nil {
 		return
 	}
@@ -118,6 +118,10 @@ func (cm *CacherMock) RegisterHandler(handler func(key []byte, val interface{}))
 	cm.mutAddedDataHandlers.Lock()
 	cm.addedDataHandlers = append(cm.addedDataHandlers, handler)
 	cm.mutAddedDataHandlers.Unlock()
+}
+
+// UnRegisterHandler -
+func (cm *CacherMock) UnRegisterHandler(string) {
 }
 
 func (cm *CacherMock) callAddedDataHandlers(key []byte, val interface{}) {

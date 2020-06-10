@@ -121,3 +121,6 @@ var ErrNilPeerBlacklistHandler = errors.New("nil peer black list handler")
 
 // ErrNilStatusHandler signals that a nil status handler has been provided
 var ErrNilStatusHandler = errors.New("nil status handler")
+
+// ErrNilCacher signals that a nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")

@@ -1204,27 +1204,27 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
 		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
-			Marshalizer:         TestMarshalizer,
-			Hasher:              TestHasher,
-			Store:               tpn.Storage,
-			ShardCoordinator:    tpn.ShardCoordinator,
-			NodesConfigProvider: tpn.NodesCoordinator,
-			RewardsHandler:      tpn.EconomicsData,
-			RoundTime:           tpn.Rounder,
+			Marshalizer:      TestMarshalizer,
+			Hasher:           TestHasher,
+			Store:            tpn.Storage,
+			ShardCoordinator: tpn.ShardCoordinator,
+			RewardsHandler:   tpn.EconomicsData,
+			RoundTime:        tpn.Rounder,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.ArgsNewRewardsCreator{
-			ShardCoordinator: tpn.ShardCoordinator,
-			PubkeyConverter:  TestAddressPubkeyConverter,
-			RewardsStorage:   rewardsStorage,
-			MiniBlockStorage: miniBlockStorage,
-			Hasher:           TestHasher,
-			Marshalizer:      TestMarshalizer,
-			DataPool:         tpn.DataPool,
-			CommunityAddress: testCommunityAddress,
+			ShardCoordinator:    tpn.ShardCoordinator,
+			PubkeyConverter:     TestAddressPubkeyConverter,
+			RewardsStorage:      rewardsStorage,
+			MiniBlockStorage:    miniBlockStorage,
+			Hasher:              TestHasher,
+			Marshalizer:         TestMarshalizer,
+			DataPool:            tpn.DataPool,
+			CommunityAddress:    testCommunityAddress,
+			NodesConfigProvider: tpn.NodesCoordinator,
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 
@@ -1335,7 +1335,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 		node.WithBlockBlackListHandler(tpn.BlockBlackListHandler),
-		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
+		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{}),
 		node.WithDataPool(tpn.DataPool),
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
@@ -1409,7 +1409,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 		tpn.DataPool.Transactions().RegisterHandler(txHandler)
 		tpn.DataPool.RewardTransactions().RegisterHandler(txHandler)
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
-		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers)
+		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers, core.UniqueIdentifier())
 	}
 }
 

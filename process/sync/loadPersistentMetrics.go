@@ -89,6 +89,8 @@ func prepareMetricMaps(metricsMap map[string]interface{}) (map[string]uint64, ma
 	uint64Map[core.MetricCountLeader] = persister.GetUint64(metricsMap[core.MetricCountLeader])
 	uint64Map[core.MetricNumProcessedTxs] = persister.GetUint64(metricsMap[core.MetricNumProcessedTxs])
 	uint64Map[core.MetricNumShardHeadersProcessed] = persister.GetUint64(metricsMap[core.MetricNumShardHeadersProcessed])
+	uint64Map[core.MetricRoundAtEpochStart] = persister.GetUint64(metricsMap[core.MetricRoundAtEpochStart])
+	uint64Map[core.MetricNonceAtEpochStart] = persister.GetUint64(metricsMap[core.MetricNonceAtEpochStart])
 
 	return uint64Map, stringMap
 }

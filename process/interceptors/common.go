@@ -3,6 +3,7 @@ package interceptors
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -11,7 +12,7 @@ func preProcessMesage(
 	throttler process.InterceptorThrottler,
 	antifloodHandler process.P2PAntifloodHandler,
 	message p2p.MessageP2P,
-	fromConnectedPeer p2p.PeerID,
+	fromConnectedPeer core.PeerID,
 	topic string,
 ) error {
 
@@ -25,7 +26,7 @@ func preProcessMesage(
 	if err != nil {
 		return err
 	}
-	err = antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, topic, 1)
+	err = antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, topic, 1, uint64(len(message.Data())), message.SeqNo())
 	if err != nil {
 		return err
 	}
@@ -40,7 +41,7 @@ func preProcessMesage(
 
 func processInterceptedData(
 	processor process.InterceptorProcessor,
-	handler process.InterceptedDebugHandler,
+	handler process.InterceptedDebugger,
 	data process.InterceptedData,
 	topic string,
 	wgProcess *sync.WaitGroup,
@@ -91,7 +92,7 @@ func processInterceptedData(
 }
 
 func processDebugInterceptedData(
-	debugHandler process.InterceptedDebugHandler,
+	debugHandler process.InterceptedDebugger,
 	interceptedData process.InterceptedData,
 	topic string,
 	err error,
@@ -101,7 +102,7 @@ func processDebugInterceptedData(
 }
 
 func receivedDebugInterceptedData(
-	debugHandler process.InterceptedDebugHandler,
+	debugHandler process.InterceptedDebugger,
 	interceptedData process.InterceptedData,
 	topic string,
 ) {

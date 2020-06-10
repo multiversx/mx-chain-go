@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -288,7 +289,7 @@ func TestCountersMap_IncreaseLoadShouldWorkConcurrently(t *testing.T) {
 	wg.Add(numIterations)
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			err := qfp.IncreaseLoad(fmt.Sprintf("%d", idx), minTotalSize)
+			err := qfp.IncreaseLoad(core.PeerID(fmt.Sprintf("%d", idx)), minTotalSize)
 			assert.Nil(t, err)
 			wg.Done()
 		}(i)
@@ -323,14 +324,14 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 	t.Parallel()
 
 	cacher := mock.NewCacherMock()
-	key1 := []byte("key1")
+	key1 := core.PeerID("key1")
 	quota1 := &quota{
 		numReceivedMessages:   1,
 		sizeReceivedMessages:  2,
 		numProcessedMessages:  3,
 		sizeProcessedMessages: 4,
 	}
-	key2 := []byte("key2")
+	key2 := core.PeerID("key2")
 	quota2 := &quota{
 		numReceivedMessages:   5,
 		sizeReceivedMessages:  6,
@@ -338,8 +339,8 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 		sizeProcessedMessages: 8,
 	}
 
-	cacher.HasOrAdd(key1, quota1, quota1.Size())
-	cacher.HasOrAdd(key2, quota2, quota2.Size())
+	cacher.HasOrAdd(key1.Bytes(), quota1, quota1.Size())
+	cacher.HasOrAdd(key2.Bytes(), quota2, quota2.Size())
 
 	resetStatisticsCalled := false
 	quota1Compared := false
@@ -351,7 +352,7 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 			ResetStatisticsCalled: func() {
 				resetStatisticsCalled = true
 			},
-			AddQuotaCalled: func(identifier string, numReceivedMessages uint32, sizeReceivedMessages uint64, numProcessedMessages uint32, sizeProcessedMessages uint64) {
+			AddQuotaCalled: func(pid core.PeerID, numReceivedMessages uint32, sizeReceivedMessages uint64, numProcessedMessages uint32, sizeProcessedMessages uint64) {
 				quotaProvided := quota{
 					numReceivedMessages:   numReceivedMessages,
 					sizeReceivedMessages:  sizeReceivedMessages,
@@ -360,15 +361,15 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 				}
 				quotaToCompare := quota{}
 
-				switch identifier {
-				case string(key1):
+				switch pid {
+				case key1:
 					quotaToCompare = *quota1
 					quota1Compared = true
-				case string(key2):
+				case key2:
 					quotaToCompare = *quota2
 					quota2Compared = true
 				default:
-					assert.Fail(t, fmt.Sprintf("unknown identifier %s", identifier))
+					assert.Fail(t, fmt.Sprintf("unknown identifier %s", pid))
 				}
 
 				assert.Equal(t, quotaToCompare, quotaProvided)
@@ -395,7 +396,7 @@ func TestCountersMap_IncrementAndResetShouldWorkConcurrently(t *testing.T) {
 	wg.Add(numIterations + numIterations/10)
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			err := qfp.IncreaseLoad(fmt.Sprintf("%d", idx), minTotalSize)
+			err := qfp.IncreaseLoad(core.PeerID(fmt.Sprintf("%d", idx)), minTotalSize)
 			assert.Nil(t, err)
 			wg.Done()
 		}(i)
@@ -422,7 +423,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadWithMockCacherShouldWork(t *testing.
 	arg.PercentReserved = float32(17)
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
-	identifier := "id"
+	identifier := core.PeerID("id")
 	for i := uint32(0); i < numMessages-uint32(arg.PercentReserved); i++ {
 		err := qfp.IncreaseLoad(identifier, 1)
 		assert.Nil(t, err, fmt.Sprintf("failed at the %d iteration", i))
@@ -477,7 +478,7 @@ func TestQuotaFloodPreventer_ApplyConsensusShouldWork(t *testing.T) {
 	assert.Equal(t, absoluteExpected, qfp.computedMaxNumMessagesPerPeer)
 	relativeExpected := uint32(2250 * 0.9)
 	fmt.Printf("expected relative: %d\n", relativeExpected)
-	identifier := "identifier"
+	identifier := core.PeerID("identifier")
 	for i := 0; i < int(relativeExpected); i++ {
 		err := qfp.IncreaseLoad(identifier, 0)
 		assert.Nil(t, err, fmt.Sprintf("on iteration %d", i))

@@ -5,8 +5,8 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/btcsuite/btcd/btcec"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -66,7 +66,7 @@ func TestMessage_Peer(t *testing.T) {
 
 	m, _ := libp2p.NewMessage(pMes)
 
-	assert.Equal(t, p2p.PeerID(id), m.Peer())
+	assert.Equal(t, core.PeerID(id), m.Peer())
 }
 
 func getRandomID() []byte {
