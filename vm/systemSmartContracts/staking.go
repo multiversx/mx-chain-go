@@ -616,7 +616,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if !r.canUnBond() || r.eei.IsValidator(args.Arguments[0]) {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible as not enough founds remaining, key %s", string(args.Arguments[0])))
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible as not enough funds remaining, key %s", string(args.Arguments[0])))
 		return vmcommon.UserError
 	}
 
