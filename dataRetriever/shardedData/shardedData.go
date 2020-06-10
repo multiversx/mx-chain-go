@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -250,6 +251,20 @@ func (sd *shardedData) RegisterHandler(handler func(key []byte, value interface{
 	sd.mutAddedDataHandlers.Lock()
 	sd.addedDataHandlers = append(sd.addedDataHandlers, handler)
 	sd.mutAddedDataHandlers.Unlock()
+}
+
+// GetCounts returns the total number of transactions in the pool
+func (sd *shardedData) GetCounts() counting.Counts {
+	sd.mutShardedDataStore.RLock()
+	defer sd.mutShardedDataStore.RUnlock()
+
+	counts := counting.NewShardedCounts()
+
+	for cacheID, shard := range sd.shardedDataStore {
+		counts.PutCounts(cacheID, int64(shard.cache.Len()))
+	}
+
+	return counts
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

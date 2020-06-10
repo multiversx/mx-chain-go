@@ -151,10 +151,12 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	counts := sp.txCounter.getTxPoolCounts(sp.dataPool)
-	log.Debug("total txs in pool", "counts", counts.String())
+	txCounts, rewardCounts, unsignedCounts := sp.txCounter.getPoolCounts(sp.dataPool)
+	log.Debug("total txs in pool", "counts", txCounts.String())
+	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
+	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
 
-	go getMetricsFromHeader(header, uint64(counts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
+	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
 
 	sp.createBlockStarted()
 	sp.blockChainHook.SetCurrentHeader(headerHandler)
