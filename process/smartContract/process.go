@@ -421,6 +421,14 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
+	isRelayedTx := len(scrIfError.RelayerAddr) == len(scrIfError.SndAddr)
+	if isRelayedTx {
+		acntSnd, err = sc.getAccountFromAddress(scrIfError.RelayerAddr)
+		if err != nil {
+			return err
+		}
+	}
+
 	if !check.IfNil(acntSnd) {
 		err = acntSnd.AddToBalance(tx.GetValue())
 		if err != nil {
@@ -436,7 +444,7 @@ func (sc *scProcessor) ProcessIfError(
 		consumedFee.Sub(consumedFee, moveBalanceCost)
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(scrIfError)
+	err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
 	if err != nil {
 		return err
 	}
@@ -751,7 +759,7 @@ func (sc *scProcessor) createSCRsWhenError(
 	tx data.TransactionHandler,
 	returnCode string,
 	returnMessage []byte,
-) ([]data.TransactionHandler, error) {
+) (*smartContractResult.SmartContractResult, error) {
 	rcvAddress := tx.GetSndAddr()
 
 	callType := determineCallType(tx)
@@ -764,16 +772,20 @@ func (sc *scProcessor) createSCRsWhenError(
 		Value:         tx.GetValue(),
 		RcvAddr:       rcvAddress,
 		SndAddr:       tx.GetRcvAddr(),
-		Code:          nil,
 		Data:          []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)),
 		PrevTxHash:    txHash,
 		ReturnMessage: returnMessage,
 	}
 	setOriginalTxHash(scr, txHash, tx)
 
-	resultedScrs := []data.TransactionHandler{scr}
+	scrFromTx, isScr := tx.(*smartContractResult.SmartContractResult)
+	isRelayedTx := isScr && len(scrFromTx.RelayerAddr) == len(scrFromTx.SndAddr)
+	if isRelayedTx {
+		scr.RelayerAddr = make([]byte, len(scrFromTx.RelayerAddr))
+		copy(scr.RelayerAddr, scrFromTx.RelayerAddr)
+	}
 
-	return resultedScrs, nil
+	return scr, nil
 }
 
 func setOriginalTxHash(
@@ -1051,7 +1063,7 @@ func (sc *scProcessor) getAccountFromAddress(address []byte) (state.UserAccountH
 
 // ProcessSmartContractResult updates the account state from the smart contract result
 func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
-	if scr == nil {
+	if check.IfNil(scr) {
 		return process.ErrNilSmartContractResult
 	}
 
