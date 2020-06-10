@@ -414,17 +414,9 @@ func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
 
 // Close closes the host, connections and streams
 func (netMes *networkMessenger) Close() error {
-	netMes.cancelFunc()
+	log.Debug("closing network messenger's host...")
 
 	var err error
-	errOplb := netMes.outgoingPLB.Close()
-	if errOplb != nil {
-		err = errOplb
-		log.Warn("networkMessenger.Close",
-			"component", "outgoingPLB",
-			"error", err)
-	}
-
 	errHost := netMes.p2pHost.Close()
 	if errHost != nil {
 		err = errHost
@@ -433,8 +425,22 @@ func (netMes *networkMessenger) Close() error {
 			"error", err)
 	}
 
+	log.Debug("closing network messenger's outgoing load balancer...")
+
+	errOplb := netMes.outgoingPLB.Close()
+	if errOplb != nil {
+		err = errOplb
+		log.Warn("networkMessenger.Close",
+			"component", "outgoingPLB",
+			"error", err)
+	}
+
+	log.Debug("closing network messenger's components through the context...")
+
+	netMes.cancelFunc()
+
 	if err == nil {
-		log.Debug("network messenger closed successfully")
+		log.Info("network messenger closed successfully")
 	}
 
 	return err
