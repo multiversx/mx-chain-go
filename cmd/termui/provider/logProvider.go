@@ -13,6 +13,7 @@ import (
 
 var formatter = logger.PlainFormatter{}
 var webSocket *websocket.Conn
+var retryDuration = time.Second * 10
 
 const (
 	ws  = "ws"
@@ -26,9 +27,15 @@ func InitLogHandler(nodeURL string, profile logger.Profile, useWss bool) error {
 	if useWss {
 		scheme = wss
 	}
-	webSocket, err = openWebSocket(scheme, nodeURL, profile)
-	if err != nil {
-		return err
+	for {
+		webSocket, err = openWebSocket(scheme, nodeURL, profile)
+		if err == nil {
+			break
+		}
+		log.Error("init logger", "error", err)
+
+		log.Info("connection not available", "duration before retrying", retryDuration)
+		time.Sleep(retryDuration)
 	}
 
 	return nil
@@ -77,7 +84,8 @@ func StartListeningOnWebSocket(presenter PresenterHandler) {
 			} else {
 				log.Debug("termui websocket terminated", "error", err.Error())
 			}
-			return
+
+			time.Sleep(retryDuration)
 		}
 	}()
 }

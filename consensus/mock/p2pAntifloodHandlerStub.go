@@ -8,7 +8,7 @@ import (
 // P2PAntifloodHandlerStub -
 type P2PAntifloodHandlerStub struct {
 	CanProcessMessageCalled         func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	CanProcessMessagesOnTopicCalled func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error
+	CanProcessMessagesOnTopicCalled func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 }
 
 // ResetForTopic -
@@ -29,9 +29,9 @@ func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message p2p.MessageP2P,
 }
 
 // CanProcessMessagesOnTopic -
-func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error {
+func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 	if p2pahs.CanProcessMessagesOnTopicCalled != nil {
-		return p2pahs.CanProcessMessagesOnTopicCalled(peer, topic, numMessages, totalSize)
+		return p2pahs.CanProcessMessagesOnTopicCalled(peer, topic, numMessages, totalSize, sequence)
 	}
 
 	return nil

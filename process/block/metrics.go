@@ -89,7 +89,7 @@ func saveMetricsForACommittedBlock(
 	shardHeader *block.Header,
 ) {
 	incrementCountAcceptedBlocks(nodesCoordinator, appStatusHandler, shardHeader)
-	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(metaBlock.GetEpoch()))
+	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(shardHeader.GetEpoch()))
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
 	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))

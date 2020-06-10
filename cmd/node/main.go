@@ -457,10 +457,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
 	workingDir := getWorkingDir(ctx, log)
 
+	var logFile *os.File
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
-		_, err = prepareLogFile(workingDir)
+		logFile, err = prepareLogFile(workingDir)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
@@ -730,7 +731,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.InternalMarshalizer, coreComponents.Uint64ByteSliceConverter)
+	chanCreateViews := make(chan struct{}, 1)
+	chanLogRewrite := make(chan struct{}, 1)
+	handlersArgs, err := factory.NewStatusHandlersFactoryArgs(
+		useLogView.Name,
+		ctx,
+		coreComponents.InternalMarshalizer,
+		coreComponents.Uint64ByteSliceConverter,
+		chanCreateViews,
+		chanLogRewrite,
+		logFile,
+	)
+	if err != nil {
+		return err
+	}
+
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -943,6 +958,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	chanLogRewrite <- struct{}{}
+	chanCreateViews <- struct{}{}
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
@@ -1215,7 +1233,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating software checker structure")
-	softwareVersionChecker, err := factory.CreateSoftwareVersionChecker(coreComponents.StatusHandler)
+	softwareVersionChecker, err := factory.CreateSoftwareVersionChecker(coreComponents.StatusHandler, generalConfig.SoftwareVersionConfig)
 	if err != nil {
 		log.Debug("nil software version checker", "error", err.Error())
 	} else {
