@@ -150,7 +150,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.Root()
 	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			PutCalled: func(_ []byte, _ interface{}, _ int) (evicted bool) {
 				return false
 			},
