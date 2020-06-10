@@ -40,7 +40,7 @@ func TestMessageProcessor_CanProcessOnTopicErrorsShouldErr(t *testing.T) {
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
-			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error {
+			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 				return expectedErr
 			},
 		},
@@ -60,7 +60,7 @@ func TestMessageProcessor_CanProcessThrottlerNotAllowingShouldErr(t *testing.T) 
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
-			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error {
+			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 				return nil
 			},
 		},
@@ -87,7 +87,7 @@ func TestMessageProcessor_CanProcessShouldWork(t *testing.T) {
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
-			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error {
+			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 				return nil
 			},
 		},

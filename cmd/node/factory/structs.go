@@ -605,8 +605,11 @@ func newEpochStartTrigger(
 
 // CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
 // is available
-func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwareVersion.SoftwareVersionChecker, error) {
-	softwareVersionCheckerFactory, err := factorySoftwareVersion.NewSoftwareVersionFactory(statusHandler)
+func CreateSoftwareVersionChecker(
+	statusHandler core.AppStatusHandler,
+	config config.SoftwareVersionConfig,
+) (*softwareVersion.SoftwareVersionChecker, error) {
+	softwareVersionCheckerFactory, err := factorySoftwareVersion.NewSoftwareVersionFactory(statusHandler, config)
 	if err != nil {
 		return nil, err
 	}
@@ -1576,13 +1579,12 @@ func newMetaBlockProcessor(
 	}
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:         core.InternalMarshalizer,
-		Hasher:              core.Hasher,
-		Store:               data.Store,
-		ShardCoordinator:    shardCoordinator,
-		NodesConfigProvider: nodesCoordinator,
-		RewardsHandler:      economicsData,
-		RoundTime:           rounder,
+		Marshalizer:      core.InternalMarshalizer,
+		Hasher:           core.Hasher,
+		Store:            data.Store,
+		ShardCoordinator: shardCoordinator,
+		RewardsHandler:   economicsData,
+		RoundTime:        rounder,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -1592,14 +1594,15 @@ func newMetaBlockProcessor(
 	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
 	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
-		ShardCoordinator: shardCoordinator,
-		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
-		RewardsStorage:   rewardsStorage,
-		MiniBlockStorage: miniBlockStorage,
-		Hasher:           core.Hasher,
-		Marshalizer:      core.InternalMarshalizer,
-		DataPool:         data.Datapool,
-		CommunityAddress: economicsData.CommunityAddress(),
+		ShardCoordinator:    shardCoordinator,
+		PubkeyConverter:     stateComponents.AddressPubkeyConverter,
+		RewardsStorage:      rewardsStorage,
+		MiniBlockStorage:    miniBlockStorage,
+		Hasher:              core.Hasher,
+		Marshalizer:         core.InternalMarshalizer,
+		DataPool:            data.Datapool,
+		CommunityAddress:    economicsData.CommunityAddress(),
+		NodesConfigProvider: nodesCoordinator,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {
@@ -1726,8 +1729,8 @@ func PrepareNetworkShardingCollector(
 		return nil, err
 	}
 
-	localId := network.NetMessenger.ID()
-	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
+	localID := network.NetMessenger.ID()
+	networkShardingCollector.UpdatePeerIdShardId(localID, coordinator.SelfId())
 
 	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector)
 	if err != nil {
@@ -1751,21 +1754,21 @@ func createNetworkShardingCollector(
 	}
 
 	cacheConfig = config.PublicKeyShardId
-	cachePkShardId, err := createCache(cacheConfig)
+	cachePkShardID, err := createCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	cacheConfig = config.PeerIdShardId
-	cachePidShardId, err := createCache(cacheConfig)
+	cachePidShardID, err := createCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	psm, err := networksharding.NewPeerShardMapper(
 		cachePkPid,
-		cachePkShardId,
-		cachePidShardId,
+		cachePkShardID,
+		cachePidShardID,
 		nodesCoordinator,
 		epochStart,
 	)
