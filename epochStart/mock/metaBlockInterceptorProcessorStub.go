@@ -19,12 +19,12 @@ func (m *MetaBlockInterceptorProcessorStub) Validate(data process.InterceptedDat
 }
 
 // Save -
-func (m *MetaBlockInterceptorProcessorStub) Save(_ process.InterceptedData, _ p2p.PeerID) error {
+func (m *MetaBlockInterceptorProcessorStub) Save(_ process.InterceptedData, _ p2p.PeerID, _ string) error {
 	return nil
 }
 
 // RegisterHandler -
-func (m *MetaBlockInterceptorProcessorStub) RegisterHandler(_ func(toShard uint32, data []byte)) {
+func (m *MetaBlockInterceptorProcessorStub) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
 }
 
 // SignalEndOfProcessing -

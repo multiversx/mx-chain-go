@@ -177,7 +177,7 @@ func (mdi *MultiDataInterceptor) SetInterceptedDebugHandler(handler process.Inte
 }
 
 // RegisterHandler registers a callback function to be notified on received data
-func (mdi *MultiDataInterceptor) RegisterHandler(handler func(toShard uint32, data []byte)) {
+func (mdi *MultiDataInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
 	mdi.processor.RegisterHandler(handler)
 }
 

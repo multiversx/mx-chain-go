@@ -118,7 +118,7 @@ func TestMiniblockInterceptorProcessor_SaveWrongTypeAssertion(t *testing.T) {
 
 	mip, _ := processor.NewMiniblockInterceptorProcessor(createMockMiniblockArgument())
 
-	err := mip.Save(nil, "")
+	err := mip.Save(nil, "", "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -134,7 +134,7 @@ func TestMiniblockInterceptorProcessor_NilMiniblockShouldNotAdd(t *testing.T) {
 	}
 	mip, _ := processor.NewMiniblockInterceptorProcessor(arg)
 
-	err := mip.Save(nil, "")
+	err := mip.Save(nil, "", "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -185,7 +185,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockWithSenderInSameShardShouldA
 	mip, _ := processor.NewMiniblockInterceptorProcessor(arg)
 	inTxBlkBdy := createInteceptedMiniblock(miniblock)
 
-	err := mip.Save(inTxBlkBdy, "")
+	err := mip.Save(inTxBlkBdy, "", "")
 
 	assert.Nil(t, err)
 }
@@ -215,7 +215,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblocksWithReceiverInSameShardShou
 	mip, _ := processor.NewMiniblockInterceptorProcessor(arg)
 	inTxBlkBdy := createInteceptedMiniblock(miniblock)
 
-	err := mip.Save(inTxBlkBdy, "")
+	err := mip.Save(inTxBlkBdy, "", "")
 
 	assert.Nil(t, err)
 }
@@ -246,7 +246,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblocksMarshalizerFailShouldNotAdd
 	tbip, _ := processor.NewMiniblockInterceptorProcessor(arg)
 	inTxBlkBdy := createInteceptedMiniblock(miniblock)
 
-	err := tbip.Save(inTxBlkBdy, "")
+	err := tbip.Save(inTxBlkBdy, "", "")
 	assert.Equal(t, errExpected, err)
 }
 
@@ -274,7 +274,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeNotWhiteListe
 	tbip, _ := processor.NewMiniblockInterceptorProcessor(arg)
 	inTxBlkBdy := createInteceptedMiniblock(miniblock)
 
-	err := tbip.Save(inTxBlkBdy, "")
+	err := tbip.Save(inTxBlkBdy, "", "")
 	assert.Nil(t, err)
 }
 
@@ -303,7 +303,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeWhiteListedSh
 	tbip, _ := processor.NewMiniblockInterceptorProcessor(arg)
 	inTxBlkBdy := createInteceptedMiniblock(miniblock)
 
-	err := tbip.Save(inTxBlkBdy, "")
+	err := tbip.Save(inTxBlkBdy, "", "")
 	assert.Nil(t, err)
 	assert.True(t, addedInPool)
 }

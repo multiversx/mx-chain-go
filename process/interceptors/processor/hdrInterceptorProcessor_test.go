@@ -155,7 +155,7 @@ func TestHdrInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 
 	hip, _ := processor.NewHdrInterceptorProcessor(createMockHdrArgument())
 
-	err := hip.Save(nil, "")
+	err := hip.Save(nil, "", "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -190,7 +190,7 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
-	err := hip.Save(hdrInterceptedData, "")
+	err := hip.Save(hdrInterceptedData, "", "")
 
 	assert.Nil(t, err)
 	assert.True(t, wasAddedHeaders)

@@ -44,7 +44,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ p2p
 }
 
 // Save will save the received data into the cacher
-func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID) error {
+func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID, _ string) error {
 	interceptedTx, ok := data.(InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -62,7 +62,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ p2p.Pee
 }
 
 // RegisterHandler registers a callback function to be notified of incoming transactions
-func (txip *TxInterceptorProcessor) RegisterHandler(_ func(toShard uint32, data []byte)) {
+func (txip *TxInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
 	panic("not implemented")
 }
 

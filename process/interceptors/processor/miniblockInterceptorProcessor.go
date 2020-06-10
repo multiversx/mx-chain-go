@@ -25,7 +25,7 @@ type MiniblockInterceptorProcessor struct {
 	hasher             hashing.Hasher
 	shardCoordinator   sharding.Coordinator
 	whiteListHandler   process.WhiteListHandler
-	registeredHandlers []func(toShard uint32, data []byte)
+	registeredHandlers []func(topic string, hash []byte, data interface{})
 }
 
 // NewMiniblockInterceptorProcessor creates a new MiniblockInterceptorProcessor instance
@@ -55,7 +55,7 @@ func NewMiniblockInterceptorProcessor(argument *ArgMiniblockInterceptorProcessor
 		hasher:             argument.Hasher,
 		shardCoordinator:   argument.ShardCoordinator,
 		whiteListHandler:   argument.WhiteListHandler,
-		registeredHandlers: make([]func(toShard uint32, data []byte), 0),
+		registeredHandlers: make([]func(topic string, hash []byte, data interface{}), 0),
 	}, nil
 }
 
@@ -69,7 +69,7 @@ func (mip *MiniblockInterceptorProcessor) Validate(_ process.InterceptedData, _ 
 
 // Save will save the received miniblocks inside the miniblock cacher after a new validation round
 // that will be done on each miniblock
-func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID) error {
+func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID, topic string) error {
 	interceptedMiniblock, ok := data.(*interceptedBlocks.InterceptedMiniblock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -81,7 +81,7 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p
 		return err
 	}
 
-	go mip.notify(miniblock, interceptedMiniblock.Hash())
+	go mip.notify(miniblock, interceptedMiniblock.Hash(), topic)
 
 	shouldRejectMiniBlock := mip.isMbCrossShard(miniblock) &&
 		!mip.whiteListHandler.IsWhiteListed(data) &&
@@ -104,7 +104,7 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p
 }
 
 // RegisterHandler registers a callback function to be notified of incoming miniBlocks
-func (mip *MiniblockInterceptorProcessor) RegisterHandler(handler func(toShard uint32, data []byte)) {
+func (mip *MiniblockInterceptorProcessor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
 	if handler == nil {
 		return
 	}
@@ -121,8 +121,8 @@ func (mip *MiniblockInterceptorProcessor) IsInterfaceNil() bool {
 	return mip == nil
 }
 
-func (mip *MiniblockInterceptorProcessor) notify(miniBlock *block.MiniBlock, hash []byte) {
+func (mip *MiniblockInterceptorProcessor) notify(miniBlock *block.MiniBlock, hash []byte, topic string) {
 	for _, handler := range mip.registeredHandlers {
-		handler(miniBlock.ReceiverShardID, hash)
+		handler(topic, hash, miniBlock)
 	}
 }

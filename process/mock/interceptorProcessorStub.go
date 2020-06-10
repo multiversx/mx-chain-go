@@ -17,12 +17,12 @@ func (ips *InterceptorProcessorStub) Validate(data process.InterceptedData, _ p2
 }
 
 // Save -
-func (ips *InterceptorProcessorStub) Save(data process.InterceptedData, _ p2p.PeerID) error {
+func (ips *InterceptorProcessorStub) Save(data process.InterceptedData, _ p2p.PeerID, _ string) error {
 	return ips.SaveCalled(data)
 }
 
 // RegisterHandler -
-func (ips *InterceptorProcessorStub) RegisterHandler(_ func(toShard uint32, data []byte)) {
+func (ips *InterceptorProcessorStub) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
 }
 
 // IsInterfaceNil -

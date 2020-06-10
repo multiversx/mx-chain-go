@@ -139,7 +139,7 @@ func (sdi *SingleDataInterceptor) SetInterceptedDebugHandler(handler process.Int
 }
 
 // RegisterHandler registers a callback function to be notified on received data
-func (sdi *SingleDataInterceptor) RegisterHandler(handler func(toShard uint32, data []byte)) {
+func (sdi *SingleDataInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
 	sdi.processor.RegisterHandler(handler)
 }
 

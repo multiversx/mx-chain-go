@@ -122,7 +122,7 @@ func TestTxInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 
 	txip, _ := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
-	err := txip.Save(nil, "")
+	err := txip.Save(nil, "", "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -160,7 +160,7 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
 
-	err := txip.Save(txInterceptedData, "")
+	err := txip.Save(txInterceptedData, "", "")
 
 	assert.Nil(t, err)
 	assert.True(t, addedWasCalled)

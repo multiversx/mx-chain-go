@@ -26,7 +26,7 @@ func (is *InterceptorStub) SetInterceptedDebugHandler(handler process.Intercepte
 }
 
 // RegisterHandler -
-func (is *InterceptorStub) RegisterHandler(_ func(toShard uint32, data []byte)) {
+func (is *InterceptorStub) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
