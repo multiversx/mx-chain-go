@@ -3,7 +3,6 @@ package bls
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -188,9 +187,9 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
 
-	err = sr.broadcastMiniBlocksAndTransactions()
+	err = sr.broadcastBlockDataLeader()
 	if err != nil {
-		log.Debug("doEndRoundJob.broadcastMiniBlocksAndTransactions", "error", err.Error())
+		log.Debug("doEndRoundJob.broadcastBlockDataLeader", "error", err.Error())
 	}
 
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
@@ -246,17 +245,17 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 		return false
 	}
 
-	haveHeader, header := sr.haveConsensusHeaderWithFullInfo(cnsDta)
-	if !haveHeader {
-		return false
-	}
-
-	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
-		err := sr.prepareBroadcastMiniBlocksAndTransactionsForValidator()
+	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && !sr.IsSelfLeaderInCurrentRound() {
+		err := sr.prepareBroadcastBlockDataForValidator()
 		if err != nil {
 			log.Warn("validator in consensus group preparing for delayed broadcast",
 				"error", err.Error())
 		}
+	}
+
+	haveHeader, header := sr.haveConsensusHeaderWithFullInfo(cnsDta)
+	if !haveHeader {
+		return false
 	}
 
 	defer func() {
@@ -380,136 +379,32 @@ func (sr *subroundEndRound) updateMetricsForLeader() {
 		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.Rounder().TimeStamp()).Seconds()))
 }
 
-func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
+func (sr *subroundEndRound) broadcastBlockDataLeader() error {
 	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.Body)
 	if err != nil {
 		return err
 	}
 
-	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
-		var headerHash []byte
-		headerHash, err = core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.Header)
-		if err != nil {
-			return err
-		}
-
-		metaMiniBlocks, metaTransactions := sr.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
-
-		err = sr.BroadcastMessenger().SetLeaderDelayBroadcast(headerHash, miniBlocks, transactions)
-		if err != nil {
-			return err
-		}
-
-		go sr.broadcast(metaMiniBlocks, metaTransactions, 0)
-		return nil
-	}
-
-	go sr.broadcast(miniBlocks, transactions, core.ExtraDelayForBroadcastBlockInfo)
-	return nil
+	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.Header, miniBlocks, transactions)
 }
 
-func (sr *subroundEndRound) prepareBroadcastMiniBlocksAndTransactionsForValidator() error {
+func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {
+	idx, err := sr.SelfConsensusGroupIndex()
+	if err != nil {
+		return err
+	}
+
 	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.Body)
 	if err != nil {
 		return err
 	}
 
-	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
-		var headerHash []byte
-		headerHash, err = core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.Header)
-		if err != nil {
-			return err
-		}
-
-		miniBlockHashesCrossFromMe := sr.extractMiniBlockHashesCrossFromMe()
-
-		var idx int
-		idx, err = sr.SelfConsensusGroupIndex()
-		if err != nil {
-			err = sr.BroadcastMessenger().SetValidatorDelayBroadcast(
-				headerHash,
-				sr.Header.GetPrevRandSeed(),
-				sr.Header.GetRound(),
-				miniBlocks,
-				miniBlockHashesCrossFromMe,
-				transactions,
-				uint32(idx),
-			)
-		}
+	haveHeader, header := sr.haveConsensusHeaderWithFullInfo(nil)
+	if !haveHeader {
+		header = sr.Header
 	}
 
-	return nil
-}
-
-func (sr *subroundEndRound) extractMiniBlockHashesCrossFromMe() map[uint32]map[string]struct{} {
-	mbHashesForShards := make(map[uint32]map[string]struct{})
-	for i := uint32(0); i < sr.ShardCoordinator().NumberOfShards(); i++ {
-		if i == sr.ShardCoordinator().SelfId() {
-			continue
-		}
-		mbHashesForShards[i] = make(map[string]struct{})
-
-		miniBlockHeaders := sr.Header.GetMiniBlockHeadersWithDst(i)
-		for key := range miniBlockHeaders {
-			mbHashesForShards[i][key] = struct{}{}
-		}
-	}
-	// TODO: Do we need to add also for metachain?
-
-	return mbHashesForShards
-}
-
-func (sr *subroundEndRound) extractMetaMiniBlocksAndTransactions(
-	miniBlocks map[uint32][]byte,
-	transactions map[string][][]byte,
-) (map[uint32][]byte, map[string][][]byte) {
-
-	metaMiniBlocks := make(map[uint32][]byte, 0)
-	metaTransactions := make(map[string][][]byte, 0)
-
-	for shardID, mbsMarshalized := range miniBlocks {
-		if shardID != core.MetachainShardId {
-			continue
-		}
-
-		metaMiniBlocks[shardID] = mbsMarshalized
-		delete(miniBlocks, shardID)
-	}
-
-	identifier := sr.ShardCoordinator().CommunicationIdentifier(core.MetachainShardId)
-
-	for broadcastTopic, txsMarshalized := range transactions {
-		if !strings.Contains(broadcastTopic, identifier) {
-			continue
-		}
-
-		metaTransactions[broadcastTopic] = txsMarshalized
-		delete(transactions, broadcastTopic)
-	}
-
-	return metaMiniBlocks, metaTransactions
-}
-
-func (sr *subroundEndRound) broadcast(
-	miniBlocks map[uint32][]byte,
-	transactions map[string][][]byte,
-	extraDelayForBroadcast time.Duration,
-) {
-	time.Sleep(extraDelayForBroadcast)
-
-	if len(miniBlocks) > 0 {
-		err := sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
-		if err != nil {
-			log.Warn("broadcast.BroadcastMiniBlocks", "error", err.Error())
-		}
-	}
-
-	if len(transactions) > 0 {
-		err := sr.BroadcastMessenger().BroadcastTransactions(transactions)
-		if err != nil {
-			log.Warn("broadcast.BroadcastTransactions", "error", err.Error())
-		}
-	}
+	return sr.BroadcastMessenger().PrepareBroadcastBlockDataValidator(header, miniBlocks, transactions, idx)
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved

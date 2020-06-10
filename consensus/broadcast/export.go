@@ -21,24 +21,34 @@ func (cm *commonMessenger) SignMessage(message *consensus.Message) ([]byte, erro
 	return cm.signMessage(message)
 }
 
+// ExtractMetaMiniBlocksAndTransactions -
+func (cm *commonMessenger) ExtractMetaMiniBlocksAndTransactions(
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+) (map[uint32][]byte, map[string][][]byte) {
+	return cm.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
+}
+
 // CreateDelayBroadcastDataForValidator creates the delayed broadcast data
 func CreateDelayBroadcastDataForValidator(
 	headerHash []byte,
-	prevRandSeed []byte,
-	round uint64,
+	header data.HeaderHandler,
 	miniblocksData map[uint32][]byte,
-	miniBlockHashes map[uint32]map[string]struct{},
+	miniBlockHashes map[string]map[string]struct{},
 	transactionsData map[string][][]byte,
+	metaMiniBlocks map[uint32][]byte,
+	metaTransactions map[string][][]byte,
 	order uint32,
 ) *delayedBroadcastData {
 	return &delayedBroadcastData{
-		headerHash:      headerHash,
-		prevRandSeed:    prevRandSeed,
-		round:           round,
-		miniBlocksData:  miniblocksData,
-		miniBlockHashes: miniBlockHashes,
-		transactions:    transactionsData,
-		order:           order,
+		headerHash:           headerHash,
+		header:               header,
+		miniBlocksData:       miniblocksData,
+		miniBlockHashes:      miniBlockHashes,
+		metaTransactionsData: metaTransactions,
+		metaMiniBlocksData:   metaMiniBlocks,
+		transactions:         transactionsData,
+		order:                order,
 	}
 }
 
@@ -124,13 +134,13 @@ func GetShardDataFromMetaChainBlock(
 }
 
 // RegisterInterceptorCallback -
-func (dbb *delayedBlockBroadcaster) RegisterInterceptorCallback(cb func(toShard uint32, data []byte)) error {
-	return dbb.registerInterceptorCallback(cb)
+func (dbb *delayedBlockBroadcaster) RegisterInterceptorCallback(cb func(topic string, hash []byte, data interface{})) error {
+	return dbb.registerMiniBlockInterceptorCallback(cb)
 }
 
 // InterceptedMiniBlockData -
-func (dbb *delayedBlockBroadcaster) InterceptedMiniBlockData(toShardTopic uint32, data []byte) {
-	dbb.interceptedMiniBlockData(toShardTopic, data)
+func (dbb *delayedBlockBroadcaster) InterceptedMiniBlockData(topic string, hash []byte, data interface{}) {
+	dbb.interceptedMiniBlockData(topic, hash, data)
 }
 
 // NewCommonMessenger will return a new instance of a commonMessenger

@@ -282,13 +282,6 @@ func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
 }
 
-func (sr *subroundEndRound) ExtractMetaMiniBlocksAndTransactions(
-	miniBlocks map[uint32][]byte,
-	transactions map[string][][]byte,
-) (map[uint32][]byte, map[string][][]byte) {
-	return sr.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
-}
-
 // GetStringValue gets the name of the message type
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)

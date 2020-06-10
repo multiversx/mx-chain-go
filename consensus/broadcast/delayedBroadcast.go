@@ -2,6 +2,7 @@ package broadcast
 
 import (
 	"bytes"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,6 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const prefixHeaderAlarm = "header"
+const prefixDelayDataAlarm = "delay"
+
 // DelayedBlockBroadcasterArgs holds the arguments to create a delayed block broadcaster
 type DelayedBlockBroadcasterArgs struct {
 	InterceptorsContainer process.InterceptorsContainer
@@ -27,24 +31,35 @@ type DelayedBlockBroadcasterArgs struct {
 }
 
 type delayedBroadcastData struct {
-	headerHash      []byte
-	prevRandSeed    []byte
-	round           uint64
-	miniBlocksData  map[uint32][]byte
-	miniBlockHashes map[uint32]map[string]struct{}
-	transactions    map[string][][]byte
-	order           uint32
+	headerHash           []byte
+	header               data.HeaderHandler
+	metaMiniBlocksData   map[uint32][]byte
+	metaTransactionsData map[string][][]byte
+	miniBlocksData       map[uint32][]byte
+	miniBlockHashes      map[string]map[string]struct{}
+	transactions         map[string][][]byte
+	order                uint32
 }
 
-// DelayedBroadcaster exposes functionality for handling the consensus members broadcasting of delay data
-type DelayedBroadcaster interface {
+// delayedBroadcaster exposes functionality for handling the consensus members broadcasting of delay data
+type delayedBroadcaster interface {
 	SetLeaderData(data *delayedBroadcastData) error
 	SetValidatorData(data *delayedBroadcastData) error
 	SetBroadcastHandlers(
 		mbBroadcast func(mbData map[uint32][]byte) error,
 		txBroadcast func(txData map[string][][]byte) error,
+		headerBroadcast func(header data.HeaderHandler) error,
+
 	) error
 	Close()
+}
+
+// timersScheduler exposes functionality for scheduling multiple timers
+type timersScheduler interface {
+	Add(callback func(alarmID string), duration time.Duration, alarmID string)
+	Cancel(alarmID string)
+	Close()
+	IsInterfaceNil() bool
 }
 
 type headerDataForValidator struct {
@@ -53,7 +68,7 @@ type headerDataForValidator struct {
 }
 
 type delayedBlockBroadcaster struct {
-	alarm                      alarmScheduler
+	alarm                      timersScheduler
 	interceptorsContainer      process.InterceptorsContainer
 	shardCoordinator           sharding.Coordinator
 	headersSubscriber          consensus.HeadersPoolSubscriber
@@ -64,6 +79,7 @@ type delayedBlockBroadcaster struct {
 	mutDataForBroadcast        sync.RWMutex
 	broadcastMiniblocksData    func(mbData map[uint32][]byte) error
 	broadcastTxsData           func(txData map[string][][]byte) error
+	broadcastHeader            func(header data.HeaderHandler) error
 }
 
 // NewDelayedBlockBroadcaster create a new instance of a delayed block data broadcaster
@@ -91,7 +107,12 @@ func NewDelayedBlockBroadcaster(args *DelayedBlockBroadcasterArgs) (*delayedBloc
 	}
 
 	dbb.headersSubscriber.RegisterHandler(dbb.headerReceived)
-	err := dbb.registerInterceptorCallback(dbb.interceptedMiniBlockData)
+	err := dbb.registerHeaderInterceptorCallback(dbb.interceptedHeaderData)
+	if err != nil {
+		return nil, err
+	}
+
+	err = dbb.registerMiniBlockInterceptorCallback(dbb.interceptedMiniBlockData)
 	if err != nil {
 		return nil, err
 	}
@@ -126,8 +147,16 @@ func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *delayedBroad
 	dbb.mutDataForBroadcast.Lock()
 	defer dbb.mutDataForBroadcast.Unlock()
 
+	// set alarm only for validators that are aware that the block was finalized
+	if broadcastData.header.GetSignature() != nil {
+		duration := validatorDelayPerOrder * time.Duration(broadcastData.order)
+		dbb.alarm.Add(dbb.headerAlarmExpired, duration, prefixHeaderAlarm+string(broadcastData.headerHash))
+	}
+
 	dbb.valBroadcastData = append(dbb.valBroadcastData, broadcastData)
 	if len(dbb.valBroadcastData) > int(dbb.maxValidatorDelayCacheSize) {
+		dbb.alarm.Cancel(prefixHeaderAlarm + string(dbb.valBroadcastData[0].headerHash))
+		dbb.alarm.Cancel(prefixDelayDataAlarm + string(dbb.valBroadcastData[0].headerHash))
 		dbb.valBroadcastData = dbb.valBroadcastData[1:]
 	}
 
@@ -138,8 +167,9 @@ func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *delayedBroad
 func (dbb *delayedBlockBroadcaster) SetBroadcastHandlers(
 	mbBroadcast func(mbData map[uint32][]byte) error,
 	txBroadcast func(txData map[string][][]byte) error,
+	headerBroadcast func(header data.HeaderHandler) error,
 ) error {
-	if mbBroadcast == nil || txBroadcast == nil {
+	if mbBroadcast == nil || txBroadcast == nil || headerBroadcast == nil {
 		return spos.ErrNilParameter
 	}
 
@@ -148,6 +178,7 @@ func (dbb *delayedBlockBroadcaster) SetBroadcastHandlers(
 
 	dbb.broadcastMiniblocksData = mbBroadcast
 	dbb.broadcastTxsData = txBroadcast
+	dbb.broadcastHeader = headerBroadcast
 
 	return nil
 }
@@ -204,17 +235,19 @@ func (dbb *delayedBlockBroadcaster) broadcastDataForHeaders(headerHashes [][]byt
 func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators []*headerDataForValidator) {
 	for _, headerData := range dataForValidators {
 		for _, broadcastData := range dbb.valBroadcastData {
-			sameRound := headerData.round == broadcastData.round
-			samePrevRandomness := bytes.Equal(headerData.prevRandSeed, broadcastData.prevRandSeed)
+			sameRound := headerData.round == broadcastData.header.GetRound()
+			samePrevRandomness := bytes.Equal(headerData.prevRandSeed, broadcastData.header.GetPrevRandSeed())
 			if sameRound && samePrevRandomness {
 				duration := validatorDelayPerOrder * time.Duration(broadcastData.order)
-				dbb.alarm.Add(dbb.alarmExpired, duration, string(broadcastData.headerHash))
+				dbb.alarm.Add(dbb.alarmExpired, duration, prefixDelayDataAlarm+string(broadcastData.headerHash))
 			}
 		}
 	}
 }
 
-func (dbb *delayedBlockBroadcaster) alarmExpired(headerHash string) {
+func (dbb *delayedBlockBroadcaster) alarmExpired(alarmID string) {
+	headerHash := strings.TrimLeft(alarmID, prefixDelayDataAlarm)
+
 	dbb.mutDataForBroadcast.Lock()
 	defer dbb.mutDataForBroadcast.Unlock()
 	for i, broadcastData := range dbb.valBroadcastData {
@@ -226,17 +259,52 @@ func (dbb *delayedBlockBroadcaster) alarmExpired(headerHash string) {
 	}
 }
 
+func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
+	headerHash := strings.TrimLeft(alarmID, prefixHeaderAlarm)
+
+	dbb.mutDataForBroadcast.Lock()
+	defer dbb.mutDataForBroadcast.Unlock()
+
+	var bData *delayedBroadcastData
+	for _, broadcastData := range dbb.valBroadcastData {
+		if bytes.Equal(broadcastData.headerHash, []byte(headerHash)) {
+			bData = broadcastData
+			break
+		}
+	}
+
+	if bData == nil {
+		log.Warn("headerAlarmExpired", "error", "alarm data is nil")
+		return
+	}
+
+	// broadcast header
+	err := dbb.broadcastHeader(bData.header)
+	if err != nil {
+		log.Warn("headerAlarmExpired", "error", err.Error())
+	}
+
+	// if metaChain broadcast meta data with extra delay
+	if dbb.shardCoordinator.SelfId() == core.MetachainShardId {
+		dbb.broadcastBlockData(bData.metaMiniBlocksData, bData.metaTransactionsData)
+	}
+}
+
 func (dbb *delayedBlockBroadcaster) broadcastDelayedData(broadcastData []*delayedBroadcastData) {
 	for _, bData := range broadcastData {
-		err := dbb.broadcastMiniblocksData(bData.miniBlocksData)
-		if err != nil {
-			log.Error("broadcastDelayedData miniblocks", "error", err.Error())
-		}
+		dbb.broadcastBlockData(bData.miniBlocksData, bData.transactions)
+	}
+}
 
-		err = dbb.broadcastTxsData(bData.transactions)
-		if err != nil {
-			log.Error("broadcastDelayedData transactions", "error", err.Error())
-		}
+func (dbb *delayedBlockBroadcaster) broadcastBlockData(miniBlocks map[uint32][]byte, transactions map[string][][]byte) {
+	err := dbb.broadcastMiniblocksData(miniBlocks)
+	if err != nil {
+		log.Error("broadcastBlockData miniblocks", "error", err.Error())
+	}
+
+	err = dbb.broadcastTxsData(transactions)
+	if err != nil {
+		log.Error("broadcastBlockData transactions", "error", err.Error())
 	}
 }
 
@@ -265,13 +333,60 @@ func getShardDataFromMetaChainBlock(
 	return shardHeaderHashes, dataForValidators, nil
 }
 
-func (dbb *delayedBlockBroadcaster) registerInterceptorCallback(cb func(toShard uint32, hash []byte)) error {
+func (dbb *delayedBlockBroadcaster) registerHeaderInterceptorCallback(
+	cb func(topic string, hash []byte, data interface{}),
+) error {
+	selfShardID := dbb.shardCoordinator.SelfId()
+
+	if selfShardID == core.MetachainShardId {
+		return dbb.registerInterceptorsCallbackForMeta(factory.MetachainBlocksTopic, cb)
+	}
+
+	identifierShardHeader := factory.ShardBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(selfShardID)
+	interceptor, err := dbb.interceptorsContainer.Get(identifierShardHeader)
+	if err != nil {
+		return err
+	}
+
+	interceptor.RegisterHandler(cb)
+	return nil
+}
+
+func (dbb *delayedBlockBroadcaster) registerMiniBlockInterceptorCallback(
+	cb func(topic string, hash []byte, data interface{}),
+) error {
+	if dbb.shardCoordinator.SelfId() == core.MetachainShardId {
+		return dbb.registerInterceptorsCallbackForMeta(factory.MiniBlocksTopic, cb)
+	}
+
+	return dbb.registerInterceptorsCallbackForShard(factory.MiniBlocksTopic, cb)
+}
+
+func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForMeta(
+	rootTopic string,
+	cb func(topic string, hash []byte, data interface{}),
+) error {
+	identifierMiniBlocks := rootTopic + dbb.shardCoordinator.CommunicationIdentifier(core.AllShardId)
+	interceptor, err := dbb.interceptorsContainer.Get(identifierMiniBlocks)
+	if err != nil {
+		return err
+	}
+
+	interceptor.RegisterHandler(cb)
+
+	return nil
+}
+
+func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForShard(
+	rootTopic string,
+	cb func(topic string, hash []byte, data interface{}),
+) error {
 	for idx := uint32(0); idx < dbb.shardCoordinator.NumberOfShards(); idx++ {
 		// interested only in cross shard data
 		if idx == dbb.shardCoordinator.SelfId() {
 			continue
 		}
-		identifierMiniBlocks := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(idx)
+		identifierMiniBlocks := rootTopic + dbb.shardCoordinator.CommunicationIdentifier(idx)
 		interceptor, err := dbb.interceptorsContainer.Get(identifierMiniBlocks)
 		if err != nil {
 			return err
@@ -283,16 +398,39 @@ func (dbb *delayedBlockBroadcaster) registerInterceptorCallback(cb func(toShard 
 	return nil
 }
 
-func (dbb *delayedBlockBroadcaster) interceptedMiniBlockData(toShardTopic uint32, hash []byte) {
+func (dbb *delayedBlockBroadcaster) interceptedHeaderData(_ string, _ []byte, header interface{}) {
+	dbb.mutDataForBroadcast.Lock()
+	dbb.mutDataForBroadcast.Unlock()
+
+	headerHandler, ok := header.(data.HeaderHandler)
+	if !ok {
+		log.Warn("interceptedHeaderData",
+			"error", "not a header")
+		return
+	}
+
+	for _, broadcastData := range dbb.valBroadcastData {
+		samePrevRandSeed := bytes.Equal(broadcastData.header.GetPrevRandSeed(), headerHandler.GetPrevRandSeed())
+		sameRound := broadcastData.header.GetRound() == headerHandler.GetRound()
+		sameHeader := samePrevRandSeed && sameRound
+
+		if sameHeader {
+			// leader has broadcast the header so we can cancel the header alarm
+			dbb.alarm.Cancel(prefixHeaderAlarm + string(broadcastData.headerHash))
+		}
+	}
+}
+
+func (dbb *delayedBlockBroadcaster) interceptedMiniBlockData(topic string, hash []byte, _ interface{}) {
 	dbb.mutDataForBroadcast.Lock()
 	defer dbb.mutDataForBroadcast.Unlock()
 
 	for i, broadcastData := range dbb.valBroadcastData {
 		mbHashesMap := broadcastData.miniBlockHashes
-		if len(mbHashesMap) > 0 && len(mbHashesMap[toShardTopic]) > 0 {
-			delete(broadcastData.miniBlockHashes[toShardTopic], string(hash))
-			if len(mbHashesMap[toShardTopic]) == 0 {
-				delete(mbHashesMap, toShardTopic)
+		if len(mbHashesMap) > 0 && len(mbHashesMap[topic]) > 0 {
+			delete(broadcastData.miniBlockHashes[topic], string(hash))
+			if len(mbHashesMap[topic]) == 0 {
+				delete(mbHashesMap, topic)
 			}
 		}
 
@@ -302,4 +440,25 @@ func (dbb *delayedBlockBroadcaster) interceptedMiniBlockData(toShardTopic uint32
 			return
 		}
 	}
+}
+
+func (dbb *delayedBlockBroadcaster) extractMiniBlockHashesCrossFromMe(header data.HeaderHandler) map[string]map[string]struct{} {
+	mbHashesForShards := make(map[string]map[string]struct{})
+	for i := uint32(0); i < dbb.shardCoordinator.NumberOfShards(); i++ {
+		if i == dbb.shardCoordinator.SelfId() {
+			continue
+		}
+		topic := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(i)
+
+		mbHashesForShards[topic] = make(map[string]struct{})
+
+		miniBlockHeaders := header.GetMiniBlockHeadersWithDst(i)
+		for key := range miniBlockHeaders {
+			mbHashesForShards[topic][key] = struct{}{}
+		}
+	}
+
+	// TODO: Do we need to add also for metachain?
+
+	return mbHashesForShards
 }

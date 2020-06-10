@@ -3,6 +3,7 @@ package broadcast
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -30,16 +31,36 @@ func NewMetaChainMessenger(
 		return nil, err
 	}
 
+	dbbArgs := &DelayedBlockBroadcasterArgs{
+		InterceptorsContainer: args.InterceptorsContainer,
+		HeadersSubscriber:     args.HeadersSubscriber,
+		LeaderCacheSize:       args.MaxDelayCacheSize,
+		ValidatorCacheSize:    args.MaxValidatorDelayCacheSize,
+		ShardCoordinator:      args.ShardCoordinator,
+	}
+
+	dbb, err := NewDelayedBlockBroadcaster(dbbArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	cm := &commonMessenger{
-		marshalizer:      args.Marshalizer,
-		messenger:        args.Messenger,
-		privateKey:       args.PrivateKey,
-		shardCoordinator: args.ShardCoordinator,
-		singleSigner:     args.SingleSigner,
+		marshalizer:             args.Marshalizer,
+		hasher:                  args.Hasher,
+		messenger:               args.Messenger,
+		privateKey:              args.PrivateKey,
+		shardCoordinator:        args.ShardCoordinator,
+		singleSigner:            args.SingleSigner,
+		delayedBlockBroadcaster: dbb,
 	}
 
 	mcm := &metaChainMessenger{
 		commonMessenger: cm,
+	}
+
+	err = dbb.SetBroadcastHandlers(mcm.BroadcastMiniBlocks, mcm.BroadcastTransactions, mcm.BroadcastHeader)
+	if err != nil {
+		return nil, err
 	}
 
 	return mcm, nil
@@ -101,16 +122,41 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error 
 	return nil
 }
 
-// SetLeaderDelayBroadcast - not used for metachain nodes
-func (mcm *metaChainMessenger) SetLeaderDelayBroadcast(_ []byte, _ map[uint32][]byte, _ map[string][][]byte) error {
-	log.Warn("SetLeaderDelayBroadcast not implemented for metachain")
+// BroadcastBlockDataLeader broadcasts the block data as consensus group leader
+func (mcm *metaChainMessenger) BroadcastBlockDataLeader(
+	_ data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+) error {
+	go mcm.BroadcastBlockData(miniBlocks, transactions, core.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 
-// SetValidatorDelayBroadcast - not used for metachain nodes
-func (mcm *metaChainMessenger) SetValidatorDelayBroadcast(_ []byte, _ []byte, _ uint64, _ map[uint32][]byte, _ map[uint32]map[string]struct{}, _ map[string][][]byte, _ uint32) error {
-	log.Warn("SetValidatorDelayBroadcast not implemented for metachain")
-	return nil
+// PrepareBroadcastBlockDataValidator prepares the validator fallback broadcast in case leader broadcast fails
+func (mcm *metaChainMessenger) PrepareBroadcastBlockDataValidator(
+	header data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	idx int,
+) error {
+	if check.IfNil(header) {
+		return spos.ErrNilHeader
+	}
+
+	headerHash, err := core.CalculateHash(mcm.marshalizer, mcm.hasher, header)
+	if err != nil {
+		return err
+	}
+
+	broadcastData := &delayedBroadcastData{
+		headerHash:     headerHash,
+		header:         header,
+		miniBlocksData: miniBlocks,
+		transactions:   transactions,
+		order:          uint32(idx),
+	}
+
+	return mcm.delayedBlockBroadcaster.SetValidatorData(broadcastData)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

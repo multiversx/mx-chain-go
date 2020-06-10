@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
@@ -19,16 +18,11 @@ var _ consensus.BroadcastMessenger = (*shardChainMessenger)(nil)
 
 type shardChainMessenger struct {
 	*commonMessenger
-	delayedBlockBroadcaster DelayedBroadcaster
 }
 
 // ShardChainMessengerArgs holds the arguments for creating a shardChainMessenger instance
 type ShardChainMessengerArgs struct {
 	CommonMessengerArgs
-	HeadersSubscriber          consensus.HeadersPoolSubscriber
-	InterceptorsContainer      process.InterceptorsContainer
-	MaxDelayCacheSize          uint32
-	MaxValidatorDelayCacheSize uint32
 }
 
 // NewShardChainMessenger creates a new shardChainMessenger object
@@ -43,6 +37,7 @@ func NewShardChainMessenger(
 
 	cm := &commonMessenger{
 		marshalizer:      args.Marshalizer,
+		hasher:           args.Hasher,
 		messenger:        args.Messenger,
 		privateKey:       args.PrivateKey,
 		shardCoordinator: args.ShardCoordinator,
@@ -62,12 +57,13 @@ func NewShardChainMessenger(
 		return nil, err
 	}
 
+	cm.delayedBlockBroadcaster = dbb
+
 	scm := &shardChainMessenger{
-		commonMessenger:         cm,
-		delayedBlockBroadcaster: dbb,
+		commonMessenger: cm,
 	}
 
-	err = dbb.SetBroadcastHandlers(scm.BroadcastMiniBlocks, scm.BroadcastTransactions)
+	err = dbb.SetBroadcastHandlers(scm.BroadcastMiniBlocks, scm.BroadcastTransactions, scm.BroadcastHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -81,15 +77,6 @@ func checkShardChainNilParameters(
 	err := checkCommonMessengerNilParameters(args.CommonMessengerArgs)
 	if err != nil {
 		return err
-	}
-	if check.IfNil(args.InterceptorsContainer) {
-		return spos.ErrNilInterceptorsContainer
-	}
-	if check.IfNil(args.HeadersSubscriber) {
-		return spos.ErrNilHeadersSubscriber
-	}
-	if args.MaxDelayCacheSize == 0 {
-		return spos.ErrInvalidCacheSize
 	}
 
 	return nil
@@ -147,18 +134,18 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 	return nil
 }
 
-// SetLeaderDelayBroadcast sets the miniBlocks and transactions to be broadcast with delay
-func (scm *shardChainMessenger) SetLeaderDelayBroadcast(
-	headerHash []byte,
+// BroadcastBlockDataLeader broadcasts the block data as consensus group leader
+func (scm *shardChainMessenger) BroadcastBlockDataLeader(
+	header data.HeaderHandler,
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 ) error {
-	if len(headerHash) == 0 {
-		return spos.ErrNilHeaderHash
+	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
+	if err != nil {
+		return err
 	}
-	if len(miniBlocks) == 0 {
-		return nil
-	}
+
+	metaMiniBlocks, metaTransactions := scm.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
 
 	broadcastData := &delayedBroadcastData{
 		headerHash:     headerHash,
@@ -166,34 +153,41 @@ func (scm *shardChainMessenger) SetLeaderDelayBroadcast(
 		transactions:   transactions,
 	}
 
-	return scm.delayedBlockBroadcaster.SetLeaderData(broadcastData)
+	err = scm.delayedBlockBroadcaster.SetLeaderData(broadcastData)
+	if err != nil {
+		return err
+	}
+
+	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, 0)
+	return nil
 }
 
-// SetValidatorDelayBroadcast sets the miniBlocks and transactions to be broadcast with delay
-// The broadcast will only be done in case the consensus leader fails its broadcast
-// and all other validators with a lower order fail their broadcast as well.
-func (scm *shardChainMessenger) SetValidatorDelayBroadcast(headerHash []byte, prevRandSeed []byte, round uint64, miniBlocks map[uint32][]byte, miniBlockHashes map[uint32]map[string]struct{}, transactions map[string][][]byte, order uint32) error {
-	if len(headerHash) == 0 {
-		return spos.ErrNilHeaderHash
-	}
-	if len(prevRandSeed) == 0 {
-		return spos.ErrNilPrevRandSeed
-	}
-	if len(miniBlocks) == 0 && len(miniBlockHashes) == 0 {
-		return nil
-	}
-	if len(miniBlocks) == 0 || len(miniBlockHashes) == 0 {
-		return spos.ErrInvalidDataToBroadcast
+// PrepareBroadcastBlockDataValidator prepares the validator fallback broadcast in case leader broadcast fails
+func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
+	header data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	idx int,
+) error {
+	if check.IfNil(header) {
+		return spos.ErrNilHeader
 	}
 
+	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
+	if err != nil {
+		return err
+	}
+
+	metaMiniBlocksData, metaTransactionsData := scm.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
+
 	broadcastData := &delayedBroadcastData{
-		headerHash:      headerHash,
-		prevRandSeed:    prevRandSeed,
-		round:           round,
-		miniBlocksData:  miniBlocks,
-		miniBlockHashes: miniBlockHashes,
-		transactions:    transactions,
-		order:           order,
+		headerHash:           headerHash,
+		header:               header,
+		metaMiniBlocksData:   metaMiniBlocksData,
+		metaTransactionsData: metaTransactionsData,
+		miniBlocksData:       miniBlocks,
+		transactions:         transactions,
+		order:                uint32(idx),
 	}
 
 	return scm.delayedBlockBroadcaster.SetValidatorData(broadcastData)

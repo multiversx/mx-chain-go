@@ -40,6 +40,25 @@ func (bmm *BroadcastMessengerMock) BroadcastMiniBlocks(miniBlocks map[uint32][]b
 	return nil
 }
 
+// BroadcastBlockDataLeader -
+func (bmm *BroadcastMessengerMock) BroadcastBlockDataLeader(
+	header data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+) error {
+	return nil
+}
+
+// BroadcastBlockDataValidator -
+func (bmm *BroadcastMessengerMock) PrepareBroadcastBlockDataValidator(
+	header data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	idx int,
+) error {
+	return nil
+}
+
 // SetLeaderDelayBroadcast -
 func (bmm *BroadcastMessengerMock) SetLeaderDelayBroadcast(
 	headerHash []byte,
