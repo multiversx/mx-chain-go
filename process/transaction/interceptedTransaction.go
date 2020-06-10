@@ -180,6 +180,20 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 		return err
 	}
 
+	// recursive relayed transactions are not allowed
+	if len(userTx.Data) == 0 {
+		return nil
+	}
+
+	funcName, userTxArgs, err = inTx.argsParser.ParseCallData(string(userTx.Data))
+	if err != nil {
+		return nil
+	}
+
+	if core.RelayedTransaction == funcName {
+		return process.ErrRecursiveRelayedTXIsNotAllowed
+	}
+
 	return nil
 }
 

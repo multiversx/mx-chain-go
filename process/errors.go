@@ -796,3 +796,6 @@ var ErrInvalidAddressInRelayedTx = errors.New("invalid address in relayed tx")
 
 // ErrInvalidVMType signals that invalid vm type was provided
 var ErrInvalidVMType = errors.New("invalid VM type")
+
+// ErrRecursiveRelayedTXIsNotAllowed signals that recursive relayed tx is not allowed
+var ErrRecursiveRelayedTXIsNotAllowed = errors.New("recursive relayed tx is not allowed")

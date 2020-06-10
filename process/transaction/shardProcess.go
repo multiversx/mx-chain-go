@@ -475,7 +475,11 @@ func (txProc *txProcessor) processRelayedTx(
 		}
 	}
 
-	err = txProc.ProcessTransaction(userTx)
+	return txProc.processUserTx(tx)
+}
+
+func (txProc *txProcessor) processUserTx(tx *transaction.Transaction) error {
+	acntSrc, acntDst, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
 	if err != nil {
 		return err
 	}
