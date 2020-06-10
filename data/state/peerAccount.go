@@ -2,6 +2,7 @@
 package state
 
 import (
+	"math"
 	"math/big"
 )
 
@@ -17,6 +18,7 @@ func NewEmptyPeerAccount() *peerAccount {
 		baseAccount: &baseAccount{},
 		PeerAccountData: PeerAccountData{
 			AccumulatedFees: big.NewInt(0),
+			UnStakedEpoch:   math.MaxUint32,
 		},
 	}
 }
@@ -34,6 +36,7 @@ func NewPeerAccount(address []byte) (*peerAccount, error) {
 		},
 		PeerAccountData: PeerAccountData{
 			AccumulatedFees: big.NewInt(0),
+			UnStakedEpoch:   math.MaxUint32,
 		},
 	}, nil
 }
