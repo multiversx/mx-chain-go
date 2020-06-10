@@ -338,8 +338,8 @@
         Capacity = 5000
         Type = "LRU"
     [Antiflood.Topic]
-        DefaultMaxMessagesPerSec = 10000
-        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 10 },
+        DefaultMaxMessagesPerSec = 15000
+        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 20 },
                        { Topic = "shardBlocks*", NumMessagesPerSec = 20 },
                        { Topic = "metachainBlocks", NumMessagesPerSec = 20 }]
     [Antiflood.WebServer]
@@ -529,3 +529,8 @@
         Enabled = true
         CacheSize = 10000
         IntervalAutoPrintInSeconds = 20
+
+[SoftwareVersionConfig]
+    StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
+    PollingIntervalInMinutes = 65
+

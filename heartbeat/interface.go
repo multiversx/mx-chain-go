@@ -70,7 +70,7 @@ type NetworkShardingCollector interface {
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error
+	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	IsInterfaceNil() bool
 }
 

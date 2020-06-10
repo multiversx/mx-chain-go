@@ -88,6 +88,12 @@ type BlockSizeThrottleConfig struct {
 	MaxSizeInBytes uint32
 }
 
+// SoftwareVersionConfig will hold the configuration for software version checker
+type SoftwareVersionConfig struct {
+	StableTagLocation        string
+	PollingIntervalInMinutes int
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
@@ -149,6 +155,8 @@ type Config struct {
 
 	Hardfork HardforkConfig
 	Debug    DebugConfig
+
+	SoftwareVersionConfig SoftwareVersionConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -293,22 +301,20 @@ type VirtualMachineOutOfProcessConfig struct {
 
 // HardforkConfig holds the configuration for the hardfork trigger
 type HardforkConfig struct {
-	EnableTrigger             bool
-	EnableTriggerFromP2P      bool
-	PublicKeyToListenFrom     string
-	CloseAfterExportInMinutes uint32
-
-	StartRound    uint64
-	StartNonce    uint64
-	StartEpoch    uint32
-	AfterHardFork bool
-
+	ExportStateStorageConfig     StorageConfig
+	ExportTriesStorageConfig     StorageConfig
+	ImportStateStorageConfig     StorageConfig
+	PublicKeyToListenFrom        string
+	ImportFolder                 string
+	StartRound                   uint64
+	StartNonce                   uint64
+	CloseAfterExportInMinutes    uint32
+	StartEpoch                   uint32
 	ValidatorGracePeriodInEpochs uint32
-
-	ImportFolder             string
-	ExportStateStorageConfig StorageConfig
-	ExportTriesStorageConfig StorageConfig
-	ImportStateStorageConfig StorageConfig
+	EnableTrigger                bool
+	EnableTriggerFromP2P         bool
+	MustImport                   bool
+	AfterHardFork                bool
 }
 
 // DebugConfig will hold debugging configuration

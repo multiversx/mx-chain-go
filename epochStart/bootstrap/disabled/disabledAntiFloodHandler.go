@@ -23,7 +23,7 @@ func (a *antiFloodHandler) CanProcessMessage(_ p2p.MessageP2P, _ core.PeerID) er
 }
 
 // CanProcessMessagesOnTopic returns nil regardless of the input
-func (a *antiFloodHandler) CanProcessMessagesOnTopic(_ core.PeerID, _ string, _ uint32, _ uint64) error {
+func (a *antiFloodHandler) CanProcessMessagesOnTopic(_ core.PeerID, _ string, _ uint32, _ uint64, _ []byte) error {
 	return nil
 }
 

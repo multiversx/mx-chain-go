@@ -70,7 +70,7 @@ func TestPreProcessMessage_AntifloodTopicCanNotProcessShouldErr(t *testing.T) {
 	}
 	expectedErr := errors.New("expected error")
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
-		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error {
+		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 			return expectedErr
 		},
 	}
