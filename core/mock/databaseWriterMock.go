@@ -29,6 +29,11 @@ func (dwm *DatabaseWriterStub) DoBulkRequest(buff *bytes.Buffer, index string) e
 	return nil
 }
 
+// DoMultiGet --
+func (dwm *DatabaseWriterStub) DoMultiGet(_ map[string]interface{}, _ string) (map[string]interface{}, error) {
+	return nil, nil
+}
+
 // CheckAndCreateIndex --
 func (dwm *DatabaseWriterStub) CheckAndCreateIndex(_ string, _ io.Reader) error {
 	return nil
