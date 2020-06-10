@@ -53,10 +53,9 @@ type rewardsCreator struct {
 }
 
 type rewardInfoData struct {
-	numSelectedInSuccessBlocks uint32
-	accumulatedFees            *big.Int
-	address                    string
-	protocolRewards            *big.Int
+	accumulatedFees *big.Int
+	address         string
+	protocolRewards *big.Int
 }
 
 // NewEpochStartRewardsCreator creates a new rewards creator object
