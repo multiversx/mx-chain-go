@@ -17,6 +17,8 @@ var log = logger.GetOrCreate("dataretriever/shardeddata")
 
 var _ dataRetriever.ShardedDataCacherNotifier = (*shardedData)(nil)
 
+const untitledCacheName = "untitled"
+
 // shardedData holds the list of data organised by destination shard
 //
 //  The shardStores field maps a cacher, containing data
@@ -46,7 +48,7 @@ func NewShardedData(name string, config storageUnit.CacheConfig) (*shardedData, 
 	log.Info("NewShardedData", "name", name, "config", config.String())
 
 	configPrototype := immunitycache.CacheConfig{
-		Name:                        "prototype",
+		Name:                        untitledCacheName,
 		NumChunks:                   config.Shards,
 		MaxNumItems:                 config.Capacity,
 		MaxNumBytes:                 uint32(config.SizeInBytes),
