@@ -795,7 +795,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	nodesShuffler := sharding.NewXorValidatorsShuffler(
+	nodesShuffler := sharding.NewHashValidatorsShuffler(
 		genesisNodesConfig.MinNodesPerShard,
 		genesisNodesConfig.MetaChainMinNodes,
 		genesisNodesConfig.Hysteresis,
