@@ -326,12 +326,11 @@ func serializeBulkTxs(
 	for _, tx := range bulk {
 		var meta, serializedData []byte
 		if existsInDb[tx.Hash] {
-			if isCrossShardDstMe(tx, selfShardID) && tx.Status != txStatusInvalid {
-				// update transaction
-				meta, serializedData = prepareTxUpdate(tx)
-			} else {
+			if !isCrossShardDstMe(tx, selfShardID) || tx.Status == txStatusInvalid {
 				continue
 			}
+			// update transaction
+			meta, serializedData = prepareTxUpdate(tx)
 		} else {
 			// insert transaction in database
 			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
@@ -427,17 +426,17 @@ func computeSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.Trans
 
 func getDecodedResponseMultiGet(response object) map[string]bool {
 	founded := make(map[string]bool)
-	r, ok := response["docs"].([]interface{})
+	interfaceSlice, ok := response["docs"].([]interface{})
 	if !ok {
 		return founded
 	}
 
-	for _, rr := range r {
-		rrr := rr.(object)
-		if _, ok := rrr["error"]; ok {
+	for _, element := range interfaceSlice {
+		obj := element.(object)
+		if _, ok := obj["error"]; ok {
 			continue
 		}
-		founded[rrr["_id"].(string)] = rrr["found"].(bool)
+		founded[obj["_id"].(string)] = obj["found"].(bool)
 	}
 
 	return founded
