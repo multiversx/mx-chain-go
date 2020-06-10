@@ -68,7 +68,7 @@ type ArgsNewSmartContractProcessor struct {
 	TxLogsProcessor  process.TransactionLogProcessor
 }
 
-// NewSmartContractProcessor create a smart contract processor creates and interprets VM data
+// NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
 func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor, error) {
 	if check.IfNil(args.VmContainer) {
 		return nil, process.ErrNoVM

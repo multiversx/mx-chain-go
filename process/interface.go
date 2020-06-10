@@ -708,7 +708,7 @@ type TopicFloodPreventer interface {
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	CanProcessMessagesOnTopic(pid core.PeerID, topic string, numMessages uint32, totalSize uint64) error
+	CanProcessMessagesOnTopic(pid core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	ApplyConsensusSize(size int)
 	SetDebugger(debugger AntifloodDebugger) error
 	IsInterfaceNil() bool
@@ -852,7 +852,7 @@ type InterceptedDebugger interface {
 
 // AntifloodDebugger defines an interface for debugging the antiflood behavior
 type AntifloodDebugger interface {
-	AddData(pid core.PeerID, topic string, numRejected uint32, sizeRejected uint64, isBlacklisted bool)
+	AddData(pid core.PeerID, topic string, numRejected uint32, sizeRejected uint64, sequence []byte, isBlacklisted bool)
 	Close() error
 	IsInterfaceNil() bool
 }

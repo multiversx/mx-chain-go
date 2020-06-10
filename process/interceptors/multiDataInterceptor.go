@@ -100,6 +100,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		mdi.topic,
 		uint32(lenMultiData),
 		uint64(len(message.Data())),
+		message.SeqNo(),
 	)
 	if err != nil {
 		return err
