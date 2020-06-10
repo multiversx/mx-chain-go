@@ -1,4 +1,4 @@
-# Transactions cache
+# Transactions Pool
 
 ### Pool structure
 
@@ -9,7 +9,7 @@ The transactions pool contains more caches, as follows:
 
 Above, `N` is the number of shards.
 
-### Pool functions
+### Cache functions
 
  1. **insertion (both caches):** this function is primarly required by the **incerceptor processor**, which add transactions to the pool, upon validating them.
  
