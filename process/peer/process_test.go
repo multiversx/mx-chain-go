@@ -2157,7 +2157,7 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 		},
 		NumSelectedInSuccessBlocks: 3,
 		AccumulatedFees:            big.NewInt(70),
-		UnStakedEpoch:              math.MaxUint32,
+		UnStakedEpoch:              core.DefaultUnstakedEpoch,
 	}
 
 	peerAccount := state.NewEmptyPeerAccount()
@@ -2254,7 +2254,7 @@ func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
 			return inactiveList
 		},
 		GetUnStakedEpochCalled: func() uint32 {
-			return math.MaxUint32
+			return core.DefaultUnstakedEpoch
 		},
 	}
 	computedJailedList := peer.GetActualList(jailedPeer)
@@ -2326,7 +2326,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		Rating:                     51,
 		TempRating:                 61,
 		Nonce:                      7,
-		UnStakedEpoch:              math.MaxUint32,
+		UnStakedEpoch:              core.DefaultUnstakedEpoch,
 	}
 
 	addr = addrBytesMeta
@@ -2348,7 +2348,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		TempRating:                 611,
 		Nonce:                      8,
 		ShardId:                    core.MetachainShardId,
-		UnStakedEpoch:              math.MaxUint32,
+		UnStakedEpoch:              core.DefaultUnstakedEpoch,
 	}
 	return pa0, paMeta
 }
