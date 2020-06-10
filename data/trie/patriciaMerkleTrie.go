@@ -484,6 +484,15 @@ func (tr *patriciaMerkleTrie) ExitSnapshotMode() {
 	tr.trieStorage.ExitSnapshotMode()
 }
 
+func getDbThatContainsHash(trieStorage data.StorageManager, rootHash []byte) data.DBWriteCacher {
+	db := trieStorage.GetSnapshotThatContainsHash(rootHash)
+	if db != nil {
+		return db
+	}
+
+	return trieStorage.GetDbThatContainsHash(rootHash)
+}
+
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
 func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
 	tr.mutOperation.Lock()
@@ -492,7 +501,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	log.Trace("GetSerializedNodes", "rootHash", rootHash)
 	size := uint64(0)
 
-	db := tr.trieStorage.GetDbThatContainsHash(rootHash)
+	db := getDbThatContainsHash(tr.trieStorage, rootHash)
 	if db == nil {
 		return nil, 0, ErrHashNotFound
 	}

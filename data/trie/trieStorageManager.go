@@ -315,6 +315,11 @@ func (tsm *trieStorageManager) GetDbThatContainsHash(rootHash []byte) data.DBWri
 	return tsm.getSnapshotDbThatContainsHash(rootHash)
 }
 
+// GetSnapshotThatContainsHash returns the snapshot that contains the given hash
+func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) data.DBWriteCacher {
+	return tsm.getSnapshotDbThatContainsHash(rootHash)
+}
+
 func (tsm *trieStorageManager) getSnapshotDbThatContainsHash(rootHash []byte) data.DBWriteCacher {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
