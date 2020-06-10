@@ -2157,6 +2157,7 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 		},
 		NumSelectedInSuccessBlocks: 3,
 		AccumulatedFees:            big.NewInt(70),
+		UnStakedEpoch:              math.MaxUint32,
 	}
 
 	peerAccount := state.NewEmptyPeerAccount()
@@ -2236,7 +2237,7 @@ func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
 	computedInactiveList := peer.GetActualList(inactivePeer)
 	assert.Equal(t, inactiveList, computedInactiveList)
 
-	jailedPeer := &mock.PeerAccountHandlerMock{
+	inactivePeer2 := &mock.PeerAccountHandlerMock{
 		GetListCalled: func() string {
 			return inactiveList
 		},
@@ -2244,10 +2245,20 @@ func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
 			return 0
 		},
 	}
+	computedInactiveList = peer.GetActualList(inactivePeer2)
+	assert.Equal(t, inactiveList, computedInactiveList)
+
 	jailedList := string(core.JailedList)
+	jailedPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return inactiveList
+		},
+		GetUnStakedEpochCalled: func() uint32 {
+			return math.MaxUint32
+		},
+	}
 	computedJailedList := peer.GetActualList(jailedPeer)
 	assert.Equal(t, jailedList, computedJailedList)
-
 }
 
 func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess uint32, validatorFailure uint32) *state.ValidatorInfo {
@@ -2315,6 +2326,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		Rating:                     51,
 		TempRating:                 61,
 		Nonce:                      7,
+		UnStakedEpoch:              math.MaxUint32,
 	}
 
 	addr = addrBytesMeta
@@ -2336,6 +2348,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		TempRating:                 611,
 		Nonce:                      8,
 		ShardId:                    core.MetachainShardId,
+		UnStakedEpoch:              math.MaxUint32,
 	}
 	return pa0, paMeta
 }
