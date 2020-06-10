@@ -210,7 +210,7 @@ func TestP2pAntiflood_CanProcessMessagesOnTopicCanNotAccumulateShouldError(t *te
 		&mock.FloodPreventerStub{},
 	)
 
-	err := afm.CanProcessMessagesOnTopic(identifierCall, topicCall, numMessagesCall, 0)
+	err := afm.CanProcessMessagesOnTopic(identifierCall, topicCall, numMessagesCall, 0, nil)
 
 	assert.True(t, errors.Is(err, process.ErrSystemBusy))
 }
@@ -235,7 +235,7 @@ func TestP2pAntiflood_CanProcessMessagesOnTopicCanAccumulateShouldWork(t *testin
 		&mock.FloodPreventerStub{},
 	)
 
-	err := afm.CanProcessMessagesOnTopic(identifierCall, topicCall, numMessagesCall, 0)
+	err := afm.CanProcessMessagesOnTopic(identifierCall, topicCall, numMessagesCall, 0, nil)
 
 	assert.Nil(t, err)
 }

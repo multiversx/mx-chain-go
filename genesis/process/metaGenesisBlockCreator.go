@@ -74,11 +74,11 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		TimeStamp:              arg.GenesisTime,
 	}
 	header.EpochStart.Economics = block.Economics{
-		TotalSupply:            big.NewInt(0).Set(arg.Economics.GenesisTotalSupply()),
-		TotalToDistribute:      big.NewInt(0),
-		TotalNewlyMinted:       big.NewInt(0),
-		RewardsPerBlockPerNode: big.NewInt(0),
-		NodePrice:              big.NewInt(0).Set(arg.Economics.GenesisNodePrice()),
+		TotalSupply:       big.NewInt(0).Set(arg.Economics.GenesisTotalSupply()),
+		TotalToDistribute: big.NewInt(0),
+		TotalNewlyMinted:  big.NewInt(0),
+		RewardsPerBlock:   big.NewInt(0),
+		NodePrice:         big.NewInt(0).Set(arg.Economics.GenesisNodePrice()),
 	}
 
 	validatorRootHash, err := arg.ValidatorAccounts.RootHash()

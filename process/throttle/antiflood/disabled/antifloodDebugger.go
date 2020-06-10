@@ -7,7 +7,7 @@ type AntifloodDebugger struct {
 }
 
 // AddData does nothing
-func (ad *AntifloodDebugger) AddData(_ core.PeerID, _ string, _ uint32, _ uint64, _ bool) {
+func (ad *AntifloodDebugger) AddData(_ core.PeerID, _ string, _ uint32, _ uint64, _ []byte, _ bool) {
 }
 
 // Close returns nil

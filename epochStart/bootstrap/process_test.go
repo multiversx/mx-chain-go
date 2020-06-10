@@ -130,6 +130,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		ArgumentsParser:            &mock.ArgumentParserMock{},
+		StatusHandler:              &mock.AppStatusHandlerStub{},
 	}
 }
 
