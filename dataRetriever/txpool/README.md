@@ -37,12 +37,12 @@ A `txcache.CrossTxCache` is backed by a special type of cache called `ImmunityCa
 
 All backing map-like structures are **concurrent-safe**, and are also `sharded` (or `chunked`) so that locking is local (as opposed to global) and precise. Chunk affinity of items (transactions, senders) is decided using the [Fowler–Noll–Vo hash function](https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function). 
 
-#### Snapshoting
+#### Snapshoting in `TxCache`
 
 For both **transaction selection** and **eviction**, the `txcache.TxCache` uses a _data snapshotting_ technique. More specifically:
 
  1. at selection time, a snapshot of all the senders in the cache (sorted in _descending_ score order) is created. This snapshot is then iterated over and eligible transactions are thus selected from theoretically soon-to-be or possibly already stale data. In practice, this is not an issue, since snapshotting and selection are extremely fast operations.
- 1. at eviction time, a snapshot of all the senders in the cache (sorted in _ascending_ score order) is created. This snapshot is then iterated over and senders are discarded (along with their transactions) as long as the high-load condition holds. Again, eviction is extremly fast.
+ 1. at eviction time, a snapshot of all the senders in the cache (sorted in _ascending_ score order) is created. This snapshot is then iterated over and senders are discarded (along with their transactions) as long as the high-load condition holds. Again, snapshotting and eviction are extremely fast.
 
 ### Cache capacity
 
@@ -86,11 +86,11 @@ In each *selection pass*, a sender may contribute transactions. The contribution
  1. The *grace period* expires on its `3rd` `failedSelection` in a row
  1. During the *grace period* (currently defined as the `2nd` failed selection), the sender is permitted a contribution of *one transaction* per selection (only one selection since the grace period currently has a length of 1), which is called the **grace transaction**
  1. After the **grace period**, a `failedSelection` would result into marking the sender as **sweepable**
- 1. A **sweepable** sender will is immediately removed (asynchronous) at the end of the selection
+ 1. A **sweepable** sender will is immediately removed (asynchronously) at the end of the selection
  1. Once the *initial nonce gap* is resolved, the `failedSelection` tag is removed (untagging happens at the very next selection)
  1. If, when contributing transactions, a *nonce gap* (called a *middle nonce gap*) is encountered, the sender is blocked any contribution in the current selection
 
-### Score of senders
+### Score of senders in `TxCache`
 
 The score for a sender is defined as follows:
 
@@ -118,7 +118,7 @@ Notation:
 
 ### Eviction
 
-1. `TxCache` evicts senders with low score when capacity is closed to be reached.
+1. `TxCache` evicts a number (`TxPoolNumSendersToPreemptivelyEvict = 100`) of senders with low score when capacity is closed to be reached.
 1. `TxCache` evicts high-nonce transactions of a sender when the maximum allowed quota for this sender is reached.
 1. `CrossTxCache` evicts a number (`TxPoolNumTxsToPreemptivelyEvict = 1000`) of least-recently added transactions when capacity is reached. **The high-load capacity condition is checked per chunk** (as opposed to globally). But since distribution of items among the chunks is close to uniform, and the chunks are large, the eviction is reasonably efficient, reasonably rare (though generally a little bit greedier than an eviction with a globally checked high-load condition).
 1. `CrossTxCache` does not evict **immune** items.
