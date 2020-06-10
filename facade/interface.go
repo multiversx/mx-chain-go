@@ -58,6 +58,7 @@ type NodeHandler interface {
 	DecodeAddressPubkey(pk string) ([]byte, error)
 
 	GetQueryHandler(name string) (debug.QueryHandler, error)
+	GetPeerInfo(pid string) ([]interface{}, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests

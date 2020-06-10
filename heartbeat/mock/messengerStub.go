@@ -16,7 +16,7 @@ type MessengerStub struct {
 	BroadcastCalled                  func(topic string, buff []byte)
 	RegisterMessageProcessorCalled   func(topic string, handler p2p.MessageProcessor) error
 	BootstrapCalled                  func() error
-	PeerAddressCalled                func(pid core.PeerID) string
+	PeerAddressesCalled              func(pid core.PeerID) []string
 	BroadcastOnChannelBlockingCalled func(channel string, topic string, buff []byte) error
 	IsConnectedToTheNetworkCalled    func() bool
 }
@@ -92,8 +92,8 @@ func (ms *MessengerStub) Bootstrap() error {
 }
 
 // PeerAddress -
-func (ms *MessengerStub) PeerAddress(pid core.PeerID) string {
-	return ms.PeerAddressCalled(pid)
+func (ms *MessengerStub) PeerAddresses(pid core.PeerID) []string {
+	return ms.PeerAddressesCalled(pid)
 }
 
 // BroadcastOnChannelBlocking -

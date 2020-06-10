@@ -558,3 +558,21 @@ func TestElrondNodeFacade_GetQueryHandler(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 }
+
+func TestNodeFacade_GetPeerInfo(t *testing.T) {
+	t.Parallel()
+
+	pinfo := []interface{}{"pinfo"}
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetPeerInfoCalled: func(pid string) ([]interface{}, error) {
+			return pinfo, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	val, err := nf.GetPeerInfo("")
+
+	assert.Nil(t, err)
+	assert.Equal(t, pinfo, val)
+}

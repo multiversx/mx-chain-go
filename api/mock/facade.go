@@ -35,6 +35,7 @@ type Facade struct {
 	GetQueryHandlerCalled             func(name string) (debug.QueryHandler, error)
 	GetTransactionStatusCalled        func(hash string) (string, error)
 	GetValueForKeyCalled              func(address string, key string) (string, error)
+	GetPeerInfoCalled                 func(pid string) ([]interface{}, error)
 }
 
 // GetTransactionStatus -
@@ -156,6 +157,11 @@ func (f *Facade) DecodeAddressPubkey(pk string) ([]byte, error) {
 // GetQueryHandler -
 func (f *Facade) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	return f.GetQueryHandlerCalled(name)
+}
+
+// GetPeerInfo -
+func (f *Facade) GetPeerInfo(pid string) ([]interface{}, error) {
+	return f.GetPeerInfoCalled(pid)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

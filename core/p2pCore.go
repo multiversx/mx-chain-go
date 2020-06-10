@@ -28,4 +28,5 @@ const (
 type P2PPeerInfo struct {
 	PeerType P2PPeerType
 	ShardID  uint32
+	PkBytes  []byte
 }

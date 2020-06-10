@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
+	"strings"
 	syncGo "sync"
 	"sync/atomic"
 	"time"
@@ -59,6 +61,15 @@ var _ facade.NodeHandler = (*Node)(nil)
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
 type Option func(*Node) error
+
+// QueryP2PPeerInfo represents a DTO used in exporting p2p peer info after a query
+type QueryP2PPeerInfo struct {
+	Pid           string   `json:"pid"`
+	Addresses     []string `json:"addresses"`
+	Pk            string   `json:"pk"`
+	IsBlacklisted bool     `json:"isblacklisted"`
+	PeerType      string   `json:"peertype"`
+}
 
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
@@ -1069,6 +1080,51 @@ func (n *Node) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	}
 
 	return qh, nil
+}
+
+// GetPeerInfo returns information about a peer id
+func (n *Node) GetPeerInfo(pid string) ([]interface{}, error) {
+	peers := n.messenger.Peers()
+	pidsFound := make([]core.PeerID, 0)
+	for _, p := range peers {
+		if strings.Contains(p.Pretty(), pid) {
+			pidsFound = append(pidsFound, p)
+		}
+	}
+
+	if len(pidsFound) == 0 {
+		return nil, fmt.Errorf("%w for provided peer %s", ErrUnknownPeerID, pid)
+	}
+
+	sort.Slice(pidsFound, func(i, j int) bool {
+		return pidsFound[i].Pretty() < pidsFound[j].Pretty()
+	})
+
+	peerInfoSlice := make([]interface{}, 0, len(pidsFound))
+	for _, p := range pidsFound {
+		pidInfo := n.createPidInfo(p)
+		peerInfoSlice = append(peerInfoSlice, pidInfo)
+	}
+
+	return peerInfoSlice, nil
+}
+
+func (n *Node) createPidInfo(p core.PeerID) QueryP2PPeerInfo {
+	result := QueryP2PPeerInfo{
+		Pid:           p.Pretty(),
+		Addresses:     n.messenger.PeerAddresses(p),
+		IsBlacklisted: n.peerBlackListHandler.Has(p),
+	}
+
+	pInfo := n.networkShardingCollector.GetPeerInfo(p)
+	result.PeerType = pInfo.PeerType.String()
+	if len(pInfo.PkBytes) == 0 {
+		result.Pk = ""
+	} else {
+		result.Pk = n.validatorPubkeyConverter.Encode(pInfo.PkBytes)
+	}
+
+	return result
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

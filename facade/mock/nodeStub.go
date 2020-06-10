@@ -33,6 +33,7 @@ type NodeStub struct {
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetTransactionStatusCalled                     func(hash string) (string, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
+	GetPeerInfoCalled                              func(pid string) ([]interface{}, error)
 }
 
 // GetValueForKey -
@@ -127,6 +128,15 @@ func (ns *NodeStub) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	}
 
 	return nil, nil
+}
+
+// GetPeerInfo -
+func (ns *NodeStub) GetPeerInfo(pid string) ([]interface{}, error) {
+	if ns.GetPeerInfoCalled != nil {
+		return ns.GetPeerInfoCalled(pid)
+	}
+
+	return make([]interface{}, 0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

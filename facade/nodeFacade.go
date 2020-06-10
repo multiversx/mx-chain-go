@@ -309,6 +309,11 @@ func (nf *nodeFacade) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	return nf.node.GetQueryHandler(name)
 }
 
+// GetPeerInfo returns the peer info of a provided pid
+func (nf *nodeFacade) GetPeerInfo(pid string) ([]interface{}, error) {
+	return nf.node.GetPeerInfo(pid)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nf *nodeFacade) IsInterfaceNil() bool {
 	return nf == nil
