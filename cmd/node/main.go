@@ -1346,7 +1346,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 
-	log.Info("closing network connections...")
+	log.Debug("calling close on the network messenger instance...")
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
 
