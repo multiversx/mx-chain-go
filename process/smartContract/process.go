@@ -421,14 +421,6 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
-	isRelayedTx := len(scrIfError.RelayerAddr) == len(scrIfError.SndAddr)
-	if isRelayedTx {
-		acntSnd, err = sc.getAccountFromAddress(scrIfError.RelayerAddr)
-		if err != nil {
-			return err
-		}
-	}
-
 	if !check.IfNil(acntSnd) {
 		err = acntSnd.AddToBalance(tx.GetValue())
 		if err != nil {
@@ -776,16 +768,25 @@ func (sc *scProcessor) createSCRsWhenError(
 		PrevTxHash:    txHash,
 		ReturnMessage: returnMessage,
 	}
+
 	setOriginalTxHash(scr, txHash, tx)
 
+	return scr, nil
+}
+
+func addRelayerInformationToScr(
+	scr *smartContractResult.SmartContractResult,
+	tx data.TransactionHandler,
+) {
 	scrFromTx, isScr := tx.(*smartContractResult.SmartContractResult)
 	isRelayedTx := isScr && len(scrFromTx.RelayerAddr) == len(scrFromTx.SndAddr)
-	if isRelayedTx {
-		scr.RelayerAddr = make([]byte, len(scrFromTx.RelayerAddr))
-		copy(scr.RelayerAddr, scrFromTx.RelayerAddr)
+	if !isRelayedTx {
+		return
 	}
 
-	return scr, nil
+	scr.RelayerAddr = make([]byte, len(scrFromTx.RelayerAddr))
+	copy(scr.RelayerAddr, scrFromTx.RelayerAddr)
+	scr.RelayedValue = big.NewInt(0).Set(scrFromTx.RelayedValue)
 }
 
 func setOriginalTxHash(

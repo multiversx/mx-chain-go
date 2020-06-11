@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.TransactionProcessor = (*txProcessor)(nil)
@@ -512,7 +513,9 @@ func (txProc *txProcessor) processUserTx(
 			err.Error())
 	}
 
-	txType := txProc.txTypeHandler.ComputeTransactionType(tx)
+	scrFromTx := txProc.makeSCRFromUserTx(tx, relayerAdr, relayedTxValue, txHash)
+
+	txType := txProc.txTypeHandler.ComputeTransactionType(scrFromTx)
 	switch txType {
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(tx, tx.SndAddr, tx.RcvAddr)
@@ -526,6 +529,45 @@ func (txProc *txProcessor) processUserTx(
 		err = process.ErrWrongTransaction
 	}
 
+	if err != nil {
+		return txProc.executeFailedRelayedTransaction(
+			tx.SndAddr,
+			relayerAdr,
+			relayedTxValue,
+			relayedNonce,
+			txHash,
+			err.Error())
+	}
+
+	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrFromTx})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (txProc *txProcessor) makeSCRFromUserTx(
+	tx *transaction.Transaction,
+	relayerAdr []byte,
+	relayedTxValue *big.Int,
+	txHash []byte,
+) *smartContractResult.SmartContractResult {
+	scr := &smartContractResult.SmartContractResult{
+		Nonce:          tx.Nonce,
+		Value:          tx.Value,
+		RcvAddr:        tx.RcvAddr,
+		SndAddr:        tx.SndAddr,
+		RelayerAddr:    relayerAdr,
+		RelayedValue:   big.NewInt(0).Set(relayedTxValue),
+		Data:           tx.Data,
+		PrevTxHash:     txHash,
+		OriginalTxHash: txHash,
+		GasLimit:       tx.GasLimit,
+		GasPrice:       tx.GasPrice,
+		CallType:       vmcommon.DirectCall,
+	}
+	return scr
 }
 
 func (txProc *txProcessor) executeFailedRelayedTransaction(
