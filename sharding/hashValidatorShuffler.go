@@ -7,9 +7,10 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 )
 
-var _ NodesShuffler = (*randXORShuffler)(nil)
+var _ NodesShuffler = (*randHashShuffler)(nil)
 
 type shuffleNodesArg struct {
 	eligible          map[uint32][]Validator
@@ -25,7 +26,7 @@ type shuffleNodesArg struct {
 }
 
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
-type randXORShuffler struct {
+type randHashShuffler struct {
 	// TODO: remove the references to this constant and the distributor
 	// when reinitialization of node in new shard is implemented
 	shuffleBetweenShards bool
@@ -39,17 +40,17 @@ type randXORShuffler struct {
 	mutShufflerParams sync.RWMutex
 }
 
-// NewXorValidatorsShuffler creates a validator shuffler that uses a XOR between validator key and a given
+// NewHashValidatorsShuffler creates a validator shuffler that uses a hash between validator key and a given
 // random number to do the shuffling
-func NewXorValidatorsShuffler(
+func NewHashValidatorsShuffler(
 	nodesShard uint32,
 	nodesMeta uint32,
 	hysteresis float32,
 	adaptivity bool,
 	shuffleBetweenShards bool,
-) *randXORShuffler {
+) *randHashShuffler {
 	log.Debug("Shuffler created", "shuffleBetweenShards", shuffleBetweenShards)
-	rxs := &randXORShuffler{shuffleBetweenShards: shuffleBetweenShards}
+	rxs := &randHashShuffler{shuffleBetweenShards: shuffleBetweenShards}
 
 	rxs.UpdateParams(nodesShard, nodesMeta, hysteresis, adaptivity)
 
@@ -64,7 +65,7 @@ func NewXorValidatorsShuffler(
 
 // UpdateParams updates the shuffler parameters
 // Should be called when new params are agreed through governance
-func (rxs *randXORShuffler) UpdateParams(
+func (rhs *randHashShuffler) UpdateParams(
 	nodesShard uint32,
 	nodesMeta uint32,
 	hysteresis float32,
@@ -74,13 +75,13 @@ func (rxs *randXORShuffler) UpdateParams(
 	shardHysteresis := uint32(float32(nodesShard) * hysteresis)
 	metaHysteresis := uint32(float32(nodesMeta) * hysteresis)
 
-	rxs.mutShufflerParams.Lock()
-	rxs.shardHysteresis = shardHysteresis
-	rxs.metaHysteresis = metaHysteresis
-	rxs.nodesShard = nodesShard
-	rxs.nodesMeta = nodesMeta
-	rxs.adaptivity = adaptivity
-	rxs.mutShufflerParams.Unlock()
+	rhs.mutShufflerParams.Lock()
+	rhs.shardHysteresis = shardHysteresis
+	rhs.metaHysteresis = metaHysteresis
+	rhs.nodesShard = nodesShard
+	rhs.nodesMeta = nodesMeta
+	rhs.adaptivity = adaptivity
+	rhs.mutShufflerParams.Unlock()
 }
 
 // UpdateNodeLists shuffles the nodes and returns the lists with the new nodes configuration
@@ -99,14 +100,14 @@ func (rxs *randXORShuffler) UpdateParams(
 //          b)  In case (shuffled out nodes + new nodes) < (nbShards * perShardHysteresis) then we can immediately
 //              execute the shard merge
 //          c)  No change in the number of shards then nothing extra needs to be done
-func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error) {
+func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error) {
 	eligibleAfterReshard := copyValidatorMap(args.Eligible)
 	waitingAfterReshard := copyValidatorMap(args.Waiting)
 
 	args.AdditionalLeaving = removeDupplicates(args.UnStakeLeaving, args.AdditionalLeaving)
 	totalLeavingNum := len(args.AdditionalLeaving) + len(args.UnStakeLeaving)
 
-	newNbShards := rxs.computeNewShards(
+	newNbShards := rhs.computeNewShards(
 		args.Eligible,
 		args.Waiting,
 		len(args.NewNodes),
@@ -114,18 +115,18 @@ func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNod
 		args.NbShards,
 	)
 
-	rxs.mutShufflerParams.RLock()
-	canSplit := rxs.adaptivity && newNbShards > args.NbShards
-	canMerge := rxs.adaptivity && newNbShards < args.NbShards
-	nodesPerShard := rxs.nodesShard
-	nodesMeta := rxs.nodesMeta
-	rxs.mutShufflerParams.RUnlock()
+	rhs.mutShufflerParams.RLock()
+	canSplit := rhs.adaptivity && newNbShards > args.NbShards
+	canMerge := rhs.adaptivity && newNbShards < args.NbShards
+	nodesPerShard := rhs.nodesShard
+	nodesMeta := rhs.nodesMeta
+	rhs.mutShufflerParams.RUnlock()
 
 	if canSplit {
-		eligibleAfterReshard, waitingAfterReshard = rxs.splitShards(args.Eligible, args.Waiting, newNbShards)
+		eligibleAfterReshard, waitingAfterReshard = rhs.splitShards(args.Eligible, args.Waiting, newNbShards)
 	}
 	if canMerge {
-		eligibleAfterReshard, waitingAfterReshard = rxs.mergeShards(args.Eligible, args.Waiting, newNbShards)
+		eligibleAfterReshard, waitingAfterReshard = rhs.mergeShards(args.Eligible, args.Waiting, newNbShards)
 	}
 
 	return shuffleNodes(shuffleNodesArg{
@@ -138,7 +139,7 @@ func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNod
 		nodesMeta:         nodesMeta,
 		nodesPerShard:     nodesPerShard,
 		nbShards:          args.NbShards,
-		distributor:       rxs.validatorDistributor,
+		distributor:       rhs.validatorDistributor,
 	})
 }
 
@@ -187,8 +188,8 @@ func removeNodesFromShard(existingNodes map[uint32][]Validator, leavingNodes []V
 }
 
 // IsInterfaceNil verifies if the underlying object is nil
-func (rxs *randXORShuffler) IsInterfaceNil() bool {
-	return rxs == nil
+func (rhs *randHashShuffler) IsInterfaceNil() bool {
+	return rhs == nil
 }
 
 func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
@@ -325,7 +326,7 @@ func removeLeavingNodesFromValidatorMaps(
 }
 
 // computeNewShards determines the new number of shards based on the number of nodes in the network
-func (rxs *randXORShuffler) computeNewShards(
+func (rhs *randHashShuffler) computeNewShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	numNewNodes int,
@@ -342,12 +343,12 @@ func (rxs *randXORShuffler) computeNewShards(
 
 	nodesNewEpoch := uint32(nbEligible + nbWaiting + numNewNodes - numLeavingNodes)
 
-	rxs.mutShufflerParams.RLock()
-	maxNodesMeta := rxs.nodesMeta + rxs.metaHysteresis
-	maxNodesShard := rxs.nodesShard + rxs.shardHysteresis
+	rhs.mutShufflerParams.RLock()
+	maxNodesMeta := rhs.nodesMeta + rhs.metaHysteresis
+	maxNodesShard := rhs.nodesShard + rhs.shardHysteresis
 	nodesForSplit := (nbShards+1)*maxNodesShard + maxNodesMeta
-	nodesForMerge := nbShards*rxs.nodesShard + rxs.nodesMeta
-	rxs.mutShufflerParams.RUnlock()
+	nodesForMerge := nbShards*rhs.nodesShard + rhs.nodesMeta
+	rhs.mutShufflerParams.RUnlock()
 
 	nbShardsNew := nbShards
 	if nodesNewEpoch > nodesForSplit {
@@ -404,15 +405,19 @@ func shuffleOutShard(
 }
 
 // shuffleList returns a shuffled list of validators.
-// The shuffling is done based by xor-ing the randomness with the
+// The shuffling is done by hash-ing the randomness concatenated with the
 // public keys of validators and sorting the validators depending on
-// the xor result.
+// the hash result.
 func shuffleList(validators []Validator, randomness []byte) []Validator {
 	keys := make([]string, len(validators))
 	mapValidators := make(map[string]Validator)
+	var concat []byte
 
+	hasher := &sha256.Sha256{}
 	for i, v := range validators {
-		keys[i] = string(xorBytes(v.PubKey(), randomness))
+		concat = append(v.PubKey(), randomness...)
+
+		keys[i] = string(hasher.Compute(string(concat)))
 		mapValidators[keys[i]] = v
 	}
 
@@ -478,27 +483,9 @@ func removeValidatorFromListKeepOrder(validatorList []Validator, index int) []Va
 	return append(validatorList[:index], validatorList[index+1:]...)
 }
 
-// xorBytes XORs two byte arrays up to the shortest length of the two, and returns the resulted XORed bytes.
-func xorBytes(a []byte, b []byte) []byte {
-	lenA := len(a)
-	lenB := len(b)
-	minLen := lenA
-
-	if lenB < minLen {
-		minLen = lenB
-	}
-
-	result := make([]byte, minLen)
-	for i := 0; i < minLen; i++ {
-		result[i] = a[i] ^ b[i]
-	}
-
-	return result
-}
-
 // splitShards prepares for the shards split, or if already prepared does the split returning the resulting
 // shards configuration for eligible and waiting lists
-func (rxs *randXORShuffler) splitShards(
+func (rhs *randHashShuffler) splitShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	_ uint32,
@@ -510,7 +497,7 @@ func (rxs *randXORShuffler) splitShards(
 }
 
 // mergeShards merges the required shards, returning the resulting shards configuration for eligible and waiting lists
-func (rxs *randXORShuffler) mergeShards(
+func (rhs *randHashShuffler) mergeShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	_ uint32,
