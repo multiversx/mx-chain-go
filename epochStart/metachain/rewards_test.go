@@ -545,6 +545,55 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	assert.Equal(t, cloneMb, miniBlocks[0])
 }
 
+func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	args.NodesConfigProvider = &mock.NodesCoordinatorStub{
+		ConsensusGroupSizeCalled: func(shardID uint32) int {
+			if shardID == core.MetachainShardId {
+				return 400
+			}
+			return 63
+		},
+	}
+	rwdc, _ := NewEpochStartRewardsCreator(args)
+
+	mb := &block.MetaBlock{
+		EpochStart: getDefaultEpochStart(),
+	}
+
+	pubkey := "pubkey"
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
+		{
+			RewardAddress:              []byte(pubkey),
+			ShardId:                    0,
+			AccumulatedFees:            big.NewInt(100),
+			NumSelectedInSuccessBlocks: 100,
+		},
+	}
+	valInfo[core.MetachainShardId] = []*state.ValidatorInfo{
+		{
+			RewardAddress:              []byte(pubkey),
+			ShardId:                    core.MetachainShardId,
+			AccumulatedFees:            big.NewInt(100),
+			NumSelectedInSuccessBlocks: 200,
+		},
+	}
+
+	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
+	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo)
+	assert.Equal(t, 1, len(rwdInfoData))
+	rwdInfo := rwdInfoData[pubkey]
+	assert.Equal(t, rwdInfo.address, pubkey)
+
+	assert.Equal(t, rwdInfo.accumulatedFees.Cmp(big.NewInt(200)), 0)
+	protocolRewards := uint64(valInfo[0][0].NumSelectedInSuccessBlocks) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(0)))
+	protocolRewards += uint64(valInfo[core.MetachainShardId][0].NumSelectedInSuccessBlocks) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
+	assert.Equal(t, rwdInfo.protocolRewards.Uint64(), protocolRewards)
+}
+
 func TestRewardsCreator_CreateCommunityRewardTransaction(t *testing.T) {
 	t.Parallel()
 
