@@ -582,7 +582,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	// deploy the delegation smart contract
 	delegateSCAddress := putDeploySCToDataPool(
 		"./testdata/delegate/delegation.wasm", delegateSCOwner, 0, big.NewInt(0),
-		fmt.Sprintf("@%s@%x@%x", hex.EncodeToString(factory2.AuctionSCAddress), blocksBeforeForceUnstake, blocksBeforeUnBond),
+		fmt.Sprintf("@%s@%x@%x@%x", hex.EncodeToString(factory2.AuctionSCAddress), serviceFeePer10000, blocksBeforeForceUnstake, blocksBeforeUnBond),
 		nodes)
 	shardNode.OwnAccount.Nonce++
 
@@ -599,10 +599,6 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	assert.Equal(t, len(vmOutputVersion.ReturnData), 1)
 	require.True(t, bytes.Contains(vmOutputVersion.ReturnData[0], []byte("0.3.")))
 	log.Info("SC deployed", "version", string(vmOutputVersion.ReturnData[0]))
-
-	// set serviceFee
-	setServiceFeeTxData := fmt.Sprintf("setServiceFee@%x", serviceFeePer10000)
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setServiceFeeTxData)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
