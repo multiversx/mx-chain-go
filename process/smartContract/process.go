@@ -420,6 +420,7 @@ func (sc *scProcessor) ProcessIfError(
 	err := sc.accounts.RevertToSnapshot(snapShot)
 	if err != nil {
 		log.Warn("revert to snapshot", "error", err.Error())
+		return err
 	}
 
 	consumedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
@@ -428,19 +429,14 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
-	if !check.IfNil(acntSnd) {
-		err = acntSnd.AddToBalance(tx.GetValue())
-		if err != nil {
-			return err
-		}
-
-		err = sc.accounts.SaveAccount(acntSnd)
-		if err != nil {
-			log.Debug("error saving account")
-		}
-	} else {
+	if check.IfNil(acntSnd) {
 		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
 		consumedFee.Sub(consumedFee, moveBalanceCost)
+	}
+
+	err = sc.addBackTxValues(acntSnd, scrIfError, tx)
+	if err != nil {
+		return err
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
@@ -448,7 +444,102 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
+	err = sc.processForRelayerWhenError(tx, returnMessage)
+	if err != nil {
+		return err
+	}
+
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
+
+	return nil
+}
+
+func (sc *scProcessor) processForRelayerWhenError(
+	originalTx data.TransactionHandler,
+	returnMessage []byte,
+) error {
+	relayedSCR, isRelayedTx := isRelayedTx(originalTx)
+	if !isRelayedTx {
+		return nil
+	}
+
+	relayerAcnt, err := sc.getAccountFromAddress(relayedSCR.RelayerAddr)
+	if err != nil {
+		return err
+	}
+
+	if !check.IfNil(relayerAcnt) {
+		err := relayerAcnt.AddToBalance(relayedSCR.RelayedValue)
+		if err != nil {
+			return err
+		}
+
+		err = sc.accounts.SaveAccount(relayerAcnt)
+		if err != nil {
+			log.Debug("error saving account")
+			return err
+		}
+	}
+
+	scrForRelayer := &smartContractResult.SmartContractResult{
+		Nonce:          originalTx.GetNonce(),
+		Value:          relayedSCR.RelayedValue,
+		RcvAddr:        relayedSCR.RelayerAddr,
+		SndAddr:        relayedSCR.RcvAddr,
+		OriginalTxHash: relayedSCR.OriginalTxHash,
+		ReturnMessage:  returnMessage,
+	}
+
+	err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func isRelayedTx(tx data.TransactionHandler) (*smartContractResult.SmartContractResult, bool) {
+	relayedSCR, ok := tx.(*smartContractResult.SmartContractResult)
+	if !ok {
+		return nil, false
+	}
+
+	if len(relayedSCR.RelayerAddr) == len(relayedSCR.SndAddr) &&
+		relayedSCR.RelayedValue != nil && relayedSCR.RelayedValue.Cmp(zero) > 0 {
+		return relayedSCR, true
+	}
+
+	return nil, false
+}
+
+func (sc *scProcessor) addBackTxValues(
+	acntSnd state.UserAccountHandler,
+	scrIfError *smartContractResult.SmartContractResult,
+	originalTx data.TransactionHandler,
+) error {
+	valueForSnd := big.NewInt(0).Set(scrIfError.Value)
+
+	relayedSCR, isRelayedTx := isRelayedTx(originalTx)
+	if isRelayedTx {
+		valueForSnd.Sub(valueForSnd, relayedSCR.RelayedValue)
+		if valueForSnd.Cmp(zero) < 0 {
+			return process.ErrNegativeValue
+		}
+		scrIfError.Value = big.NewInt(0).Set(valueForSnd)
+	}
+
+	if !check.IfNil(acntSnd) {
+		err := acntSnd.AddToBalance(valueForSnd)
+		if err != nil {
+			return err
+		}
+
+		err = sc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			log.Debug("error saving account")
+			return err
+		}
+	}
 
 	return nil
 }
@@ -782,21 +873,6 @@ func (sc *scProcessor) createSCRsWhenError(
 	setOriginalTxHash(scr, txHash, tx)
 
 	return scr, nil
-}
-
-func addRelayerInformationToScr(
-	scr *smartContractResult.SmartContractResult,
-	tx data.TransactionHandler,
-) {
-	scrFromTx, isScr := tx.(*smartContractResult.SmartContractResult)
-	isRelayedTx := isScr && len(scrFromTx.RelayerAddr) == len(scrFromTx.SndAddr)
-	if !isRelayedTx {
-		return
-	}
-
-	scr.RelayerAddr = make([]byte, len(scrFromTx.RelayerAddr))
-	copy(scr.RelayerAddr, scrFromTx.RelayerAddr)
-	scr.RelayedValue = big.NewInt(0).Set(scrFromTx.RelayedValue)
 }
 
 func setOriginalTxHash(

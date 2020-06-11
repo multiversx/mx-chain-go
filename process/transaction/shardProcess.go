@@ -432,9 +432,11 @@ func (txProc *txProcessor) processRelayedTx(
 	if err != nil {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, err)
 	}
-
 	if !bytes.Equal(userTx.SndAddr, tx.RcvAddr) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidAddressInRelayedTx)
+	}
+	if userTx.Value.Cmp(tx.Value) < 0 {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxValueHigherThenUserTxValue)
 	}
 
 	relayerGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
@@ -520,11 +522,11 @@ func (txProc *txProcessor) processUserTx(
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(tx, tx.SndAddr, tx.RcvAddr)
 	case process.SCDeployment:
-		returnCode, err = txProc.processSCDeployment(tx, tx.SndAddr)
+		returnCode, err = txProc.scProcessor.DeploySmartContract(scrFromTx, acntSnd)
 	case process.SCInvoking:
-		returnCode, err = txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
+		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
 	case process.BuiltInFunctionCall:
-		returnCode, err = txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
+		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
 	default:
 		err = process.ErrWrongTransaction
 		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
