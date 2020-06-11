@@ -695,12 +695,14 @@ func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor) fun
 			return false
 		}
 
-		err = handler.ProcessReceivedMessage(wrappedMsg, core.PeerID(pid))
+		fromConnectedPeer := core.PeerID(pid)
+		err = handler.ProcessReceivedMessage(wrappedMsg, fromConnectedPeer)
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
 				"topics", message.TopicIDs,
-				"pid", p2p.MessageOriginatorPid(wrappedMsg),
+				"originator", p2p.MessageOriginatorPid(wrappedMsg),
+				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 				"seq no", p2p.MessageOriginatorSeq(wrappedMsg),
 			)
 
@@ -774,7 +776,8 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 			log.Trace("p2p validator",
 				"error", err.Error(),
 				"topics", msg.Topics(),
-				"pid", p2p.MessageOriginatorPid(msg),
+				"originator", p2p.MessageOriginatorPid(msg),
+				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 				"seq no", p2p.MessageOriginatorSeq(msg),
 			)
 		}

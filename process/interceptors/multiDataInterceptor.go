@@ -86,6 +86,12 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	err = mdi.marshalizer.Unmarshal(&b, message.Data())
 	if err != nil {
 		mdi.throttler.EndProcessing()
+
+		//this situation is so severe that we need to black list de peers
+		reason := "unmarshalable data got on topic " + mdi.topic
+		mdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.IntervalBlackListPeerInvalidMessage)
+		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.IntervalBlackListPeerInvalidMessage)
+
 		return err
 	}
 	multiDataBuff := b.Data
@@ -117,7 +123,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 	for _, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
-		interceptedData, err = mdi.interceptedData(dataBuff)
+		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
 		if err != nil {
 			lastErrEncountered = err
 			wgProcess.Done()
@@ -153,9 +159,14 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	return lastErrEncountered
 }
 
-func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.InterceptedData, error) {
+func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {
 	interceptedData, err := mdi.factory.Create(dataBuff)
 	if err != nil {
+		//this situation is so severe that we need to black list de peers
+		reason := "can not create object from received bytes, topic " + mdi.topic
+		mdi.antifloodHandler.BlacklistPeer(originator, reason, core.IntervalBlackListPeerInvalidMessage)
+		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.IntervalBlackListPeerInvalidMessage)
+
 		return nil, err
 	}
 

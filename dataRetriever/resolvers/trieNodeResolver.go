@@ -71,7 +71,7 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 	tnRes.throttler.StartProcessing()
 	defer tnRes.throttler.EndProcessing()
 
-	rd, err := tnRes.parseReceivedMessage(message)
+	rd, err := tnRes.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}

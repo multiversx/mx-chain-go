@@ -38,10 +38,15 @@ func (mp *messageProcessor) canProcessMessage(message p2p.MessageP2P, fromConnec
 }
 
 // parseReceivedMessage will transform the received p2p.Message in a RequestData object.
-func (mp *messageProcessor) parseReceivedMessage(message p2p.MessageP2P) (*dataRetriever.RequestData, error) {
+func (mp *messageProcessor) parseReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) (*dataRetriever.RequestData, error) {
 	rd := &dataRetriever.RequestData{}
 	err := rd.UnmarshalWith(mp.marshalizer, message)
 	if err != nil {
+		//this situation is so severe that we need to black list de peers
+		reason := "unmarshalable data got on request topic " + mp.topic
+		mp.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.IntervalBlackListPeerInvalidMessage)
+		mp.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.IntervalBlackListPeerInvalidMessage)
+
 		return nil, err
 	}
 	if rd.Value == nil {
