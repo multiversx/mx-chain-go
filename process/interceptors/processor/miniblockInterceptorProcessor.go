@@ -80,9 +80,7 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ c
 
 	shouldRejectMiniBlock := mip.isMbCrossShard(miniblock) &&
 		!mip.whiteListHandler.IsWhiteListed(data) &&
-		mip.shardCoordinator.SelfId() != core.MetachainShardId &&
-		miniblock.SenderShardID != core.MetachainShardId
-
+		mip.shardCoordinator.SelfId() != core.MetachainShardId
 	if shouldRejectMiniBlock {
 		log.Trace(
 			"miniblock interceptor processor : cross shard miniblock for me",

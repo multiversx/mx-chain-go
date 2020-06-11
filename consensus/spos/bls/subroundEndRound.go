@@ -396,7 +396,7 @@ func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
 		return nil
 	}
 
-	go sr.broadcast(miniBlocks, transactions, 0)
+	go sr.broadcast(miniBlocks, transactions, core.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 
