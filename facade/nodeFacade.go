@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -307,6 +308,11 @@ func (nf *nodeFacade) DecodeAddressPubkey(pk string) ([]byte, error) {
 // GetQueryHandler returns the query handler if existing
 func (nf *nodeFacade) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	return nf.node.GetQueryHandler(name)
+}
+
+// GetPeerInfo returns the peer info of a provided pid
+func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
+	return nf.node.GetPeerInfo(pid)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

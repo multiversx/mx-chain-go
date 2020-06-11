@@ -670,11 +670,13 @@ func TestLibp2pMessenger_PeerAddressConnectedPeerShouldWork(t *testing.T) {
 		_ = mes3.Close()
 	}()
 
-	adr1Recov := mes2.PeerAddress(mes1.ID())
+	addressesRecov := mes2.PeerAddresses(mes1.ID())
 	for _, addr := range mes1.Addresses() {
-		if strings.Contains(addr, adr1Recov) {
-			//address returned is valid, test is successful
-			return
+		for _, addrRecov := range addressesRecov {
+			if strings.Contains(addr, addrRecov) {
+				//address returned is valid, test is successful
+				return
+			}
 		}
 	}
 
@@ -708,11 +710,13 @@ func TestLibp2pMessenger_PeerAddressDisconnectedPeerShouldWork(t *testing.T) {
 
 	assert.False(t, mes2.IsConnected(mes1.ID()))
 
-	adr1Recov := mes2.PeerAddress(mes1.ID())
+	addressesRecov := mes2.PeerAddresses(mes1.ID())
 	for _, addr := range mes1.Addresses() {
-		if strings.Contains(addr, adr1Recov) {
-			//address returned is valid, test is successful
-			return
+		for _, addrRecov := range addressesRecov {
+			if strings.Contains(addr, addrRecov) {
+				//address returned is valid, test is successful
+				return
+			}
 		}
 	}
 
@@ -726,8 +730,8 @@ func TestLibp2pMessenger_PeerAddressUnknownPeerShouldReturnEmpty(t *testing.T) {
 		_ = mes1.Close()
 	}()
 
-	adr1Recov := mes1.PeerAddress("unknown peer")
-	assert.Equal(t, "", adr1Recov)
+	adr1Recov := mes1.PeerAddresses("unknown peer")
+	assert.Equal(t, 0, len(adr1Recov))
 }
 
 //------- ConnectedPeersOnTopic
