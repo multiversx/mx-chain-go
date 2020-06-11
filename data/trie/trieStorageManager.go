@@ -366,7 +366,7 @@ func (tsm *trieStorageManager) writeOnChan(entry *snapshotsQueueEntry) {
 func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	defer tsm.ExitSnapshotMode()
 
-	if tsm.getSnapshotDbThatContainsHash(snapshot.rootHash) != nil {
+	if tsm.isPresentInLastSnapshotDb(snapshot.rootHash) {
 		log.Trace("snapshot for rootHash already taken", "rootHash", snapshot.rootHash)
 		return
 	}
@@ -391,6 +391,23 @@ func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh m
 	}
 
 	log.Debug("trie snapshot finished", "rootHash", snapshot.rootHash)
+}
+
+func (tsm *trieStorageManager) isPresentInLastSnapshotDb(rootHash []byte) bool {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	lastSnapshotIndex := len(tsm.snapshots) - 1
+	if lastSnapshotIndex < 0 {
+		return false
+	}
+
+	val, err := tsm.snapshots[lastSnapshotIndex].Get(rootHash)
+	if err != nil || val == nil {
+		return false
+	}
+
+	return true
 }
 
 func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
