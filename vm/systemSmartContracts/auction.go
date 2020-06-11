@@ -325,7 +325,7 @@ func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.Return
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 1 {
-		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
+		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected exactly %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 

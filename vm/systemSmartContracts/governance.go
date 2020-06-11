@@ -22,6 +22,7 @@ const proposalPrefix = "proposal"
 const whiteListPrefix = "whiteList"
 const validatorPrefix = "validator"
 const hardForkEpochGracePeriod = 2
+const githubCommitLength = 40
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
 type ArgsNewGovernanceContract struct {
@@ -119,7 +120,7 @@ func (g *governanceContract) init(args *vmcommon.ContractCallInput) vmcommon.Ret
 		ProposalFee:      g.baseProposalCost,
 	}
 	marshaledData, err := g.marshalizer.Marshal(scConfig)
-	log.LogIfError(err, "marshal error on esdt init function")
+	log.LogIfError(err, "marshal error on governance init function")
 
 	g.eei.SetStorage([]byte(governanceConfigKey), marshaledData)
 	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
@@ -174,20 +175,20 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 	scConfig.MinVetoThreshold = int32(minVeto.Int64())
 	scConfig.MinPassThreshold = int32(minPass.Int64())
 
-	marshalledData, err := g.marshalizer.Marshal(scConfig)
+	marshaledData, err := g.marshalizer.Marshal(scConfig)
 	if err != nil {
 		g.eei.AddReturnMessage("changeConfig error " + err.Error())
 		return vmcommon.UserError
 	}
-	g.eei.SetStorage([]byte(governanceConfigKey), marshalledData)
+	g.eei.SetStorage([]byte(governanceConfigKey), marshaledData)
 
 	return vmcommon.Ok
 }
 
 func (g *governanceContract) getConfig() (*GovernanceConfig, error) {
-	marshalledData := g.eei.GetStorage([]byte(governanceConfigKey))
+	marshaledData := g.eei.GetStorage([]byte(governanceConfigKey))
 	scConfig := &GovernanceConfig{}
-	err := g.marshalizer.Unmarshal(scConfig, marshalledData)
+	err := g.marshalizer.Unmarshal(scConfig, marshaledData)
 	if err != nil {
 		return nil, err
 	}
@@ -221,6 +222,10 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 		g.eei.AddReturnMessage("address is already whitelisted")
 		return vmcommon.UserError
 	}
+	if len(args.Arguments[0]) != githubCommitLength {
+		g.eei.AddReturnMessage(fmt.Sprintf("invalid github commit length, wanted exactly %d", githubCommitLength))
+		return vmcommon.UserError
+	}
 
 	startVoteNonce, endVoteNonce, err := g.startEndNonceFromArguments(args.Arguments[1], args.Arguments[2])
 	if err != nil {
@@ -249,14 +254,12 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 		Voters:         make([][]byte, 0),
 	}
 
-	marshalledData, err := g.marshalizer.Marshal(whiteListAcc)
+	marshaledData, err := g.marshalizer.Marshal(whiteListAcc)
 	if err != nil {
 		g.eei.AddReturnMessage("marshall error " + err.Error())
 		return vmcommon.UserError
 	}
-
-	key = append([]byte(whiteListPrefix), args.CallerAddr...)
-	g.eei.SetStorage(key, marshalledData)
+	g.eei.SetStorage(key, marshaledData)
 
 	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
 	if err != nil {
@@ -268,12 +271,12 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 }
 
 func (g *governanceContract) saveGeneralProposal(reference []byte, generalProposal *GeneralProposal) error {
-	marshalledData, err := g.marshalizer.Marshal(generalProposal)
+	marshaledData, err := g.marshalizer.Marshal(generalProposal)
 	if err != nil {
 		return err
 	}
 	key := append([]byte(proposalPrefix), reference...)
-	g.eei.SetStorage(key, marshalledData)
+	g.eei.SetStorage(key, marshaledData)
 
 	return nil
 }
@@ -303,20 +306,20 @@ func (g *governanceContract) startEndNonceFromArguments(argStart []byte, argEnd 
 
 func (g *governanceContract) proposalExists(reference []byte) bool {
 	key := append([]byte(proposalPrefix), reference...)
-	marshalledData := g.eei.GetStorage(key)
-	return len(marshalledData) > 0
+	marshaledData := g.eei.GetStorage(key)
+	return len(marshaledData) > 0
 }
 
 func (g *governanceContract) getGeneralProposal(reference []byte) (*GeneralProposal, error) {
 	key := append([]byte(proposalPrefix), reference...)
-	marshalledData := g.eei.GetStorage(key)
+	marshaledData := g.eei.GetStorage(key)
 
-	if len(marshalledData) == 0 {
+	if len(marshaledData) == 0 {
 		return nil, vm.ErrEmptyStorage
 	}
 
 	generalProposal := &GeneralProposal{}
-	err := g.marshalizer.Unmarshal(generalProposal, marshalledData)
+	err := g.marshalizer.Unmarshal(generalProposal, marshaledData)
 	if err != nil {
 		return nil, err
 	}
@@ -326,15 +329,15 @@ func (g *governanceContract) getGeneralProposal(reference []byte) (*GeneralPropo
 
 func (g *governanceContract) isWhiteListed(address []byte) bool {
 	key := append([]byte(whiteListPrefix), address...)
-	marshalledData := g.eei.GetStorage(key)
-	if len(marshalledData) == 0 {
+	marshaledData := g.eei.GetStorage(key)
+	if len(marshaledData) == 0 {
 		return false
 	}
 
 	key = append([]byte(proposalPrefix), address...)
-	marshalledData = g.eei.GetStorage(key)
+	marshaledData = g.eei.GetStorage(key)
 	generalProposal := &GeneralProposal{}
-	err := g.marshalizer.Unmarshal(generalProposal, marshalledData)
+	err := g.marshalizer.Unmarshal(generalProposal, marshaledData)
 	if err != nil {
 		return false
 	}
@@ -380,14 +383,12 @@ func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput
 		TopReference:   key,
 		Voters:         make([][]byte, 0),
 	}
-	marshalledData, err := g.marshalizer.Marshal(whiteListAcc)
+	marshaledData, err := g.marshalizer.Marshal(whiteListAcc)
 	if err != nil {
 		log.Warn("marshal error in whiteListAtGenesis", "err", err)
 		return vmcommon.UserError
 	}
-
-	key = append([]byte(whiteListPrefix), args.CallerAddr...)
-	g.eei.SetStorage(key, marshalledData)
+	g.eei.SetStorage(key, marshaledData)
 
 	err = g.saveGeneralProposal(args.CallerAddr, generalProposal)
 	if err != nil {
@@ -417,14 +418,18 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		return vmcommon.UserError
 	}
 	gitHubCommit := args.Arguments[2]
+	if len(gitHubCommit) != githubCommitLength {
+		g.eei.AddReturnMessage(fmt.Sprintf("invalid github commit length, wanted exactly %d", githubCommitLength))
+		return vmcommon.UserError
+	}
 	if g.proposalExists(gitHubCommit) {
 		g.eei.AddReturnMessage("proposal already exists")
 		return vmcommon.UserError
 	}
 
 	key := append([]byte(hardForkPrefix), gitHubCommit...)
-	marshalledData := g.eei.GetStorage(key)
-	if len(marshalledData) != 0 {
+	marshaledData := g.eei.GetStorage(key)
+	if len(marshaledData) != 0 {
 		g.eei.AddReturnMessage("hardFork proposal already exists")
 		return vmcommon.UserError
 	}
@@ -469,13 +474,13 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		TopReference:   key,
 		Voters:         make([][]byte, 0),
 	}
-	marshalledData, err = g.marshalizer.Marshal(hardForkProposal)
+	marshaledData, err = g.marshalizer.Marshal(hardForkProposal)
 	if err != nil {
 		log.Warn("hardFork proposal marshal", "err", err)
 		g.eei.AddReturnMessage("marshal proposal" + err.Error())
 		return vmcommon.UserError
 	}
-	g.eei.SetStorage(key, marshalledData)
+	g.eei.SetStorage(key, marshaledData)
 
 	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
 	if err != nil {
@@ -506,6 +511,10 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		return vmcommon.UserError
 	}
 	gitHubCommit := args.Arguments[0]
+	if len(gitHubCommit) != githubCommitLength {
+		g.eei.AddReturnMessage(fmt.Sprintf("invalid github commit length, wanted exactly %d", githubCommitLength))
+		return vmcommon.UserError
+	}
 	if g.proposalExists(gitHubCommit) {
 		g.eei.AddReturnMessage("proposal already exists")
 		return vmcommon.UserError
@@ -692,24 +701,24 @@ func (g *governanceContract) addVotedDataToProposal(generalProposal *GeneralProp
 
 func (g *governanceContract) saveVoteValue(proposal []byte, voter []byte, voteData *VoteData) error {
 	key := append(proposal, voter...)
-	marshalledData, err := g.marshalizer.Marshal(voteData)
+	marshaledData, err := g.marshalizer.Marshal(voteData)
 	if err != nil {
 		return err
 	}
 
-	g.eei.SetStorage(key, marshalledData)
+	g.eei.SetStorage(key, marshaledData)
 	return nil
 }
 
 func (g *governanceContract) getOrCreateVoteData(proposal []byte, voter []byte) (*VoteData, error) {
 	voteData := &VoteData{}
 	key := append(proposal, voter...)
-	marshalledData := g.eei.GetStorage(key)
-	if len(marshalledData) == 0 {
+	marshaledData := g.eei.GetStorage(key)
+	if len(marshaledData) == 0 {
 		return voteData, nil
 	}
 
-	err := g.marshalizer.Unmarshal(voteData, marshalledData)
+	err := g.marshalizer.Unmarshal(voteData, marshaledData)
 	if err != nil {
 		return nil, err
 	}
@@ -728,12 +737,12 @@ func (g *governanceContract) getOrCreateValidatorData(address []byte, numNodes i
 	}
 
 	key := append([]byte(validatorPrefix), address...)
-	marshalledData := g.eei.GetStorage(key)
-	if len(marshalledData) == 0 {
+	marshaledData := g.eei.GetStorage(key)
+	if len(marshaledData) == 0 {
 		return validatorData, nil
 	}
 
-	err := g.marshalizer.Unmarshal(validatorData, marshalledData)
+	err := g.marshalizer.Unmarshal(validatorData, marshaledData)
 	if err != nil {
 		return nil, err
 	}
