@@ -28,7 +28,7 @@ type NodesSetupHandler interface {
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64) error
+	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	SetDebugger(debugger process.AntifloodDebugger) error
