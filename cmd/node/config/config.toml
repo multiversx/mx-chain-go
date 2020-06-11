@@ -31,7 +31,7 @@
     [MiniBlocksStorage.Cache]
         Capacity = 300
         Type = "SizeLRU"
-        SizeInBytes = 314572800 #300MB
+        SizeInBytes = 104857600 #100MB
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
         Type = "LvlDBSerial"
@@ -43,7 +43,7 @@
     [PeerBlockBodyStorage.Cache]
         Capacity = 1000
         Type = "SizeLRU"
-        SizeInBytes = 314572800 #300MB
+        SizeInBytes = 104857600 #100MB
     [PeerBlockBodyStorage.DB]
         FilePath = "PeerBlocks"
         Type = "LvlDBSerial"
@@ -90,7 +90,7 @@
     [TxStorage.Cache]
         Capacity = 75000
         Type = "SizeLRU"
-        SizeInBytes = 314572800 #300MB
+        SizeInBytes = 209715200 #200MB
     [TxStorage.DB]
         FilePath = "Transactions"
         Type = "LvlDBSerial"
@@ -114,7 +114,7 @@
     [UnsignedTransactionStorage.Cache]
         Capacity = 75000
         Type = "SizeLRU"
-        SizeInBytes = 314572800 #300MB
+        SizeInBytes = 209715200 #200MB
     [UnsignedTransactionStorage.DB]
         FilePath = "UnsignedTransactions"
         Type = "LvlDBSerial"
