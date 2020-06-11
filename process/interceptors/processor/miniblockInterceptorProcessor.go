@@ -78,14 +78,10 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ c
 		return err
 	}
 
-	isPeerMiniBlock := miniblock.Type == block.PeerBlock &&
-		miniblock.SenderShardID == core.MetachainShardId &&
-		miniblock.ReceiverShardID == core.AllShardId
-
 	shouldRejectMiniBlock := mip.isMbCrossShard(miniblock) &&
 		!mip.whiteListHandler.IsWhiteListed(data) &&
 		mip.shardCoordinator.SelfId() != core.MetachainShardId &&
-		!isPeerMiniBlock
+		miniblock.SenderShardID != core.MetachainShardId
 
 	if shouldRejectMiniBlock {
 		log.Trace(
