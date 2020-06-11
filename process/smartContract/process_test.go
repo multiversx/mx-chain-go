@@ -205,6 +205,9 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 
 	argParser := &mock.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = &mock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
+		return nil
+	}}
 	arguments.VmContainer = &mock.VMContainerMock{}
 	arguments.ArgsParser = argParser
 	sc, err := NewSmartContractProcessor(arguments)
@@ -234,6 +237,9 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	vmContainer := &mock.VMContainerMock{}
 	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = &mock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
+		return nil
+	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	sc, err := NewSmartContractProcessor(arguments)
