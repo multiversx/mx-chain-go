@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -14,13 +15,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const pidQueryParam = "pid"
+
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
-	GetPeerInfo(pid string) ([]interface{}, error)
+	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	IsInterfaceNil() bool
 }
 
@@ -194,7 +197,7 @@ func PeerInfo(c *gin.Context) {
 	}
 
 	queryVals := c.Request.URL.Query()
-	pids := queryVals["pid"]
+	pids := queryVals[pidQueryParam]
 	pid := ""
 	if len(pids) > 0 {
 		pid = pids[0]

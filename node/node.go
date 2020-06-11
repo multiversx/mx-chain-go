@@ -62,15 +62,6 @@ var _ facade.NodeHandler = (*Node)(nil)
 //  over the None struct.
 type Option func(*Node) error
 
-// QueryP2PPeerInfo represents a DTO used in exporting p2p peer info after a query
-type QueryP2PPeerInfo struct {
-	Pid           string   `json:"pid"`
-	Addresses     []string `json:"addresses"`
-	Pk            string   `json:"pk"`
-	IsBlacklisted bool     `json:"isblacklisted"`
-	PeerType      string   `json:"peertype"`
-}
-
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
@@ -1083,7 +1074,7 @@ func (n *Node) GetQueryHandler(name string) (debug.QueryHandler, error) {
 }
 
 // GetPeerInfo returns information about a peer id
-func (n *Node) GetPeerInfo(pid string) ([]interface{}, error) {
+func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	peers := n.messenger.Peers()
 	pidsFound := make([]core.PeerID, 0)
 	for _, p := range peers {
@@ -1100,7 +1091,7 @@ func (n *Node) GetPeerInfo(pid string) ([]interface{}, error) {
 		return pidsFound[i].Pretty() < pidsFound[j].Pretty()
 	})
 
-	peerInfoSlice := make([]interface{}, 0, len(pidsFound))
+	peerInfoSlice := make([]core.QueryP2PPeerInfo, 0, len(pidsFound))
 	for _, p := range pidsFound {
 		pidInfo := n.createPidInfo(p)
 		peerInfoSlice = append(peerInfoSlice, pidInfo)
@@ -1109,19 +1100,19 @@ func (n *Node) GetPeerInfo(pid string) ([]interface{}, error) {
 	return peerInfoSlice, nil
 }
 
-func (n *Node) createPidInfo(p core.PeerID) QueryP2PPeerInfo {
-	result := QueryP2PPeerInfo{
+func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
+	result := core.QueryP2PPeerInfo{
 		Pid:           p.Pretty(),
 		Addresses:     n.messenger.PeerAddresses(p),
 		IsBlacklisted: n.peerBlackListHandler.Has(p),
 	}
 
-	pInfo := n.networkShardingCollector.GetPeerInfo(p)
-	result.PeerType = pInfo.PeerType.String()
-	if len(pInfo.PkBytes) == 0 {
+	peerInfo := n.networkShardingCollector.GetPeerInfo(p)
+	result.PeerType = peerInfo.PeerType.String()
+	if len(peerInfo.PkBytes) == 0 {
 		result.Pk = ""
 	} else {
-		result.Pk = n.validatorPubkeyConverter.Encode(pInfo.PkBytes)
+		result.Pk = n.validatorPubkeyConverter.Encode(peerInfo.PkBytes)
 	}
 
 	return result

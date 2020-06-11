@@ -119,7 +119,6 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
-			PkBytes:  nil,
 		}, false
 	}
 
@@ -130,7 +129,6 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
-			PkBytes:  nil,
 		}, false
 	}
 
@@ -182,7 +180,6 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
-			PkBytes:  nil,
 		}
 	}
 
@@ -193,14 +190,12 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
-			PkBytes:  nil,
 		}
 	}
 
 	return &core.P2PPeerInfo{
 		PeerType: core.ObserverPeer,
 		ShardID:  shard,
-		PkBytes:  nil,
 	}
 }
 

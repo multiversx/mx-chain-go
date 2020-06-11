@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -562,11 +563,13 @@ func TestElrondNodeFacade_GetQueryHandler(t *testing.T) {
 func TestNodeFacade_GetPeerInfo(t *testing.T) {
 	t.Parallel()
 
-	pinfo := []interface{}{"pinfo"}
+	pinfo := core.QueryP2PPeerInfo{
+		Pid: "pid",
+	}
 	arg := createMockArguments()
 	arg.Node = &mock.NodeStub{
-		GetPeerInfoCalled: func(pid string) ([]interface{}, error) {
-			return pinfo, nil
+		GetPeerInfoCalled: func(pid string) ([]core.QueryP2PPeerInfo, error) {
+			return []core.QueryP2PPeerInfo{pinfo}, nil
 		},
 	}
 	nf, _ := NewNodeFacade(arg)
@@ -574,5 +577,5 @@ func TestNodeFacade_GetPeerInfo(t *testing.T) {
 	val, err := nf.GetPeerInfo("")
 
 	assert.Nil(t, err)
-	assert.Equal(t, pinfo, val)
+	assert.Equal(t, []core.QueryP2PPeerInfo{pinfo}, val)
 }

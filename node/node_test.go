@@ -1942,15 +1942,15 @@ func TestNode_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(vals))
 
-	expected := []interface{}{
-		node.QueryP2PPeerInfo{
+	expected := []core.QueryP2PPeerInfo{
+		{
 			Pid:           core.PeerID(pid1).Pretty(),
 			Addresses:     []string{"addr" + pid1},
 			Pk:            hex.EncodeToString([]byte(pid1)),
 			IsBlacklisted: true,
 			PeerType:      core.UnknownPeer.String(),
 		},
-		node.QueryP2PPeerInfo{
+		{
 			Pid:           core.PeerID(pid2).Pretty(),
 			Addresses:     []string{"addr" + pid2},
 			Pk:            hex.EncodeToString([]byte(pid2)),
