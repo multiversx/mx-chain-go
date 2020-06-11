@@ -25,8 +25,8 @@ func (tp *TxProcessorMock) SetBalancesToTrie(accBalance map[string]*big.Int) (ro
 }
 
 // ProcessSmartContractResult -
-func (tp *TxProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
-	return tp.ProcessSmartContractResultCalled(scr)
+func (tp *TxProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (ReturnCode, error) {
+	return 0, tp.ProcessSmartContractResultCalled(scr)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

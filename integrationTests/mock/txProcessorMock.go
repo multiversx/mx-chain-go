@@ -25,8 +25,8 @@ func (etm *TxProcessorMock) SetBalancesToTrie(accBalance map[string]*big.Int) (r
 }
 
 // ProcessSmartContractResult -
-func (etm *TxProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
-	return etm.ProcessSmartContractResultCalled(scr)
+func (etm *TxProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (ReturnCode, error) {
+	return 0, etm.ProcessSmartContractResultCalled(scr)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

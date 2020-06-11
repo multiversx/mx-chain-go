@@ -224,7 +224,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 		return nil, parseError
 	}
 
-	_ = sc.DeploySmartContract(tx, acntSrc)
+	_, _ = sc.DeploySmartContract(tx, acntSrc)
 	require.Equal(t, parseError, GetLatestTestError(sc))
 }
 
@@ -259,7 +259,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 		return vm, nil
 	}
 
-	_ = sc.DeploySmartContract(tx, acntSrc)
+	_, _ = sc.DeploySmartContract(tx, acntSrc)
 	require.Equal(t, createError, GetLatestTestError(sc))
 }
 
@@ -283,7 +283,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	err = sc.DeploySmartContract(tx, acntSrc)
+	_, err = sc.DeploySmartContract(tx, acntSrc)
 	require.Equal(t, process.ErrWrongTransaction, err)
 }
 
@@ -313,7 +313,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	err = sc.DeploySmartContract(tx, acntSrc)
+	_, err = sc.DeploySmartContract(tx, acntSrc)
 	require.Nil(t, err)
 	require.Nil(t, GetLatestTestError(sc))
 }
@@ -338,7 +338,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
-	err = sc.ExecuteSmartContractTransaction(nil, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(nil, acntSrc, acntDst)
 	require.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -362,16 +362,16 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 
 	acntSrc, acntDst := createAccounts(tx)
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Nil(t, err)
 
 	acntSrc, acntDst = createAccounts(tx)
 	acntDst = nil
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 }
 
@@ -402,7 +402,7 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 		called = true
 		return "", nil, tmpError
 	}
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.True(t, called)
 	require.Nil(t, err)
 }
@@ -439,7 +439,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 		return vm, nil
 	}
 
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.True(t, called)
 	require.Nil(t, err)
 }
@@ -471,7 +471,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	}
 
 	acntDst.SetCode([]byte("code"))
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Nil(t, err)
 }
 
@@ -510,7 +510,7 @@ func TestScProcessor_ExecuteSmartContractTransactionSaveLogCalled(t *testing.T) 
 	}
 
 	acntDst.SetCode([]byte("code"))
-	_ = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, _ = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.True(t, slCalled)
 }
 
@@ -1509,7 +1509,7 @@ func TestScProcessor_ProcessSmartContractResultNilScr(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	err = sc.ProcessSmartContractResult(nil)
+	_, err = sc.ProcessSmartContractResult(nil)
 	require.Equal(t, process.ErrNilSmartContractResult, err)
 }
 
@@ -1533,7 +1533,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	require.Nil(t, err)
 
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
-	_ = sc.ProcessSmartContractResult(&scr)
+	_, _ = sc.ProcessSmartContractResult(&scr)
 	require.True(t, called)
 }
 
@@ -1555,7 +1555,7 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 		return shardCoordinator.CurrentShard + 1
 	}
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 }
 
@@ -1576,7 +1576,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 	require.Nil(t, err)
 
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 }
 
@@ -1603,7 +1603,7 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address")}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 }
 
@@ -1635,7 +1635,7 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 		Code:    []byte("code"),
 		Value:   big.NewInt(15),
 	}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.Equal(t, 1, putCodeCalled)
 }
@@ -1676,7 +1676,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 		Data:    []byte(result),
 		Value:   big.NewInt(15),
 	}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.Equal(t, 1, saveAccountCalled)
 }
@@ -1712,7 +1712,7 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 		Data:    []byte("code@06"),
 		Value:   big.NewInt(15),
 	}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 }
 
@@ -1761,7 +1761,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 		Data:    []byte("code@06"),
 		Value:   big.NewInt(15),
 	}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.True(t, executeCalled)
 }

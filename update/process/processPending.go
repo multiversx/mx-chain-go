@@ -165,7 +165,7 @@ func (p *pendingProcessor) processSingleTransaction(info *txInfo) (block.Type, e
 
 	scrTx, ok := info.tx.(*smartContractResult.SmartContractResult)
 	if ok {
-		err := p.scrTxProcessor.ProcessSmartContractResult(scrTx)
+		_, err := p.scrTxProcessor.ProcessSmartContractResult(scrTx)
 		if err != nil {
 			return 0, err
 		}

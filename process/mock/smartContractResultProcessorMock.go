@@ -8,12 +8,12 @@ type SmartContractResultsProcessorMock struct {
 }
 
 // ProcessSmartContractResult -
-func (scrp *SmartContractResultsProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
+func (scrp *SmartContractResultsProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (ReturnCode, error) {
 	if scrp.ProcessSmartContractResultCalled == nil {
-		return nil
+		return 0, nil
 	}
 
-	return scrp.ProcessSmartContractResultCalled(scr)
+	return 0, scrp.ProcessSmartContractResultCalled(scr)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
