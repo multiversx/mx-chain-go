@@ -432,6 +432,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
+	// no error as broadcast is delayed
 	assert.Equal(t, errors.New("error broadcast miniblocks"), err)
 }
 
@@ -467,6 +468,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
+	// no error as broadcast is delayed
 	assert.Equal(t, errors.New("error broadcast transactions"), err)
 }
 

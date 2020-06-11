@@ -118,6 +118,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
 	messenger := &mock.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {
@@ -129,6 +130,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	interceptosContainer := &mock.InterceptorsContainerStub{}
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
+		hasher,
 		messenger,
 		shardCoord,
 		privateKey,
@@ -145,6 +147,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
 	messenger := &mock.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {
@@ -156,6 +159,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	interceptosContainer := &mock.InterceptorsContainerStub{}
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
+		hasher,
 		messenger,
 		shardCoord,
 		privateKey,
@@ -179,6 +183,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 	interceptosContainer := &mock.InterceptorsContainerStub{}
 
 	bm, err := sposFactory.GetBroadcastMessenger(
+		nil,
 		nil,
 		nil,
 		shardCoord,

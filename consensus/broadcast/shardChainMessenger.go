@@ -140,6 +140,13 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 ) error {
+	if check.IfNil(header) {
+		return spos.ErrNilHeader
+	}
+	if len(miniBlocks) == 0 {
+		return nil
+	}
+
 	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
 	if err != nil {
 		return err
@@ -171,6 +178,9 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 ) error {
 	if check.IfNil(header) {
 		return spos.ErrNilHeader
+	}
+	if len(miniBlocks) == 0 {
+		return nil
 	}
 
 	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)

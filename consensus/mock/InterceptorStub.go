@@ -8,7 +8,7 @@ import (
 // InterceptorStub -
 type InterceptorStub struct {
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
-	RegisterHandlerCalled        func(handler func(topic string, data []byte, _ interface{}))
+	RegisterHandlerCalled        func(handler func(topic string, hash []byte, data interface{}))
 }
 
 // ProcessReceivedMessage -

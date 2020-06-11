@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createDelayData(prefix string) ([]byte, map[uint32][]byte, map[string][][]byte) {
+func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, map[string][][]byte) {
 	miniblocks := make(map[uint32][]byte)
 	receiverShardID := uint32(1)
 	miniblocks[receiverShardID] = []byte(prefix + "miniblock data")
@@ -28,16 +28,17 @@ func createDelayData(prefix string) ([]byte, map[uint32][]byte, map[string][][]b
 		[]byte(prefix + "tx1"),
 	}
 	headerHash := []byte(prefix + "header hash")
+	header := &block.Header{
+		Round:        0,
+		PrevRandSeed: []byte(prefix),
+	}
 
-	return headerHash, miniblocks, transactions
+	return headerHash, header, miniblocks, transactions
 }
 
 func createInterceptorContainer() process.InterceptorsContainer {
 	return &mock.InterceptorsContainerStub{
 		GetCalled: func(topic string) (process.Interceptor, error) {
-			switch topic {
-			default:
-			}
 			return &mock.InterceptorStub{
 				ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
 					return nil
@@ -49,6 +50,7 @@ func createInterceptorContainer() process.InterceptorsContainer {
 
 func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
 	messengerMock := &mock.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
@@ -58,16 +60,17 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 
 	return broadcast.ShardChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
-			Marshalizer:      marshalizerMock,
-			Messenger:        messengerMock,
-			PrivateKey:       privateKeyMock,
-			ShardCoordinator: shardCoordinatorMock,
-			SingleSigner:     singleSignerMock,
+			Marshalizer:                marshalizerMock,
+			Hasher:                     hasher,
+			Messenger:                  messengerMock,
+			PrivateKey:                 privateKeyMock,
+			ShardCoordinator:           shardCoordinatorMock,
+			SingleSigner:               singleSignerMock,
+			HeadersSubscriber:          headersSubscriber,
+			InterceptorsContainer:      interceptorsContainer,
+			MaxDelayCacheSize:          1,
+			MaxValidatorDelayCacheSize: 1,
 		},
-		HeadersSubscriber:          headersSubscriber,
-		InterceptorsContainer:      interceptorsContainer,
-		MaxDelayCacheSize:          1,
-		MaxValidatorDelayCacheSize: 1,
 	}
 }
 
@@ -320,27 +323,27 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestShardChainMessenger_SetDataForDelayBroadcastNilHeaderHashShouldErr(t *testing.T) {
+func TestShardChainMessenger_BroadcastBlockDataLeaderNilHeaderShouldErr(t *testing.T) {
 	args := createDefaultShardChainArgs()
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	_, miniblocks, transactions := createDelayData("1")
+	_, _, miniblocks, transactions := createDelayData("1")
 
-	err := scm.SetLeaderDelayBroadcast(nil, miniblocks, transactions)
-	assert.Equal(t, spos.ErrNilHeaderHash, err)
+	err := scm.BroadcastBlockDataLeader(nil, miniblocks, transactions)
+	assert.Equal(t, spos.ErrNilHeader, err)
 }
 
-func TestShardChainMessenger_SetDataForDelayBroadcastNilMiniblocksShouldReturnNil(t *testing.T) {
+func TestShardChainMessenger_BroadcastBlockDataLeaderNilMiniblocksShouldReturnNil(t *testing.T) {
 	args := createDefaultShardChainArgs()
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	headerHash, _, transactions := createDelayData("1")
+	_, header, _, transactions := createDelayData("1")
 
-	err := scm.SetLeaderDelayBroadcast(headerHash, nil, transactions)
+	err := scm.BroadcastBlockDataLeader(header, nil, transactions)
 	assert.Nil(t, err)
 }
 
-func TestShardChainMessenger_SetDataForDelayBroadcastShouldTriggerWaitingDelayedMessage(t *testing.T) {
+func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayedMessage(t *testing.T) {
 	wasCalled := atomic.Flag{}
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -351,93 +354,49 @@ func TestShardChainMessenger_SetDataForDelayBroadcastShouldTriggerWaitingDelayed
 	args.Messenger = messenger
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	headerHash, miniBlocksMarshalled, transactions := createDelayData("1")
-	err := scm.SetLeaderDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
+	_, header, miniBlocksMarshalled, transactions := createDelayData("1")
+	err := scm.BroadcastBlockDataLeader(header, miniBlocksMarshalled, transactions)
 	time.Sleep(10 * time.Millisecond)
 	assert.Nil(t, err)
 	assert.False(t, wasCalled.IsSet())
 
 	wasCalled.Unset()
-	headerHash2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
-	err = scm.SetLeaderDelayBroadcast(headerHash2, miniBlocksMarshalled2, transactions2)
+	_, header2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
+	err = scm.BroadcastBlockDataLeader(header2, miniBlocksMarshalled2, transactions2)
 	time.Sleep(10 * time.Millisecond)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled.IsSet())
 }
 
-func TestShardChainMessenger_SetValidatorDelayBroadcastNilHeaderHashShouldErr(t *testing.T) {
+func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorNilHeaderShouldErr(t *testing.T) {
 	args := createDefaultShardChainArgs()
 	scm, _ := broadcast.NewShardChainMessenger(args)
 	vArgs := createValidatorDelayArgs(0)
-	vArgs.headerHash = nil
+	vArgs.header = nil
 
-	err := scm.SetValidatorDelayBroadcast(
-		vArgs.headerHash,
-		vArgs.prevRandSeed,
-		vArgs.round,
+	err := scm.PrepareBroadcastBlockDataValidator(
+		vArgs.header,
 		vArgs.miniBlocks,
-		vArgs.miniBlockHashes,
 		vArgs.transactions,
-		vArgs.order,
+		int(vArgs.order),
 	)
 
-	require.Equal(t, spos.ErrNilHeaderHash, err)
+	require.Equal(t, spos.ErrNilHeader, err)
 }
 
-func TestShardChainMessenger_SetValidatorDelayBroadcastInvalidMiniBlockDataShouldErr(t *testing.T) {
+func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorNoMiniBlocksShouldReturn(t *testing.T) {
 	args := createDefaultShardChainArgs()
 	scm, _ := broadcast.NewShardChainMessenger(args)
 	vArgs := createValidatorDelayArgs(0)
 	vArgs.miniBlocks = nil
+	vArgs.transactions = nil
 
-	err := scm.SetValidatorDelayBroadcast(
-		vArgs.headerHash,
-		vArgs.prevRandSeed,
-		vArgs.round,
+	err := scm.PrepareBroadcastBlockDataValidator(
+		vArgs.header,
 		vArgs.miniBlocks,
-		vArgs.miniBlockHashes,
 		vArgs.transactions,
-		vArgs.order,
-	)
-
-	require.Equal(t, spos.ErrInvalidDataToBroadcast, err)
-}
-
-func TestShardChainMessenger_SetValidatorDelayBroadcastNoMiniBlocksShouldReturn(t *testing.T) {
-	args := createDefaultShardChainArgs()
-	scm, _ := broadcast.NewShardChainMessenger(args)
-	vArgs := createValidatorDelayArgs(0)
-	vArgs.miniBlocks = nil
-	vArgs.miniBlockHashes = nil
-
-	err := scm.SetValidatorDelayBroadcast(
-		vArgs.headerHash,
-		vArgs.prevRandSeed,
-		vArgs.round,
-		vArgs.miniBlocks,
-		vArgs.miniBlockHashes,
-		vArgs.transactions,
-		vArgs.order,
+		int(vArgs.order),
 	)
 
 	require.Equal(t, nil, err)
-}
-
-func TestShardChainMessenger_SetValidatorDelayBroadcastMissmatchMiniblocksAndTransactionsShouldErr(t *testing.T) {
-	args := createDefaultShardChainArgs()
-	scm, _ := broadcast.NewShardChainMessenger(args)
-	vArgs := createValidatorDelayArgs(0)
-	vArgs.miniBlocks = nil
-
-	err := scm.SetValidatorDelayBroadcast(
-		vArgs.headerHash,
-		vArgs.prevRandSeed,
-		vArgs.round,
-		vArgs.miniBlocks,
-		vArgs.miniBlockHashes,
-		vArgs.transactions,
-		vArgs.order,
-	)
-
-	require.Equal(t, spos.ErrInvalidDataToBroadcast, err)
 }

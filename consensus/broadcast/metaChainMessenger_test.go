@@ -17,14 +17,22 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
+	hasher := mock.HasherMock{}
+	headersSubscriber := &mock.HeadersCacherStub{}
+	interceptorsContainer := createInterceptorContainer()
 
 	return broadcast.MetaChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
-			Marshalizer:      marshalizerMock,
-			Messenger:        messengerMock,
-			PrivateKey:       privateKeyMock,
-			ShardCoordinator: shardCoordinatorMock,
-			SingleSigner:     singleSignerMock,
+			Marshalizer:                marshalizerMock,
+			Hasher:                     hasher,
+			Messenger:                  messengerMock,
+			PrivateKey:                 privateKeyMock,
+			ShardCoordinator:           shardCoordinatorMock,
+			SingleSigner:               singleSignerMock,
+			HeadersSubscriber:          headersSubscriber,
+			InterceptorsContainer:      interceptorsContainer,
+			MaxValidatorDelayCacheSize: 2,
+			MaxDelayCacheSize:          2,
 		},
 	}
 }

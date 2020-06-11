@@ -339,10 +339,10 @@ func (dbb *delayedBlockBroadcaster) registerHeaderInterceptorCallback(
 	selfShardID := dbb.shardCoordinator.SelfId()
 
 	if selfShardID == core.MetachainShardId {
-		return dbb.registerInterceptorsCallbackForMeta(factory.MetachainBlocksTopic, cb)
+		return dbb.registerInterceptorsCallbackForMetaHeader(cb)
 	}
 
-	identifierShardHeader := factory.ShardBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(selfShardID)
+	identifierShardHeader := factory.ShardBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err := dbb.interceptorsContainer.Get(identifierShardHeader)
 	if err != nil {
 		return err
@@ -356,18 +356,31 @@ func (dbb *delayedBlockBroadcaster) registerMiniBlockInterceptorCallback(
 	cb func(topic string, hash []byte, data interface{}),
 ) error {
 	if dbb.shardCoordinator.SelfId() == core.MetachainShardId {
-		return dbb.registerInterceptorsCallbackForMeta(factory.MiniBlocksTopic, cb)
+		return dbb.registerInterceptorsCallbackForMetaMiniblocks(cb)
 	}
 
 	return dbb.registerInterceptorsCallbackForShard(factory.MiniBlocksTopic, cb)
 }
 
-func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForMeta(
-	rootTopic string,
+func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForMetaHeader(
 	cb func(topic string, hash []byte, data interface{}),
 ) error {
-	identifierMiniBlocks := rootTopic + dbb.shardCoordinator.CommunicationIdentifier(core.AllShardId)
-	interceptor, err := dbb.interceptorsContainer.Get(identifierMiniBlocks)
+	identifier := factory.MetachainBlocksTopic
+	interceptor, err := dbb.interceptorsContainer.Get(identifier)
+	if err != nil {
+		return err
+	}
+
+	interceptor.RegisterHandler(cb)
+
+	return nil
+}
+
+func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForMetaMiniblocks(
+	cb func(topic string, hash []byte, data interface{}),
+) error {
+	identifier := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.AllShardId)
+	interceptor, err := dbb.interceptorsContainer.Get(identifier)
 	if err != nil {
 		return err
 	}
