@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+import (
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+)
 
 // SmartContractResultsProcessorMock -
 type SmartContractResultsProcessorMock struct {
@@ -8,7 +11,7 @@ type SmartContractResultsProcessorMock struct {
 }
 
 // ProcessSmartContractResult -
-func (scrp *SmartContractResultsProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (ReturnCode, error) {
+func (scrp *SmartContractResultsProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
 	if scrp.ProcessSmartContractResultCalled == nil {
 		return 0, nil
 	}

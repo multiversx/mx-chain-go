@@ -55,7 +55,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 		data,
 	)
 
-	err := txProc.ProcessTransaction(txRun)
+	_, err := txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -119,7 +119,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 		data,
 	)
 
-	err := txProc.ProcessTransaction(txRun)
+	_, err := txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -183,7 +183,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		data,
 	)
 
-	err := txProc.ProcessTransaction(txRun)
+	_, err := txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -248,7 +248,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		data,
 	)
 
-	err := txProc.ProcessTransaction(txRun)
+	_, err := txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -298,7 +298,7 @@ func deployContract(
 		scCode,
 	)
 
-	err := txProc.ProcessTransaction(tx)
+	_, err := txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()

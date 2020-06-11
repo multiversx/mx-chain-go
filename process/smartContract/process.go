@@ -254,6 +254,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return 0, err
 	}
 
+	if vmOutput == nil {
+		err = process.ErrNilVMOutput
+		log.Debug("run smart contract call error", "error", err.Error())
+		return vmcommon.UserError, nil
+	}
+
 	var consumedFee *big.Int
 	var results []data.TransactionHandler
 	results, consumedFee, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
@@ -538,6 +544,12 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, nil
 	}
 
+	if vmOutput == nil {
+		err = process.ErrNilVMOutput
+		log.Debug("run smart contract call error", "error", err.Error())
+		return vmcommon.UserError, nil
+	}
+
 	results, consumedFee, err := sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
@@ -631,7 +643,6 @@ func (sc *scProcessor) processVMOutput(
 	callType vmcommon.CallType,
 ) ([]data.TransactionHandler, *big.Int, error) {
 	if vmOutput == nil {
-		vmOutput = &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}
 		return nil, nil, process.ErrNilVMOutput
 	}
 	if check.IfNil(tx) {

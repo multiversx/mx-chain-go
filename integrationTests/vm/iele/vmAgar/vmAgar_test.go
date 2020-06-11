@@ -102,7 +102,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 		data,
 	)
 
-	err = testContext.TxProcessor.ProcessTransaction(txRun)
+	_, err = testContext.TxProcessor.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -162,7 +162,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	)
 
 	userNonce++
-	err = testContext.TxProcessor.ProcessTransaction(txRun)
+	_, err = testContext.TxProcessor.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -185,7 +185,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 		data,
 	)
 
-	err = testContext.TxProcessor.ProcessTransaction(txRun)
+	_, err = testContext.TxProcessor.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -273,7 +273,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 			data,
 		)
 
-		err = testContext.TxProcessor.ProcessTransaction(txRun)
+		_, err = testContext.TxProcessor.ProcessTransaction(txRun)
 		assert.Nil(t, err)
 
 		newUserBalance := vm.GetAccountsBalance(usersAddresses[i], testContext.Accounts)
@@ -306,7 +306,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 			data,
 		)
 
-		err = testContext.TxProcessor.ProcessTransaction(txRun)
+		_, err = testContext.TxProcessor.ProcessTransaction(txRun)
 		assert.Nil(t, err)
 
 		senderNonce++
@@ -385,6 +385,6 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 		)
 
 		b.StartTimer()
-		_ = testContext.TxProcessor.ProcessTransaction(txRun)
+		_, _ = testContext.TxProcessor.ProcessTransaction(txRun)
 	}
 }

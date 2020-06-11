@@ -380,7 +380,7 @@ func deploySystemSmartContracts(
 
 	for _, address := range systemSCAddresses {
 		tx.SndAddr = address
-		err := txProcessor.ProcessTransaction(tx)
+		_, err := txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err
 		}
@@ -415,7 +415,7 @@ func setStakedData(
 			Signature: nil,
 		}
 
-		err := txProcessor.ProcessTransaction(tx)
+		_, err := txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err
 		}

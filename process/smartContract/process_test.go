@@ -1556,7 +1556,7 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 	}
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
 	_, err = sc.ProcessSmartContractResult(&scr)
-	require.Nil(t, err)
+	require.Equal(t, err, process.ErrNilSCDestAccount)
 }
 
 func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
