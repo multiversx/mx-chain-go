@@ -620,7 +620,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if r.eei.IsValidator(args.Arguments[0]) {
-		r.eei.AddReturnMessage("unBond is not possible as the node with key " + string(args.Arguments[0]) + " is still a validator")
+		r.eei.AddReturnMessage("unbonding is not possible: the node with key " + string(args.Arguments[0]) + " is still a validator")
 		return vmcommon.UserError
 	}
 
