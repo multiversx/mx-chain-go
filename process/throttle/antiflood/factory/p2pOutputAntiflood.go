@@ -46,8 +46,8 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 		return nil, err
 	}
 
-	topicFloodPreventer := floodPreventers.NewNilTopicFloodPreventer()
+	topicFloodPreventer := disabled.NewNilTopicFloodPreventer()
 	startResettingTopicFloodPreventer(topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0), floodPreventer)
 
-	return antiflood.NewP2PAntiflood(&disabled.BlacklistHandler{}, topicFloodPreventer, floodPreventer)
+	return antiflood.NewP2PAntiflood(&disabled.PeerBlacklistHandler{}, topicFloodPreventer, floodPreventer)
 }

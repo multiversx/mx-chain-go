@@ -21,24 +21,22 @@ const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
 
 type economics struct {
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	store               dataRetriever.StorageService
-	shardCoordinator    sharding.Coordinator
-	nodesConfigProvider epochStart.NodesConfigProvider
-	rewardsHandler      process.RewardsHandler
-	roundTime           process.RoundTimeDurationHandler
+	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
+	store            dataRetriever.StorageService
+	shardCoordinator sharding.Coordinator
+	rewardsHandler   process.RewardsHandler
+	roundTime        process.RoundTimeDurationHandler
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
 type ArgsNewEpochEconomics struct {
-	Marshalizer         marshal.Marshalizer
-	Hasher              hashing.Hasher
-	Store               dataRetriever.StorageService
-	ShardCoordinator    sharding.Coordinator
-	NodesConfigProvider epochStart.NodesConfigProvider
-	RewardsHandler      process.RewardsHandler
-	RoundTime           process.RoundTimeDurationHandler
+	Marshalizer      marshal.Marshalizer
+	Hasher           hashing.Hasher
+	Store            dataRetriever.StorageService
+	ShardCoordinator sharding.Coordinator
+	RewardsHandler   process.RewardsHandler
+	RoundTime        process.RoundTimeDurationHandler
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -55,9 +53,6 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, epochStart.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.NodesConfigProvider) {
-		return nil, epochStart.ErrNilNodesConfigProvider
-	}
 	if check.IfNil(args.RewardsHandler) {
 		return nil, epochStart.ErrNilRewardsHandler
 	}
@@ -66,13 +61,12 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	}
 
 	e := &economics{
-		marshalizer:         args.Marshalizer,
-		hasher:              args.Hasher,
-		store:               args.Store,
-		shardCoordinator:    args.ShardCoordinator,
-		nodesConfigProvider: args.NodesConfigProvider,
-		rewardsHandler:      args.RewardsHandler,
-		roundTime:           args.RoundTime,
+		marshalizer:      args.Marshalizer,
+		hasher:           args.Hasher,
+		store:            args.Store,
+		shardCoordinator: args.ShardCoordinator,
+		rewardsHandler:   args.RewardsHandler,
+		roundTime:        args.RoundTime,
 	}
 	return e, nil
 }
@@ -136,11 +130,11 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	}
 
 	computedEconomics := block.Economics{
-		TotalSupply:            big.NewInt(0).Add(prevEpochEconomics.TotalSupply, newTokens),
-		TotalToDistribute:      big.NewInt(0).Set(totalRewardsToBeDistributed),
-		TotalNewlyMinted:       big.NewInt(0).Set(newTokens),
-		RewardsPerBlockPerNode: e.computeRewardsPerValidatorPerBlock(rwdPerBlock),
-		RewardsForCommunity:    rewardsForCommunity,
+		TotalSupply:         big.NewInt(0).Add(prevEpochEconomics.TotalSupply, newTokens),
+		TotalToDistribute:   big.NewInt(0).Set(totalRewardsToBeDistributed),
+		TotalNewlyMinted:    big.NewInt(0).Set(newTokens),
+		RewardsPerBlock:     rwdPerBlock,
+		RewardsForCommunity: rewardsForCommunity,
 		// TODO: get actual nodePrice from auction smart contract (currently on another feature branch, and not all features enabled)
 		NodePrice:           big.NewInt(0).Set(prevEpochEconomics.NodePrice),
 		PrevEpochStartRound: prevEpochStart.GetRound(),
@@ -184,12 +178,6 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 	rewardsForLeaders := core.GetPercentageOfValue(accumulatedFees, e.rewardsHandler.LeaderPercentage())
 	averageLeaderRewardPerBlock := big.NewInt(0).Div(rewardsForLeaders, big.NewInt(0).SetUint64(blocksInEpoch))
 	rwdPerBlock.Sub(rwdPerBlock, averageLeaderRewardPerBlock)
-}
-
-// compute rewards per node per block
-func (e *economics) computeRewardsPerValidatorPerBlock(rwdPerBlock *big.Int) *big.Int {
-	numOfNodes := core.MaxUint64(1, e.nodesConfigProvider.GetNumTotalEligible())
-	return big.NewInt(0).Div(rwdPerBlock, big.NewInt(0).SetUint64(numOfNodes))
 }
 
 // compute inflation rate from totalSupply and totalStaked
@@ -310,13 +298,13 @@ func logEconomicsDifferences(computed *block.Economics, received *block.Economic
 		"\ncomputed total to distribute", computed.TotalToDistribute,
 		"computed total newly minted", computed.TotalNewlyMinted,
 		"computed total supply", computed.TotalSupply,
-		"computed rewards per block per node", computed.RewardsPerBlockPerNode,
+		"computed rewards per block per node", computed.RewardsPerBlock,
 		"computed rewards for community", computed.RewardsForCommunity,
 		"computed node price", computed.NodePrice,
 		"\nreceived total to distribute", received.TotalToDistribute,
 		"received total newly minted", received.TotalNewlyMinted,
 		"received total supply", received.TotalSupply,
-		"received rewards per block per node", received.RewardsPerBlockPerNode,
+		"received rewards per block per node", received.RewardsPerBlock,
 		"received rewards for community", received.RewardsForCommunity,
 		"received node price", received.NodePrice,
 	)

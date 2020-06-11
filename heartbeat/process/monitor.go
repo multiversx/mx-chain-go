@@ -32,7 +32,7 @@ type ArgHeartbeatMonitor struct {
 	Timer                              heartbeat.Timer
 	AntifloodHandler                   heartbeat.P2PAntifloodHandler
 	HardforkTrigger                    heartbeat.HardforkTrigger
-	PeerBlackListHandler               heartbeat.BlackListHandler
+	PeerBlackListHandler               heartbeat.PeerBlackListHandler
 	ValidatorPubkeyConverter           core.PubkeyConverter
 	HeartbeatRefreshIntervalInSec      uint32
 	HideInactiveValidatorIntervalInSec uint32
@@ -56,7 +56,7 @@ type Monitor struct {
 	timer                              heartbeat.Timer
 	antifloodHandler                   heartbeat.P2PAntifloodHandler
 	hardforkTrigger                    heartbeat.HardforkTrigger
-	peerBlackListHandler               heartbeat.BlackListHandler
+	peerBlackListHandler               heartbeat.PeerBlackListHandler
 	validatorPubkeyConverter           core.PubkeyConverter
 	heartbeatRefreshIntervalInSec      uint32
 	hideInactiveValidatorIntervalInSec uint32
@@ -252,7 +252,7 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
-func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if check.IfNil(message) {
 		return heartbeat.ErrNilMessage
 	}
@@ -264,7 +264,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	if err != nil {
 		return err
 	}
-	err = m.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, core.HeartbeatTopic, 1)
+	err = m.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, core.HeartbeatTopic, 1, uint64(len(message.Data())), message.SeqNo())
 	if err != nil {
 		return err
 	}
@@ -282,8 +282,8 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	if !bytes.Equal(hbRecv.Pid, message.Peer().Bytes()) {
 		//this situation is so severe that we have to black list both the message originator and the connected peer
 		//that disseminated this message.
-		_ = m.peerBlackListHandler.Add(message.Peer().Pretty())
-		_ = m.peerBlackListHandler.Add(fromConnectedPeer.Pretty())
+		_ = m.peerBlackListHandler.Add(message.Peer())
+		_ = m.peerBlackListHandler.Add(fromConnectedPeer)
 
 		log.Debug("blacklisted due to inconsistent heartbeat message",
 			"message originator", p2p.PeerIdToShortString(message.Peer()),
@@ -292,7 +292,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 
 		return fmt.Errorf("%w heartbeat pid %s, message pid %s",
 			heartbeat.ErrHeartbeatPidMismatch,
-			p2p.PeerIdToShortString(p2p.PeerID(hbRecv.Pid)),
+			p2p.PeerIdToShortString(core.PeerID(hbRecv.Pid)),
 			p2p.PeerIdToShortString(message.Peer()),
 		)
 	}

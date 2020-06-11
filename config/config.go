@@ -88,6 +88,12 @@ type BlockSizeThrottleConfig struct {
 	MaxSizeInBytes uint32
 }
 
+// SoftwareVersionConfig will hold the configuration for software version checker
+type SoftwareVersionConfig struct {
+	StableTagLocation        string
+	PollingIntervalInMinutes int
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
@@ -128,9 +134,10 @@ type Config struct {
 	VmMarshalizer               TypeConfig
 	TxSignMarshalizer           TypeConfig
 
-	PublicKeyShardId CacheConfig
-	PublicKeyPeerId  CacheConfig
-	PeerIdShardId    CacheConfig
+	PublicKeyShardId            CacheConfig
+	PublicKeyPeerId             CacheConfig
+	PeerIdShardId               CacheConfig
+	P2PMessageIDAdditionalCache CacheConfig
 
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
@@ -148,6 +155,8 @@ type Config struct {
 
 	Hardfork HardforkConfig
 	Debug    DebugConfig
+
+	SoftwareVersionConfig SoftwareVersionConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -245,6 +254,7 @@ type TxAccumulatorConfig struct {
 type AntifloodConfig struct {
 	Enabled                   bool
 	NumConcurrentResolverJobs int32
+	OutOfSpecs                FloodPreventerConfig
 	FastReacting              FloodPreventerConfig
 	SlowReacting              FloodPreventerConfig
 	PeerMaxOutput             AntifloodLimitsConfig
@@ -291,27 +301,25 @@ type VirtualMachineOutOfProcessConfig struct {
 
 // HardforkConfig holds the configuration for the hardfork trigger
 type HardforkConfig struct {
-	EnableTrigger             bool
-	EnableTriggerFromP2P      bool
-	PublicKeyToListenFrom     string
-	CloseAfterExportInMinutes uint32
-
-	MustImport bool
-	StartRound uint64
-	StartNonce uint64
-	StartEpoch uint32
-
+	ExportStateStorageConfig     StorageConfig
+	ExportTriesStorageConfig     StorageConfig
+	ImportStateStorageConfig     StorageConfig
+	PublicKeyToListenFrom        string
+	ImportFolder                 string
+	StartRound                   uint64
+	StartNonce                   uint64
+	CloseAfterExportInMinutes    uint32
+	StartEpoch                   uint32
 	ValidatorGracePeriodInEpochs uint32
-
-	ImportFolder             string
-	ExportStateStorageConfig StorageConfig
-	ExportTriesStorageConfig StorageConfig
-	ImportStateStorageConfig StorageConfig
+	EnableTrigger                bool
+	EnableTriggerFromP2P         bool
+	MustImport                   bool
 }
 
 // DebugConfig will hold debugging configuration
 type DebugConfig struct {
 	InterceptorResolver InterceptorResolverDebugConfig
+	Antiflood           AntifloodDebugConfig
 }
 
 // InterceptorResolverDebugConfig will hold the interceptor-resolver debug configuration
@@ -323,6 +331,13 @@ type InterceptorResolverDebugConfig struct {
 	NumRequestsThreshold       int
 	NumResolveFailureThreshold int
 	DebugLineExpiration        int
+}
+
+// AntifloodDebugConfig will hold the antiflood debug configuration
+type AntifloodDebugConfig struct {
+	Enabled                    bool
+	CacheSize                  int
+	IntervalAutoPrintInSeconds int
 }
 
 // ApiRoutesConfig holds the configuration related to Rest API routes

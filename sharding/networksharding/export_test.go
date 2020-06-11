@@ -1,13 +1,13 @@
 package networksharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 const MaxNumPidsPerPk = maxNumPidsPerPk
 
-func (psm *PeerShardMapper) GetPkFromPidPk(pid p2p.PeerID) []byte {
+func (psm *PeerShardMapper) GetPkFromPidPk(pid core.PeerID) []byte {
 	pk, ok := psm.peerIdPk.Get([]byte(pid))
 	if !ok {
 		return nil
@@ -22,13 +22,13 @@ func (psm *PeerShardMapper) GetShardIdFromPkShardId(pk []byte) uint32 {
 	return shard.(uint32)
 }
 
-func (psm *PeerShardMapper) GetShardIdFromPidShardId(pid p2p.PeerID) uint32 {
+func (psm *PeerShardMapper) GetShardIdFromPidShardId(pid core.PeerID) uint32 {
 	shard, _ := psm.fallbackPidShard.Get([]byte(pid))
 
 	return shard.(uint32)
 }
 
-func (psm *PeerShardMapper) GetFromPkPeerId(pk []byte) []p2p.PeerID {
+func (psm *PeerShardMapper) GetFromPkPeerId(pk []byte) []core.PeerID {
 	objsPidsQueue, found := psm.pkPeerId.Get(pk)
 	if !found {
 		return nil

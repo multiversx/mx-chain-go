@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
+var fromConnectedPeerId = core.PeerID("from connected peer Id")
 var testTopic = "test topic"
 
 func TestNewMultiDataInterceptor_EmptyTopicShouldErr(t *testing.T) {
@@ -452,7 +452,7 @@ func TestMultiDataInterceptor_SetInterceptedDebugHandlerNilShouldErr(t *testing.
 
 	err := mdi.SetInterceptedDebugHandler(nil)
 
-	assert.Equal(t, process.ErrNilInterceptedDebugHandler, err)
+	assert.Equal(t, process.ErrNilDebugger, err)
 }
 
 func TestMultiDataInterceptor_SetInterceptedDebugHandlerShouldWork(t *testing.T) {

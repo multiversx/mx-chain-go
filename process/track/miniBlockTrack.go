@@ -1,6 +1,7 @@
 package track
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -50,7 +51,7 @@ func NewMiniBlockTrack(
 		shardCoordinator:         shardCoordinator,
 	}
 
-	mbt.miniBlocksPool.RegisterHandler(mbt.receivedMiniBlock)
+	mbt.miniBlocksPool.RegisterHandler(mbt.receivedMiniBlock, core.UniqueIdentifier())
 
 	return &mbt, nil
 }

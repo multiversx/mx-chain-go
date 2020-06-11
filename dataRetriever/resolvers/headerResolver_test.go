@@ -150,10 +150,10 @@ func TestHeaderResolver_ProcessReceivedCanProcessMessageErrorsShouldErr(t *testi
 	expectedErr := errors.New("expected error")
 	arg := createMockArgHeaderResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return expectedErr
 		},
-		CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 			return nil
 		},
 	}
@@ -264,7 +264,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			sendWasCalled = true
 			return nil
 		},
@@ -307,7 +307,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			return nil
 		},
 	}
@@ -346,7 +346,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSent = true
 			return nil
 		},
@@ -416,7 +416,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSent = true
 			return nil
 		},
@@ -470,7 +470,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSent = true
 			return nil
 		},
@@ -531,7 +531,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSend = true
 			return nil
 		},
@@ -589,7 +589,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			return nil
 		},
 		TargetShardIDCalled: func() uint32 {
