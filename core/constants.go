@@ -440,8 +440,11 @@ const ExtraDelayForBroadcastBlockInfo = 1 * time.Second
 // moment when its components, like mini blocks and transactions, would be requested too if they are still missing
 const ExtraDelayForRequestBlockInfo = 2 * time.Second
 
-// CommitMaxTime represents max time accepted for a put/commit action, after which a warn message is displayed
-const CommitMaxTime = time.Second
+// CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
+const CommitMaxTime = 3 * time.Second
+
+// PutInStorerMaxTime represents max time accepted for a put action, after which a warn message is displayed
+const PutInStorerMaxTime = time.Second
 
 // DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
 const DefaultUnstakedEpoch = math.MaxUint32
