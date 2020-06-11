@@ -542,6 +542,7 @@ func TestIsPresentInLastSnapshotDb(t *testing.T) {
 	tr.TakeSnapshot(rootHash2)
 	time.Sleep(snapshotDelay)
 
+	trieStorage.storageOperationMutex.Lock()
 	val, err := trieStorage.snapshots[0].Get(rootHash2)
 	assert.Nil(t, val)
 	assert.NotNil(t, err)
@@ -549,6 +550,7 @@ func TestIsPresentInLastSnapshotDb(t *testing.T) {
 	val, err = trieStorage.snapshots[1].Get(rootHash2)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
+	trieStorage.storageOperationMutex.Unlock()
 
 	assert.True(t, trieStorage.isPresentInLastSnapshotDb(rootHash2))
 }
@@ -571,6 +573,7 @@ func TestTrieSnapshotChecksOnlyLastSnapshotDbForTheHash(t *testing.T) {
 	tr.TakeSnapshot(rootHash2)
 	time.Sleep(snapshotDelay)
 
+	trieStorage.storageOperationMutex.Lock()
 	val, err := trieStorage.snapshots[0].Get(rootHash1)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
@@ -578,6 +581,7 @@ func TestTrieSnapshotChecksOnlyLastSnapshotDbForTheHash(t *testing.T) {
 	val, err = trieStorage.snapshots[1].Get(rootHash1)
 	assert.Nil(t, val)
 	assert.NotNil(t, err)
+	trieStorage.storageOperationMutex.Unlock()
 
 	assert.False(t, trieStorage.isPresentInLastSnapshotDb(rootHash1))
 }
