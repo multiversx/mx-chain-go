@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
+	"strings"
 	syncGo "sync"
 	"sync/atomic"
 	"time"
@@ -1082,6 +1084,51 @@ func (n *Node) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	}
 
 	return qh, nil
+}
+
+// GetPeerInfo returns information about a peer id
+func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
+	peers := n.messenger.Peers()
+	pidsFound := make([]core.PeerID, 0)
+	for _, p := range peers {
+		if strings.Contains(p.Pretty(), pid) {
+			pidsFound = append(pidsFound, p)
+		}
+	}
+
+	if len(pidsFound) == 0 {
+		return nil, fmt.Errorf("%w for provided peer %s", ErrUnknownPeerID, pid)
+	}
+
+	sort.Slice(pidsFound, func(i, j int) bool {
+		return pidsFound[i].Pretty() < pidsFound[j].Pretty()
+	})
+
+	peerInfoSlice := make([]core.QueryP2PPeerInfo, 0, len(pidsFound))
+	for _, p := range pidsFound {
+		pidInfo := n.createPidInfo(p)
+		peerInfoSlice = append(peerInfoSlice, pidInfo)
+	}
+
+	return peerInfoSlice, nil
+}
+
+func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
+	result := core.QueryP2PPeerInfo{
+		Pid:           p.Pretty(),
+		Addresses:     n.messenger.PeerAddresses(p),
+		IsBlacklisted: n.peerBlackListHandler.Has(p),
+	}
+
+	peerInfo := n.networkShardingCollector.GetPeerInfo(p)
+	result.PeerType = peerInfo.PeerType.String()
+	if len(peerInfo.PkBytes) == 0 {
+		result.Pk = ""
+	} else {
+		result.Pk = n.validatorPubkeyConverter.Encode(peerInfo.PkBytes)
+	}
+
+	return result
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

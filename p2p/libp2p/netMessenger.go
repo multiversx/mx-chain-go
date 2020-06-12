@@ -414,17 +414,9 @@ func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
 
 // Close closes the host, connections and streams
 func (netMes *networkMessenger) Close() error {
-	netMes.cancelFunc()
+	log.Debug("closing network messenger's host...")
 
 	var err error
-	errOplb := netMes.outgoingPLB.Close()
-	if errOplb != nil {
-		err = errOplb
-		log.Warn("networkMessenger.Close",
-			"component", "outgoingPLB",
-			"error", err)
-	}
-
 	errHost := netMes.p2pHost.Close()
 	if errHost != nil {
 		err = errHost
@@ -433,8 +425,22 @@ func (netMes *networkMessenger) Close() error {
 			"error", err)
 	}
 
+	log.Debug("closing network messenger's outgoing load balancer...")
+
+	errOplb := netMes.outgoingPLB.Close()
+	if errOplb != nil {
+		err = errOplb
+		log.Warn("networkMessenger.Close",
+			"component", "outgoingPLB",
+			"error", err)
+	}
+
+	log.Debug("closing network messenger's components through the context...")
+
+	netMes.cancelFunc()
+
 	if err == nil {
-		log.Debug("network messenger closed successfully")
+		log.Info("network messenger closed successfully")
 	}
 
 	return err
@@ -523,25 +529,26 @@ func (netMes *networkMessenger) ConnectedAddresses() []string {
 	return conns
 }
 
-// PeerAddress returns the peer's address or empty string if the peer is unknown
-func (netMes *networkMessenger) PeerAddress(pid core.PeerID) string {
+// PeerAddresses returns the peer's addresses or empty slice if the peer is unknown
+func (netMes *networkMessenger) PeerAddresses(pid core.PeerID) []string {
 	h := netMes.p2pHost
+	result := make([]string, 0)
 
 	//check if the peer is connected to return it's connected address
 	for _, c := range h.Network().Conns() {
 		if string(c.RemotePeer()) == string(pid.Bytes()) {
-			return c.RemoteMultiaddr().String()
+			result = append(result, c.RemoteMultiaddr().String())
+			break
 		}
 	}
 
 	//check in peerstore (maybe it is known but not connected)
 	addresses := h.Peerstore().Addrs(peer.ID(pid.Bytes()))
-	if len(addresses) == 0 {
-		return ""
+	for _, addr := range addresses {
+		result = append(result, addr.String())
 	}
 
-	//return the first address from multi address slice
-	return addresses[0].String()
+	return result
 }
 
 // ConnectedPeersOnTopic returns the connected peers on a provided topic
