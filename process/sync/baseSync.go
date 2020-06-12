@@ -229,7 +229,7 @@ func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
 
 // getNonceForNextBlock will get the nonce for the next block
 func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
-	nonce := uint64(1) // first block nonce after genesis block
+	nonce := boot.chainHandler.GetGenesisHeader().GetNonce() + 1 // first block nonce after genesis block
 	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currentBlockHeader) {
 		nonce = currentBlockHeader.GetNonce() + 1
@@ -239,7 +239,7 @@ func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
 
 // getNonceForCurrentBlock will get the nonce for the current block
 func (boot *baseBootstrap) getNonceForCurrentBlock() uint64 {
-	nonce := uint64(0) // genesis block nonce
+	nonce := boot.chainHandler.GetGenesisHeader().GetNonce() // genesis block nonce
 	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currentBlockHeader) {
 		nonce = currentBlockHeader.GetNonce()
@@ -329,7 +329,7 @@ func (boot *baseBootstrap) shouldTryToRequestHeaders() bool {
 }
 
 func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
-	lastSyncedRound := uint64(0)
+	lastSyncedRound := boot.chainHandler.GetGenesisHeader().GetRound()
 	currHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currHeader) {
 		lastSyncedRound = currHeader.GetRound()
