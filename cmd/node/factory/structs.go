@@ -302,25 +302,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	epochStartTrigger, err := newEpochStartTrigger(args, requestHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	requestHandler.SetEpoch(epochStartTrigger.Epoch())
-
-	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
-	if err != nil {
-		return nil, err
-	}
-
-	validatorStatsRootHash, err := validatorStatisticsProcessor.RootHash()
-	if err != nil {
-		return nil, err
-	}
-
-	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
-
 	txLogsStorage := args.data.Store.GetStorer(dataRetriever.TxLogsUnit)
 	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer:      txLogsStorage,
@@ -340,6 +321,24 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
+
+	epochStartTrigger, err := newEpochStartTrigger(args, requestHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	requestHandler.SetEpoch(epochStartTrigger.Epoch())
+
+	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
+	if err != nil {
+		return nil, err
+	}
+
+	validatorStatsRootHash, err := validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return nil, err
+	}
+	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 
 	bootStr := args.data.Store.GetStorer(dataRetriever.BootstrapUnit)
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(args.coreData.InternalMarshalizer, bootStr)
@@ -590,6 +589,7 @@ func newEpochStartTrigger(
 			GenesisTime:        time.Unix(args.nodesConfig.StartTime, 0),
 			Settings:           args.epochStart,
 			Epoch:              args.startEpochNum,
+			EpochStartRound:    args.data.Blkc.GetGenesisHeader().GetRound(),
 			EpochStartNotifier: args.epochStartNotifier,
 			Storage:            args.data.Store,
 			Marshalizer:        args.coreData.InternalMarshalizer,

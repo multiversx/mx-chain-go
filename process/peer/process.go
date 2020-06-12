@@ -775,7 +775,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			return shardInfoErr
 		}
 
-		if h.Nonce == 1 {
+		if h.Nonce == vs.genesisNonce+1 {
 			continue
 		}
 

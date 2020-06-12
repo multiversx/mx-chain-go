@@ -268,6 +268,7 @@ func (e *epochStartData) getShardDataFromEpochStartData(
 	shId uint32,
 	lastMetaHash []byte,
 ) ([]byte, []byte, error) {
+
 	prevEpoch := e.genesisEpoch
 	if e.epochStartTrigger.Epoch() > e.genesisEpoch {
 		prevEpoch = e.epochStartTrigger.Epoch() - 1
@@ -307,7 +308,7 @@ func (e *epochStartData) computePendingMiniBlockList(
 	allShardHdrList [][]*block.Header,
 ) ([]block.MiniBlockHeader, error) {
 
-	prevEpoch := uint32(0)
+	prevEpoch := e.genesisEpoch
 	if e.epochStartTrigger.Epoch() > e.genesisEpoch {
 		prevEpoch = e.epochStartTrigger.Epoch() - 1
 	}

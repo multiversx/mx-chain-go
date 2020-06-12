@@ -161,6 +161,7 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 	if err != nil {
 		return nil, err
 	}
+	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {

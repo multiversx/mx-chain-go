@@ -130,6 +130,7 @@ func createMetaGenesisAfterHardFork(
 	if err != nil {
 		return nil, err
 	}
+	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	metaHdr, ok := hdrHandler.(*block.MetaBlock)
 	if !ok {
