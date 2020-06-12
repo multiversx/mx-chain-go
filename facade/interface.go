@@ -3,6 +3,7 @@ package facade
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -58,6 +59,7 @@ type NodeHandler interface {
 	DecodeAddressPubkey(pk string) ([]byte, error)
 
 	GetQueryHandler(name string) (debug.QueryHandler, error)
+	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests
