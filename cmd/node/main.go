@@ -1730,6 +1730,7 @@ func createNodesCoordinator(
 	if errWaitingValidators != nil {
 		return nil, errWaitingValidators
 	}
+
 	currentEpoch := startEpoch
 	if bootstrapParameters.NodesConfig != nil {
 		nodeRegistry := bootstrapParameters.NodesConfig
