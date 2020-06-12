@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -34,11 +35,19 @@ func NewMetaForkDetector(
 		return nil, process.ErrNilBlockTracker
 	}
 
+	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
+	if err != nil {
+		return nil, err
+	}
+
 	bfd := &baseForkDetector{
 		rounder:          rounder,
 		blackListHandler: blackListHandler,
 		genesisTime:      genesisTime,
 		blockTracker:     blockTracker,
+		genesisNonce:     genesisHdr.GetNonce(),
+		genesisRound:     genesisHdr.GetRound(),
+		genesisEpoch:     genesisHdr.GetEpoch(),
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)

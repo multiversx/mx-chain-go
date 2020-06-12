@@ -48,6 +48,9 @@ type baseForkDetector struct {
 	blockTracker       process.BlockTracker
 	forkDetector       forkDetector
 	maxForkHeaderEpoch uint32
+	genesisNonce       uint64
+	genesisRound       uint64
+	genesisEpoch       uint32
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -351,6 +354,7 @@ func (bfd *baseForkDetector) RestoreToGenesis() {
 	bfd.mutHeaders.Unlock()
 
 	bfd.mutFork.Lock()
+
 	checkpoint := &checkpointInfo{}
 	bfd.fork.checkpoint = []*checkpointInfo{checkpoint}
 	bfd.fork.finalCheckpoint = checkpoint

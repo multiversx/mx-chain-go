@@ -36,11 +36,19 @@ func NewShardForkDetector(
 		return nil, process.ErrNilBlockTracker
 	}
 
+	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
+	if err != nil {
+		return nil, err
+	}
+
 	bfd := &baseForkDetector{
 		rounder:          rounder,
 		blackListHandler: blackListHandler,
 		genesisTime:      genesisTime,
 		blockTracker:     blockTracker,
+		genesisNonce:     genesisHdr.GetNonce(),
+		genesisRound:     genesisHdr.GetRound(),
+		genesisEpoch:     genesisHdr.GetEpoch(),
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
