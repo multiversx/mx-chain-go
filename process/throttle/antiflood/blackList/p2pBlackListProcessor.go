@@ -114,7 +114,7 @@ func (pbp *p2pBlackListProcessor) AddQuota(pid core.PeerID, numReceived uint32, 
 		return
 	}
 	if pid == pbp.selfPid {
-		log.Warn("current peer should have self banned",
+		log.Warn("current peer should have been blacklisted",
 			"name", pbp.name,
 			"total num messages", numReceived,
 			"total size", sizeReceived,
