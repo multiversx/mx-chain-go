@@ -42,3 +42,6 @@ var ErrTxNotFound = errors.New("transaction was not found")
 
 // ErrQueryError signals a general query error
 var ErrQueryError = errors.New("query error")
+
+// ErrGetPidInfo signals that an error occurred while getting peer ID info
+var ErrGetPidInfo = errors.New("error getting peer id info")

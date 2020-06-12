@@ -16,9 +16,10 @@ type MessengerStub struct {
 	BroadcastCalled                  func(topic string, buff []byte)
 	RegisterMessageProcessorCalled   func(topic string, handler p2p.MessageProcessor) error
 	BootstrapCalled                  func() error
-	PeerAddressCalled                func(pid core.PeerID) string
+	PeerAddressesCalled              func(pid core.PeerID) []string
 	BroadcastOnChannelBlockingCalled func(channel string, topic string, buff []byte) error
 	IsConnectedToTheNetworkCalled    func() bool
+	PeersCalled                      func() []core.PeerID
 }
 
 // ID -
@@ -73,9 +74,9 @@ func (ms *MessengerStub) Bootstrap() error {
 	return ms.BootstrapCalled()
 }
 
-// PeerAddress -
-func (ms *MessengerStub) PeerAddress(pid core.PeerID) string {
-	return ms.PeerAddressCalled(pid)
+// PeerAddresses -
+func (ms *MessengerStub) PeerAddresses(pid core.PeerID) []string {
+	return ms.PeerAddressesCalled(pid)
 }
 
 // BroadcastOnChannelBlocking -
@@ -86,6 +87,15 @@ func (ms *MessengerStub) BroadcastOnChannelBlocking(channel string, topic string
 // IsConnectedToTheNetwork -
 func (ms *MessengerStub) IsConnectedToTheNetwork() bool {
 	return ms.IsConnectedToTheNetworkCalled()
+}
+
+// Peers -
+func (ms *MessengerStub) Peers() []core.PeerID {
+	if ms.PeersCalled != nil {
+		return ms.PeersCalled()
+	}
+
+	return make([]core.PeerID, 0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
