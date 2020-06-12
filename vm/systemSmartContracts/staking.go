@@ -621,8 +621,12 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for jailed key %s", string(args.Arguments[0])))
 		return vmcommon.UserError
 	}
-	if !r.canUnBond() || r.eei.IsValidator(args.Arguments[0]) {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible as not enough remaining, key %s", string(args.Arguments[0])))
+	if !r.canUnBond() {
+		r.eei.AddReturnMessage("unbonding currently unavailable: number of total validators in the network is at minimum")
+		return vmcommon.UserError
+	}
+	if r.eei.IsValidator(args.Arguments[0]) {
+		r.eei.AddReturnMessage("unbonding is not possible: the node with key " + string(args.Arguments[0]) + " is still a validator")
 		return vmcommon.UserError
 	}
 

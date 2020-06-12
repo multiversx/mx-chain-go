@@ -1,6 +1,9 @@
 package core
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 // PeerType represents the type of a peer
 type PeerType string
@@ -439,3 +442,6 @@ const ExtraDelayForRequestBlockInfo = 4 * time.Second
 
 // CommitMaxTime represents max time accepted for a put/commit action, after which a warn message is displayed
 const CommitMaxTime = time.Second
+
+// DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
+const DefaultUnstakedEpoch = math.MaxUint32

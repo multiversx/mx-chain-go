@@ -36,24 +36,6 @@ func (computer *defaultScoreComputer) computeScore(scoreParams senderScoreParams
 	return truncatedScore
 }
 
-// score for a sender is defined as follows:
-//
-//                           (PPUAvg / PPUMin)^3
-// rawScore = ------------------------------------------------
-//            [ln(txCount^2 + 1) + 1] * [ln(txSize^2 + 1) + 1]
-//
-//                              1
-// asymptoticScore = [(------------------) - 0.5] * 2
-//                     1 + exp(-rawScore)
-//
-// For asymptoticScore, see (https://en.wikipedia.org/wiki/Logistic_function)
-//
-// Where:
-//  - PPUAvg: average gas points (fee) per processing unit, in nano ERD
-//  - PPUMin: minimum gas points (fee) per processing unit (given by economics.toml), in nano ERD
-//  - txCount: number of transactions
-//  - txSize: size of transactions, in kB (1000 bytes)
-//
 // TODO (optimization): switch to integer operations (as opposed to float operations).
 func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) float64 {
 	allParamsDefined := params.fee > 0 && params.gas > 0 && params.size > 0 && params.count > 0
