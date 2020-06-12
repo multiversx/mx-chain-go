@@ -14,8 +14,14 @@ var log = logger.GetOrCreate("termui/provider")
 
 const statusMetricsUrlSuffix = "/node/status"
 
+type statusMetricsResponseData struct {
+	Response map[string]interface{} `json:"metrics"`
+}
+
 type responseFromApi struct {
-	Response map[string]interface{} `json:"details"`
+	Data  statusMetricsResponseData `json:"data"`
+	Error string                    `json:"error"`
+	Code  string                    `json:"code"`
 }
 
 // StatusMetricsProvider is the struct that will handle initializing the presenter and fetching updated metrics from the node
@@ -88,7 +94,7 @@ func (smp *StatusMetricsProvider) loadMetricsFromApi() (map[string]interface{}, 
 		return nil, err
 	}
 
-	return metricsResponse.Response, nil
+	return metricsResponse.Data.Response, nil
 }
 
 func (smp *StatusMetricsProvider) applyMetricsToPresenter(metricsMap map[string]interface{}) {
