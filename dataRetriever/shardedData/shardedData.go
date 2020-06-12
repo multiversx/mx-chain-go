@@ -170,6 +170,7 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
 func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
 	store := sd.shardStore(cacheID)
 	if store == nil {
+		log.Error("shardedData.ImmunizeSetOfDataAgainstEviction(): cache is missing", "name", sd.name, "cacheID", cacheID)
 		return
 	}
 
