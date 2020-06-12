@@ -333,7 +333,10 @@ func (bfd *baseForkDetector) lastCheckpoint() *checkpointInfo {
 	lastIndex := len(bfd.fork.checkpoint) - 1
 	if lastIndex < 0 {
 		bfd.mutFork.RUnlock()
-		return &checkpointInfo{}
+		return &checkpointInfo{
+			nonce: bfd.genesisNonce,
+			round: bfd.genesisRound,
+		}
 	}
 	lastCheckpoint := bfd.fork.checkpoint[lastIndex]
 	bfd.mutFork.RUnlock()
@@ -355,11 +358,14 @@ func (bfd *baseForkDetector) RestoreToGenesis() {
 
 	bfd.mutFork.Lock()
 
-	checkpoint := &checkpointInfo{}
+	checkpoint := &checkpointInfo{
+		nonce: bfd.genesisNonce,
+		round: bfd.genesisRound,
+	}
 	bfd.fork.checkpoint = []*checkpointInfo{checkpoint}
 	bfd.fork.finalCheckpoint = checkpoint
-	bfd.fork.probableHighestNonce = 0
-	bfd.fork.highestNonceReceived = 0
+	bfd.fork.probableHighestNonce = bfd.genesisNonce
+	bfd.fork.highestNonceReceived = bfd.genesisNonce
 	bfd.mutFork.Unlock()
 }
 

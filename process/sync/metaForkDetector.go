@@ -52,10 +52,15 @@ func NewMetaForkDetector(
 
 	bfd.headers = make(map[uint64][]*headerInfo)
 	bfd.fork.checkpoint = make([]*checkpointInfo, 0)
-	checkpoint := &checkpointInfo{}
+	checkpoint := &checkpointInfo{
+		nonce: bfd.genesisNonce,
+		round: bfd.genesisRound,
+	}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
 	bfd.fork.rollBackNonce = math.MaxUint64
+	bfd.fork.probableHighestNonce = bfd.genesisNonce
+	bfd.fork.highestNonceReceived = bfd.genesisNonce
 
 	mfd := metaForkDetector{
 		baseForkDetector: bfd,
