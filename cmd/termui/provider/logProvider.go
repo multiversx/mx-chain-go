@@ -83,9 +83,9 @@ func startListeningOnWebSocket(presenter PresenterHandler) {
 
 		_, isConnectionClosed := err.(*websocket.CloseError)
 		if !isConnectionClosed {
-			log.Error("termui websocket error", "error", err.Error())
+			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket error: %s", err.Error())))
 		} else {
-			log.Debug("termui websocket terminated", "error", err.Error())
+			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket terminated: %s", err.Error())))
 		}
 		return
 	}
