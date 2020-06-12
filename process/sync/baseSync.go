@@ -278,9 +278,10 @@ func (boot *baseBootstrap) computeNodeState() {
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
+	genesisNonce := boot.chainHandler.GetGenesisHeader().GetNonce()
 	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if check.IfNil(currentHeader) {
-		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == genesisNonce
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
 	}
@@ -311,7 +312,7 @@ func (boot *baseBootstrap) computeNodeState() {
 }
 
 func (boot *baseBootstrap) shouldTryToRequestHeaders() bool {
-	if boot.rounder.Index() < 0 {
+	if boot.rounder.BeforeGenesis() {
 		return false
 	}
 	if boot.isForcedRollBackOneBlock() {
@@ -471,6 +472,9 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 		}
 
 		if !boot.networkWatcher.IsConnectedToTheNetwork() {
+			continue
+		}
+		if boot.rounder.BeforeGenesis() {
 			continue
 		}
 
