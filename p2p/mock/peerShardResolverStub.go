@@ -2,16 +2,15 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // PeerShardResolverStub -
 type PeerShardResolverStub struct {
-	GetPeerInfoCalled func(pid p2p.PeerID) core.P2PPeerInfo
+	GetPeerInfoCalled func(pid core.PeerID) core.P2PPeerInfo
 }
 
 // GetPeerInfo -
-func (psrs *PeerShardResolverStub) GetPeerInfo(pid p2p.PeerID) core.P2PPeerInfo {
+func (psrs *PeerShardResolverStub) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 	return psrs.GetPeerInfoCalled(pid)
 }
 

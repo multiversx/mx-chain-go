@@ -3,6 +3,8 @@ package resolvers
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -16,12 +18,15 @@ type messageProcessor struct {
 	topic            string
 }
 
-func (mp *messageProcessor) canProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (mp *messageProcessor) canProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+	if check.IfNil(message) {
+		return dataRetriever.ErrNilMessage
+	}
 	err := mp.antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return fmt.Errorf("%w on resolver topic %s", err, mp.topic)
 	}
-	err = mp.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, mp.topic, 1)
+	err = mp.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, mp.topic, 1, uint64(len(message.Data())), message.SeqNo())
 	if err != nil {
 		return fmt.Errorf("%w on resolver topic %s", err, mp.topic)
 	}

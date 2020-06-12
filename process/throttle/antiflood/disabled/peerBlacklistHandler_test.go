@@ -15,17 +15,17 @@ func TestBlacklistHandler_ShouldNotPanic(t *testing.T) {
 		assert.Nil(t, r, "this shouldn't panic")
 	}()
 
-	dbh := &BlacklistHandler{}
-	assert.False(t, check.IfNil(dbh))
+	pdbh := &PeerBlacklistHandler{}
+	assert.False(t, check.IfNil(pdbh))
 
-	val := dbh.Has("a")
+	val := pdbh.Has("a")
 	assert.False(t, val)
 
-	err := dbh.Add("")
+	err := pdbh.Add("")
 	assert.Nil(t, err)
 
-	err = dbh.AddWithSpan("", 0)
+	err = pdbh.AddWithSpan("", 0)
 	assert.Nil(t, err)
 
-	dbh.Sweep()
+	pdbh.Sweep()
 }

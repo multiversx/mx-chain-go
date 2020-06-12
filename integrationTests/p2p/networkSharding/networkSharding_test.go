@@ -15,6 +15,9 @@ var p2pBootstrapStepDelay = 2 * time.Second
 
 func createDefaultConfig() config.P2PConfig {
 	return config.P2PConfig{
+		Node: config.NodeConfig{
+			Port: "0",
+		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
 			RefreshIntervalInSec:             1,
@@ -24,17 +27,6 @@ func createDefaultConfig() config.P2PConfig {
 			BucketSize:                       100,
 		},
 	}
-}
-
-func TestConnectionsInNetworkShardingWithShardingWithPrioBits(t *testing.T) {
-	p2pConfig := createDefaultConfig()
-	p2pConfig.Sharding = config.ShardingConfig{
-		TargetPeerCount: 9,
-		PrioBits:        4,
-		Type:            p2p.PrioBitsSharder,
-	}
-
-	testConnectionsInNetworkSharding(t, p2pConfig)
 }
 
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {

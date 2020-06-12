@@ -263,8 +263,13 @@ func (cache *TxCache) MaxSize() int {
 }
 
 // RegisterHandler is not implemented
-func (cache *TxCache) RegisterHandler(func(key []byte, value interface{})) {
+func (cache *TxCache) RegisterHandler(func(key []byte, value interface{}), string) {
 	log.Error("TxCache.RegisterHandler is not implemented")
+}
+
+// UnRegisterHandler is not implemented
+func (cache *TxCache) UnRegisterHandler(string) {
+	log.Error("TxCache.UnRegisterHandler is not implemented")
 }
 
 // NotifyAccountNonce should be called by external components (such as interceptors and transactions processor)
@@ -274,7 +279,7 @@ func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 }
 
 // ImmunizeTxsAgainstEviction does nothing for this type of cache
-func (cache *TxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
+func (cache *TxCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

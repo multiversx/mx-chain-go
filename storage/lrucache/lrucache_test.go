@@ -304,7 +304,7 @@ func TestLRUCache_CacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t *testin
 	t.Parallel()
 
 	c, _ := lrucache.NewCache(100)
-	c.RegisterHandler(nil)
+	c.RegisterHandler(nil, "")
 
 	assert.Equal(t, 0, len(c.AddedDataHandlers()))
 }
@@ -330,7 +330,7 @@ func TestLRUCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
 	}()
 
 	c, _ := lrucache.NewCache(100)
-	c.RegisterHandler(f)
+	c.RegisterHandler(f, "")
 	c.Put([]byte("aaaa"), "bbbb", 0)
 
 	select {
@@ -364,7 +364,7 @@ func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *testing.T)
 	}()
 
 	c, _ := lrucache.NewCache(100)
-	c.RegisterHandler(f)
+	c.RegisterHandler(f, "")
 	c.HasOrAdd([]byte("aaaa"), "bbbb", 0)
 
 	select {
@@ -396,7 +396,7 @@ func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNotCall(t 
 	c, _ := lrucache.NewCache(100)
 	//first add, no call
 	c.HasOrAdd([]byte("aaaa"), "bbbb", 0)
-	c.RegisterHandler(f)
+	c.RegisterHandler(f, "")
 	//second add, should not call as the data was found
 	c.HasOrAdd([]byte("aaaa"), "bbbb", 0)
 

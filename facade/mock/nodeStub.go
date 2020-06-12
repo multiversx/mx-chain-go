@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -20,7 +21,7 @@ type NodeStub struct {
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
-	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
+	GetTransactionHandler                          func(hash string) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (state.UserAccountHandler, error)
 	GetCurrentPublicKeyHandler                     func() string
@@ -31,6 +32,27 @@ type NodeStub struct {
 	DirectTriggerCalled                            func(epoch uint32) error
 	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
+	GetTransactionStatusCalled                     func(hash string) (string, error)
+	GetValueForKeyCalled                           func(address string, key string) (string, error)
+	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
+}
+
+// GetValueForKey -
+func (ns *NodeStub) GetValueForKey(address string, key string) (string, error) {
+	if ns.GetValueForKeyCalled != nil {
+		return ns.GetValueForKeyCalled(address, key)
+	}
+
+	return "", nil
+}
+
+// GetTransactionStatus -
+func (ns *NodeStub) GetTransactionStatus(hash string) (string, error) {
+	if ns.GetTransactionStatusCalled != nil {
+		return ns.GetTransactionStatusCalled(hash)
+	}
+
+	return "unknown", nil
 }
 
 // EncodeAddressPubkey -
@@ -66,7 +88,7 @@ func (ns *NodeStub) ValidateTransaction(tx *transaction.Transaction) error {
 }
 
 // GetTransaction -
-func (ns *NodeStub) GetTransaction(hash string) (*transaction.Transaction, error) {
+func (ns *NodeStub) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
 	return ns.GetTransactionHandler(hash)
 }
 
@@ -107,6 +129,15 @@ func (ns *NodeStub) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	}
 
 	return nil, nil
+}
+
+// GetPeerInfo -
+func (ns *NodeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
+	if ns.GetPeerInfoCalled != nil {
+		return ns.GetPeerInfoCalled(pid)
+	}
+
+	return make([]core.QueryP2PPeerInfo, 0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

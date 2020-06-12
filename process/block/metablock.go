@@ -533,7 +533,25 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, metaBlock.GetEpoch())
+	epoch := metaBlock.GetEpoch()
+	shardCoordinatorShardID := mp.shardCoordinator.SelfId()
+	nodesCoordinatorShardID, err := mp.nodesCoordinator.ShardIdForEpoch(epoch)
+	if err != nil {
+		log.Debug("indexBlock",
+			"epoch", epoch,
+			"error", err.Error())
+		return
+	}
+
+	if shardCoordinatorShardID != nodesCoordinatorShardID {
+		log.Debug("indexBlock",
+			"epoch", epoch,
+			"shardCoordinator.ShardID", shardCoordinatorShardID,
+			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
+		return
+	}
+
+	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, epoch)
 	if err != nil {
 		return
 	}
@@ -1332,6 +1350,7 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
 			"hash", header.GetRootHash(),
+			"error", err.Error(),
 		)
 
 		return err
@@ -1342,6 +1361,7 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 		log.Debug("revert peer state with error for header",
 			"nonce", header.GetNonce(),
 			"validators root hash", header.GetValidatorStatsRootHash(),
+			"error", err.Error(),
 		)
 
 		return err
@@ -1730,6 +1750,7 @@ func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 			shardMiniBlockHeader.ReceiverShardID = shardHdr.MiniBlockHeaders[i].ReceiverShardID
 			shardMiniBlockHeader.Hash = shardHdr.MiniBlockHeaders[i].Hash
 			shardMiniBlockHeader.TxCount = shardHdr.MiniBlockHeaders[i].TxCount
+			shardMiniBlockHeader.Type = shardHdr.MiniBlockHeaders[i].Type
 
 			shardData.ShardMiniBlockHeaders = append(shardData.ShardMiniBlockHeaders, shardMiniBlockHeader)
 		}

@@ -319,6 +319,7 @@ func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
 			"hash", header.GetRootHash(),
+			"error", err,
 		)
 
 		return err
@@ -545,6 +546,22 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		epoch,
 	)
 	if err != nil {
+		return
+	}
+
+	nodesCoordinatorShardID, err := sp.nodesCoordinator.ShardIdForEpoch(epoch)
+	if err != nil {
+		log.Debug("indexBlockIfNeeded",
+			"epoch", epoch,
+			"error", err.Error())
+		return
+	}
+
+	if shardId != nodesCoordinatorShardID {
+		log.Debug("indexBlockIfNeeded",
+			"epoch", epoch,
+			"shardCoordinator.ShardID", shardId,
+			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
 		return
 	}
 

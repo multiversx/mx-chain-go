@@ -34,9 +34,6 @@ var ErrInvalidBatch = errors.New("batch is invalid")
 // ErrInvalidNumOpenFiles is raised when the max num of open files is less than 1
 var ErrInvalidNumOpenFiles = errors.New("maxOpenFiles is invalid")
 
-// ErrDuplicateKeyToAdd signals that a key can not be added as it already exists
-var ErrDuplicateKeyToAdd = errors.New("the key can not be added as it already exists")
-
 // ErrEmptyKey is raised when a key is empty
 var ErrEmptyKey = errors.New("key is empty")
 
@@ -117,3 +114,6 @@ var ErrLRUCacheInvalidSize = errors.New("wrong size in bytes value for LRU cache
 
 // ErrNegativeSizeInBytes signals that the provided size in bytes value is negative
 var ErrNegativeSizeInBytes = errors.New("negative size in bytes")
+
+// ErrNilTimeCache signals that a nil time cache has been provided
+var ErrNilTimeCache = errors.New("nil time cache")

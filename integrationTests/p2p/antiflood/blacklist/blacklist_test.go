@@ -140,7 +140,7 @@ func reConnectFloodingPeer(peers []p2p.Messenger, flooderIdx int, floodedIdxes [
 	}
 }
 
-func applyBlacklistComponents(peers []p2p.Messenger, blacklistHandler []process.BlackListHandler) {
+func applyBlacklistComponents(peers []p2p.Messenger, blacklistHandler []process.PeerBlackListHandler) {
 	for idx, peer := range peers {
 		_ = peer.SetPeerBlackListHandler(blacklistHandler[idx])
 	}
@@ -151,14 +151,14 @@ func createBlacklistHandlersAndProcessors(
 	thresholdNumReceived uint32,
 	thresholdSizeReceived uint64,
 	maxFloodingRounds uint32,
-) ([]floodPreventers.QuotaStatusHandler, []process.BlackListHandler) {
+) ([]floodPreventers.QuotaStatusHandler, []process.PeerBlackListHandler) {
 	var err error
 
 	blacklistProcessors := make([]floodPreventers.QuotaStatusHandler, len(peers))
-	blacklistHandlers := make([]process.BlackListHandler, len(peers))
+	blacklistHandlers := make([]process.PeerBlackListHandler, len(peers))
 	for i := range peers {
 		blacklistCache, _ := lrucache.NewCache(5000)
-		blacklistHandlers[i] = timecache.NewTimeCache(time.Minute * 5)
+		blacklistHandlers[i], _ = timecache.NewPeerTimeCache(timecache.NewTimeCache(time.Minute * 5))
 
 		blacklistProcessors[i], err = blackList.NewP2PBlackListProcessor(
 			blacklistCache,

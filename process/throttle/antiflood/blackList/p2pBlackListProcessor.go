@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -22,7 +22,7 @@ type p2pBlackListProcessor struct {
 	numFloodingRounds          uint32
 	thresholdSizeReceivedFlood uint64
 	cacher                     storage.Cacher
-	blacklistHandler           process.BlackListHandler
+	peerBlacklistHandler       process.PeerBlackListHandler
 	banDuration                time.Duration
 }
 
@@ -30,7 +30,7 @@ type p2pBlackListProcessor struct {
 // a flooding peer and mark it accordingly
 func NewP2PBlackListProcessor(
 	cacher storage.Cacher,
-	blacklistHandler process.BlackListHandler,
+	peerBlacklistHandler process.PeerBlackListHandler,
 	thresholdNumReceivedFlood uint32,
 	thresholdSizeReceivedFlood uint64,
 	numFloodingRounds uint32,
@@ -40,7 +40,7 @@ func NewP2PBlackListProcessor(
 	if check.IfNil(cacher) {
 		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilCacher)
 	}
-	if check.IfNil(blacklistHandler) {
+	if check.IfNil(peerBlacklistHandler) {
 		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilBlackListHandler)
 	}
 	if thresholdNumReceivedFlood == 0 {
@@ -58,7 +58,7 @@ func NewP2PBlackListProcessor(
 
 	return &p2pBlackListProcessor{
 		cacher:                     cacher,
-		blacklistHandler:           blacklistHandler,
+		peerBlacklistHandler:       peerBlacklistHandler,
 		thresholdNumReceivedFlood:  thresholdNumReceivedFlood,
 		thresholdSizeReceivedFlood: thresholdSizeReceivedFlood,
 		numFloodingRounds:          numFloodingRounds,
@@ -79,11 +79,12 @@ func (pbp *p2pBlackListProcessor) ResetStatistics() {
 
 		if val >= pbp.numFloodingRounds-1 { //-1 because the reset function is called before the AddQuota
 			pbp.cacher.Remove(key)
-			pid := p2p.PeerID(key)
+			pid := core.PeerID(key)
 			log.Debug("added new peer to black list",
 				"peer ID", pid.Pretty(),
+				"ban period", pbp.banDuration,
 			)
-			_ = pbp.blacklistHandler.AddWithSpan(string(key), pbp.banDuration)
+			_ = pbp.peerBlacklistHandler.AddWithSpan(pid, pbp.banDuration)
 		}
 	}
 }
@@ -100,27 +101,27 @@ func (pbp *p2pBlackListProcessor) getFloodingValue(key []byte) (uint32, bool) {
 }
 
 // AddQuota checks if the received quota for an identifier has exceeded the set thresholds
-func (pbp *p2pBlackListProcessor) AddQuota(identifier string, numReceived uint32, sizeReceived uint64, _ uint32, _ uint64) {
+func (pbp *p2pBlackListProcessor) AddQuota(pid core.PeerID, numReceived uint32, sizeReceived uint64, _ uint32, _ uint64) {
 	isFloodingPeer := numReceived >= pbp.thresholdNumReceivedFlood || sizeReceived >= pbp.thresholdSizeReceivedFlood
 	if isFloodingPeer {
-		pbp.incrementStatsFloodingPeer(identifier)
+		pbp.incrementStatsFloodingPeer(pid)
 	}
 }
 
-func (pbp *p2pBlackListProcessor) incrementStatsFloodingPeer(identifier string) {
-	obj, ok := pbp.cacher.Get([]byte(identifier))
+func (pbp *p2pBlackListProcessor) incrementStatsFloodingPeer(pid core.PeerID) {
+	obj, ok := pbp.cacher.Get(pid.Bytes())
 	if !ok {
-		pbp.cacher.Put([]byte(identifier), uint32(1), sizeBlacklistInfo)
+		pbp.cacher.Put(pid.Bytes(), uint32(1), sizeBlacklistInfo)
 		return
 	}
 
 	val, ok := obj.(uint32)
 	if !ok {
-		pbp.cacher.Put([]byte(identifier), uint32(1), sizeBlacklistInfo)
+		pbp.cacher.Put(pid.Bytes(), uint32(1), sizeBlacklistInfo)
 		return
 	}
 
-	pbp.cacher.Put([]byte(identifier), val+1, sizeBlacklistInfo)
+	pbp.cacher.Put(pid.Bytes(), val+1, sizeBlacklistInfo)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

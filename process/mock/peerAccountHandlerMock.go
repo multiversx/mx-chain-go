@@ -3,6 +3,7 @@ package mock
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -25,11 +26,16 @@ type PeerAccountHandlerMock struct {
 	GetConsecutiveProposerMissesCalled func() uint32
 	SetConsecutiveProposerMissesCalled func(rating uint32)
 	SetListAndIndexCalled              func(shardID uint32, list string, index uint32)
+	GetListCalled                      func() string
+	GetUnStakedEpochCalled             func() uint32
 }
 
 // GetUnStakedEpoch -
 func (p *PeerAccountHandlerMock) GetUnStakedEpoch() uint32 {
-	return 0
+	if p.GetUnStakedEpochCalled != nil {
+		return p.GetUnStakedEpochCalled()
+	}
+	return core.DefaultUnstakedEpoch
 }
 
 // SetUnStakedEpoch -
@@ -38,6 +44,9 @@ func (p *PeerAccountHandlerMock) SetUnStakedEpoch(_ uint32) {
 
 // GetList -
 func (p *PeerAccountHandlerMock) GetList() string {
+	if p.GetListCalled != nil {
+		return p.GetListCalled()
+	}
 	return ""
 }
 

@@ -52,12 +52,6 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.Rater) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilRater)
 	}
-	if len(args.TrieStorageManagers) == 0 {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTrieStorageManagers)
-	}
-	if check.IfNil(args.TrieContainer) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTriesContainer)
-	}
 	if len(args.DefaultDBPath) == 0 {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultDBPath)
 	}
@@ -93,6 +87,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if args.GeneralConfig.EpochStartConfig.MinNumConnectedPeersToStart < minNumConnectedPeers {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNotEnoughNumConnectedPeers)
+	}
+	if check.IfNil(args.StatusHandler) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilStatusHandler)
 	}
 
 	return nil

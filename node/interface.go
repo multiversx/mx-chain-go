@@ -3,6 +3,7 @@ package node
 import (
 	"io"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -17,26 +18,28 @@ type P2PMessenger interface {
 	HasTopic(name string) bool
 	HasTopicValidator(name string) bool
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
-	PeerAddress(pid p2p.PeerID) string
+	PeerAddresses(pid core.PeerID) []string
 	IsConnectedToTheNetwork() bool
-	ID() p2p.PeerID
+	ID() core.PeerID
+	Peers() []core.PeerID
 	IsInterfaceNil() bool
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 // The interface assures that the collected data will be used by the p2p network sharding components
 type NetworkShardingCollector interface {
-	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
+	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
-	UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32)
+	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
-	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
-	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	ApplyConsensusSize(size int)
@@ -57,5 +60,13 @@ type HardforkTrigger interface {
 	Trigger(epoch uint32) error
 	CreateData() []byte
 	IsSelfTrigger() bool
+	IsInterfaceNil() bool
+}
+
+// Throttler can monitor the number of the currently running go routines
+type Throttler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
 	IsInterfaceNil() bool
 }

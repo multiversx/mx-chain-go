@@ -8,23 +8,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
@@ -177,8 +171,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	nodeToJoinLate.Messenger = messenger
 
 	rounder := &mock.RounderMock{IndexField: int64(round)}
-
-	trieStorageManager, triesHolder, _ := createTries(getGeneralConfig(), integrationTests.TestMarshalizer, integrationTests.TestHasher, 0, &mock.PathManagerStub{})
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  nodeToJoinLate.NodeKeys.Pk,
 		Marshalizer:                integrationTests.TestMarshalizer,
@@ -202,12 +194,11 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterMock{},
 		DestinationShardAsObserver: shardID,
-		TrieContainer:              triesHolder,
-		TrieStorageManagers:        trieStorageManager,
 		Uint64Converter:            uint64Converter,
 		NodeShuffler:               &mock.NodeShufflerMock{},
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
+		StatusHandler:              &mock.AppStatusHandlerStub{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
@@ -277,56 +268,6 @@ func getBootstrapper(shardID uint32, baseArgs storageBootstrap.ArgsBaseStorageBo
 
 	bootstrapperArgs := storageBootstrap.ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: baseArgs}
 	return storageBootstrap.NewShardStorageBootstrapper(bootstrapperArgs)
-}
-
-func createTries(
-	config config.Config,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	shardId uint32,
-	pathManager storage.PathManagerHandler,
-) (map[string]data.StorageManager, state.TriesHolder, error) {
-
-	trieContainer := state.NewDataTriesHolder()
-	trieFactoryArgs := triesFactory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   config.EvictionWaitingList,
-		SnapshotDbCfg:            config.TrieSnapshotDB,
-		Marshalizer:              marshalizer,
-		Hasher:                   hasher,
-		PathManager:              pathManager,
-		TrieStorageManagerConfig: config.TrieStorageManagerConfig,
-	}
-	trieFactory, err := triesFactory.NewTrieFactory(trieFactoryArgs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactory.Create(
-		config.AccountsTrieStorage,
-		core.GetShardIdString(shardId),
-		config.StateTriesConfig.AccountsStatePruningEnabled,
-		config.StateTriesConfig.MaxStateTrieLevelInMemory,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(triesFactory.UserAccountTrie), userAccountTrie)
-	trieStorageManagers[triesFactory.UserAccountTrie] = userStorageManager
-
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
-		config.PeerAccountsTrieStorage,
-		core.GetShardIdString(shardId),
-		config.StateTriesConfig.PeerStatePruningEnabled,
-		config.StateTriesConfig.MaxPeerTrieLevelInMemory,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(triesFactory.PeerAccountTrie), peerAccountsTrie)
-	trieStorageManagers[triesFactory.PeerAccountTrie] = peerStorageManager
-
-	return trieStorageManagers, trieContainer, nil
 }
 
 // TODO: We should remove this type of configs hidden in tests

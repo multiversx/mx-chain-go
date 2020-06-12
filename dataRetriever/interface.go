@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -91,7 +92,7 @@ type ResolverThrottler interface {
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	SetResolverDebugHandler(handler ResolverDebugHandler) error
 	SetNumPeersToQuery(intra int, cross int)
 	NumPeersToQuery() (int, int)
@@ -121,7 +122,7 @@ type MiniBlocksResolver interface {
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
 	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error
-	Send(buff []byte, peer p2p.PeerID) error
+	Send(buff []byte, peer core.PeerID) error
 	RequestTopic() string
 	TargetShardID() uint32
 	SetNumPeersToQuery(intra int, cross int)
@@ -173,8 +174,8 @@ type EpochProviderByNonce interface {
 
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
-	ConnectedPeersOnTopic(topic string) []p2p.PeerID
-	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
+	ConnectedPeersOnTopic(topic string) []core.PeerID
+	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
 	IsInterfaceNil() bool
 }
 
@@ -229,8 +230,8 @@ type Notifier interface {
 
 // PeerListCreator is used to create a peer list
 type PeerListCreator interface {
-	PeerList() []p2p.PeerID
-	IntraShardPeerList() []p2p.PeerID
+	PeerList() []core.PeerID
+	IntraShardPeerList() []core.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -345,8 +346,8 @@ type RequestedItemsHandler interface {
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
-	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
-	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, _ uint64, sequence []byte) error
 	IsInterfaceNil() bool
 }
 
