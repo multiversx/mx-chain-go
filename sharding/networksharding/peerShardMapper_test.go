@@ -330,6 +330,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorHasTheShardId(t *testing.T) 
 	expectedPeerInfo := core.P2PPeerInfo{
 		PeerType: core.ValidatorPeer,
 		ShardID:  shardId,
+		PkBytes:  pk,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -382,6 +383,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 	expectedPeerInfo := core.P2PPeerInfo{
 		PeerType: core.ObserverPeer,
 		ShardID:  shardId,
+		PkBytes:  pk,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -528,6 +530,7 @@ func TestPeerShardMapper_GetPeerInfoShouldWorkConcurrently(t *testing.T) {
 			expectedPeerInfo := core.P2PPeerInfo{
 				PeerType: core.ObserverPeer,
 				ShardID:  shardId,
+				PkBytes:  pk,
 			}
 
 			assert.Equal(t, expectedPeerInfo, peerInfo)
