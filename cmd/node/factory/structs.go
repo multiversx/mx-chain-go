@@ -281,6 +281,26 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	txLogsStorage := args.data.Store.GetStorer(dataRetriever.TxLogsUnit)
+	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		Storer:      txLogsStorage,
+		Marshalizer: args.coreData.InternalMarshalizer,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	args.txLogsProcessor = txLogsProcessor
+	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(args, args.workingDir)
+	if err != nil {
+		return nil, err
+	}
+
+	err = prepareGenesisBlock(args, genesisBlocks)
+	if err != nil {
+		return nil, err
+	}
+
 	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(args)
 	if err != nil {
 		return nil, err
@@ -298,26 +318,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
-	if err != nil {
-		return nil, err
-	}
-
-	txLogsStorage := args.data.Store.GetStorer(dataRetriever.TxLogsUnit)
-	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      txLogsStorage,
-		Marshalizer: args.coreData.InternalMarshalizer,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	args.txLogsProcessor = txLogsProcessor
-	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(args, args.workingDir)
-	if err != nil {
-		return nil, err
-	}
-
-	err = prepareGenesisBlock(args, genesisBlocks)
 	if err != nil {
 		return nil, err
 	}
@@ -1718,6 +1718,7 @@ func newValidatorStatisticsProcessor(
 		RewardsHandler:      processComponents.economicsData,
 		NodesSetup:          processComponents.nodesConfig,
 		RatingEnableEpoch:   ratingEnabledEpoch,
+		GenesisNonce:        processComponents.data.Blkc.GetGenesisHeader().GetNonce(),
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
