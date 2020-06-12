@@ -37,10 +37,22 @@ func createValidatorDelayArgs(index int) *validatorDelayArgs {
 		header: &block.Header{
 			PrevRandSeed: []byte("prev rand seed" + iStr),
 			Round:        uint64(0),
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash:            []byte("miniBlockHash0" + iStr),
+					SenderShardID:   0,
+					ReceiverShardID: 0,
+				},
+				{
+					Hash:            []byte("miniBlockHash1" + iStr),
+					SenderShardID:   0,
+					ReceiverShardID: 1,
+				},
+			},
 		},
 		miniBlocks:       map[uint32][]byte{0: []byte("miniblock data sh0" + iStr), 1: []byte("miniblock data sh1" + iStr)},
-		miniBlockHashes:  map[string]map[string]struct{}{"topic_0": {"miniBlockHash0" + iStr: struct{}{}}, "topic_1": {"miniBlockHash1" + iStr: struct{}{}}},
-		transactions:     map[string][][]byte{"topic": {[]byte("tx1" + iStr), []byte("tx2" + iStr)}},
+		miniBlockHashes:  map[string]map[string]struct{}{"txBlockBodies_0": {"miniBlockHash0" + iStr: struct{}{}}, "txBlockBodies_0_1": {"miniBlockHash1" + iStr: struct{}{}}},
+		transactions:     map[string][][]byte{"transactions_0_1": {[]byte("tx1" + iStr), []byte("tx2" + iStr)}},
 		metaMiniBlocks:   map[uint32][]byte{0: []byte("meta miniblock data sh0" + iStr), 1: []byte("meta miniblock data sh1" + iStr)},
 		metaTransactions: map[string][][]byte{"mtopic": {[]byte("mtx1" + iStr), []byte("mtx2" + iStr)}},
 		order:            uint32(1),
@@ -371,6 +383,272 @@ func TestDelayedBlockBroadcaster_SetValidatorData(t *testing.T) {
 	require.Nil(t, err)
 
 	vbb := dbb.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbb))
+}
+
+func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedHeaderShouldSetAlarmAndBroadcastHeader(t *testing.T) {
+	t.Parallel()
+
+	mbBroadcastCalled := atomic.Counter{}
+	txBroadcastCalled := atomic.Counter{}
+	headerBroadcastCalled := atomic.Counter{}
+
+	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+		mbBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastTransactions := func(txData map[string][][]byte) error {
+		txBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastHeader := func(header data.HeaderHandler) error {
+		headerBroadcastCalled.Increment()
+		return nil
+	}
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	require.Nil(t, err)
+
+	vArgs := createValidatorDelayArgs(0)
+	vArgs.header.SetSignature([]byte("agg sig"))
+	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+		vArgs.headerHash,
+		vArgs.header,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.metaMiniBlocks,
+		vArgs.metaTransactions,
+		vArgs.order,
+	)
+	err = dbb.SetValidatorData(delayedData)
+	require.Nil(t, err)
+
+	vbb := dbb.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbb))
+	require.Equal(t, int64(0), headerBroadcastCalled.Get())
+	require.Equal(t, int64(0), mbBroadcastCalled.Get())
+	require.Equal(t, int64(0), txBroadcastCalled.Get())
+
+	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) + time.Millisecond*100
+	time.Sleep(sleepTime)
+
+	// alarm expired and sent header
+	require.Equal(t, int64(1), headerBroadcastCalled.Get())
+	require.Equal(t, int64(0), mbBroadcastCalled.Get())
+	require.Equal(t, int64(0), txBroadcastCalled.Get())
+
+	vbb = dbb.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbb))
+}
+
+func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAlarmAndBroadcastHeaderAndData(t *testing.T) {
+	t.Parallel()
+
+	mbBroadcastCalled := atomic.Counter{}
+	txBroadcastCalled := atomic.Counter{}
+	headerBroadcastCalled := atomic.Counter{}
+
+	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+		mbBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastTransactions := func(txData map[string][][]byte) error {
+		txBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastHeader := func(header data.HeaderHandler) error {
+		headerBroadcastCalled.Increment()
+		return nil
+	}
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
+		ShardID: core.MetachainShardId,
+	}
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	require.Nil(t, err)
+
+	vArgs := createValidatorDelayArgs(0)
+	vArgs.header.SetSignature([]byte("agg sig"))
+	vArgs.header.SetShardID(core.MetachainShardId)
+	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+		vArgs.headerHash,
+		vArgs.header,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.metaMiniBlocks,
+		vArgs.metaTransactions,
+		vArgs.order,
+	)
+	err = dbb.SetValidatorData(delayedData)
+	require.Nil(t, err)
+
+	vbb := dbb.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbb))
+	require.Equal(t, int64(0), headerBroadcastCalled.Get())
+	require.Equal(t, int64(0), mbBroadcastCalled.Get())
+	require.Equal(t, int64(0), txBroadcastCalled.Get())
+
+	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) + time.Millisecond*100
+	time.Sleep(sleepTime)
+
+	// alarm expired and sent header
+	require.Equal(t, int64(1), headerBroadcastCalled.Get())
+	require.Equal(t, int64(1), mbBroadcastCalled.Get())
+	require.Equal(t, int64(1), txBroadcastCalled.Get())
+
+	vbb = dbb.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbb))
+}
+
+func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T) {
+	t.Parallel()
+
+	mbBroadcastCalled := atomic.Counter{}
+	txBroadcastCalled := atomic.Counter{}
+	headerBroadcastCalled := atomic.Counter{}
+
+	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+		mbBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastTransactions := func(txData map[string][][]byte) error {
+		txBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastHeader := func(header data.HeaderHandler) error {
+		headerBroadcastCalled.Increment()
+		return nil
+	}
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
+		ShardID: core.MetachainShardId,
+	}
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	require.Nil(t, err)
+
+	vArgs := createValidatorDelayArgs(0)
+	vArgs.header.SetSignature([]byte("agg sig"))
+	vArgs.header.SetShardID(core.MetachainShardId)
+	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+		vArgs.headerHash,
+		vArgs.header,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.metaMiniBlocks,
+		vArgs.metaTransactions,
+		vArgs.order,
+	)
+	err = dbb.SetValidatorData(delayedData)
+	require.Nil(t, err)
+
+	vbb := dbb.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbb))
+	require.Equal(t, int64(0), headerBroadcastCalled.Get())
+	require.Equal(t, int64(0), mbBroadcastCalled.Get())
+	require.Equal(t, int64(0), txBroadcastCalled.Get())
+
+	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) + time.Second
+	// should cancel alarm
+	dbb.InterceptedHeaderData("headerTopic", vArgs.headerHash, vArgs.header)
+	time.Sleep(sleepTime)
+
+	require.Equal(t, int64(0), headerBroadcastCalled.Get())
+	require.Equal(t, int64(0), mbBroadcastCalled.Get())
+	require.Equal(t, int64(0), txBroadcastCalled.Get())
+
+	vbb = dbb.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbb))
+}
+
+func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore(t *testing.T) {
+	t.Parallel()
+
+	mbBroadcastCalled := atomic.Counter{}
+	txBroadcastCalled := atomic.Counter{}
+	headerBroadcastCalled := atomic.Counter{}
+
+	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+		mbBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastTransactions := func(txData map[string][][]byte) error {
+		txBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastHeader := func(header data.HeaderHandler) error {
+		headerBroadcastCalled.Increment()
+		return nil
+	}
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
+		ShardID: core.MetachainShardId,
+	}
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	require.Nil(t, err)
+
+	vArgs := createValidatorDelayArgs(0)
+	vArgs.header.SetSignature([]byte("agg sig"))
+	vArgs.header.SetShardID(core.MetachainShardId)
+	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
+		vArgs.headerHash,
+		vArgs.header,
+		vArgs.miniBlocks,
+		vArgs.miniBlockHashes,
+		vArgs.transactions,
+		vArgs.metaMiniBlocks,
+		vArgs.metaTransactions,
+		vArgs.order,
+	)
+	err = dbb.SetValidatorData(delayedData)
+	require.Nil(t, err)
+
+	vbb := dbb.GetValidatorBroadcastData()
+	require.Equal(t, 1, len(vbb))
+	require.Equal(t, int64(0), headerBroadcastCalled.Get())
+	require.Equal(t, int64(0), mbBroadcastCalled.Get())
+	require.Equal(t, int64(0), txBroadcastCalled.Get())
+
+	invalidHeader := []byte("not a header")
+	prevRandSeed := append([]byte(nil), vArgs.header.GetPrevRandSeed()...)
+	prevRandSeed[0] = ^prevRandSeed[0]
+	differentHeader := block.Header{
+		PrevRandSeed: prevRandSeed,
+		Round:        vArgs.header.GetRound() + 1,
+	}
+	headerHash := append([]byte(nil), vArgs.headerHash...)
+	headerHash[0] = ^headerHash[0]
+
+	// should not cancel alarm
+	dbb.InterceptedHeaderData("headerTopic", headerHash, differentHeader)
+	dbb.InterceptedMiniBlockData("headerTopic", headerHash, invalidHeader)
+	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) + time.Millisecond*100
+	time.Sleep(sleepTime)
+
+	// alarm expired and sent header
+	require.Equal(t, int64(1), headerBroadcastCalled.Get())
+	require.Equal(t, int64(1), mbBroadcastCalled.Get())
+	require.Equal(t, int64(1), txBroadcastCalled.Get())
+
+	vbb = dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbb))
 }
 
@@ -838,7 +1116,7 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
 	}
 
-	dbb.InterceptedMiniBlockData("topic_1", []byte("some other miniBlock hash"), &block.MiniBlock{})
+	dbb.InterceptedMiniBlockData("txBlockBodies_0_1", []byte("some other miniBlock hash"), &block.MiniBlock{})
 	vbd = dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
 
@@ -882,7 +1160,7 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 	vArgs := createValidatorDelayArgs(0)
 	miniBlockHashToNotify := []byte("miniBlockHash to notify")
 	destShardID := 1
-	vArgs.miniBlockHashes["topic_"+strconv.Itoa(destShardID)][string(miniBlockHashToNotify)] = struct{}{}
+	vArgs.miniBlockHashes["txBlockBodies_0_"+strconv.Itoa(destShardID)][string(miniBlockHashToNotify)] = struct{}{}
 	delayedData := broadcast.CreateDelayBroadcastDataForValidator(
 		vArgs.headerHash,
 		vArgs.header,
@@ -905,7 +1183,7 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 	}
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
-	dbb.InterceptedMiniBlockData("topic_"+strconv.Itoa(destShardID), miniBlockHashToNotify, &block.MiniBlock{})
+	dbb.InterceptedMiniBlockData("txBlockBodies_0_"+strconv.Itoa(destShardID), miniBlockHashToNotify, &block.MiniBlock{})
 	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
 	time.Sleep(timeToWait + 100*time.Millisecond)
 

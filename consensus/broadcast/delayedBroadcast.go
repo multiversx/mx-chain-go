@@ -153,6 +153,7 @@ func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *delayedBroad
 		dbb.alarm.Add(dbb.headerAlarmExpired, duration, prefixHeaderAlarm+string(broadcastData.headerHash))
 	}
 
+	broadcastData.miniBlockHashes = dbb.extractMiniBlockHashesCrossFromMe(broadcastData.header)
 	dbb.valBroadcastData = append(dbb.valBroadcastData, broadcastData)
 	if len(dbb.valBroadcastData) > int(dbb.maxValidatorDelayCacheSize) {
 		dbb.alarm.Cancel(prefixHeaderAlarm + string(dbb.valBroadcastData[0].headerHash))
@@ -260,7 +261,7 @@ func (dbb *delayedBlockBroadcaster) alarmExpired(alarmID string) {
 }
 
 func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
-	headerHash := strings.TrimLeft(alarmID, prefixHeaderAlarm)
+	headerHash := strings.TrimPrefix(alarmID, prefixHeaderAlarm)
 
 	dbb.mutDataForBroadcast.Lock()
 	defer dbb.mutDataForBroadcast.Unlock()
@@ -456,22 +457,37 @@ func (dbb *delayedBlockBroadcaster) interceptedMiniBlockData(topic string, hash 
 }
 
 func (dbb *delayedBlockBroadcaster) extractMiniBlockHashesCrossFromMe(header data.HeaderHandler) map[string]map[string]struct{} {
+	shardID := dbb.shardCoordinator.SelfId()
 	mbHashesForShards := make(map[string]map[string]struct{})
 	for i := uint32(0); i < dbb.shardCoordinator.NumberOfShards(); i++ {
-		if i == dbb.shardCoordinator.SelfId() {
+		if i == shardID {
 			continue
 		}
 		topic := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(i)
+		mbs := dbb.extractMbsFromMeTo(header, i)
+		if len(mbs) == 0 {
+			continue
+		}
+		mbHashesForShards[topic] = mbs
+	}
 
-		mbHashesForShards[topic] = make(map[string]struct{})
-
-		miniBlockHeaders := header.GetMiniBlockHeadersWithDst(i)
-		for key := range miniBlockHeaders {
-			mbHashesForShards[topic][key] = struct{}{}
+	if shardID != core.MetachainShardId {
+		topic := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
+		mbs := dbb.extractMbsFromMeTo(header, core.MetachainShardId)
+		if len(mbs) > 0 {
+			mbHashesForShards[topic] = mbs
 		}
 	}
 
-	// TODO: Do we need to add also for metachain?
-
 	return mbHashesForShards
+}
+
+func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler, toShardID uint32) map[string]struct{} {
+	mbHashesForShard := make(map[string]struct{})
+	miniBlockHeaders := header.GetMiniBlockHeadersWithDst(toShardID)
+	for key := range miniBlockHeaders {
+		mbHashesForShard[key] = struct{}{}
+	}
+
+	return mbHashesForShard
 }

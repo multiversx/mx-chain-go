@@ -143,6 +143,16 @@ func (dbb *delayedBlockBroadcaster) InterceptedMiniBlockData(topic string, hash 
 	dbb.interceptedMiniBlockData(topic, hash, data)
 }
 
+// InterceptedHeaderData -
+func (dbb *delayedBlockBroadcaster) InterceptedHeaderData(topic string, hash []byte, header interface{}) {
+	dbb.interceptedHeaderData(topic, hash, header)
+}
+
+// ExtractMiniBlockHashesCrossFromMe -
+func (dbb *delayedBlockBroadcaster) ExtractMiniBlockHashesCrossFromMe(header data.HeaderHandler) map[string]map[string]struct{} {
+	return dbb.extractMiniBlockHashesCrossFromMe(header)
+}
+
 // NewCommonMessenger will return a new instance of a commonMessenger
 func NewCommonMessenger(
 	marshalizer marshal.Marshalizer,

@@ -8,6 +8,7 @@ import (
 
 // ShardCoordinatorMock -
 type ShardCoordinatorMock struct {
+	ShardID uint32
 }
 
 // NumberOfShards -
@@ -27,7 +28,7 @@ func (scm ShardCoordinatorMock) SetSelfId(_ uint32) error {
 
 // SelfId -
 func (scm ShardCoordinatorMock) SelfId() uint32 {
-	return 0
+	return scm.ShardID
 }
 
 // SameShard -

@@ -1,7 +1,9 @@
 package broadcast_test
 
 import (
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
@@ -189,4 +191,45 @@ func TestSubroundEndRound_ExtractMiniBlocksAndTransactionsShouldWork(t *testing.
 	assert.Nil(t, transactions["transactions_0_META"])
 	assert.NotNil(t, metaMiniBlocks[core.MetachainShardId])
 	assert.NotNil(t, metaTransactions["transactions_0_META"])
+}
+
+func TestCommonMessenger_BroadcastBlockData(t *testing.T) {
+	marshalizerMock := &mock.MarshalizerMock{}
+	countersBroadcast := make(map[string]int)
+	mutCounters := &sync.Mutex{}
+
+	messengerMock := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			mutCounters.Lock()
+			countersBroadcast[topic]++
+			mutCounters.Unlock()
+		},
+	}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte(""), nil
+		},
+	}
+
+	cm, _ := broadcast.NewCommonMessenger(
+		marshalizerMock,
+		messengerMock,
+		privateKeyMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+	)
+
+	miniBlocks := map[uint32][]byte{0: []byte("mbs data1"), 1: []byte("mbs data2")}
+	transactions := map[string][][]byte{"topic1": {[]byte("txdata1"), []byte("txdata2")}, "topic2": {[]byte("txdata3")}}
+	delay := time.Millisecond * 10
+	cm.BroadcastBlockData(miniBlocks, transactions, delay)
+	time.Sleep(delay * 2)
+
+	mutCounters.Lock()
+	defer mutCounters.Unlock()
+
+	assert.Equal(t, len(miniBlocks), countersBroadcast["txBlockBodies_0"]+countersBroadcast["txBlockBodies_0_1"])
+	assert.Equal(t, len(transactions), countersBroadcast["topic1"]+countersBroadcast["topic2"])
 }

@@ -398,5 +398,20 @@ func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorNoMiniBlocksShoul
 		int(vArgs.order),
 	)
 
-	require.Equal(t, nil, err)
+	require.Nil(t, err)
+}
+
+func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorOK(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	scm, _ := broadcast.NewShardChainMessenger(args)
+	vArgs := createValidatorDelayArgs(0)
+
+	err := scm.PrepareBroadcastBlockDataValidator(
+		vArgs.header,
+		vArgs.miniBlocks,
+		vArgs.transactions,
+		int(vArgs.order),
+	)
+
+	require.Nil(t, err)
 }
