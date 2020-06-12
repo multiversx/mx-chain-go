@@ -516,3 +516,72 @@ func TestTriePruneAndCancelPruneAddedToBufferInOrder(t *testing.T) {
 	expectedHash = append(oldRootHash, byte(data.NewRoot))
 	assert.Equal(t, append(expectedHash, byte(cancelPrune)), bufferedHashes[2])
 }
+
+func TestIsPresentInLastSnapshotDbDoesNotPanicIfNoSnapshot(t *testing.T) {
+	t.Parallel()
+
+	_, trieStorage, _ := newEmptyTrie()
+	assert.False(t, trieStorage.isPresentInLastSnapshotDb([]byte("rootHash")))
+}
+
+func TestIsPresentInLastSnapshotDb(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+
+	_ = tr.Commit()
+	rootHash1, _ := tr.Root()
+	tr.TakeSnapshot(rootHash1)
+	time.Sleep(snapshotDelay)
+
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+
+	_ = tr.Commit()
+	rootHash2, _ := tr.Root()
+	tr.TakeSnapshot(rootHash2)
+	time.Sleep(snapshotDelay)
+
+	trieStorage.storageOperationMutex.Lock()
+	val, err := trieStorage.snapshots[0].Get(rootHash2)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+
+	val, err = trieStorage.snapshots[1].Get(rootHash2)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+	trieStorage.storageOperationMutex.Unlock()
+
+	assert.True(t, trieStorage.isPresentInLastSnapshotDb(rootHash2))
+}
+
+func TestTrieSnapshotChecksOnlyLastSnapshotDbForTheHash(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+
+	_ = tr.Commit()
+	rootHash1, _ := tr.Root()
+	tr.TakeSnapshot(rootHash1)
+	time.Sleep(snapshotDelay)
+
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+
+	_ = tr.Commit()
+	rootHash2, _ := tr.Root()
+	tr.TakeSnapshot(rootHash2)
+	time.Sleep(snapshotDelay)
+
+	trieStorage.storageOperationMutex.Lock()
+	val, err := trieStorage.snapshots[0].Get(rootHash1)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+
+	val, err = trieStorage.snapshots[1].Get(rootHash1)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
+	trieStorage.storageOperationMutex.Unlock()
+
+	assert.False(t, trieStorage.isPresentInLastSnapshotDb(rootHash1))
+}
