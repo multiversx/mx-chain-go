@@ -432,6 +432,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
+	_ = blkc.SetGenesisHeader(&block.Header{})
 	_ = blkc.SetCurrentBlockHeader(&hdr)
 	args.ChainHandler = blkc
 

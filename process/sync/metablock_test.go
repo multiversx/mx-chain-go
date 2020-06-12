@@ -278,6 +278,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 	args.Store = createMetaStore()
 
 	blkc := blockchain.NewMetaChain()
+	_ = blkc.SetGenesisHeader(&block.MetaBlock{})
 	_ = blkc.SetCurrentBlockHeader(&hdr)
 	args.ChainHandler = blkc
 
