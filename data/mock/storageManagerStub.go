@@ -1,8 +1,6 @@
 package mock
 
-import (
-	"github.com/ElrondNetwork/elrond-go/data"
-)
+import "github.com/ElrondNetwork/elrond-go/data"
 
 // StorageManagerStub --
 type StorageManagerStub struct {

@@ -12,6 +12,7 @@ type NodesCoordinatorStub struct {
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorWithPublicKeyCalled     func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error)
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
+	ConsensusGroupSizeCalled            func(shardID uint32) int
 }
 
 // GetChance -
@@ -86,7 +87,10 @@ func (ncm *NodesCoordinatorStub) ComputeConsensusGroup(
 }
 
 // ConsensusGroupSize -
-func (ncm *NodesCoordinatorStub) ConsensusGroupSize(uint32) int {
+func (ncm *NodesCoordinatorStub) ConsensusGroupSize(shardID uint32) int {
+	if ncm.ConsensusGroupSizeCalled != nil {
+		return ncm.ConsensusGroupSizeCalled(shardID)
+	}
 	return 1
 }
 
