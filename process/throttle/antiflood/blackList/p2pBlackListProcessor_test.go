@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const selfPid = "current pid"
+
 //-------- NewP2PQuotaBlacklistProcessor
 
 func TestNewP2PQuotaBlacklistProcessor_NilCacherShouldErr(t *testing.T) {
@@ -25,6 +27,8 @@ func TestNewP2PQuotaBlacklistProcessor_NilCacherShouldErr(t *testing.T) {
 		1,
 		2,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	assert.True(t, check.IfNil(pbp))
@@ -41,6 +45,8 @@ func TestNewP2PQuotaBlacklistProcessor_NilBlackListHandlerShouldErr(t *testing.T
 		1,
 		2,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	assert.True(t, check.IfNil(pbp))
@@ -57,6 +63,8 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdNumReceivedFloodShouldErr
 		1,
 		2,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	assert.True(t, check.IfNil(pbp))
@@ -73,6 +81,8 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdSizeReceivedFloodShouldEr
 		0,
 		2,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	assert.True(t, check.IfNil(pbp))
@@ -89,6 +99,8 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidNumFloodingRoundsShouldErr(t *test
 		1,
 		1,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	assert.True(t, check.IfNil(pbp))
@@ -105,6 +117,8 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidBanDurationShouldErr(t *testing.T)
 		1,
 		2,
 		time.Millisecond,
+		"",
+		selfPid,
 	)
 
 	assert.True(t, check.IfNil(pbp))
@@ -121,6 +135,8 @@ func TestNewP2PQuotaBlacklistProcessor_ShouldWork(t *testing.T) {
 		1,
 		2,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	assert.False(t, check.IfNil(pbp))
@@ -151,6 +167,8 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaUnderThresholdShouldNotCallGetOrPut(
 		thresholdSize,
 		2,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	pbp.AddQuota("identifier", thresholdNum-1, thresholdSize-1, 1, 1)
@@ -182,6 +200,8 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdInexistentDataOnGetShou
 		thresholdSize,
 		2,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	pbp.AddQuota(identifier, thresholdNum, thresholdSize, 1, 1)
@@ -215,6 +235,8 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdDataNotValidOnGetShould
 		thresholdSize,
 		2,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	pbp.AddQuota(identifier, thresholdNum, thresholdSize, 1, 1)
@@ -249,11 +271,45 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaShouldIncrement(t *testing.T) {
 		thresholdSize,
 		2,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	pbp.AddQuota(identifier, thresholdNum, thresholdSize, 1, 1)
 
 	assert.True(t, putCalled)
+}
+
+func TestP2PQuotaBlacklistProcessor_AddQuotaForSelfShouldNotIncrement(t *testing.T) {
+	t.Parallel()
+
+	thresholdNum := uint32(10)
+	thresholdSize := uint64(20)
+
+	putCalled := false
+	existingValue := uint32(445)
+	pbp, _ := blackList.NewP2PBlackListProcessor(
+		&mock.CacherStub{
+			GetCalled: func(key []byte) (interface{}, bool) {
+				return existingValue, true
+			},
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+				putCalled = true
+				return false
+			},
+		},
+		&mock.PeerBlackListHandlerStub{},
+		thresholdNum,
+		thresholdSize,
+		2,
+		time.Second,
+		"",
+		selfPid,
+	)
+
+	pbp.AddQuota(selfPid, thresholdNum, thresholdSize, 1, 1)
+
+	assert.False(t, putCalled)
 }
 
 //------- ResetStatistics
@@ -285,6 +341,8 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsRemoveNilValueKey(t *testing.
 		thresholdSize,
 		2,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	pbp.ResetStatistics()
@@ -319,6 +377,8 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsShouldRemoveInvalidValueKey(t
 		thresholdSize,
 		2,
 		time.Second,
+		"",
+		selfPid,
 	)
 
 	pbp.ResetStatistics()
@@ -361,6 +421,8 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsUnderNumFloodingRoundsShouldN
 		thresholdSize,
 		numFloodingRounds,
 		duration,
+		"",
+		selfPid,
 	)
 
 	pbp.ResetStatistics()
@@ -393,7 +455,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsOverNumFloodingRoundsShouldBl
 			},
 		},
 		&mock.PeerBlackListHandlerStub{
-			AddWithSpanCalled: func(pid core.PeerID, span time.Duration) error {
+			UpdateCalled: func(pid core.PeerID, span time.Duration) error {
 				addToBlacklistCalled = true
 				assert.Equal(t, duration, span)
 
@@ -404,6 +466,8 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsOverNumFloodingRoundsShouldBl
 		thresholdSize,
 		numFloodingRounds,
 		duration,
+		"",
+		selfPid,
 	)
 
 	pbp.ResetStatistics()
