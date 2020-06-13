@@ -19,7 +19,9 @@ func (s *snapshotDb) DecreaseNumReferences() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	s.numReferences--
+	if s.numReferences != 0 {
+		s.numReferences--
+	}
 
 	if s.numReferences == 0 && s.shouldBeRemoved {
 		removeSnapshot(s.DBWriteCacher, s.path)
