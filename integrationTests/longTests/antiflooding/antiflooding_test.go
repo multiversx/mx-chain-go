@@ -104,13 +104,21 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 		var err error
 
 		if intInSlice(i, idxBadPeers) {
-			antiflood, blackListHandler, err = factory.NewP2PAntiFloodAndBlackList(createDisabledConfig(), &mock.AppStatusHandlerStub{})
+			antiflood, blackListHandler, err = factory.NewP2PAntiFloodAndBlackList(
+				createDisabledConfig(),
+				&mock.AppStatusHandlerStub{},
+				peers[i].ID(),
+			)
 			log.LogIfError(err)
 		}
 
 		if intInSlice(i, idxGoodPeers) {
 			statusHandler := &mock.AppStatusHandlerStub{}
-			antiflood, blackListHandler, err = factory.NewP2PAntiFloodAndBlackList(createWorkableConfig(), statusHandler)
+			antiflood, blackListHandler, err = factory.NewP2PAntiFloodAndBlackList(
+				createWorkableConfig(),
+				statusHandler,
+				peers[i].ID(),
+			)
 			log.LogIfError(err)
 		}
 
