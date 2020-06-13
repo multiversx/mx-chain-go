@@ -126,7 +126,7 @@ func startTermuiViewer() error {
 		WithLoggerName:   argsConfig.logWithLoggerName,
 	}
 
-	err = provider.InitLogHandler(nodeAddress, loggerProfile, argsConfig.useWss)
+	err = provider.InitLogHandler(presenterStatusHandler, nodeAddress, loggerProfile, argsConfig.useWss)
 	if err != nil {
 		return err
 	}
@@ -137,8 +137,6 @@ func startTermuiViewer() error {
 		return err
 	}
 	chanStartTermUI <- struct{}{}
-
-	provider.StartListeningOnWebSocket(presenterStatusHandler)
 
 	waitForUserToTerminateApp()
 

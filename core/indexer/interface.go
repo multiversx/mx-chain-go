@@ -29,16 +29,17 @@ type databaseHandler interface {
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int)
 	SaveMiniblocks(header data.HeaderHandler, body *block.Body)
-	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardId uint32)
+	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32)
 	SaveRoundInfo(info RoundInfo)
-	SaveShardValidatorsPubKeys(shardId, epoch uint32, shardValidatorsPubKeys [][]byte)
+	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte)
 	SaveValidatorsRating(Index string, validatorsRatingInfo []ValidatorRatingInfo)
 	SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark)
 }
 
-// databaseWriterHandler is an interface that do requests to elasticsearch server do save data
-type databaseWriterHandler interface {
+// databaseClientHandler is an interface that do requests to elasticsearch server
+type databaseClientHandler interface {
 	DoRequest(req *esapi.IndexRequest) error
 	DoBulkRequest(buff *bytes.Buffer, index string) error
+	DoMultiGet(query object, index string) (object, error)
 	CheckAndCreateIndex(index string, body io.Reader) error
 }

@@ -33,12 +33,12 @@ type elasticSearchDatabaseArgs struct {
 // elasticSearchDatabase object it contains business logic built over databaseWriterHandler glue code wrapper
 type elasticSearchDatabase struct {
 	*txDatabaseProcessor
-	dbWriter    databaseWriterHandler
+	dbClient    databaseClientHandler
 	marshalizer marshal.Marshalizer
 	hasher      hashing.Hasher
 }
 
-// newElasticSearchDatabase is method that will create a new elastic search dbWriter
+// newElasticSearchDatabase is method that will create a new elastic search dbClient
 func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSearchDatabase, error) {
 	cfg := elasticsearch.Config{
 		Addresses: []string{arguments.url},
@@ -51,7 +51,7 @@ func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSear
 	}
 
 	esdb := &elasticSearchDatabase{
-		dbWriter:    es,
+		dbClient:    es,
 		marshalizer: arguments.marshalizer,
 		hasher:      arguments.hasher,
 	}
@@ -71,37 +71,37 @@ func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSear
 }
 
 func (esd *elasticSearchDatabase) createIndexes() error {
-	err := esd.dbWriter.CheckAndCreateIndex(blockIndex, timestampMapping())
+	err := esd.dbClient.CheckAndCreateIndex(blockIndex, timestampMapping())
 	if err != nil {
 		return err
 	}
 
-	err = esd.dbWriter.CheckAndCreateIndex(txIndex, timestampMapping())
+	err = esd.dbClient.CheckAndCreateIndex(txIndex, timestampMapping())
 	if err != nil {
 		return err
 	}
 
-	err = esd.dbWriter.CheckAndCreateIndex(tpsIndex, nil)
+	err = esd.dbClient.CheckAndCreateIndex(tpsIndex, nil)
 	if err != nil {
 		return err
 	}
 
-	err = esd.dbWriter.CheckAndCreateIndex(validatorsIndex, nil)
+	err = esd.dbClient.CheckAndCreateIndex(validatorsIndex, nil)
 	if err != nil {
 		return err
 	}
 
-	err = esd.dbWriter.CheckAndCreateIndex(roundIndex, timestampMapping())
+	err = esd.dbClient.CheckAndCreateIndex(roundIndex, timestampMapping())
 	if err != nil {
 		return err
 	}
 
-	err = esd.dbWriter.CheckAndCreateIndex(ratingIndex, nil)
+	err = esd.dbClient.CheckAndCreateIndex(ratingIndex, nil)
 	if err != nil {
 		return err
 	}
 
-	err = esd.dbWriter.CheckAndCreateIndex(miniblocksIndex, nil)
+	err = esd.dbClient.CheckAndCreateIndex(miniblocksIndex, nil)
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (esd *elasticSearchDatabase) SaveHeader(
 		Refresh:    "true",
 	}
 
-	err = esd.dbWriter.DoRequest(req)
+	err = esd.dbClient.DoRequest(req)
 	if err != nil {
 		log.Warn("indexer: could not index block header", "error", err.Error())
 		return
@@ -212,12 +212,12 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 ) {
 	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardID)
 	for _, bulk := range bulks {
-		buff := serializeBulkTxs(bulk, selfShardID)
+		buff := serializeBulkTxs(bulk, selfShardID, esd.foundedObjMap)
 		if buff.Len() == 0 {
 			continue
 		}
 
-		err := esd.dbWriter.DoBulkRequest(&buff, txIndex)
+		err := esd.dbClient.DoBulkRequest(&buff, txIndex)
 		if err != nil {
 			log.Warn("indexer", "error", "indexing bulk of transactions")
 			continue
@@ -236,9 +236,9 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 	body *block.Body,
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
-	selfShardId uint32,
+	selfShardID uint32,
 ) [][]*Transaction {
-	txs := esd.prepareTransactionsForDatabase(body, header, txPool, selfShardId)
+	txs := esd.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
 
 	bulks := make([][]*Transaction, (len(txs)/txBulkSize)+1)
 	for i := 0; i < len(bulks); i++ {
@@ -264,8 +264,8 @@ func (esd *elasticSearchDatabase) SaveMiniblocks(header data.HeaderHandler, body
 		return
 	}
 
-	buff := serializeBulkMiniBlocks(header.GetShardID(), miniblocks)
-	err := esd.dbWriter.DoBulkRequest(&buff, miniblocksIndex)
+	buff := serializeBulkMiniBlocks(header.GetShardID(), miniblocks, esd.foundedObjMap)
+	err := esd.dbClient.DoBulkRequest(&buff, miniblocksIndex)
 	if err != nil {
 		log.Warn("indexing bulk of miniblocks", "error", err.Error())
 	}
@@ -338,7 +338,7 @@ func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
 		Refresh:    "true",
 	}
 
-	err = esd.dbWriter.DoRequest(req)
+	err = esd.dbClient.DoRequest(req)
 	if err != nil {
 		log.Warn("indexer: can not index round info", "error", err.Error())
 		return
@@ -376,7 +376,7 @@ func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardID, epoch uint
 		Refresh:    "true",
 	}
 
-	err = esd.dbWriter.DoRequest(req)
+	err = esd.dbClient.DoRequest(req)
 	if err != nil {
 		log.Warn("indexer: can not index validators pubkey", "error", err.Error())
 		return
@@ -408,7 +408,7 @@ func (esd *elasticSearchDatabase) SaveValidatorsRating(index string, validatorsR
 		Refresh:    "true",
 	}
 
-	err = esd.dbWriter.DoRequest(req)
+	err = esd.dbClient.DoRequest(req)
 	if err != nil {
 		log.Warn("indexer: can not index validators rating", "error", err.Error())
 		return
@@ -435,10 +435,19 @@ func (esd *elasticSearchDatabase) SaveShardStatistics(tpsBenchmark statistics.TP
 			log.Warn("elastic search: update TPS write serialized data", "error", err.Error())
 		}
 
-		err = esd.dbWriter.DoBulkRequest(&buff, tpsIndex)
+		err = esd.dbClient.DoBulkRequest(&buff, tpsIndex)
 		if err != nil {
 			log.Warn("indexer: error indexing tps information", "error", err.Error())
 			continue
 		}
 	}
+}
+
+func (esd *elasticSearchDatabase) foundedObjMap(hashes []string, index string) (map[string]bool, error) {
+	response, err := esd.dbClient.DoMultiGet(txsByHashes(hashes), index)
+	if err != nil {
+		return nil, err
+	}
+
+	return getDecodedResponseMultiGet(response), nil
 }
