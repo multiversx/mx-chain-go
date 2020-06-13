@@ -3,6 +3,7 @@ package indexer
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,28 +12,28 @@ import (
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
-type databaseWriter struct {
-	dbWriter *elasticsearch.Client
+type databaseClient struct {
+	dbClient *elasticsearch.Client
 }
 
-func newDatabaseWriter(cfg elasticsearch.Config) (*databaseWriter, error) {
+func newDatabaseWriter(cfg elasticsearch.Config) (*databaseClient, error) {
 	es, err := elasticsearch.NewClient(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return &databaseWriter{dbWriter: es}, nil
+	return &databaseClient{dbClient: es}, nil
 }
 
 // CheckAndCreateIndex will check if a index exits and if dont will create a new one
-func (dw *databaseWriter) CheckAndCreateIndex(index string, body io.Reader) error {
+func (dc *databaseClient) CheckAndCreateIndex(index string, body io.Reader) error {
 	var res *esapi.Response
 	var err error
 	defer func() {
 		closeESResponseBody(res)
 	}()
 
-	res, err = dw.dbWriter.Indices.Exists([]string{index})
+	res, err = dc.dbClient.Indices.Exists([]string{index})
 	if err != nil {
 		return err
 	}
@@ -45,7 +46,7 @@ func (dw *databaseWriter) CheckAndCreateIndex(index string, body io.Reader) erro
 	}
 	// A status code of 404 means the index does not exist so we create it
 	if res.StatusCode == http.StatusNotFound {
-		err = dw.createDatabaseIndex(index, body)
+		err = dc.createDatabaseIndex(index, body)
 		if err != nil {
 			return err
 		}
@@ -54,7 +55,7 @@ func (dw *databaseWriter) CheckAndCreateIndex(index string, body io.Reader) erro
 	return nil
 }
 
-func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) error {
+func (dc *databaseClient) createDatabaseIndex(index string, body io.Reader) error {
 	var err error
 	var res *esapi.Response
 	defer func() {
@@ -62,9 +63,9 @@ func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) erro
 	}()
 
 	if body != nil {
-		res, err = dw.dbWriter.Indices.Create(index, dw.dbWriter.Indices.Create.WithBody(body))
+		res, err = dc.dbClient.Indices.Create(index, dc.dbClient.Indices.Create.WithBody(body))
 	} else {
-		res, err = dw.dbWriter.Indices.Create(index)
+		res, err = dc.dbClient.Indices.Create(index)
 	}
 
 	if err != nil {
@@ -85,14 +86,14 @@ func (dw *databaseWriter) createDatabaseIndex(index string, body io.Reader) erro
 }
 
 // DoRequest will do a request to elastic server
-func (dw *databaseWriter) DoRequest(req *esapi.IndexRequest) error {
+func (dc *databaseClient) DoRequest(req *esapi.IndexRequest) error {
 	var err error
 	var res *esapi.Response
 	defer func() {
 		closeESResponseBody(res)
 	}()
 
-	res, err = req.Do(context.Background(), dw.dbWriter)
+	res, err = req.Do(context.Background(), dc.dbClient)
 	if err != nil {
 		return err
 	}
@@ -105,7 +106,7 @@ func (dw *databaseWriter) DoRequest(req *esapi.IndexRequest) error {
 }
 
 // DoBulkRequest will do a bulk of request to elastic server
-func (dw *databaseWriter) DoBulkRequest(buff *bytes.Buffer, index string) error {
+func (dc *databaseClient) DoBulkRequest(buff *bytes.Buffer, index string) error {
 	reader := bytes.NewReader(buff.Bytes())
 
 	var err error
@@ -114,17 +115,51 @@ func (dw *databaseWriter) DoBulkRequest(buff *bytes.Buffer, index string) error 
 		closeESResponseBody(res)
 	}()
 
-	res, err = dw.dbWriter.Bulk(reader, dw.dbWriter.Bulk.WithIndex(index))
+	res, err = dc.dbClient.Bulk(reader, dc.dbClient.Bulk.WithIndex(index))
 	if err != nil {
 		return err
 	}
 
 	if res.IsError() {
 		log.Warn("indexer", "error", res.String())
-		return fmt.Errorf("do bulk requrest %s", res.String())
+		return fmt.Errorf("do bulk request %s", res.String())
 	}
 
 	return nil
+}
+
+// DoMultiGet wil do a multi get request to elaticsearch server
+func (dc *databaseClient) DoMultiGet(obj object, index string) (object, error) {
+	body, err := encode(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	var res *esapi.Response
+	defer func() {
+		closeESResponseBody(res)
+	}()
+
+	res, err = dc.dbClient.Mget(
+		&body,
+		dc.dbClient.Mget.WithDocumentType("_doc"),
+		dc.dbClient.Mget.WithIndex(index),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.IsError() {
+		log.Warn("indexer: cannot do multi get", "error", res.String())
+		return nil, fmt.Errorf("do multi get %s", res.String())
+	}
+
+	var decodedBody object
+	if err := json.NewDecoder(res.Body).Decode(&decodedBody); err != nil {
+		return nil, err
+	}
+
+	return decodedBody, nil
 }
 
 func closeESResponseBody(res *esapi.Response) {
