@@ -29,7 +29,6 @@ type ArgStandardDelegationProcessor struct {
 const stakeFunction = "stakeGenesis"
 const addNodesFunction = "addNodes"
 const activateFunction = "activateGenesis"
-const setServiceFeeFunction = "setServiceFee"
 const setStakePerNodeFunction = "setStakePerNode"
 
 var log = logger.GetOrCreate("genesis/process/intermediate")
@@ -164,23 +163,6 @@ func (sdp *standardDelegationProcessor) setDelegationStartParameters(smartContra
 	}
 
 	return nil
-}
-
-func (sdp *standardDelegationProcessor) executeSetServiceFee(serviceFee int, sc genesis.InitialSmartContractHandler) error {
-	setServiceFeeTxData := fmt.Sprintf("%s@%x", setServiceFeeFunction, serviceFee)
-
-	nonce, err := sdp.GetNonce(sc.OwnerBytes())
-	if err != nil {
-		return err
-	}
-
-	return sdp.ExecuteTransaction(
-		nonce,
-		sc.OwnerBytes(),
-		sc.AddressBytes(),
-		zero,
-		[]byte(setServiceFeeTxData),
-	)
 }
 
 func (sdp *standardDelegationProcessor) executeSetNodePrice(sc genesis.InitialSmartContractHandler) error {
@@ -435,8 +417,8 @@ func (sdp *standardDelegationProcessor) checkDelegator(
 	if len(vmOutputStakeValue.ReturnData) != 1 {
 		return fmt.Errorf("%w return data should have contained one element", genesis.ErrWhileVerifyingDelegation)
 	}
-	scStakedValue := big.NewInt(0).SetBytes(vmOutputStakeValue.ReturnData[0])
 
+	scStakedValue := big.NewInt(0).SetBytes(vmOutputStakeValue.ReturnData[0])
 	if scStakedValue.Cmp(delegator.GetDelegationHandler().GetValue()) != 0 {
 		return fmt.Errorf("%w staked data mismatch: from SC: %s, provided: %s, account %s",
 			genesis.ErrWhileVerifyingDelegation, scStakedValue.String(),

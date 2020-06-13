@@ -519,11 +519,11 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
-	nodesPerShard := 1
-	numMetachainNodes := 1
-	shardConsensusGroupSize := 1
-	metaConsensusGroupSize := 1
+	numOfShards := 2
+	nodesPerShard := 3
+	numMetachainNodes := 3
+	shardConsensusGroupSize := 2
+	metaConsensusGroupSize := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
