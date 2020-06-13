@@ -302,23 +302,46 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 		)
 	}
 
-	db := tr.trieStorage.GetDbThatContainsHash(root)
+	newTr := tr.recreateFromMainDb(root)
+	if newTr != nil {
+		return newTr, nil
+	}
+
+	return tr.recreateFromSnapshotDb(root)
+}
+
+func (tr *patriciaMerkleTrie) recreateFromMainDb(rootHash []byte) data.Trie {
+	_, err := tr.Database().Get(rootHash)
+	if err != nil {
+		return nil
+	}
+
+	newTr, _, err := tr.recreateFromDb(rootHash, tr.Database(), tr.trieStorage)
+	if err != nil {
+		log.Warn("trie recreate error:", "error", err, "root", hex.EncodeToString(rootHash))
+	}
+
+	return newTr
+}
+
+func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (data.Trie, error) {
+	db := tr.trieStorage.GetSnapshotThatContainsHash(rootHash)
 	if db == nil {
 		return nil, ErrHashNotFound
 	}
 
-	newTr, newRoot, err := tr.recreateFromDb(root, db, tr.trieStorage)
+	newTr, newRoot, err := tr.recreateFromDb(rootHash, db, tr.trieStorage)
 	if err != nil {
-		err = fmt.Errorf("trie recreate error: %w, for root %v", err, hex.EncodeToString(root))
+		err = fmt.Errorf("trie recreate error: %w, for root %v", err, hex.EncodeToString(rootHash))
 		return nil, err
 	}
 
-	if db != tr.Database() {
-		err = newRoot.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.Database())
-		if err != nil {
-			return nil, err
-		}
+	err = newRoot.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.Database())
+	if err != nil {
+		return nil, err
 	}
+
+	db.DecreaseNumReferences()
 
 	return newTr, nil
 }
@@ -484,13 +507,20 @@ func (tr *patriciaMerkleTrie) ExitSnapshotMode() {
 	tr.trieStorage.ExitSnapshotMode()
 }
 
-func getDbThatContainsHash(trieStorage data.StorageManager, rootHash []byte) data.DBWriteCacher {
+func getDbThatContainsHash(trieStorage data.StorageManager, rootHash []byte) data.SnapshotDbHandler {
 	db := trieStorage.GetSnapshotThatContainsHash(rootHash)
 	if db != nil {
 		return db
 	}
 
-	return trieStorage.GetDbThatContainsHash(rootHash)
+	_, err := trieStorage.Database().Get(rootHash)
+	if err == nil {
+		return &snapshotDb{
+			DBWriteCacher: trieStorage.Database(),
+		}
+	}
+
+	return nil
 }
 
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
@@ -549,6 +579,9 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	}
 
 	remainingSpace := maxBuffToSend - size
+
+	db.DecreaseNumReferences()
+
 	return nodes, remainingSpace, nil
 }
 
