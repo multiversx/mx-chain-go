@@ -1,6 +1,6 @@
 package indexer
 
-const txBulkSize = 1000
+const txBulkSize = 500
 const txIndex = "transactions"
 const blockIndex = "blocks"
 const miniblocksIndex = "miniblocks"
