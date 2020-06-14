@@ -444,6 +444,10 @@ func (esd *elasticSearchDatabase) SaveShardStatistics(tpsBenchmark statistics.TP
 }
 
 func (esd *elasticSearchDatabase) foundedObjMap(hashes []string, index string) (map[string]bool, error) {
+	if len(hashes) == 0 {
+		return make(map[string]bool), nil
+	}
+
 	response, err := esd.dbClient.DoMultiGet(txsByHashes(hashes), index)
 	if err != nil {
 		return nil, err

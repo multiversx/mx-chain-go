@@ -99,7 +99,7 @@ func (dc *databaseClient) DoRequest(req *esapi.IndexRequest) error {
 	}
 
 	if res.IsError() {
-		log.Warn("indexer", "error", res.String())
+		log.Warn("indexer do request", "error", res.String())
 	}
 
 	return nil
@@ -121,7 +121,7 @@ func (dc *databaseClient) DoBulkRequest(buff *bytes.Buffer, index string) error 
 	}
 
 	if res.IsError() {
-		log.Warn("indexer", "error", res.String())
+		log.Warn("indexer do bulk request", "error", res.String())
 		return fmt.Errorf("do bulk request %s", res.String())
 	}
 
@@ -146,6 +146,7 @@ func (dc *databaseClient) DoMultiGet(obj object, index string) (object, error) {
 		dc.dbClient.Mget.WithIndex(index),
 	)
 	if err != nil {
+		log.Warn("indexer: cannot do multi no response", "error", err)
 		return nil, err
 	}
 
@@ -156,6 +157,7 @@ func (dc *databaseClient) DoMultiGet(obj object, index string) (object, error) {
 
 	var decodedBody object
 	if err := json.NewDecoder(res.Body).Decode(&decodedBody); err != nil {
+		log.Warn("indexer cannot decode body", "error", err)
 		return nil, err
 	}
 
@@ -166,7 +168,7 @@ func closeESResponseBody(res *esapi.Response) {
 	if res != nil && res.Body != nil {
 		err := res.Body.Close()
 		if err != nil {
-			log.Trace("error closing elastic search response body", "error", err)
+			log.Warn("error closing elastic search response body", "error", err)
 		}
 	}
 }

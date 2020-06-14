@@ -319,7 +319,7 @@ func serializeBulkTxs(
 
 	existsInDb, err := getAlreadyIndexedItems(txsHashes, txIndex)
 	if err != nil {
-		log.Warn("indexer", "error", err.Error())
+		log.Warn("indexer get indexed items", "error", err.Error())
 		return buff
 	}
 
