@@ -146,7 +146,7 @@ func (dc *databaseClient) DoMultiGet(obj object, index string) (object, error) {
 		dc.dbClient.Mget.WithIndex(index),
 	)
 	if err != nil {
-		log.Warn("indexer: cannot do multi no response", "error", err)
+		log.Warn("indexer: cannot do multi get no response", "error", err)
 		return nil, err
 	}
 
