@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -556,6 +557,73 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 	header.ShardID = 1
 	esDatabase.SaveMiniblocks(header, body)
 	esDatabase.SaveTransactions(body, header, txPool, 0)
+}
+
+func TestDoBulkRequestLimit(t *testing.T) {
+	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
+
+	args := elasticSearchDatabaseArgs{
+		url:                    "http://localhost:9200",
+		userName:               "basic_auth_username",
+		password:               "basic_auth_password",
+		marshalizer:            &mock.MarshalizerMock{},
+		hasher:                 &mock.HasherMock{},
+		addressPubkeyConverter: &mock.PubkeyConverterMock{},
+	}
+
+	esDatabase, _ := newElasticSearchDatabase(args)
+
+	//Generate transaction and hashes
+	numTransactions := 1000
+	dataSize := 12345
+	txs, hashes := generateTransactions(numTransactions, dataSize)
+
+	header := &dataBlock.Header{}
+	txsPool := make(map[string]data.TransactionHandler)
+	for i := 0; i < numTransactions; i++ {
+		txsPool[hashes[i]] = &txs[i]
+	}
+
+	miniblock := &dataBlock.MiniBlock{
+		TxHashes: make([][]byte, numTransactions),
+		Type:     dataBlock.TxBlock,
+	}
+	for i := 0; i < numTransactions; i++ {
+		miniblock.TxHashes[i] = []byte(hashes[i])
+	}
+
+	body := &dataBlock.Body{
+		MiniBlocks: []*dataBlock.MiniBlock{
+			miniblock,
+		},
+	}
+	body.MiniBlocks[0].ReceiverShardID = 2
+	body.MiniBlocks[0].SenderShardID = 1
+	esDatabase.SaveTransactions(body, header, txsPool, 2)
+}
+
+func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transaction, []string) {
+	txs := make([]transaction.Transaction, numTxs)
+	hashes := make([]string, numTxs)
+
+	randomByteArray := make([]byte, datFieldSize)
+	_, _ = rand.Read(randomByteArray)
+
+	for i := 0; i < numTxs; i++ {
+		txs[i] = transaction.Transaction{
+			Nonce:     uint64(i),
+			Value:     big.NewInt(int64(i)),
+			RcvAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
+			SndAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
+			GasPrice:  200000000000,
+			GasLimit:  20000,
+			Data:      randomByteArray,
+			Signature: []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
+		}
+		hashes[i] = fmt.Sprintf("%d", i)
+	}
+
+	return txs, hashes
 }
 
 func TestTrimSliceInBulks(t *testing.T) {
