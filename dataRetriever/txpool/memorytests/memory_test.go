@@ -18,6 +18,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var usePprof = false
+
 // We run all scenarios within a single test so that we minimize memory interferences (of tests running in parallel)
 func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 
@@ -100,24 +102,29 @@ func analyzeMemoryFootprint(t *testing.T, pool dataRetriever.ShardedDataCacherNo
 	journal := &memoryFootprintJournal{}
 
 	journal.beforeGenerate = getMemStats()
-
 	txs := generateTxs(numSenders, numTxsPerSender, payloadLengthPerTx)
-
 	journal.afterGenerate = getMemStats()
 
-	pprofCPU(scenario, "addition", func() {
+	addTxs := func() {
 		for _, tx := range txs {
 			pool.AddData(tx.hash, tx, tx.Size(), cacheID)
 		}
-	})
+	}
 
-	require.Equal(t, numSenders*numTxsPerSender, len(pool.ShardDataStore(cacheID).Keys()))
+	if usePprof {
+		pprofCPU(scenario, "addition", addTxs)
+	} else {
+		addTxs()
+	}
 
-	pprofHeap(scenario, "afterAddition")
+	require.Len(t, pool.ShardDataStore(cacheID).Keys(), numSenders*numTxsPerSender)
+
+	if usePprof {
+		pprofHeap(scenario, "afterAddition")
+	}
+
 	journal.afterAddition = getMemStats()
-
 	journal.display()
-
 	return journal
 }
 
@@ -142,18 +149,19 @@ func getMemStats() runtime.MemStats {
 }
 
 func pprofHeap(scenario string, step string) {
+	runtime.GC()
+
 	filename := path.Join(".", "pprofoutput", fmt.Sprintf("%s_%s.pprof", scenario, step))
 	file, err := os.Create(filename)
 	if err != nil {
-		panic("could not create pprof file")
+		panic(fmt.Sprintf("pprofHeap: %s", err))
 	}
 
 	defer file.Close()
-	runtime.GC()
 
 	err = pprof.WriteHeapProfile(file)
 	if err != nil {
-		panic("could not write memory profile")
+		panic(fmt.Sprintf("pprofHeap: %s", err))
 	}
 
 	convertPprofToHumanReadable(filename)
@@ -253,7 +261,7 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 	args := txpool.ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 2, SelfShardID: 0}
 	pool, err := txpool.NewShardedTxPool(args)
 	if err != nil {
-		panic("newPool")
+		panic(fmt.Sprintf("newPool: %s", err))
 	}
 
 	return pool
@@ -283,14 +291,14 @@ func pprofCPU(scenario string, step string, function func()) {
 	filename := path.Join(".", "pprofoutput", fmt.Sprintf("%s_%s.CPU.pprof", scenario, step))
 	file, err := os.Create(filename)
 	if err != nil {
-		panic("could not create pprof file")
+		panic(fmt.Sprintf("pprofCPU: %s", err))
 	}
 
 	defer file.Close()
 
 	err = pprof.StartCPUProfile(file)
 	if err != nil {
-		panic("could not start CPU profile")
+		panic(fmt.Sprintf("pprofCPU: %s", err))
 	}
 
 	function()
