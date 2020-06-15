@@ -575,7 +575,7 @@ func TestDoBulkRequestLimit(t *testing.T) {
 
 	//Generate transaction and hashes
 	numTransactions := 1000
-	dataSize := 123546
+	dataSize := 12345
 	txs, hashes := generateTransactions(numTransactions, dataSize)
 
 	header := &dataBlock.Header{}
@@ -615,10 +615,10 @@ func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transacti
 			Value:     big.NewInt(int64(i)),
 			RcvAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
 			SndAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
-			GasPrice:  1,
-			GasLimit:  2,
+			GasPrice:  200000000000,
+			GasLimit:  20000,
 			Data:      randomByteArray,
-			Signature: nil,
+			Signature: []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
 		}
 		hashes[i] = fmt.Sprintf("%d", i)
 	}
