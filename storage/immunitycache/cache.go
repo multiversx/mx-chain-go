@@ -21,6 +21,7 @@ type ImmunityCache struct {
 // NewImmunityCache creates a new cache
 func NewImmunityCache(config CacheConfig) (*ImmunityCache, error) {
 	log.Debug("NewImmunityCache", "config", config.String())
+	storage.MonitorNewCache(config.Name, uint64(config.MaxNumBytes))
 
 	err := config.verify()
 	if err != nil {

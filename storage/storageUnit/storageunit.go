@@ -336,7 +336,7 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 //NewCache creates a new cache from a cache config
 //TODO: add a cacher factory or a cacheConfig param instead
 func NewCache(cacheType CacheType, capacity uint32, shards uint32, sizeInBytes uint64) (storage.Cacher, error) {
-	monitorNewCache(sizeInBytes)
+	storage.MonitorNewCache(string(cacheType), sizeInBytes)
 
 	var cacher storage.Cacher
 	var err error
