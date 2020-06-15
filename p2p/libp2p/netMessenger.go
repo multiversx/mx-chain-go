@@ -755,6 +755,10 @@ func (netMes *networkMessenger) UnjoinAllTopics() error {
 
 		err := t.Close()
 		if err != nil {
+			log.Warn("error closing topic",
+				"topic", topicName,
+				"error", err,
+			)
 			errFound = err
 		}
 
