@@ -90,7 +90,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	if metaBlock.DevFeesInEpoch == nil {
 		return nil, epochStart.ErrNilTotalDevFeesInEpoch
 	}
-	if !metaBlock.IsStartOfEpochBlock() || metaBlock.Epoch < 1 {
+	if !metaBlock.IsStartOfEpochBlock() || metaBlock.Epoch < e.genesisEpoch {
 		return nil, epochStart.ErrNotEpochStartBlock
 	}
 
@@ -230,7 +230,7 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = e.genesisNonce
 	}
-	mapShardIdNonce[core.MetachainShardId] = 0
+	mapShardIdNonce[core.MetachainShardId] = e.genesisNonce
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
 	previousEpochStartMeta, err := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
@@ -253,7 +253,7 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart block.EpochStart) (map[uint32]uint64, error) {
 	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
-		mapShardIdNonce[i] = 0
+		mapShardIdNonce[i] = e.genesisNonce
 	}
 	mapShardIdNonce[core.MetachainShardId] = metaNonce
 

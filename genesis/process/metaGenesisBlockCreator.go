@@ -148,6 +148,11 @@ func createMetaGenesisAfterHardFork(
 	}
 	saveGenesisBodyToStorage(processors.txCoordinator, bodyHandler)
 
+	err = saveGenesisMetaToStorage(arg.Store, arg.Marshalizer, metaHdr)
+	if err != nil {
+		return nil, err
+	}
+
 	return metaHdr, nil
 }
 
@@ -157,7 +162,7 @@ func saveGenesisMetaToStorage(
 	genesisBlock data.HeaderHandler,
 ) error {
 
-	epochStartID := core.EpochStartIdentifier(0)
+	epochStartID := core.EpochStartIdentifier(genesisBlock.GetEpoch())
 	metaHdrStorage := storageService.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
 		return process.ErrNilStorage
