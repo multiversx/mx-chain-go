@@ -44,11 +44,15 @@ func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, stat
 
 func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	return ArgsNewSmartContractProcessor{
-		VmContainer:     &mock.VMContainerMock{},
-		ArgsParser:      &mock.ArgumentParserMock{},
-		Hasher:          &mock.HasherMock{},
-		Marshalizer:     &mock.MarshalizerMock{},
-		AccountsDB:      &mock.AccountsStub{},
+		VmContainer: &mock.VMContainerMock{},
+		ArgsParser:  &mock.ArgumentParserMock{},
+		Hasher:      &mock.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+		AccountsDB: &mock.AccountsStub{
+			RevertToSnapshotCalled: func(snapshot int) error {
+				return nil
+			},
+		},
 		TempAccounts:    &mock.TemporaryAccountsHandlerMock{},
 		PubkeyConv:      createMockPubkeyConverter(),
 		Coordinator:     mock.NewMultiShardsCoordinatorMock(5),
@@ -1697,6 +1701,9 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			return nil
 		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
+		},
 	}
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
@@ -1733,6 +1740,9 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 			return dstScAddress, nil
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return nil
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
 		},
 	}
