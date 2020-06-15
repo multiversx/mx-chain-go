@@ -178,8 +178,8 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 }
 
 // NumBytes gets the approximate number of bytes stored in the cache
-func (cache *TxCache) NumBytes() uint64 {
-	return cache.txByHash.numBytes.GetUint64()
+func (cache *TxCache) NumBytes() int {
+	return int(cache.txByHash.numBytes.GetUint64())
 }
 
 // CountTx gets the number of transactions in the cache

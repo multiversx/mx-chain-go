@@ -13,4 +13,5 @@ type txCache interface {
 	RemoveTxByHash(txHash []byte) bool
 	ImmunizeTxsAgainstEviction(keys [][]byte)
 	ForEachTransaction(function txcache.ForEachTransaction)
+	NumBytes() int
 }

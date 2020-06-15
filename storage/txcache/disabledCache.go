@@ -40,6 +40,11 @@ func (cache *DisabledCache) Len() int {
 	return 0
 }
 
+// NumBytes returns zero
+func (cache *DisabledCache) NumBytes() int {
+	return 0
+}
+
 // ForEachTransaction does nothing
 func (cache *DisabledCache) ForEachTransaction(_ ForEachTransaction) {
 }

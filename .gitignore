@@ -30,3 +30,5 @@ cmd/node/stats/**
 
 # Local overrides for testnet scripts
 scripts/testnet/local.sh
+
+**/pprofoutput/**

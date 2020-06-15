@@ -51,7 +51,7 @@ func (cache *TxCache) isCapacityExceeded() bool {
 
 func (cache *TxCache) areThereTooManyBytes() bool {
 	numBytes := cache.NumBytes()
-	tooManyBytes := numBytes > uint64(cache.config.NumBytesThreshold)
+	tooManyBytes := numBytes > int(cache.config.NumBytesThreshold)
 	return tooManyBytes
 }
 
