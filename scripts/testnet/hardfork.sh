@@ -4,12 +4,6 @@ export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/n
 source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/config.sh"
 
-# Load local overrides, .gitignored
-LOCAL_OVERRIDES="$ELRONDTESTNETSCRIPTSDIR/local.sh"
-if [ -f "$LOCAL_OVERRIDES" ]; then
-  source "$ELRONDTESTNETSCRIPTSDIR/local.sh"
-fi
-
 VALIDATOR_RES_PORT="$PORT_ORIGIN_VALIDATOR_REST"
 
 if [ -z "$1" ]; then
@@ -22,9 +16,9 @@ if [ $1 -lt "1" ]; then
   exit
 fi
 
+address="http://127.0.0.1:$VALIDATOR_RES_PORT/hardfork/trigger"
 epoch=$1
-cmd=(printf "$(curl -d '{"epoch":'"$epoch"'}' -H 'Content-Type: application/json' http://127.0.0.1:$VALIDATOR_RES_PORT/hardfork/trigger)")
-"${cmd[@]}"
+curl -d '{"epoch":'"$epoch"'}' -H 'Content-Type: application/json' $address
 
 echo " done curl"
 

@@ -11,12 +11,6 @@ source "$ELRONDTESTNETSCRIPTSDIR/include/build.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/nodes.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/tools.sh"
 
-# Load local overrides, .gitignored
-LOCAL_OVERRIDES="$ELRONDTESTNETSCRIPTSDIR/local.sh"
-if [ -f "$LOCAL_OVERRIDES" ]; then
-  source "$ELRONDTESTNETSCRIPTSDIR/local.sh"
-fi
-
 prepareFolders
 
 # Phase 1: build Seednode, Node and Arwen executables
