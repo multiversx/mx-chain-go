@@ -392,7 +392,7 @@
 #     0 disables the feature.
 [Marshalizer]
    Type = "gogo protobuf"
-   SizeCheckDelta = 0
+   SizeCheckDelta = 10
 
 # The marshalizer used for smartcontracts data exchange
 [VmMarshalizer]

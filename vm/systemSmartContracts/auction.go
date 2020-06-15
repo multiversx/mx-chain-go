@@ -751,7 +751,7 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		UnStakedEpoch: 0,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
 		RewardAddress: nil,
 		StakeValue:    big.NewInt(0),
 	}
