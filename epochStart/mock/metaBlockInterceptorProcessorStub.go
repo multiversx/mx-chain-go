@@ -19,7 +19,7 @@ func (m *MetaBlockInterceptorProcessorStub) Validate(_ process.InterceptedData, 
 }
 
 // Save -
-func (m *MetaBlockInterceptorProcessorStub) Save(_ process.InterceptedData, _ core.PeerID) error {
+func (m *MetaBlockInterceptorProcessorStub) Save(_ process.InterceptedData, _ core.PeerID, _ string) error {
 	return nil
 }
 
