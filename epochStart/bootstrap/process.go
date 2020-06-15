@@ -286,6 +286,9 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		log.Debug("unregistering all message processor")
 		errMessenger := e.messenger.UnregisterAllMessageProcessors()
 		log.LogIfError(errMessenger)
+
+		errMessenger = e.messenger.UnjoinAllTopics()
+		log.LogIfError(errMessenger)
 	}()
 
 	var err error
