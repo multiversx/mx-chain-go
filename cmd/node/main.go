@@ -190,10 +190,11 @@ VERSION:
 		Value: "./config/gasSchedule.toml",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections
-	port = cli.IntFlag{
-		Name:  "port",
-		Usage: "The `[p2p port]` number on which the application will start",
-		Value: 0,
+	port = cli.StringFlag{
+		Name: "port",
+		Usage: "The `[p2p port]` number on which the application will start. Can use single values such as " +
+			"`0, 10230, 15670` or range of ports such as `5000-10000`",
+		Value: "0",
 	}
 	// profileMode defines a flag for profiling the binary
 	// If enabled, it will open the pprof routes over the default gin rest webserver.
@@ -456,10 +457,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
 	workingDir := getWorkingDir(ctx, log)
 
+	var logFile *os.File
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
-		_, err = prepareLogFile(workingDir)
+		logFile, err = prepareLogFile(workingDir)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
@@ -552,7 +554,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("config", "file", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
+		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
 
 	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.AddressPubkeyConverter)
@@ -729,7 +731,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.InternalMarshalizer, coreComponents.Uint64ByteSliceConverter)
+	chanCreateViews := make(chan struct{}, 1)
+	chanLogRewrite := make(chan struct{}, 1)
+	handlersArgs, err := factory.NewStatusHandlersFactoryArgs(
+		useLogView.Name,
+		ctx,
+		coreComponents.InternalMarshalizer,
+		coreComponents.Uint64ByteSliceConverter,
+		chanCreateViews,
+		chanLogRewrite,
+		logFile,
+	)
+	if err != nil {
+		return err
+	}
+
 	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
 	if err != nil {
 		return err
@@ -779,7 +795,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	nodesShuffler := sharding.NewXorValidatorsShuffler(
+	nodesShuffler := sharding.NewHashValidatorsShuffler(
 		genesisNodesConfig.MinNodesPerShard,
 		genesisNodesConfig.MetaChainMinNodes,
 		genesisNodesConfig.Hysteresis,
@@ -863,6 +879,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     addressPubkeyConverter,
 		LatestStorageDataProvider:  latestStorageDataProvider,
+		StatusHandler:              coreComponents.StatusHandler,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -941,6 +958,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	chanLogRewrite <- struct{}{}
+	chanCreateViews <- struct{}{}
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
@@ -1213,7 +1233,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating software checker structure")
-	softwareVersionChecker, err := factory.CreateSoftwareVersionChecker(coreComponents.StatusHandler)
+	softwareVersionChecker, err := factory.CreateSoftwareVersionChecker(coreComponents.StatusHandler, generalConfig.SoftwareVersionConfig)
 	if err != nil {
 		log.Debug("nil software version checker", "error", err.Error())
 	} else {
@@ -1326,7 +1346,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 
-	log.Info("closing network connections...")
+	log.Debug("calling close on the network messenger instance...")
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
 

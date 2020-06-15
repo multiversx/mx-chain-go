@@ -201,6 +201,7 @@ type StorageManager interface {
 	CancelPrune([]byte, TriePruningIdentifier)
 	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
+	GetSnapshotThatContainsHash(rootHash []byte) DBWriteCacher
 	IsPruningEnabled() bool
 	EnterSnapshotMode()
 	ExitSnapshotMode()
@@ -230,5 +231,13 @@ type ShardValidatorInfoHandler interface {
 	GetPublicKey() []byte
 	GetTempRating() uint32
 	String() string
+	IsInterfaceNil() bool
+}
+
+// GoRoutineThrottler can monitor the number of the currently running go routines
+type GoRoutineThrottler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
 	IsInterfaceNil() bool
 }

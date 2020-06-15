@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -63,13 +62,13 @@ func NewMiniblockInterceptorProcessor(argument *ArgMiniblockInterceptorProcessor
 // It returns nil as a body might consist of multiple miniblocks
 // Since some might be valid and others not, we rather do the checking when
 // we iterate the slice for processing as it is optimal to do so
-func (mip *MiniblockInterceptorProcessor) Validate(_ process.InterceptedData, _ p2p.PeerID) error {
+func (mip *MiniblockInterceptorProcessor) Validate(_ process.InterceptedData, _ core.PeerID) error {
 	return nil
 }
 
 // Save will save the received miniblocks inside the miniblock cacher after a new validation round
 // that will be done on each miniblock
-func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID, topic string) error {
+func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string) error {
 	interceptedMiniblock, ok := data.(*interceptedBlocks.InterceptedMiniblock)
 	if !ok {
 		return process.ErrWrongTypeAssertion

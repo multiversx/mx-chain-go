@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -11,12 +12,12 @@ type InterceptorStub struct {
 }
 
 // ProcessReceivedMessage -
-func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
+func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
 	return is.ProcessReceivedMessageCalled(message)
 }
 
 // SetInterceptedDebugHandler -
-func (is *InterceptorStub) SetInterceptedDebugHandler(_ process.InterceptedDebugHandler) error {
+func (is *InterceptorStub) SetInterceptedDebugHandler(_ process.InterceptedDebugger) error {
 	return nil
 }
 

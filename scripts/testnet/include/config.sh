@@ -37,7 +37,7 @@ updateSeednodeConfig() {
   pushd $TESTNETDIR/seednode/config
   cp p2p.toml p2p_edit.toml
 
-  updateTOMLValue p2p_edit.toml "Port" $PORT_SEEDNODE
+  updateTOMLValue p2p_edit.toml "Port" "\"$PORT_SEEDNODE\""
 
   cp p2p_edit.toml p2p.toml
   rm p2p_edit.toml
@@ -49,7 +49,8 @@ updateSeednodeConfig() {
 copyNodeConfig() {
   pushd $TESTNETDIR
   cp $NODEDIR/config/api.toml ./node/config
-  cp $NODEDIR/config/config.toml ./node/config
+  cp $NODEDIR/config/config.toml ./node/config/config_validator.toml
+  cp $NODEDIR/config/config.toml ./node/config/config_observer.toml
   cp $NODEDIR/config/economics.toml ./node/config
   cp $NODEDIR/config/ratings.toml ./node/config
   cp $NODEDIR/config/prefs.toml ./node/config
@@ -84,6 +85,11 @@ updateNodeConfig() {
 
   cp nodesSetup_edit.json nodesSetup.json
   rm nodesSetup_edit.json
+
+  if [ $OBSERVERS_ANTIFLOOD_DISABLE -eq 1 ]
+  then
+     sed -i '/\[Antiflood\]/,/\[Logger\]/ s/true/false/' config_observer.toml
+  fi
 
   echo "Updated configuration for Nodes."
   popd
