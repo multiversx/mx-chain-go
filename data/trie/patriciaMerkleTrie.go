@@ -329,6 +329,7 @@ func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (data.Trie
 	if db == nil {
 		return nil, ErrHashNotFound
 	}
+	defer db.DecreaseNumReferences()
 
 	newTr, newRoot, err := tr.recreateFromDb(rootHash, db, tr.trieStorage)
 	if err != nil {
@@ -340,8 +341,6 @@ func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (data.Trie
 	if err != nil {
 		return nil, err
 	}
-
-	db.DecreaseNumReferences()
 
 	return newTr, nil
 }
@@ -535,6 +534,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	if db == nil {
 		return nil, 0, ErrHashNotFound
 	}
+	defer db.DecreaseNumReferences()
 
 	newTsm, err := NewTrieStorageManagerWithoutPruning(db)
 	if err != nil {
@@ -579,8 +579,6 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	}
 
 	remainingSpace := maxBuffToSend - size
-
-	db.DecreaseNumReferences()
 
 	return nodes, remainingSpace, nil
 }

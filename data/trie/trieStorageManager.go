@@ -107,6 +107,7 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]data.SnapshotDb
 
 	files, err := ioutil.ReadDir(snapshotDbCfg.FilePath)
 	if err != nil {
+		log.Debug("there is no snapshot in path", "path", snapshotDbCfg.FilePath)
 		return snapshots, snapshotId, err
 	}
 
@@ -142,6 +143,7 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]data.SnapshotDb
 			DBWriteCacher: db,
 		}
 
+		log.Debug("restored snapshot", "snapshot ID", snapshotName)
 		snapshots = append(snapshots, snapshot)
 	}
 
@@ -428,6 +430,7 @@ func (tsm *trieStorageManager) removeSnapshot() {
 	removePath := path.Join(tsm.snapshotDbCfg.FilePath, dbUniqueId)
 
 	if snapshot.IsInUse() {
+		log.Debug("snapshot is still in use", "path", removePath)
 		snapshot.MarkForRemoval()
 		snapshot.SetPath(removePath)
 
