@@ -10,54 +10,66 @@ import (
 	"runtime/pprof"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+func TestShardedTxPool_MemoryFootprint_SourceIsMe_300x1x1048576(t *testing.T) {
+	journal := analyzeMemoryFootprint(t, "SourceIsMe_300x1x1048576", 300, 1, core.MegabyteSize, "0")
+	assert.LessOrEqual(t, bToMb(journal.txsFootprint()), 300)
+	assert.LessOrEqual(t, bToMb(journal.poolStructuresFootprint()), 1)
+}
+
+func TestShardedTxPool_MemoryFootprint_SourceIsMe_10x1000x30720(t *testing.T) {
+	journal := analyzeMemoryFootprint(t, "SourceIsMe_10x1000x30720", 10, 1000, 30720, "0")
+	assert.LessOrEqual(t, bToMb(journal.txsFootprint()), 315)
+	assert.LessOrEqual(t, bToMb(journal.poolStructuresFootprint()), 4)
+}
+
+func TestShardedTxPool_MemoryFootprint_SourceIsMe_10000x1x1024(t *testing.T) {
+	journal := analyzeMemoryFootprint(t, "SourceIsMe_10000x1x1024", 10000, 1, 1024, "0")
+	assert.LessOrEqual(t, bToMb(journal.txsFootprint()), 16)
+	assert.LessOrEqual(t, bToMb(journal.poolStructuresFootprint()), 10)
+}
+
+func TestShardedTxPool_MemoryFootprint_SourceIsMe_1x60000x1024(t *testing.T) {
+	journal := analyzeMemoryFootprint(t, "SourceIsMe_1x60000x1024", 1, 60000, 256, "0")
+	assert.LessOrEqual(t, bToMb(journal.txsFootprint()), 32)
+	assert.LessOrEqual(t, bToMb(journal.poolStructuresFootprint()), 15)
+}
+
 func TestShardedTxPool_MemoryFootprint_SourceIsMe_10x10000x100(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
 	journal := analyzeMemoryFootprint(t, "SourceIsMe_10x10000x100", 10, 10000, 100, "0")
-	assert.Less(t, bToMb(journal.txsFootprint()), 38)
-	assert.Less(t, bToMb(journal.poolStructuresFootprint()), 20)
+	assert.LessOrEqual(t, bToMb(journal.txsFootprint()), 40)
+	assert.LessOrEqual(t, bToMb(journal.poolStructuresFootprint()), 25)
 }
 
+func TestShardedTxPool_MemoryFootprint_SourceIsMe_100000x1x1024(t *testing.T) {
+	journal := analyzeMemoryFootprint(t, "SourceIsMe_100000x1x1024", 100000, 1, 1024, "0")
+	assert.LessOrEqual(t, bToMb(journal.txsFootprint()), 125)
+	assert.LessOrEqual(t, bToMb(journal.poolStructuresFootprint()), 60)
+}
+
+// Many transactions per sender result in the largest memory footprint.
 func TestShardedTxPool_MemoryFootprint_SourceIsMe_20x20000x100(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
 	journal := analyzeMemoryFootprint(t, "SourceIsMe_20x20000x100", 20, 20000, 100, "0")
-	assert.Less(t, bToMb(journal.txsFootprint()), 156)
-	assert.Less(t, bToMb(journal.poolStructuresFootprint()), 84)
-}
-
-func TestShardedTxPool_MemoryFootprint_SourceIsMe_10x1000x500000(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	journal := analyzeMemoryFootprint(t, "SourceIsMe_10x1000x500000", 10, 1000, 500000, "0")
-	assert.Less(t, bToMb(journal.txsFootprint()), 156)
-	assert.Less(t, bToMb(journal.poolStructuresFootprint()), 84)
+	assert.LessOrEqual(t, bToMb(journal.txsFootprint()), 150)
+	assert.LessOrEqual(t, bToMb(journal.poolStructuresFootprint()), 100)
 }
 
 func analyzeMemoryFootprint(t *testing.T, scenario string, numSenders int, numTxsPerSender int, payloadLengthPerTx int, cacheID string) *memoryFootprintJournal {
 	journal := &memoryFootprintJournal{}
 
-	pprofHeap(scenario, "beforeGenerate")
 	journal.beforeGenerate = getMemStats()
 
 	txs := generateTxs(numSenders, numTxsPerSender, payloadLengthPerTx)
 
-	pprofHeap(scenario, "afterGenerate")
 	journal.afterGenerate = getMemStats()
 
-	pool := newMainnetPool()
+	pool := newPool()
 
 	pprofCPU(scenario, "addition", func() {
 		for _, tx := range txs {
@@ -65,7 +77,7 @@ func analyzeMemoryFootprint(t *testing.T, scenario string, numSenders int, numTx
 		}
 	})
 
-	require.Equal(t, numSenders*numTxsPerSender, pool.getTxCache(cacheID).Len())
+	require.Equal(t, numSenders*numTxsPerSender, len(pool.getTxCache(cacheID).Keys()))
 
 	pprofHeap(scenario, "afterAddition")
 	journal.afterAddition = getMemStats()
@@ -79,7 +91,7 @@ func analyzeMemoryFootprint(t *testing.T, scenario string, numSenders int, numTx
 func generateTxs(numSenders int, numTxsPerSender int, payloadLengthPerTx int) []*dummyTx {
 	txs := make([]*dummyTx, 0, numSenders*numTxsPerSender)
 	for senderTag := 0; senderTag < numSenders; senderTag++ {
-		for nonce := numTxsPerSender; nonce > 0; nonce-- {
+		for nonce := 0; nonce < numTxsPerSender; nonce++ {
 			tx := createTxWithPayload(senderTag, nonce, payloadLengthPerTx)
 			txs = append(txs, tx)
 		}
@@ -190,12 +202,12 @@ func bToMb(b uint64) int {
 	return int(b / 1024 / 1024)
 }
 
-func newMainnetPool() *shardedTxPool {
+func newPool() *shardedTxPool {
 	config := storageUnit.CacheConfig{
 		Capacity:             900000,
-		SizePerSender:        20000,
-		SizeInBytes:          524288000,
-		SizeInBytesPerSender: 12288000,
+		SizePerSender:        60000,
+		SizeInBytes:          500 * core.MegabyteSize,
+		SizeInBytesPerSender: 32 * core.MegabyteSize,
 		Shards:               16,
 	}
 
