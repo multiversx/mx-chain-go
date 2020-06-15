@@ -25,56 +25,74 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 
 	pool := newPool()
 	journal := analyzeMemoryFootprint(t, pool, "0_300x1x1048576", 300, 1, core.MegabyteSize, "0")
-	require.True(t, journal.txsFootprintIsBetweenMb(300, 300))
-	require.True(t, journal.poolStructuresFootprintIsBetweenMb(0, 1))
+	require.True(t, journal.payloadFootprintBetween(300, 300))
+	require.True(t, journal.structuralFootprintBetween(0, 1))
 	keepPoolInMemoryUpToThisPoint(pool)
 
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, "0_10x1000x30720", 10, 1000, 30720, "0")
-	require.True(t, journal.txsFootprintIsBetweenMb(300, 315))
-	require.True(t, journal.poolStructuresFootprintIsBetweenMb(1, 4))
+	require.True(t, journal.payloadFootprintBetween(300, 315))
+	require.True(t, journal.structuralFootprintBetween(1, 4))
 	keepPoolInMemoryUpToThisPoint(pool)
 
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, "0_10000x1x1024", 10000, 1, 1024, "0")
-	require.True(t, journal.txsFootprintIsBetweenMb(10, 16))
-	require.True(t, journal.poolStructuresFootprintIsBetweenMb(4, 10))
+	require.True(t, journal.payloadFootprintBetween(10, 16))
+	require.True(t, journal.structuralFootprintBetween(4, 10))
 	keepPoolInMemoryUpToThisPoint(pool)
 
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, "0_1x60000x1024", 1, 60000, 256, "0")
-	require.True(t, journal.txsFootprintIsBetweenMb(30, 32))
-	require.True(t, journal.poolStructuresFootprintIsBetweenMb(10, 16))
+	require.True(t, journal.payloadFootprintBetween(30, 32))
+	require.True(t, journal.structuralFootprintBetween(10, 16))
 	keepPoolInMemoryUpToThisPoint(pool)
 
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, "0_10x10000x100", 10, 10000, 100, "0")
-	require.True(t, journal.txsFootprintIsBetweenMb(36, 40))
-	require.True(t, journal.poolStructuresFootprintIsBetweenMb(16, 24))
+	require.True(t, journal.payloadFootprintBetween(36, 40))
+	require.True(t, journal.structuralFootprintBetween(16, 24))
 	keepPoolInMemoryUpToThisPoint(pool)
 
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, "0_100000x1x1024", 100000, 1, 1024, "0")
-	require.True(t, journal.txsFootprintIsBetweenMb(120, 128))
-	require.True(t, journal.poolStructuresFootprintIsBetweenMb(56, 60))
+	require.True(t, journal.payloadFootprintBetween(120, 128))
+	require.True(t, journal.structuralFootprintBetween(56, 60))
 	keepPoolInMemoryUpToThisPoint(pool)
 
 	// Many transactions per sender result in the largest memory footprint
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, "0_20x20000x100", 20, 20000, 100, "0")
-	require.True(t, journal.txsFootprintIsBetweenMb(150, 150))
-	require.True(t, journal.poolStructuresFootprintIsBetweenMb(50, 90))
+	require.True(t, journal.payloadFootprintBetween(150, 150))
+	require.True(t, journal.structuralFootprintBetween(50, 84))
 	keepPoolInMemoryUpToThisPoint(pool)
 
 	// Scenarios where destination == me
 
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, "1_to_0_150x1x1048576", 150, 1, core.MegabyteSize, "1_0")
-	require.True(t, journal.txsFootprintIsBetweenMb(148, 150))
-	require.True(t, journal.poolStructuresFootprintIsBetweenMb(0, 1))
+	require.True(t, journal.payloadFootprintBetween(148, 150))
+	require.True(t, journal.structuralFootprintBetween(0, 1))
 	journal = analyzeMemoryFootprint(t, pool, "4294967295_to_0_150x1x1048576", 150, 1, core.MegabyteSize, "4294967295_0")
-	require.True(t, journal.txsFootprintIsBetweenMb(148, 150))
-	require.True(t, journal.poolStructuresFootprintIsBetweenMb(0, 1))
+	require.True(t, journal.payloadFootprintBetween(148, 150))
+	require.True(t, journal.structuralFootprintBetween(0, 1))
+	keepPoolInMemoryUpToThisPoint(pool)
+
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, "1_to_0_10000x1x1024", 10000, 1, 10240, "1_0")
+	require.True(t, journal.payloadFootprintBetween(96, 128))
+	require.True(t, journal.structuralFootprintBetween(0, 4))
+	journal = analyzeMemoryFootprint(t, pool, "4294967295_to_0_10000x1x10246", 10000, 1, 10240, "4294967295_0")
+	require.True(t, journal.payloadFootprintBetween(96, 128))
+	require.True(t, journal.structuralFootprintBetween(0, 4))
+	keepPoolInMemoryUpToThisPoint(pool)
+
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, "1_to_0_10x10000x1024", 10, 10000, 1024, "1_0")
+	require.True(t, journal.payloadFootprintBetween(96, 128))
+	require.True(t, journal.structuralFootprintBetween(16, 20))
+	journal = analyzeMemoryFootprint(t, pool, "4294967295_to_0_10x10000x1024", 10, 10000, 1024, "4294967295_0")
+	require.True(t, journal.payloadFootprintBetween(96, 128))
+	require.True(t, journal.structuralFootprintBetween(16, 20))
 	keepPoolInMemoryUpToThisPoint(pool)
 }
 
@@ -185,7 +203,7 @@ func (journal *memoryFootprintJournal) txsFootprint() uint64 {
 	return uint64(core.MaxInt(0, int(journal.afterGenerate.HeapInuse)-int(journal.beforeGenerate.HeapInuse)))
 }
 
-func (journal *memoryFootprintJournal) txsFootprintIsBetweenMb(lower int, upper int) bool {
+func (journal *memoryFootprintJournal) payloadFootprintBetween(lower int, upper int) bool {
 	return lower <= bToMb(journal.txsFootprint()) && bToMb(journal.txsFootprint()) <= upper
 }
 
@@ -193,7 +211,7 @@ func (journal *memoryFootprintJournal) poolStructuresFootprint() uint64 {
 	return uint64(core.MaxInt(0, int(journal.afterAddition.HeapInuse)-int(journal.afterGenerate.HeapInuse)))
 }
 
-func (journal *memoryFootprintJournal) poolStructuresFootprintIsBetweenMb(lower int, upper int) bool {
+func (journal *memoryFootprintJournal) structuralFootprintBetween(lower int, upper int) bool {
 	return lower <= bToMb(journal.poolStructuresFootprint()) && bToMb(journal.poolStructuresFootprint()) <= upper
 }
 
