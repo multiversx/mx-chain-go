@@ -71,7 +71,6 @@ func createMockArgHeartbeatMonitor() process.ArgHeartbeatMonitor {
 		Timer:                              mock.NewTimerMock(),
 		AntifloodHandler:                   createMockP2PAntifloodHandler(),
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
-		PeerBlackListHandler:               &mock.PeerBlackListHandlerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(96),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
@@ -166,17 +165,6 @@ func TestNewMonitor_NilHardforkTriggerShouldErr(t *testing.T) {
 
 	assert.Nil(t, mon)
 	assert.Equal(t, heartbeat.ErrNilHardforkTrigger, err)
-}
-
-func TestNewMonitor_NilPeerBlackListHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgHeartbeatMonitor()
-	arg.PeerBlackListHandler = nil
-	mon, err := process.NewMonitor(arg)
-
-	assert.Nil(t, mon)
-	assert.True(t, errors.Is(err, heartbeat.ErrNilBlackListHandler))
 }
 
 func TestNewMonitor_NilValidatorPubkeyConverterShouldErr(t *testing.T) {
@@ -539,7 +527,6 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 		Timer:                              timer,
 		AntifloodHandler:                   createMockP2PAntifloodHandler(),
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
-		PeerBlackListHandler:               &mock.PeerBlackListHandlerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(32),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
@@ -593,16 +580,14 @@ func TestMonitor_ProcessReceivedMessageImpersonatedMessageShouldErr(t *testing.T
 	}
 	originatorWasBlacklisted := false
 	connectedPeerWasBlacklisted := false
-	arg.PeerBlackListHandler = &mock.PeerBlackListHandlerStub{
-		AddCalled: func(pid core.PeerID) error {
+	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
+		BlacklistPeerCalled: func(pid core.PeerID, reason string, duration time.Duration) {
 			if pid == originator {
 				originatorWasBlacklisted = true
 			}
 			if pid == fromConnectedPeerId {
 				connectedPeerWasBlacklisted = true
 			}
-
-			return nil
 		},
 	}
 	mon, _ := process.NewMonitor(arg)

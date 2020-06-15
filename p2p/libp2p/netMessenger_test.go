@@ -1332,3 +1332,31 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 
 	_ = mes.Close()
 }
+
+func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
+	args := libp2p.ArgsNetworkMessenger{
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig: config.P2PConfig{
+			Node: config.NodeConfig{
+				Port: "0",
+			},
+			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+				Enabled: false,
+			},
+			Sharding: config.ShardingConfig{
+				Type: p2p.NilListSharder,
+			},
+		},
+	}
+
+	mes, _ := libp2p.NewNetworkMessenger(args)
+
+	topic := "topic"
+	_ = mes.CreateTopic(topic, true)
+	assert.True(t, mes.HasTopic(topic))
+
+	err := mes.UnjoinAllTopics()
+	assert.Nil(t, err)
+
+	assert.False(t, mes.HasTopic(topic))
+}
