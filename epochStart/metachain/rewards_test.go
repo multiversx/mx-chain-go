@@ -233,6 +233,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 			PublicKey:       []byte("pubkey"),
 			ShardId:         0,
 			AccumulatedFees: big.NewInt(100),
+			LeaderSuccess:   1,
 		},
 	}
 
@@ -289,6 +290,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 			PublicKey:       []byte("pubkey"),
 			ShardId:         0,
 			AccumulatedFees: big.NewInt(100),
+			LeaderSuccess:   1,
 		},
 	}
 
@@ -354,6 +356,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 			PublicKey:       []byte("pubkey"),
 			ShardId:         receivedShardID,
 			AccumulatedFees: big.NewInt(100),
+			LeaderSuccess:   1,
 		},
 	}
 
@@ -432,6 +435,7 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 			PublicKey:       []byte("pubkey"),
 			ShardId:         0,
 			AccumulatedFees: big.NewInt(100),
+			LeaderSuccess:   1,
 		},
 	}
 	_, _ = rwd.CreateRewardsMiniBlocks(mb, valInfo)
@@ -480,13 +484,6 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocksZeroValueShouldNotAdd(t *
 		EpochStart: epochStartEconomics,
 	}
 
-	miniBlocks := make(block.MiniBlockSlice, rwdc.shardCoordinator.NumberOfShards())
-	miniBlocks[0] = &block.MiniBlock{}
-	miniBlocks[0].SenderShardID = core.MetachainShardId
-	miniBlocks[0].ReceiverShardID = 0
-	miniBlocks[0].Type = block.RewardsBlock
-	miniBlocks[0].TxHashes = make([][]byte, 0)
-
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
 		{
@@ -497,9 +494,11 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocksZeroValueShouldNotAdd(t *
 	}
 
 	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
-	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks)
+	mbs, err := rwdc.CreateRewardsMiniBlocks(mb, valInfo)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(miniBlocks[0].TxHashes))
+	for _, mb := range mbs {
+		assert.Equal(t, 0, len(mb.TxHashes))
+	}
 }
 
 func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
@@ -536,11 +535,12 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 			PublicKey:       []byte("pubkey"),
 			ShardId:         0,
 			AccumulatedFees: big.NewInt(100),
+			LeaderSuccess:   1,
 		},
 	}
 
 	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
-	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks)
+	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks, &rewardTx.RewardTx{})
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
 }
@@ -571,6 +571,7 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 			ShardId:                    0,
 			AccumulatedFees:            big.NewInt(100),
 			NumSelectedInSuccessBlocks: 100,
+			LeaderSuccess:              1,
 		},
 	}
 	valInfo[core.MetachainShardId] = []*state.ValidatorInfo{
@@ -579,11 +580,12 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 			ShardId:                    core.MetachainShardId,
 			AccumulatedFees:            big.NewInt(100),
 			NumSelectedInSuccessBlocks: 200,
+			LeaderSuccess:              1,
 		},
 	}
 
 	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
-	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo)
+	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo, &rewardTx.RewardTx{})
 	assert.Equal(t, 1, len(rwdInfoData))
 	rwdInfo := rwdInfoData[pubkey]
 	assert.Equal(t, rwdInfo.address, pubkey)
@@ -608,10 +610,9 @@ func TestRewardsCreator_CreateCommunityRewardTransaction(t *testing.T) {
 		RcvAddr: []byte{17},
 		Epoch:   0,
 	}
-	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, expectedRewardTx)
-	rwdTx, txHash, _, err := rwdc.createCommunityRewardTransaction(mb)
+
+	rwdTx, _, err := rwdc.createCommunityRewardTransaction(mb)
 	assert.Equal(t, expectedRewardTx, rwdTx)
-	assert.Equal(t, expectedRwdTxHash, txHash)
 	assert.Nil(t, err)
 }
 
@@ -642,34 +643,9 @@ func TestRewardsCreator_AddCommunityRewardToMiniBlocks(t *testing.T) {
 	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, expectedRewardTx)
 	cloneMb.TxHashes = append(cloneMb.TxHashes, expectedRwdTxHash)
 
-	err := rwdc.addCommunityRewardToMiniBlocks(miniBlocks, metaBlk)
+	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, make(map[uint32][]*state.ValidatorInfo))
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
-}
-
-func TestRewardsCreator_AddCommunityRewardZeroValueShouldNotAdd(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	rwdc, _ := NewEpochStartRewardsCreator(args)
-
-	epochStartEconomics := getDefaultEpochStart()
-	epochStartEconomics.Economics.RewardsForCommunity = big.NewInt(0)
-
-	mb := &block.MetaBlock{
-		EpochStart: epochStartEconomics,
-	}
-
-	miniBlocks := make(block.MiniBlockSlice, rwdc.shardCoordinator.NumberOfShards())
-	miniBlocks[0] = &block.MiniBlock{}
-	miniBlocks[0].SenderShardID = core.MetachainShardId
-	miniBlocks[0].ReceiverShardID = 0
-	miniBlocks[0].Type = block.RewardsBlock
-	miniBlocks[0].TxHashes = make([][]byte, 0)
-
-	err := rwdc.addCommunityRewardToMiniBlocks(miniBlocks, mb)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(miniBlocks[0].TxHashes))
 }
 
 func getDefaultEpochStart() block.EpochStart {
