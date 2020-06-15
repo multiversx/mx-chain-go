@@ -182,12 +182,6 @@ var ErrNilGenesisNodesConfig = errors.New("nil genesis nodes config")
 // ErrNilRater signals that a nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilTriesContainer signals that a nil tries container has been provided
-var ErrNilTriesContainer = errors.New("nil tries container")
-
-// ErrNilTrieStorageManagers signals that a nil trie storage managers map has been provided
-var ErrNilTrieStorageManagers = errors.New("nil trie storage managers map")
-
 // ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
 var ErrInvalidDefaultDBPath = errors.New("invalid default db path")
 
@@ -219,4 +213,4 @@ var ErrNotEnoughNumConnectedPeers = errors.New("not enough min num of connected 
 var ErrNotEnoughNumOfPeersToConsiderBlockValid = errors.New("not enough num of peers to consider block valid from config")
 
 // ErrNilImportStartHandler signals that a nil import start handler has been provided
-var ErrNilImportStartHandler = errors.New("nil imports start handler")
+var ErrNilImportStartHandler = errors.New("nil import start handler")

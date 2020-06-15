@@ -225,7 +225,7 @@ var ErrInvalidTimeToWaitAfterHardfork = errors.New("invalid time to wait after h
 var ErrInvalidEpoch = errors.New("invalid epoch")
 
 // ErrNilImportStartHandler signals that a nil import start handler has been provided
-var ErrNilImportStartHandler = errors.New("nil imports start handler")
+var ErrNilImportStartHandler = errors.New("nil import start handler")
 
 // ErrEmptyVersionString signals that the provided version string is empty
 var ErrEmptyVersionString = errors.New("empty version string")
