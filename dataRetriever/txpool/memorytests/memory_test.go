@@ -1,4 +1,4 @@
-package txpool
+package memorytests
 
 import (
 	"encoding/binary"
@@ -12,96 +12,73 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestShardedTxPool_MemoryFootprint_SourceIsMe_300x1x1048576(t *testing.T) {
+// We run all scenarios within a single test so that we minimize memory interferences (of tests running in parallel)
+func TestShardedTxPool_MemoryFootprint(t *testing.T) {
+
+	// Scenarios where source == me
+
 	pool := newPool()
 	journal := analyzeMemoryFootprint(t, pool, "0_300x1x1048576", 300, 1, core.MegabyteSize, "0")
-	assert.True(t, journal.txsFootprintIsBetweenMb(300, 300))
-	assert.True(t, journal.poolStructuresFootprintIsBetweenMb(0, 1))
+	require.True(t, journal.txsFootprintIsBetweenMb(300, 300))
+	require.True(t, journal.poolStructuresFootprintIsBetweenMb(0, 1))
+	keepPoolInMemoryUpToThisPoint(pool)
 
-	holdPoolInMemory(pool)
-}
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, "0_10x1000x30720", 10, 1000, 30720, "0")
+	require.True(t, journal.txsFootprintIsBetweenMb(300, 315))
+	require.True(t, journal.poolStructuresFootprintIsBetweenMb(1, 4))
+	keepPoolInMemoryUpToThisPoint(pool)
 
-func TestShardedTxPool_MemoryFootprint_SourceIsMe_10x1000x30720(t *testing.T) {
-	pool := newPool()
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, "0_10000x1x1024", 10000, 1, 1024, "0")
+	require.True(t, journal.txsFootprintIsBetweenMb(10, 16))
+	require.True(t, journal.poolStructuresFootprintIsBetweenMb(4, 10))
+	keepPoolInMemoryUpToThisPoint(pool)
 
-	journal := analyzeMemoryFootprint(t, pool, "0_10x1000x30720", 10, 1000, 30720, "0")
-	assert.True(t, journal.txsFootprintIsBetweenMb(300, 315))
-	assert.True(t, journal.poolStructuresFootprintIsBetweenMb(1, 4))
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, "0_1x60000x1024", 1, 60000, 256, "0")
+	require.True(t, journal.txsFootprintIsBetweenMb(30, 32))
+	require.True(t, journal.poolStructuresFootprintIsBetweenMb(10, 16))
+	keepPoolInMemoryUpToThisPoint(pool)
 
-	holdPoolInMemory(pool)
-}
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, "0_10x10000x100", 10, 10000, 100, "0")
+	require.True(t, journal.txsFootprintIsBetweenMb(36, 40))
+	require.True(t, journal.poolStructuresFootprintIsBetweenMb(16, 24))
+	keepPoolInMemoryUpToThisPoint(pool)
 
-func TestShardedTxPool_MemoryFootprint_SourceIsMe_10000x1x1024(t *testing.T) {
-	pool := newPool()
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, "0_100000x1x1024", 100000, 1, 1024, "0")
+	require.True(t, journal.txsFootprintIsBetweenMb(120, 128))
+	require.True(t, journal.poolStructuresFootprintIsBetweenMb(56, 60))
+	keepPoolInMemoryUpToThisPoint(pool)
 
-	journal := analyzeMemoryFootprint(t, pool, "0_10000x1x1024", 10000, 1, 1024, "0")
-	assert.True(t, journal.txsFootprintIsBetweenMb(10, 16))
-	assert.True(t, journal.poolStructuresFootprintIsBetweenMb(6, 10))
+	// Many transactions per sender result in the largest memory footprint
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, "0_20x20000x100", 20, 20000, 100, "0")
+	require.True(t, journal.txsFootprintIsBetweenMb(150, 150))
+	require.True(t, journal.poolStructuresFootprintIsBetweenMb(50, 90))
+	keepPoolInMemoryUpToThisPoint(pool)
 
-	holdPoolInMemory(pool)
-}
+	// Scenarios where destination == me
 
-func TestShardedTxPool_MemoryFootprint_SourceIsMe_1x60000x1024(t *testing.T) {
-	pool := newPool()
-
-	journal := analyzeMemoryFootprint(t, pool, "0_1x60000x1024", 1, 60000, 256, "0")
-	assert.True(t, journal.txsFootprintIsBetweenMb(30, 32))
-	assert.True(t, journal.poolStructuresFootprintIsBetweenMb(10, 16))
-
-	holdPoolInMemory(pool)
-}
-
-func TestShardedTxPool_MemoryFootprint_SourceIsMe_10x10000x100(t *testing.T) {
-	pool := newPool()
-
-	journal := analyzeMemoryFootprint(t, pool, "0_10x10000x100", 10, 10000, 100, "0")
-	assert.True(t, journal.txsFootprintIsBetweenMb(36, 40))
-	assert.True(t, journal.poolStructuresFootprintIsBetweenMb(20, 24))
-
-	holdPoolInMemory(pool)
-}
-
-func TestShardedTxPool_MemoryFootprint_SourceIsMe_100000x1x1024(t *testing.T) {
-	pool := newPool()
-
-	journal := analyzeMemoryFootprint(t, pool, "0_100000x1x1024", 100000, 1, 1024, "0")
-	assert.True(t, journal.txsFootprintIsBetweenMb(120, 128))
-	assert.True(t, journal.poolStructuresFootprintIsBetweenMb(56, 60))
-
-	holdPoolInMemory(pool)
-}
-
-// Many transactions per sender result in the largest memory footprint.
-func TestShardedTxPool_MemoryFootprint_SourceIsMe_20x20000x100(t *testing.T) {
-	pool := newPool()
-
-	journal := analyzeMemoryFootprint(t, pool, "0_20x20000x100", 20, 20000, 100, "0")
-	assert.True(t, journal.txsFootprintIsBetweenMb(150, 150))
-	assert.True(t, journal.poolStructuresFootprintIsBetweenMb(82, 90))
-
-	holdPoolInMemory(pool)
-}
-
-func TestShardedTxPool_MemoryFootprint_DestinationIsMe_150x1x1048576(t *testing.T) {
-	pool := newPool()
-
-	journal := analyzeMemoryFootprint(t, pool, "1_to_0_150x1x1048576", 150, 1, core.MegabyteSize, "1_0")
-	assert.True(t, journal.txsFootprintIsBetweenMb(148, 150))
-	assert.True(t, journal.poolStructuresFootprintIsBetweenMb(0, 1))
-
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, "1_to_0_150x1x1048576", 150, 1, core.MegabyteSize, "1_0")
+	require.True(t, journal.txsFootprintIsBetweenMb(148, 150))
+	require.True(t, journal.poolStructuresFootprintIsBetweenMb(0, 1))
 	journal = analyzeMemoryFootprint(t, pool, "4294967295_to_0_150x1x1048576", 150, 1, core.MegabyteSize, "4294967295_0")
-	assert.True(t, journal.txsFootprintIsBetweenMb(148, 150))
-	assert.True(t, journal.poolStructuresFootprintIsBetweenMb(0, 1))
-
-	holdPoolInMemory(pool)
+	require.True(t, journal.txsFootprintIsBetweenMb(148, 150))
+	require.True(t, journal.poolStructuresFootprintIsBetweenMb(0, 1))
+	keepPoolInMemoryUpToThisPoint(pool)
 }
 
-func analyzeMemoryFootprint(t *testing.T, pool *shardedTxPool, scenario string, numSenders int, numTxsPerSender int, payloadLengthPerTx int, cacheID string) *memoryFootprintJournal {
+func analyzeMemoryFootprint(t *testing.T, pool dataRetriever.ShardedDataCacherNotifier, scenario string, numSenders int, numTxsPerSender int, payloadLengthPerTx int, cacheID string) *memoryFootprintJournal {
 	journal := &memoryFootprintJournal{}
 
 	journal.beforeGenerate = getMemStats()
@@ -246,7 +223,7 @@ func bToMb(b uint64) int {
 	return int(b / 1024 / 1024)
 }
 
-func newPool() *shardedTxPool {
+func newPool() dataRetriever.ShardedDataCacherNotifier {
 	config := storageUnit.CacheConfig{
 		Capacity:             900000,
 		SizePerSender:        60000,
@@ -255,13 +232,12 @@ func newPool() *shardedTxPool {
 		Shards:               1,
 	}
 
-	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 2, SelfShardID: 0}
-	poolAsInterface, err := NewShardedTxPool(args)
+	args := txpool.ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 2, SelfShardID: 0}
+	pool, err := txpool.NewShardedTxPool(args)
 	if err != nil {
-		panic("newMainnetPool")
+		panic("newPool")
 	}
 
-	pool := poolAsInterface.(*shardedTxPool)
 	return pool
 }
 
@@ -279,8 +255,7 @@ func convertPprofToHumanReadable(filename string) {
 	}
 }
 
-func holdPoolInMemory(pool *shardedTxPool) {
-	fmt.Println(pool.GetCounts().String())
+func keepPoolInMemoryUpToThisPoint(pool dataRetriever.ShardedDataCacherNotifier) {
 	fmt.Println("[0]:", len(pool.ShardDataStore("0").Keys()))
 	fmt.Println("[1 -> 0]:", len(pool.ShardDataStore("1_0").Keys()))
 	fmt.Println("[4294967295 -> 0]:", len(pool.ShardDataStore("4294967295_0").Keys()))
