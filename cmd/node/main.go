@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -1333,10 +1332,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Info("terminating at internal stop signal", "reason", sig.Reason)
 	}
 
-	closeCtx, cancel := context.WithTimeout(context.Background(), maxTimeToClose)
-	closeAllComponents(log, dataComponents, triesComponents, networkComponents, closeCtx)
-	cancel()
-
+	go func() {
+		closeAllComponents(log, dataComponents, triesComponents, networkComponents)
+	}()
+	time.Sleep(maxTimeToClose)
 	handleAppClose(log, sig)
 
 	return nil
@@ -1347,7 +1346,6 @@ func closeAllComponents(
 	dataComponents *mainFactory.DataComponents,
 	triesComponents *mainFactory.TriesComponents,
 	networkComponents *mainFactory.NetworkComponents,
-	ctx context.Context,
 ) {
 	log.Debug("closing all store units....")
 	err := dataComponents.Store.CloseAll()
@@ -1367,12 +1365,6 @@ func closeAllComponents(
 	log.Debug("calling close on the network messenger instance...")
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
-
-	select {
-	case <-ctx.Done():
-		log.Error("could not close all components in specified time")
-		return
-	}
 }
 
 func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
