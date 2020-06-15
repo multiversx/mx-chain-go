@@ -98,7 +98,7 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	trieStorage.storageOperationMutex.Unlock()
 
 	newTrieStorage, _ := NewTrieStorageManager(memorydb.New(), msh, hsh, cfg, evictionWaitList, generalCfg)
-	snapshot := newTrieStorage.GetDbThatContainsHash(rootHash)
+	snapshot := newTrieStorage.GetSnapshotThatContainsHash(rootHash)
 	assert.NotNil(t, snapshot)
 	assert.Equal(t, 1, newTrieStorage.snapshotId)
 }
@@ -584,4 +584,42 @@ func TestTrieSnapshotChecksOnlyLastSnapshotDbForTheHash(t *testing.T) {
 	trieStorage.storageOperationMutex.Unlock()
 
 	assert.False(t, trieStorage.isPresentInLastSnapshotDb(rootHash1))
+}
+
+func TestShouldNotRemoveSnapshotDbIfItIsStillInUse(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+
+	_ = tr.Commit()
+	rootHash1, _ := tr.Root()
+	tr.TakeSnapshot(rootHash1)
+	time.Sleep(snapshotDelay)
+
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+
+	_ = tr.Commit()
+	rootHash2, _ := tr.Root()
+	tr.TakeSnapshot(rootHash2)
+	time.Sleep(snapshotDelay)
+
+	db := trieStorage.GetSnapshotThatContainsHash(rootHash1)
+
+	_ = tr.Update([]byte("dog"), []byte("pup"))
+
+	_ = tr.Commit()
+	rootHash3, _ := tr.Root()
+	tr.TakeSnapshot(rootHash3)
+	time.Sleep(snapshotDelay)
+
+	val, err := db.Get(rootHash1)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+
+	db.DecreaseNumReferences()
+
+	val, err = db.Get(rootHash1)
+	assert.Nil(t, val)
+	assert.NotNil(t, err)
 }
