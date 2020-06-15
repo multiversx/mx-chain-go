@@ -108,16 +108,16 @@ func (sd *shardedData) getOrCreateShardStoreWithLock(cacheID string) *shardStore
 
 	store, ok := sd.shardedDataStore[cacheID]
 	if !ok {
-		store = sd.newShardStoreNoLock(cacheID)
+		store = sd.addShardStoreNoLock(cacheID)
 	}
 
 	return store
 }
 
-func (sd *shardedData) newShardStoreNoLock(cacheID string) *shardStore {
+func (sd *shardedData) addShardStoreNoLock(cacheID string) *shardStore {
 	store, err := sd.newShardStore(cacheID)
 	if err != nil {
-		log.Error("newShardStoreNoLock", "error", err.Error())
+		log.Error("addShardStoreNoLock", "error", err.Error())
 		return nil
 	}
 
