@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -646,6 +648,38 @@ func TestRewardsCreator_AddCommunityRewardToMiniBlocks(t *testing.T) {
 	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, make(map[uint32][]*state.ValidatorInfo))
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
+}
+
+func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToCommunityReward(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(1, core.MetachainShardId)
+	rwdc, _ := NewEpochStartRewardsCreator(args)
+	metaBlk := &block.MetaBlock{
+		EpochStart: getDefaultEpochStart(),
+	}
+
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
+		{
+			RewardAddress:              factory.StakingSCAddress,
+			ShardId:                    0,
+			AccumulatedFees:            big.NewInt(100),
+			NumSelectedInSuccessBlocks: 1,
+			LeaderSuccess:              1,
+		},
+	}
+	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, valInfo)
+	assert.Nil(t, err)
+	assert.Equal(t, len(miniBlocks), 1)
+	assert.Equal(t, len(miniBlocks[0].TxHashes), 1)
+
+	expectedCommunityValue := big.NewInt(0).Add(metaBlk.EpochStart.Economics.RewardsForCommunity, metaBlk.EpochStart.Economics.RewardsPerBlock)
+	expectedCommunityValue.Add(expectedCommunityValue, big.NewInt(100))
+	communityReward, err := rwdc.currTxs.GetTx(miniBlocks[0].TxHashes[0])
+	assert.Nil(t, err)
+	assert.True(t, expectedCommunityValue.Cmp(communityReward.GetValue()) == 0)
 }
 
 func getDefaultEpochStart() block.EpochStart {
