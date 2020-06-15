@@ -167,7 +167,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 	}
 
 	if !bytes.Equal(userTx.SndAddr, tx.RcvAddr) {
-		return process.ErrInvalidAddressInRelayedTx
+		return process.ErrRelayedTxBeneficiaryDoesNotMatchReceiver
 	}
 
 	err = inTx.integrity(userTx)
@@ -180,7 +180,6 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 		return err
 	}
 
-	// recursive relayed transactions are not allowed
 	if len(userTx.Data) == 0 {
 		return nil
 	}
@@ -190,8 +189,9 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 		return nil
 	}
 
+	// recursive relayed transactions are not allowed
 	if core.RelayedTransaction == funcName {
-		return process.ErrRecursiveRelayedTXIsNotAllowed
+		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 
 	return nil

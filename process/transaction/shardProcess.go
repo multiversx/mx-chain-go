@@ -433,16 +433,13 @@ func (txProc *txProcessor) processRelayedTx(
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, err)
 	}
 	if !bytes.Equal(userTx.SndAddr, tx.RcvAddr) {
-		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidAddressInRelayedTx)
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxBeneficiaryDoesNotMatchReceiver)
 	}
 	if userTx.Value.Cmp(tx.Value) < 0 {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxValueHigherThenUserTxValue)
 	}
 
-	relayerGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
-	relayerFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(relayerGasLimit), big.NewInt(0).SetUint64(tx.GetGasPrice()))
-	totalFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
-	remainingFee := big.NewInt(0).Sub(totalFee, relayerFee)
+	totalFee, remainingFee := txProc.computeRelayedTxFees(tx)
 
 	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
@@ -491,22 +488,31 @@ func (txProc *txProcessor) processRelayedTx(
 	return txProc.processUserTx(userTx, adrSrc, tx.Value, tx.Nonce, txHash)
 }
 
+func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int) {
+	relayerGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
+	relayerFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(relayerGasLimit), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+	totalFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+	remainingFee := big.NewInt(0).Sub(totalFee, relayerFee)
+
+	return totalFee, remainingFee
+}
+
 func (txProc *txProcessor) processUserTx(
-	tx *transaction.Transaction,
+	userTx *transaction.Transaction,
 	relayerAdr []byte,
 	relayedTxValue *big.Int,
 	relayedNonce uint64,
 	txHash []byte,
 ) (vmcommon.ReturnCode, error) {
-	acntSnd, acntDst, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
+	acntSnd, acntDst, err := txProc.getAccounts(userTx.SndAddr, userTx.RcvAddr)
 	if err != nil {
 		return 0, err
 	}
 
-	err = txProc.checkTxValues(tx, acntSnd, acntDst)
+	err = txProc.checkTxValues(userTx, acntSnd, acntDst)
 	if err != nil {
 		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
-			tx.SndAddr,
+			userTx.SndAddr,
 			relayerAdr,
 			relayedTxValue,
 			relayedNonce,
@@ -514,13 +520,13 @@ func (txProc *txProcessor) processUserTx(
 			err.Error())
 	}
 
-	scrFromTx := txProc.makeSCRFromUserTx(tx, relayerAdr, relayedTxValue, txHash)
+	scrFromTx := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, txHash)
 
 	returnCode := vmcommon.Ok
 	txType := txProc.txTypeHandler.ComputeTransactionType(scrFromTx)
 	switch txType {
 	case process.MoveBalance:
-		err = txProc.processMoveBalance(tx, tx.SndAddr, tx.RcvAddr)
+		err = txProc.processMoveBalance(userTx, userTx.SndAddr, userTx.RcvAddr)
 	case process.SCDeployment:
 		returnCode, err = txProc.scProcessor.DeploySmartContract(scrFromTx, acntSnd)
 	case process.SCInvoking:
@@ -530,7 +536,7 @@ func (txProc *txProcessor) processUserTx(
 	default:
 		err = process.ErrWrongTransaction
 		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
-			tx.SndAddr,
+			userTx.SndAddr,
 			relayerAdr,
 			relayedTxValue,
 			relayedNonce,
@@ -538,18 +544,15 @@ func (txProc *txProcessor) processUserTx(
 			err.Error())
 	}
 
+	// coding error transaction is reverted completely by revert from txPreProcessor
 	if err != nil {
 		return 0, err
 	}
 
+	// no need to add the smart contract result From TX to the intermediate transactions in case of error
+	// returning value is resolved inside smart contract processor or above by executeFailedRelayedTransaction
 	if returnCode != vmcommon.Ok {
-		return returnCode, txProc.executeFailedRelayedTransaction(
-			tx.SndAddr,
-			relayerAdr,
-			relayedTxValue,
-			relayedNonce,
-			txHash,
-			returnCode.String())
+		return returnCode, nil
 	}
 
 	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrFromTx})

@@ -788,14 +788,14 @@ var ErrOriginatorIsBlacklisted = errors.New("originator is blacklisted")
 // ErrShardIsStuck signals that a shard is stuck
 var ErrShardIsStuck = errors.New("shard is stuck")
 
-// ErrInvalidAddressInRelayedTx signals that an invalid address was provided in the relayed tx
-var ErrInvalidAddressInRelayedTx = errors.New("invalid address in relayed tx")
+// ErrRelayedTxBeneficiaryDoesNotMatchReceiver signals that an invalid address was provided in the relayed tx
+var ErrRelayedTxBeneficiaryDoesNotMatchReceiver = errors.New("invalid address in relayed tx")
 
 // ErrInvalidVMType signals that invalid vm type was provided
 var ErrInvalidVMType = errors.New("invalid VM type")
 
-// ErrRecursiveRelayedTXIsNotAllowed signals that recursive relayed tx is not allowed
-var ErrRecursiveRelayedTXIsNotAllowed = errors.New("recursive relayed tx is not allowed")
+// ErrRecursiveRelayedTxIsNotAllowed signals that recursive relayed tx is not allowed
+var ErrRecursiveRelayedTxIsNotAllowed = errors.New("recursive relayed tx is not allowed")
 
 // ErrRelayedTxValueHigherThenUserTxValue signals that relayed tx value is higher then user tx value
-var ErrRelayedTxValueHigherThenUserTxValue = errors.New("relayed tx value is higher then user tx value")
+var ErrRelayedTxValueHigherThenUserTxValue = errors.New("relayed tx value is higher than user tx value")
