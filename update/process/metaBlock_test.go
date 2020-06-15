@@ -122,6 +122,8 @@ func TestMetaBlockCreator_CreateNewBlock(t *testing.T) {
 		SoftwareVersion:        []byte(""),
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
 		PubKeysBitmap:          []byte{1},
 		Epoch:                  epoch,
 	}
