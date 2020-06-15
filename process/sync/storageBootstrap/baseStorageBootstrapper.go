@@ -206,7 +206,7 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 	}
 
 	if string(headerFromStorage.GetChainID()) != st.chainID {
-		log.Debug("cannot applyHeadInfo chainID missmatch",
+		log.Debug("chain ID missmatch for header with nonce", "nonce", headerFromStorage.GetNonce(),
 			"reference", []byte(st.chainID),
 			"fromStorage", headerFromStorage.GetChainID())
 		return process.ErrInvalidChainID
