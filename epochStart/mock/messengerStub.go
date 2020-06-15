@@ -9,6 +9,7 @@ import (
 type MessengerStub struct {
 	ConnectedPeersCalled           func() []core.PeerID
 	RegisterMessageProcessorCalled func(topic string, handler p2p.MessageProcessor) error
+	UnjoinAllTopicsCalled          func() error
 }
 
 // ConnectedPeersOnTopic -
@@ -52,6 +53,15 @@ func (m *MessengerStub) UnregisterMessageProcessor(_ string) error {
 
 // UnregisterAllMessageProcessors -
 func (m *MessengerStub) UnregisterAllMessageProcessors() error {
+	return nil
+}
+
+// UnjoinAllTopics -
+func (m *MessengerStub) UnjoinAllTopics() error {
+	if m.UnjoinAllTopicsCalled != nil {
+		return m.UnjoinAllTopicsCalled()
+	}
+
 	return nil
 }
 

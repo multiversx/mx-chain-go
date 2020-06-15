@@ -77,6 +77,12 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	interceptedData, err := sdi.factory.Create(message.Data())
 	if err != nil {
 		sdi.throttler.EndProcessing()
+
+		//this situation is so severe that we need to black list the peers
+		reason := "can not create object from received bytes, topic " + sdi.topic
+		sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+		sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+
 		return err
 	}
 
