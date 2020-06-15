@@ -585,6 +585,7 @@ type BlackListHandler interface {
 type PeerBlackListHandler interface {
 	Add(pid core.PeerID) error
 	AddWithSpan(pid core.PeerID, span time.Duration) error
+	Update(pid core.PeerID, span time.Duration) error
 	Has(pid core.PeerID) bool
 	Sweep()
 	IsInterfaceNil() bool
