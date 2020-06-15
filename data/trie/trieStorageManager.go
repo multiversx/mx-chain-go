@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"sort"
 	"strconv"
 	"sync"
 
@@ -97,17 +98,33 @@ func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh h
 	}
 }
 
-func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]storage.Persister, int, error) {
+func getOrderedSnapshots(snapshotsMap map[int]storage.Persister) []storage.Persister {
 	snapshots := make([]storage.Persister, 0)
+	keys := make([]int, 0)
+
+	for key := range snapshotsMap {
+		keys = append(keys, key)
+	}
+
+	sort.Ints(keys)
+	for _, key := range keys {
+		snapshots = append(snapshots, snapshotsMap[key])
+	}
+
+	return snapshots
+}
+
+func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]storage.Persister, int, error) {
+	snapshotsMap := make(map[int]storage.Persister)
 	snapshotId := 0
 
 	if !directoryExists(snapshotDbCfg.FilePath) {
-		return snapshots, snapshotId, nil
+		return getOrderedSnapshots(snapshotsMap), snapshotId, nil
 	}
 
 	files, err := ioutil.ReadDir(snapshotDbCfg.FilePath)
 	if err != nil {
-		return snapshots, snapshotId, err
+		return getOrderedSnapshots(snapshotsMap), snapshotId, err
 	}
 
 	for _, f := range files {
@@ -118,7 +135,7 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]storage.Persist
 		var snapshotName int
 		snapshotName, err = strconv.Atoi(f.Name())
 		if err != nil {
-			return snapshots, snapshotId, err
+			return getOrderedSnapshots(snapshotsMap), snapshotId, err
 		}
 
 		var db storage.Persister
@@ -131,21 +148,21 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]storage.Persist
 		}
 		db, err = storageUnit.NewDB(arg)
 		if err != nil {
-			return snapshots, snapshotId, err
+			return getOrderedSnapshots(snapshotsMap), snapshotId, err
 		}
 
 		if snapshotName > snapshotId {
 			snapshotId = snapshotName
 		}
 
-		snapshots = append(snapshots, db)
+		snapshotsMap[snapshotName] = db
 	}
 
-	if len(snapshots) != 0 {
+	if len(snapshotsMap) != 0 {
 		snapshotId++
 	}
 
-	return snapshots, snapshotId, nil
+	return getOrderedSnapshots(snapshotsMap), snapshotId, nil
 }
 
 // Database returns the main database
