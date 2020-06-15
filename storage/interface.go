@@ -214,6 +214,7 @@ type SizedLRUCacheHandler interface {
 type TimeCacheHandler interface {
 	Add(key string) error
 	AddWithSpan(key string, span time.Duration) error
+	Update(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool
