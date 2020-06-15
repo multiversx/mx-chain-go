@@ -158,10 +158,6 @@ type dummyTx struct {
 	hash []byte
 }
 
-func (dummyTx *dummyTx) GetGasPrice() uint64 {
-	return 0
-}
-
 type memoryFootprintJournal struct {
 	beforeGenerate runtime.MemStats
 	afterGenerate  runtime.MemStats
@@ -169,11 +165,11 @@ type memoryFootprintJournal struct {
 }
 
 func (journal *memoryFootprintJournal) txsFootprint() uint64 {
-	return journal.afterGenerate.HeapInuse - journal.beforeGenerate.HeapInuse
+	return uint64(core.MaxInt(0, int(journal.afterGenerate.HeapInuse)-int(journal.beforeGenerate.HeapInuse)))
 }
 
 func (journal *memoryFootprintJournal) poolStructuresFootprint() uint64 {
-	return journal.afterAddition.HeapInuse - journal.afterGenerate.HeapInuse
+	return uint64(core.MaxInt(0, int(journal.afterAddition.HeapInuse)-int(journal.afterGenerate.HeapInuse)))
 }
 
 func (journal *memoryFootprintJournal) display() {
