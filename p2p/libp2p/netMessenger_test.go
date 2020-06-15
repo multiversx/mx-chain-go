@@ -1332,3 +1332,5 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 
 	_ = mes.Close()
 }
+
+//TODO(now, Iulian) add UnjoinAllTopics unit tests

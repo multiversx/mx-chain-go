@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,29 +25,25 @@ func TestPubsubUnjoinShouldWork(t *testing.T) {
 
 	topic := "test_topic"
 	processors := make([]*messageProcessor, 0, len(peers))
-	for _, p := range peers {
+	for idx, p := range peers {
 		_ = p.CreateTopic(topic, true)
-		//    processors = append(processors, newMessageProcessor())
-		//    _ = p.RegisterMessageProcessor(topic, processors[idx])
+		processors = append(processors, newMessageProcessor())
+		_ = p.RegisterMessageProcessor(topic, processors[idx])
 	}
-
-	printConnections(peers)
 
 	fmt.Println("bootstrapping nodes")
 	time.Sleep(durationBootstrapping)
 
 	//a message should traverse the network
 	fmt.Println("sending the message that should traverse the whole network")
-	//sender := peers[4]
-	//sender.Broadcast(topic, []byte("message 1"))
+	sender := peers[4]
+	sender.Broadcast(topic, []byte("message 1"))
 
 	time.Sleep(durationTraverseNetwork)
 
 	for _, mp := range processors {
 		assert.Equal(t, 1, len(mp.AllMessages()))
 	}
-
-	printConnections(peers)
 
 	blockedIdxs := []int{3, 6, 2, 5}
 	//node 3 unjoins the topic, which should prevent the propagation of the messages on peers 3, 6, 2 and 5
@@ -58,12 +53,10 @@ func TestPubsubUnjoinShouldWork(t *testing.T) {
 	err = peers[3].UnjoinAllTopics()
 	assert.Nil(t, err)
 
-	time.Sleep(durationUnjoin * 10)
-
-	printConnections(peers)
+	time.Sleep(durationUnjoin)
 
 	fmt.Println("sending the message that should traverse half the network")
-	//sender.Broadcast(topic, []byte("message 2"))
+	sender.Broadcast(topic, []byte("message 2"))
 
 	time.Sleep(durationTraverseNetwork)
 
@@ -74,15 +67,5 @@ func TestPubsubUnjoinShouldWork(t *testing.T) {
 		}
 
 		assert.Equal(t, 2, len(mp.AllMessages()))
-	}
-}
-
-func printConnections(peers []p2p.Messenger) {
-	for idx, peer := range peers {
-		fmt.Printf("peer %d: %s is connected to:\n", idx, peer.ID().Pretty())
-
-		for _, addr := range peer.ConnectedAddresses() {
-			fmt.Printf(" %s\n", addr)
-		}
 	}
 }
