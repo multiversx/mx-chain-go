@@ -254,7 +254,8 @@ func serializeBulkMiniBlocks(
 
 	existsInDb, err := getAlreadyIndexedItems(mbsHashes, miniblocksIndex)
 	if err != nil {
-		log.Warn("indexer", "error", err.Error())
+		log.Warn("indexer get indexed items miniblocks",
+			"error", err.Error())
 		return buff
 	}
 
@@ -304,26 +305,33 @@ func prepareBufferMiniblocks(buff bytes.Buffer, meta, serializedData []byte) byt
 	return buff
 }
 
-func serializeBulkTxs(
-	bulk []*Transaction,
+func serializeTransactions(
+	transactions []*Transaction,
 	selfShardID uint32,
 	getAlreadyIndexedItems func(hashes []string, index string) (map[string]bool, error),
-) bytes.Buffer {
-	var buff bytes.Buffer
+) []bytes.Buffer {
 	var err error
 
-	txsHashes := make([]string, len(bulk))
-	for idx := range bulk {
-		txsHashes[idx] = bulk[idx].Hash
+	txsHashes := make([]string, len(transactions))
+	for idx := range transactions {
+		txsHashes[idx] = transactions[idx].Hash
 	}
 
-	existsInDb, err := getAlreadyIndexedItems(txsHashes, txIndex)
-	if err != nil {
-		log.Warn("indexer get indexed items", "error", err.Error())
-		return buff
+	existsInDb := make(map[string]bool)
+	bulksTxsHashes := buildBulksOfHashes(txsHashes)
+	for i := 0; i < len(bulksTxsHashes); i++ {
+		exitsInDbBulk, err := getAlreadyIndexedItems(bulksTxsHashes[i], txIndex)
+		if err != nil {
+			log.Warn("indexer get indexed items", "error", err.Error())
+			continue
+		}
+
+		mergeMaps(existsInDb, exitsInDbBulk)
 	}
 
-	for _, tx := range bulk {
+	var buff bytes.Buffer
+	buffSlice := make([]bytes.Buffer, 0)
+	for _, tx := range transactions {
 		meta, serializedData := prepareSerializedDataForATransaction(tx, selfShardID, existsInDb[tx.Hash])
 		if len(meta) == 0 {
 			continue
@@ -341,9 +349,39 @@ func serializeBulkTxs(
 		if err != nil {
 			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
 		}
+
+		if buff.Len() > txsBulkSizeThreshold {
+			buffSlice = append(buffSlice, buff)
+			buff = bytes.Buffer{}
+		}
 	}
 
-	return buff
+	// check if in the last buffer exits data
+	if buff.Len() != 0 {
+		buffSlice = append(buffSlice, buff)
+	}
+
+	return buffSlice
+}
+
+func buildBulksOfHashes(hashes []string) [][]string {
+	bulks := make([][]string, (len(hashes)/maxNumberOfDocumentsGet)+1)
+	for i := 0; i < len(bulks); i++ {
+		if i == len(bulks)-1 {
+			bulks[i] = append(bulks[i], hashes[i*maxNumberOfDocumentsGet:]...)
+			continue
+		}
+
+		bulks[i] = append(bulks[i], hashes[i*maxNumberOfDocumentsGet:(i+1)*maxNumberOfDocumentsGet]...)
+	}
+
+	return bulks
+}
+
+func mergeMaps(m1, m2 map[string]bool) {
+	for key, value := range m2 {
+		m1[key] = value
+	}
 }
 
 func prepareSerializedDataForATransaction(

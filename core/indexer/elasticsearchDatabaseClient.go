@@ -117,11 +117,14 @@ func (dc *databaseClient) DoBulkRequest(buff *bytes.Buffer, index string) error 
 
 	res, err = dc.dbClient.Bulk(reader, dc.dbClient.Bulk.WithIndex(index))
 	if err != nil {
+		log.Warn("indexer do bulk request no response ",
+			"error", err.Error())
 		return err
 	}
 
 	if res.IsError() {
-		log.Warn("indexer do bulk request", "error", res.String())
+		log.Warn("indexer do bulk request",
+			"error", res.String())
 		return fmt.Errorf("do bulk request %s", res.String())
 	}
 

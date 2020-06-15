@@ -17,11 +17,12 @@ func encode(obj object) (bytes.Buffer, error) {
 	return buff, nil
 }
 
-func txsByHashes(hashes []string) object {
+func documentsByIDs(hashes []string) object {
 	interfaceSlice := make([]interface{}, len(hashes))
 	for idx := range hashes {
 		interfaceSlice[idx] = object{
-			"_id": hashes[idx],
+			"_id":     hashes[idx],
+			"_source": false,
 		}
 	}
 
