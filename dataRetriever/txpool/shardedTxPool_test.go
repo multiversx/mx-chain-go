@@ -331,13 +331,6 @@ func Test_IsInterfaceNil(t *testing.T) {
 	require.True(t, check.IfNil(thisIsNil))
 }
 
-func Test_NotImplementedFunctions(t *testing.T) {
-	poolAsInterface, _ := newTxPoolToTest()
-	pool := poolAsInterface.(*shardedTxPool)
-
-	require.NotPanics(t, func() { pool.CreateShardStore("foo") })
-}
-
 func Test_routeToCacheUnions(t *testing.T) {
 	config := storageUnit.CacheConfig{
 		Capacity:             100,
@@ -384,3 +377,5 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4, SelfShardID: 0}
 	return NewShardedTxPool(args)
 }
+
+// TODO: Add high load test, reach maximum capacity and inspect RAM usage. EN-6735.

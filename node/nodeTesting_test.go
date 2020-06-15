@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -113,9 +114,9 @@ func TestGenerateAndSendBulkTransactions_NilPubkeyConverterShouldErr(t *testing.
 func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 					return nil
 				},
@@ -147,9 +148,9 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 		}
 	}}
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 					return nil
 				},
@@ -190,9 +191,9 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 		}
 	}}
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 					return nil
 				},
@@ -259,9 +260,9 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		},
 	}
 
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 					return nil
 				},
