@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -693,7 +694,7 @@ func getRewardsArguments() ArgsNewRewardsCreator {
 		MiniBlockStorage:    &mock.StorerStub{},
 		Hasher:              &mock.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
-		DataPool:            &mock.PoolsHolderStub{},
+		DataPool:            testscommon.NewPoolsHolderStub(),
 		CommunityAddress:    "11", // string hex => 17 decimal
 		NodesConfigProvider: &mock.NodesCoordinatorStub{},
 	}

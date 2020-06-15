@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1568,7 +1569,7 @@ func TestGetTransactionHandlerShouldErrNilShardedDataCacherNotifier(t *testing.T
 func TestGetTransactionHandlerShouldErrNilStorage(t *testing.T) {
 	hash := []byte("X")
 
-	shardedDataCacherNotifier := &mock.ShardedDataStub{}
+	shardedDataCacherNotifier := testscommon.NewShardedDataStub()
 	marshalizer := &mock.MarshalizerMock{}
 
 	tx, err := process.GetTransactionHandler(
@@ -1588,7 +1589,7 @@ func TestGetTransactionHandlerShouldErrNilMarshalizer(t *testing.T) {
 	hash := []byte("X")
 
 	storageService := &mock.ChainStorerMock{}
-	shardedDataCacherNotifier := &mock.ShardedDataStub{}
+	shardedDataCacherNotifier := testscommon.NewShardedDataStub()
 
 	tx, err := process.GetTransactionHandler(
 		0,
@@ -1608,9 +1609,9 @@ func TestGetTransactionHandlerShouldGetTransactionFromPool(t *testing.T) {
 	txFromPool := &transaction.Transaction{Nonce: 1}
 
 	storageService := &mock.ChainStorerMock{}
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return txFromPool, true
 				},
@@ -1649,9 +1650,9 @@ func TestGetTransactionHandlerShouldGetTransactionFromStorage(t *testing.T) {
 			return nil, errors.New("error")
 		},
 	}
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, false
 				},
@@ -1689,7 +1690,7 @@ func TestGetTransactionHandlerFromPoolShouldErrNilShardedDataCacherNotifier(t *t
 func TestGetTransactionHandlerFromPoolShouldErrNilStorage(t *testing.T) {
 	hash := []byte("X")
 
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return nil
 		},
@@ -1709,9 +1710,9 @@ func TestGetTransactionHandlerFromPoolShouldErrNilStorage(t *testing.T) {
 func TestGetTransactionHandlerFromPoolShouldErrTxNotFound(t *testing.T) {
 	hash := []byte("X")
 
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, false
 				},
@@ -1733,9 +1734,9 @@ func TestGetTransactionHandlerFromPoolShouldErrTxNotFound(t *testing.T) {
 func TestGetTransactionHandlerFromPoolShouldErrInvalidTxInPool(t *testing.T) {
 	hash := []byte("X")
 
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, true
 				},
@@ -1758,9 +1759,9 @@ func TestGetTransactionHandlerFromPoolShouldWork(t *testing.T) {
 	hash := []byte("X")
 	txFromPool := &transaction.Transaction{Nonce: 1}
 
-	shardedDataCacherNotifier := &mock.ShardedDataStub{
+	shardedDataCacherNotifier := &testscommon.ShardedDataStub{
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return txFromPool, true
 				},
