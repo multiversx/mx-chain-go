@@ -89,8 +89,8 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 		//this situation is so severe that we need to black list de peers
 		reason := "unmarshalable data got on topic " + mdi.topic
-		mdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.IntervalBlackListPeerInvalidMessage)
-		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.IntervalBlackListPeerInvalidMessage)
+		mdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
 
 		return err
 	}
@@ -164,8 +164,8 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 	if err != nil {
 		//this situation is so severe that we need to black list de peers
 		reason := "can not create object from received bytes, topic " + mdi.topic
-		mdi.antifloodHandler.BlacklistPeer(originator, reason, core.IntervalBlackListPeerInvalidMessage)
-		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.IntervalBlackListPeerInvalidMessage)
+		mdi.antifloodHandler.BlacklistPeer(originator, reason, core.InvalidMessageBlacklistDuration)
+		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
 
 		return nil, err
 	}

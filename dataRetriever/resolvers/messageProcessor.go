@@ -42,10 +42,10 @@ func (mp *messageProcessor) parseReceivedMessage(message p2p.MessageP2P, fromCon
 	rd := &dataRetriever.RequestData{}
 	err := rd.UnmarshalWith(mp.marshalizer, message)
 	if err != nil {
-		//this situation is so severe that we need to black list de peers
+		//this situation is so severe that we need to black list the peers
 		reason := "unmarshalable data got on request topic " + mp.topic
-		mp.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.IntervalBlackListPeerInvalidMessage)
-		mp.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.IntervalBlackListPeerInvalidMessage)
+		mp.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+		mp.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
 
 		return nil, err
 	}

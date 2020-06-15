@@ -329,8 +329,8 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		//that disseminated this message.
 
 		reason := "blacklisted due to invalid consensus message"
-		wrk.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.IntervalBlackListPeerInvalidMessage)
-		wrk.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.IntervalBlackListPeerInvalidMessage)
+		wrk.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+		wrk.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
 
 		return err
 	}

@@ -446,6 +446,6 @@ const CommitMaxTime = time.Second
 // DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
 const DefaultUnstakedEpoch = math.MaxUint32
 
-// IntervalBlackListPeerInvalidMessage time to keep a peer in the black list if it sends a message that does not follow
-// the protocol
-const IntervalBlackListPeerInvalidMessage = time.Second * 3600
+// InvalidMessageBlacklistDuration represents the time to keep a peer in the black list if it sends a message that
+// does not follow the protocol: example not useing the same marshaler as the other peers
+const InvalidMessageBlacklistDuration = time.Second * 3600
