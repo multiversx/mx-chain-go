@@ -29,8 +29,8 @@ cmd=(printf "$(curl -d '{"epoch":'"$epoch"'}' -H 'Content-Type: application/json
 echo " done curl"
 
 # change the setting from config.toml: AfterHardFork to true
-sed -i '/AfterHardFork/,/AfterHardFork/ s/false/true/' "$TESTNETDIR/node/config/config_validator.toml"
-sed -i '/AfterHardFork/,/AfterHardFork/ s/false/true/' "$TESTNETDIR/node/config/config_observer.toml"
+updateTOMLValue "$TESTNETDIR/node/config/config_validator.toml" "AfterHardFork" "true"
+updateTOMLValue "$TESTNETDIR/node/config/config_observer.toml" "AfterHardFork" "true"
 
 # change nodesSetup.json genesis time to a new value
 let startTime="$(date +%s) + $HARDFORK_DELAY"

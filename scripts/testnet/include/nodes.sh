@@ -52,23 +52,23 @@ iterateOverObservers() {
   local OBSERVER_INDEX=0
 
   # Iterate over Shard Observers
-  let "max_shard_id=$SHARDCOUNT - 1"
-  for SHARD in `seq 0 1 $max_shard_id`; do
-    for OBSERVER_IN_SHARD in `seq $SHARD_OBSERVERCOUNT`; do
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    for _ in $(seq $SHARD_OBSERVERCOUNT); do
       if [ $OBSERVER_INDEX -ne $SKIP_OBSERVER_IDX ]; then
         $callback $SHARD $OBSERVER_INDEX
       fi
-      let OBSERVER_INDEX++
+      (( OBSERVER_INDEX++ ))
     done
   done
 
   # Iterate over Metachain Observers
   local SHARD="metachain"
-  for META_OBSERVER in `seq $META_OBSERVERCOUNT`; do
+  for META_OBSERVER in $(seq $META_OBSERVERCOUNT); do
     if [ $OBSERVER_INDEX -ne $SKIP_OBSERVER_IDX ]; then
       $callback $SHARD $OBSERVER_INDEX
     fi
-    let OBSERVER_INDEX++
+    (( OBSERVER_INDEX++ ))
   done
 }
 
