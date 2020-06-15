@@ -1,6 +1,7 @@
 package networksharding
 
 import (
+	"encoding/hex"
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -83,7 +84,6 @@ func NewPeerShardMapper(
 // It also returns the type of provided peer
 func (psm *PeerShardMapper) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 	var pInfo *core.P2PPeerInfo
-	var pk []byte
 	var ok bool
 
 	defer func() {
@@ -91,22 +91,20 @@ func (psm *PeerShardMapper) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 			log.Trace("PeerShardMapper.GetPeerInfo",
 				"peer type", pInfo.PeerType.String(),
 				"pid", p2p.PeerIdToShortString(pid),
-				"pk", pk,
+				"pk", hex.EncodeToString(pInfo.PkBytes),
 			)
 		}
 	}()
 
-	pInfo, pk, ok = psm.getPeerInfoWithNodesCoordinator(pid)
+	pInfo, ok = psm.getPeerInfoWithNodesCoordinator(pid)
 	if ok {
 		return *pInfo
 	}
 
-	shardId, ok := psm.getShardIDSearchingPkInFallbackCache(pk)
+	shardId, ok := psm.getShardIDSearchingPkInFallbackCache(pInfo.PkBytes)
 	if ok {
-		pInfo = &core.P2PPeerInfo{
-			PeerType: core.ObserverPeer,
-			ShardID:  shardId,
-		}
+		pInfo.PeerType = core.ObserverPeer
+		pInfo.ShardID = shardId
 
 		return *pInfo
 	}
@@ -115,13 +113,13 @@ func (psm *PeerShardMapper) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 	return *pInfo
 }
 
-func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*core.P2PPeerInfo, []byte, bool) {
+func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*core.P2PPeerInfo, bool) {
 	pkObj, ok := psm.peerIdPk.Get([]byte(pid))
 	if !ok {
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
-		}, nil, false
+		}, false
 	}
 
 	pkBuff, ok := pkObj.([]byte)
@@ -131,7 +129,7 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
-		}, nil, false
+		}, false
 	}
 
 	psm.mutEpoch.RLock()
@@ -143,13 +141,15 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
-		}, pkBuff, false
+			PkBytes:  pkBuff,
+		}, false
 	}
 
 	return &core.P2PPeerInfo{
 		PeerType: core.ValidatorPeer,
 		ShardID:  shardId,
-	}, pkBuff, true
+		PkBytes:  pkBuff,
+	}, true
 }
 
 func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) (shardId uint32, ok bool) {

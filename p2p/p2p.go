@@ -77,9 +77,8 @@ type Messenger interface {
 	// Messenger is currently connected.
 	ConnectedAddresses() []string
 
-	// PeerAddress builds an address for the given peer ID, e.g.
-	// ConnectToPeer(PeerAddress(somePeerID)).
-	PeerAddress(pid core.PeerID) string
+	// PeerAddresses returns the known addresses for the provided peer ID
+	PeerAddresses(pid core.PeerID) []string
 
 	// ConnectedPeersOnTopic returns the IDs of the peers to which the Messenger
 	// is currently connected, but filtered by a topic they are registered to.
