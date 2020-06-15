@@ -28,7 +28,7 @@ const (
 type trieStorageManager struct {
 	db data.DBWriteCacher
 
-	snapshots          []storage.Persister
+	snapshots          []data.SnapshotDbHandler
 	snapshotId         int
 	snapshotDbCfg      config.DBConfig
 	snapshotReq        chan *snapshotsQueueEntry
@@ -97,8 +97,8 @@ func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh h
 	}
 }
 
-func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]storage.Persister, int, error) {
-	snapshots := make([]storage.Persister, 0)
+func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]data.SnapshotDbHandler, int, error) {
+	snapshots := make([]data.SnapshotDbHandler, 0)
 	snapshotId := 0
 
 	if !directoryExists(snapshotDbCfg.FilePath) {
@@ -107,6 +107,7 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]storage.Persist
 
 	files, err := ioutil.ReadDir(snapshotDbCfg.FilePath)
 	if err != nil {
+		log.Debug("there is no snapshot in path", "path", snapshotDbCfg.FilePath)
 		return snapshots, snapshotId, err
 	}
 
@@ -138,7 +139,12 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]storage.Persist
 			snapshotId = snapshotName
 		}
 
-		snapshots = append(snapshots, db)
+		snapshot := &snapshotDb{
+			DBWriteCacher: db,
+		}
+
+		log.Debug("restored snapshot", "snapshot ID", snapshotName)
+		snapshots = append(snapshots, snapshot)
 	}
 
 	if len(snapshots) != 0 {
@@ -302,25 +308,8 @@ func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes data.Modified
 	return tsm.dbEvictionWaitingList.Put(root, hashes)
 }
 
-// GetDbThatContainsHash returns the database that contains the given hash
-func (tsm *trieStorageManager) GetDbThatContainsHash(rootHash []byte) data.DBWriteCacher {
-	_, err := tsm.db.Get(rootHash)
-
-	hashPresent := err == nil
-	if hashPresent {
-		log.Trace("hash present in main trie db", "hash", rootHash)
-		return tsm.db
-	}
-
-	return tsm.getSnapshotDbThatContainsHash(rootHash)
-}
-
 // GetSnapshotThatContainsHash returns the snapshot that contains the given hash
-func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) data.DBWriteCacher {
-	return tsm.getSnapshotDbThatContainsHash(rootHash)
-}
-
-func (tsm *trieStorageManager) getSnapshotDbThatContainsHash(rootHash []byte) data.DBWriteCacher {
+func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) data.SnapshotDbHandler {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
@@ -330,6 +319,7 @@ func (tsm *trieStorageManager) getSnapshotDbThatContainsHash(rootHash []byte) da
 		hashPresent := err == nil
 		if hashPresent {
 			log.Trace("hash present in snapshot trie db", "hash", rootHash)
+			tsm.snapshots[i].IncreaseNumReferences()
 			return tsm.snapshots[i]
 		}
 	}
@@ -433,18 +423,36 @@ func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
 }
 
 func (tsm *trieStorageManager) removeSnapshot() {
+	if len(tsm.snapshots) <= 0 {
+		return
+	}
+
 	dbUniqueId := strconv.Itoa(tsm.snapshotId - len(tsm.snapshots))
 
-	err := tsm.snapshots[0].Close()
+	snapshot := tsm.snapshots[0]
+	tsm.snapshots = tsm.snapshots[1:]
+	removePath := path.Join(tsm.snapshotDbCfg.FilePath, dbUniqueId)
+
+	if snapshot.IsInUse() {
+		log.Debug("snapshot is still in use", "path", removePath)
+		snapshot.MarkForRemoval()
+		snapshot.SetPath(removePath)
+
+		return
+	}
+
+	removeSnapshot(snapshot, removePath)
+}
+
+func removeSnapshot(db data.DBWriteCacher, path string) {
+	err := db.Close()
 	if err != nil {
 		log.Error("trie storage manager: removeSnapshot", "error", err.Error())
 		return
 	}
-	tsm.snapshots = tsm.snapshots[1:]
 
-	log.Debug("remove trie snapshot db", "snapshot ID", dbUniqueId)
-	removePath := path.Join(tsm.snapshotDbCfg.FilePath, dbUniqueId)
-	go removeDirectory(removePath)
+	log.Debug("remove trie snapshot db", "snapshot path", path)
+	go removeDirectory(path)
 }
 
 func removeDirectory(path string) {
@@ -500,7 +508,11 @@ func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
 	}
 
 	tsm.snapshotId++
-	tsm.snapshots = append(tsm.snapshots, db)
+
+	snapshot := &snapshotDb{
+		DBWriteCacher: db,
+	}
+	tsm.snapshots = append(tsm.snapshots, snapshot)
 
 	return db, nil
 }
