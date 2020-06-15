@@ -19,7 +19,7 @@ func (s *snapshotDb) DecreaseNumReferences() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if s.numReferences != 0 {
+	if s.numReferences > 0 {
 		s.numReferences--
 	}
 
@@ -54,12 +54,8 @@ func (s *snapshotDb) SetPath(path string) {
 
 // IsInUse returns true if the numReferences counter is greater than 0
 func (s *snapshotDb) IsInUse() bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 
-	if s.numReferences != 0 {
-		return true
-	}
-
-	return false
+	return s.numReferences > 0
 }

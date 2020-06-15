@@ -423,6 +423,10 @@ func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
 }
 
 func (tsm *trieStorageManager) removeSnapshot() {
+	if len(tsm.snapshots) <= 0 {
+		return
+	}
+
 	dbUniqueId := strconv.Itoa(tsm.snapshotId - len(tsm.snapshots))
 
 	snapshot := tsm.snapshots[0]

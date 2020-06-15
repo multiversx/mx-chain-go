@@ -319,6 +319,7 @@ func (tr *patriciaMerkleTrie) recreateFromMainDb(rootHash []byte) data.Trie {
 	newTr, _, err := tr.recreateFromDb(rootHash, tr.Database(), tr.trieStorage)
 	if err != nil {
 		log.Warn("trie recreate error:", "error", err, "root", hex.EncodeToString(rootHash))
+		return nil
 	}
 
 	return newTr
@@ -513,13 +514,13 @@ func getDbThatContainsHash(trieStorage data.StorageManager, rootHash []byte) dat
 	}
 
 	_, err := trieStorage.Database().Get(rootHash)
-	if err == nil {
-		return &snapshotDb{
-			DBWriteCacher: trieStorage.Database(),
-		}
+	if err != nil {
+		return nil
 	}
 
-	return nil
+	return &snapshotDb{
+		DBWriteCacher: trieStorage.Database(),
+	}
 }
 
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
