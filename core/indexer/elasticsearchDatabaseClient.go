@@ -171,7 +171,7 @@ func closeESResponseBody(res *esapi.Response) {
 	if res != nil && res.Body != nil {
 		err := res.Body.Close()
 		if err != nil {
-			log.Warn("error closing elastic search response body", "error", err)
+			log.Warn("cannot close elastic search response body", "error", err)
 		}
 	}
 }

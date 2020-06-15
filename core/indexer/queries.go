@@ -17,7 +17,7 @@ func encode(obj object) (bytes.Buffer, error) {
 	return buff, nil
 }
 
-func documentsByIDs(hashes []string) object {
+func getDocumentsByIDsQuery(hashes []string) object {
 	interfaceSlice := make([]interface{}, len(hashes))
 	for idx := range hashes {
 		interfaceSlice[idx] = object{

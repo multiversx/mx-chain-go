@@ -600,7 +600,6 @@ func TestDoBulkRequestLimit(t *testing.T) {
 	body.MiniBlocks[0].ReceiverShardID = 2
 	body.MiniBlocks[0].SenderShardID = 1
 	esDatabase.SaveTransactions(body, header, txsPool, 2)
-
 }
 
 func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transaction, []string) {

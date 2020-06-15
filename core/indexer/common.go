@@ -320,9 +320,9 @@ func serializeTransactions(
 	existsInDb := make(map[string]bool)
 	bulksTxsHashes := buildBulksOfHashes(txsHashes)
 	for i := 0; i < len(bulksTxsHashes); i++ {
-		exitsInDbBulk, err := getAlreadyIndexedItems(bulksTxsHashes[i], txIndex)
-		if err != nil {
-			log.Warn("indexer get indexed items", "error", err.Error())
+		exitsInDbBulk, errGet := getAlreadyIndexedItems(bulksTxsHashes[i], txIndex)
+		if errGet != nil {
+			log.Warn("indexer get indexed items", "error", errGet.Error())
 			continue
 		}
 
@@ -356,7 +356,7 @@ func serializeTransactions(
 		}
 	}
 
-	// check if in the last buffer exits data
+	// check if the last buffer contains data
 	if buff.Len() != 0 {
 		buffSlice = append(buffSlice, buff)
 	}

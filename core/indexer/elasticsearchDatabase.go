@@ -423,7 +423,7 @@ func (esd *elasticSearchDatabase) foundedObjMap(hashes []string, index string) (
 		return make(map[string]bool), nil
 	}
 
-	response, err := esd.dbClient.DoMultiGet(documentsByIDs(hashes), index)
+	response, err := esd.dbClient.DoMultiGet(getDocumentsByIDsQuery(hashes), index)
 	if err != nil {
 		return nil, err
 	}
