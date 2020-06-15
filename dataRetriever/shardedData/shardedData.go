@@ -90,14 +90,7 @@ func (sd *shardedData) shardStore(cacheID string) *shardStore {
 func (sd *shardedData) AddData(key []byte, value interface{}, sizeInBytes int, cacheID string) {
 	log.Trace("shardedData.AddData()", "name", sd.name, "cacheID", cacheID, "key", key, "size", sizeInBytes)
 
-	var store *shardStore
-
-	sd.mutShardedDataStore.Lock()
-	store = sd.shardedDataStore[cacheID]
-	if store == nil {
-		store = sd.newShardStoreNoLock(cacheID)
-	}
-	sd.mutShardedDataStore.Unlock()
+	store := sd.getOrCreateShardStoreWithLock(cacheID)
 
 	_, added := store.cache.HasOrAdd(key, value, sizeInBytes)
 	if added {
@@ -107,6 +100,18 @@ func (sd *shardedData) AddData(key []byte, value interface{}, sizeInBytes int, c
 		}
 		sd.mutAddedDataHandlers.RUnlock()
 	}
+}
+
+func (sd *shardedData) getOrCreateShardStoreWithLock(cacheID string) *shardStore {
+	sd.mutShardedDataStore.Lock()
+	defer sd.mutShardedDataStore.Unlock()
+
+	store, ok := sd.shardedDataStore[cacheID]
+	if !ok {
+		store = sd.newShardStoreNoLock(cacheID)
+	}
+
+	return store
 }
 
 func (sd *shardedData) newShardStoreNoLock(cacheID string) *shardStore {
@@ -168,12 +173,7 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
 
 // ImmunizeSetOfDataAgainstEviction  marks the items as non-evictable
 func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
-	store := sd.shardStore(cacheID)
-	if store == nil {
-		log.Error("shardedData.ImmunizeSetOfDataAgainstEviction(): cache is missing", "name", sd.name, "cacheID", cacheID)
-		return
-	}
-
+	store := sd.getOrCreateShardStoreWithLock(cacheID)
 	numNow, numFuture := store.cache.ImmunizeKeys(keys)
 	log.Debug("shardedData.ImmunizeSetOfDataAgainstEviction()", "name", sd.name, "cacheID", cacheID, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
 }
