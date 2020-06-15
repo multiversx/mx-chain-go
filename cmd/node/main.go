@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -88,6 +89,7 @@ const (
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
 	maxNumGoRoutinesTxsByHashApi = 10
+	maxTimeToClose               = 10 * time.Second
 )
 
 var (
@@ -1331,8 +1333,24 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Info("terminating at internal stop signal", "reason", sig.Reason)
 	}
 
+	closeCtx, cancel := context.WithTimeout(context.Background(), maxTimeToClose)
+	closeAllComponents(log, dataComponents, triesComponents, networkComponents, closeCtx)
+	cancel()
+
+	handleAppClose(log, sig)
+
+	return nil
+}
+
+func closeAllComponents(
+	log logger.Logger,
+	dataComponents *mainFactory.DataComponents,
+	triesComponents *mainFactory.TriesComponents,
+	networkComponents *mainFactory.NetworkComponents,
+	ctx context.Context,
+) {
 	log.Debug("closing all store units....")
-	err = dataComponents.Store.CloseAll()
+	err := dataComponents.Store.CloseAll()
 	log.LogIfError(err)
 
 	dataTries := triesComponents.TriesContainer.GetAll()
@@ -1350,9 +1368,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
 
-	handleAppClose(log, sig)
-
-	return nil
+	select {
+	case <-ctx.Done():
+		log.Error("could not close all components in specified time")
+		return
+	}
 }
 
 func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
