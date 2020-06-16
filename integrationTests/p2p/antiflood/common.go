@@ -58,6 +58,7 @@ func CreateTopicsAndMockInterceptors(
 			PercentReserved:           0,
 			IncreaseThreshold:         0,
 			IncreaseFactor:            0,
+			SelfPid:                   p.ID(),
 		}
 		interceptors[idx].FloodPreventer, err = floodPreventers.NewQuotaFloodPreventer(arg)
 		if err != nil {

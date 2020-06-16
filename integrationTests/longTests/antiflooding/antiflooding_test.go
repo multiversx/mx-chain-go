@@ -98,7 +98,7 @@ func createDisabledConfig() config.Config {
 }
 
 func TestAntifloodingForLargerPeriodOfTime(t *testing.T) {
-	//t.Skip("this is a long and harsh test")
+	t.Skip("this is a long and harsh test")
 
 	peers, err := integrationTests.CreateFixedNetworkOf8Peers()
 	assert.Nil(t, err)
