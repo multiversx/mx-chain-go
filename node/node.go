@@ -48,6 +48,7 @@ import (
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // SendTransactionsPipe is the pipe used for sending new transactions
@@ -234,7 +235,7 @@ func (n *Node) StartConsensus() error {
 
 	bootstrapper.StartSyncingBlocks()
 
-	epoch := uint32(0)
+	epoch := n.blkc.GetGenesisHeader().GetEpoch()
 	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
 	if !check.IfNil(crtBlockHeader) {
 		epoch = crtBlockHeader.GetEpoch()
@@ -356,6 +357,17 @@ func (n *Node) StartConsensus() error {
 
 	chronologyHandler.StartRounds()
 
+	return n.addCloserInstances(chronologyHandler, bootstrapper, worker, n.syncTimer)
+}
+
+func (n *Node) addCloserInstances(closers ...update.Closer) error {
+	for _, c := range closers {
+		err := n.hardforkTrigger.AddCloser(c)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -429,7 +441,6 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 		rounder,
 		n.syncTimer,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -476,6 +487,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
+		ChainID:             string(n.chainID),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -535,6 +547,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
+		ChainID:             string(n.chainID),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{

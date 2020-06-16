@@ -199,6 +199,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
 		StatusHandler:              &mock.AppStatusHandlerStub{},
+		ImportStartHandler:         &mock.ImportStartHandlerStub{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
@@ -243,6 +244,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		BlockTracker: &mock.BlockTrackerStub{
 			RestoreToGenesisCalled: func() {},
 		},
+		ChainID: string(integrationTests.ChainID),
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)
