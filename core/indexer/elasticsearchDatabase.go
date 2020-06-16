@@ -210,16 +210,14 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 	txPool map[string]data.TransactionHandler,
 	selfShardID uint32,
 ) {
-	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardID)
-	for _, bulk := range bulks {
-		buff := serializeBulkTxs(bulk, selfShardID, esd.foundedObjMap)
-		if buff.Len() == 0 {
-			continue
-		}
+	txs := esd.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
+	buffSlice := serializeTransactions(txs, selfShardID, esd.foundedObjMap)
 
-		err := esd.dbClient.DoBulkRequest(&buff, txIndex)
+	for idx := range buffSlice {
+		err := esd.dbClient.DoBulkRequest(&buffSlice[idx], txIndex)
 		if err != nil {
-			log.Warn("indexer", "error", "indexing bulk of transactions")
+			log.Warn("indexer indexing bulk of transactions",
+				"error", err.Error())
 			continue
 		}
 	}
@@ -228,29 +226,6 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 // SetTxLogsProcessor will set tx logs processor
 func (esd *elasticSearchDatabase) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
 	esd.txLogsProcessor = txLogsProc
-}
-
-// buildTransactionBulks creates bulks of maximum txBulkSize transactions to be indexed together
-//  using the elastic search bulk API
-func (esd *elasticSearchDatabase) buildTransactionBulks(
-	body *block.Body,
-	header data.HeaderHandler,
-	txPool map[string]data.TransactionHandler,
-	selfShardID uint32,
-) [][]*Transaction {
-	txs := esd.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
-
-	bulks := make([][]*Transaction, (len(txs)/txBulkSize)+1)
-	for i := 0; i < len(bulks); i++ {
-		if i == len(bulks)-1 {
-			bulks[i] = append(bulks[i], txs[i*txBulkSize:]...)
-			continue
-		}
-
-		bulks[i] = append(bulks[i], txs[i*txBulkSize:(i+1)*txBulkSize]...)
-	}
-
-	return bulks
 }
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
@@ -444,7 +419,11 @@ func (esd *elasticSearchDatabase) SaveShardStatistics(tpsBenchmark statistics.TP
 }
 
 func (esd *elasticSearchDatabase) foundedObjMap(hashes []string, index string) (map[string]bool, error) {
-	response, err := esd.dbClient.DoMultiGet(txsByHashes(hashes), index)
+	if len(hashes) == 0 {
+		return make(map[string]bool), nil
+	}
+
+	response, err := esd.dbClient.DoMultiGet(getDocumentsByIDsQuery(hashes), index)
 	if err != nil {
 		return nil, err
 	}

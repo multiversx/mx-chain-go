@@ -325,6 +325,13 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	cnsMsg := &consensus.Message{}
 	err = wrk.marshalizer.Unmarshal(cnsMsg, message.Data())
 	if err != nil {
+		//this situation is so severe that we have to black list both the message originator and the connected peer
+		//that disseminated this message.
+
+		reason := "blacklisted due to invalid consensus message"
+		wrk.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+		wrk.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+
 		return err
 	}
 
