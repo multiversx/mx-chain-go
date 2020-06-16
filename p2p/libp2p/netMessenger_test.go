@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -1157,7 +1158,7 @@ func TestNetworkMessenger_SetMessageIdsCacherNilCacherShouldErr(t *testing.T) {
 func TestNetworkMessenger_SetMessageIdsCacherShouldWork(t *testing.T) {
 	mes := createMessenger()
 
-	err := mes.SetMessageIdsCacher(&mock.CacherStub{})
+	err := mes.SetMessageIdsCacher(testscommon.NewCacherStub())
 
 	assert.Nil(t, err)
 
@@ -1184,14 +1185,14 @@ func TestNetworkMessenger_MessageIdsCacherShouldPreventReprocessing(t *testing.T
 
 	mutVals := sync.Mutex{}
 	vals := make(map[string]struct{})
-	_ = mes.SetMessageIdsCacher(&mock.CacherStub{
-		HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
+	_ = mes.SetMessageIdsCacher(&testscommon.CacherStub{
+		HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
 			mutVals.Lock()
-			_, has := vals[string(key)]
+			_, has = vals[string(key)]
 			vals[string(key)] = struct{}{}
 			mutVals.Unlock()
 
-			return has, false
+			return has, !has
 		},
 	})
 

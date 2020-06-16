@@ -2,6 +2,7 @@ package counting
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -51,12 +52,18 @@ func (counts *ShardedCounts) String() string {
 	_, _ = fmt.Fprintf(&builder, "Total:%d; ", counts.GetTotal())
 
 	counts.mutex.RLock()
+	defer counts.mutex.RUnlock()
 
-	for shardName, count := range counts.byShard {
-		_, _ = fmt.Fprintf(&builder, "[%s]=%d; ", shardName, count)
+	// First, we sort the keys alphanumerically
+	keys := make([]string, 0, len(counts.byShard))
+	for key := range counts.byShard {
+		keys = append(keys, key)
 	}
+	sort.Strings(keys)
 
-	counts.mutex.RUnlock()
+	for _, key := range keys {
+		_, _ = fmt.Fprintf(&builder, "[%s]=%d; ", key, counts.byShard[key])
+	}
 
 	return builder.String()
 }

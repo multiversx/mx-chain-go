@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -729,7 +730,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		return shardCoordinator.CurrentShard
 	}
 
-	cache := mock.NewCacherMock()
+	cache := testscommon.NewCacherMock()
 	whiteListerVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(cache)
 	require.Nil(t, err)
 

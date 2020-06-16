@@ -26,7 +26,7 @@ func (txMap *txByHashMap) addTx(tx *WrappedTransaction) bool {
 	added := txMap.backingMap.SetIfAbsent(string(tx.TxHash), tx)
 	if added {
 		txMap.counter.Increment()
-		txMap.numBytes.Add(int64(estimateTxSize(tx)))
+		txMap.numBytes.Add(tx.Size)
 	}
 
 	return added
@@ -46,7 +46,7 @@ func (txMap *txByHashMap) removeTx(txHash string) (*WrappedTransaction, bool) {
 
 	if removed {
 		txMap.counter.Decrement()
-		txMap.numBytes.Subtract(int64(estimateTxSize(tx)))
+		txMap.numBytes.Subtract(tx.Size)
 	}
 
 	return tx, true

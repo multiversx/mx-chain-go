@@ -156,7 +156,7 @@ func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cac
 }
 
 // AddData adds the transaction to the cache
-func (txPool *shardedTxPool) AddData(key []byte, value interface{}, _ int, cacheID string) {
+func (txPool *shardedTxPool) AddData(key []byte, value interface{}, sizeInBytes int, cacheID string) {
 	valueAsTransaction, ok := value.(data.TransactionHandler)
 	if !ok {
 		return
@@ -173,6 +173,7 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, _ int, cache
 		TxHash:          key,
 		SenderShardID:   sourceShardID,
 		ReceiverShardID: destinationShardID,
+		Size:            int64(sizeInBytes),
 	}
 
 	txPool.addTx(wrapper, cacheID)
@@ -292,10 +293,6 @@ func (txPool *shardedTxPool) Clear() {
 func (txPool *shardedTxPool) ClearShardStore(cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 	shard.Cache.Clear()
-}
-
-// CreateShardStore is not implemented for this pool, since shard creations is managed internally
-func (txPool *shardedTxPool) CreateShardStore(_ string) {
 }
 
 // RegisterHandler registers a new handler to be called when a new transaction is added
