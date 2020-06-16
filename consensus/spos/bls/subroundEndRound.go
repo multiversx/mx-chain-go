@@ -246,7 +246,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	}
 
 	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && !sr.IsSelfLeaderInCurrentRound() {
-		err := sr.prepareBroadcastBlockDataForValidator()
+		err := sr.prepareBroadcastBlockDataForValidator(cnsDta)
 		if err != nil {
 			log.Warn("validator in consensus group preparing for delayed broadcast",
 				"error", err.Error())
@@ -388,7 +388,7 @@ func (sr *subroundEndRound) broadcastBlockDataLeader() error {
 	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.Header, miniBlocks, transactions)
 }
 
-func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {
+func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator(cnsDta *consensus.Message) error {
 	idx, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
 		return err
@@ -399,7 +399,7 @@ func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {
 		return err
 	}
 
-	haveHeader, header := sr.haveConsensusHeaderWithFullInfo(nil)
+	haveHeader, header := sr.haveConsensusHeaderWithFullInfo(cnsDta)
 	if !haveHeader {
 		header = sr.Header
 	}
