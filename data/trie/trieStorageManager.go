@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"sort"
 	"strconv"
 	"sync"
 
@@ -97,18 +98,34 @@ func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh h
 	}
 }
 
-func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]data.SnapshotDbHandler, int, error) {
+func getOrderedSnapshots(snapshotsMap map[int]data.SnapshotDbHandler) []data.SnapshotDbHandler {
 	snapshots := make([]data.SnapshotDbHandler, 0)
+	keys := make([]int, 0)
+
+	for key := range snapshotsMap {
+		keys = append(keys, key)
+	}
+
+	sort.Ints(keys)
+	for _, key := range keys {
+		snapshots = append(snapshots, snapshotsMap[key])
+	}
+
+	return snapshots
+}
+
+func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]data.SnapshotDbHandler, int, error) {
+	snapshotsMap := make(map[int]data.SnapshotDbHandler)
 	snapshotId := 0
 
 	if !directoryExists(snapshotDbCfg.FilePath) {
-		return snapshots, snapshotId, nil
+		return getOrderedSnapshots(snapshotsMap), snapshotId, nil
 	}
 
 	files, err := ioutil.ReadDir(snapshotDbCfg.FilePath)
 	if err != nil {
 		log.Debug("there is no snapshot in path", "path", snapshotDbCfg.FilePath)
-		return snapshots, snapshotId, err
+		return getOrderedSnapshots(snapshotsMap), snapshotId, err
 	}
 
 	for _, f := range files {
@@ -119,7 +136,7 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]data.SnapshotDb
 		var snapshotName int
 		snapshotName, err = strconv.Atoi(f.Name())
 		if err != nil {
-			return snapshots, snapshotId, err
+			return getOrderedSnapshots(snapshotsMap), snapshotId, err
 		}
 
 		var db storage.Persister
@@ -132,7 +149,7 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]data.SnapshotDb
 		}
 		db, err = storageUnit.NewDB(arg)
 		if err != nil {
-			return snapshots, snapshotId, err
+			return getOrderedSnapshots(snapshotsMap), snapshotId, err
 		}
 
 		if snapshotName > snapshotId {
@@ -144,14 +161,14 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]data.SnapshotDb
 		}
 
 		log.Debug("restored snapshot", "snapshot ID", snapshotName)
-		snapshots = append(snapshots, snapshot)
+		snapshotsMap[snapshotName] = snapshot
 	}
 
-	if len(snapshots) != 0 {
+	if len(snapshotsMap) != 0 {
 		snapshotId++
 	}
 
-	return snapshots, snapshotId, nil
+	return getOrderedSnapshots(snapshotsMap), snapshotId, nil
 }
 
 // Database returns the main database

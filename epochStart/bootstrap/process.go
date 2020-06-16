@@ -878,6 +878,11 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
+	err = resolverFactory.AddShardTrieNodeResolvers(container)
+	if err != nil {
+		return err
+	}
+
 	finder, err := containers.NewResolversFinder(container, e.shardCoordinator)
 	if err != nil {
 		return err

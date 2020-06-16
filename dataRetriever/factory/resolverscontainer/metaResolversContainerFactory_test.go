@@ -239,11 +239,15 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolversUnsigned := noOfShards + 1
 	numResolversRewards := noOfShards
 	numResolversTxs := noOfShards + 1
-	numResolversTrieNodes := noOfShards + 2
+	numResolversTrieNodes := 2
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
 		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards
 
 	assert.Equal(t, totalResolvers, container.Len())
+
+	err := rcf.AddShardTrieNodeResolvers(container)
+	assert.Nil(t, err)
+	assert.Equal(t, totalResolvers+noOfShards, container.Len())
 }
 
 func getArgumentsMeta() resolverscontainer.FactoryArgs {
