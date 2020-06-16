@@ -60,8 +60,8 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		MinGasPriceNanoErd:            uint32(args.MinGasPrice / oneBillion),
 	}
 
-	// Minus self shard, plus metachain
-	numCrossTxCaches := args.NumberOfShards - 1 + 1
+	//  NumberOfShards - 1 (for self shard) + 1 (for metachain)
+	numCrossTxCaches := args.NumberOfShards
 
 	configPrototypeDestinationMe := txcache.ConfigDestinationMe{
 		NumChunks:                   args.Config.Shards,
