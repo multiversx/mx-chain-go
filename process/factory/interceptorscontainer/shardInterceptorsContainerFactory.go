@@ -207,24 +207,6 @@ func (sicf *shardInterceptorsContainerFactory) generateTrieNodesInterceptors() e
 	keys = append(keys, identifierTrieNodes)
 	interceptorsSlice = append(interceptorsSlice, interceptor)
 
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	interceptor, err = sicf.createOneTrieNodesInterceptor(identifierTrieNodes)
-	if err != nil {
-		return err
-	}
-
-	keys = append(keys, identifierTrieNodes)
-	interceptorsSlice = append(interceptorsSlice, interceptor)
-
-	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	interceptor, err = sicf.createOneTrieNodesInterceptor(identifierTrieNodes)
-	if err != nil {
-		return err
-	}
-
-	keys = append(keys, identifierTrieNodes)
-	interceptorsSlice = append(interceptorsSlice, interceptor)
-
 	return sicf.container.AddMultiple(keys, interceptorsSlice)
 }
 

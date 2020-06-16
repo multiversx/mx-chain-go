@@ -24,10 +24,13 @@ type p2pBlackListProcessor struct {
 	cacher                     storage.Cacher
 	peerBlacklistHandler       process.PeerBlackListHandler
 	banDuration                time.Duration
+	selfPid                    core.PeerID
+	name                       string
 }
 
 // NewP2PBlackListProcessor creates a new instance of p2pQuotaBlacklistProcessor able to determine
 // a flooding peer and mark it accordingly
+// TODO use argument on constructor
 func NewP2PBlackListProcessor(
 	cacher storage.Cacher,
 	peerBlacklistHandler process.PeerBlackListHandler,
@@ -35,6 +38,8 @@ func NewP2PBlackListProcessor(
 	thresholdSizeReceivedFlood uint64,
 	numFloodingRounds uint32,
 	banDuration time.Duration,
+	name string,
+	selfPid core.PeerID,
 ) (*p2pBlackListProcessor, error) {
 
 	if check.IfNil(cacher) {
@@ -63,6 +68,8 @@ func NewP2PBlackListProcessor(
 		thresholdSizeReceivedFlood: thresholdSizeReceivedFlood,
 		numFloodingRounds:          numFloodingRounds,
 		banDuration:                banDuration,
+		selfPid:                    selfPid,
+		name:                       name,
 	}, nil
 }
 
@@ -84,7 +91,7 @@ func (pbp *p2pBlackListProcessor) ResetStatistics() {
 				"peer ID", pid.Pretty(),
 				"ban period", pbp.banDuration,
 			)
-			_ = pbp.peerBlacklistHandler.AddWithSpan(pid, pbp.banDuration)
+			_ = pbp.peerBlacklistHandler.Update(pid, pbp.banDuration)
 		}
 	}
 }
@@ -103,9 +110,20 @@ func (pbp *p2pBlackListProcessor) getFloodingValue(key []byte) (uint32, bool) {
 // AddQuota checks if the received quota for an identifier has exceeded the set thresholds
 func (pbp *p2pBlackListProcessor) AddQuota(pid core.PeerID, numReceived uint32, sizeReceived uint64, _ uint32, _ uint64) {
 	isFloodingPeer := numReceived >= pbp.thresholdNumReceivedFlood || sizeReceived >= pbp.thresholdSizeReceivedFlood
-	if isFloodingPeer {
-		pbp.incrementStatsFloodingPeer(pid)
+	if !isFloodingPeer {
+		return
 	}
+	if pid == pbp.selfPid {
+		log.Warn("current peer should have been blacklisted",
+			"name", pbp.name,
+			"total num messages", numReceived,
+			"total size", sizeReceived,
+		)
+		return
+	}
+
+	pbp.incrementStatsFloodingPeer(pid)
+
 }
 
 func (pbp *p2pBlackListProcessor) incrementStatsFloodingPeer(pid core.PeerID) {

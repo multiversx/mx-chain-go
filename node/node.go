@@ -960,7 +960,6 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		PrivKey:                  n.privKey,
 		HardforkTrigger:          n.hardforkTrigger,
 		AntifloodHandler:         n.inputAntifloodHandler,
-		PeerBlackListHandler:     n.peerBlackListHandler,
 		ValidatorPubkeyConverter: n.validatorPubkeyConverter,
 		EpochStartTrigger:        n.epochStartTrigger,
 		EpochStartRegistration:   n.epochStartRegistrationHandler,

@@ -19,14 +19,14 @@ var ErrTopicAlreadyExists = errors.New("topic already exists")
 // ErrTopicValidatorOperationNotSupported signals that an unsupported validator operation occurred
 var ErrTopicValidatorOperationNotSupported = errors.New("topic validator operation is not supported")
 
-// ErrChannelAlreadyExists signals that the channel is already defined (and used)
-var ErrChannelAlreadyExists = errors.New("channel already exists")
-
 // ErrChannelDoesNotExist signals that a requested channel does not exist
 var ErrChannelDoesNotExist = errors.New("channel does not exist")
 
 // ErrChannelCanNotBeDeleted signals that a channel can not be deleted (might be the default channel)
 var ErrChannelCanNotBeDeleted = errors.New("channel can not be deleted")
+
+// ErrChannelCanNotBeReAdded signals that a channel can not be re added as it is the default channel
+var ErrChannelCanNotBeReAdded = errors.New("channel can not be re added")
 
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")

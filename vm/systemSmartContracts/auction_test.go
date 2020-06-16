@@ -439,7 +439,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        true,
 		UnStakedNonce: 1,
-		UnStakedEpoch: 0,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
 		RewardAddress: []byte("tralala1"),
 		StakeValue:    big.NewInt(0),
 	}
@@ -880,7 +880,7 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 1,
-		UnStakedEpoch: 0,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
 		RewardAddress: []byte("tralala1"),
 		StakeValue:    big.NewInt(12500000),
 	}
@@ -1240,7 +1240,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        true,
 		UnStakedNonce: 0,
-		UnStakedEpoch: 0,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
 		RewardAddress: arguments.CallerAddr,
 		StakeValue:    args.ValidatorSettings.GenesisNodePrice(),
 		JailedRound:   math.MaxUint64,
