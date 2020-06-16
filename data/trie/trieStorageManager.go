@@ -98,7 +98,7 @@ func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh h
 	}
 }
 
-func getOrderedSnapshots(snapshotsMap map[int]storage.Persister) []data.SnapshotDbHandler {
+func getOrderedSnapshots(snapshotsMap map[int]data.SnapshotDbHandler) []data.SnapshotDbHandler {
 	snapshots := make([]data.SnapshotDbHandler, 0)
 	keys := make([]int, 0)
 
@@ -161,7 +161,7 @@ func getSnapshotsAndSnapshotId(snapshotDbCfg config.DBConfig) ([]data.SnapshotDb
 		}
 
 		log.Debug("restored snapshot", "snapshot ID", snapshotName)
-		snapshotsMap[snapshotName] = db
+		snapshotsMap[snapshotName] = snapshot
 	}
 
 	if len(snapshotsMap) != 0 {
