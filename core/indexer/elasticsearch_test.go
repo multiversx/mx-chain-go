@@ -224,7 +224,7 @@ func TestElasticIndexer_SaveRoundInfo(t *testing.T) {
 		_ = logger.SetLogLevel("core/indexer:INFO")
 	}()
 
-	ei.SaveRoundInfo(indexer.RoundInfo{})
+	ei.SaveRoundsInfos([]indexer.RoundInfo{})
 	require.Empty(t, output.String())
 }
 

@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -210,16 +209,14 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 	txPool map[string]data.TransactionHandler,
 	selfShardID uint32,
 ) {
-	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardID)
-	for _, bulk := range bulks {
-		buff := serializeBulkTxs(bulk, selfShardID, esd.foundedObjMap)
-		if buff.Len() == 0 {
-			continue
-		}
+	txs := esd.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
+	buffSlice := serializeTransactions(txs, selfShardID, esd.foundedObjMap)
 
-		err := esd.dbClient.DoBulkRequest(&buff, txIndex)
+	for idx := range buffSlice {
+		err := esd.dbClient.DoBulkRequest(&buffSlice[idx], txIndex)
 		if err != nil {
-			log.Warn("indexer", "error", "indexing bulk of transactions")
+			log.Warn("indexer indexing bulk of transactions",
+				"error", err.Error())
 			continue
 		}
 	}
@@ -228,29 +225,6 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 // SetTxLogsProcessor will set tx logs processor
 func (esd *elasticSearchDatabase) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
 	esd.txLogsProcessor = txLogsProc
-}
-
-// buildTransactionBulks creates bulks of maximum txBulkSize transactions to be indexed together
-//  using the elastic search bulk API
-func (esd *elasticSearchDatabase) buildTransactionBulks(
-	body *block.Body,
-	header data.HeaderHandler,
-	txPool map[string]data.TransactionHandler,
-	selfShardID uint32,
-) [][]*Transaction {
-	txs := esd.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
-
-	bulks := make([][]*Transaction, (len(txs)/txBulkSize)+1)
-	for i := 0; i < len(bulks); i++ {
-		if i == len(bulks)-1 {
-			bulks[i] = append(bulks[i], txs[i*txBulkSize:]...)
-			continue
-		}
-
-		bulks[i] = append(bulks[i], txs[i*txBulkSize:(i+1)*txBulkSize]...)
-	}
-
-	return bulks
 }
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
@@ -314,35 +288,45 @@ func (esd *elasticSearchDatabase) getMiniblocks(header data.HeaderHandler, body 
 	return miniblocks
 }
 
-// SaveRoundInfo will prepare and save information about a round in elasticsearch server
-func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
+// SaveRoundsInfos will prepare and save information about a slice of rounds in elasticsearch server
+func (esd *elasticSearchDatabase) SaveRoundsInfos(infos []RoundInfo) {
 	var buff bytes.Buffer
 
-	marshalizedRoundInfo, err := json.Marshal(&info)
-	if err != nil {
-		log.Debug("indexer: marshal", "error", "could not marshal signers indexes")
-		return
+	for _, info := range infos {
+		serializedRoundInfo, meta := serializeRoundInfo(info)
+
+		buff.Grow(len(meta) + len(serializedRoundInfo))
+		_, err := buff.Write(meta)
+		if err != nil {
+			log.Warn("indexer: cannot write meta", "error", err.Error())
+		}
+
+		_, err = buff.Write(serializedRoundInfo)
+		if err != nil {
+			log.Warn("indexer: cannot write serialized round info", "error", err.Error())
+		}
 	}
 
-	buff.Grow(len(marshalizedRoundInfo))
-	_, err = buff.Write(marshalizedRoundInfo)
+	err := esd.dbClient.DoBulkRequest(&buff, roundIndex)
 	if err != nil {
-		log.Warn("elastic search: save round info, write", "error", err.Error())
+		log.Warn("indexer: cannot index rounds info", "error", err.Error())
 		return
 	}
+}
 
-	req := &esapi.IndexRequest{
-		Index:      roundIndex,
-		DocumentID: strconv.FormatUint(uint64(info.ShardId), 10) + "_" + strconv.FormatUint(info.Index, 10),
-		Body:       bytes.NewReader(buff.Bytes()),
-		Refresh:    "true",
-	}
+func serializeRoundInfo(info RoundInfo) ([]byte, []byte) {
+	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%d_%d", "_type" : "%s" } }%s`,
+		info.ShardId, info.Index, roundIndex, "\n"))
 
-	err = esd.dbClient.DoRequest(req)
+	serializedInfo, err := json.Marshal(info)
 	if err != nil {
-		log.Warn("indexer: can not index round info", "error", err.Error())
-		return
+		log.Debug("indexer: could not serialize round info, will skip indexing this round info")
+		return nil, nil
 	}
+	// append a newline foreach element in the bulk we create
+	serializedInfo = append(serializedInfo, "\n"...)
+
+	return serializedInfo, meta
 }
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
@@ -444,7 +428,11 @@ func (esd *elasticSearchDatabase) SaveShardStatistics(tpsBenchmark statistics.TP
 }
 
 func (esd *elasticSearchDatabase) foundedObjMap(hashes []string, index string) (map[string]bool, error) {
-	response, err := esd.dbClient.DoMultiGet(txsByHashes(hashes), index)
+	if len(hashes) == 0 {
+		return make(map[string]bool), nil
+	}
+
+	response, err := esd.dbClient.DoMultiGet(getDocumentsByIDsQuery(hashes), index)
 	if err != nil {
 		return nil, err
 	}
