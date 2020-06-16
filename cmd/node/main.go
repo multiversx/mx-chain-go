@@ -73,7 +73,7 @@ import (
 	exportFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -879,6 +879,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     addressPubkeyConverter,
 		LatestStorageDataProvider:  latestStorageDataProvider,
+		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              coreComponents.StatusHandler,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
@@ -1925,7 +1926,7 @@ func createHardForkTrigger(
 		return nil, err
 	}
 
-	atArgumentParser := vmcommon.NewAtArgumentParser()
+	atArgumentParser := smartContract.NewArgumentParser()
 	argTrigger := trigger.ArgHardforkTrigger{
 		TriggerPubKeyBytes:     triggerPubKeyBytes,
 		SelfPubKeyBytes:        selfPubKeyBytes,
@@ -2267,7 +2268,7 @@ func createApiResolver(
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

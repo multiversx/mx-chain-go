@@ -165,7 +165,7 @@ func (p *pendingProcessor) processSingleTransaction(info *txInfo) (block.Type, e
 
 	scrTx, ok := info.tx.(*smartContractResult.SmartContractResult)
 	if ok {
-		err := p.scrTxProcessor.ProcessSmartContractResult(scrTx)
+		_, err := p.scrTxProcessor.ProcessSmartContractResult(scrTx)
 		if err != nil {
 			return 0, err
 		}
@@ -174,7 +174,7 @@ func (p *pendingProcessor) processSingleTransaction(info *txInfo) (block.Type, e
 
 	tx, ok := info.tx.(*transaction.Transaction)
 	if ok {
-		err := p.txProcessor.ProcessTransaction(tx)
+		_, err := p.txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return 0, err
 		}

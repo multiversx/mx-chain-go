@@ -16,7 +16,7 @@ type txTypeHandler struct {
 	pubkeyConv       core.PubkeyConverter
 	shardCoordinator sharding.Coordinator
 	builtInFuncNames map[string]struct{}
-	argumentParser   process.ArgumentsParser
+	argumentParser   process.CallArgumentsParser
 }
 
 // ArgNewTxTypeHandler defines the arguments needed to create a new tx type handler
@@ -24,7 +24,7 @@ type ArgNewTxTypeHandler struct {
 	PubkeyConverter  core.PubkeyConverter
 	ShardCoordinator sharding.Coordinator
 	BuiltInFuncNames map[string]struct{}
-	ArgumentParser   process.ArgumentsParser
+	ArgumentParser   process.CallArgumentsParser
 }
 
 // NewTxTypeHandler creates a transaction type handler
@@ -73,12 +73,17 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) pro
 		return process.MoveBalance
 	}
 
-	isDestInSelfShard, err := tth.isDestAddressInSelfShard(tx.GetRcvAddr())
-	if err != nil {
-		return process.InvalidTransaction
+	funcName := tth.getFunctionFromArguments(tx.GetData())
+	if len(funcName) == 0 {
+		return process.MoveBalance
 	}
 
-	isBuiltInFunction := tth.isBuiltInFunctionCall(tx.GetData())
+	if tth.isRelayedTransaction(funcName) {
+		return process.RelayedTx
+	}
+
+	isBuiltInFunction := tth.isBuiltInFunctionCall(funcName)
+	isDestInSelfShard := tth.isDestAddressInSelfShard(tx.GetRcvAddr())
 	if !isBuiltInFunction && !isDestInSelfShard {
 		return process.MoveBalance
 	}
@@ -94,26 +99,30 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) pro
 	return process.MoveBalance
 }
 
-func (tth *txTypeHandler) isBuiltInFunctionCall(txData []byte) bool {
+func (tth *txTypeHandler) getFunctionFromArguments(txData []byte) string {
+	if len(txData) == 0 {
+		return ""
+	}
+
+	function, _, err := tth.argumentParser.ParseData(string(txData))
+	if err != nil {
+		return ""
+	}
+
+	return function
+}
+
+func (tth *txTypeHandler) isBuiltInFunctionCall(functionName string) bool {
 	if len(tth.builtInFuncNames) == 0 {
 		return false
 	}
-	if len(txData) == 0 {
-		return false
-	}
 
-	err := tth.argumentParser.ParseData(string(txData))
-	if err != nil {
-		return false
-	}
-
-	function, err := tth.argumentParser.GetFunction()
-	if err != nil {
-		return false
-	}
-
-	_, ok := tth.builtInFuncNames[function]
+	_, ok := tth.builtInFuncNames[functionName]
 	return ok
+}
+
+func (tth *txTypeHandler) isRelayedTransaction(functionName string) bool {
+	return functionName == core.RelayedTransaction
 }
 
 func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {
@@ -121,14 +130,10 @@ func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {
 	return isEmptyAddress
 }
 
-func (tth *txTypeHandler) isDestAddressInSelfShard(address []byte) (bool, error) {
+func (tth *txTypeHandler) isDestAddressInSelfShard(address []byte) bool {
 	shardForCurrentNode := tth.shardCoordinator.SelfId()
 	shardForSrc := tth.shardCoordinator.ComputeId(address)
-	if shardForCurrentNode != shardForSrc {
-		return false, nil
-	}
-
-	return true, nil
+	return shardForCurrentNode == shardForSrc
 }
 
 func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {

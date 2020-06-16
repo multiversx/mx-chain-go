@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -166,7 +167,7 @@ func TestMetaTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 
 	execTx := createMetaTxProcessor()
 
-	err := execTx.ProcessTransaction(nil)
+	_, err := execTx.ProcessTransaction(nil)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -192,7 +193,7 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	err := execTx.ProcessTransaction(&tx)
+	_, err := execTx.ProcessTransaction(&tx)
 	assert.NotNil(t, err)
 }
 
@@ -224,7 +225,7 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		createFreeTxFeeHandler(),
 	)
 
-	err = execTx.ProcessTransaction(&tx)
+	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -267,7 +268,7 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 		createFreeTxFeeHandler(),
 	)
 
-	err = execTx.ProcessTransaction(&tx)
+	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, nil, err)
 	assert.True(t, called)
 }
@@ -302,9 +303,9 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 		wasCalled = true
-		return nil
+		return 0, nil
 	}
 
 	execTx, _ := txproc.NewMetaTxProcessor(
@@ -322,7 +323,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		createFreeTxFeeHandler(),
 	)
 
-	err = execTx.ProcessTransaction(&tx)
+	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, saveAccountCalled)
@@ -355,9 +356,9 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	scProcessorMock := &mock.SCProcessorMock{}
 
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 		wasCalled = true
-		return process.ErrNoVM
+		return 0, process.ErrNoVM
 	}
 
 	execTx, _ := txproc.NewMetaTxProcessor(
@@ -373,7 +374,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 		createFreeTxFeeHandler(),
 	)
 
-	err = execTx.ProcessTransaction(&tx)
+	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrNoVM, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, saveAccountCalled)
@@ -415,9 +416,9 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 
 	scProcessorMock := &mock.SCProcessorMock{}
 	wasCalled := false
-	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error {
+	scProcessorMock.ExecuteSmartContractTransactionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
 		wasCalled = true
-		return process.ErrNoVM
+		return 0, process.ErrNoVM
 	}
 	calledIfError := false
 	scProcessorMock.ProcessIfErrorCalled = func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error {
@@ -429,7 +430,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		PubkeyConverter:  createMockPubkeyConverter(),
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: make(map[string]struct{}),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
@@ -444,7 +445,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		createFreeTxFeeHandler(),
 	)
 
-	err = execTx.ProcessTransaction(&tx)
+	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, nil, err)
 	assert.False(t, wasCalled)
 	assert.True(t, calledIfError)

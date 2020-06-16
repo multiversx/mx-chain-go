@@ -25,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 var log = logger.GetOrCreate("genesis/process")
@@ -208,7 +208,6 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 }
 
 func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, error) {
-	argsParser := vmcommon.NewAtArgumentParser()
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:               arg.GasMap,
 		MapDNSAddresses:      make(map[string]struct{}),
@@ -281,7 +280,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		PubkeyConverter:  arg.PubkeyConv,
 		ShardCoordinator: arg.ShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -296,7 +295,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
-		ArgsParser:       argsParser,
+		ArgsParser:       smartContract.NewArgumentParser(),
 		Hasher:           arg.Hasher,
 		Marshalizer:      arg.Marshalizer,
 		AccountsDB:       arg.Accounts,
@@ -337,6 +336,8 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		genesisFeeHandler,
 		receiptTxInterim,
 		badTxInterim,
+		smartContract.NewArgumentParser(),
+		scForwarder,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())

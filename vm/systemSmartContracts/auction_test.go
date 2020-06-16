@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -355,7 +356,7 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 
 	args := createMockArgumentsForAuction()
 
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
@@ -395,7 +396,7 @@ func TestStakingAuctionSC_ExecuteStakeWithRewardAddress(t *testing.T) {
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForAuction()
 
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
@@ -486,7 +487,7 @@ func TestStakingAuctionSC_ExecuteStakeStakeClaim(t *testing.T) {
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForAuction()
 
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
@@ -550,7 +551,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKeyAndRestake(t *testing.T
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForAuction()
 
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
@@ -638,7 +639,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondUnStakeUnBondOneBlsPubKey(t *
 		},
 	}
 
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
@@ -726,7 +727,7 @@ func TestStakingAuctionSC_ExecuteStakeChangeRewardAddresStakeUnStake(t *testing.
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForAuction()
 
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
@@ -810,7 +811,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndRestake(t *testin
 	args := createMockArgumentsForAuction()
 	args.ValidatorSettings = validatorSettings
 
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
@@ -913,7 +914,7 @@ func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
 func TestAuctionStakingSC_ExecuteInit(t *testing.T) {
 	t.Parallel()
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockArgumentsForAuction()
@@ -938,7 +939,7 @@ func TestAuctionStakingSC_ExecuteInit(t *testing.T) {
 func TestAuctionStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) {
 	t.Parallel()
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockArgumentsForAuction()
@@ -959,7 +960,7 @@ func TestAuctionStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{})
 	eei.SetSCAddress([]byte("addr"))
 
 	args := createMockArgumentsForAuction()
@@ -1051,7 +1052,7 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 		NumStaked:       1,
 	}
 
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
@@ -1128,7 +1129,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.
 		StakeValue:    nil,
 	}
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{})
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
@@ -1158,7 +1159,7 @@ func TestAuctionStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 		StakeValue:    nil,
 	}
 
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{})
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
@@ -1197,7 +1198,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		StakeValue:    nil,
 	}
 
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
@@ -1366,7 +1367,7 @@ func TestAuctionStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 		},
 	},
 		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
+		parsers.NewCallArgsParser(),
 		&mock.AccountsStub{},
 	)
 
@@ -1402,7 +1403,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 	}
 
 	marshalizedStakedData, _ := json.Marshal(&stakedData)
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{
 		CurrentNonceCalled: func() uint64 {
 			return unStakedNonce + unBondPeriod + 1
@@ -1499,7 +1500,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 	stakerAddress := []byte("address")
 	stakerPubKey := []byte("pubKey")
 	blockChainHook := &mock.BlockChainHookStub{}
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	smartcontractAddress := "auction"
@@ -1610,7 +1611,7 @@ func TestAuctionStakingSC_ExecuteGetShouldReturnUserErr(t *testing.T) {
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{})
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
 
@@ -1626,7 +1627,7 @@ func TestAuctionStakingSC_ExecuteGetShouldOk(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
 	arguments.Arguments = [][]byte{arguments.CallerAddr}
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{})
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
 
@@ -1814,7 +1815,7 @@ func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
 }
 
 func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vmcommon.BlockchainHook) *vmContext {
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()

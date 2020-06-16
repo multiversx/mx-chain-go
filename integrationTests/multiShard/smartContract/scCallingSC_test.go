@@ -581,7 +581,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	// deploy the delegation smart contract
 	delegateSCAddress := putDeploySCToDataPool(
 		"./testdata/delegate/delegation.wasm", delegateSCOwner, 0, big.NewInt(0),
-		fmt.Sprintf("@%x@%s@%x", nodeSharePer10000, hex.EncodeToString(factory2.AuctionSCAddress), timeBeforeForceUnstake),
+		"@"+core.ConvertToEvenHex(nodeSharePer10000)+"@"+hex.EncodeToString(factory2.AuctionSCAddress)+"@"+core.ConvertToEvenHex(timeBeforeForceUnstake),
 		nodes)
 	shardNode.OwnAccount.Nonce++
 
@@ -600,13 +600,13 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	log.Info("SC deployed", "version", string(vmOutputVersion.ReturnData[0]))
 
 	// set number of nodes
-	setNumNodesTxData := "setNumNodes@1"
+	setNumNodesTxData := "setNumNodes@01"
 	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setNumNodesTxData)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// set stake per node
-	setStakePerNodeTxData := fmt.Sprintf("setStakePerNode@%x", stakePerNode)
+	setStakePerNodeTxData := "setStakePerNode@" + core.ConvertToEvenHexBigInt(stakePerNode)
 	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setStakePerNodeTxData)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
