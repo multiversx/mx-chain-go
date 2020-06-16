@@ -17,7 +17,7 @@ var log = logger.GetOrCreate("integrationTests/longTests/storage")
 func TestPutRemove(t *testing.T) {
 	t.Skip("this is a long test")
 
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 5000, 16, 0)
+	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 5000, Shards: 16, SizeInBytes: 0})
 	dir, _ := ioutil.TempDir("", "leveldb_temp")
 	log.Info("opened in", "directory", dir)
 	lvdb1, err := leveldb.NewDB(dir, 2, 1000, 10)

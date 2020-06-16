@@ -12,5 +12,5 @@ var cummulatedSizeInBytes atomic.Counter
 
 func MonitorNewCache(tag string, sizeInBytes uint64) {
 	cummulatedSizeInBytes.Add(int64(sizeInBytes))
-	log.Info("MonitorNewCache", "tag (name)", tag, "capacity", core.ConvertBytes(sizeInBytes), "cummulated", core.ConvertBytes(cummulatedSizeInBytes.GetUint64()))
+	log.Info("MonitorNewCache", "name", tag, "capacity", core.ConvertBytes(sizeInBytes), "cummulated", core.ConvertBytes(cummulatedSizeInBytes.GetUint64()))
 }

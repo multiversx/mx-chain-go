@@ -2,6 +2,7 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
+	Name                 string
 	Type                 string
 	Capacity             uint32
 	SizePerSender        uint32

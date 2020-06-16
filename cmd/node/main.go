@@ -1112,12 +1112,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating time cache for requested items components")
 	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * genesisNodesConfig.RoundDuration))
 
-	whiteListCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(generalConfig.WhiteListPool.Type),
-		generalConfig.WhiteListPool.Capacity,
-		generalConfig.WhiteListPool.Shards,
-		generalConfig.WhiteListPool.SizeInBytes,
-	)
+	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListPool))
 	if err != nil {
 		return err
 	}
@@ -2283,12 +2278,7 @@ func createApiResolver(
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
-	whiteListCacheVerified, err := storageUnit.NewCache(
-		storageUnit.CacheType(generalConfig.WhiteListerVerifiedTxs.Type),
-		generalConfig.WhiteListerVerifiedTxs.Capacity,
-		generalConfig.WhiteListerVerifiedTxs.Shards,
-		generalConfig.WhiteListPool.SizeInBytes,
-	)
+	whiteListCacheVerified, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListerVerifiedTxs))
 	if err != nil {
 		return nil, err
 	}

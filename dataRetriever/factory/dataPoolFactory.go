@@ -60,21 +60,21 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	cacherCfg := factory.GetCacherFromConfig(mainConfig.TxBlockBodyDataPool)
-	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
+	txBlockBody, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
 		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.PeerBlockBodyDataPool)
-	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
+	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
 		log.Error("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieNodesDataPool)
-	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
+	trieNodes, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
 		log.Info("error creating trieNodes")
 		return nil, err

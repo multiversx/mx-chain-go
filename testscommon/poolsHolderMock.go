@@ -60,16 +60,16 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.headers, err = headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.miniBlocks, err = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1, 0)
+	holder.miniBlocks, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.peerChangesBlocks, err = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1, 0)
+	holder.peerChangesBlocks, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.currBlockTxs, err = dataPool.NewCurrentBlockPool()
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.trieNodes, err = storageUnit.NewCache(storageUnit.LRUCache, 10000, 1, 0)
+	holder.trieNodes, err = storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
 	return holder
