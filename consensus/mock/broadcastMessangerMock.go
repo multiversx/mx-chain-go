@@ -10,6 +10,7 @@ type BroadcastMessengerMock struct {
 	BroadcastBlockCalled                     func(data.BodyHandler, data.HeaderHandler) error
 	BroadcastHeaderCalled                    func(data.HeaderHandler) error
 	PrepareBroadcastBlockDataValidatorCalled func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int) error
+	PrepareBroadcastHeaderValidatorCalled    func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int) error
 	BroadcastMiniBlocksCalled                func(map[uint32][]byte) error
 	BroadcastTransactionsCalled              func(map[string][][]byte) error
 	BroadcastConsensusMessageCalled          func(*consensus.Message) error
@@ -63,6 +64,24 @@ func (bmm *BroadcastMessengerMock) PrepareBroadcastBlockDataValidator(
 			miniBlocks,
 			transactions,
 			idx,
+		)
+	}
+	return nil
+}
+
+// PrepareBroadcastHeaderValidator -
+func (bmm *BroadcastMessengerMock) PrepareBroadcastHeaderValidator(
+	header data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	order int,
+) error {
+	if bmm.PrepareBroadcastHeaderValidatorCalled != nil {
+		return bmm.PrepareBroadcastHeaderValidatorCalled(
+			header,
+			miniBlocks,
+			transactions,
+			order,
 		)
 	}
 	return nil

@@ -1,6 +1,8 @@
 package processor
 
 import (
+	"sync"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -25,6 +27,7 @@ type MiniblockInterceptorProcessor struct {
 	shardCoordinator   sharding.Coordinator
 	whiteListHandler   process.WhiteListHandler
 	registeredHandlers []func(topic string, hash []byte, data interface{})
+	mutHandlers        sync.RWMutex
 }
 
 // NewMiniblockInterceptorProcessor creates a new MiniblockInterceptorProcessor instance
@@ -108,7 +111,9 @@ func (mip *MiniblockInterceptorProcessor) RegisterHandler(handler func(topic str
 		return
 	}
 
+	mip.mutHandlers.Lock()
 	mip.registeredHandlers = append(mip.registeredHandlers, handler)
+	mip.mutHandlers.Unlock()
 }
 
 func (mip *MiniblockInterceptorProcessor) isMbCrossShard(miniblock *block.MiniBlock) bool {
@@ -121,7 +126,9 @@ func (mip *MiniblockInterceptorProcessor) IsInterfaceNil() bool {
 }
 
 func (mip *MiniblockInterceptorProcessor) notify(miniBlock *block.MiniBlock, hash []byte, topic string) {
+	mip.mutHandlers.RLock()
 	for _, handler := range mip.registeredHandlers {
 		handler(topic, hash, miniBlock)
 	}
+	mip.mutHandlers.RUnlock()
 }

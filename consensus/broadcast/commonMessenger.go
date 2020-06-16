@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -19,6 +20,19 @@ import (
 )
 
 var log = logger.GetOrCreate("consensus/broadcast")
+
+// delayedBroadcaster exposes functionality for handling the consensus members broadcasting of delay data
+type delayedBroadcaster interface {
+	SetLeaderData(data *delayedBroadcastData) error
+	SetValidatorData(data *delayedBroadcastData) error
+	SetHeaderForValidator(vData *validatorHeaderBroadcastData) error
+	SetBroadcastHandlers(
+		mbBroadcast func(mbData map[uint32][]byte) error,
+		txBroadcast func(txData map[string][][]byte) error,
+		headerBroadcast func(header data.HeaderHandler) error,
+	) error
+	Close()
+}
 
 type commonMessenger struct {
 	marshalizer             marshal.Marshalizer

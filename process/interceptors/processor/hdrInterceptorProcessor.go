@@ -1,6 +1,8 @@
 package processor
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -17,6 +19,7 @@ type HdrInterceptorProcessor struct {
 	hdrValidator       process.HeaderValidator
 	blackList          process.BlackListHandler
 	registeredHandlers []func(topic string, hash []byte, data interface{})
+	mutHandlers        sync.RWMutex
 }
 
 // NewHdrInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -79,7 +82,9 @@ func (hip *HdrInterceptorProcessor) RegisterHandler(handler func(topic string, h
 		return
 	}
 
+	hip.mutHandlers.Lock()
 	hip.registeredHandlers = append(hip.registeredHandlers, handler)
+	hip.mutHandlers.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -88,7 +93,9 @@ func (hip *HdrInterceptorProcessor) IsInterfaceNil() bool {
 }
 
 func (hip *HdrInterceptorProcessor) notify(header data.HeaderHandler, hash []byte, topic string) {
+	hip.mutHandlers.RLock()
 	for _, handler := range hip.registeredHandlers {
 		handler(topic, hash, header)
 	}
+	hip.mutHandlers.RUnlock()
 }

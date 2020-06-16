@@ -36,18 +36,30 @@ func CreateDelayBroadcastDataForValidator(
 	miniblocksData map[uint32][]byte,
 	miniBlockHashes map[string]map[string]struct{},
 	transactionsData map[string][][]byte,
-	metaMiniBlocks map[uint32][]byte,
-	metaTransactions map[string][][]byte,
 	order uint32,
 ) *delayedBroadcastData {
 	return &delayedBroadcastData{
+		headerHash:      headerHash,
+		header:          header,
+		miniBlocksData:  miniblocksData,
+		miniBlockHashes: miniBlockHashes,
+		transactions:    transactionsData,
+		order:           order,
+	}
+}
+
+func CreateValidatorHeaderBroadcastData(
+	headerHash []byte,
+	header data.HeaderHandler,
+	metaMiniBlocksData map[uint32][]byte,
+	metaTransactionsData map[string][][]byte,
+	order uint32,
+) *validatorHeaderBroadcastData {
+	return &validatorHeaderBroadcastData{
 		headerHash:           headerHash,
 		header:               header,
-		miniBlocksData:       miniblocksData,
-		miniBlockHashes:      miniBlockHashes,
-		metaTransactionsData: metaTransactions,
-		metaMiniBlocksData:   metaMiniBlocks,
-		transactions:         transactionsData,
+		metaMiniBlocksData:   metaMiniBlocksData,
+		metaTransactionsData: metaTransactionsData,
 		order:                order,
 	}
 }
@@ -79,6 +91,16 @@ func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*delayedBroadc
 	dbb.mutDataForBroadcast.RUnlock()
 
 	return copyValBroadcastData
+}
+
+// GetValidatorHeaderBroadcastData -
+func (dbb *delayedBlockBroadcaster) GetValidatorHeaderBroadcastData() []*validatorHeaderBroadcastData {
+	dbb.mutDataForBroadcast.RLock()
+	copyValHeaderBroadcastData := make([]*validatorHeaderBroadcastData, len(dbb.valHeaderBroadcastData))
+	copy(copyValHeaderBroadcastData, dbb.valHeaderBroadcastData)
+	dbb.mutDataForBroadcast.RUnlock()
+
+	return copyValHeaderBroadcastData
 }
 
 // GetLeaderBroadcastData returns the set leader delayed broadcast data
@@ -146,11 +168,6 @@ func (dbb *delayedBlockBroadcaster) InterceptedMiniBlockData(topic string, hash 
 // InterceptedHeaderData -
 func (dbb *delayedBlockBroadcaster) InterceptedHeaderData(topic string, hash []byte, header interface{}) {
 	dbb.interceptedHeaderData(topic, hash, header)
-}
-
-// ExtractMiniBlockHashesCrossFromMe -
-func (dbb *delayedBlockBroadcaster) ExtractMiniBlockHashesCrossFromMe(header data.HeaderHandler) map[string]map[string]struct{} {
-	return dbb.extractMiniBlockHashesCrossFromMe(header)
 }
 
 // NewCommonMessenger will return a new instance of a commonMessenger

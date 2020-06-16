@@ -44,7 +44,7 @@ func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ c
 
 // RegisterHandler registers a callback function to be notified of incoming trie nodes
 func (tnip *TrieNodeInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
-	panic("not implemented")
+	log.Error("trieNodeInterceptorProcessor.RegisterHandler", "error", "not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

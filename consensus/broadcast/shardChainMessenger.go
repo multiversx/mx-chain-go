@@ -44,7 +44,7 @@ func NewShardChainMessenger(
 		singleSigner:     args.SingleSigner,
 	}
 
-	dbbArgs := &DelayedBlockBroadcasterArgs{
+	dbbArgs := &ArgsDelayedBlockBroadcaster{
 		InterceptorsContainer: args.InterceptorsContainer,
 		HeadersSubscriber:     args.HeadersSubscriber,
 		LeaderCacheSize:       args.MaxDelayCacheSize,
@@ -169,7 +169,32 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 	return nil
 }
 
-// PrepareBroadcastBlockDataValidator prepares the validator fallback broadcast in case leader broadcast fails
+// PrepareBroadcastHeaderValidator prepares the validator header broadcast in case leader broadcast fails
+func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
+	header data.HeaderHandler,
+	_ map[uint32][]byte,
+	_ map[string][][]byte,
+	idx int,
+) error {
+	if check.IfNil(header) {
+		return spos.ErrNilHeader
+	}
+
+	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
+	if err != nil {
+		return err
+	}
+
+	vData := &validatorHeaderBroadcastData{
+		headerHash: headerHash,
+		header:     header,
+		order:      uint32(idx),
+	}
+
+	return scm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
+}
+
+// PrepareBroadcastBlockDataValidator prepares the validator block data broadcast in case leader broadcast fails
 func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 	header data.HeaderHandler,
 	miniBlocks map[uint32][]byte,
@@ -188,16 +213,12 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 		return err
 	}
 
-	metaMiniBlocksData, metaTransactionsData := scm.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
-
 	broadcastData := &delayedBroadcastData{
-		headerHash:           headerHash,
-		header:               header,
-		metaMiniBlocksData:   metaMiniBlocksData,
-		metaTransactionsData: metaTransactionsData,
-		miniBlocksData:       miniBlocks,
-		transactions:         transactions,
-		order:                uint32(idx),
+		headerHash:     headerHash,
+		header:         header,
+		miniBlocksData: miniBlocks,
+		transactions:   transactions,
+		order:          uint32(idx),
 	}
 
 	return scm.delayedBlockBroadcaster.SetValidatorData(broadcastData)

@@ -62,6 +62,7 @@ type BroadcastMessenger interface {
 	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
 	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
+	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, order int) error
 	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int) error
 	IsInterfaceNil() bool
 }

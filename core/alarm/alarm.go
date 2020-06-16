@@ -45,7 +45,7 @@ func NewAlarmScheduler() *alarmScheduler {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	as.cancelFunc = cancelFunc
 
-	go as.startAlarmProcess(ctx)
+	go as.startProcessLoop(ctx)
 
 	return as
 }
@@ -86,7 +86,7 @@ func (as *alarmScheduler) Cancel(alarmID string) {
 	as.event <- evt
 }
 
-func (as *alarmScheduler) startAlarmProcess(ctx context.Context) {
+func (as *alarmScheduler) startProcessLoop(ctx context.Context) {
 	waitTime := timeoutNoAlarm
 	var startTime time.Time
 

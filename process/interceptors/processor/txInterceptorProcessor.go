@@ -63,7 +63,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 
 // RegisterHandler registers a callback function to be notified of incoming transactions
 func (txip *TxInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
-	panic("not implemented")
+	log.Error("txInterceptorProcessor.RegisterHandler", "error", "not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

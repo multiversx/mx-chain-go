@@ -31,7 +31,7 @@ func NewMetaChainMessenger(
 		return nil, err
 	}
 
-	dbbArgs := &DelayedBlockBroadcasterArgs{
+	dbbArgs := &ArgsDelayedBlockBroadcaster{
 		InterceptorsContainer: args.InterceptorsContainer,
 		HeadersSubscriber:     args.HeadersSubscriber,
 		LeaderCacheSize:       args.MaxDelayCacheSize,
@@ -130,6 +130,35 @@ func (mcm *metaChainMessenger) BroadcastBlockDataLeader(
 ) error {
 	go mcm.BroadcastBlockData(miniBlocks, transactions, core.ExtraDelayForBroadcastBlockInfo)
 	return nil
+}
+
+// PrepareBroadcastHeaderValidator prepares the validator header broadcast in case leader broadcast fails
+func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
+	header data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	idx int,
+) error {
+	if check.IfNil(header) {
+		return spos.ErrNilHeader
+	}
+
+	headerHash, err := core.CalculateHash(mcm.marshalizer, mcm.hasher, header)
+	if err != nil {
+		return err
+	}
+
+	metaMiniBlocksData, metaTransactionsData := mcm.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
+
+	vData := &validatorHeaderBroadcastData{
+		headerHash:           headerHash,
+		header:               header,
+		metaMiniBlocksData:   metaMiniBlocksData,
+		metaTransactionsData: metaTransactionsData,
+		order:                uint32(idx),
+	}
+
+	return mcm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
 }
 
 // PrepareBroadcastBlockDataValidator prepares the validator fallback broadcast in case leader broadcast fails
