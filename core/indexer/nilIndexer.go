@@ -23,8 +23,8 @@ func (ni *NilIndexer) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[
 func (ni *NilIndexer) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
 
-// SaveRoundInfo will do nothing
-func (ni *NilIndexer) SaveRoundInfo(_ RoundInfo) {
+// SaveRoundsInfos will do nothing
+func (ni *NilIndexer) SaveRoundsInfos(_ []RoundInfo) {
 }
 
 // UpdateTPS will do nothing
