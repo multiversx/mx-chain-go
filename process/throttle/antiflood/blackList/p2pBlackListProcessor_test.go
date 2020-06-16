@@ -290,7 +290,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaForSelfShouldNotIncrement(t *testing
 	putCalled := false
 	existingValue := uint32(445)
 	pbp, _ := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			GetCalled: func(key []byte) (interface{}, bool) {
 				return existingValue, true
 			},

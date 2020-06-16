@@ -2,6 +2,7 @@ package dataRetriever
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
