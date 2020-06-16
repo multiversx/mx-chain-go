@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -90,9 +91,9 @@ func TestSyncValidatorStatus_NodesConfigFromMetaBlock(t *testing.T) {
 
 func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 	return ArgsNewSyncValidatorStatus{
-		DataPool: &mock.PoolsHolderStub{
+		DataPool: &testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{}
+				return testscommon.NewCacherStub()
 			},
 		},
 		Marshalizer:    &mock.MarshalizerMock{},

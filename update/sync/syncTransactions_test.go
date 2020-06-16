@@ -12,13 +12,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgs() ArgsNewPendingTransactionsSyncer {
 	return ArgsNewPendingTransactionsSyncer{
-		DataPools: mock.NewPoolsHolderMock(),
+		DataPools: testscommon.NewPoolsHolderMock(),
 		Storages: &mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return &mock.StorerStub{}

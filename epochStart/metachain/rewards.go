@@ -24,6 +24,8 @@ import (
 
 var _ process.EpochStartRewardsCreator = (*rewardsCreator)(nil)
 
+var zero = big.NewInt(0)
+
 // ArgsNewRewardsCreator defines the arguments structure needed to create a new rewards creator
 type ArgsNewRewardsCreator struct {
 	ShardCoordinator    sharding.Coordinator
@@ -53,13 +55,9 @@ type rewardsCreator struct {
 }
 
 type rewardInfoData struct {
-	ShardID                    uint32
-	LeaderSuccess              uint32
-	LeaderFailure              uint32
-	ValidatorSuccess           uint32
-	ValidatorFailure           uint32
-	NumSelectedInSuccessBlocks uint32
-	AccumulatedFees            *big.Int
+	accumulatedFees *big.Int
+	address         string
+	protocolRewards *big.Int
 }
 
 // NewEpochStartRewardsCreator creates a new rewards creator object
@@ -97,6 +95,10 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 		log.Warn("invalid community reward address", "err", err, "provided address", args.CommunityAddress)
 		return nil, err
 	}
+	communityShardID := args.ShardCoordinator.ComputeId(address)
+	if communityShardID == core.MetachainShardId {
+		return nil, epochStart.ErrCommunityAddressInMetachain
+	}
 
 	currTxsCache, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
@@ -121,6 +123,7 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 
 // CreateBlockStarted announces block creation started and cleans inside data
 func (rc *rewardsCreator) clean() {
+	rc.mapRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
 	rc.currTxs.Clean()
 }
 
@@ -141,15 +144,25 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 		miniBlocks[i].TxHashes = make([][]byte, 0)
 	}
 
-	err := rc.addCommunityRewardToMiniBlocks(miniBlocks, metaBlock)
+	communityRwdTx, communityShardId, err := rc.createCommunityRewardTransaction(metaBlock)
 	if err != nil {
 		return nil, err
 	}
 
 	rc.fillRewardsPerBlockPerNode(&metaBlock.EpochStart.Economics)
-	err = rc.addValidatorRewardsToMiniBlocks(validatorsInfo, metaBlock, miniBlocks)
+	err = rc.addValidatorRewardsToMiniBlocks(validatorsInfo, metaBlock, miniBlocks, communityRwdTx)
 	if err != nil {
 		return nil, err
+	}
+
+	if communityRwdTx.Value.Cmp(zero) > 0 {
+		communityRwdHash, err := core.CalculateHash(rc.marshalizer, rc.hasher, communityRwdTx)
+		if err != nil {
+			return nil, err
+		}
+
+		rc.currTxs.AddTx(communityRwdHash, communityRwdTx)
+		miniBlocks[communityShardId].TxHashes = append(miniBlocks[communityShardId].TxHashes, communityRwdHash)
 	}
 
 	for shId := uint32(0); shId < rc.shardCoordinator.NumberOfShards(); shId++ {
@@ -173,57 +186,46 @@ func (rc *rewardsCreator) fillRewardsPerBlockPerNode(economicsData *block.Econom
 	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
 		consensusSize := big.NewInt(int64(rc.nodesConfigProvider.ConsensusGroupSize(i)))
 		rc.mapRewardsPerBlockPerValidator[i] = big.NewInt(0).Div(economicsData.RewardsPerBlock, consensusSize)
+		log.Trace("rewardsPerBlockPerValidator", "shardID", i, "value", rc.mapRewardsPerBlockPerValidator[i].String())
 	}
 
 	consensusSize := big.NewInt(int64(rc.nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
 	rc.mapRewardsPerBlockPerValidator[core.MetachainShardId] = big.NewInt(0).Div(economicsData.RewardsPerBlock, consensusSize)
+	log.Trace("rewardsPerBlockPerValidator", "shardID", core.MetachainShardId, "value", rc.mapRewardsPerBlockPerValidator[core.MetachainShardId].String())
 }
 
 func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	metaBlock *block.MetaBlock,
 	miniBlocks block.MiniBlockSlice,
+	communityRwdTx *rewardTx.RewardTx,
 ) error {
-	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo)
-	for address, rwdInfo := range rwdAddrValidatorInfo {
-		rwdTx, rwdTxHash, err := rc.createRewardFromRwdInfo([]byte(address), rwdInfo, metaBlock)
+	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo, communityRwdTx)
+	for _, rwdInfo := range rwdAddrValidatorInfo {
+		rwdTx, rwdTxHash, err := rc.createRewardFromRwdInfo(rwdInfo, metaBlock)
 		if err != nil {
 			return err
 		}
-		if rwdTx.Value.Cmp(big.NewInt(0)) <= 0 {
+		if rwdTx.Value.Cmp(zero) <= 0 {
+			continue
+		}
+
+		shardId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
+		if shardId == core.MetachainShardId {
+			communityRwdTx.Value.Add(communityRwdTx.Value, rwdTx.Value)
 			continue
 		}
 
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
-
-		shardId := rc.shardCoordinator.ComputeId([]byte(address))
 		miniBlocks[shardId].TxHashes = append(miniBlocks[shardId].TxHashes, rwdTxHash)
 	}
 
 	return nil
 }
 
-func (rc *rewardsCreator) addCommunityRewardToMiniBlocks(
-	miniBlocks block.MiniBlockSlice,
-	epochStartMetablock *block.MetaBlock,
-) error {
-	rwdTx, rwdTxHash, shardId, err := rc.createCommunityRewardTransaction(epochStartMetablock)
-	if err != nil {
-		return err
-	}
-	if rwdTx.Value.Cmp(big.NewInt(0)) <= 0 {
-		return nil
-	}
-
-	rc.currTxs.AddTx(rwdTxHash, rwdTx)
-	miniBlocks[shardId].TxHashes = append(miniBlocks[shardId].TxHashes, rwdTxHash)
-
-	return nil
-}
-
 func (rc *rewardsCreator) createCommunityRewardTransaction(
 	metaBlock *block.MetaBlock,
-) (*rewardTx.RewardTx, []byte, uint32, error) {
+) (*rewardTx.RewardTx, uint32, error) {
 
 	shardID := rc.shardCoordinator.ComputeId(rc.communityAddress)
 	communityRwdTx := &rewardTx.RewardTx{
@@ -233,37 +235,38 @@ func (rc *rewardsCreator) createCommunityRewardTransaction(
 		Epoch:   metaBlock.Epoch,
 	}
 
-	txHash, err := core.CalculateHash(rc.marshalizer, rc.hasher, communityRwdTx)
-	if err != nil {
-		return nil, nil, 0, err
-	}
-
-	return communityRwdTx, txHash, shardID, nil
+	return communityRwdTx, shardID, nil
 }
 
 func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	communityRwd *rewardTx.RewardTx,
 ) map[string]*rewardInfoData {
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
 
-	for shardID, shardValidatorsInfo := range validatorsInfo {
+	for _, shardValidatorsInfo := range validatorsInfo {
 		for _, validatorInfo := range shardValidatorsInfo {
+			rewardsPerBlockPerNodeForShard := rc.mapRewardsPerBlockPerValidator[validatorInfo.ShardId]
+			protocolRewardValue := big.NewInt(0).Mul(rewardsPerBlockPerNodeForShard, big.NewInt(0).SetUint64(uint64(validatorInfo.NumSelectedInSuccessBlocks)))
+
+			if validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorFailure == 0 {
+				communityRwd.Value.Add(communityRwd.Value, protocolRewardValue)
+				continue
+			}
+
 			rwdInfo, ok := rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)]
 			if !ok {
 				rwdInfo = &rewardInfoData{
-					AccumulatedFees: big.NewInt(0),
+					accumulatedFees: big.NewInt(0),
+					protocolRewards: big.NewInt(0),
+					address:         string(validatorInfo.RewardAddress),
 				}
 				rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)] = rwdInfo
 			}
 
-			rwdInfo.LeaderSuccess += validatorInfo.LeaderSuccess
-			rwdInfo.LeaderFailure += validatorInfo.LeaderFailure
-			rwdInfo.ValidatorFailure += validatorInfo.ValidatorFailure
-			rwdInfo.ValidatorSuccess += validatorInfo.ValidatorSuccess
-			rwdInfo.NumSelectedInSuccessBlocks += validatorInfo.NumSelectedInSuccessBlocks
-			rwdInfo.ShardID = shardID
-			rwdInfo.AccumulatedFees.Add(rwdInfo.AccumulatedFees, validatorInfo.AccumulatedFees)
+			rwdInfo.accumulatedFees.Add(rwdInfo.accumulatedFees, validatorInfo.AccumulatedFees)
+			rwdInfo.protocolRewards.Add(rwdInfo.protocolRewards, protocolRewardValue)
 		}
 	}
 
@@ -271,25 +274,22 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 }
 
 func (rc *rewardsCreator) createRewardFromRwdInfo(
-	address []byte,
 	rwdInfo *rewardInfoData,
 	metaBlock *block.MetaBlock,
 ) (*rewardTx.RewardTx, []byte, error) {
 	rwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
-		Value:   big.NewInt(0).Set(rwdInfo.AccumulatedFees),
-		RcvAddr: address,
+		Value:   big.NewInt(0).Add(rwdInfo.accumulatedFees, rwdInfo.protocolRewards),
+		RcvAddr: []byte(rwdInfo.address),
 		Epoch:   metaBlock.Epoch,
 	}
-
-	rewardsPerBlockPerNodeForShard := rc.mapRewardsPerBlockPerValidator[rwdInfo.ShardID]
-	protocolRewardValue := big.NewInt(0).Mul(rewardsPerBlockPerNodeForShard, big.NewInt(0).SetUint64(uint64(rwdInfo.NumSelectedInSuccessBlocks)))
-	rwdTx.Value.Add(rwdTx.Value, protocolRewardValue)
 
 	rwdTxHash, err := core.CalculateHash(rc.marshalizer, rc.hasher, rwdTx)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	log.Trace("rewardTx", "address", []byte(rwdInfo.address), "value", rwdTx.Value.String(), "hash", rwdTxHash)
 
 	return rwdTx, rwdTxHash, nil
 }

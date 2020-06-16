@@ -193,8 +193,10 @@ func (mp *metaProcessor) ProcessBlock(
 		numShardHeadersFromPool += headersPool.GetNumHeaders(shardID)
 	}
 
-	counts := mp.txCounter.getTxPoolCounts(mp.dataPool)
-	log.Debug("total txs in pool", "counts", counts.String())
+	txCounts, rewardCounts, unsignedCounts := mp.txCounter.getPoolCounts(mp.dataPool)
+	log.Debug("total txs in pool", "counts", txCounts.String())
+	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
+	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
 
 	go getMetricsFromMetaHeader(
 		header,
@@ -1750,6 +1752,7 @@ func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 			shardMiniBlockHeader.ReceiverShardID = shardHdr.MiniBlockHeaders[i].ReceiverShardID
 			shardMiniBlockHeader.Hash = shardHdr.MiniBlockHeaders[i].Hash
 			shardMiniBlockHeader.TxCount = shardHdr.MiniBlockHeaders[i].TxCount
+			shardMiniBlockHeader.Type = shardHdr.MiniBlockHeaders[i].Type
 
 			shardData.ShardMiniBlockHeaders = append(shardData.ShardMiniBlockHeaders, shardMiniBlockHeader)
 		}

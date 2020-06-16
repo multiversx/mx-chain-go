@@ -6,17 +6,18 @@ import (
 
 // StorageManagerStub --
 type StorageManagerStub struct {
-	DatabaseCalled              func() data.DBWriteCacher
-	TakeSnapshotCalled          func([]byte)
-	SetCheckpointCalled         func([]byte)
-	PruneCalled                 func([]byte)
-	CancelPruneCalled           func([]byte)
-	MarkForEvictionCalled       func([]byte, data.ModifiedHashes) error
-	GetDbThatContainsHashCalled func([]byte) data.DBWriteCacher
-	IsPruningEnabledCalled      func() bool
-	EnterSnapshotModeCalled     func()
-	ExitSnapshotModeCalled      func()
-	IsInterfaceNilCalled        func() bool
+	DatabaseCalled                    func() data.DBWriteCacher
+	TakeSnapshotCalled                func([]byte)
+	SetCheckpointCalled               func([]byte)
+	PruneCalled                       func([]byte)
+	CancelPruneCalled                 func([]byte)
+	MarkForEvictionCalled             func([]byte, data.ModifiedHashes) error
+	GetDbThatContainsHashCalled       func([]byte) data.DBWriteCacher
+	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
+	IsPruningEnabledCalled            func() bool
+	EnterSnapshotModeCalled           func()
+	ExitSnapshotModeCalled            func()
+	IsInterfaceNilCalled              func() bool
 }
 
 // Database --
@@ -55,10 +56,10 @@ func (sms *StorageManagerStub) MarkForEviction(d []byte, m data.ModifiedHashes) 
 	return nil
 }
 
-// GetDbThatContainsHash --
-func (sms *StorageManagerStub) GetDbThatContainsHash(d []byte) data.DBWriteCacher {
-	if sms.GetDbThatContainsHashCalled != nil {
-		return sms.GetDbThatContainsHashCalled(d)
+// GetSnapshotThatContainsHash --
+func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) data.SnapshotDbHandler {
+	if sms.GetSnapshotThatContainsHashCalled != nil {
+		return sms.GetSnapshotThatContainsHashCalled(d)
 	}
 
 	return nil
