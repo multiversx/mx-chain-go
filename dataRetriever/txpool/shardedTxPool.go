@@ -322,21 +322,6 @@ func (txPool *shardedTxPool) GetCounts() counting.Counts {
 	return counts
 }
 
-// GetSizeCounts summarizes the size counts
-func (txPool *shardedTxPool) GetSizeCounts() counting.Counts {
-	txPool.mutexBackingMap.RLock()
-	defer txPool.mutexBackingMap.RUnlock()
-
-	counts := counting.NewShardedCounts()
-
-	for cacheID, shard := range txPool.backingMap {
-		cache := shard.Cache
-		counts.PutCounts(cacheID, int64(cache.NumBytes()))
-	}
-
-	return counts
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (txPool *shardedTxPool) IsInterfaceNil() bool {
 	return txPool == nil

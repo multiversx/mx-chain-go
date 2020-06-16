@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -228,6 +229,7 @@ type ShardedDataCacherNotifier interface {
 	MergeShardStores(sourceCacheID, destCacheID string)
 	Clear()
 	ClearShardStore(cacheId string)
+	GetCounts() counting.Counts
 }
 
 // ShardIdHashMap represents a map for shardId and hash

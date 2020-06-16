@@ -33,22 +33,9 @@ func NewTransactionCounter() *transactionCounter {
 }
 
 func (txc *transactionCounter) getPoolCounts(poolsHolder dataRetriever.PoolsHolder) (txCounts counting.Counts, rewardCounts counting.Counts, unsignedCounts counting.Counts) {
-	txCounts = &counting.NullCounts{}
-	rewardCounts = &counting.NullCounts{}
-	unsignedCounts = &counting.NullCounts{}
-
-	if asCountable, ok := poolsHolder.Transactions().(counting.Countable); ok {
-		txCounts = asCountable.GetCounts()
-	}
-
-	if asCountable, ok := poolsHolder.RewardTransactions().(counting.Countable); ok {
-		rewardCounts = asCountable.GetCounts()
-	}
-
-	if asCountable, ok := poolsHolder.UnsignedTransactions().(counting.Countable); ok {
-		unsignedCounts = asCountable.GetCounts()
-	}
-
+	txCounts = poolsHolder.Transactions().GetCounts()
+	rewardCounts = poolsHolder.RewardTransactions().GetCounts()
+	unsignedCounts = poolsHolder.UnsignedTransactions().GetCounts()
 	return
 }
 
