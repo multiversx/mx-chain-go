@@ -25,89 +25,143 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 
 	// Scenarios where source == me
 
+	scenario := newScenario(300, 1, core.MegabyteSize, "0")
 	pool := newPool()
-	journal := analyzeMemoryFootprint(t, pool, "0_300x1x1048576", 300, 1, core.MegabyteSize, "0")
+	journal := analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(300, 300))
 	require.True(t, journal.structuralFootprintBetween(0, 1))
 	keepPoolInMemoryUpToThisPoint(pool)
 
+	scenario = newScenario(10, 1000, 30720, "0")
 	pool = newPool()
-	journal = analyzeMemoryFootprint(t, pool, "0_10x1000x30720", 10, 1000, 30720, "0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(300, 315))
 	require.True(t, journal.structuralFootprintBetween(1, 4))
 	keepPoolInMemoryUpToThisPoint(pool)
 
+	scenario = newScenario(10000, 1, 1024, "0")
 	pool = newPool()
-	journal = analyzeMemoryFootprint(t, pool, "0_10000x1x1024", 10000, 1, 1024, "0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(10, 16))
 	require.True(t, journal.structuralFootprintBetween(4, 10))
 	keepPoolInMemoryUpToThisPoint(pool)
 
+	scenario = newScenario(1, 60000, 256, "0")
 	pool = newPool()
-	journal = analyzeMemoryFootprint(t, pool, "0_1x60000x1024", 1, 60000, 256, "0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(30, 32))
 	require.True(t, journal.structuralFootprintBetween(10, 16))
 	keepPoolInMemoryUpToThisPoint(pool)
 
+	scenario = newScenario(10, 10000, 100, "0")
 	pool = newPool()
-	journal = analyzeMemoryFootprint(t, pool, "0_10x10000x100", 10, 10000, 100, "0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(36, 40))
 	require.True(t, journal.structuralFootprintBetween(16, 24))
 	keepPoolInMemoryUpToThisPoint(pool)
 
+	scenario = newScenario(100000, 1, 1024, "0")
 	pool = newPool()
-	journal = analyzeMemoryFootprint(t, pool, "0_100000x1x1024", 100000, 1, 1024, "0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(120, 128))
 	require.True(t, journal.structuralFootprintBetween(56, 60))
 	keepPoolInMemoryUpToThisPoint(pool)
 
-	// Many transactions per sender result in the largest memory footprint
+	// With largest memory footprint
+
+	scenario = newScenario(100000, 6, 128, "0")
 	pool = newPool()
-	journal = analyzeMemoryFootprint(t, pool, "0_20x20000x100", 20, 20000, 100, "0")
-	require.True(t, journal.payloadFootprintBetween(150, 150))
-	require.True(t, journal.structuralFootprintBetween(50, 84))
+	journal = analyzeMemoryFootprint(t, pool, scenario)
+	require.True(t, journal.payloadFootprintBetween(230, 240))
+	require.True(t, journal.structuralFootprintBetween(165, 185))
+	keepPoolInMemoryUpToThisPoint(pool)
+
+	scenario = newScenario(30, 20000, 128, "0")
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, scenario)
+	require.True(t, journal.payloadFootprintBetween(230, 240))
+	require.True(t, journal.structuralFootprintBetween(120, 136))
+	keepPoolInMemoryUpToThisPoint(pool)
+
+	scenario = newScenario(600, 1000, 128, "0")
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, scenario)
+	require.True(t, journal.payloadFootprintBetween(230, 240))
+	require.True(t, journal.structuralFootprintBetween(120, 136))
 	keepPoolInMemoryUpToThisPoint(pool)
 
 	// Scenarios where destination == me
 
+	scenario = newScenario(150, 1, core.MegabyteSize, "1_0")
 	pool = newPool()
-	journal = analyzeMemoryFootprint(t, pool, "1_to_0_150x1x1048576", 150, 1, core.MegabyteSize, "1_0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(148, 150))
 	require.True(t, journal.structuralFootprintBetween(0, 1))
-	journal = analyzeMemoryFootprint(t, pool, "4294967295_to_0_150x1x1048576", 150, 1, core.MegabyteSize, "4294967295_0")
+	scenario = newScenario(150, 1, core.MegabyteSize, "4294967295_0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(148, 150))
 	require.True(t, journal.structuralFootprintBetween(0, 1))
 	keepPoolInMemoryUpToThisPoint(pool)
 
+	scenario = newScenario(10000, 1, 10240, "1_0")
 	pool = newPool()
-	journal = analyzeMemoryFootprint(t, pool, "1_to_0_10000x1x1024", 10000, 1, 10240, "1_0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(96, 128))
 	require.True(t, journal.structuralFootprintBetween(0, 4))
-	journal = analyzeMemoryFootprint(t, pool, "4294967295_to_0_10000x1x10246", 10000, 1, 10240, "4294967295_0")
+	scenario = newScenario(10000, 1, 10240, "4294967295_0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(96, 128))
 	require.True(t, journal.structuralFootprintBetween(0, 4))
 	keepPoolInMemoryUpToThisPoint(pool)
 
+	scenario = newScenario(10, 10000, 1024, "1_0")
 	pool = newPool()
-	journal = analyzeMemoryFootprint(t, pool, "1_to_0_10x10000x1024", 10, 10000, 1024, "1_0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(96, 128))
-	require.True(t, journal.structuralFootprintBetween(16, 20))
-	journal = analyzeMemoryFootprint(t, pool, "4294967295_to_0_10x10000x1024", 10, 10000, 1024, "4294967295_0")
+	require.True(t, journal.structuralFootprintBetween(16, 24))
+	scenario = newScenario(10, 10000, 1024, "4294967295_0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
 	require.True(t, journal.payloadFootprintBetween(96, 128))
-	require.True(t, journal.structuralFootprintBetween(16, 20))
+	require.True(t, journal.structuralFootprintBetween(16, 24))
 	keepPoolInMemoryUpToThisPoint(pool)
 }
 
-func analyzeMemoryFootprint(t *testing.T, pool dataRetriever.ShardedDataCacherNotifier, scenario string, numSenders int, numTxsPerSender int, payloadLengthPerTx int, cacheID string) *memoryFootprintJournal {
+type scenario struct {
+	name               string
+	numSenders         int
+	numTxsPerSender    int
+	payloadLengthPerTx int
+	cacheID            string
+}
+
+func newScenario(numSenders int, numTxsPerSender int, payloadLengthPerTx int, cacheID string) *scenario {
+	name := fmt.Sprintf("%dx%dx%d_%s", numSenders, numTxsPerSender, payloadLengthPerTx, cacheID)
+
+	return &scenario{
+		name:               name,
+		numSenders:         numSenders,
+		numTxsPerSender:    numTxsPerSender,
+		payloadLengthPerTx: payloadLengthPerTx,
+		cacheID:            cacheID,
+	}
+}
+
+func (scenario *scenario) numTxs() int {
+	return scenario.numSenders * scenario.numTxsPerSender
+}
+
+func analyzeMemoryFootprint(t *testing.T, pool dataRetriever.ShardedDataCacherNotifier, scenario *scenario) *memoryFootprintJournal {
+	fmt.Println("analyzeMemoryFootprint", scenario.name)
+
 	journal := &memoryFootprintJournal{}
 
 	journal.beforeGenerate = getMemStats()
-	txs := generateTxs(numSenders, numTxsPerSender, payloadLengthPerTx)
+	txs := generateTxs(scenario.numSenders, scenario.numTxsPerSender, scenario.payloadLengthPerTx)
 	journal.afterGenerate = getMemStats()
 
 	addTxs := func() {
 		for _, tx := range txs {
-			pool.AddData(tx.hash, tx, tx.Size(), cacheID)
+			pool.AddData(tx.hash, tx, tx.Size(), scenario.cacheID)
 		}
 	}
 
@@ -117,7 +171,7 @@ func analyzeMemoryFootprint(t *testing.T, pool dataRetriever.ShardedDataCacherNo
 		addTxs()
 	}
 
-	require.Len(t, pool.ShardDataStore(cacheID).Keys(), numSenders*numTxsPerSender)
+	require.Equal(t, len(pool.ShardDataStore(scenario.cacheID).Keys()), scenario.numTxs())
 
 	if usePprof {
 		pprofHeap(scenario, "afterAddition")
@@ -148,10 +202,10 @@ func getMemStats() runtime.MemStats {
 	return stats
 }
 
-func pprofHeap(scenario string, step string) {
+func pprofHeap(scenario *scenario, step string) {
 	runtime.GC()
 
-	filename := path.Join(".", "pprofoutput", fmt.Sprintf("%s_%s.pprof", scenario, step))
+	filename := path.Join(".", "pprofoutput", fmt.Sprintf("%s_%s.pprof", scenario.name, step))
 	file, err := os.Create(filename)
 	if err != nil {
 		panic(fmt.Sprintf("pprofHeap: %s", err))
@@ -287,8 +341,8 @@ func keepPoolInMemoryUpToThisPoint(pool dataRetriever.ShardedDataCacherNotifier)
 	fmt.Println("[4294967295 -> 0]:", len(pool.ShardDataStore("4294967295_0").Keys()))
 }
 
-func pprofCPU(scenario string, step string, function func()) {
-	filename := path.Join(".", "pprofoutput", fmt.Sprintf("%s_%s.CPU.pprof", scenario, step))
+func pprofCPU(scenario *scenario, step string, function func()) {
+	filename := path.Join(".", "pprofoutput", fmt.Sprintf("%s_%s.CPU.pprof", scenario.name, step))
 	file, err := os.Create(filename)
 	if err != nil {
 		panic(fmt.Sprintf("pprofCPU: %s", err))
