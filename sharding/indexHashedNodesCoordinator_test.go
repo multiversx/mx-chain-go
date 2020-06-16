@@ -1068,6 +1068,63 @@ func TestIndexHashedNodesCoordinator_EpochStartInLeaving(t *testing.T) {
 	require.Equal(t, validatorShard, computedShardId)
 }
 
+func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t *testing.T) {
+	t.Parallel()
+
+	nbShards := uint32(1)
+	eligibleMap := make(map[uint32][]Validator)
+
+	pk1 := []byte{2}
+	pk2 := []byte{1}
+
+	list := []Validator{
+		mock.NewValidatorMock(pk1, 1, 1),
+		mock.NewValidatorMock(pk2, 1, 1),
+	}
+	eligibleMap[core.MetachainShardId] = list
+
+	nodeShuffler := NewHashValidatorsShuffler(2, 2, hysteresis, adaptivity, shuffleBetweenShards)
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := mock.NewStorerMock()
+
+	arguments := ArgNodesCoordinator{
+		ShardConsensusGroupSize: 1,
+		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
+		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
+		EpochStartNotifier:      epochStartSubscriber,
+		BootStorer:              bootStorer,
+		NbShards:                nbShards,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            map[uint32][]Validator{},
+		SelfPublicKey:           []byte("test"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+	}
+
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+	epoch := uint32(1)
+
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        epoch,
+	}
+
+	ihgs.nodesConfig[epoch] = ihgs.nodesConfig[0]
+
+	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
+	ihgs.EpochStartPrepare(header, body)
+
+	newNodesConfig := ihgs.nodesConfig[1]
+
+	firstEligible := newNodesConfig.eligibleMap[core.MetachainShardId][0]
+	secondEligible := newNodesConfig.eligibleMap[core.MetachainShardId][1]
+	assert.True(t, firstEligible.Index() < secondEligible.Index())
+}
+
 func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExistingEpoch(t *testing.T) {
 	t.Parallel()
 
