@@ -6,3 +6,9 @@ type Counts interface {
 	String() string
 	IsInterfaceNil() bool
 }
+
+// Counts is an interface to interact with counts
+type CountsWithSize interface {
+	Counts
+	GetTotalSize() int64
+}

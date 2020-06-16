@@ -20,7 +20,7 @@ type ShardedDataStub struct {
 	RemoveSetOfDataFromPoolCalled          func(keys [][]byte, destCacheID string)
 	ImmunizeSetOfDataAgainstEvictionCalled func(keys [][]byte, cacheID string)
 	CreateShardStoreCalled                 func(destCacheID string)
-	GetCountsCalled                        func() counting.Counts
+	GetCountsCalled                        func() counting.CountsWithSize
 }
 
 // NewShardedDataStub -
@@ -88,7 +88,7 @@ func (shardedData *ShardedDataStub) ImmunizeSetOfDataAgainstEviction(keys [][]by
 }
 
 // GetCounts -
-func (sd *ShardedDataStub) GetCounts() counting.Counts {
+func (sd *ShardedDataStub) GetCounts() counting.CountsWithSize {
 	if sd.GetCountsCalled != nil {
 		return sd.GetCountsCalled()
 	}

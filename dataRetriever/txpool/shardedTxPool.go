@@ -307,15 +307,15 @@ func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte, value inte
 }
 
 // GetCounts returns the total number of transactions in the pool
-func (txPool *shardedTxPool) GetCounts() counting.Counts {
+func (txPool *shardedTxPool) GetCounts() counting.CountsWithSize {
 	txPool.mutexBackingMap.RLock()
 	defer txPool.mutexBackingMap.RUnlock()
 
-	counts := counting.NewConcurrentShardedCounts()
+	counts := counting.NewShardedCountsWithSize()
 
 	for cacheID, shard := range txPool.backingMap {
 		cache := shard.Cache
-		counts.PutCounts(cacheID, int64(cache.Len()))
+		counts.PutCounts(cacheID, int64(cache.Len()), int64(cache.NumBytes()))
 	}
 
 	return counts

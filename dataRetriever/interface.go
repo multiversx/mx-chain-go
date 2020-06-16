@@ -229,7 +229,7 @@ type ShardedDataCacherNotifier interface {
 	MergeShardStores(sourceCacheID, destCacheID string)
 	Clear()
 	ClearShardStore(cacheId string)
-	GetCounts() counting.Counts
+	GetCounts() counting.CountsWithSize
 }
 
 // ShardIdHashMap represents a map for shardId and hash

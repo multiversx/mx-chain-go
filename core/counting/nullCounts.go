@@ -6,12 +6,17 @@ var _ Counts = (*NullCounts)(nil)
 type NullCounts struct {
 }
 
-// GetTotal gets total count
+// GetTotal returns -1
 func (counts *NullCounts) GetTotal() int64 {
 	return -1
 }
 
-// String returns a string representation of the counts
+// GetTotalSize returns -1
+func (counts *NullCounts) GetTotalSize() int64 {
+	return -1
+}
+
+// String returns a placeholder
 func (counts *NullCounts) String() string {
 	return "counts not applicable"
 }
