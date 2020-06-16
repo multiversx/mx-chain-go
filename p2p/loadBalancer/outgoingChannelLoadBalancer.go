@@ -64,14 +64,18 @@ func (oplb *OutgoingChannelLoadBalancer) appendChannel(channel string) {
 	}()
 }
 
-// AddChannel adds a new channel to the throttler
+// AddChannel adds a new channel to the throttler, if it does not exists
 func (oplb *OutgoingChannelLoadBalancer) AddChannel(channel string) error {
+	if channel == defaultSendChannel {
+		return p2p.ErrChannelCanNotBeReAdded
+	}
+
 	oplb.mut.Lock()
 	defer oplb.mut.Unlock()
 
 	for _, name := range oplb.names {
 		if name == channel {
-			return p2p.ErrChannelAlreadyExists
+			return nil
 		}
 	}
 
