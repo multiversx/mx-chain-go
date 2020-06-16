@@ -446,6 +446,10 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())
+
+	err = icf.AddShardTrieNodeInterceptors(container)
+	assert.Nil(t, err)
+	assert.Equal(t, totalInterceptors+noOfShards, container.Len())
 }
 
 func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryArgs {

@@ -244,6 +244,10 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards
 
 	assert.Equal(t, totalResolvers, container.Len())
+
+	err := rcf.AddShardTrieNodeResolvers(container)
+	assert.Nil(t, err)
+	assert.Equal(t, totalResolvers+noOfShards, container.Len())
 }
 
 func getArgumentsMeta() resolverscontainer.FactoryArgs {
