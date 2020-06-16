@@ -320,6 +320,54 @@ func Test_promoteWaitingToEligible_MoreWaitingThanRemainingSize(t *testing.T) {
 	}
 }
 
+// eligible 40: 20 in eligible, 80 waiting
+func Test_promoteWaitingToEligible_2xMoreWaitingThanRemainingSize(t *testing.T) {
+	t.Parallel()
+
+	numMeta := uint32(40)
+	numShard := uint32(40)
+	numWaiting := 80
+	numRemaining := 20
+	eligibleMap := generateValidatorMap(20, 2)
+	waitingMap := generateValidatorMap(numWaiting, 2)
+
+	eligibleMapCopy := copyValidatorMap(eligibleMap)
+	waitingMapCopy := copyValidatorMap(waitingMap)
+
+	err := moveMaxNumNodesToMap(eligibleMap, waitingMap, numMeta, numShard)
+	assert.Nil(t, err)
+
+	for k := range eligibleMap {
+		assert.Equal(t, append(eligibleMapCopy[k], waitingMapCopy[k][0:numRemaining]...), eligibleMap[k])
+		assert.Equal(t, waitingMapCopy[k][numRemaining:], waitingMap[k])
+	}
+
+	// cleanup eligible to have space for another 40
+	for k := range eligibleMap {
+		eligibleMap[k] = make([]Validator, 0)
+	}
+	err = moveMaxNumNodesToMap(eligibleMap, waitingMap, numMeta, numShard)
+	assert.Nil(t, err)
+
+	remainingIndex := 60
+	for k := range eligibleMap {
+		assert.Equal(t, waitingMapCopy[k][numRemaining:remainingIndex], eligibleMap[k])
+		assert.Equal(t, waitingMapCopy[k][remainingIndex:], waitingMap[k])
+	}
+
+	// cleanup eligible to have space for another 40
+	for k := range eligibleMap {
+		eligibleMap[k] = make([]Validator, 0)
+	}
+	err = moveMaxNumNodesToMap(eligibleMap, waitingMap, numMeta, numShard)
+	assert.Nil(t, err)
+
+	for k := range eligibleMap {
+		assert.Equal(t, waitingMapCopy[k][remainingIndex:80], eligibleMap[k])
+		assert.Empty(t, waitingMap[k])
+	}
+}
+
 func Test_promoteWaitingToEligible_(t *testing.T) {
 	t.Parallel()
 
