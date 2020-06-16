@@ -98,7 +98,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 		}
 	}()
 
-	exportStorageConfigs := hardForkExport(t, nodes)
+	exportStorageConfigs := hardForkExport(t, nodes, epoch)
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)
 }
@@ -108,7 +108,7 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
+	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -178,7 +178,7 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	nrRoundsToPropagateMultiShard := uint64(6)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		for _, node := range nodes {
 			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "")
 			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "")
@@ -209,17 +209,17 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		}
 	}()
 
-	exportStorageConfigs := hardForkExport(t, nodes)
+	exportStorageConfigs := hardForkExport(t, nodes, epoch)
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)
 }
 
-func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode) []*config.StorageConfig {
+func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode, epoch uint32) []*config.StorageConfig {
 	exportStorageConfigs := createHardForkExporter(t, nodes)
 	for _, node := range nodes {
 		log.Warn("***********************************************************************************")
 		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
-		err := node.ExportHandler.ExportAll(1)
+		err := node.ExportHandler.ExportAll(epoch)
 		assert.Nil(t, err)
 		log.Warn("***********************************************************************************")
 	}
