@@ -28,6 +28,7 @@ func createMockArgumentsForAuction() ArgsStakingAuctionSmartContract {
 		AuctionSCAddress:    []byte("auction"),
 		StakingSCAddress:    []byte("staking"),
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
+		Marshalizer:         &mock.MarshalizerMock{},
 	}
 
 	return args

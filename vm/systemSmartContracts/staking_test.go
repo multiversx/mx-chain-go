@@ -29,6 +29,7 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 		BleedPercentagePerRound:  0,
 		MaximumPercentageToBleed: 0,
 		MinNumNodes:              0,
+		Marshalizer:              &mock.MarshalizerMock{},
 	}
 }
 
