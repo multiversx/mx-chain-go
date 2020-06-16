@@ -261,7 +261,7 @@ func (sd *shardedData) GetCounts() counting.Counts {
 	sd.mutShardedDataStore.RLock()
 	defer sd.mutShardedDataStore.RUnlock()
 
-	counts := counting.NewShardedCounts()
+	counts := counting.NewConcurrentShardedCounts()
 
 	for cacheID, shard := range sd.shardedDataStore {
 		counts.PutCounts(cacheID, int64(shard.cache.Len()))

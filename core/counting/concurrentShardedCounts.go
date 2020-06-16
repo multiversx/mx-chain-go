@@ -7,31 +7,31 @@ import (
 	"sync"
 )
 
-var _ Counts = (*ShardedCounts)(nil)
+var _ Counts = (*ConcurrentShardedCounts)(nil)
 
 // ShardedCounts keeps counts for a sharded data structure
 // This implementation is concurrently safe
-type ShardedCounts struct {
+type ConcurrentShardedCounts struct {
 	mutex   sync.RWMutex
 	byShard map[string]int64
 }
 
 // NewShardedCounts creates a new ShardedCounts
-func NewShardedCounts() *ShardedCounts {
-	return &ShardedCounts{
+func NewConcurrentShardedCounts() *ConcurrentShardedCounts {
+	return &ConcurrentShardedCounts{
 		byShard: make(map[string]int64),
 	}
 }
 
 // PutCounts registers counts for a shard
-func (counts *ShardedCounts) PutCounts(shardName string, value int64) {
+func (counts *ConcurrentShardedCounts) PutCounts(shardName string, value int64) {
 	counts.mutex.Lock()
 	counts.byShard[shardName] = value
 	counts.mutex.Unlock()
 }
 
 // GetTotal gets total count
-func (counts *ShardedCounts) GetTotal() int64 {
+func (counts *ConcurrentShardedCounts) GetTotal() int64 {
 	total := int64(0)
 
 	counts.mutex.RLock()
@@ -46,7 +46,7 @@ func (counts *ShardedCounts) GetTotal() int64 {
 }
 
 // String returns a string representation of the counts
-func (counts *ShardedCounts) String() string {
+func (counts *ConcurrentShardedCounts) String() string {
 	var builder strings.Builder
 
 	_, _ = fmt.Fprintf(&builder, "Total:%d; ", counts.GetTotal())
@@ -69,6 +69,6 @@ func (counts *ShardedCounts) String() string {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (counts *ShardedCounts) IsInterfaceNil() bool {
+func (counts *ConcurrentShardedCounts) IsInterfaceNil() bool {
 	return counts == nil
 }

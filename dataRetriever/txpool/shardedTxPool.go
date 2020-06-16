@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
-var _ counting.Countable = (*shardedTxPool)(nil)
 var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
 
 var log = logger.GetOrCreate("txpool")
@@ -312,7 +311,7 @@ func (txPool *shardedTxPool) GetCounts() counting.Counts {
 	txPool.mutexBackingMap.RLock()
 	defer txPool.mutexBackingMap.RUnlock()
 
-	counts := counting.NewShardedCounts()
+	counts := counting.NewConcurrentShardedCounts()
 
 	for cacheID, shard := range txPool.backingMap {
 		cache := shard.Cache
