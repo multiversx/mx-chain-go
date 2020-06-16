@@ -16,6 +16,7 @@ import (
 	systemVMProcess "github.com/ElrondNetwork/elrond-go/vm/process"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
@@ -106,8 +107,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
-	atArgumentParser := vmcommon.NewAtArgumentParser()
-
+	atArgumentParser := parsers.NewCallArgsParser()
 	systemEI, err := systemSmartContracts.NewVMContext(
 		vmf.blockChainHookImpl,
 		vmf.cryptoHook,

@@ -581,7 +581,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	dstShardId uint32,
 ) error {
 
-	err := txs.txProcessor.ProcessTransaction(tx)
+	_, err := txs.txProcessor.ProcessTransaction(tx)
 	isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee)
 	if isTxTargetedForDeletion {
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
@@ -1108,7 +1108,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 
 		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
 
-		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
+		_, err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
 		if err != nil {
 			return processedTxHashes, err
 		}

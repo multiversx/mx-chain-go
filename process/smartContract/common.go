@@ -29,7 +29,7 @@ func findVMByScAddress(container process.VirtualMachinesContainer, scAddress []b
 func parseVMTypeFromContractAddress(contractAddress []byte) ([]byte, error) {
 	// TODO: Why not check against AddressLength (32)?
 	if len(contractAddress) < core.NumInitCharactersForScAddress {
-		return nil, vmcommon.ErrInvalidVMType
+		return nil, process.ErrInvalidVMType
 	}
 
 	startIndex := core.NumInitCharactersForScAddress - core.VMTypeLen

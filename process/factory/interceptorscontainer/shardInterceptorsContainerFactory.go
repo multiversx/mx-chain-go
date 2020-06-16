@@ -96,6 +96,7 @@ func NewShardInterceptorsContainerFactory(
 		EpochStartTrigger:       args.EpochStartTrigger,
 		NonceConverter:          args.NonceConverter,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		ArgsParser:              args.ArgumentsParser,
 	}
 
 	container := containers.NewInterceptorsContainer()

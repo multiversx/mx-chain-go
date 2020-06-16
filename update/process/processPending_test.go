@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,11 +57,11 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	args.ShardCoordinator = shardCoordinator
 
 	args.TxProcessor = &mock.TxProcessorMock{
-		ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
+		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 			if bytes.Equal(transaction.SndAddr, addr4) {
-				return errors.New("localErr")
+				return 0, errors.New("localErr")
 			}
-			return nil
+			return 0, nil
 		},
 	}
 

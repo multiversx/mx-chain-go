@@ -180,17 +180,7 @@ func (host *vmContext) copyFromContext(currContext *vmContext) {
 }
 
 func (host *vmContext) createContractCallInput(destination []byte, sender []byte, value *big.Int, data []byte) (*vmcommon.ContractCallInput, error) {
-	err := host.inputParser.ParseData(string(data))
-	if err != nil {
-		return nil, err
-	}
-
-	arguments, err := host.inputParser.GetFunctionArguments()
-	if err != nil {
-		return nil, err
-	}
-
-	function, err := host.inputParser.GetFunction()
+	function, arguments, err := host.inputParser.ParseData(string(data))
 	if err != nil {
 		return nil, err
 	}

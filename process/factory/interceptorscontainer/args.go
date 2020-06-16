@@ -41,6 +41,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	WhiteListerVerifiedTxs  process.WhiteListHandler
 	AntifloodHandler        process.P2PAntifloodHandler
 	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	ArgumentsParser         process.ArgumentsParser
 }
 
 // MetaInterceptorsContainerFactoryArgs holds the arguments needed for MetaInterceptorsContainerFactory
@@ -72,4 +73,5 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	WhiteListerVerifiedTxs  process.WhiteListHandler
 	AntifloodHandler        process.P2PAntifloodHandler
 	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	ArgumentsParser         process.ArgumentsParser
 }

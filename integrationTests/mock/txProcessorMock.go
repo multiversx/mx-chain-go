@@ -5,17 +5,18 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TxProcessorMock -
 type TxProcessorMock struct {
-	ProcessTransactionCalled         func(transaction *transaction.Transaction) error
+	ProcessTransactionCalled         func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
 	SetBalancesToTrieCalled          func(accBalance map[string]*big.Int) (rootHash []byte, err error)
-	ProcessSmartContractResultCalled func(scr *smartContractResult.SmartContractResult) error
+	ProcessSmartContractResultCalled func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
 }
 
 // ProcessTransaction -
-func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transaction) error {
+func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 	return etm.ProcessTransactionCalled(transaction)
 }
 
@@ -25,7 +26,7 @@ func (etm *TxProcessorMock) SetBalancesToTrie(accBalance map[string]*big.Int) (r
 }
 
 // ProcessSmartContractResult -
-func (etm *TxProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
+func (etm *TxProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
 	return etm.ProcessSmartContractResultCalled(scr)
 }
 

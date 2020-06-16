@@ -92,6 +92,7 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		shardCoordinator,
 		txFeeHandler,
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 }
 
@@ -111,6 +112,7 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -131,6 +133,7 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -151,6 +154,7 @@ func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -171,6 +175,7 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -191,6 +196,7 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -211,6 +217,7 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -231,6 +238,7 @@ func TestNewInterceptedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -251,6 +259,7 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 		nil,
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -271,6 +280,7 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -291,6 +301,7 @@ func TestNewInterceptedTransaction_NilWhiteListerVerifiedTxsShouldErr(t *testing
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		nil,
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -317,6 +328,7 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -602,6 +614,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, err)
@@ -744,6 +757,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		whiteListerVerifiedTxs,
+		&mock.ArgumentParserMock{},
 	)
 	require.Nil(t, err)
 

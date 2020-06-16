@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+import (
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+)
 
 // SmartContractResultsProcessorMock -
 type SmartContractResultsProcessorMock struct {
@@ -8,12 +11,12 @@ type SmartContractResultsProcessorMock struct {
 }
 
 // ProcessSmartContractResult -
-func (scrp *SmartContractResultsProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
+func (scrp *SmartContractResultsProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
 	if scrp.ProcessSmartContractResultCalled == nil {
-		return nil
+		return 0, nil
 	}
 
-	return scrp.ProcessSmartContractResultCalled(scr)
+	return 0, scrp.ProcessSmartContractResultCalled(scr)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

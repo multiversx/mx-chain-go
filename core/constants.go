@@ -414,6 +414,9 @@ const BuiltInFunctionSaveKeyValue = "SaveKeyValue"
 // BuiltInFunctionESDTTransfer is the key for the elrond standard digital token transfer built-in function
 const BuiltInFunctionESDTTransfer = "ESDTTransfer"
 
+// RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
+const RelayedTransaction = "relayedTx"
+
 // SCDeployInitFunctionName is the key for the function which is called at smart contract deploy time
 const SCDeployInitFunctionName = "_init"
 

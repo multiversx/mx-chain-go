@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
@@ -43,11 +44,15 @@ func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, stat
 
 func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	return ArgsNewSmartContractProcessor{
-		VmContainer:     &mock.VMContainerMock{},
-		ArgsParser:      &mock.ArgumentParserMock{},
-		Hasher:          &mock.HasherMock{},
-		Marshalizer:     &mock.MarshalizerMock{},
-		AccountsDB:      &mock.AccountsStub{},
+		VmContainer: &mock.VMContainerMock{},
+		ArgsParser:  &mock.ArgumentParserMock{},
+		Hasher:      &mock.HasherMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+		AccountsDB: &mock.AccountsStub{
+			RevertToSnapshotCalled: func(snapshot int) error {
+				return nil
+			},
+		},
 		TempAccounts:    &mock.TemporaryAccountsHandlerMock{},
 		PubkeyConv:      createMockPubkeyConverter(),
 		Coordinator:     mock.NewMultiShardsCoordinatorMock(5),
@@ -204,6 +209,9 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 
 	argParser := &mock.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = &mock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
+		return nil
+	}}
 	arguments.VmContainer = &mock.VMContainerMock{}
 	arguments.ArgsParser = argParser
 	sc, err := NewSmartContractProcessor(arguments)
@@ -219,11 +227,11 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 
 	parseError := fmt.Errorf("fooError")
-	argParser.ParseDataCalled = func(data string) error {
-		return parseError
+	argParser.ParseDeployDataCalled = func(data string) (*parsers.DeployArgs, error) {
+		return nil, parseError
 	}
 
-	_ = sc.DeploySmartContract(tx, acntSrc)
+	_, _ = sc.DeploySmartContract(tx, acntSrc)
 	require.Equal(t, parseError, GetLatestTestError(sc))
 }
 
@@ -231,8 +239,11 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	t.Parallel()
 
 	vmContainer := &mock.VMContainerMock{}
-	argParser := vmcommon.NewAtArgumentParser()
+	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = &mock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
+		return nil
+	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	sc, err := NewSmartContractProcessor(arguments)
@@ -258,7 +269,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 		return vm, nil
 	}
 
-	_ = sc.DeploySmartContract(tx, acntSrc)
+	_, _ = sc.DeploySmartContract(tx, acntSrc)
 	require.Equal(t, createError, GetLatestTestError(sc))
 }
 
@@ -282,7 +293,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	err = sc.DeploySmartContract(tx, acntSrc)
+	_, err = sc.DeploySmartContract(tx, acntSrc)
 	require.Equal(t, process.ErrWrongTransaction, err)
 }
 
@@ -290,7 +301,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := vmcommon.NewAtArgumentParser()
+	argParser := NewArgumentParser()
 	accntState := &mock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
@@ -312,7 +323,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 		return acntSrc, nil
 	}
 
-	err = sc.DeploySmartContract(tx, acntSrc)
+	_, err = sc.DeploySmartContract(tx, acntSrc)
 	require.Nil(t, err)
 	require.Nil(t, GetLatestTestError(sc))
 }
@@ -337,7 +348,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, acntDst := createAccounts(tx)
 
-	err = sc.ExecuteSmartContractTransaction(nil, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(nil, acntSrc, acntDst)
 	require.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -361,16 +372,16 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 
 	acntSrc, acntDst := createAccounts(tx)
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Nil(t, err)
 
 	acntSrc, acntDst = createAccounts(tx)
 	acntDst = nil
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 }
 
@@ -397,11 +408,11 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	acntDst.SetCode([]byte("code"))
 	tmpError := errors.New("error")
 	called := false
-	argParser.ParseDataCalled = func(data string) error {
+	argParser.ParseCallDataCalled = func(data string) (string, [][]byte, error) {
 		called = true
-		return tmpError
+		return "", nil, tmpError
 	}
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.True(t, called)
 	require.Nil(t, err)
 }
@@ -438,7 +449,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 		return vm, nil
 	}
 
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.True(t, called)
 	require.Nil(t, err)
 }
@@ -470,7 +481,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	}
 
 	acntDst.SetCode([]byte("code"))
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Nil(t, err)
 }
 
@@ -509,7 +520,7 @@ func TestScProcessor_ExecuteSmartContractTransactionSaveLogCalled(t *testing.T) 
 	}
 
 	acntDst.SetCode([]byte("code"))
-	_ = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	_, _ = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.True(t, slCalled)
 }
 
@@ -533,8 +544,8 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("error")
-	argParser.GetFunctionCalled = func() (s string, e error) {
-		return "", tmpError
+	argParser.ParseCallDataCalled = func(data string) (string, [][]byte, error) {
+		return "", nil, tmpError
 	}
 	input, err := sc.createVMCallInput(tx)
 	require.Nil(t, input)
@@ -582,7 +593,7 @@ func TestScProcessor_CreateVMDeployBadCode(t *testing.T) {
 	tx.Value = big.NewInt(0)
 
 	badCodeError := errors.New("fooError")
-	argParser.GetCodeDecodedCalled = func() (code []byte, e error) {
+	argParser.ParseDeployDataCalled = func(data string) (*parsers.DeployArgs, error) {
 		return nil, badCodeError
 	}
 
@@ -613,11 +624,13 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 
 	expectedVMType := []byte{5, 6}
 	expectedCodeMetadata := vmcommon.CodeMetadata{Upgradeable: true}
-	argParser.GetVMTypeCalled = func() ([]byte, error) {
-		return expectedVMType, nil
-	}
-	argParser.GetCodeMetadataCalled = func() (vmcommon.CodeMetadata, error) {
-		return expectedCodeMetadata, nil
+	argParser.ParseDeployDataCalled = func(data string) (*parsers.DeployArgs, error) {
+		return &parsers.DeployArgs{
+			Code:         []byte("code"),
+			VMType:       expectedVMType,
+			CodeMetadata: expectedCodeMetadata,
+			Arguments:    nil,
+		}, nil
 	}
 
 	input, vmType, err := sc.createVMDeployInput(tx)
@@ -633,7 +646,7 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := vmcommon.NewAtArgumentParser()
+	argParser := NewArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -651,7 +664,7 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	input, vmType, err := sc.createVMDeployInput(tx)
 	require.Nil(t, input)
 	require.Nil(t, vmType)
-	require.Equal(t, vmcommon.ErrInvalidDeployArguments, err)
+	require.Equal(t, parsers.ErrInvalidDeployArguments, err)
 }
 
 func TestScProcessor_CreateVMDeployInputWrongArgument(t *testing.T) {
@@ -674,7 +687,7 @@ func TestScProcessor_CreateVMDeployInputWrongArgument(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	tmpError := errors.New("fooError")
-	argParser.GetConstructorArgumentsCalled = func() (ints [][]byte, e error) {
+	argParser.ParseDeployDataCalled = func(data string) (*parsers.DeployArgs, error) {
 		return nil, tmpError
 	}
 	input, vmType, err := sc.createVMDeployInput(tx)
@@ -1506,7 +1519,7 @@ func TestScProcessor_ProcessSmartContractResultNilScr(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	err = sc.ProcessSmartContractResult(nil)
+	_, err = sc.ProcessSmartContractResult(nil)
 	require.Equal(t, process.ErrNilSmartContractResult, err)
 }
 
@@ -1530,7 +1543,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	require.Nil(t, err)
 
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
-	_ = sc.ProcessSmartContractResult(&scr)
+	_, _ = sc.ProcessSmartContractResult(&scr)
 	require.True(t, called)
 }
 
@@ -1552,8 +1565,8 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 		return shardCoordinator.CurrentShard + 1
 	}
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
-	err = sc.ProcessSmartContractResult(&scr)
-	require.Nil(t, err)
+	_, err = sc.ProcessSmartContractResult(&scr)
+	require.Equal(t, err, process.ErrNilSCDestAccount)
 }
 
 func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
@@ -1573,7 +1586,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 	require.Nil(t, err)
 
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 }
 
@@ -1600,7 +1613,7 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 
 	scr := smartContractResult.SmartContractResult{
 		RcvAddr: []byte("recv address")}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 }
 
@@ -1632,7 +1645,7 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 		Code:    []byte("code"),
 		Value:   big.NewInt(15),
 	}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.Equal(t, 1, putCodeCalled)
 }
@@ -1673,7 +1686,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 		Data:    []byte(result),
 		Value:   big.NewInt(15),
 	}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.Equal(t, 1, saveAccountCalled)
 }
@@ -1686,6 +1699,9 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 			return state.NewUserAccount(address)
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return nil
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
 		},
 	}
@@ -1709,7 +1725,7 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 		Data:    []byte("code@06"),
 		Value:   big.NewInt(15),
 	}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 }
 
@@ -1724,6 +1740,9 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 			return dstScAddress, nil
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return nil
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
 		},
 	}
@@ -1758,7 +1777,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 		Data:    []byte("code@06"),
 		Value:   big.NewInt(15),
 	}
-	err = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.True(t, executeCalled)
 }

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -172,7 +173,7 @@ func (sdp *standardDelegationProcessor) setDelegationStartParameters(smartContra
 }
 
 func (sdp *standardDelegationProcessor) executeSetNumNodes(numNodes int, sc genesis.InitialSmartContractHandler) error {
-	setNumNodesTxData := fmt.Sprintf("%s@%x", setNumNodesFunction, numNodes)
+	setNumNodesTxData := fmt.Sprintf("%s@%s", setNumNodesFunction, core.ConvertToEvenHex(numNodes))
 
 	nonce, err := sdp.GetNonce(sc.OwnerBytes())
 	if err != nil {
@@ -189,7 +190,7 @@ func (sdp *standardDelegationProcessor) executeSetNumNodes(numNodes int, sc gene
 }
 
 func (sdp *standardDelegationProcessor) executeSetNodePrice(sc genesis.InitialSmartContractHandler) error {
-	setStakePerNodeTxData := fmt.Sprintf("%s@%x", setStakePerNodeFunction, sdp.nodePrice)
+	setStakePerNodeTxData := fmt.Sprintf("%s@%s", setStakePerNodeFunction, core.ConvertToEvenHexBigInt(sdp.nodePrice))
 
 	nonce, err := sdp.GetNonce(sc.OwnerBytes())
 	if err != nil {

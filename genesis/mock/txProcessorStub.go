@@ -1,19 +1,22 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data/transaction"
+import (
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+)
 
 // TxProcessorStub -
 type TxProcessorStub struct {
-	ProcessTransactionCalled func(transaction *transaction.Transaction) error
+	ProcessTransactionCalled func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
 }
 
 // ProcessTransaction -
-func (tps *TxProcessorStub) ProcessTransaction(transaction *transaction.Transaction) error {
+func (tps *TxProcessorStub) ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 	if tps.ProcessTransactionCalled != nil {
 		return tps.ProcessTransactionCalled(transaction)
 	}
 
-	return nil
+	return 0, nil
 }
 
 // IsInterfaceNil -
