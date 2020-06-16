@@ -2,7 +2,9 @@ package antiflood_test
 
 import (
 	"errors"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -351,4 +353,70 @@ func TestP2pAntiflood_SetDebuggerShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, afm.Debugger() == debugger)
+}
+
+func TestP2pAntiflood_Close(t *testing.T) {
+	t.Parallel()
+
+	numCalls := int32(0)
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.PeerBlackListHandlerStub{},
+		&mock.TopicAntiFloodStub{},
+		&mock.FloodPreventerStub{},
+	)
+	_ = afm.SetDebugger(&mock.AntifloodDebuggerStub{
+		CloseCalled: func() error {
+			atomic.AddInt32(&numCalls, 1)
+
+			return nil
+		},
+	})
+
+	err := afm.Close()
+
+	assert.Nil(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&numCalls))
+}
+
+func TestP2pAntiflood_BlacklistPeerErrShouldDoNothing(t *testing.T) {
+	t.Parallel()
+
+	numCalls := int32(0)
+	expectedErr := errors.New("expected error")
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.PeerBlackListHandlerStub{
+			AddWithSpanCalled: func(pid core.PeerID, span time.Duration) error {
+				atomic.AddInt32(&numCalls, 1)
+
+				return expectedErr
+			},
+		},
+		&mock.TopicAntiFloodStub{},
+		&mock.FloodPreventerStub{},
+	)
+
+	afm.BlacklistPeer("pid", "reason", time.Second)
+
+	assert.Equal(t, int32(1), atomic.LoadInt32(&numCalls))
+}
+
+func TestP2pAntiflood_BlacklistPeerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numCalls := int32(0)
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.PeerBlackListHandlerStub{
+			AddWithSpanCalled: func(pid core.PeerID, span time.Duration) error {
+				atomic.AddInt32(&numCalls, 1)
+
+				return nil
+			},
+		},
+		&mock.TopicAntiFloodStub{},
+		&mock.FloodPreventerStub{},
+	)
+
+	afm.BlacklistPeer("pid", "reason", time.Second)
+
+	assert.Equal(t, int32(1), atomic.LoadInt32(&numCalls))
 }

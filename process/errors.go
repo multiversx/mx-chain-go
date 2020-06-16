@@ -791,5 +791,8 @@ var ErrOriginatorIsBlacklisted = errors.New("originator is blacklisted")
 // ErrShardIsStuck signals that a shard is stuck
 var ErrShardIsStuck = errors.New("shard is stuck")
 
+// ErrNilInterceptorContainer signals that nil interceptor container has been provided
+var ErrNilInterceptorContainer = errors.New("nil interceptor container")
+
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID")
