@@ -22,12 +22,18 @@ var useMemPprof = false
 
 // We run all scenarios within a single test so that we minimize memory interferences (of tests running in parallel)
 func TestShardedTxPool_MemoryFootprint(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	journals := make([]*memoryFootprintJournal, 0)
 
 	// Scenarios where source == me
 
 	scenario := newScenario(300, 1, core.MegabyteSize, "0")
 	pool := newPool()
 	journal := analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(300, 300))
 	require.True(t, journal.structuralFootprintBetween(0, 1))
 	keepPoolInMemoryUpToThisPoint(pool)
@@ -35,6 +41,7 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	scenario = newScenario(10, 1000, 30720, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(300, 315))
 	require.True(t, journal.structuralFootprintBetween(1, 4))
 	keepPoolInMemoryUpToThisPoint(pool)
@@ -42,6 +49,7 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	scenario = newScenario(10000, 1, 1024, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(10, 16))
 	require.True(t, journal.structuralFootprintBetween(4, 10))
 	keepPoolInMemoryUpToThisPoint(pool)
@@ -49,6 +57,7 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	scenario = newScenario(1, 60000, 256, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(30, 32))
 	require.True(t, journal.structuralFootprintBetween(10, 16))
 	keepPoolInMemoryUpToThisPoint(pool)
@@ -56,6 +65,7 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	scenario = newScenario(10, 10000, 100, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(36, 40))
 	require.True(t, journal.structuralFootprintBetween(16, 24))
 	keepPoolInMemoryUpToThisPoint(pool)
@@ -63,6 +73,7 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	scenario = newScenario(100000, 1, 1024, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(120, 128))
 	require.True(t, journal.structuralFootprintBetween(56, 60))
 	keepPoolInMemoryUpToThisPoint(pool)
@@ -72,13 +83,39 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	scenario = newScenario(100000, 6, 128, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(230, 240))
 	require.True(t, journal.structuralFootprintBetween(165, 185))
+	keepPoolInMemoryUpToThisPoint(pool)
+
+	scenario = newScenario(200000, 3, 128, "0")
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
+	require.True(t, journal.payloadFootprintBetween(230, 240))
+	require.True(t, journal.structuralFootprintBetween(200, 210))
+	keepPoolInMemoryUpToThisPoint(pool)
+
+	scenario = newScenario(300000, 2, 128, "0")
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
+	require.True(t, journal.payloadFootprintBetween(230, 240))
+	require.True(t, journal.structuralFootprintBetween(240, 250))
+	keepPoolInMemoryUpToThisPoint(pool)
+
+	scenario = newScenario(600000, 1, 128, "0")
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
+	require.True(t, journal.payloadFootprintBetween(230, 240))
+	require.True(t, journal.structuralFootprintBetween(350, 360))
 	keepPoolInMemoryUpToThisPoint(pool)
 
 	scenario = newScenario(30, 20000, 128, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(230, 240))
 	require.True(t, journal.structuralFootprintBetween(120, 136))
 	keepPoolInMemoryUpToThisPoint(pool)
@@ -86,6 +123,7 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	scenario = newScenario(600, 1000, 128, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(230, 240))
 	require.True(t, journal.structuralFootprintBetween(120, 136))
 	keepPoolInMemoryUpToThisPoint(pool)
@@ -95,10 +133,12 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	scenario = newScenario(150, 1, core.MegabyteSize, "1_0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(148, 150))
 	require.True(t, journal.structuralFootprintBetween(0, 1))
 	scenario = newScenario(150, 1, core.MegabyteSize, "4294967295_0")
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(148, 150))
 	require.True(t, journal.structuralFootprintBetween(0, 1))
 	keepPoolInMemoryUpToThisPoint(pool)
@@ -106,10 +146,12 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	scenario = newScenario(10000, 1, 10240, "1_0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(96, 128))
 	require.True(t, journal.structuralFootprintBetween(0, 4))
 	scenario = newScenario(10000, 1, 10240, "4294967295_0")
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(96, 128))
 	require.True(t, journal.structuralFootprintBetween(0, 4))
 	keepPoolInMemoryUpToThisPoint(pool)
@@ -117,13 +159,45 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	scenario = newScenario(10, 10000, 1024, "1_0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(96, 128))
 	require.True(t, journal.structuralFootprintBetween(16, 24))
 	scenario = newScenario(10, 10000, 1024, "4294967295_0")
 	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(96, 128))
 	require.True(t, journal.structuralFootprintBetween(16, 24))
 	keepPoolInMemoryUpToThisPoint(pool)
+
+	scenario = newScenario(150000, 1, 128, "1_0")
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
+	require.True(t, journal.payloadFootprintBetween(50, 60))
+	require.True(t, journal.structuralFootprintBetween(30, 36))
+	scenario = newScenario(150000, 1, 128, "4294967295_0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
+	require.True(t, journal.payloadFootprintBetween(50, 60))
+	require.True(t, journal.structuralFootprintBetween(30, 36))
+	keepPoolInMemoryUpToThisPoint(pool)
+
+	scenario = newScenario(1, 150000, 128, "1_0")
+	pool = newPool()
+	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
+	require.True(t, journal.payloadFootprintBetween(50, 60))
+	require.True(t, journal.structuralFootprintBetween(30, 36))
+	scenario = newScenario(1, 150000, 128, "4294967295_0")
+	journal = analyzeMemoryFootprint(t, pool, scenario)
+	journals = append(journals, journal)
+	require.True(t, journal.payloadFootprintBetween(50, 60))
+	require.True(t, journal.structuralFootprintBetween(30, 36))
+	keepPoolInMemoryUpToThisPoint(pool)
+
+	for _, journal := range journals {
+		journal.displayFootprintsSummary()
+	}
 }
 
 type scenario struct {
@@ -177,7 +251,7 @@ func keepPoolInMemoryUpToThisPoint(pool dataRetriever.ShardedDataCacherNotifier)
 func analyzeMemoryFootprint(t *testing.T, pool dataRetriever.ShardedDataCacherNotifier, scenario *scenario) *memoryFootprintJournal {
 	fmt.Println("analyzeMemoryFootprint", scenario.name)
 
-	journal := &memoryFootprintJournal{}
+	journal := &memoryFootprintJournal{scenario: scenario}
 
 	journal.beforeGenerate = getMemStats()
 	txs := generateTxs(scenario.numSenders, scenario.numTxsPerSender, scenario.payloadLengthPerTx)
@@ -286,6 +360,7 @@ func convertPprofToHumanReadable(filename string) {
 }
 
 type memoryFootprintJournal struct {
+	scenario       *scenario
 	beforeGenerate runtime.MemStats
 	afterGenerate  runtime.MemStats
 	afterAddition  runtime.MemStats
@@ -327,6 +402,10 @@ func (journal *memoryFootprintJournal) display() {
 
 	fmt.Println("Txs footprint:", bToMb(journal.txsFootprint()))
 	fmt.Println("Pool structures footprint:", bToMb(journal.poolStructuresFootprint()))
+}
+
+func (journal *memoryFootprintJournal) displayFootprintsSummary() {
+	fmt.Printf("%d %d %d %dMB %dMB\n", journal.scenario.numSenders, journal.scenario.numTxsPerSender, journal.scenario.payloadLengthPerTx, bToMb(journal.poolStructuresFootprint()), bToMb(journal.txsFootprint()))
 }
 
 func bToMb(b uint64) int {

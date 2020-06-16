@@ -18,6 +18,8 @@ func TestMemoryConfig(t *testing.T) {
 	err = toml.Unmarshal([]byte(tomlString), &nodeConfig)
 	require.Nil(t, err)
 
+	numShards := 2
+
 	plannedMemory := uint64(0)
 	plannedMemory += nodeConfig.MiniBlocksStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.PeerBlockBodyStorage.Cache.SizeInBytes
@@ -26,7 +28,7 @@ func TestMemoryConfig(t *testing.T) {
 	plannedMemory += nodeConfig.MetaBlockStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.TxStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.TxLogsStorage.Cache.SizeInBytes
-	plannedMemory += nodeConfig.UnsignedTransactionStorage.Cache.SizeInBytes
+	plannedMemory += nodeConfig.UnsignedTransactionStorage.Cache.SizeInBytes * uint64(2*numShards-1)
 	plannedMemory += nodeConfig.RewardTxStorage.Cache.SizeInBytes
 	// todo: StatusMetricsStorage.Cache
 	plannedMemory += nodeConfig.ShardHdrNonceHashStorage.Cache.SizeInBytes
@@ -50,7 +52,7 @@ func TestMemoryConfig(t *testing.T) {
 	// todo: heartbeat cache
 	// todo: hardfork caches
 
-	require.LessOrEqual(t, bToMb(plannedMemory), 2652)
+	require.LessOrEqual(t, bToMb(plannedMemory), 2707)
 }
 
 func bToMb(b uint64) int {
