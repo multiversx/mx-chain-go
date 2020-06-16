@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -203,10 +204,9 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 	t.Parallel()
 
 	testHash := "testHash"
-	testTx := &transaction.Transaction{}
-	//testTx.
+	testTx := &transaction.ApiTransactionResult{}
 	node := &mock.NodeStub{
-		GetTransactionHandler: func(hash string) (*transaction.Transaction, error) {
+		GetTransactionHandler: func(hash string) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
 			}
@@ -239,9 +239,9 @@ func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *tes
 	t.Parallel()
 
 	testHash := "testHash"
-	testTx := &transaction.Transaction{}
+	testTx := &transaction.ApiTransactionResult{}
 	node := &mock.NodeStub{
-		GetTransactionHandler: func(hash string) (*transaction.Transaction, error) {
+		GetTransactionHandler: func(hash string) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
 			}
@@ -558,4 +558,24 @@ func TestElrondNodeFacade_GetQueryHandler(t *testing.T) {
 	assert.Nil(t, qh)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
+}
+
+func TestNodeFacade_GetPeerInfo(t *testing.T) {
+	t.Parallel()
+
+	pinfo := core.QueryP2PPeerInfo{
+		Pid: "pid",
+	}
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetPeerInfoCalled: func(pid string) ([]core.QueryP2PPeerInfo, error) {
+			return []core.QueryP2PPeerInfo{pinfo}, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	val, err := nf.GetPeerInfo("")
+
+	assert.Nil(t, err)
+	assert.Equal(t, []core.QueryP2PPeerInfo{pinfo}, val)
 }

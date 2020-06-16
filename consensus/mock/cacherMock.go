@@ -24,7 +24,7 @@ func (cm *CacherMock) Clear() {
 }
 
 // Put -
-func (cm *CacherMock) Put(key []byte, value interface{}) (evicted bool) {
+func (cm *CacherMock) Put(key []byte, value interface{}, _ int) (evicted bool) {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
 
@@ -64,7 +64,7 @@ func (cm *CacherMock) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd -
-func (cm *CacherMock) HasOrAdd(key []byte, value interface{}) (bool, bool) {
+func (cm *CacherMock) HasOrAdd(key []byte, value interface{}, _ int) (bool, bool) {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
 
@@ -82,11 +82,6 @@ func (cm *CacherMock) Remove(key []byte) {
 	defer cm.mut.Unlock()
 
 	delete(cm.dataMap, string(key))
-}
-
-// RemoveOldest -
-func (cm *CacherMock) RemoveOldest() {
-	panic("implement me")
 }
 
 // Keys -
@@ -115,8 +110,11 @@ func (cm *CacherMock) MaxSize() int {
 }
 
 // RegisterHandler -
-func (cm *CacherMock) RegisterHandler(func(key []byte, value interface{})) {
-	panic("implement me")
+func (cm *CacherMock) RegisterHandler(func(key []byte, value interface{}), string) {
+}
+
+// UnRegisterHandler -
+func (cm *CacherMock) UnRegisterHandler(_ string) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

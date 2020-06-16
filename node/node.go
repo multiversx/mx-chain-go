@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
+	"strings"
 	syncGo "sync"
 	"sync/atomic"
 	"time"
@@ -85,13 +87,14 @@ type Node struct {
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer         process.InterceptorsContainer
 	resolversFinder               dataRetriever.ResolversFinder
-	peerBlackListHandler          process.BlackListHandler
+	peerBlackListHandler          process.PeerBlackListHandler
 	appStatusHandler              core.AppStatusHandler
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
 	validatorsProvider            process.ValidatorsProvider
 	whiteListRequest              process.WhiteListHandler
 	whiteListerVerifiedTxs        process.WhiteListHandler
+	apiTransactionByHashThrottler Throttler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -300,6 +303,8 @@ func (n *Node) StartConsensus() error {
 
 	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
 
+	// apply consensus group size on the input antiflooder just befor consensus creation topic
+	n.inputAntifloodHandler.ApplyConsensusSize(n.nodesCoordinator.ConsensusGroupSize(n.shardCoordinator.SelfId()))
 	err = n.createConsensusTopic(worker)
 	if err != nil {
 		return err
@@ -379,6 +384,42 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 	}
 
 	return account.GetBalance(), nil
+}
+
+// GetValueForKey will return the value for a key from a given account
+func (n *Node) GetValueForKey(address string, key string) (string, error) {
+	keyBytes, err := hex.DecodeString(key)
+	if err != nil {
+		return "", fmt.Errorf("invalid key: %w", err)
+	}
+
+	if check.IfNil(n.addressPubkeyConverter) || check.IfNil(n.accounts) {
+		return "", fmt.Errorf("initialize AccountsAdapter and PubkeyConverter first")
+	}
+
+	addr, err := n.addressPubkeyConverter.Decode(address)
+	if err != nil {
+		return "", fmt.Errorf("invalid address, could not decode from: %w", err)
+	}
+	accWrp, err := n.accounts.GetExistingAccount(addr)
+	if err != nil {
+		return "", fmt.Errorf("could not fetch sender address from provided param: %w", err)
+	}
+
+	if check.IfNil(accWrp) {
+		return "", fmt.Errorf("account not found")
+	}
+	account, ok := accWrp.(state.UserAccountHandler)
+	if !ok {
+		return "", fmt.Errorf("account not found - cannot convert to UserAccountHandler")
+	}
+
+	valueBytes, err := account.DataTrieTracker().RetrieveValue(keyBytes)
+	if err != nil {
+		return "", fmt.Errorf("fetching value error: %w", err)
+	}
+
+	return hex.EncodeToString(valueBytes), nil
 }
 
 // createChronologyHandler method creates a chronology object
@@ -871,11 +912,6 @@ func (n *Node) CreateTransaction(
 	return tx, txHash, nil
 }
 
-//GetTransaction gets the transaction
-func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
-	return nil, fmt.Errorf("not yet implemented")
-}
-
 // GetAccount will return account details for a given address
 func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	if check.IfNil(n.addressPubkeyConverter) {
@@ -1035,6 +1071,51 @@ func (n *Node) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	}
 
 	return qh, nil
+}
+
+// GetPeerInfo returns information about a peer id
+func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
+	peers := n.messenger.Peers()
+	pidsFound := make([]core.PeerID, 0)
+	for _, p := range peers {
+		if strings.Contains(p.Pretty(), pid) {
+			pidsFound = append(pidsFound, p)
+		}
+	}
+
+	if len(pidsFound) == 0 {
+		return nil, fmt.Errorf("%w for provided peer %s", ErrUnknownPeerID, pid)
+	}
+
+	sort.Slice(pidsFound, func(i, j int) bool {
+		return pidsFound[i].Pretty() < pidsFound[j].Pretty()
+	})
+
+	peerInfoSlice := make([]core.QueryP2PPeerInfo, 0, len(pidsFound))
+	for _, p := range pidsFound {
+		pidInfo := n.createPidInfo(p)
+		peerInfoSlice = append(peerInfoSlice, pidInfo)
+	}
+
+	return peerInfoSlice, nil
+}
+
+func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
+	result := core.QueryP2PPeerInfo{
+		Pid:           p.Pretty(),
+		Addresses:     n.messenger.PeerAddresses(p),
+		IsBlacklisted: n.peerBlackListHandler.Has(p),
+	}
+
+	peerInfo := n.networkShardingCollector.GetPeerInfo(p)
+	result.PeerType = peerInfo.PeerType.String()
+	if len(peerInfo.PkBytes) == 0 {
+		result.Pk = ""
+	} else {
+		result.Pk = n.validatorPubkeyConverter.Encode(peerInfo.PkBytes)
+	}
+
+	return result
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

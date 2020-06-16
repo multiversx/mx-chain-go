@@ -68,7 +68,7 @@ type ArgsNewSmartContractProcessor struct {
 	TxLogsProcessor  process.TransactionLogProcessor
 }
 
-// NewSmartContractProcessor create a smart contract processor creates and interprets VM data
+// NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
 func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor, error) {
 	if check.IfNil(args.VmContainer) {
 		return nil, process.ErrNoVM
@@ -258,7 +258,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var results []data.TransactionHandler
 	results, consumedFee, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
 	if err != nil {
-		log.Trace("process vm output error", "error", err.Error())
+		log.Trace("process vm output returned with problem ", "err", err.Error())
 		return nil
 	}
 

@@ -303,17 +303,23 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	consensusSize := ihgs.ConsensusGroupSize(shardID)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
 
-	log.Debug("ComputeValidatorsGroup",
+	log.Debug("computeValidatorsGroup",
 		"randomness", randomness,
 		"consensus size", consensusSize,
-		"eligible list length", len(eligibleList))
+		"eligible list length", len(eligibleList),
+		"epoch", epoch)
 
 	tempList, err := selectValidators(selector, randomness, uint32(consensusSize), eligibleList)
 	if err != nil {
 		return nil, err
 	}
 
-	ihgs.consensusGroupCacher.Put(key, tempList)
+	size := 0
+	for _, v := range tempList {
+		size += v.Size()
+	}
+
+	ihgs.consensusGroupCacher.Put(key, tempList, size)
 
 	return tempList, nil
 }
@@ -639,6 +645,8 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 			newNodesList = append(newNodesList, currentValidator)
 		case string(core.InactiveList):
 			log.Debug("inactive validator", "pk", validatorInfo.PublicKey)
+		case string(core.JailedList):
+			log.Debug("jailed validator", "pk", validatorInfo.PublicKey)
 		}
 	}
 
@@ -982,22 +990,22 @@ func computeActuallyLeaving(
 	sortedShardIds := sortKeys(unstakeLeaving)
 	for _, shardId := range sortedShardIds {
 		leavingValidatorsPerShard := unstakeLeaving[shardId]
-		for _, validator := range leavingValidatorsPerShard {
-			if processedValidatorsMap[string(validator.PubKey())] {
+		for _, v := range leavingValidatorsPerShard {
+			if processedValidatorsMap[string(v.PubKey())] {
 				continue
 			}
-			processedValidatorsMap[string(validator.PubKey())] = true
+			processedValidatorsMap[string(v.PubKey())] = true
 			found := false
 			for _, leavingValidator := range leaving {
-				if bytes.Equal(validator.PubKey(), leavingValidator.PubKey()) {
+				if bytes.Equal(v.PubKey(), leavingValidator.PubKey()) {
 					found = true
 					break
 				}
 			}
 			if found {
-				actuallyLeaving[shardId] = append(actuallyLeaving[shardId], validator)
+				actuallyLeaving[shardId] = append(actuallyLeaving[shardId], v)
 			} else {
-				actuallyRemaining[shardId] = append(actuallyRemaining[shardId], validator)
+				actuallyRemaining[shardId] = append(actuallyRemaining[shardId], v)
 			}
 		}
 	}

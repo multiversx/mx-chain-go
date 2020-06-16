@@ -35,7 +35,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 	assert.Nil(t, err)
 
 	_, ok1 := af.(*disabled.AntiFlood)
-	_, ok2 := bl.(*disabled.BlacklistHandler)
+	_, ok2 := bl.(*disabled.PeerBlacklistHandler)
 	assert.True(t, ok1)
 	assert.True(t, ok2)
 }
@@ -47,12 +47,13 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 		Antiflood: config.AntifloodConfig{
 			Enabled: true,
 			Cache: config.CacheConfig{
-				Type:   "LRU",
-				Size:   10,
-				Shards: 2,
+				Type:     "LRU",
+				Capacity: 10,
+				Shards:   2,
 			},
 			FastReacting: createFloodPreventerConfig(),
 			SlowReacting: createFloodPreventerConfig(),
+			OutOfSpecs:   createFloodPreventerConfig(),
 			Topic: config.TopicAntifloodConfig{
 				DefaultMaxMessagesPerSec: 10,
 			},
@@ -70,8 +71,8 @@ func createFloodPreventerConfig() config.FloodPreventerConfig {
 	return config.FloodPreventerConfig{
 		IntervalInSeconds: 1,
 		PeerMaxInput: config.AntifloodLimitsConfig{
-			MessagesPerInterval:  10,
-			TotalSizePerInterval: 10,
+			BaseMessagesPerInterval: 10,
+			TotalSizePerInterval:    10,
 		},
 		BlackList: config.BlackListConfig{
 			ThresholdNumMessagesPerInterval: 10,

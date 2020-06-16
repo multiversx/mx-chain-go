@@ -105,7 +105,7 @@ type WorkerHandler interface {
 	//RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	//Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
 	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
@@ -124,7 +124,7 @@ type WorkerHandler interface {
 
 // PoolAdder adds data in a key-value pool
 type PoolAdder interface {
-	Put(key []byte, value interface{}) (evicted bool)
+	Put(key []byte, value interface{}, sizeInBytes int) (evicted bool)
 	IsInterfaceNil() bool
 }
 

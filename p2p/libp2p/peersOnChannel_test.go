@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
@@ -92,7 +93,7 @@ func TestPeersOnChannel_ConnectedPeersOnChannelMissingTopicShouldTriggerFetchAnd
 func TestPeersOnChannel_ConnectedPeersOnChannelFindTopicShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	retPeerIDs := []p2p.PeerID{"peer1", "peer2"}
+	retPeerIDs := []core.PeerID{"peer1", "peer2"}
 	testTopic := "test_topic"
 	wasFetchCalled := atomic.Value{}
 	wasFetchCalled.Store(false)
@@ -121,7 +122,7 @@ func TestPeersOnChannel_ConnectedPeersOnChannelFindTopicShouldReturn(t *testing.
 func TestPeersOnChannel_RefreshShouldBeDone(t *testing.T) {
 	t.Parallel()
 
-	retPeerIDs := []p2p.PeerID{"peer1", "peer2"}
+	retPeerIDs := []core.PeerID{"peer1", "peer2"}
 	testTopic := "test_topic"
 	wasFetchCalled := atomic.Value{}
 	wasFetchCalled.Store(false)

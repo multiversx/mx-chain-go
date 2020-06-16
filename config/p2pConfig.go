@@ -9,8 +9,9 @@ type P2PConfig struct {
 
 // NodeConfig will hold basic p2p settings
 type NodeConfig struct {
-	Port uint32
-	Seed string
+	Port 						string
+	Seed 						string
+	MaximumExpectedPeerCount 	uint64
 }
 
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
@@ -26,7 +27,6 @@ type KadDhtPeerDiscoveryConfig struct {
 // ShardingConfig will hold the network sharding config settings
 type ShardingConfig struct {
 	TargetPeerCount         int
-	PrioBits                uint32
 	MaxIntraShardValidators uint32
 	MaxCrossShardValidators uint32
 	MaxIntraShardObservers  uint32

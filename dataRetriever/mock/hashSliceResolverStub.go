@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -41,7 +42,7 @@ func (hsrs *HashSliceResolverStub) RequestDataFromHash(hash []byte, epoch uint32
 }
 
 // ProcessReceivedMessage -
-func (hsrs *HashSliceResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
+func (hsrs *HashSliceResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
 	if hsrs.ProcessReceivedMessageCalled != nil {
 		return hsrs.ProcessReceivedMessageCalled(message)
 	}

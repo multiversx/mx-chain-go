@@ -3,7 +3,8 @@
 #NodeConfig holds the P2P settings
 [Node]
     #Port is the port that will be opened by the node on all interfaces so other peers can connect to it
-    Port = 10000
+    #Can use single values such as 0, 10230, 15670 or a range such as 5000-10000
+    Port = "10000"
 
     #Seed represents the seed string generator for p2p identity (used during authentication and message passing).
     #An empty Seed value will mean that the identity will be generated randomly in a secure cryptographically manner.
@@ -19,8 +20,8 @@
     #p2p identity generation
     Seed = "seed"
 
-    # The targeted number of peer connections
-    TargetPeerCount = 100000
+    # The maximum peers that will connect to this node
+    MaximumExpectedPeerCount = 1024
 
 # P2P peer discovery section
 
@@ -60,14 +61,10 @@
 [Sharding]
     # The targeted number of peer connections
     TargetPeerCount = 0
-    # Number of priority bits used
-    PrioBits = 0
     MaxIntraShard = 0
     MaxCrossShard = 0
     #available options:
     #  `ListsSharder` will split the peers based on the shard membership (intra, cross or unknown)
-    #  `PrioBitsSharder` will split the peers based on the shard membership (intra, other) using kademlia distance
-    #  `SimplePrioBitsSharder` will just select closest peers using kademlia distance (shard agnostic)
     #  `OneListSharder` will do just the connection triming (upto TargetPeerCount value) not taking into account
     #              the shard membership of the connected peers
     #  `NilListSharder` will disable conection trimming (sharder is off)

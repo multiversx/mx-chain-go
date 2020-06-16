@@ -37,7 +37,7 @@ func (w *whiteListDataVerifier) IsWhiteListed(interceptedData process.Intercepte
 // Add adds all the list to the cache
 func (w *whiteListDataVerifier) Add(keys [][]byte) {
 	for _, key := range keys {
-		_ = w.cache.Put(key, struct{}{})
+		_ = w.cache.Put(key, struct{}{}, 0)
 	}
 }
 

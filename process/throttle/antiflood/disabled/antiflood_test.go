@@ -3,8 +3,8 @@ package disabled
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,6 +21,7 @@ func TestAntiFlood_ShouldNotPanic(t *testing.T) {
 
 	daf.SetMaxMessagesForTopic("test", 10)
 	daf.ResetForTopic("test")
-	_ = daf.CanProcessMessagesOnTopic(p2p.PeerID(1), "test", 1)
-	_ = daf.CanProcessMessage(nil, p2p.PeerID(2))
+	daf.ApplyConsensusSize(0)
+	_ = daf.CanProcessMessagesOnTopic(core.PeerID(1), "test", 1, 0, nil)
+	_ = daf.CanProcessMessage(nil, core.PeerID(2))
 }

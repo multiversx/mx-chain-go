@@ -378,14 +378,6 @@ func WithConsensusType(consensusType string) Option {
 	}
 }
 
-// WithTxStorageSize sets up a txStorageSize option for the Node
-func WithTxStorageSize(txStorageSize uint32) Option {
-	return func(n *Node) error {
-		n.txStorageSize = txStorageSize
-		return nil
-	}
-}
-
 // WithBootstrapRoundIndex sets up a bootstrapRoundIndex option for the Node
 func WithBootstrapRoundIndex(bootstrapRoundIndex uint64) Option {
 	return func(n *Node) error {
@@ -448,7 +440,7 @@ func WithBlockBlackListHandler(blackListHandler process.BlackListHandler) Option
 }
 
 // WithPeerBlackListHandler sets up a block black list handler for the Node
-func WithPeerBlackListHandler(blackListHandler process.BlackListHandler) Option {
+func WithPeerBlackListHandler(blackListHandler process.PeerBlackListHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(blackListHandler) {
 			return fmt.Errorf("%w for WithPeerBlackListHandler", ErrNilBlackListHandler)
@@ -669,6 +661,17 @@ func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 		}
 		n.chanStopNodeProcess = channel
 
+		return nil
+	}
+}
+
+// WithApiTransactionByHashThrottler sets up the api transaction by hash throttler
+func WithApiTransactionByHashThrottler(throttler Throttler) Option {
+	return func(n *Node) error {
+		if throttler == nil {
+			return ErrNilApiTransactionByHashThrottler
+		}
+		n.apiTransactionByHashThrottler = throttler
 		return nil
 	}
 }

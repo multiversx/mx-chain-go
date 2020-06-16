@@ -24,16 +24,16 @@ func createWorkableConfig() config.Config {
 		Antiflood: config.AntifloodConfig{
 			Enabled: true,
 			Cache: config.CacheConfig{
-				Type:   "LRU",
-				Size:   5000,
-				Shards: 16,
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
 			},
 			FastReacting: config.FloodPreventerConfig{
 				IntervalInSeconds: 1,
 				ReservedPercent:   20,
 				PeerMaxInput: config.AntifloodLimitsConfig{
-					MessagesPerInterval:  75,
-					TotalSizePerInterval: 2097152,
+					BaseMessagesPerInterval: 75,
+					TotalSizePerInterval:    2097152,
 				},
 				BlackList: config.BlackListConfig{
 					ThresholdNumMessagesPerInterval: 480,
@@ -46,8 +46,8 @@ func createWorkableConfig() config.Config {
 				IntervalInSeconds: 30,
 				ReservedPercent:   20,
 				PeerMaxInput: config.AntifloodLimitsConfig{
-					MessagesPerInterval:  2500,
-					TotalSizePerInterval: 15728640,
+					BaseMessagesPerInterval: 2500,
+					TotalSizePerInterval:    15728640,
 				},
 				BlackList: config.BlackListConfig{
 					ThresholdNumMessagesPerInterval: 6000,
@@ -100,7 +100,7 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 	processors := make([]*messageProcessor, 0, len(peers))
 	for i := 0; i < len(peers); i++ {
 		var antiflood process.P2PAntifloodHandler
-		var blackListHandler process.BlackListHandler
+		var blackListHandler process.PeerBlackListHandler
 		var err error
 
 		if intInSlice(i, idxBadPeers) {
@@ -174,7 +174,7 @@ func displayProcessors(processors []*messageProcessor, idxBadPeers []int, idxRou
 
 func startFlooding(peers []p2p.Messenger, topic string, idxBadPeers []int, maxSize int, msgSize int) {
 	lastUpdated := time.Now()
-	m := make(map[p2p.PeerID]int)
+	m := make(map[core.PeerID]int)
 
 	for {
 		for idx, p := range peers {
@@ -184,7 +184,7 @@ func startFlooding(peers []p2p.Messenger, topic string, idxBadPeers []int, maxSi
 			}
 
 			if time.Since(lastUpdated) > time.Second {
-				m = make(map[p2p.PeerID]int)
+				m = make(map[core.PeerID]int)
 				//comment the following line to make the test generate a large number of messages/sec
 				lastUpdated = time.Now()
 			}

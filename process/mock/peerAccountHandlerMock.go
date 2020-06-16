@@ -3,12 +3,18 @@ package mock
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // PeerAccountHandlerMock -
 type PeerAccountHandlerMock struct {
+	IncreaseLeaderSuccessRateValue    uint32
+	DecreaseLeaderSuccessRateValue    uint32
+	IncreaseValidatorSuccessRateValue uint32
+	DecreaseValidatorSuccessRateValue uint32
+
 	IncreaseLeaderSuccessRateCalled    func(uint32)
 	DecreaseLeaderSuccessRateCalled    func(uint32)
 	IncreaseValidatorSuccessRateCalled func(uint32)
@@ -20,11 +26,16 @@ type PeerAccountHandlerMock struct {
 	GetConsecutiveProposerMissesCalled func() uint32
 	SetConsecutiveProposerMissesCalled func(rating uint32)
 	SetListAndIndexCalled              func(shardID uint32, list string, index uint32)
+	GetListCalled                      func() string
+	GetUnStakedEpochCalled             func() uint32
 }
 
 // GetUnStakedEpoch -
 func (p *PeerAccountHandlerMock) GetUnStakedEpoch() uint32 {
-	return 0
+	if p.GetUnStakedEpochCalled != nil {
+		return p.GetUnStakedEpochCalled()
+	}
+	return core.DefaultUnstakedEpoch
 }
 
 // SetUnStakedEpoch -
@@ -33,6 +44,9 @@ func (p *PeerAccountHandlerMock) SetUnStakedEpoch(_ uint32) {
 
 // GetList -
 func (p *PeerAccountHandlerMock) GetList() string {
+	if p.GetListCalled != nil {
+		return p.GetListCalled()
+	}
 	return ""
 }
 
@@ -67,14 +81,14 @@ func (p *PeerAccountHandlerMock) GetStake() *big.Int {
 }
 
 // SetStake -
-func (p *PeerAccountHandlerMock) SetStake(*big.Int) error {
+func (p *PeerAccountHandlerMock) SetStake(_ *big.Int) error {
 	return nil
 }
 
 // GetAccumulatedFees -
 func (p *PeerAccountHandlerMock) GetAccumulatedFees() *big.Int {
 	if p.GetAccumulatedFeesCalled != nil {
-		p.GetAccumulatedFeesCalled()
+		return p.GetAccumulatedFeesCalled()
 	}
 	return big.NewInt(0)
 }
@@ -95,28 +109,36 @@ func (p *PeerAccountHandlerMock) GetShardId() uint32 {
 func (p *PeerAccountHandlerMock) IncreaseLeaderSuccessRate(val uint32) {
 	if p.IncreaseLeaderSuccessRateCalled != nil {
 		p.IncreaseLeaderSuccessRateCalled(val)
+		return
 	}
+	p.IncreaseLeaderSuccessRateValue += val
 }
 
 // DecreaseLeaderSuccessRate -
 func (p *PeerAccountHandlerMock) DecreaseLeaderSuccessRate(val uint32) {
 	if p.DecreaseLeaderSuccessRateCalled != nil {
 		p.DecreaseLeaderSuccessRateCalled(val)
+		return
 	}
+	p.DecreaseLeaderSuccessRateValue += val
 }
 
 // IncreaseValidatorSuccessRate -
 func (p *PeerAccountHandlerMock) IncreaseValidatorSuccessRate(val uint32) {
 	if p.IncreaseValidatorSuccessRateCalled != nil {
 		p.IncreaseValidatorSuccessRateCalled(val)
+		return
 	}
+	p.IncreaseValidatorSuccessRateValue += val
 }
 
 // DecreaseValidatorSuccessRate -
 func (p *PeerAccountHandlerMock) DecreaseValidatorSuccessRate(val uint32) {
 	if p.DecreaseValidatorSuccessRateCalled != nil {
 		p.DecreaseValidatorSuccessRateCalled(val)
+		return
 	}
+	p.DecreaseValidatorSuccessRateValue += val
 }
 
 // GetNumSelectedInSuccessBlocks -

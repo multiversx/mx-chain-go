@@ -40,10 +40,11 @@ VERSION:
    {{end}}
 `
 	// port defines a flag for setting the port on which the node will listen for connections
-	port = cli.IntFlag{
-		Name:  "port",
-		Usage: "Port number on which the application will start",
-		Value: 10000,
+	port = cli.StringFlag{
+		Name: "port",
+		Usage: "The `[p2p port]` number on which the application will start. Can use single values such as " +
+			"`0, 10230, 15670` or range of ports such as `5000-10000`",
+		Value: "10000",
 	}
 	// p2pSeed defines a flag to be used as a seed when generating P2P credentials. Useful for seed nodes.
 	p2pSeed = cli.StringFlag{
@@ -132,10 +133,15 @@ func startNode(ctx *cli.Context) error {
 		"filename", p2pConfigurationFile,
 	)
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
+		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
 	if ctx.IsSet(p2pSeed.Name) {
 		p2pConfig.Node.Seed = ctx.GlobalString(p2pSeed.Name)
+	}
+
+	err = checkExpectedPeerCount(*p2pConfig)
+	if err != nil {
+		return err
 	}
 
 	messenger, err := createNode(*p2pConfig)
@@ -191,6 +197,7 @@ func displayMessengerInfo(messenger p2p.Messenger) {
 		return strings.Compare(mesConnectedAddrs[i], mesConnectedAddrs[j]) < 0
 	})
 
+	log.Info("known peers", "num peers", len(messenger.Peers()))
 	headerConnectedAddresses := []string{fmt.Sprintf("Seednode is connected to %d peers:", len(mesConnectedAddrs))}
 	connAddresses := make([]*display.LineData, len(mesConnectedAddrs))
 
@@ -238,4 +245,26 @@ func getWorkingDir(log logger.Logger) string {
 	log.Trace("working directory", "path", workingDir)
 
 	return workingDir
+}
+
+func checkExpectedPeerCount(p2pConfig config.P2PConfig) error {
+	maxExpectedPeerCount := p2pConfig.Node.MaximumExpectedPeerCount
+
+	var rLimit syscall.Rlimit
+	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		return fmt.Errorf("%w while getting RLimits", err)
+	}
+
+	log.Info("file limits",
+		"current", rLimit.Cur,
+		"max", rLimit.Max,
+		"expected", maxExpectedPeerCount,
+	)
+
+	if maxExpectedPeerCount > rLimit.Cur {
+		return fmt.Errorf("provided maxExpectedPeerCount is less than the current OS configured value")
+	}
+
+	return nil
 }

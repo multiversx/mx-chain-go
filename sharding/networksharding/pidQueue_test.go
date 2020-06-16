@@ -3,7 +3,7 @@ package networksharding
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -12,8 +12,8 @@ func TestPidQueue_PushPopShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pq := newPidQueue()
-	pid0 := p2p.PeerID("pid 0")
-	pid1 := p2p.PeerID("pid 1")
+	pid0 := core.PeerID("pid 0")
+	pid1 := core.PeerID("pid 1")
 
 	pq.push(pid0)
 	pq.push(pid1)
@@ -33,9 +33,9 @@ func TestPidQueue_IndexOfShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pq := newPidQueue()
-	pid0 := p2p.PeerID("pid 0")
-	pid1 := p2p.PeerID("pid 1")
-	pid2 := p2p.PeerID("pid 2")
+	pid0 := core.PeerID("pid 0")
+	pid1 := core.PeerID("pid 1")
+	pid2 := core.PeerID("pid 2")
 
 	pq.push(pid0)
 	pq.push(pid1)
@@ -66,7 +66,7 @@ func TestPidQueue_PromoteOneElementShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pq := newPidQueue()
-	pid0 := p2p.PeerID("pid 0")
+	pid0 := core.PeerID("pid 0")
 	pq.push(pid0)
 
 	pq.promote(0)
@@ -78,8 +78,8 @@ func TestPidQueue_PromoteTwoElementsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pq := newPidQueue()
-	pid0 := p2p.PeerID("pid 0")
-	pid1 := p2p.PeerID("pid 1")
+	pid0 := core.PeerID("pid 0")
+	pid1 := core.PeerID("pid 1")
 	pq.push(pid0)
 	pq.push(pid1)
 
@@ -93,9 +93,9 @@ func TestPidQueue_PromoteThreeElementsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pq := newPidQueue()
-	pid0 := p2p.PeerID("pid 0")
-	pid1 := p2p.PeerID("pid 1")
-	pid2 := p2p.PeerID("pid 2")
+	pid0 := core.PeerID("pid 0")
+	pid1 := core.PeerID("pid 1")
+	pid2 := core.PeerID("pid 2")
 	pq.push(pid0)
 	pq.push(pid1)
 	pq.push(pid2)
@@ -123,9 +123,9 @@ func TestPidQueue_RemoveShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pq := newPidQueue()
-	pid0 := p2p.PeerID("pid 0")
-	pid1 := p2p.PeerID("pid 1")
-	pid2 := p2p.PeerID("pid 2")
+	pid0 := core.PeerID("pid 0")
+	pid1 := core.PeerID("pid 1")
+	pid2 := core.PeerID("pid 2")
 	pq.push(pid0)
 	pq.push(pid1)
 	pq.push(pid2)
@@ -136,4 +136,20 @@ func TestPidQueue_RemoveShouldWork(t *testing.T) {
 	require.Equal(t, 2, len(pq.data))
 	assert.Equal(t, 0, pq.indexOf(pid1))
 	assert.Equal(t, 1, pq.indexOf(pid2))
+}
+
+func TestPidQueue_Size(t *testing.T) {
+	t.Parallel()
+
+	pq := newPidQueue()
+	assert.Equal(t, 0, pq.size())
+
+	pq.push("pid 0")
+	assert.Equal(t, 5, pq.size())
+
+	pq.push("pid 1")
+	assert.Equal(t, 10, pq.size())
+
+	pq.push("0")
+	assert.Equal(t, 11, pq.size())
 }

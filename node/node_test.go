@@ -58,16 +58,6 @@ func getPrivateKey() *mock.PrivateKeyStub {
 	return &mock.PrivateKeyStub{}
 }
 
-func containString(search string, list []string) bool {
-	for _, str := range list {
-		if str == search {
-			return true
-		}
-	}
-
-	return false
-}
-
 func getMessenger() *mock.MessengerStub {
 	messenger := &mock.MessengerStub{
 		CloseCalled: func() error {
@@ -1895,4 +1885,79 @@ func TestNode_GetQueryHandlerShouldWork(t *testing.T) {
 
 	assert.Equal(t, qhRecovered, qh)
 	assert.Nil(t, err)
+}
+
+func TestNode_GetPeerInfoUnknownPeerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithMessenger(&mock.MessengerStub{
+			PeersCalled: func() []core.PeerID {
+				return make([]core.PeerID, 0)
+			},
+		}),
+	)
+
+	pid := "pid"
+	vals, err := n.GetPeerInfo(pid)
+
+	assert.Nil(t, vals)
+	assert.True(t, errors.Is(err, node.ErrUnknownPeerID))
+}
+
+func TestNode_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	pid1 := "pid1"
+	pid2 := "pid2"
+	n, _ := node.NewNode(
+		node.WithMessenger(&mock.MessengerStub{
+			PeersCalled: func() []core.PeerID {
+				//return them unsorted
+				return []core.PeerID{core.PeerID(pid2), core.PeerID(pid1)}
+			},
+			PeerAddressesCalled: func(pid core.PeerID) []string {
+				return []string{"addr" + string(pid)}
+			},
+		}),
+		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{
+			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+				return core.P2PPeerInfo{
+					PeerType: 0,
+					ShardID:  0,
+					PkBytes:  pid.Bytes(),
+				}
+			},
+		}),
+		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(32)),
+		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{
+			HasCalled: func(pid core.PeerID) bool {
+				return pid == core.PeerID(pid1)
+			},
+		}),
+	)
+
+	vals, err := n.GetPeerInfo("3sf1k") //will return both pids, sorted
+
+	assert.Nil(t, err)
+	require.Equal(t, 2, len(vals))
+
+	expected := []core.QueryP2PPeerInfo{
+		{
+			Pid:           core.PeerID(pid1).Pretty(),
+			Addresses:     []string{"addr" + pid1},
+			Pk:            hex.EncodeToString([]byte(pid1)),
+			IsBlacklisted: true,
+			PeerType:      core.UnknownPeer.String(),
+		},
+		{
+			Pid:           core.PeerID(pid2).Pretty(),
+			Addresses:     []string{"addr" + pid2},
+			Pk:            hex.EncodeToString([]byte(pid2)),
+			IsBlacklisted: false,
+			PeerType:      core.UnknownPeer.String(),
+		},
+	}
+
+	assert.Equal(t, expected, vals)
 }

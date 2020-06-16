@@ -39,23 +39,67 @@ type TransactionHashResponse struct {
 	TxHash string `json:"txHash,omitempty"`
 }
 
+type TransactionStatusResponse struct {
+	GeneralResponse
+	Status string `json:"status"`
+}
+
+type TransactionCostResponse struct {
+	GeneralResponse
+	Cost uint64 `json:"txGasUnits"`
+}
+
 func init() {
 	gin.SetMode(gin.TestMode)
+}
+
+func TestGetTransactionStatus(t *testing.T) {
+	rightHash := "hash"
+	wrongHash := "wronghash"
+	facade := mock.Facade{
+		GetTransactionStatusCalled: func(hash string) (string, error) {
+			if hash == rightHash {
+				return "pending", nil
+			}
+			return "unknown", nil
+		},
+	}
+
+	req, _ := http.NewRequest("GET", "/transaction/"+wrongHash+"/status", nil)
+	ws := startNodeServer(&facade)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := TransactionStatusResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "unknown", response.Status)
+
+	req, _ = http.NewRequest("GET", "/transaction/"+rightHash+"/status", nil)
+	resp = httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response = TransactionStatusResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "pending", response.Status)
 }
 
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	value := big.NewInt(10)
-	txData := []byte("data")
+	value := "10"
+	txData := "data"
 	hash := "hash"
 	facade := mock.Facade{
-		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
-			return &tr.Transaction{
-				SndAddr: []byte(sender),
-				RcvAddr: []byte(receiver),
-				Data:    txData,
-				Value:   new(big.Int).Set(value),
+		GetTransactionHandler: func(hash string) (i *tr.ApiTransactionResult, e error) {
+			return &tr.ApiTransactionResult{
+				Sender:   sender,
+				Receiver: receiver,
+				Data:     txData,
+				Value:    value,
 			}, nil
 		},
 	}
@@ -71,29 +115,29 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	txResp := transactionResponse.TxResp
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, hex.EncodeToString([]byte(sender)), txResp.Sender)
-	assert.Equal(t, hex.EncodeToString([]byte(receiver)), txResp.Receiver)
-	assert.Equal(t, value.String(), txResp.Value)
-	assert.Equal(t, string(txData), txResp.Data)
+	assert.Equal(t, sender, txResp.Sender)
+	assert.Equal(t, receiver, txResp.Receiver)
+	assert.Equal(t, value, txResp.Value)
+	assert.Equal(t, txData, txResp.Data)
 }
 
 func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	value := big.NewInt(10)
+	value := "10"
 	txData := "data"
 	hs := "hash"
 	wrongHash := "wronghash"
 	facade := mock.Facade{
-		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
+		GetTransactionHandler: func(hash string) (i *tr.ApiTransactionResult, e error) {
 			if hash != hs {
-				return nil, nil
+				return nil, errors.New("invalid hash")
 			}
-			return &tr.Transaction{
-				SndAddr: []byte(sender),
-				RcvAddr: []byte(receiver),
-				Data:    []byte(txData),
-				Value:   value,
+			return &tr.ApiTransactionResult{
+				Sender:   sender,
+				Receiver: receiver,
+				Data:     txData,
+				Value:    value,
 			}, nil
 		},
 	}
@@ -106,7 +150,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	transactionResponse := TransactionResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 
-	assert.Equal(t, http.StatusNotFound, resp.Code)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Nil(t, transactionResponse.TxResp)
 }
 
@@ -345,6 +389,46 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	assert.True(t, sendBulkTxsWasCalled)
 }
 
+func TestComputeTransactionGasLimit(t *testing.T) {
+	t.Parallel()
+
+	expectedGasLimit := uint64(37)
+
+	facade := mock.Facade{
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string) (*tr.Transaction, []byte, error) {
+			return &tr.Transaction{}, nil, nil
+		},
+		ComputeTransactionGasLimitHandler: func(tx *tr.Transaction) (uint64, error) {
+			return expectedGasLimit, nil
+		},
+	}
+	ws := startNodeServer(&facade)
+
+	tx0 := transaction.SendTxRequest{
+		Sender:    "sender1",
+		Receiver:  "receiver1",
+		Value:     "100",
+		Data:      "",
+		Nonce:     0,
+		GasPrice:  0,
+		GasLimit:  0,
+		Signature: "",
+	}
+
+	jsonBytes, _ := json.Marshal(tx0)
+
+	req, _ := http.NewRequest("POST", "/transaction/cost", bytes.NewBuffer(jsonBytes))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionCostResponse := TransactionCostResponse{}
+	loadResponse(resp.Body, &transactionCostResponse)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, expectedGasLimit, transactionCostResponse.Cost)
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
@@ -392,6 +476,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/send-multiple", Open: true},
 					{Name: "/cost", Open: true},
 					{Name: "/:txhash", Open: true},
+					{Name: "/:txhash/status", Open: true},
 				},
 			},
 		},

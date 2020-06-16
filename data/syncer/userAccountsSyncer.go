@@ -2,8 +2,11 @@ package syncer
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
@@ -15,14 +18,19 @@ var _ epochStart.AccountsDBSyncer = (*userAccountsSyncer)(nil)
 
 var log = logger.GetOrCreate("syncer")
 
+const timeBetweenRetries = 100 * time.Millisecond
+
 type userAccountsSyncer struct {
 	*baseAccountsSyncer
+	throttler   data.GoRoutineThrottler
+	syncerMutex sync.Mutex
 }
 
 // ArgsNewUserAccountsSyncer defines the arguments needed for the new account syncer
 type ArgsNewUserAccountsSyncer struct {
 	ArgsNewBaseAccountsSyncer
-	ShardId uint32
+	ShardId   uint32
+	Throttler data.GoRoutineThrottler
 }
 
 // NewUserAccountsSyncer creates a user account syncer
@@ -30,6 +38,10 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	err := checkArgs(args.ArgsNewBaseAccountsSyncer)
 	if err != nil {
 		return nil, err
+	}
+
+	if check.IfNil(args.Throttler) {
+		return nil, data.ErrNilThrottler
 	}
 
 	b := &baseAccountsSyncer{
@@ -48,6 +60,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 
 	u := &userAccountsSyncer{
 		baseAccountsSyncer: b,
+		throttler:          args.Throttler,
 	}
 
 	return u, nil
@@ -81,24 +94,70 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 }
 
 func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx context.Context) error {
+	var errFound error
+	errMutex := sync.Mutex{}
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(rootHashes))
+
 	for _, rootHash := range rootHashes {
-		dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher, u.maxTrieLevelInMemory)
-		if err != nil {
-			return err
+		for {
+			if u.throttler.CanProcess() {
+				break
+			}
+
+			select {
+			case <-time.After(timeBetweenRetries):
+				continue
+			case <-ctx.Done():
+				return data.ErrTimeIsOut
+			}
 		}
 
-		u.dataTries[string(rootHash)] = dataTrie
-		trieSyncer, err := trie.NewTrieSyncer(u.requestHandler, u.cacher, dataTrie, u.shardId, factory.AccountTrieNodesTopic)
-		if err != nil {
-			return err
-		}
-		u.trieSyncers[string(rootHash)] = trieSyncer
-
-		err = trieSyncer.StartSyncing(rootHash, ctx)
-		if err != nil {
-			return err
-		}
+		go func(trieRootHash []byte) {
+			newErr := u.syncDataTrie(trieRootHash, ctx)
+			if newErr != nil {
+				errMutex.Lock()
+				errFound = newErr
+				errMutex.Unlock()
+			}
+			wg.Done()
+		}(rootHash)
 	}
+
+	wg.Wait()
+
+	errMutex.Lock()
+	defer errMutex.Unlock()
+
+	return errFound
+}
+
+func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ctx context.Context) error {
+	u.throttler.StartProcessing()
+
+	u.syncerMutex.Lock()
+	dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher, u.maxTrieLevelInMemory)
+	if err != nil {
+		u.syncerMutex.Unlock()
+		return err
+	}
+
+	u.dataTries[string(rootHash)] = dataTrie
+	trieSyncer, err := trie.NewTrieSyncer(u.requestHandler, u.cacher, dataTrie, u.shardId, factory.AccountTrieNodesTopic)
+	if err != nil {
+		u.syncerMutex.Unlock()
+		return err
+	}
+	u.trieSyncers[string(rootHash)] = trieSyncer
+	u.syncerMutex.Unlock()
+
+	err = trieSyncer.StartSyncing(rootHash, ctx)
+	if err != nil {
+		return err
+	}
+
+	u.throttler.EndProcessing()
 
 	return nil
 }

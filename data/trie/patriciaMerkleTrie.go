@@ -61,7 +61,7 @@ func NewTrie(
 	if maxTrieLevelInMemory <= 0 {
 		return nil, ErrInvalidLevelValue
 	}
-	log.Debug("created new trie", "max trie level in memory", maxTrieLevelInMemory)
+	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
 	return &patriciaMerkleTrie{
 		trieStorage:          trieStorage,
@@ -228,7 +228,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	tr.oldHashes = make([][]byte, 0)
 
 	if log.GetLevel() == logger.LogTrace {
-		log.Trace("started committing trie", "trie", tr.String())
+		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
 	err = tr.root.commit(false, 0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
@@ -302,10 +302,22 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 		)
 	}
 
-	newTr, err := tr.recreateFromDb(root)
+	db := tr.trieStorage.GetDbThatContainsHash(root)
+	if db == nil {
+		return nil, ErrHashNotFound
+	}
+
+	newTr, newRoot, err := tr.recreateFromDb(root, db, tr.trieStorage)
 	if err != nil {
 		err = fmt.Errorf("trie recreate error: %w, for root %v", err, hex.EncodeToString(root))
 		return nil, err
+	}
+
+	if db != tr.Database() {
+		err = newRoot.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.Database())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return newTr, nil
@@ -440,38 +452,26 @@ func (tr *patriciaMerkleTrie) Database() data.DBWriteCacher {
 	return tr.trieStorage.Database()
 }
 
-func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error) {
-	db := tr.trieStorage.GetDbThatContainsHash(rootHash)
-	if db == nil {
-		return nil, ErrHashNotFound
-	}
-
+func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db data.DBWriteCacher, tsm data.StorageManager) (data.Trie, snapshotNode, error) {
 	newTr, err := NewTrie(
-		tr.trieStorage,
+		tsm,
 		tr.marshalizer,
 		tr.hasher,
 		tr.maxTrieLevelInMemory,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, tr.marshalizer, tr.hasher)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	newRoot.setGivenHash(rootHash)
 	newTr.root = newRoot
 
-	if db != tr.Database() {
-		err = newTr.root.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.Database())
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return newTr, nil
+	return newTr, newRoot, nil
 }
 
 // EnterSnapshotMode sets the snapshot mode on
@@ -484,14 +484,34 @@ func (tr *patriciaMerkleTrie) ExitSnapshotMode() {
 	tr.trieStorage.ExitSnapshotMode()
 }
 
+func getDbThatContainsHash(trieStorage data.StorageManager, rootHash []byte) data.DBWriteCacher {
+	db := trieStorage.GetSnapshotThatContainsHash(rootHash)
+	if db != nil {
+		return db
+	}
+
+	return trieStorage.GetDbThatContainsHash(rootHash)
+}
+
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
 func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	log.Trace("GetSerializedNodes", "rootHash", rootHash)
 	size := uint64(0)
 
-	newTr, err := tr.recreateFromDb(rootHash)
+	db := getDbThatContainsHash(tr.trieStorage, rootHash)
+	if db == nil {
+		return nil, 0, ErrHashNotFound
+	}
+
+	newTsm, err := NewTrieStorageManagerWithoutPruning(db)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	newTr, _, err := tr.recreateFromDb(rootHash, db, newTsm)
 	if err != nil {
 		return nil, 0, err
 	}

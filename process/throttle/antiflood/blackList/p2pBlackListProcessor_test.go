@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -19,7 +20,7 @@ func TestNewP2PQuotaBlacklistProcessor_NilCacherShouldErr(t *testing.T) {
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		nil,
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		1,
 		1,
 		2,
@@ -51,7 +52,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdNumReceivedFloodShouldErr
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{},
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		0,
 		1,
 		2,
@@ -67,7 +68,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdSizeReceivedFloodShouldEr
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{},
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		1,
 		0,
 		2,
@@ -83,7 +84,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidNumFloodingRoundsShouldErr(t *test
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{},
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		1,
 		1,
 		1,
@@ -99,7 +100,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidBanDurationShouldErr(t *testing.T)
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{},
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		1,
 		1,
 		2,
@@ -115,7 +116,7 @@ func TestNewP2PQuotaBlacklistProcessor_ShouldWork(t *testing.T) {
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{},
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		1,
 		1,
 		2,
@@ -140,12 +141,12 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaUnderThresholdShouldNotCallGetOrPut(
 				assert.Fail(t, "should not have called get")
 				return nil, false
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.Fail(t, "should not have called put")
 				return false
 			},
 		},
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
 		2,
@@ -162,21 +163,21 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdInexistentDataOnGetShou
 	thresholdSize := uint64(20)
 
 	putCalled := false
-	identifier := "identifier"
+	identifier := core.PeerID("identifier")
 	pbp, _ := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{
 			GetCalled: func(key []byte) (interface{}, bool) {
 				return nil, false
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				putCalled = true
 				assert.Equal(t, uint32(1), value)
-				assert.Equal(t, identifier, string(key))
+				assert.Equal(t, identifier, core.PeerID(key))
 
 				return false
 			},
 		},
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
 		2,
@@ -195,21 +196,21 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdDataNotValidOnGetShould
 	thresholdSize := uint64(20)
 
 	putCalled := false
-	identifier := "identifier"
+	identifier := core.PeerID("identifier")
 	pbp, _ := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{
 			GetCalled: func(key []byte) (interface{}, bool) {
 				return "invalid data", true
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				putCalled = true
 				assert.Equal(t, uint32(1), value)
-				assert.Equal(t, identifier, string(key))
+				assert.Equal(t, identifier, core.PeerID(key))
 
 				return false
 			},
 		},
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
 		2,
@@ -228,22 +229,22 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaShouldIncrement(t *testing.T) {
 	thresholdSize := uint64(20)
 
 	putCalled := false
-	identifier := "identifier"
+	identifier := core.PeerID("identifier")
 	existingValue := uint32(445)
 	pbp, _ := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{
 			GetCalled: func(key []byte) (interface{}, bool) {
 				return existingValue, true
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				putCalled = true
 				assert.Equal(t, existingValue+1, value)
-				assert.Equal(t, identifier, string(key))
+				assert.Equal(t, identifier, core.PeerID(key))
 
 				return false
 			},
 		},
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
 		2,
@@ -279,7 +280,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsRemoveNilValueKey(t *testing.
 				}
 			},
 		},
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
 		2,
@@ -313,7 +314,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsShouldRemoveInvalidValueKey(t
 				}
 			},
 		},
-		&mock.BlackListHandlerStub{},
+		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
 		2,
@@ -348,8 +349,8 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsUnderNumFloodingRoundsShouldN
 				removedCalled = true
 			},
 		},
-		&mock.BlackListHandlerStub{
-			AddWithSpanCalled: func(key string, span time.Duration) error {
+		&mock.PeerBlackListHandlerStub{
+			AddWithSpanCalled: func(pid core.PeerID, span time.Duration) error {
 				addToBlacklistCalled = true
 				assert.Equal(t, duration, span)
 
@@ -391,8 +392,8 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsOverNumFloodingRoundsShouldBl
 				removedCalled = true
 			},
 		},
-		&mock.BlackListHandlerStub{
-			AddWithSpanCalled: func(key string, span time.Duration) error {
+		&mock.PeerBlackListHandlerStub{
+			AddWithSpanCalled: func(pid core.PeerID, span time.Duration) error {
 				addToBlacklistCalled = true
 				assert.Equal(t, duration, span)
 

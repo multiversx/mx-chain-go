@@ -1,10 +1,13 @@
 package libp2p
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
 )
@@ -24,6 +27,10 @@ func (netMes *networkMessenger) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer)
 	netMes.peerDiscoverer = discoverer
 }
 
+func (netMes *networkMessenger) PubsubCallback(handler p2p.MessageProcessor) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+	return netMes.pubsubCallback(handler)
+}
+
 func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message, fromConnectedPeer peer.ID) error {
 	return ds.processReceivedDirectMessage(message, fromConnectedPeer)
 }
@@ -36,7 +43,7 @@ func (ds *directSender) Counter() uint64 {
 	return ds.counter
 }
 
-func (mh *MutexHolder) Mutexes() *lrucache.LRUCache {
+func (mh *MutexHolder) Mutexes() storage.Cacher {
 	return mh.mutexes
 }
 

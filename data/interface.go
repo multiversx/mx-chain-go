@@ -108,6 +108,7 @@ type TransactionHandler interface {
 	SetData([]byte)
 	SetRcvAddr([]byte)
 	SetSndAddr([]byte)
+	Size() int
 }
 
 // LogHandler defines the type for a log resulted from executing a transaction or smart contract call
@@ -200,6 +201,7 @@ type StorageManager interface {
 	CancelPrune([]byte, TriePruningIdentifier)
 	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
+	GetSnapshotThatContainsHash(rootHash []byte) DBWriteCacher
 	IsPruningEnabled() bool
 	EnterSnapshotMode()
 	ExitSnapshotMode()
@@ -229,5 +231,13 @@ type ShardValidatorInfoHandler interface {
 	GetPublicKey() []byte
 	GetTempRating() uint32
 	String() string
+	IsInterfaceNil() bool
+}
+
+// GoRoutineThrottler can monitor the number of the currently running go routines
+type GoRoutineThrottler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
 	IsInterfaceNil() bool
 }

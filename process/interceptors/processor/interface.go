@@ -19,5 +19,5 @@ type InterceptedTransactionHandler interface {
 
 // ShardedPool is a perspective of the sharded data pool
 type ShardedPool interface {
-	AddData(key []byte, data interface{}, cacheID string)
+	AddData(key []byte, data interface{}, sizeInBytes int, cacheID string)
 }

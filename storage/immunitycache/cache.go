@@ -134,7 +134,7 @@ func (ic *ImmunityCache) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd adds an item in the cache
-func (ic *ImmunityCache) HasOrAdd(_ []byte, value interface{}) (ok, evicted bool) {
+func (ic *ImmunityCache) HasOrAdd(_ []byte, value interface{}, _ int) (ok, evicted bool) {
 	valueAsCacheItem, ok := value.(storage.CacheItem)
 	if !ok {
 		return false, false
@@ -145,8 +145,8 @@ func (ic *ImmunityCache) HasOrAdd(_ []byte, value interface{}) (ok, evicted bool
 }
 
 // Put adds an item in the cache
-func (ic *ImmunityCache) Put(key []byte, value interface{}) (evicted bool) {
-	ic.HasOrAdd(key, value)
+func (ic *ImmunityCache) Put(key []byte, value interface{}, _ int) (evicted bool) {
+	ic.HasOrAdd(key, value, 0)
 	return false
 }
 
@@ -230,8 +230,13 @@ func (ic *ImmunityCache) Keys() [][]byte {
 }
 
 // RegisterHandler is not implemented
-func (ic *ImmunityCache) RegisterHandler(func(key []byte, value interface{})) {
+func (ic *ImmunityCache) RegisterHandler(func(key []byte, value interface{}), string) {
 	log.Error("ImmunityCache.RegisterHandler is not implemented")
+}
+
+// UnRegisterHandler removes the handler from the list
+func (ic *ImmunityCache) UnRegisterHandler(_ string) {
+	log.Error("ImmunityCache.UnRegisterHandler is not implemented")
 }
 
 // ForEachItem iterates over the items in the cache

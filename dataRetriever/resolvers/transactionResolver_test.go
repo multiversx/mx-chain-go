@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -16,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var connectedPeerId = p2p.PeerID("connected peer id")
+var connectedPeerId = core.PeerID("connected peer id")
 
 func createMockArgTxResolver() resolvers.ArgTxResolver {
 	return resolvers.ArgTxResolver{
@@ -127,16 +128,16 @@ func TestTxResolver_ProcessReceivedMessageCanProcessMessageErrorsShouldErr(t *te
 	expectedErr := errors.New("expected error")
 	arg := createMockArgTxResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return expectedErr
 		},
-		CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 			return nil
 		},
 	}
 	txRes, _ := resolvers.NewTxResolver(arg)
 
-	err := txRes.ProcessReceivedMessage(nil, connectedPeerId)
+	err := txRes.ProcessReceivedMessage(&mock.P2PMessageMock{}, connectedPeerId)
 
 	assert.True(t, errors.Is(err, expectedErr))
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
@@ -152,8 +153,8 @@ func TestTxResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	err := txRes.ProcessReceivedMessage(nil, connectedPeerId)
 
 	assert.Equal(t, dataRetriever.ErrNilMessage, err)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
-	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
+	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
 
 func TestTxResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
@@ -211,7 +212,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *te
 
 	arg := createMockArgTxResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			sendWasCalled = true
 			return nil
 		},
@@ -302,7 +303,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 
 	arg := createMockArgTxResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			sendWasCalled = true
 			return nil
 		},
@@ -392,7 +393,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsShouldCal
 	sendWasCalled := false
 	arg := createMockArgTxResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			sendWasCalled = true
 			return nil
 		},
@@ -448,7 +449,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 	sendWasCalled := false
 	arg := createMockArgTxResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			sendWasCalled = true
 			return nil
 		},

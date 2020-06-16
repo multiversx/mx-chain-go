@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -42,7 +43,7 @@ func (mbrs *MiniBlocksResolverStub) RequestDataFromHashArray(hashes [][]byte, ep
 }
 
 // ProcessReceivedMessage -
-func (mbrs *MiniBlocksResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
+func (mbrs *MiniBlocksResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
 	return mbrs.ProcessReceivedMessageCalled(message)
 }
 

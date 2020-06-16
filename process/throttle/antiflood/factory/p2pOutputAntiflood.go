@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-const outputReservedPercent = uint32(0)
+const outputReservedPercent = float32(0)
 
 // NewP2POutputAntiFlood will return an instance of an output antiflood component based on the config
 func NewP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
@@ -23,26 +23,31 @@ func NewP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandle
 
 func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
-	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
+	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxOutput.MessagesPerInterval
-	peerMaxTotalSizePerSecond := mainConfig.Antiflood.PeerMaxOutput.TotalSizePerInterval
-	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(
-		antifloodCache,
-		make([]floodPreventers.QuotaStatusHandler, 0),
-		peerMaxMessagesPerSecond,
-		peerMaxTotalSizePerSecond,
-		outputReservedPercent,
-	)
+	basePeerMaxMessagesPerInterval := mainConfig.Antiflood.PeerMaxOutput.BaseMessagesPerInterval
+	peerMaxTotalSizePerInterval := mainConfig.Antiflood.PeerMaxOutput.TotalSizePerInterval
+	arg := floodPreventers.ArgQuotaFloodPreventer{
+		Name:                      outputIdentifier,
+		Cacher:                    antifloodCache,
+		StatusHandlers:            make([]floodPreventers.QuotaStatusHandler, 0),
+		BaseMaxNumMessagesPerPeer: basePeerMaxMessagesPerInterval,
+		MaxTotalSizePerPeer:       peerMaxTotalSizePerInterval,
+		PercentReserved:           outputReservedPercent,
+		IncreaseThreshold:         0,
+		IncreaseFactor:            0,
+	}
+
+	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	topicFloodPreventer := floodPreventers.NewNilTopicFloodPreventer()
+	topicFloodPreventer := disabled.NewNilTopicFloodPreventer()
 	startResettingTopicFloodPreventer(topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0), floodPreventer)
 
-	return antiflood.NewP2PAntiflood(&disabled.BlacklistHandler{}, topicFloodPreventer, floodPreventer)
+	return antiflood.NewP2PAntiflood(&disabled.PeerBlacklistHandler{}, topicFloodPreventer, floodPreventer)
 }

@@ -325,7 +325,7 @@ func TestSingleDataInterceptor_SetInterceptedDebugHandlerNilShouldErr(t *testing
 
 	err := sdi.SetInterceptedDebugHandler(nil)
 
-	assert.Equal(t, process.ErrNilInterceptedDebugHandler, err)
+	assert.Equal(t, process.ErrNilDebugger, err)
 }
 
 func TestSingleDataInterceptor_SetInterceptedDebugHandlerShouldWork(t *testing.T) {

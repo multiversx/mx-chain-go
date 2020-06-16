@@ -64,7 +64,7 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 	defer adb.mutOp.Unlock()
 
 	if check.IfNil(account) {
-		return ErrNilAccountHandler
+		return fmt.Errorf("%w in accountsDB SaveAccount", ErrNilAccountHandler)
 	}
 
 	oldAccount, err := adb.getAccount(account.AddressBytes())
@@ -256,6 +256,9 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 	acnt, err := adb.getAccount(address)
 	if err != nil {
 		return err
+	}
+	if acnt == nil {
+		return fmt.Errorf("%w in RemoveAccount for address %s", ErrAccNotFound, address)
 	}
 
 	entry, err := NewJournalEntryAccount(acnt)
