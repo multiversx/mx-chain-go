@@ -226,21 +226,8 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 }
 
 func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
-	shardC := mrcf.shardCoordinator
-
 	keys := make([]string, 0)
 	resolversSlice := make([]dataRetriever.Resolver, 0)
-
-	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
-		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
-		resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie, numCrossShardPeers, numIntraShardPeers)
-		if err != nil {
-			return err
-		}
-
-		resolversSlice = append(resolversSlice, resolver)
-		keys = append(keys, identifierTrieNodes)
-	}
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie, 0, numIntraShardPeers+numCrossShardPeers)
