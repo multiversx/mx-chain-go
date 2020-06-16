@@ -215,7 +215,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	shuffledOutMap, newEligible := shuffleOutNodes(newEligible, numToRemove, arg.randomness)
 
-	err = moveNodesToMap(newEligible, newWaiting)
+	err = moveMaxNumNodesToMap(newEligible, newWaiting, arg.nodesMeta, arg.nodesPerShard)
 	if err != nil {
 		log.Warn("moveNodesToMap failed", "error", err)
 	}
@@ -520,7 +520,7 @@ func copyValidatorMap(validators map[uint32][]Validator) map[uint32][]Validator 
 	return result
 }
 
-// moveNodesToMap moves the validators in the waiting list to corresponding eligible list
+// moveNodesToMap moves the validators in the source list to the corresponding destination list
 func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Validator) error {
 	if destination == nil {
 		return ErrNilOrEmptyDestinationForDistribute
@@ -531,6 +531,39 @@ func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Vali
 		source[k] = make([]Validator, 0)
 	}
 	return nil
+}
+
+// moveMaxNumNodesToMap moves the validators in the source list to the corresponding destination list
+// but adding just enough nodes so that at most the number of nodes is kept in the destination list
+func moveMaxNumNodesToMap(destination map[uint32][]Validator, source map[uint32][]Validator, numMeta, numShard uint32) error {
+	if destination == nil {
+		return ErrNilOrEmptyDestinationForDistribute
+	}
+
+	for k, v := range source {
+		maxNodes := numShard
+		if k == core.MetachainShardId {
+			maxNodes = numMeta
+		}
+
+		numNeededNodes := computeNeededNodes(destination[k], source[k], maxNodes)
+		destination[k] = append(destination[k], v[0:numNeededNodes]...)
+		source[k] = v[numNeededNodes:]
+	}
+	return nil
+}
+
+func computeNeededNodes(destination []Validator, source []Validator, maxNumNodes uint32) uint32 {
+	numNeededNodes := uint32(0)
+	numCurrentNodes := uint32(len(destination))
+	numSourceNodes := uint32(len(source))
+	if maxNumNodes > numCurrentNodes {
+		numNeededNodes = maxNumNodes - numCurrentNodes
+	}
+	if numSourceNodes < numNeededNodes {
+		return numSourceNodes
+	}
+	return numNeededNodes
 }
 
 // distributeNewNodes distributes a list of validators to the given validators map
