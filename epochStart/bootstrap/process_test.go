@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -216,24 +217,24 @@ func TestCreateSyncers(t *testing.T) {
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
-	epochStartProvider.dataPool = &mock.PoolsHolderStub{
+	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 		TrieNodesCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 	}
 	epochStartProvider.whiteListHandler = &mock.WhiteListHandlerStub{}
@@ -285,9 +286,9 @@ func TestSyncHeadersFrom_MockHeadersSyncerShouldSyncHeaders(t *testing.T) {
 func TestSyncPeerAccountsState_NilRequestHandlerErr(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs()
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
-	epochStartProvider.dataPool = &mock.PoolsHolderStub{
+	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, true
 				},
@@ -314,9 +315,9 @@ func TestSyncUserAccountsState(t *testing.T) {
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
-	epochStartProvider.dataPool = &mock.PoolsHolderStub{
+	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, true
 				},
@@ -356,9 +357,9 @@ func TestRequestAndProcessForShard(t *testing.T) {
 			}, nil
 		},
 	}
-	epochStartProvider.dataPool = &mock.PoolsHolderStub{
+	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
 		TrieNodesCalled: func() storage.Cacher {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, true
 				},
@@ -454,12 +455,12 @@ func TestRequestAndProcessing(t *testing.T) {
 			}, nil
 		},
 	}
-	epochStartProvider.dataPool = &mock.PoolsHolderStub{
+	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 		TrieNodesCalled: func() storage.Cacher {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, true
 				},

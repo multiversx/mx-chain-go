@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,13 +35,13 @@ type removedFlags struct {
 	flagHdrRemovedFromForkDetector bool
 }
 
-func createMockPools() *mock.PoolsHolderStub {
-	pools := &mock.PoolsHolderStub{}
+func createMockPools() *testscommon.PoolsHolderStub {
+	pools := testscommon.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{
+		cs := &testscommon.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
@@ -380,7 +381,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 
 	wasCalled := 0
 
-	pools := &mock.PoolsHolderStub{}
+	pools := testscommon.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 
@@ -393,7 +394,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			wasCalled++
 		}
@@ -612,7 +613,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	mutDataAvailable := goSync.RWMutex{}
 	dataAvailable := false
 
-	pools := &mock.PoolsHolderStub{}
+	pools := testscommon.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 		sds.GetHeaderByHashCalled = func(key []byte) (handler data.HeaderHandler, e error) {
@@ -636,7 +637,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -713,7 +714,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		BlockBodyType: block.TxBlock,
 		RootHash:      []byte("bbb")}
 
-	pools := &mock.PoolsHolderStub{}
+	pools := testscommon.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 		sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
@@ -727,7 +728,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -792,7 +793,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		BlockBodyType: block.TxBlock,
 		RootHash:      []byte("bbb")}
 
-	pools := &mock.PoolsHolderStub{}
+	pools := testscommon.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 		sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
@@ -805,7 +806,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -1746,7 +1747,7 @@ func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 
 	args := CreateShardBootstrapMockArguments()
 
-	pools := &mock.PoolsHolderStub{}
+	pools := testscommon.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 
@@ -1760,7 +1761,7 @@ func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
 
 		return cs
@@ -1781,7 +1782,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	requestDataWasCalled := false
 	hdrHash := []byte("hash")
 	hdr := &block.Header{Round: 5, Nonce: 1}
-	pools := &mock.PoolsHolderStub{}
+	pools := testscommon.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		sds := &mock.HeadersCacherStub{}
 		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
@@ -1799,7 +1800,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &mock.CacherStub{}
+		cs := testscommon.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 
