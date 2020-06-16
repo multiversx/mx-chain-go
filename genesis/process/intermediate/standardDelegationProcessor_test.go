@@ -2,7 +2,6 @@ package intermediate
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -189,20 +188,34 @@ func TestStandardDelegationProcessor_ExecuteDelegationNoDelegationScShouldRetNil
 func TestStandardDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing.T) {
 	t.Parallel()
 
-	staker1 := []byte("stakerB")
-	staker2 := []byte("stakerC")
 	delegationSc := []byte("delegation SC")
 	pubkey1 := []byte("pubkey1")
 	pubkey2 := []byte("pubkey2")
 	pubkey3 := []byte("pubkey3")
 
+	staker1 := &data.InitialAccount{
+		Delegation: &data.DelegationData{
+			Value: big.NewInt(2),
+		},
+	}
+	staker1.SetAddressBytes([]byte("stakerB"))
+	staker1.Delegation.SetAddressBytes(delegationSc)
+
+	staker2 := &data.InitialAccount{
+		Delegation: &data.DelegationData{
+			Value: big.NewInt(2),
+		},
+	}
+	staker2.SetAddressBytes([]byte("stakerC"))
+	staker2.Delegation.SetAddressBytes(delegationSc)
+
 	arg := createMockStandardDelegationProcessorArg()
 	arg.Executor = &mock.TxExecutionProcessorStub{
 		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
-			isStakeCall := strings.Contains(string(data), "stake")
-			isStaker := bytes.Equal(sndAddr, staker1) || bytes.Equal(sndAddr, staker2)
+			isStakeCall := strings.Contains(string(data), "stakeGenesis")
+			isStaker := bytes.Equal(sndAddr, staker1.AddressBytes()) || bytes.Equal(sndAddr, staker2.AddressBytes())
 			if isStakeCall && !isStaker {
-				assert.Fail(t, "stake should have been called by the one of the stakers")
+				assert.Fail(t, "stakeGenesis should have been called by the one of the stakers")
 			}
 
 			return nil
@@ -215,23 +228,7 @@ func TestStandardDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing
 	arg.AccountsParser = &mock.AccountsParserStub{
 		GetInitialAccountsForDelegatedCalled: func(addressBytes []byte) []genesis.InitialAccountHandler {
 			if bytes.Equal(addressBytes, delegationSc) {
-				ia1 := &data.InitialAccount{
-					Delegation: &data.DelegationData{
-						Value: big.NewInt(2),
-					},
-				}
-				ia1.SetAddressBytes(staker1)
-				ia1.Delegation.SetAddressBytes(delegationSc)
-
-				ia2 := &data.InitialAccount{
-					Delegation: &data.DelegationData{
-						Value: big.NewInt(2),
-					},
-				}
-				ia2.SetAddressBytes(staker2)
-				ia2.Delegation.SetAddressBytes(delegationSc)
-
-				return []genesis.InitialAccountHandler{ia1, ia2}
+				return []genesis.InitialAccountHandler{staker1, staker2}
 			}
 
 			return make([]genesis.InitialAccountHandler, 0)
@@ -251,14 +248,25 @@ func TestStandardDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing
 	}
 	arg.QueryService = &mock.QueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-			if query.FuncName == "getFilledStake" {
+			if query.FuncName == "getUserStake" {
+				if bytes.Equal(query.Arguments[0], staker1.AddressBytes()) {
+					return &vmcommon.VMOutput{
+						ReturnData: [][]byte{staker1.Delegation.Value.Bytes()},
+					}, nil
+				}
+				if bytes.Equal(query.Arguments[0], staker2.AddressBytes()) {
+					return &vmcommon.VMOutput{
+						ReturnData: [][]byte{staker2.Delegation.Value.Bytes()},
+					}, nil
+				}
+
 				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{big.NewInt(4).Bytes()},
+					ReturnData: make([][]byte, 0),
 				}, nil
 			}
-			if query.FuncName == "getBlsKeys" {
+			if query.FuncName == "getNodeSignature" {
 				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{pubkey2, pubkey3, pubkey1}, //random order should work
+					ReturnData: [][]byte{genesisSignature},
 				}, nil
 			}
 
@@ -294,54 +302,4 @@ func TestStandardDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResult, result)
-}
-
-//------- SameElements
-
-func TestSameElements_WrongNumberShouldErr(t *testing.T) {
-	t.Parallel()
-
-	scReturned := [][]byte{[]byte("buf1"), []byte("buf2"), []byte("buf3")}
-	loaded := [][]byte{[]byte("buf1"), []byte("buf2")}
-
-	dp := &standardDelegationProcessor{}
-	err := dp.sameElements(scReturned, loaded)
-
-	assert.True(t, errors.Is(err, genesis.ErrWhileVerifyingDelegation))
-}
-
-func TestSameElements_MissingFromLoadedShouldErr(t *testing.T) {
-	t.Parallel()
-
-	scReturned := [][]byte{[]byte("buf5"), []byte("buf2"), []byte("buf3")}
-	loaded := [][]byte{[]byte("buf1"), []byte("buf3"), []byte("buf2")}
-
-	dp := &standardDelegationProcessor{}
-	err := dp.sameElements(scReturned, loaded)
-
-	assert.True(t, errors.Is(err, genesis.ErrMissingElement))
-}
-
-func TestSameElements_DuplicateShouldErr(t *testing.T) {
-	t.Parallel()
-
-	scReturned := [][]byte{[]byte("buf2"), []byte("buf2"), []byte("buf3")}
-	loaded := [][]byte{[]byte("buf2"), []byte("buf1"), []byte("buf1")}
-
-	dp := &standardDelegationProcessor{}
-	err := dp.sameElements(scReturned, loaded)
-
-	assert.True(t, errors.Is(err, genesis.ErrMissingElement))
-}
-
-func TestSameElements_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	scReturned := [][]byte{[]byte("buf1"), []byte("buf2"), []byte("buf3")}
-	loaded := [][]byte{[]byte("buf2"), []byte("buf3"), []byte("buf1")}
-
-	dp := &standardDelegationProcessor{}
-	err := dp.sameElements(scReturned, loaded)
-
-	assert.Nil(t, err)
 }
