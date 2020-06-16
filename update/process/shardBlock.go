@@ -119,10 +119,8 @@ func (s *shardBlockCreator) CreateNewBlock(
 	}
 
 	shardHeader.MetaBlockHashes = [][]byte{metaBlockHash}
-
-	hardForkMeta := s.importHandler.GetHardForkMetaBlock()
-	shardHeader.TimeStamp = hardForkMeta.TimeStamp
 	shardHeader.AccumulatedFees = big.NewInt(0)
+	shardHeader.DeveloperFees = big.NewInt(0)
 
 	return shardHeader, blockBody, nil
 }

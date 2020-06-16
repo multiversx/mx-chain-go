@@ -13,6 +13,15 @@ type RounderMock struct {
 	TimeStampCalled     func() time.Time
 	UpdateRoundCalled   func(time.Time, time.Time)
 	RemainingTimeCalled func(startTime time.Time, maxTime time.Duration) time.Duration
+	BeforeGenesisCalled func() bool
+}
+
+// BeforeGenesis -
+func (rndm *RounderMock) BeforeGenesis() bool {
+	if rndm.BeforeGenesisCalled != nil {
+		return rndm.BeforeGenesisCalled()
+	}
+	return false
 }
 
 // Index -

@@ -14,6 +14,7 @@ const BlsConsensusType = "bls"
 // Rounder defines the actions which should be handled by a round implementation
 type Rounder interface {
 	Index() int64
+	BeforeGenesis() bool
 	// UpdateRound updates the index and the time stamp of the round depending of the genesis time and the current time given
 	UpdateRound(time.Time, time.Time)
 	TimeStamp() time.Time

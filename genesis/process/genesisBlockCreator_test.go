@@ -64,6 +64,7 @@ func createMockArgument(
 		},
 		TrieStorageManagers: trieStorageManagers,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
+		ImportStartHandler:  &mock.ImportStartHandlerStub{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

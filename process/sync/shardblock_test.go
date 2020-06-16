@@ -160,6 +160,7 @@ func initRounder() consensus.Rounder {
 		time.Now(),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 
 	return rnd
@@ -432,6 +433,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
+	_ = blkc.SetGenesisHeader(&block.Header{})
 	_ = blkc.SetCurrentBlockHeader(&hdr)
 	args.ChainHandler = blkc
 
@@ -490,6 +492,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		time.Now().Add(2*100*time.Millisecond),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
@@ -546,6 +549,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 		time.Now().Add(2*100*time.Millisecond),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -673,6 +677,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		time.Now().Add(200*time.Millisecond),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -754,6 +759,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		time.Now().Add(2*100*time.Millisecond),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -835,6 +841,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		time.Now().Add(2*100*time.Millisecond),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -883,6 +890,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilA
 		time.Now().Add(100*time.Millisecond),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -944,6 +952,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t 
 		time.Now().Add(100*time.Millisecond),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)

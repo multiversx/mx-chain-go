@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // BlockTrackerStub -
@@ -157,7 +158,7 @@ func (bts *BlockTrackerStub) GetSelfNotarizedHeader(shardID uint32, offset uint6
 		return bts.GetSelfNotarizedHeaderCalled(shardID, offset)
 	}
 
-	return nil, nil, nil
+	return &block.MetaBlock{}, []byte("hash"), nil
 }
 
 // GetTrackedHeaders -

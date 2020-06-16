@@ -271,7 +271,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
 	if check.IfNil(currentHeader) {
-		nonce = 1
+		nonce = sr.Blockchain().GetGenesisHeader().GetNonce() + 1
 		prevHash = sr.Blockchain().GetGenesisHeaderHash()
 		prevRandSeed = sr.Blockchain().GetGenesisHeader().GetRandSeed()
 	} else {

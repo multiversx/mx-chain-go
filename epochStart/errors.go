@@ -212,5 +212,8 @@ var ErrNotEnoughNumConnectedPeers = errors.New("not enough min num of connected 
 // ErrNotEnoughNumOfPeersToConsiderBlockValid signals that config is invalid for num of peer to consider block valid
 var ErrNotEnoughNumOfPeersToConsiderBlockValid = errors.New("not enough num of peers to consider block valid from config")
 
+// ErrNilImportStartHandler signals that a nil import start handler has been provided
+var ErrNilImportStartHandler = errors.New("nil import start handler")
+
 // ErrCommunityAddressInMetachain signals that community address is in metachain which is not allowed
 var ErrCommunityAddressInMetachain = errors.New("community address in metachain")
