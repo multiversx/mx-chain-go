@@ -6,22 +6,18 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -73,7 +69,7 @@ func createMockEpochStartCreatorArguments() ArgsNewEpochStartData {
 		Marshalizer:       &mock.MarshalizerMock{},
 		Hasher:            &mock.HasherStub{},
 		Store:             createMetaStore(),
-		DataPool:          &mock.PoolsHolderStub{},
+		DataPool:          testscommon.NewPoolsHolderStub(),
 		BlockTracker:      mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 		ShardCoordinator:  shardCoordinator,
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
@@ -99,56 +95,6 @@ func createMetaStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 
 	return store
-}
-
-func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, error) {
-	return txpool.NewShardedTxPool(
-		txpool.ArgShardedTxPool{
-			Config: storageUnit.CacheConfig{
-				Capacity:             100000,
-				SizePerSender:        1000,
-				SizeInBytes:          1000000000,
-				SizeInBytesPerSender: 10000000,
-				Shards:               16,
-			},
-			MinGasPrice:    200000000000,
-			NumberOfShards: 1,
-			SelfShardID:    selfShardID,
-		},
-	)
-}
-
-func createTestDataPool(selfShardID uint32) dataRetriever.PoolsHolder {
-	txPool, _ := createTxPool(selfShardID)
-
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1})
-	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 300, Type: storageUnit.LRUCache, Shards: 1})
-
-	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
-
-	cacherCfg := storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	cacherCfg = storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	cacherCfg = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	currTxs, _ := dataPool.NewCurrentBlockPool()
-
-	dPool, _ := dataPool.NewDataPool(
-		txPool,
-		uTxPool,
-		rewardsTxPool,
-		hdrPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		currTxs,
-	)
-
-	return dPool
 }
 
 func TestEpochStartData_NilMarshalizer(t *testing.T) {
@@ -271,9 +217,9 @@ func TestEpochStartCreator_getLastFinalizedMetaHashForShardShouldWork(t *testing
 		},
 	}
 
-	dPool := &mock.PoolsHolderStub{}
+	dPool := testscommon.NewPoolsHolderStub()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	metaHash1 := []byte("hash1")
 	metaHash2 := []byte("hash2")
@@ -376,9 +322,9 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	hdr.Nonce = 1
 	startHeaders[0] = hdr
 
-	dPool := &mock.PoolsHolderStub{}
+	dPool := testscommon.NewPoolsHolderStub()
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	metaHash1 := []byte("hash1")
 	metaHash2 := []byte("hash2")
@@ -448,7 +394,7 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockEdgeCaseChecking(t *testing.
 	}
 	arguments.Hasher = &mock.HasherMock{}
 	arguments.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
-	arguments.DataPool = createTestDataPool(core.MetachainShardId)
+	arguments.DataPool = testscommon.CreatePoolsHolder(1, core.MetachainShardId)
 
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
 	blockTracker := mock.NewBlockTrackerMock(arguments.ShardCoordinator, startHeaders)
