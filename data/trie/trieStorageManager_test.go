@@ -103,6 +103,76 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	assert.Equal(t, 1, newTrieStorage.snapshotId)
 }
 
+func TestNewTrieStorageManagerLoadsSnapshotsInOrder(t *testing.T) {
+	t.Parallel()
+
+	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
+	cfg := config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageUnit.LvlDBSerial),
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
+	}
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
+
+	db := mock.NewMemDbMock()
+	msh, hsh := getTestMarshAndHasher()
+	size := uint(100)
+	evictionWaitList, _ := mock.NewEvictionWaitingList(size, mock.NewMemDbMock(), msh)
+	trieStorage, _ := NewTrieStorageManager(db, msh, hsh, cfg, evictionWaitList, generalCfg)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := NewTrie(trieStorage, msh, hsh, maxTrieLevelInMemory)
+
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
+	tr.TakeSnapshot(rootHash)
+	time.Sleep(snapshotDelay)
+
+	numSnapshots := 10
+	for i := 0; i < numSnapshots; i++ {
+		_ = tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		_ = tr.Commit()
+		rootHash, _ = tr.Root()
+		tr.TakeSnapshot(rootHash)
+		time.Sleep(snapshotDelay)
+	}
+
+	trieStorage.storageOperationMutex.Lock()
+
+	val, err := trieStorage.snapshots[0].Get(rootHash)
+	assert.NotNil(t, err)
+	assert.Nil(t, val)
+	val, err = trieStorage.snapshots[1].Get(rootHash)
+	assert.NotNil(t, val)
+	assert.Nil(t, err)
+
+	_ = trieStorage.snapshots[0].Close()
+	_ = trieStorage.snapshots[1].Close()
+	trieStorage.storageOperationMutex.Unlock()
+
+	newTrieStorage, _ := NewTrieStorageManager(memorydb.New(), msh, hsh, cfg, evictionWaitList, generalCfg)
+
+	newTrieStorage.storageOperationMutex.Lock()
+	val, err = newTrieStorage.snapshots[0].Get(rootHash)
+	assert.NotNil(t, err)
+	assert.Nil(t, val)
+	val, err = newTrieStorage.snapshots[1].Get(rootHash)
+	assert.NotNil(t, val)
+	assert.Nil(t, err)
+
+	assert.Equal(t, 11, newTrieStorage.snapshotId)
+	newTrieStorage.storageOperationMutex.Unlock()
+
+}
+
 func TestTrieDatabasePruning(t *testing.T) {
 	t.Parallel()
 
