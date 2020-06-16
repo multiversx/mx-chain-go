@@ -101,6 +101,7 @@ func initP2PAntiFloodAndBlackList(
 	setMaxMessages(topicFloodPreventer, topicMaxMessages)
 
 	p2pAntiflood, err := antiflood.NewP2PAntiflood(
+		currentPid,
 		p2pPeerBlackList,
 		topicFloodPreventer,
 		fastReactingFloodPreventer,
@@ -205,6 +206,7 @@ func createFloodPreventer(
 		PercentReserved:           reservedPercent,
 		IncreaseThreshold:         floodPreventerConfig.PeerMaxInput.IncreaseFactor.Threshold,
 		IncreaseFactor:            floodPreventerConfig.PeerMaxInput.IncreaseFactor.Factor,
+		SelfPid:                   selfPid,
 	}
 	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(argFloodPreventer)
 	if err != nil {

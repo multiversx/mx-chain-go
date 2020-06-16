@@ -25,19 +25,23 @@ func createWorkableConfig() config.Config {
 			Enabled: true,
 			Cache: config.CacheConfig{
 				Type:     "LRU",
-				Capacity: 5000,
+				Capacity: 7000,
 				Shards:   16,
 			},
 			FastReacting: config.FloodPreventerConfig{
 				IntervalInSeconds: 1,
 				ReservedPercent:   20,
 				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 75,
-					TotalSizePerInterval:    2097152,
+					BaseMessagesPerInterval: 140,
+					TotalSizePerInterval:    4194304,
+					IncreaseFactor: config.IncreaseFactorConfig{
+						Threshold: 10,
+						Factor:    1,
+					},
 				},
 				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 480,
-					ThresholdSizePerInterval:        5242880,
+					ThresholdNumMessagesPerInterval: 1000,
+					ThresholdSizePerInterval:        8388608,
 					NumFloodingRounds:               10,
 					PeerBanDurationInSeconds:        300,
 				},
@@ -46,12 +50,34 @@ func createWorkableConfig() config.Config {
 				IntervalInSeconds: 30,
 				ReservedPercent:   20,
 				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 2500,
-					TotalSizePerInterval:    15728640,
+					BaseMessagesPerInterval: 6000,
+					TotalSizePerInterval:    18874368,
+					IncreaseFactor: config.IncreaseFactorConfig{
+						Threshold: 10,
+						Factor:    0,
+					},
 				},
 				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 6000,
+					ThresholdNumMessagesPerInterval: 10000,
 					ThresholdSizePerInterval:        37748736,
+					NumFloodingRounds:               2,
+					PeerBanDurationInSeconds:        3600,
+				},
+			},
+			OutOfSpecs: config.FloodPreventerConfig{
+				IntervalInSeconds: 1,
+				ReservedPercent:   0,
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: 2000,
+					TotalSizePerInterval:    10485760,
+					IncreaseFactor: config.IncreaseFactorConfig{
+						Threshold: 10,
+						Factor:    0,
+					},
+				},
+				BlackList: config.BlackListConfig{
+					ThresholdNumMessagesPerInterval: 3600,
+					ThresholdSizePerInterval:        12582912,
 					NumFloodingRounds:               2,
 					PeerBanDurationInSeconds:        3600,
 				},
@@ -72,7 +98,7 @@ func createDisabledConfig() config.Config {
 }
 
 func TestAntifloodingForLargerPeriodOfTime(t *testing.T) {
-	t.Skip("this is a long and harsh test")
+	//t.Skip("this is a long and harsh test")
 
 	peers, err := integrationTests.CreateFixedNetworkOf8Peers()
 	assert.Nil(t, err)

@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
@@ -28,6 +29,9 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 		return nil, err
 	}
 
+	//since this is the output antiflooder, we will provide a dummy self peer id in order to not count twice the values
+	dummyPeerId := core.PeerID("dummy")
+
 	basePeerMaxMessagesPerInterval := mainConfig.Antiflood.PeerMaxOutput.BaseMessagesPerInterval
 	peerMaxTotalSizePerInterval := mainConfig.Antiflood.PeerMaxOutput.TotalSizePerInterval
 	arg := floodPreventers.ArgQuotaFloodPreventer{
@@ -39,6 +43,7 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 		PercentReserved:           outputReservedPercent,
 		IncreaseThreshold:         0,
 		IncreaseFactor:            0,
+		SelfPid:                   dummyPeerId,
 	}
 
 	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(arg)
@@ -49,5 +54,10 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 	topicFloodPreventer := disabled.NewNilTopicFloodPreventer()
 	startResettingTopicFloodPreventer(topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0), floodPreventer)
 
-	return antiflood.NewP2PAntiflood(&disabled.PeerBlacklistHandler{}, topicFloodPreventer, floodPreventer)
+	return antiflood.NewP2PAntiflood(
+		dummyPeerId,
+		&disabled.PeerBlacklistHandler{},
+		topicFloodPreventer,
+		floodPreventer,
+	)
 }

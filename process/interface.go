@@ -689,7 +689,7 @@ type BlockTracker interface {
 // FloodPreventer defines the behavior of a component that is able to signal that too many events occurred
 // on a provided identifier between Reset calls
 type FloodPreventer interface {
-	IncreaseLoad(pid core.PeerID, size uint64) error
+	IncreaseLoad(fromConnectedPeer core.PeerID, originator core.PeerID, size uint64) error
 	ApplyConsensusSize(size int)
 	Reset()
 	IsInterfaceNil() bool

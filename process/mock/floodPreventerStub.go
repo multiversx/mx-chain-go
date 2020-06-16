@@ -4,14 +4,14 @@ import "github.com/ElrondNetwork/elrond-go/core"
 
 // FloodPreventerStub -
 type FloodPreventerStub struct {
-	IncreaseLoadCalled       func(pid core.PeerID, size uint64) error
+	IncreaseLoadCalled       func(fromConnectedPid core.PeerID, originator core.PeerID, size uint64) error
 	ApplyConsensusSizeCalled func(size int)
 	ResetCalled              func()
 }
 
 // IncreaseLoad -
-func (fps *FloodPreventerStub) IncreaseLoad(pid core.PeerID, size uint64) error {
-	return fps.IncreaseLoadCalled(pid, size)
+func (fps *FloodPreventerStub) IncreaseLoad(fromConnectedPid core.PeerID, originator core.PeerID, size uint64) error {
+	return fps.IncreaseLoadCalled(fromConnectedPid, originator, size)
 }
 
 // ApplyConsensusSize -

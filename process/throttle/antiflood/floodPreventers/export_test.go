@@ -31,3 +31,10 @@ func (tfp *topicFloodPreventer) TopicMaxMessages() map[string]uint32 {
 
 	return copiedMaxMessages
 }
+
+func (qfp *quotaFloodPreventer) IncreaseLoadOnPid(pid core.PeerID, size uint64, percentReserved float32) error {
+	qfp.mutOperation.Lock()
+	defer qfp.mutOperation.Unlock()
+
+	return qfp.increaseLoad(pid, size, percentReserved)
+}

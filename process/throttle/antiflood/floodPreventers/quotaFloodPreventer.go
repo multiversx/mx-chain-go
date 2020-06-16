@@ -20,6 +20,7 @@ type ArgQuotaFloodPreventer struct {
 	PercentReserved           float32
 	IncreaseThreshold         uint32
 	IncreaseFactor            float32
+	SelfPid                   core.PeerID
 }
 
 var _ process.FloodPreventer = (*quotaFloodPreventer)(nil)
@@ -55,6 +56,7 @@ type quotaFloodPreventer struct {
 	percentReserved               float32
 	increaseThreshold             uint32
 	increaseFactor                float32
+	selfPid                       core.PeerID
 }
 
 // NewQuotaFloodPreventer creates a new flood preventer based on quota / peer
@@ -102,6 +104,9 @@ func NewQuotaFloodPreventer(arg ArgQuotaFloodPreventer) (*quotaFloodPreventer, e
 			arg.IncreaseFactor,
 		)
 	}
+	if len(arg.SelfPid) == 0 {
+		return nil, process.ErrEmptyPeerId
+	}
 
 	return &quotaFloodPreventer{
 		name:                          arg.Name,
@@ -113,6 +118,7 @@ func NewQuotaFloodPreventer(arg ArgQuotaFloodPreventer) (*quotaFloodPreventer, e
 		percentReserved:               arg.PercentReserved,
 		increaseThreshold:             arg.IncreaseThreshold,
 		increaseFactor:                arg.IncreaseFactor,
+		selfPid:                       arg.SelfPid,
 	}, nil
 }
 
@@ -121,14 +127,52 @@ func NewQuotaFloodPreventer(arg ArgQuotaFloodPreventer) (*quotaFloodPreventer, e
 // We need the mutOperation here as the get and put should be done atomically.
 // Otherwise we might yield a slightly higher number of false valid increments
 // This method also checks the global sum quota but does not increment its values
-func (qfp *quotaFloodPreventer) IncreaseLoad(pid core.PeerID, size uint64) error {
+func (qfp *quotaFloodPreventer) IncreaseLoad(fromConnectedPid core.PeerID, originator core.PeerID, size uint64) error {
 	qfp.mutOperation.Lock()
 	defer qfp.mutOperation.Unlock()
 
-	return qfp.increaseLoad(pid, size)
+	if originator != qfp.selfPid {
+		return qfp.increaseLoadExternalMessage(fromConnectedPid, originator, size)
+	}
+
+	return qfp.increaseLoadSelfMessage(size)
 }
 
-func (qfp *quotaFloodPreventer) increaseLoad(pid core.PeerID, size uint64) error {
+// increaseLoadExternalMessage is called by a message broadcast by other peer and this call will increase the values
+// for the message originator, the peer that broadcast it to self (if different from the originator) and for the self peer id.
+// The purpose of incrementing also the self peer id is that, in case of multiple mild-flooding connected peers, the current
+// node should not propagate all messages because it will get blacklisted by other peers (it will become a proxy for the flooders)
+// This call will increase the load for current peer taking into account the reserved percentage as it is an external message
+// and not a message sent by self
+func (qfp *quotaFloodPreventer) increaseLoadExternalMessage(fromConnectedPid core.PeerID, originator core.PeerID, size uint64) error {
+	errOriginator := qfp.increaseLoad(originator, size, qfp.percentReserved)
+	var errFromConnected error
+	if fromConnectedPid != originator {
+		errFromConnected = qfp.increaseLoad(fromConnectedPid, size, qfp.percentReserved)
+	}
+	errSelf := qfp.increaseLoad(qfp.selfPid, size, qfp.percentReserved)
+
+	if errFromConnected != nil {
+		return errFromConnected
+	}
+	if errOriginator != nil {
+		return errOriginator
+	}
+	if errSelf != nil {
+		return errSelf
+	}
+
+	return nil
+}
+
+// increaseLoadSelfMessage is called for a message that this node broadcast it. The function will increase just the
+// current peer id limits taking into account the reserved percent as to utilize the maximum limit allowed by the flood
+// preventer
+func (qfp *quotaFloodPreventer) increaseLoadSelfMessage(size uint64) error {
+	return qfp.increaseLoad(qfp.selfPid, size, 0)
+}
+
+func (qfp *quotaFloodPreventer) increaseLoad(pid core.PeerID, size uint64, percentReserved float32) error {
 	valueQuota, ok := qfp.cacher.Get(pid.Bytes())
 	if !ok {
 		qfp.putDefaultQuota(pid, size)
@@ -146,8 +190,16 @@ func (qfp *quotaFloodPreventer) increaseLoad(pid core.PeerID, size uint64) error
 	q.numReceivedMessages++
 	q.sizeReceivedMessages += size
 
-	maxNumMessagesReached := qfp.isMaximumReached(uint64(qfp.computedMaxNumMessagesPerPeer), uint64(q.numReceivedMessages))
-	maxSizeMessagesReached := qfp.isMaximumReached(qfp.maxTotalSizePerPeer, q.sizeReceivedMessages)
+	maxNumMessagesReached := qfp.isMaximumReached(
+		uint64(qfp.computedMaxNumMessagesPerPeer),
+		uint64(q.numReceivedMessages),
+		percentReserved,
+	)
+	maxSizeMessagesReached := qfp.isMaximumReached(
+		qfp.maxTotalSizePerPeer,
+		q.sizeReceivedMessages,
+		percentReserved,
+	)
 	isPeerQuotaReached := maxNumMessagesReached || maxSizeMessagesReached
 	if isPeerQuotaReached {
 		return fmt.Errorf("%w for pid %s", process.ErrSystemBusy, pid.Pretty())
@@ -159,8 +211,8 @@ func (qfp *quotaFloodPreventer) increaseLoad(pid core.PeerID, size uint64) error
 	return nil
 }
 
-func (qfp *quotaFloodPreventer) isMaximumReached(absoluteMax uint64, counted uint64) bool {
-	max := uint64(100-qfp.percentReserved) * absoluteMax / 100
+func (qfp *quotaFloodPreventer) isMaximumReached(absoluteMax uint64, counted uint64, percentReserved float32) bool {
+	max := uint64(100-percentReserved) * absoluteMax / 100
 
 	return counted > max
 }

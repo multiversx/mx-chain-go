@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -49,6 +50,7 @@ const pubsubTimeCacheDuration = 10 * time.Minute
 const broadcastGoRoutines = 1000
 const timeBetweenPeerPrints = time.Second * 20
 const timeBetweenExternalLoggersCheck = time.Second * 20
+const timeBetweenInterceptorsCheck = time.Second * 10
 const defaultThresholdMinConnectedPeers = 3
 const minRangePortValue = 1025
 
@@ -215,7 +217,8 @@ func createMessenger(
 		return nil, err
 	}
 
-	netMes.printLogs()
+	netMes.printAddresses()
+	go netMes.doAuxiliaryJobs()
 
 	return &netMes, nil
 }
@@ -347,60 +350,79 @@ func (netMes *networkMessenger) createConnectionsMetric() {
 	netMes.p2pHost.Network().Notify(netMes.connectionsMetric)
 }
 
-func (netMes *networkMessenger) printLogs() {
+func (netMes *networkMessenger) printAddresses() {
 	addresses := make([]interface{}, 0)
 	for i, address := range netMes.p2pHost.Addrs() {
 		addresses = append(addresses, fmt.Sprintf("addr%d", i))
 		addresses = append(addresses, address.String()+"/p2p/"+netMes.ID().Pretty())
 	}
 	log.Info("listening on addresses", addresses...)
+}
 
-	go netMes.printLogsStats()
-	go netMes.checkExternalLoggers()
+func (netMes *networkMessenger) doAuxiliaryJobs() {
+	chanPrintLogs := time.After(timeBetweenPeerPrints)
+	chanCheckExternalLoggers := time.After(timeBetweenExternalLoggersCheck)
+	chanCheckInterceptors := time.After(timeBetweenInterceptorsCheck)
+	for {
+		select {
+		case <-netMes.ctx.Done():
+			return
+		case <-chanPrintLogs:
+			netMes.printLogsStats()
+			chanPrintLogs = time.After(timeBetweenPeerPrints)
+		case <-chanCheckExternalLoggers:
+			setupExternalP2PLoggers()
+			chanCheckExternalLoggers = time.After(timeBetweenExternalLoggersCheck)
+		case <-chanCheckInterceptors:
+			netMes.checkInterceptors()
+			chanCheckInterceptors = time.After(timeBetweenInterceptorsCheck)
+		}
+	}
 }
 
 func (netMes *networkMessenger) printLogsStats() {
-	for {
-		select {
-		case <-netMes.ctx.Done():
-			return
-		case <-time.After(timeBetweenPeerPrints):
-		}
+	conns := netMes.connectionsMetric.ResetNumConnections()
+	disconns := netMes.connectionsMetric.ResetNumDisconnections()
 
-		conns := netMes.connectionsMetric.ResetNumConnections()
-		disconns := netMes.connectionsMetric.ResetNumDisconnections()
+	peersInfo := netMes.GetConnectedPeersInfo()
+	log.Debug("network connection status",
+		"known peers", len(netMes.Peers()),
+		"connected peers", len(netMes.ConnectedPeers()),
+		"intra shard validators", len(peersInfo.IntraShardValidators),
+		"intra shard observers", len(peersInfo.IntraShardObservers),
+		"cross shard validators", len(peersInfo.CrossShardValidators),
+		"cross shard observers", len(peersInfo.CrossShardObservers),
+		"unknown", len(peersInfo.UnknownPeers),
+	)
 
-		peersInfo := netMes.GetConnectedPeersInfo()
-		log.Debug("network connection status",
-			"known peers", len(netMes.Peers()),
-			"connected peers", len(netMes.ConnectedPeers()),
-			"intra shard validators", len(peersInfo.IntraShardValidators),
-			"intra shard observers", len(peersInfo.IntraShardObservers),
-			"cross shard validators", len(peersInfo.CrossShardValidators),
-			"cross shard observers", len(peersInfo.CrossShardObservers),
-			"unknown", len(peersInfo.UnknownPeers),
-		)
+	connsPerSec := conns / uint32(timeBetweenPeerPrints/time.Second)
+	disconnsPerSec := disconns / uint32(timeBetweenPeerPrints/time.Second)
 
-		connsPerSec := conns / uint32(timeBetweenPeerPrints/time.Second)
-		disconnsPerSec := disconns / uint32(timeBetweenPeerPrints/time.Second)
-
-		log.Debug("network connection metrics",
-			"connections/s", connsPerSec,
-			"disconnections/s", disconnsPerSec,
-		)
-	}
+	log.Debug("network connection metrics",
+		"connections/s", connsPerSec,
+		"disconnections/s", disconnsPerSec,
+	)
 }
 
-func (netMes *networkMessenger) checkExternalLoggers() {
-	for {
-		select {
-		case <-netMes.ctx.Done():
-			return
-		case <-time.After(timeBetweenExternalLoggersCheck):
-		}
+func (netMes *networkMessenger) checkInterceptors() {
+	problematicTopicsFound := make([]string, 0)
 
-		setupExternalP2PLoggers()
+	netMes.mutTopics.RLock()
+	defer netMes.mutTopics.RUnlock()
+
+	for topic := range netMes.topics {
+		_, ok := netMes.processors[topic]
+		if !ok {
+			problematicTopicsFound = append(problematicTopicsFound, topic)
+		}
 	}
+
+	if len(problematicTopicsFound) == 0 {
+		return
+	}
+	log.Warn("found joined topics without assigned interceptors",
+		"topics", strings.Join(problematicTopicsFound, ", "),
+	)
 }
 
 // ApplyOptions can set up different configurable options of a networkMessenger instance

@@ -19,6 +19,7 @@ var log = logger.GetOrCreate("process/throttle/antiflood")
 var _ process.P2PAntifloodHandler = (*p2pAntiflood)(nil)
 
 type p2pAntiflood struct {
+	selfId           core.PeerID
 	blacklistHandler process.PeerBlackListHandler
 	floodPreventers  []process.FloodPreventer
 	topicPreventer   process.TopicFloodPreventer
@@ -29,6 +30,7 @@ type p2pAntiflood struct {
 // NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
 // It contains only the p2p anti flood logic that should be applied
 func NewP2PAntiflood(
+	selfId core.PeerID,
 	blacklistHandler process.PeerBlackListHandler,
 	topicFloodPreventer process.TopicFloodPreventer,
 	floodPreventers ...process.FloodPreventer,
@@ -43,8 +45,12 @@ func NewP2PAntiflood(
 	if check.IfNil(blacklistHandler) {
 		return nil, process.ErrNilBlackListHandler
 	}
+	if len(selfId) == 0 {
+		return nil, process.ErrEmptyPeerId
+	}
 
 	return &p2pAntiflood{
+		selfId:           selfId,
 		blacklistHandler: blacklistHandler,
 		floodPreventers:  floodPreventers,
 		topicPreventer:   topicFloodPreventer,
@@ -60,7 +66,7 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 
 	var lastErrFound error
 	for _, fp := range af.floodPreventers {
-		err := af.canProcessMessage(fp, message, fromConnectedPeer)
+		err := fp.IncreaseLoad(fromConnectedPeer, message.Peer(), uint64(len(message.Data())))
 		if err != nil {
 			lastErrFound = err
 		}
@@ -97,40 +103,6 @@ func (af *p2pAntiflood) recordDebugEvent(pid core.PeerID, topics []string, numRe
 	defer af.mutDebugger.RUnlock()
 
 	af.debugger.AddData(pid, topics[0], numRejected, sizeRejected, sequence, isBlacklisted)
-}
-
-func (af *p2pAntiflood) canProcessMessage(fp process.FloodPreventer, message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-	//protect from directly connected peer
-	err := fp.IncreaseLoad(fromConnectedPeer, uint64(len(message.Data())))
-	if err != nil {
-		log.Trace("floodPreventer.IncreaseLoad connected peer",
-			"error", err,
-			"pid", p2p.PeerIdToShortString(fromConnectedPeer),
-			"message payload bytes", uint64(len(message.Data())),
-		)
-		return fmt.Errorf("%w in p2pAntiflood for connected peer %s",
-			err,
-			p2p.PeerIdToShortString(fromConnectedPeer),
-		)
-	}
-
-	if fromConnectedPeer != message.Peer() {
-		//protect from the flooding messages that originate from the same source but come from different peers
-		err = fp.IncreaseLoad(message.Peer(), uint64(len(message.Data())))
-		if err != nil {
-			log.Trace("floodPreventer.IncreaseLoad originator",
-				"error", err,
-				"pid", p2p.MessageOriginatorPid(message),
-				"message payload bytes", uint64(len(message.Data())),
-			)
-			return fmt.Errorf("%w in p2pAntiflood for originator %s",
-				err,
-				p2p.MessageOriginatorPid(message),
-			)
-		}
-	}
-
-	return nil
 }
 
 // CanProcessMessagesOnTopic signals if a p2p message can be processed or not for a given topic

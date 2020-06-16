@@ -24,6 +24,7 @@ func createDefaultArgument() ArgQuotaFloodPreventer {
 		PercentReserved:           10,
 		IncreaseThreshold:         0,
 		IncreaseFactor:            0,
+		SelfPid:                   "self",
 	}
 }
 
@@ -106,6 +107,17 @@ func TestNewQuotaFloodPreventer_NegativeIncreaseFactorShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, process.ErrInvalidValue))
 }
 
+func TestNewQuotaFloodPreventer_EmptySelfPeerIdShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultArgument()
+	arg.SelfPid = ""
+	qfp, err := NewQuotaFloodPreventer(arg)
+
+	assert.True(t, check.IfNil(qfp))
+	assert.True(t, errors.Is(err, process.ErrEmptyPeerId))
+}
+
 func TestNewQuotaFloodPreventer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -155,7 +167,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadIdentifierNotPresentPutQuotaAndRetur
 	arg.MaxTotalSizePerPeer = minTotalSize * 1
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
-	err := qfp.IncreaseLoad("identifier", size)
+	err := qfp.IncreaseLoadOnPid("identifier", size, arg.PercentReserved)
 
 	assert.Nil(t, err)
 	assert.True(t, putWasCalled)
@@ -187,7 +199,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadNotQuotaSavedInCacheShouldPutQuotaAn
 	arg.MaxTotalSizePerPeer = minTotalSize * 1
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
-	err := qfp.IncreaseLoad("identifier", size)
+	err := qfp.IncreaseLoadOnPid("identifier", size, arg.PercentReserved)
 
 	assert.Nil(t, err)
 	assert.True(t, putWasCalled)
@@ -213,7 +225,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadUnderMaxValuesShouldIncrementAndRetu
 	arg.MaxTotalSizePerPeer = minTotalSize * 10
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
-	err := qfp.IncreaseLoad("identifier", size)
+	err := qfp.IncreaseLoadOnPid("identifier", size, arg.PercentReserved)
 
 	assert.Nil(t, err)
 }
@@ -244,7 +256,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerNumMessagesShouldNotPutAn
 	arg.MaxTotalSizePerPeer = minTotalSize * 10
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
-	err := qfp.IncreaseLoad("identifier", minTotalSize)
+	err := qfp.IncreaseLoadOnPid("identifier", minTotalSize, arg.PercentReserved)
 
 	assert.True(t, errors.Is(err, process.ErrSystemBusy))
 }
@@ -273,7 +285,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerSizeShouldNotPutAndReturn
 	arg.MaxTotalSizePerPeer = minTotalSize * 10
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
-	err := qfp.IncreaseLoad("identifier", minTotalSize)
+	err := qfp.IncreaseLoadOnPid("identifier", minTotalSize, arg.PercentReserved)
 
 	assert.True(t, errors.Is(err, process.ErrSystemBusy))
 }
@@ -289,7 +301,7 @@ func TestCountersMap_IncreaseLoadShouldWorkConcurrently(t *testing.T) {
 	wg.Add(numIterations)
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			err := qfp.IncreaseLoad(core.PeerID(fmt.Sprintf("%d", idx)), minTotalSize)
+			err := qfp.IncreaseLoadOnPid(core.PeerID(fmt.Sprintf("%d", idx)), minTotalSize, arg.PercentReserved)
 			assert.Nil(t, err)
 			wg.Done()
 		}(i)
@@ -396,7 +408,7 @@ func TestCountersMap_IncrementAndResetShouldWorkConcurrently(t *testing.T) {
 	wg.Add(numIterations + numIterations/10)
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			err := qfp.IncreaseLoad(core.PeerID(fmt.Sprintf("%d", idx)), minTotalSize)
+			err := qfp.IncreaseLoadOnPid(core.PeerID(fmt.Sprintf("%d", idx)), minTotalSize, arg.PercentReserved)
 			assert.Nil(t, err)
 			wg.Done()
 		}(i)
@@ -425,12 +437,12 @@ func TestNewQuotaFloodPreventer_IncreaseLoadWithMockCacherShouldWork(t *testing.
 
 	identifier := core.PeerID("id")
 	for i := uint32(0); i < numMessages-uint32(arg.PercentReserved); i++ {
-		err := qfp.IncreaseLoad(identifier, 1)
+		err := qfp.IncreaseLoadOnPid(identifier, 1, arg.PercentReserved)
 		assert.Nil(t, err, fmt.Sprintf("failed at the %d iteration", i))
 	}
 
 	for i := uint32(0); i < uint32(arg.PercentReserved)*2; i++ {
-		err := qfp.IncreaseLoad(identifier, 1)
+		err := qfp.IncreaseLoadOnPid(identifier, 1, arg.PercentReserved)
 		assert.True(t, errors.Is(err, process.ErrSystemBusy),
 			fmt.Sprintf("failed at the %d iteration", numMessages-uint32(arg.PercentReserved)+i))
 	}
@@ -480,13 +492,51 @@ func TestQuotaFloodPreventer_ApplyConsensusShouldWork(t *testing.T) {
 	fmt.Printf("expected relative: %d\n", relativeExpected)
 	identifier := core.PeerID("identifier")
 	for i := 0; i < int(relativeExpected); i++ {
-		err := qfp.IncreaseLoad(identifier, 0)
+		err := qfp.IncreaseLoadOnPid(identifier, 0, arg.PercentReserved)
 		assert.Nil(t, err, fmt.Sprintf("on iteration %d", i))
 		if err != nil {
 			fmt.Printf("aaa")
 		}
 	}
 
-	err := qfp.IncreaseLoad(identifier, 0)
+	err := qfp.IncreaseLoadOnPid(identifier, 0, arg.PercentReserved)
 	assert.NotNil(t, err)
+}
+
+//------- IncreaseLoad
+
+func TestQuotaFloodPreventer_IncreaseLoadInternalMessageShouldIncreaseOnlyTheCurrentPidValue(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultArgument()
+	arg.Cacher = mock.NewCacherMock()
+	arg.MaxTotalSizePerPeer = 1000
+	qfp, _ := NewQuotaFloodPreventer(arg)
+
+	err := qfp.IncreaseLoad(arg.SelfPid, arg.SelfPid, arg.MaxTotalSizePerPeer)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(arg.Cacher.Keys()))
+
+	err = qfp.IncreaseLoad(arg.SelfPid, arg.SelfPid, 1)
+	assert.True(t, errors.Is(err, process.ErrSystemBusy))
+	assert.Equal(t, 1, len(arg.Cacher.Keys()))
+}
+
+func TestQuotaFloodPreventer_IncreaseLoadExternalMessageShouldIncrease(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultArgument()
+	arg.Cacher = mock.NewCacherMock()
+	arg.MaxTotalSizePerPeer = 1000
+	qfp, _ := NewQuotaFloodPreventer(arg)
+
+	originator := core.PeerID("originator")
+	fromConnectedPeer := core.PeerID("from connected peer")
+	err := qfp.IncreaseLoad(originator, fromConnectedPeer, uint64(float32(arg.MaxTotalSizePerPeer)*0.8))
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(arg.Cacher.Keys()))
+
+	err = qfp.IncreaseLoad(originator, fromConnectedPeer, 1)
+	assert.True(t, errors.Is(err, process.ErrSystemBusy))
+	assert.Equal(t, 3, len(arg.Cacher.Keys()))
 }
