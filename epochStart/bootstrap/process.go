@@ -270,6 +270,11 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		e.initializeFromLocalStorage()
 		if !e.baseData.storageExists {
+			err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
+			if err != nil {
+				return Parameters{}, err
+			}
+
 			return Parameters{
 				Epoch:       0,
 				SelfShardId: e.genesisShardCoordinator.SelfId(),
