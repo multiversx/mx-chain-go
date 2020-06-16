@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var usePprof = false
+var useMemPprof = false
 
 // We run all scenarios within a single test so that we minimize memory interferences (of tests running in parallel)
 func TestShardedTxPool_MemoryFootprint(t *testing.T) {
@@ -150,6 +150,30 @@ func (scenario *scenario) numTxs() int {
 	return scenario.numSenders * scenario.numTxsPerSender
 }
 
+func newPool() dataRetriever.ShardedDataCacherNotifier {
+	config := storageUnit.CacheConfig{
+		Capacity:             900000,
+		SizePerSender:        60000,
+		SizeInBytes:          500 * core.MegabyteSize,
+		SizeInBytesPerSender: 32 * core.MegabyteSize,
+		Shards:               1,
+	}
+
+	args := txpool.ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 2, SelfShardID: 0}
+	pool, err := txpool.NewShardedTxPool(args)
+	if err != nil {
+		panic(fmt.Sprintf("newPool: %s", err))
+	}
+
+	return pool
+}
+
+func keepPoolInMemoryUpToThisPoint(pool dataRetriever.ShardedDataCacherNotifier) {
+	fmt.Println("[0]:", len(pool.ShardDataStore("0").Keys()))
+	fmt.Println("[1 -> 0]:", len(pool.ShardDataStore("1_0").Keys()))
+	fmt.Println("[4294967295 -> 0]:", len(pool.ShardDataStore("4294967295_0").Keys()))
+}
+
 func analyzeMemoryFootprint(t *testing.T, pool dataRetriever.ShardedDataCacherNotifier, scenario *scenario) *memoryFootprintJournal {
 	fmt.Println("analyzeMemoryFootprint", scenario.name)
 
@@ -159,21 +183,13 @@ func analyzeMemoryFootprint(t *testing.T, pool dataRetriever.ShardedDataCacherNo
 	txs := generateTxs(scenario.numSenders, scenario.numTxsPerSender, scenario.payloadLengthPerTx)
 	journal.afterGenerate = getMemStats()
 
-	addTxs := func() {
-		for _, tx := range txs {
-			pool.AddData(tx.hash, tx, tx.Size(), scenario.cacheID)
-		}
-	}
-
-	if usePprof {
-		pprofCPU(scenario, "addition", addTxs)
-	} else {
-		addTxs()
+	for _, tx := range txs {
+		pool.AddData(tx.hash, tx, tx.Size(), scenario.cacheID)
 	}
 
 	require.Equal(t, len(pool.ShardDataStore(scenario.cacheID).Keys()), scenario.numTxs())
 
-	if usePprof {
+	if useMemPprof {
 		pprofHeap(scenario, "afterAddition")
 	}
 
@@ -194,31 +210,9 @@ func generateTxs(numSenders int, numTxsPerSender int, payloadLengthPerTx int) []
 	return txs
 }
 
-func getMemStats() runtime.MemStats {
-	runtime.GC()
-
-	var stats runtime.MemStats
-	runtime.ReadMemStats(&stats)
-	return stats
-}
-
-func pprofHeap(scenario *scenario, step string) {
-	runtime.GC()
-
-	filename := path.Join(".", "pprofoutput", fmt.Sprintf("%s_%s.pprof", scenario.name, step))
-	file, err := os.Create(filename)
-	if err != nil {
-		panic(fmt.Sprintf("pprofHeap: %s", err))
-	}
-
-	defer file.Close()
-
-	err = pprof.WriteHeapProfile(file)
-	if err != nil {
-		panic(fmt.Sprintf("pprofHeap: %s", err))
-	}
-
-	convertPprofToHumanReadable(filename)
+type dummyTx struct {
+	transaction.Transaction
+	hash []byte
 }
 
 func createTxWithPayload(senderTag int, nonce int, payloadLength int) *dummyTx {
@@ -250,9 +244,45 @@ func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
 	return bytes
 }
 
-type dummyTx struct {
-	transaction.Transaction
-	hash []byte
+func getMemStats() runtime.MemStats {
+	runtime.GC()
+
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+	return stats
+}
+
+func pprofHeap(scenario *scenario, step string) {
+	runtime.GC()
+
+	filename := path.Join(".", "pprofoutput", fmt.Sprintf("%s_%s.pprof", scenario.name, step))
+	file, err := os.Create(filename)
+	if err != nil {
+		panic(fmt.Sprintf("pprofHeap: %s", err))
+	}
+
+	defer file.Close()
+
+	err = pprof.WriteHeapProfile(file)
+	if err != nil {
+		panic(fmt.Sprintf("pprofHeap: %s", err))
+	}
+
+	convertPprofToHumanReadable(filename)
+}
+
+func convertPprofToHumanReadable(filename string) {
+	cmd := exec.Command("go", "tool", "pprof", "-png", "-output", fmt.Sprintf("%s.png", filename), filename)
+	err := cmd.Run()
+	if err != nil {
+		panic(fmt.Sprintf("convertPprofToHumanReadable: %v", err))
+	}
+
+	cmd = exec.Command("go", "tool", "pprof", "-text", "-output", fmt.Sprintf("%s.txt", filename), filename)
+	err = cmd.Run()
+	if err != nil {
+		panic(fmt.Sprintf("convertPprofToHumanReadable: %v", err))
+	}
 }
 
 type memoryFootprintJournal struct {
@@ -301,62 +331,4 @@ func (journal *memoryFootprintJournal) display() {
 
 func bToMb(b uint64) int {
 	return int(b / 1024 / 1024)
-}
-
-func newPool() dataRetriever.ShardedDataCacherNotifier {
-	config := storageUnit.CacheConfig{
-		Capacity:             900000,
-		SizePerSender:        60000,
-		SizeInBytes:          500 * core.MegabyteSize,
-		SizeInBytesPerSender: 32 * core.MegabyteSize,
-		Shards:               1,
-	}
-
-	args := txpool.ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 2, SelfShardID: 0}
-	pool, err := txpool.NewShardedTxPool(args)
-	if err != nil {
-		panic(fmt.Sprintf("newPool: %s", err))
-	}
-
-	return pool
-}
-
-func convertPprofToHumanReadable(filename string) {
-	cmd := exec.Command("go", "tool", "pprof", "-png", "-output", fmt.Sprintf("%s.png", filename), filename)
-	err := cmd.Run()
-	if err != nil {
-		panic(fmt.Sprintf("convertPprofToHumanReadable: %v", err))
-	}
-
-	cmd = exec.Command("go", "tool", "pprof", "-text", "-output", fmt.Sprintf("%s.txt", filename), filename)
-	err = cmd.Run()
-	if err != nil {
-		panic(fmt.Sprintf("convertPprofToHumanReadable: %v", err))
-	}
-}
-
-func keepPoolInMemoryUpToThisPoint(pool dataRetriever.ShardedDataCacherNotifier) {
-	fmt.Println("[0]:", len(pool.ShardDataStore("0").Keys()))
-	fmt.Println("[1 -> 0]:", len(pool.ShardDataStore("1_0").Keys()))
-	fmt.Println("[4294967295 -> 0]:", len(pool.ShardDataStore("4294967295_0").Keys()))
-}
-
-func pprofCPU(scenario *scenario, step string, function func()) {
-	filename := path.Join(".", "pprofoutput", fmt.Sprintf("%s_%s.CPU.pprof", scenario.name, step))
-	file, err := os.Create(filename)
-	if err != nil {
-		panic(fmt.Sprintf("pprofCPU: %s", err))
-	}
-
-	defer file.Close()
-
-	err = pprof.StartCPUProfile(file)
-	if err != nil {
-		panic(fmt.Sprintf("pprofCPU: %s", err))
-	}
-
-	function()
-
-	pprof.StopCPUProfile()
-	convertPprofToHumanReadable(filename)
 }
