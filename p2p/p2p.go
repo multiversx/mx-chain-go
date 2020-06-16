@@ -141,6 +141,7 @@ type Messenger interface {
 	SetPeerBlackListHandler(handler PeerBlacklistHandler) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	SetMessageIdsCacher(cacher Cacher) error
+	UnjoinAllTopics() error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

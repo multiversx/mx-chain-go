@@ -86,10 +86,10 @@ func TestOutgoingChannelLoadBalancer_AddChannelDefaultChannelShouldErr(t *testin
 
 	err := oclb.AddChannel(loadBalancer.DefaultSendChannel())
 
-	assert.Equal(t, p2p.ErrChannelAlreadyExists, err)
+	assert.Equal(t, p2p.ErrChannelCanNotBeReAdded, err)
 }
 
-func TestOutgoingChannelLoadBalancer_AddChannelReAddChannelShouldErr(t *testing.T) {
+func TestOutgoingChannelLoadBalancer_AddChannelReAddChannelShouldDoNothing(t *testing.T) {
 	t.Parallel()
 
 	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
@@ -97,7 +97,8 @@ func TestOutgoingChannelLoadBalancer_AddChannelReAddChannelShouldErr(t *testing.
 	_ = oclb.AddChannel("test")
 	err := oclb.AddChannel("test")
 
-	assert.Equal(t, p2p.ErrChannelAlreadyExists, err)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(oclb.Chans()))
 }
 
 //------- RemoveChannel
