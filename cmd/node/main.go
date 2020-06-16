@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/health"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -213,6 +214,11 @@ VERSION:
 		Name: "profile-mode",
 		Usage: "Boolean option for enabling the profiling mode. If set, the /debug/pprof routes will be available " +
 			"on the node for profiling the application.",
+	}
+	// useHealthService is used to enable the health service
+	useHealthService = cli.BoolFlag{
+		Name:  "health-service",
+		Usage: "Boolean option for enabling the health service.",
 	}
 	// validatorKeyIndex defines a flag that specifies the 0-th based index of the private key to be used from validatorKey.pem file
 	validatorKeyIndex = cli.IntFlag{
@@ -406,6 +412,7 @@ func main() {
 		validatorKeyPemFile,
 		port,
 		profileMode,
+		useHealthService,
 		storageCleanup,
 		gopsEn,
 		nodeDisplayName,
@@ -720,6 +727,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating core components")
+
+	if ctx.IsSet(useHealthService.Name) {
+		healthService := health.NewHealthService(generalConfig.Health)
+		healthService.Start()
+	}
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:  *generalConfig,
@@ -1329,6 +1341,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	go func() {
 		closeAllComponents(log, dataComponents, triesComponents, networkComponents)
+		// todo: also close HealthService.
 	}()
 	time.Sleep(maxTimeToClose)
 	handleAppClose(log, sig)

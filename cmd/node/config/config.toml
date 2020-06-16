@@ -561,6 +561,10 @@
         CacheSize = 10000
         IntervalAutoPrintInSeconds = 20
 
+[Health]
+    IntervalVerifyMemoryInSeconds = 1
+    NumHeapProfilesToKeep         = 10
+
 [SoftwareVersionConfig]
     StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
     PollingIntervalInMinutes = 65

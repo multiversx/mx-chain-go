@@ -156,6 +156,7 @@ type Config struct {
 
 	Hardfork HardforkConfig
 	Debug    DebugConfig
+	Health   HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
 }
@@ -321,6 +322,12 @@ type HardforkConfig struct {
 type DebugConfig struct {
 	InterceptorResolver InterceptorResolverDebugConfig
 	Antiflood           AntifloodDebugConfig
+}
+
+// HealthServiceConfig will hold health service (monitoring) configuration
+type HealthServiceConfig struct {
+	IntervalVerifyMemoryInSeconds int
+	NumHeapProfilesToKeep         int
 }
 
 // InterceptorResolverDebugConfig will hold the interceptor-resolver debug configuration
