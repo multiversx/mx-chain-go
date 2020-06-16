@@ -3,6 +3,7 @@ package systemSmartContracts
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -597,22 +598,22 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
-		r.eei.AddReturnMessage(fmt.Sprintf("cannot unBond key %s that is not registered", string(args.Arguments[0])))
+		r.eei.AddReturnMessage(fmt.Sprintf("cannot unBond key %s that is not registered", hex.EncodeToString(args.Arguments[0])))
 		return vmcommon.UserError
 	}
 
 	if registrationData.Staked {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for address %s which is staked", string(args.Arguments[0])))
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for address %s which is staked", hex.EncodeToString(args.Arguments[0])))
 		return vmcommon.UserError
 	}
 
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
 	if currentNonce-registrationData.UnStakedNonce < r.unBondPeriod {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for address %s because unBond period did not pass", string(args.Arguments[0])))
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for address %s because unBond period did not pass", hex.EncodeToString(args.Arguments[0])))
 		return vmcommon.UserError
 	}
 	if registrationData.JailedRound != math.MaxUint64 {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for jailed key %s", string(args.Arguments[0])))
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for jailed key %s", hex.EncodeToString(args.Arguments[0])))
 		return vmcommon.UserError
 	}
 	if !r.canUnBond() {
@@ -620,7 +621,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if r.eei.IsValidator(args.Arguments[0]) {
-		r.eei.AddReturnMessage("unbonding is not possible: the node with key " + string(args.Arguments[0]) + " is still a validator")
+		r.eei.AddReturnMessage("unbonding is not possible: the node with key " + hex.EncodeToString(args.Arguments[0]) + " is still a validator")
 		return vmcommon.UserError
 	}
 

@@ -298,11 +298,12 @@ func (esd *elasticSearchDatabase) SaveRoundsInfos(infos []RoundInfo) {
 		buff.Grow(len(meta) + len(serializedRoundInfo))
 		_, err := buff.Write(meta)
 		if err != nil {
-			log.Warn("indexer: serialized round info", "error", err.Error())
+			log.Warn("indexer: cannot write meta", "error", err.Error())
 		}
+
 		_, err = buff.Write(serializedRoundInfo)
 		if err != nil {
-			log.Warn("indexer: serialized round info meta", "error", err.Error())
+			log.Warn("indexer: cannot write serialized round info", "error", err.Error())
 		}
 	}
 
