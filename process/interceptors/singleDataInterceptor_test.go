@@ -229,7 +229,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProc
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldNotCallProcess(t *testing.T) {
 	t.Parallel()
 
-	testProcessReceiveMessage(t, false, nil, 0)
+	testProcessReceiveMessage(t, false, process.ErrInterceptedDataNotForCurrentShard, 0)
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
