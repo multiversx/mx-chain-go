@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -199,6 +200,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
 		StatusHandler:              &mock.AppStatusHandlerStub{},
+		HealthService:              testscommon.NewHealthServiceStub(),
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)

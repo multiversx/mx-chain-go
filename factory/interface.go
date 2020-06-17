@@ -38,3 +38,8 @@ type P2PAntifloodHandler interface {
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
 }
+
+type HealthService interface {
+	MonitorComponent(component interface{})
+	IsInterfaceNil() bool
+}

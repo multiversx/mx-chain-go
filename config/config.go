@@ -327,7 +327,7 @@ type DebugConfig struct {
 // HealthServiceConfig will hold health service (monitoring) configuration
 type HealthServiceConfig struct {
 	IntervalVerifyMemoryInSeconds int
-	MemoryHighThreshold           int
+	MemoryToCreateProfiles        int
 	NumMemoryRecordsToKeep        int
 	FolderPath                    string
 }

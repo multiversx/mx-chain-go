@@ -88,3 +88,6 @@ var ErrNilStatusHandler = errors.New("nil status handler provided")
 
 // ErrWrongTypeAssertion signals that a wrong type assertion occurred
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilHealthService signals that a nil health service has been provided
+var ErrNilHealthService = errors.New("nil health service provided")

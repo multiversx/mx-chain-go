@@ -563,7 +563,7 @@
 
 [Health]
     IntervalVerifyMemoryInSeconds = 1
-    MemoryHighThreshold = 1073741824 # 1GB
+    MemoryToCreateProfiles = 1073741824 # 1GB
     NumMemoryRecordsToKeep = 100
     FolderPath = "health-records"
 

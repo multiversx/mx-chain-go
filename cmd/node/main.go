@@ -217,7 +217,7 @@ VERSION:
 	}
 	// useHealthService is used to enable the health service
 	useHealthService = cli.BoolFlag{
-		Name:  "health-service",
+		Name:  "use-health-service",
 		Usage: "Boolean option for enabling the health service.",
 	}
 	// validatorKeyIndex defines a flag that specifies the 0-th based index of the private key to be used from validatorKey.pem file
@@ -893,6 +893,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		AddressPubkeyConverter:     addressPubkeyConverter,
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		StatusHandler:              coreComponents.StatusHandler,
+		HealthService:              healthService,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -947,6 +948,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		PathManager:        pathManager,
 		EpochStartNotifier: epochStartNotifier,
 		CurrentEpoch:       storerEpoch,
+		HealthService:      healthService,
 	}
 	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
 	if err != nil {

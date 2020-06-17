@@ -76,14 +76,22 @@ func (h *healthService) monitorMemory() {
 	var stats runtime.MemStats
 	runtime.ReadMemStats(&stats)
 
-	if int(stats.HeapInuse) > h.config.MemoryHighThreshold {
+	if int(stats.HeapInuse) > h.config.MemoryToCreateProfiles {
 		record := newMemoryRecord(stats)
 		h.records.addMemoryRecord(record)
 	}
+}
+
+func (h *healthService) MonitorComponent(component interface{}) {
 }
 
 // Close stops the service
 func (h *healthService) Close() error {
 	h.cancelFunc()
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (h *healthService) IsInterfaceNil() bool {
+	return h == nil
 }

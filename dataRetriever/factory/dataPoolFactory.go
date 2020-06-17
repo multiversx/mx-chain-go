@@ -3,6 +3,7 @@ package factory
 import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
@@ -21,12 +22,25 @@ type ArgsDataPool struct {
 	Config           *config.Config
 	EconomicsData    *economics.EconomicsData
 	ShardCoordinator sharding.Coordinator
+	HealthService    dataRetriever.HealthService
 }
 
 // NewDataPoolFromConfig will return a new instance of a PoolsHolder
-// TODO: unit tests
 func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error) {
 	log.Debug("creatingDataPool from config")
+
+	if args.Config == nil {
+		return nil, dataRetriever.ErrNilConfig
+	}
+	if args.EconomicsData == nil {
+		return nil, dataRetriever.ErrNilEconomicsData
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, dataRetriever.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.HealthService) {
+		return nil, dataRetriever.ErrNilHealthService
+	}
 
 	mainConfig := args.Config
 
@@ -52,6 +66,10 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		log.Error("error creating reward transaction pool")
 		return nil, err
 	}
+
+	args.HealthService.MonitorComponent(txPool)
+	args.HealthService.MonitorComponent(uTxPool)
+	args.HealthService.MonitorComponent(rewardTxPool)
 
 	hdrPool, err := headersCache.NewHeadersPool(mainConfig.HeadersPoolConfig)
 	if err != nil {

@@ -90,10 +90,8 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	config := storageUnit.CacheConfig{SizeInBytes: 524288000, SizeInBytesPerSender: 614400, Capacity: 900000, SizePerSender: 1000, Shards: 1}
 	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 5}
 
-	poolAsInterface, err := NewShardedTxPool(args)
+	pool, err := NewShardedTxPool(args)
 	require.Nil(t, err)
-
-	pool := poolAsInterface.(*shardedTxPool)
 
 	require.Equal(t, true, pool.configPrototypeSourceMe.EvictionEnabled)
 	require.Equal(t, uint32(291271110), pool.configPrototypeSourceMe.NumBytesThreshold)
@@ -340,8 +338,7 @@ func Test_routeToCacheUnions(t *testing.T) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4, SelfShardID: 42}
-	poolAsInterface, _ := NewShardedTxPool(args)
-	pool := poolAsInterface.(*shardedTxPool)
+	pool, _ := NewShardedTxPool(args)
 
 	require.Equal(t, "42", pool.routeToCacheUnions("42"))
 	require.Equal(t, "42", pool.routeToCacheUnions("42_0"))

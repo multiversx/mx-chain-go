@@ -214,3 +214,6 @@ var ErrNotEnoughNumOfPeersToConsiderBlockValid = errors.New("not enough num of p
 
 // ErrCommunityAddressInMetachain signals that community address is in metachain which is not allowed
 var ErrCommunityAddressInMetachain = errors.New("community address in metachain")
+
+// ErrNilHealthService signals that a nil health service has been provided
+var ErrNilHealthService = errors.New("nil health service provided")

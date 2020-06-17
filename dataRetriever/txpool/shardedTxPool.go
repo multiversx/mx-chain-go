@@ -35,7 +35,7 @@ type txPoolShard struct {
 
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
-func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNotifier, error) {
+func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 	log.Info("NewShardedTxPool", "args", args.String())
 
 	err := args.verify()
@@ -319,6 +319,10 @@ func (txPool *shardedTxPool) GetCounts() counting.CountsWithSize {
 	}
 
 	return counts
+}
+
+// Diagnose diagnoses the internal caches
+func (txPool *shardedTxPool) Diagnose() {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

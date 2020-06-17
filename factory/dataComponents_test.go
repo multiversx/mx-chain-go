@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -64,6 +65,17 @@ func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 	dcf, err := factory.NewDataComponentsFactory(args)
 	require.Nil(t, dcf)
 	require.Equal(t, factory.ErrNilEpochStartNotifier, err)
+}
+
+func TestNewDataComponentsFactory_NilHealthServiceShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getDataArgs()
+	args.HealthService = nil
+
+	dcf, err := factory.NewDataComponentsFactory(args)
+	require.Nil(t, dcf)
+	require.Equal(t, factory.ErrNilHealthService, err)
 }
 
 func TestNewDataComponentsFactory_OkValsShouldWork(t *testing.T) {
@@ -127,6 +139,7 @@ func getDataArgs() factory.DataComponentsFactoryArgs {
 		PathManager:        &mock.PathManagerStub{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		CurrentEpoch:       0,
+		HealthService:      testscommon.NewHealthServiceStub(),
 	}
 }
 

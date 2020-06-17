@@ -178,3 +178,12 @@ var ErrNilResolverDebugHandler = errors.New("nil resolver debug handler")
 
 // ErrMissingData signals that the required data is missing
 var ErrMissingData = errors.New("missing data")
+
+// ErrNilConfig signals that a nil config has been provided
+var ErrNilConfig = errors.New("nil config provided")
+
+// ErrNilEconomicsData signals that a nil economics data handler has been provided
+var ErrNilEconomicsData = errors.New("nil economics data provided")
+
+// ErrNilHealthService signals that a nil health service has been provided
+var ErrNilHealthService = errors.New("nil health service provided")

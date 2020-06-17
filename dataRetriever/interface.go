@@ -347,3 +347,8 @@ type ResolverDebugHandler interface {
 	LogSucceededToResolveData(topic string, hash []byte)
 	IsInterfaceNil() bool
 }
+
+type HealthService interface {
+	MonitorComponent(component interface{})
+	IsInterfaceNil() bool
+}
