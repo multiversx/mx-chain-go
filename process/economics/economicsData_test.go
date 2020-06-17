@@ -162,6 +162,7 @@ func TestEconomicsData_ComputeFeeNoTxData(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
 		GasLimit: minGasLimit,
+		Value:    big.NewInt(0),
 	}
 
 	cost := economicsData.ComputeFee(tx)
@@ -184,6 +185,7 @@ func TestEconomicsData_ComputeFeeWithTxData(t *testing.T) {
 		GasPrice: gasPrice,
 		GasLimit: minGasLimit,
 		Data:     []byte(txData),
+		Value:    big.NewInt(0),
 	}
 
 	cost := economicsData.ComputeFee(tx)
@@ -207,6 +209,7 @@ func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice - 1,
 		GasLimit: minGasLimit,
+		Value:    big.NewInt(0),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
@@ -226,6 +229,7 @@ func TestEconomicsData_TxWithLowerGasLimitShouldErr(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit - 1,
+		Value:    big.NewInt(0),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
@@ -248,6 +252,7 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit + 1,
 		Data:     []byte("1"),
+		Value:    big.NewInt(0),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
@@ -269,6 +274,7 @@ func TestEconomicsData_TxWithWithEqualGasPriceLimitShouldWork(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit,
+		Value:    big.NewInt(0),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
@@ -290,9 +296,35 @@ func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice + 1,
 		GasLimit: minGasLimit + 1,
+		Value:    big.NewInt(0),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
 
 	assert.Nil(t, err)
+}
+
+func TestEconomicsData_TxWithWithMoreValueThanGenesisSupplyShouldError(t *testing.T) {
+	t.Parallel()
+
+	minGasPrice := uint64(500)
+	minGasLimit := uint64(12)
+	maxGasLimitPerBlock := minGasLimit + 1
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	tx := &transaction.Transaction{
+		GasPrice: minGasPrice + 1,
+		GasLimit: minGasLimit + 1,
+		Value:    big.NewInt(0).Add(economicsData.GenesisTotalSupply(), big.NewInt(1)),
+	}
+
+	err := economicsData.CheckValidityTxValues(tx)
+	assert.Equal(t, err, process.ErrTxValueTooBig)
+
+	tx.Value.SetBytes([]byte("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999"))
+	err = economicsData.CheckValidityTxValues(tx)
+	assert.Equal(t, err, process.ErrTxValueOutOfBounds)
 }
