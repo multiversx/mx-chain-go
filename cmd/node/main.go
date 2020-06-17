@@ -1340,7 +1340,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	select {
 	case <-chanCloseComponents:
 	case <-time.After(maxTimeToClose):
-		log.Debug("closeAllComponents did not finished on time, force closing the node")
+		log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
 	}
 
 	handleAppClose(log, sig)
