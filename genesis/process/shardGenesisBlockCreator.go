@@ -112,6 +112,11 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		SoftwareVersion: []byte(""),
 	}
 
+	err = processors.vmContainer.Close()
+	if err != nil {
+		return nil, err
+	}
+
 	return header, nil
 }
 
@@ -407,6 +412,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		rwdProcessor:   rewardsTxProcessor,
 		blockchainHook: vmFactoryImpl.BlockChainHookImpl(),
 		queryService:   queryService,
+		vmContainer:    vmContainer,
 	}, nil
 }
 
