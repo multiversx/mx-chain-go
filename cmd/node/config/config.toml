@@ -114,7 +114,7 @@
     [UnsignedTransactionStorage.Cache]
         Capacity = 75000
         Type = "SizeLRU"
-        SizeInBytes = 209715200 #200MB
+        SizeInBytes = 104857600 #100MB
     [UnsignedTransactionStorage.DB]
         FilePath = "UnsignedTransactions"
         Type = "LvlDBSerial"
@@ -126,7 +126,7 @@
     [RewardTxStorage.Cache]
         Capacity = 75000
         Type = "SizeLRU"
-        SizeInBytes = 104857600 #100MB
+        SizeInBytes = 52428800 #50MB
     [RewardTxStorage.DB]
         FilePath = "RewardTransactions"
         Type = "LvlDBSerial"
@@ -234,10 +234,11 @@
     SizeInBytes = 314572800 #300MB
 
 [TxDataPool]
-    Capacity = 900000               # in total, pairs (sourceShard, destinationShard)
+    Capacity = 600000
     SizePerSender = 20000
-    SizeInBytes = 524288000         # 500MB in total, pairs (sourceShard, destinationShard)
-    SizeInBytesPerSender = 12582912 # 12MB
+    SizeInBytes = 419430400 #400MB
+    SizeInBytesPerSender = 12288000
+    Type = "TxCache"
     Shards = 16
 
 [TrieNodesDataPool]
