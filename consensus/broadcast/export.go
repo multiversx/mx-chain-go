@@ -167,7 +167,7 @@ func (dbb *delayedBlockBroadcaster) InterceptedMiniBlockData(topic string, hash 
 
 // InterceptedHeaderData -
 func (dbb *delayedBlockBroadcaster) InterceptedHeaderData(topic string, hash []byte, header interface{}) {
-	dbb.interceptedHeaderData(topic, hash, header)
+	dbb.interceptedHeader(topic, hash, header)
 }
 
 // NewCommonMessenger will return a new instance of a commonMessenger
