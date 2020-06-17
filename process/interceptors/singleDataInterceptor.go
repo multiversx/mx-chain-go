@@ -113,23 +113,16 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return nil
 	}
 
-	wgProcess := &sync.WaitGroup{}
-	wgProcess.Add(1)
-	go func() {
-		wgProcess.Wait()
-		sdi.throttler.EndProcessing()
-	}()
-
-	go processInterceptedData(
+	err = processInterceptedData(
 		sdi.processor,
 		sdi.interceptedDebugHandler,
 		interceptedData,
 		sdi.topic,
-		wgProcess,
 		message,
 	)
+	sdi.throttler.EndProcessing()
 
-	return nil
+	return err
 }
 
 // SetInterceptedDebugHandler will set a new intercepted debug handler

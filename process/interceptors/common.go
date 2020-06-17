@@ -1,8 +1,6 @@
 package interceptors
 
 import (
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -44,14 +42,9 @@ func processInterceptedData(
 	handler process.InterceptedDebugger,
 	data process.InterceptedData,
 	topic string,
-	wgProcess *sync.WaitGroup,
 	msg p2p.MessageP2P,
-) {
+) error {
 	err := processor.Validate(data, msg.Peer())
-
-	defer func() {
-		wgProcess.Done()
-	}()
 	if err != nil {
 		log.Trace("intercepted data is not valid",
 			"hash", data.Hash(),
@@ -63,7 +56,7 @@ func processInterceptedData(
 		)
 		processDebugInterceptedData(handler, data, topic, err)
 
-		return
+		return err
 	}
 
 	err = processor.Save(data, msg.Peer())
@@ -78,7 +71,7 @@ func processInterceptedData(
 		)
 		processDebugInterceptedData(handler, data, topic, err)
 
-		return
+		return err
 	}
 
 	log.Trace("intercepted data is processed",
@@ -89,6 +82,8 @@ func processInterceptedData(
 		"data", data.String(),
 	)
 	processDebugInterceptedData(handler, data, topic, err)
+
+	return nil
 }
 
 func processDebugInterceptedData(

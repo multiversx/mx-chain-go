@@ -94,6 +94,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 		return err
 	}
+
 	multiDataBuff := b.Data
 	lenMultiData := len(multiDataBuff)
 	if lenMultiData == 0 {
@@ -113,20 +114,12 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	lastErrEncountered := error(nil)
-	wgProcess := &sync.WaitGroup{}
-	wgProcess.Add(len(multiDataBuff))
-
-	go func() {
-		wgProcess.Wait()
-		mdi.throttler.EndProcessing()
-	}()
 
 	for _, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
 		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
 		if err != nil {
 			lastErrEncountered = err
-			wgProcess.Done()
 			continue
 		}
 
@@ -142,19 +135,22 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 				"is for this shard", isForCurrentShard,
 				"is white listed", isWhiteListed,
 			)
-			wgProcess.Done()
 			continue
 		}
 
-		go processInterceptedData(
+		err = processInterceptedData(
 			mdi.processor,
 			mdi.interceptedDebugHandler,
 			interceptedData,
 			mdi.topic,
-			wgProcess,
 			message,
 		)
+		if err != nil {
+			lastErrEncountered = err
+		}
 	}
+
+	mdi.throttler.EndProcessing()
 
 	return lastErrEncountered
 }
