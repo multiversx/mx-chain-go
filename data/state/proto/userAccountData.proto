@@ -18,3 +18,8 @@ message UserAccountData {
     bytes  UserName        = 8;
     bytes  CodeMetadata    = 9;
 }
+
+message CodeEntry{
+    bytes  Code          = 1;
+    uint32 NumReferences = 2;
+}

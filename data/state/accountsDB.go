@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -89,7 +90,7 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 
 	baseAcc, ok := account.(baseAccountHandler)
 	if ok {
-		err = adb.saveCode(baseAcc)
+		err = adb.saveCode(baseAcc, oldAccount)
 		if err != nil {
 			return err
 		}
@@ -103,40 +104,119 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 	return adb.saveAccountToTrie(account)
 }
 
-func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler) error {
-	// TODO: enable code pruning
-
-	code := accountHandler.GetCode()
-	if len(code) == 0 {
-		return nil
+func (adb *AccountsDB) getOldCodeHash(oldAcc AccountHandler) ([]byte, error) {
+	if check.IfNil(oldAcc) {
+		return nil, nil
 	}
-	codeHash := adb.hasher.Compute(string(code))
 
-	codeFromTrie, err := adb.mainTrie.Get(codeHash)
+	oldAccount, ok := oldAcc.(baseAccountHandler)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return oldAccount.GetCodeHash(), nil
+}
+
+func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler, oldAcc AccountHandler) error {
+	oldCodeHash, err := adb.getOldCodeHash(oldAcc)
 	if err != nil {
 		return err
 	}
 
-	isCodeInTrie := len(codeFromTrie) > 0
-	if isCodeInTrie {
-		accountHandler.SetCodeHash(codeHash)
+	newCode := accountHandler.GetCode()
+	var newCodeHash []byte
+	if len(newCode) != 0 {
+		newCodeHash = adb.hasher.Compute(string(newCode))
+	}
+
+	if bytes.Equal(oldCodeHash, newCodeHash) {
+		accountHandler.SetCodeHash(newCodeHash)
 		return nil
 	}
 
-	entry, err := NewJournalEntryCode(codeHash, adb.mainTrie)
+	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshalizer)
 	if err != nil {
 		return err
 	}
 
+	unmodifiedOldCodeEntry := &CodeEntry{
+		Code:          oldCodeEntry.Code,
+		NumReferences: oldCodeEntry.NumReferences,
+	}
+
+	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	if oldCodeEntry.NumReferences != 0 {
+		oldCodeEntry.NumReferences--
+	}
+
+	if len(newCodeEntry.Code) == 0 {
+		newCodeEntry.Code = newCode
+	}
+	newCodeEntry.NumReferences++
+
+	if len(newCode) != 0 {
+		err = saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshalizer)
+		if err != nil {
+			return err
+		}
+	}
+
+	if oldCodeEntry.NumReferences == 0 {
+		err = adb.mainTrie.Update(oldCodeHash, nil)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshalizer)
+		if err != nil {
+			return err
+		}
+	}
+
+	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshalizer)
+	if err != nil {
+		return err
+	}
 	adb.journalize(entry)
 
-	log.Trace("accountsDB.saveCode(): mainTrie.Update()", "codeHash", codeHash, "codeLength", len(code))
-	err = adb.mainTrie.Update(codeHash, code)
+	accountHandler.SetCodeHash(newCodeHash)
+	return nil
+}
+
+func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
+	var codeEntry CodeEntry
+	val, err := trie.Get(codeHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(val) == 0 {
+		return &codeEntry, nil
+	}
+
+	err = marshalizer.Unmarshal(&codeEntry, val)
+	if err != nil {
+		return nil, err
+	}
+
+	return &codeEntry, nil
+}
+
+func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer marshal.Marshalizer) error {
+	codeEntry, err := marshalizer.Marshal(entry)
 	if err != nil {
 		return err
 	}
 
-	accountHandler.SetCodeHash(codeHash)
+	err = trie.Update(codeHash, codeEntry)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -381,7 +461,13 @@ func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 		return err
 	}
 
-	accountHandler.SetCode(val)
+	var codeEntry CodeEntry
+	err = adb.marshalizer.Unmarshal(&codeEntry, val)
+	if err != nil {
+		return err
+	}
+
+	accountHandler.SetCode(codeEntry.Code)
 	return nil
 }
 
