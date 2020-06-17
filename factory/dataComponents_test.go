@@ -132,7 +132,7 @@ func getDataArgs() factory.DataComponentsFactoryArgs {
 	testEconomics.SetMinGasPrice(200000000000)
 
 	return factory.DataComponentsFactoryArgs{
-		Config:             getGeneralConfig(),
+		Config:             testscommon.GetGeneralConfig(),
 		EconomicsData:      testEconomics.EconomicsData,
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
 		Core:               getCoreComponents(),
@@ -140,61 +140,5 @@ func getDataArgs() factory.DataComponentsFactoryArgs {
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		CurrentEpoch:       0,
 		HealthService:      testscommon.NewHealthServiceStub(),
-	}
-}
-
-func getGeneralConfig() config.Config {
-	storageCfg := config.StorageConfig{
-		Cache: getCacheCfg(),
-		DB:    getDBCfg(),
-		Bloom: config.BloomFilterConfig{},
-	}
-	cacheCfg := getCacheCfg()
-	return config.Config{
-		StoragePruning: config.StoragePruningConfig{
-			Enabled:             false,
-			FullArchive:         true,
-			NumEpochsToKeep:     3,
-			NumActivePersisters: 3,
-		},
-		TxDataPool: config.CacheConfig{
-			Capacity:             10000,
-			SizePerSender:        1000,
-			SizeInBytes:          1000000000,
-			SizeInBytesPerSender: 10000000,
-			Shards:               1,
-		},
-		UnsignedTransactionDataPool: config.CacheConfig{
-			Capacity:    10000,
-			SizeInBytes: 1000000000,
-			Shards:      1,
-		},
-		RewardTransactionDataPool: config.CacheConfig{
-			Capacity:    10000,
-			SizeInBytes: 1000000000,
-			Shards:      1,
-		},
-		HeadersPoolConfig: config.HeadersPoolConfig{
-			MaxHeadersPerShard:            100,
-			NumElementsToRemoveOnEviction: 1,
-		},
-		TxBlockBodyDataPool:        cacheCfg,
-		PeerBlockBodyDataPool:      cacheCfg,
-		TrieNodesDataPool:          cacheCfg,
-		TxStorage:                  storageCfg,
-		MiniBlocksStorage:          storageCfg,
-		ShardHdrNonceHashStorage:   storageCfg,
-		MetaBlockStorage:           storageCfg,
-		MetaHdrNonceHashStorage:    storageCfg,
-		UnsignedTransactionStorage: storageCfg,
-		RewardTxStorage:            storageCfg,
-		BlockHeaderStorage:         storageCfg,
-		Heartbeat: config.HeartbeatConfig{
-			HeartbeatStorage: storageCfg,
-		},
-		StatusMetricsStorage: storageCfg,
-		PeerBlockBodyStorage: storageCfg,
-		BootstrapStorage:     storageCfg,
-		TxLogsStorage:        storageCfg,
 	}
 }

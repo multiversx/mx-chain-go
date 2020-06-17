@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +33,7 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := getGeneralConfig()
+	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -49,7 +50,7 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := getGeneralConfig()
+	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -75,7 +76,7 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := getGeneralConfig()
+	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -107,7 +108,7 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := getGeneralConfig()
+	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -130,7 +131,7 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := getGeneralConfig()
+	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
