@@ -2,6 +2,8 @@ package health
 
 import (
 	"context"
+	"os"
+	"runtime"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -13,22 +15,36 @@ var log = logger.GetOrCreate("health")
 type healthService struct {
 	config     config.HealthServiceConfig
 	cancelFunc func()
+	records    *records
 }
 
 func NewHealthService(config config.HealthServiceConfig) *healthService {
 	log.Info("NewHealthService", "config", config)
 
+	records := newRecords(config.NumMemoryRecordsToKeep, config.FolderPath)
 	return &healthService{
 		config:     config,
 		cancelFunc: func() {},
+		records:    records,
 	}
 }
 
 func (h *healthService) Start() {
+	log.Info("healthService.Start()")
+
+	h.prepareFolder()
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	h.cancelFunc = cancelFunc
 
 	go h.monitorMemoryContinuously(ctx)
+}
+
+func (h *healthService) prepareFolder() {
+	err := os.MkdirAll(h.config.FolderPath, os.ModePerm)
+	if err != nil {
+		log.Error("healthService.prepareFolder", "err", err)
+	}
 }
 
 func (h *healthService) monitorMemoryContinuously(ctx context.Context) {
@@ -40,7 +56,7 @@ func (h *healthService) monitorMemoryContinuously(ctx context.Context) {
 		}
 	}
 
-	log.Info("ending monitorMemoryContinuously")
+	log.Info("end of healthService.monitorMemoryContinuously()")
 }
 
 func (h *healthService) shouldContinueMonitoringMemory(ctx context.Context) bool {
@@ -56,6 +72,14 @@ func (h *healthService) shouldContinueMonitoringMemory(ctx context.Context) bool
 
 func (h *healthService) monitorMemory() {
 	log.Trace("healthService.monitorMemory()")
+
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+
+	if int(stats.HeapInuse) > h.config.MemoryHighThreshold {
+		record := newMemoryRecord(stats)
+		h.records.addMemoryRecord(record)
+	}
 }
 
 // Close stops the service

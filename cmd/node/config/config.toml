@@ -563,7 +563,9 @@
 
 [Health]
     IntervalVerifyMemoryInSeconds = 1
-    NumHeapProfilesToKeep         = 10
+    MemoryHighThreshold = 1073741824 # 1GB
+    NumMemoryRecordsToKeep = 100
+    FolderPath = "health-records"
 
 [SoftwareVersionConfig]
     StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"

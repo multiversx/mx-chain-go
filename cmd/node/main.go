@@ -728,8 +728,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating core components")
 
+	healthService := health.NewHealthService(generalConfig.Health)
 	if ctx.IsSet(useHealthService.Name) {
-		healthService := health.NewHealthService(generalConfig.Health)
 		healthService.Start()
 	}
 
@@ -1340,8 +1340,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	go func() {
-		closeAllComponents(log, dataComponents, triesComponents, networkComponents)
-		// todo: also close HealthService.
+		closeAllComponents(log, dataComponents, triesComponents, networkComponents, healthService)
 	}()
 	time.Sleep(maxTimeToClose)
 	handleAppClose(log, sig)
@@ -1351,12 +1350,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 func closeAllComponents(
 	log logger.Logger,
+	healthService io.Closer,
 	dataComponents *mainFactory.DataComponents,
 	triesComponents *mainFactory.TriesComponents,
 	networkComponents *mainFactory.NetworkComponents,
 ) {
+	err := healthService.Close()
+	log.LogIfError(err)
+
 	log.Debug("closing all store units....")
-	err := dataComponents.Store.CloseAll()
+	err = dataComponents.Store.CloseAll()
 	log.LogIfError(err)
 
 	dataTries := triesComponents.TriesContainer.GetAll()
