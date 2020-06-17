@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -289,35 +288,45 @@ func (esd *elasticSearchDatabase) getMiniblocks(header data.HeaderHandler, body 
 	return miniblocks
 }
 
-// SaveRoundInfo will prepare and save information about a round in elasticsearch server
-func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
+// SaveRoundsInfos will prepare and save information about a slice of rounds in elasticsearch server
+func (esd *elasticSearchDatabase) SaveRoundsInfos(infos []RoundInfo) {
 	var buff bytes.Buffer
 
-	marshalizedRoundInfo, err := json.Marshal(&info)
-	if err != nil {
-		log.Debug("indexer: marshal", "error", "could not marshal signers indexes")
-		return
+	for _, info := range infos {
+		serializedRoundInfo, meta := serializeRoundInfo(info)
+
+		buff.Grow(len(meta) + len(serializedRoundInfo))
+		_, err := buff.Write(meta)
+		if err != nil {
+			log.Warn("indexer: cannot write meta", "error", err.Error())
+		}
+
+		_, err = buff.Write(serializedRoundInfo)
+		if err != nil {
+			log.Warn("indexer: cannot write serialized round info", "error", err.Error())
+		}
 	}
 
-	buff.Grow(len(marshalizedRoundInfo))
-	_, err = buff.Write(marshalizedRoundInfo)
+	err := esd.dbClient.DoBulkRequest(&buff, roundIndex)
 	if err != nil {
-		log.Warn("elastic search: save round info, write", "error", err.Error())
+		log.Warn("indexer: cannot index rounds info", "error", err.Error())
 		return
 	}
+}
 
-	req := &esapi.IndexRequest{
-		Index:      roundIndex,
-		DocumentID: strconv.FormatUint(uint64(info.ShardId), 10) + "_" + strconv.FormatUint(info.Index, 10),
-		Body:       bytes.NewReader(buff.Bytes()),
-		Refresh:    "true",
-	}
+func serializeRoundInfo(info RoundInfo) ([]byte, []byte) {
+	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%d_%d", "_type" : "%s" } }%s`,
+		info.ShardId, info.Index, roundIndex, "\n"))
 
-	err = esd.dbClient.DoRequest(req)
+	serializedInfo, err := json.Marshal(info)
 	if err != nil {
-		log.Warn("indexer: can not index round info", "error", err.Error())
-		return
+		log.Debug("indexer: could not serialize round info, will skip indexing this round info")
+		return nil, nil
 	}
+	// append a newline foreach element in the bulk we create
+	serializedInfo = append(serializedInfo, "\n"...)
+
+	return serializedInfo, meta
 }
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
