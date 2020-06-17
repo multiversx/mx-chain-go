@@ -27,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/health"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -48,6 +47,7 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/health"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -1340,7 +1340,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	go func() {
-		closeAllComponents(log, dataComponents, triesComponents, networkComponents, healthService)
+		closeAllComponents(log, healthService, dataComponents, triesComponents, networkComponents)
 	}()
 	time.Sleep(maxTimeToClose)
 	handleAppClose(log, sig)
