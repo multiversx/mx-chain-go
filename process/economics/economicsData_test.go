@@ -296,3 +296,28 @@ func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 }
+
+func TestEconomicsData_TxWithWithMoreValueThanGenesisSupplyShouldError(t *testing.T) {
+	t.Parallel()
+
+	minGasPrice := uint64(500)
+	minGasLimit := uint64(12)
+	maxGasLimitPerBlock := minGasLimit + 1
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	tx := &transaction.Transaction{
+		GasPrice: minGasPrice + 1,
+		GasLimit: minGasLimit + 1,
+		Value:    big.NewInt(0).Add(economicsData.GenesisTotalSupply(), big.NewInt(1)),
+	}
+
+	err := economicsData.CheckValidityTxValues(tx)
+	assert.Equal(t, err, process.ErrTxValueTooBig)
+
+	tx.Value.SetBytes([]byte("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999"))
+	err = economicsData.CheckValidityTxValues(tx)
+	assert.Equal(t, err, process.ErrTxValueOutOfBounds)
+}

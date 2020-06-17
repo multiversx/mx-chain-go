@@ -550,6 +550,7 @@ type TransactionWithFeeHandler interface {
 	GetGasPrice() uint64
 	GetData() []byte
 	GetRcvAddr() []byte
+	GetValue() *big.Int
 }
 
 // EconomicsAddressesHandler will return information about economics addresses

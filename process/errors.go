@@ -796,3 +796,12 @@ var ErrNilInterceptorContainer = errors.New("nil interceptor container")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID")
+
+// ErrTxValueTooBig signals that transaction value is too big
+var ErrTxValueTooBig = errors.New("tx value is too big")
+
+// ErrInvalidUserNameLength signals that provided user name length is invalid
+var ErrInvalidUserNameLength = errors.New("invalid user name length")
+
+// ErrTxValueOutOfBounds signals that transaction value is out of bounds
+var ErrTxValueOutOfBounds = errors.New("tx value is out of bounds")
