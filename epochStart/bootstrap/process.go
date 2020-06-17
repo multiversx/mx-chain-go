@@ -283,8 +283,11 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	defer func() {
-		log.Debug("unregistering all message processor")
+		log.Debug("unregistering all message processor and un-joining all topics")
 		errMessenger := e.messenger.UnregisterAllMessageProcessors()
+		log.LogIfError(errMessenger)
+
+		errMessenger = e.messenger.UnjoinAllTopics()
 		log.LogIfError(errMessenger)
 	}()
 
@@ -871,6 +874,11 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	}
 
 	container, err := resolverFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	err = resolverFactory.AddShardTrieNodeResolvers(container)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -12,6 +14,7 @@ type P2PAntifloodHandlerStub struct {
 	CanProcessMessagesOnTopicCalled func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	ApplyConsensusSizeCalled        func(size int)
 	SetDebuggerCalled               func(debugger process.AntifloodDebugger) error
+	BlacklistPeerCalled             func(peer core.PeerID, reason string, duration time.Duration)
 }
 
 // CanProcessMessage -
@@ -44,6 +47,13 @@ func (p2pahs *P2PAntifloodHandlerStub) SetDebugger(debugger process.AntifloodDeb
 	}
 
 	return nil
+}
+
+// BlacklistPeer -
+func (p2pahs *P2PAntifloodHandlerStub) BlacklistPeer(peer core.PeerID, reason string, duration time.Duration) {
+	if p2pahs.BlacklistPeerCalled != nil {
+		p2pahs.BlacklistPeerCalled(peer, reason, duration)
+	}
 }
 
 // IsInterfaceNil -

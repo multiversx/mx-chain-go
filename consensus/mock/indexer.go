@@ -33,8 +33,8 @@ func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 	panic("implement me")
 }
 
-// SaveRoundInfo -
-func (im *IndexerMock) SaveRoundInfo(_ indexer.RoundInfo) {
+// SaveRoundsInfos -
+func (im *IndexerMock) SaveRoundsInfos(_ []indexer.RoundInfo) {
 	panic("implement me")
 }
 
