@@ -323,6 +323,12 @@ func (txPool *shardedTxPool) GetCounts() counting.CountsWithSize {
 
 // Diagnose diagnoses the internal caches
 func (txPool *shardedTxPool) Diagnose() {
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
+
+	for _, shard := range txPool.backingMap {
+		shard.Cache.Diagnose()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

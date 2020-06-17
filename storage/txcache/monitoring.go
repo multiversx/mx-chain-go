@@ -116,7 +116,8 @@ func (journal *evictionJournal) display() {
 	log.Debug("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders, "steps", journal.passOneNumSteps)
 }
 
-func (cache *TxCache) diagnose() {
+// Diagnose checks the state of the cache for inconsistencies and displays a summary
+func (cache *TxCache) Diagnose() {
 	sw := core.NewStopWatch()
 	sw.Start("diagnose")
 
@@ -139,14 +140,9 @@ func (cache *TxCache) diagnose() {
 	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
 	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
 
-	logFunc := log.Trace
-	if !fine {
-		logFunc = log.Debug
-	}
-
-	logFunc("Diagnose", "name", cache.name, "duration", duration, "fine", fine)
-	logFunc("Size:", "current", sizeInBytes, "max", cache.config.NumBytesThreshold)
-	logFunc("NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks, "inScoreChunks", numSendersInScoreChunks)
-	logFunc("NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
-	logFunc("NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
+	log.Debug("Diagnose", "name", cache.name, "duration", duration, "fine", fine)
+	log.Debug("Size:", "current", sizeInBytes, "max", cache.config.NumBytesThreshold)
+	log.Debug("NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks, "inScoreChunks", numSendersInScoreChunks)
+	log.Debug("NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
+	log.Debug("NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
 }

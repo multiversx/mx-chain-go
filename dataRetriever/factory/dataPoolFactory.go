@@ -67,9 +67,9 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, err
 	}
 
-	args.HealthService.MonitorComponent(txPool)
-	args.HealthService.MonitorComponent(uTxPool)
-	args.HealthService.MonitorComponent(rewardTxPool)
+	args.HealthService.RegisterComponent(txPool)
+	args.HealthService.RegisterComponent(uTxPool)
+	args.HealthService.RegisterComponent(rewardTxPool)
 
 	hdrPool, err := headersCache.NewHeadersPool(mainConfig.HeadersPoolConfig)
 	if err != nil {

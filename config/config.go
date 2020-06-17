@@ -326,10 +326,11 @@ type DebugConfig struct {
 
 // HealthServiceConfig will hold health service (monitoring) configuration
 type HealthServiceConfig struct {
-	IntervalVerifyMemoryInSeconds int
-	MemoryToCreateProfiles        int
-	NumMemoryRecordsToKeep        int
-	FolderPath                    string
+	IntervalVerifyMemoryInSeconds       int
+	IntervalDiagnoseComponentsInSeconds int
+	MemoryToCreateProfiles              int
+	NumMemoryRecordsToKeep              int
+	FolderPath                          string
 }
 
 // InterceptorResolverDebugConfig will hold the interceptor-resolver debug configuration

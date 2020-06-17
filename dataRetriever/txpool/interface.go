@@ -14,4 +14,5 @@ type txCache interface {
 	ImmunizeTxsAgainstEviction(keys [][]byte)
 	ForEachTransaction(function txcache.ForEachTransaction)
 	NumBytes() int
+	Diagnose()
 }

@@ -2,8 +2,8 @@ package testscommon
 
 // HealthServiceStub -
 type HealthServiceStub struct {
-	StartCalled            func()
-	MonitorComponentCalled func(component interface{})
+	StartCalled             func()
+	RegisterComponentCalled func(component interface{})
 }
 
 // NewHealthServiceStub -
@@ -18,10 +18,10 @@ func (stub *HealthServiceStub) Start() {
 	}
 }
 
-// MonitorComponent -
-func (stub *HealthServiceStub) MonitorComponent(component interface{}) {
-	if stub.MonitorComponentCalled != nil {
-		stub.MonitorComponentCalled(component)
+// RegisterComponent -
+func (stub *HealthServiceStub) RegisterComponent(component interface{}) {
+	if stub.RegisterComponentCalled != nil {
+		stub.RegisterComponentCalled(component)
 	}
 }
 

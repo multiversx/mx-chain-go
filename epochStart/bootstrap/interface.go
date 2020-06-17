@@ -50,6 +50,6 @@ type RequestHandler interface {
 }
 
 type HealthService interface {
-	MonitorComponent(component interface{})
+	RegisterComponent(component interface{})
 	IsInterfaceNil() bool
 }

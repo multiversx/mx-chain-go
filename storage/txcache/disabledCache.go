@@ -108,6 +108,10 @@ func (cache *DisabledCache) NotifyAccountNonce(_ []byte, _ uint64) {
 func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 }
 
+// Diagnose does nothing
+func (cache *DisabledCache) Diagnose() {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *DisabledCache) IsInterfaceNil() bool {
 	return cache == nil
