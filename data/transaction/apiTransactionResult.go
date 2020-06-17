@@ -14,4 +14,5 @@ type ApiTransactionResult struct {
 	Data      string `json:"data,omitempty"`
 	Code      string `json:"code,omitempty"`
 	Signature string `json:"signature,omitempty"`
+	Status    string `json:"signature,omitempty"`
 }

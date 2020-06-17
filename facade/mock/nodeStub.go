@@ -32,7 +32,6 @@ type NodeStub struct {
 	DirectTriggerCalled                            func(epoch uint32) error
 	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
-	GetTransactionStatusCalled                     func(hash string) (string, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
 }
@@ -44,15 +43,6 @@ func (ns *NodeStub) GetValueForKey(address string, key string) (string, error) {
 	}
 
 	return "", nil
-}
-
-// GetTransactionStatus -
-func (ns *NodeStub) GetTransactionStatus(hash string) (string, error) {
-	if ns.GetTransactionStatusCalled != nil {
-		return ns.GetTransactionStatusCalled(hash)
-	}
-
-	return "unknown", nil
 }
 
 // EncodeAddressPubkey -

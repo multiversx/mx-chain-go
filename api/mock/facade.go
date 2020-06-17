@@ -34,14 +34,8 @@ type Facade struct {
 	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
 	NodeConfigCalled                  func() map[string]interface{}
 	GetQueryHandlerCalled             func(name string) (debug.QueryHandler, error)
-	GetTransactionStatusCalled        func(hash string) (string, error)
 	GetValueForKeyCalled              func(address string, key string) (string, error)
 	GetPeerInfoCalled                 func(pid string) ([]core.QueryP2PPeerInfo, error)
-}
-
-// GetTransactionStatus -
-func (f *Facade) GetTransactionStatus(hash string) (string, error) {
-	return f.GetTransactionStatusCalled(hash)
 }
 
 // RestApiInterface -
