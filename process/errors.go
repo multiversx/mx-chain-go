@@ -796,3 +796,6 @@ var ErrNilInterceptorContainer = errors.New("nil interceptor container")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID")
+
+// ErrInterceptedDataNotForCurrentShard signals that intercepted data is not for current shard
+var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for current shard")

@@ -110,7 +110,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 			"is white listed", isWhiteListed,
 		)
 
-		return nil
+		return process.ErrInterceptedDataNotForCurrentShard
 	}
 
 	err = processInterceptedData(

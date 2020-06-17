@@ -125,6 +125,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 		isForCurrentShard := interceptedData.IsForCurrentShard()
 		isWhiteListed := mdi.whiteListRequest.IsWhiteListed(interceptedData)
+
 		shouldProcess := isForCurrentShard || isWhiteListed
 		if !shouldProcess {
 			log.Trace("intercepted data should not be processed",
@@ -135,6 +136,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 				"is for this shard", isForCurrentShard,
 				"is white listed", isWhiteListed,
 			)
+			lastErrEncountered = process.ErrInterceptedDataNotForCurrentShard
 			continue
 		}
 
