@@ -11,7 +11,7 @@ type StorageManagerStub struct {
 	CancelPruneCalled                 func([]byte)
 	MarkForEvictionCalled             func([]byte, data.ModifiedHashes) error
 	GetDbThatContainsHashCalled       func([]byte) data.DBWriteCacher
-	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.DBWriteCacher
+	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
 	IsPruningEnabledCalled            func() bool
 	EnterSnapshotModeCalled           func()
 	ExitSnapshotModeCalled            func()
@@ -54,17 +54,8 @@ func (sms *StorageManagerStub) MarkForEviction(d []byte, m data.ModifiedHashes) 
 	return nil
 }
 
-// GetDbThatContainsHash --
-func (sms *StorageManagerStub) GetDbThatContainsHash(d []byte) data.DBWriteCacher {
-	if sms.GetDbThatContainsHashCalled != nil {
-		return sms.GetDbThatContainsHashCalled(d)
-	}
-
-	return nil
-}
-
 // GetSnapshotThatContainsHash --
-func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) data.DBWriteCacher {
+func (sms *StorageManagerStub) GetSnapshotThatContainsHash(d []byte) data.SnapshotDbHandler {
 	if sms.GetSnapshotThatContainsHashCalled != nil {
 		return sms.GetSnapshotThatContainsHashCalled(d)
 	}

@@ -59,6 +59,11 @@ func TestBaseBootstrap_SyncBlocksShouldCallSyncIfConnectedToTheNetwork(t *testin
 				return true
 			},
 		},
+		rounder: &mock.RounderMock{
+			BeforeGenesisCalled: func() bool {
+				return false
+			},
+		},
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())

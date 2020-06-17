@@ -119,13 +119,18 @@ func getTransactionKeyTypeAndHash(splitString []string) (Type, []byte, error) {
 		return Unknown, nil, update.ErrUnknownType
 	}
 
+	decodedHash, err := hex.DecodeString(splitString[1])
+	if err != nil {
+		return Unknown, nil, update.ErrUnknownType
+	}
+
 	switch splitString[0] {
 	case "nrm":
-		return Transaction, []byte(splitString[1]), nil
+		return Transaction, decodedHash, nil
 	case "scr":
-		return SmartContractResult, []byte(splitString[1]), nil
+		return SmartContractResult, decodedHash, nil
 	case "rwd":
-		return RewardTransaction, []byte(splitString[1]), nil
+		return RewardTransaction, decodedHash, nil
 	}
 
 	return Unknown, nil, update.ErrUnknownType
@@ -142,7 +147,12 @@ func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 	}
 	accType := Type(accTypeInt64)
 
-	return accType, []byte(splitString[2]), nil
+	decodedHash, err := hex.DecodeString(splitString[2])
+	if err != nil {
+		return Unknown, nil, err
+	}
+
+	return accType, decodedHash, nil
 }
 
 // GetKeyTypeAndHash returns the type of the key by splitting it up and deciphering it
@@ -199,12 +209,12 @@ func CreateVersionKey(meta *block.MetaBlock, hash []byte) string {
 // CreateAccountKey creates a key for an account according to its type, shard ID and address
 func CreateAccountKey(accType Type, shId uint32, address string) string {
 	key := CreateTrieIdentifier(shId, accType)
-	return key + atSep + address
+	return key + atSep + hex.EncodeToString([]byte(address))
 }
 
 // CreateRootHashKey creates a key of type roothash for a given trie identifier
 func CreateRootHashKey(trieIdentifier string) string {
-	return "rt" + atSep + trieIdentifier
+	return "rt" + atSep + hex.EncodeToString([]byte(trieIdentifier))
 }
 
 // CreateTrieIdentifier creates a trie identifier according to trie type and shard id
@@ -226,12 +236,12 @@ func CreateMiniBlockKey(key string) string {
 func CreateTransactionKey(key string, tx data.TransactionHandler) string {
 	switch tx.(type) {
 	case *transaction.Transaction:
-		return "tx" + atSep + "nrm" + atSep + key
+		return "tx" + atSep + "nrm" + atSep + hex.EncodeToString([]byte(key))
 	case *smartContractResult.SmartContractResult:
-		return "tx" + atSep + "scr" + atSep + key
+		return "tx" + atSep + "scr" + atSep + hex.EncodeToString([]byte(key))
 	case *rewardTx.RewardTx:
-		return "tx" + atSep + "rwd" + atSep + key
+		return "tx" + atSep + "rwd" + atSep + hex.EncodeToString([]byte(key))
 	default:
-		return "tx" + atSep + "ukw" + key
+		return "tx" + atSep + "ukw" + atSep + hex.EncodeToString([]byte(key))
 	}
 }

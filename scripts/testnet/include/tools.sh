@@ -26,13 +26,7 @@ startTxGen_NewAccounts() {
 
   setWorkdirForNextCommands "$TESTNETDIR/txgen" v
 
-  local mode=""
-  if [ $TXGEN_ERC20_MODE -eq 1 ]; then
-    mode="-sc-mode"
-    echo "TxGen will start in ERC20 mode"
-  fi
-
-  runCommandInTerminal "./txgen -num-accounts $NUMACCOUNTS -num-shards $SHARDCOUNT -new-accounts $mode |& tee stdout.txt" $1
+  runCommandInTerminal "./txgen -num-accounts $NUMACCOUNTS -num-shards $SHARDCOUNT -new-accounts |& tee stdout.txt" $1
 }
 
 startTxGen_ExistingAccounts() {
@@ -41,13 +35,7 @@ startTxGen_ExistingAccounts() {
 
   setWorkdirForNextCommands "$TESTNETDIR/txgen" v
 
-  local mode=""
-  if [ $TXGEN_ERC20_MODE -eq 1 ]; then
-    mode="-sc-mode"
-    echo "TxGen will start in ERC20 mode"
-  fi
-
-  runCommandInTerminal "./txgen $mode |& tee stdout.txt" $1
+  runCommandInTerminal "./txgen |& tee stdout.txt" $1
 }
 
 pauseTxGen() {
