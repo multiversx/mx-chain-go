@@ -60,7 +60,7 @@ func NewDeployProcessor(arg ArgDeployProcessor) (*deployProcessor, error) {
 		blockchainHook:       arg.BlockchainHook,
 		scQueryService:       arg.QueryService,
 	}
-	dp.getScCodeAsHex = dp.getSCCodeAsHex
+	dp.getScCodeAsHex = getSCCodeAsHex
 	dp.emptyAddress = make([]byte, dp.pubkeyConv.Len())
 
 	return dp, nil
@@ -91,7 +91,7 @@ func (dp *deployProcessor) Deploy(sc genesis.InitialSmartContractHandler) error 
 	sc.SetAddress(dp.pubkeyConv.Encode(scResultingAddressBytes))
 
 	vmType := sc.GetVmType()
-	initParams := dp.applyCommonPlaceholders(sc.GetInitParameters())
+	initParams := applyCommonPlaceholders(sc.GetInitParameters())
 	arguments := []string{code, vmType, codeMetadataHexForInitialSC}
 	if len(initParams) > 0 {
 		arguments = append(arguments, initParams)
@@ -140,14 +140,14 @@ func (dp *deployProcessor) Deploy(sc genesis.InitialSmartContractHandler) error 
 	return dp.checkVersion(sc, scResultingAddressBytes)
 }
 
-func (dp *deployProcessor) applyCommonPlaceholders(txData string) string {
+func applyCommonPlaceholders(txData string) string {
 	//replace all placeholders containing auctionScAddressPlaceholder with the real hex address
 	txData = strings.Replace(txData, auctionScAddressPlaceholder, hex.EncodeToString(vmFactory.AuctionSCAddress), -1)
 
 	return txData
 }
 
-func (dp *deployProcessor) getSCCodeAsHex(filename string) (string, error) {
+func getSCCodeAsHex(filename string) (string, error) {
 	code, err := ioutil.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return "", err
