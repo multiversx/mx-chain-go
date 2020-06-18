@@ -1350,10 +1350,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Info("terminating at internal stop signal", "reason", sig.Reason)
 	}
 
+	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(log, dataComponents, triesComponents, networkComponents)
+		closeAllComponents(log, dataComponents, triesComponents, networkComponents, chanCloseComponents)
 	}()
-	time.Sleep(maxTimeToClose)
+
+	select {
+	case <-chanCloseComponents:
+	case <-time.After(maxTimeToClose):
+		log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
+	}
+
 	handleAppClose(log, sig)
 
 	return nil
@@ -1364,6 +1371,7 @@ func closeAllComponents(
 	dataComponents *mainFactory.DataComponents,
 	triesComponents *mainFactory.TriesComponents,
 	networkComponents *mainFactory.NetworkComponents,
+	chanCloseComponents chan struct{},
 ) {
 	log.Debug("closing all store units....")
 	err := dataComponents.Store.CloseAll()
@@ -1383,6 +1391,8 @@ func closeAllComponents(
 	log.Debug("calling close on the network messenger instance...")
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
+
+	chanCloseComponents <- struct{}{}
 }
 
 func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
