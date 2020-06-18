@@ -906,7 +906,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		StatusHandler:              coreComponents.StatusHandler,
 		ImportStartHandler:         importStartHandler,
-		HealthService:              healthService,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -961,7 +960,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		PathManager:        pathManager,
 		EpochStartNotifier: epochStartNotifier,
 		CurrentEpoch:       storerEpoch,
-		HealthService:      healthService,
 	}
 	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
 	if err != nil {
@@ -971,6 +969,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	healthService.RegisterComponent(dataComponents.Datapool.Transactions())
+	healthService.RegisterComponent(dataComponents.Datapool.UnsignedTransactions())
+	healthService.RegisterComponent(dataComponents.Datapool.RewardTransactions())
 
 	log.Trace("initializing metrics")
 	err = metrics.InitMetrics(

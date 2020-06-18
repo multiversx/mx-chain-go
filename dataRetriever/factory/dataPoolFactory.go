@@ -22,7 +22,6 @@ type ArgsDataPool struct {
 	Config           *config.Config
 	EconomicsData    *economics.EconomicsData
 	ShardCoordinator sharding.Coordinator
-	HealthService    dataRetriever.HealthService
 }
 
 // NewDataPoolFromConfig will return a new instance of a PoolsHolder
@@ -37,9 +36,6 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, dataRetriever.ErrNilShardCoordinator
-	}
-	if check.IfNil(args.HealthService) {
-		return nil, dataRetriever.ErrNilHealthService
 	}
 
 	mainConfig := args.Config
@@ -66,10 +62,6 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		log.Error("error creating reward transaction pool")
 		return nil, err
 	}
-
-	args.HealthService.RegisterComponent(txPool)
-	args.HealthService.RegisterComponent(uTxPool)
-	args.HealthService.RegisterComponent(rewardTxPool)
 
 	hdrPool, err := headersCache.NewHeadersPool(mainConfig.HeadersPoolConfig)
 	if err != nil {

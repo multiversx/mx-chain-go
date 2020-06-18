@@ -25,7 +25,6 @@ type DataComponentsFactoryArgs struct {
 	PathManager        storage.PathManagerHandler
 	EpochStartNotifier EpochStartNotifier
 	CurrentEpoch       uint32
-	HealthService      HealthService
 }
 
 type dataComponentsFactory struct {
@@ -36,7 +35,6 @@ type dataComponentsFactory struct {
 	pathManager        storage.PathManagerHandler
 	epochStartNotifier EpochStartNotifier
 	currentEpoch       uint32
-	healthService      HealthService
 }
 
 // NewDataComponentsFactory will return a new instance of dataComponentsFactory
@@ -56,9 +54,6 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, ErrNilEpochStartNotifier
 	}
-	if check.IfNil(args.HealthService) {
-		return nil, ErrNilHealthService
-	}
 
 	return &dataComponentsFactory{
 		config:             args.Config,
@@ -68,7 +63,6 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		pathManager:        args.PathManager,
 		epochStartNotifier: args.EpochStartNotifier,
 		currentEpoch:       args.CurrentEpoch,
-		healthService:      args.HealthService,
 	}, nil
 }
 
@@ -89,7 +83,6 @@ func (dcf *dataComponentsFactory) Create() (*DataComponents, error) {
 		Config:           &dcf.config,
 		EconomicsData:    dcf.economicsData,
 		ShardCoordinator: dcf.shardCoordinator,
-		HealthService:    dcf.healthService,
 	}
 	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)
 	if err != nil {

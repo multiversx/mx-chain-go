@@ -107,17 +107,20 @@ func (h *healthService) diagnoseComponents() {
 	defer h.diagnosableComponentsMutex.RUnlock()
 
 	for _, component := range h.diagnosableComponents {
-		log.Debug("healthService.diagnoseComponent()", "component", fmt.Sprintf("%T", component))
+		log.Debug("healthService.diagnoseComponent()", "component")
 		component.Diagnose()
 	}
 }
 
 func (h *healthService) RegisterComponent(component interface{}) {
+	log.Debug("healthService.RegisterComponent()", "component", fmt.Sprintf("%T", component))
+
 	h.diagnosableComponentsMutex.Lock()
 	defer h.diagnosableComponentsMutex.Unlock()
 
 	asDiagnosable, ok := component.(diagnosable)
 	if !ok {
+		log.Error("healthService.RegisterComponent(): not diagnosable", "component", fmt.Sprintf("%T", component))
 		return
 	}
 

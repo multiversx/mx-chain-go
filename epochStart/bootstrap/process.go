@@ -104,7 +104,6 @@ type epochStartBootstrap struct {
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
 	importStartHandler         epochStart.ImportStartHandler
-	healthService              HealthService
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -171,7 +170,6 @@ type ArgsEpochStartBootstrap struct {
 	AddressPubkeyConverter     core.PubkeyConverter
 	StatusHandler              core.AppStatusHandler
 	ImportStartHandler         epochStart.ImportStartHandler
-	HealthService              HealthService
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -209,7 +207,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
 		statusHandler:              args.StatusHandler,
-		healthService:              args.HealthService,
 		shuffledOut:                false,
 		importStartHandler:         args.ImportStartHandler,
 	}
@@ -314,7 +311,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			Config:           &e.generalConfig,
 			EconomicsData:    e.economicsData,
 			ShardCoordinator: e.shardCoordinator,
-			HealthService:    e.healthService,
 		},
 	)
 	if err != nil {

@@ -36,12 +36,6 @@ func TestNewDataPoolFromConfig_MissingDependencyShouldErr(t *testing.T) {
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
 	require.Equal(t, dataRetriever.ErrNilShardCoordinator, err)
-
-	args = getGoodArgs()
-	args.HealthService = nil
-	holder, err = NewDataPoolFromConfig(args)
-	require.Nil(t, holder)
-	require.Equal(t, dataRetriever.ErrNilHealthService, err)
 }
 
 func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
@@ -103,6 +97,5 @@ func getGoodArgs() ArgsDataPool {
 		Config:           &config,
 		EconomicsData:    testEconomics.EconomicsData,
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
-		HealthService:    testscommon.NewHealthServiceStub(),
 	}
 }

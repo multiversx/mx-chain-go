@@ -48,8 +48,3 @@ type RequestHandler interface {
 	GetNumPeersToQuery(topic string) (int, int, error)
 	IsInterfaceNil() bool
 }
-
-type HealthService interface {
-	RegisterComponent(component interface{})
-	IsInterfaceNil() bool
-}

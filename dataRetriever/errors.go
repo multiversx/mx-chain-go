@@ -184,6 +184,3 @@ var ErrNilConfig = errors.New("nil config provided")
 
 // ErrNilEconomicsData signals that a nil economics data handler has been provided
 var ErrNilEconomicsData = errors.New("nil economics data provided")
-
-// ErrNilHealthService signals that a nil health service has been provided
-var ErrNilHealthService = errors.New("nil health service provided")
