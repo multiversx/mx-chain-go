@@ -205,6 +205,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTrans
 		Round:    tx.GetRound(),
 		Epoch:    tx.GetEpoch(),
 		Value:    tx.GetValue().String(),
+		Sender:   fmt.Sprintf("%d", core.MetachainShardId),
 		Receiver: n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
 	}, nil
 }
