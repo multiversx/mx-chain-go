@@ -163,6 +163,7 @@ func TestCreateNewBlock(t *testing.T) {
 		ReceiptsHash: []byte("receiptHash"), TxCount: 2,
 		MetaBlockHashes: [][]byte{metaHash}, MiniBlockHeaders: expectedMbHeaders,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 		PubKeysBitmap:   []byte{1},
 		SoftwareVersion: []byte(""),
 	}

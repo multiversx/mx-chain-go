@@ -314,7 +314,8 @@ func createConsensusOnlyNode(
 		time.Unix(startTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(roundTime),
-		syncer)
+		syncer,
+		0)
 
 	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 		GenesisTime:        time.Unix(startTime, 0),
@@ -411,6 +412,7 @@ func createConsensusOnlyNode(
 		node.WithSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 
 	if err != nil {

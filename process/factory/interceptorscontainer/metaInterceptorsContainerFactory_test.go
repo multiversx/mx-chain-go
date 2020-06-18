@@ -440,13 +440,17 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsMiniBlocksForMetachain := noOfShards + 1 + 1
 	numInterceptorsUnsignedTxsForMetachain := noOfShards
 	numInterceptorsRewardsTxsForMetachain := noOfShards
-	numInterceptorsTrieNodes := noOfShards + 2
+	numInterceptorsTrieNodes := 2
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
 		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
 		numInterceptorsRewardsTxsForMetachain
 
 	assert.Nil(t, err)
 	assert.Equal(t, totalInterceptors, container.Len())
+
+	err = icf.AddShardTrieNodeInterceptors(container)
+	assert.Nil(t, err)
+	assert.Equal(t, totalInterceptors+noOfShards, container.Len())
 }
 
 func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryArgs {

@@ -552,6 +552,7 @@ type TransactionWithFeeHandler interface {
 	GetGasPrice() uint64
 	GetData() []byte
 	GetRcvAddr() []byte
+	GetValue() *big.Int
 }
 
 // EconomicsAddressesHandler will return information about economics addresses
@@ -587,6 +588,7 @@ type BlackListHandler interface {
 type PeerBlackListHandler interface {
 	Add(pid core.PeerID) error
 	AddWithSpan(pid core.PeerID, span time.Duration) error
+	Update(pid core.PeerID, span time.Duration) error
 	Has(pid core.PeerID) bool
 	Sweep()
 	IsInterfaceNil() bool
@@ -713,6 +715,7 @@ type P2PAntifloodHandler interface {
 	CanProcessMessagesOnTopic(pid core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	ApplyConsensusSize(size int)
 	SetDebugger(debugger AntifloodDebugger) error
+	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
 }
 

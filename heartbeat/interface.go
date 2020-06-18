@@ -71,6 +71,7 @@ type NetworkShardingCollector interface {
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
+	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
 }
 
@@ -85,6 +86,7 @@ type PeerTypeProviderHandler interface {
 type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
+	NotifyTriggerReceived() <-chan struct{}
 	CreateData() []byte
 	IsInterfaceNil() bool
 }

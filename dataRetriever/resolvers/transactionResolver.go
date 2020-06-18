@@ -94,7 +94,7 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 	txRes.throttler.StartProcessing()
 	defer txRes.throttler.EndProcessing()
 
-	rd, err := txRes.parseReceivedMessage(message)
+	rd, err := txRes.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}

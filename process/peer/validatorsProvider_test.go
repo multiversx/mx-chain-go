@@ -657,8 +657,12 @@ func createDefaultValidatorsProviderArg() ArgValidatorsProvider {
 		StartEpoch:                        1,
 		EpochStartEventNotifier:           &mock.EpochStartNotifierStub{},
 		CacheRefreshIntervalDurationInSec: 1 * time.Millisecond,
-		ValidatorStatistics:               &mock.ValidatorStatisticsProcessorStub{},
-		MaxRating:                         100,
-		PubKeyConverter:                   mock.NewPubkeyConverterMock(32),
+		ValidatorStatistics: &mock.ValidatorStatisticsProcessorStub{
+			LastFinalizedRootHashCalled: func() []byte {
+				return []byte("rootHash")
+			},
+		},
+		MaxRating:       100,
+		PubKeyConverter: mock.NewPubkeyConverterMock(32),
 	}
 }

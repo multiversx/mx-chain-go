@@ -3,6 +3,7 @@ package process
 import (
 	"fmt"
 	"path"
+	"path/filepath"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -18,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/files"
 	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 )
@@ -54,13 +56,22 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 }
 
 func mustDoHardForkImportProcess(arg ArgsGenesisBlockCreator) bool {
-	return arg.HardForkConfig.MustImport && arg.StartEpochNum <= arg.HardForkConfig.StartEpoch
+	return arg.ImportStartHandler.ShouldStartImport() && arg.StartEpochNum <= arg.HardForkConfig.StartEpoch
+}
+
+func getGenesisBlocksRoundNonceEpoch(arg ArgsGenesisBlockCreator) (uint64, uint64, uint32) {
+	if arg.HardForkConfig.AfterHardFork {
+		return arg.HardForkConfig.StartRound, arg.HardForkConfig.StartNonce, arg.HardForkConfig.StartEpoch
+	}
+	return 0, 0, 0
 }
 
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
+	importFolder := filepath.Join(gbc.arg.WorkingDir, gbc.arg.HardForkConfig.ImportFolder)
+
 	importConfig := gbc.arg.HardForkConfig.ImportStateStorageConfig
 	dbConfig := factory.GetDBFromConfig(importConfig.DB)
-	dbConfig.FilePath = path.Join(gbc.arg.HardForkConfig.ImportFolder, importConfig.DB.FilePath)
+	dbConfig.FilePath = path.Join(importFolder, importConfig.DB.FilePath)
 	importStore, err := storageUnit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(importConfig.Cache),
 		dbConfig,
@@ -71,7 +82,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	}
 
 	args := files.ArgsNewMultiFileReader{
-		ImportFolder: gbc.arg.HardForkConfig.ImportFolder,
+		ImportFolder: importFolder,
 		ImportStore:  importStore,
 	}
 	multiFileReader, err := files.NewMultiFileReader(args)
@@ -144,6 +155,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
+	}
+	if check.IfNil(arg.ImportStartHandler) {
+		return update.ErrNilImportStartHandler
 	}
 
 	return nil
