@@ -12,6 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func mockPrintFn(string) {}
+func shouldCompute() bool {
+	return true
+}
+func shouldNotCompute() bool {
+	return false
+}
+
 func TestNewP2PDebugger(t *testing.T) {
 	t.Parallel()
 
@@ -25,10 +33,11 @@ func TestNewP2PDebugger(t *testing.T) {
 func TestP2pDebugger_AddIncomingMessageShouldNotProcessWillNotAdd(t *testing.T) {
 	t.Parallel()
 
-	pd := NewP2PDebugger("")
-	pd.shouldProcessDataFn = func() bool {
-		return false
-	}
+	pd := newTestP2PDebugger(
+		"",
+		shouldNotCompute,
+		mockPrintFn,
+	)
 
 	topic := "topic"
 	size := uint64(3857)
@@ -41,10 +50,11 @@ func TestP2pDebugger_AddIncomingMessageShouldNotProcessWillNotAdd(t *testing.T) 
 func TestP2pDebugger_AddIncomingMessage(t *testing.T) {
 	t.Parallel()
 
-	pd := NewP2PDebugger("")
-	pd.shouldProcessDataFn = func() bool {
-		return true
-	}
+	pd := newTestP2PDebugger(
+		"",
+		shouldCompute,
+		mockPrintFn,
+	)
 
 	topic := "topic"
 	size := uint64(3857)
@@ -87,10 +97,11 @@ func TestP2pDebugger_AddIncomingMessage(t *testing.T) {
 func TestP2pDebugger_AddOutgoingMessageShouldNotProcessWillNotAdd(t *testing.T) {
 	t.Parallel()
 
-	pd := NewP2PDebugger("")
-	pd.shouldProcessDataFn = func() bool {
-		return false
-	}
+	pd := newTestP2PDebugger(
+		"",
+		shouldNotCompute,
+		mockPrintFn,
+	)
 
 	topic := "topic"
 	size := uint64(3857)
@@ -103,10 +114,11 @@ func TestP2pDebugger_AddOutgoingMessageShouldNotProcessWillNotAdd(t *testing.T) 
 func TestP2pDebugger_AddOutgoingMessage(t *testing.T) {
 	t.Parallel()
 
-	pd := NewP2PDebugger("")
-	pd.shouldProcessDataFn = func() bool {
-		return true
-	}
+	pd := newTestP2PDebugger(
+		"",
+		shouldCompute,
+		mockPrintFn,
+	)
 
 	topic := "topic"
 	size := uint64(3857)
@@ -149,14 +161,14 @@ func TestP2pDebugger_AddOutgoingMessage(t *testing.T) {
 func TestP2pDebugger_doStatsShouldNotPrint(t *testing.T) {
 	t.Parallel()
 
-	pd := NewP2PDebugger("")
-	pd.shouldProcessDataFn = func() bool {
-		return false
-	}
 	numPrintWasCalled := int32(0)
-	pd.printStringFn = func(data string) {
-		atomic.AddInt32(&numPrintWasCalled, 1)
-	}
+	_ = newTestP2PDebugger(
+		"",
+		shouldNotCompute,
+		func(data string) {
+			atomic.AddInt32(&numPrintWasCalled, 1)
+		},
+	)
 
 	time.Sleep(printTimeOneSecond * 3)
 
@@ -166,14 +178,14 @@ func TestP2pDebugger_doStatsShouldNotPrint(t *testing.T) {
 func TestP2pDebugger_doStatsShouldPrint(t *testing.T) {
 	t.Parallel()
 
-	pd := NewP2PDebugger("")
-	pd.shouldProcessDataFn = func() bool {
-		return true
-	}
 	numPrintWasCalled := int32(0)
-	pd.printStringFn = func(data string) {
-		atomic.AddInt32(&numPrintWasCalled, 1)
-	}
+	_ = newTestP2PDebugger(
+		"",
+		shouldCompute,
+		func(data string) {
+			atomic.AddInt32(&numPrintWasCalled, 1)
+		},
+	)
 
 	time.Sleep(printTimeOneSecond*3 + time.Millisecond*100)
 
@@ -183,14 +195,14 @@ func TestP2pDebugger_doStatsShouldPrint(t *testing.T) {
 func TestP2pDebugger_doStatsCloseShouldStop(t *testing.T) {
 	t.Parallel()
 
-	pd := NewP2PDebugger("")
-	pd.shouldProcessDataFn = func() bool {
-		return true
-	}
 	numPrintWasCalled := int32(0)
-	pd.printStringFn = func(data string) {
-		atomic.AddInt32(&numPrintWasCalled, 1)
-	}
+	pd := newTestP2PDebugger(
+		"",
+		shouldCompute,
+		func(data string) {
+			atomic.AddInt32(&numPrintWasCalled, 1)
+		},
+	)
 
 	time.Sleep(printTimeOneSecond*3 + time.Millisecond*100)
 	assert.Equal(t, int32(3), atomic.LoadInt32(&numPrintWasCalled))
@@ -205,10 +217,11 @@ func TestP2pDebugger_doStatsCloseShouldStop(t *testing.T) {
 func TestP2pDebugger_doStatsString(t *testing.T) {
 	t.Parallel()
 
-	pd := NewP2PDebugger("")
-	pd.shouldProcessDataFn = func() bool {
-		return true
-	}
+	pd := newTestP2PDebugger(
+		"",
+		shouldCompute,
+		mockPrintFn,
+	)
 
 	topic1 := "testTopic1"
 	size1 := uint64(3 * 1048576) //3MB
