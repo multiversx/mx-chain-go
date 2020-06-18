@@ -145,15 +145,62 @@ func (cache *TxCache) diagnoseShallowly() {
 	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
 	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
 
-	log.Debug("Diagnose", "name", cache.name, "duration", duration, "fine", fine)
-	log.Debug("Size:", "current", sizeInBytes, "max", cache.config.NumBytesThreshold)
-	log.Debug("NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks, "inScoreChunks", numSendersInScoreChunks)
-	log.Debug("NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
-	log.Debug("NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
+	log.Debug("TxCache.diagnoseShallowly()", "name", cache.name, "duration", duration, "fine", fine)
+	log.Debug("TxCache.Size:", "current", sizeInBytes, "max", cache.config.NumBytesThreshold)
+	log.Debug("TxCache.NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks, "inScoreChunks", numSendersInScoreChunks)
+	log.Debug("TxCache.NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
+	log.Debug("TxCache.NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
 }
 
 func (cache *TxCache) diagnoseDeeply() {
-	//displaySendersHistogram
-	//check deep consistency (measure time though)
-	//check and display gaps
+	sw := core.NewStopWatch()
+	sw.Start("diagnose")
+	journal := cache.checkInternalConsistency()
+	sw.Stop("diagnose")
+	duration := sw.GetMeasurement("diagnose")
+
+	log.Debug("TxCache.diagnoseDeeply()", "name", cache.name, "duration", duration)
+	journal.display()
+	cache.displaySendersHistogram()
+}
+
+type internalConsistencyJournal struct {
+	numInMapByHash        int
+	numInMapBySender      int
+	numMissingInMapByHash int
+}
+
+func (journal *internalConsistencyJournal) isFine() bool {
+	return (journal.numInMapByHash == journal.numInMapBySender) && (journal.numMissingInMapByHash == 0)
+}
+
+func (journal *internalConsistencyJournal) display() {
+	log.Debug("internalConsistencyJournal:", "fine", journal.isFine(), "numInMapByHash", journal.numInMapByHash, "numInMapBySender", journal.numInMapBySender, "numMissingInMapByHash", journal.numMissingInMapByHash)
+}
+
+func (cache *TxCache) checkInternalConsistency() internalConsistencyJournal {
+	internalMapByHash := cache.txByHash
+	internalMapBySender := cache.txListBySender
+
+	senders := internalMapBySender.getSnapshotAscending()
+	numInMapByHash := len(internalMapByHash.keys())
+	numInMapBySender := 0
+	numMissingInMapByHash := 0
+
+	for _, sender := range senders {
+		numInMapBySender += int(sender.countTx())
+
+		for _, hash := range sender.getTxHashes() {
+			_, ok := internalMapByHash.getTx(string(hash))
+			if !ok {
+				numMissingInMapByHash++
+			}
+		}
+	}
+
+	return internalConsistencyJournal{
+		numInMapByHash:        numInMapByHash,
+		numInMapBySender:      numInMapBySender,
+		numMissingInMapByHash: numMissingInMapByHash,
+	}
 }

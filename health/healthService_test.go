@@ -2,7 +2,6 @@ package health
 
 import (
 	"testing"
-	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -23,7 +22,6 @@ func TestHealthService_StartThenClose(t *testing.T) {
 	require.NotNil(t, h)
 
 	h.Start()
-	_ = h.Close()
-
-	time.Sleep(1 * time.Second)
+	err := h.Close()
+	require.Nil(t, err)
 }
