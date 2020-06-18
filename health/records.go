@@ -38,8 +38,7 @@ func (records *records) addRecord(incomingRecord record) {
 func (records *records) makeRoomForRecord(incomingRecord record) bool {
 	capacityReached := records.items.Len() > records.capacity
 	if capacityReached {
-		lowestRecord := records.getLeastImportant()
-		if lowestRecord.isMoreImportantThan(incomingRecord) {
+		if records.getLeastImportant().isMoreImportantThan(incomingRecord) {
 			return false
 		}
 
@@ -54,13 +53,13 @@ func (records *records) getLeastImportant() record {
 }
 
 func (records *records) removeLeastImportant() {
-	lowestElement := records.items.Back()
-	lowestRecord := lowestElement.Value.(record)
+	leastImportantElement := records.items.Back()
+	leastImportantRecord := leastImportantElement.Value.(record)
 
-	records.items.Remove(lowestElement)
-	err := os.Remove(lowestRecord.getFilename())
+	records.items.Remove(leastImportantElement)
+	err := os.Remove(leastImportantRecord.getFilename())
 	if err != nil {
-		log.Error("records.removeLeastImportant()", "file", lowestRecord.getFilename(), "err", err)
+		log.Error("records.removeLeastImportant()", "file", leastImportantRecord.getFilename(), "err", err)
 	}
 }
 

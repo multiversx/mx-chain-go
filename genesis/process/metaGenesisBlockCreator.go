@@ -198,7 +198,6 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 	if err != nil {
 		return nil, err
 	}
-
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(
 		argsHook,
 		arg.Economics,
