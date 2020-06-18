@@ -97,7 +97,7 @@ func (as *alarmScheduler) startProcessLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case evt := <-as.event:
-			elapsedTime := time.Now().Sub(startTime)
+			elapsedTime := time.Since(startTime)
 			waitTime = as.handleEvent(evt, elapsedTime)
 
 		case <-time.After(waitTime):

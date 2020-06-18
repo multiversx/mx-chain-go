@@ -231,8 +231,8 @@ func (dbb *delayedBlockBroadcaster) SetBroadcastHandlers(
 		return spos.ErrNilParameter
 	}
 
-	dbb.mutDataForBroadcast.RLock()
-	defer dbb.mutDataForBroadcast.RUnlock()
+	dbb.mutDataForBroadcast.Lock()
+	defer dbb.mutDataForBroadcast.Unlock()
 
 	dbb.broadcastMiniblocksData = mbBroadcast
 	dbb.broadcastTxsData = txBroadcast
@@ -280,9 +280,13 @@ func (dbb *delayedBlockBroadcaster) headerReceived(headerHandler data.HeaderHand
 }
 
 func (dbb *delayedBlockBroadcaster) broadcastDataForHeaders(headerHashes [][]byte) {
+	dbb.mutDataForBroadcast.RLock()
 	if len(dbb.delayedBroadcastData) == 0 {
+		dbb.mutDataForBroadcast.RUnlock()
+
 		return
 	}
+	dbb.mutDataForBroadcast.RUnlock()
 
 	time.Sleep(core.ExtraDelayForBroadcastBlockInfo)
 
@@ -304,6 +308,9 @@ func (dbb *delayedBlockBroadcaster) broadcastDataForHeaders(headerHashes [][]byt
 }
 
 func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators []*headerDataForValidator) {
+	dbb.mutDataForBroadcast.RLock()
+	defer dbb.mutDataForBroadcast.RUnlock()
+
 	if len(dbb.valBroadcastData) == 0 {
 		return
 	}
@@ -354,6 +361,7 @@ func (dbb *delayedBlockBroadcaster) alarmExpired(alarmID string) {
 
 	dbb.mutDataForBroadcast.Lock()
 	defer dbb.mutDataForBroadcast.Unlock()
+
 	for i, broadcastData := range dbb.valBroadcastData {
 		if bytes.Equal(broadcastData.headerHash, headerHash) {
 			log.Debug("delayedBroadcast.alarmExpired - validator broadcasts block data (with delay) instead of leader",
@@ -549,8 +557,8 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 	dbb.cacheHeaders.Put(headerHash, struct{}{}, 0)
 	dbb.mutHeadersCache.Unlock()
 
-	dbb.mutDataForBroadcast.Lock()
-	dbb.mutDataForBroadcast.Unlock()
+	dbb.mutDataForBroadcast.RLock()
+	defer dbb.mutDataForBroadcast.RUnlock()
 
 	log.Debug("delayedBroadcast.interceptedHeader",
 		"headerHash", headerHash,
@@ -571,6 +579,7 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 				"headerHash", headerHash,
 				"alarmID-header", alarmID,
 			)
+			break
 		}
 	}
 }
@@ -596,7 +605,6 @@ func (dbb *delayedBlockBroadcaster) interceptedMiniBlockData(topic string, hash 
 				"headerHash", broadcastData.headerHash,
 				"alarmID-delay", alarmID,
 			)
-			return
 		}
 	}
 }

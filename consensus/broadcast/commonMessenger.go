@@ -85,9 +85,10 @@ func checkCommonMessengerNilParameters(
 	if check.IfNil(args.HeadersSubscriber) {
 		return spos.ErrNilHeadersSubscriber
 	}
-	if args.MaxDelayCacheSize == 0 {
+	if args.MaxDelayCacheSize == 0 || args.MaxValidatorDelayCacheSize == 0 {
 		return spos.ErrInvalidCacheSize
 	}
+
 	return nil
 }
 

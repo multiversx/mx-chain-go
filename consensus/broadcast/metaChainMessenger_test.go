@@ -210,25 +210,3 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 	assert.Equal(t, len(miniBlocks), countersBroadcast["txBlockBodies_0"]+countersBroadcast["txBlockBodies_0_1"])
 	assert.Equal(t, len(transactions), countersBroadcast["topic1"]+countersBroadcast["topic2"])
 }
-
-func TestMetaChainMessenger_PrepareBroadcastBlockDataValidatorOK(t *testing.T) {
-	args := createDefaultMetaChainArgs()
-	mcm, _ := broadcast.NewMetaChainMessenger(args)
-
-	miniBlocks := map[uint32][]byte{0: []byte("mbs data1"), 1: []byte("mbs data2")}
-	transactions := map[string][][]byte{"topic1": {[]byte("txdata1"), []byte("txdata2")}, "topic2": {[]byte("txdata3")}}
-
-	err := mcm.PrepareBroadcastBlockDataValidator(&block.Header{}, miniBlocks, transactions, 1)
-	require.Nil(t, err)
-}
-
-func TestMetaChainMessenger_PrepareBroadcastBlockDataValidatorNilHeaderShouldErr(t *testing.T) {
-	args := createDefaultMetaChainArgs()
-	mcm, _ := broadcast.NewMetaChainMessenger(args)
-
-	miniBlocks := map[uint32][]byte{0: []byte("mbs data1"), 1: []byte("mbs data2")}
-	transactions := map[string][][]byte{"topic1": {[]byte("txdata1"), []byte("txdata2")}, "topic2": {[]byte("txdata3")}}
-
-	err := mcm.PrepareBroadcastBlockDataValidator(nil, miniBlocks, transactions, 1)
-	require.Equal(t, spos.ErrNilHeader, err)
-}

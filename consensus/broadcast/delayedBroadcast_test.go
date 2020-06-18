@@ -1,6 +1,7 @@
 package broadcast_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"strconv"
 	"sync"
@@ -838,7 +839,7 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastSameRoundAndPrevRandS
 	}
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
-	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
+	timeToWait := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() + core.ExtraDelayForBroadcastBlockInfo
 	time.Sleep(timeToWait + 100*time.Millisecond)
 
 	// check there was a broadcast and validator delay data empty
@@ -889,7 +890,7 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldBroadcastTheDataForRegistered
 	vbd := dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
 
-	dbb.AlarmExpired(string(vArgs.headerHash))
+	dbb.AlarmExpired(hex.EncodeToString(vArgs.headerHash))
 	time.Sleep(time.Millisecond * 100)
 
 	// check there was a broadcast and validator delay data empty
@@ -1096,7 +1097,7 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 	require.Equal(t, 1, len(vbd))
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
-	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
+	timeToWait := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() + core.ExtraDelayForBroadcastBlockInfo
 	time.Sleep(timeToWait + 100*time.Millisecond)
 
 	// check there was a broadcast and validator delay data empty
@@ -1157,7 +1158,7 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
 	dbb.InterceptedMiniBlockData("txBlockBodies_0_"+strconv.Itoa(destShardID), miniBlockHashToNotify, &block.MiniBlock{})
-	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
+	timeToWait := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() + core.ExtraDelayForBroadcastBlockInfo
 	time.Sleep(timeToWait + 100*time.Millisecond)
 
 	// check there was a broadcast and validator delay data empty
