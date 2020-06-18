@@ -120,8 +120,6 @@ func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 
 // doEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) doEndRoundJob() bool {
-	log.Debug("doEndRoundJob")
-
 	if !sr.IsSelfLeaderInCurrentRound() {
 		if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
 			err := sr.prepareBroadcastBlockDataForValidator()

@@ -316,7 +316,6 @@ func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators
 	}
 
 	log.Debug("delayedBroadcast.scheduleValidatorBroadcast - header data for validator")
-
 	for i := range dataForValidators {
 		log.Debug("delayedBroadcast.scheduleValidatorBroadcast",
 			"round", dataForValidators[i].round,
@@ -588,6 +587,7 @@ func (dbb *delayedBlockBroadcaster) interceptedMiniBlockData(topic string, hash 
 	dbb.mutDataForBroadcast.Lock()
 	defer dbb.mutDataForBroadcast.Unlock()
 
+	remainingValBroadcastData := make([]*delayedBroadcastData, 0)
 	for i, broadcastData := range dbb.valBroadcastData {
 		mbHashesMap := broadcastData.miniBlockHashes
 		if len(mbHashesMap) > 0 && len(mbHashesMap[topic]) > 0 {
@@ -600,13 +600,15 @@ func (dbb *delayedBlockBroadcaster) interceptedMiniBlockData(topic string, hash 
 		if len(mbHashesMap) == 0 {
 			alarmID := prefixDelayDataAlarm + hex.EncodeToString(broadcastData.headerHash)
 			dbb.alarm.Cancel(alarmID)
-			dbb.valBroadcastData = append(dbb.valBroadcastData[:i], dbb.valBroadcastData[i+1:]...)
 			log.Debug("delayedBroadcast.interceptedMiniBlockData leader has broadcast block data, validator cancelling alarm",
 				"headerHash", broadcastData.headerHash,
 				"alarmID-delay", alarmID,
 			)
+		} else {
+			remainingValBroadcastData = append(remainingValBroadcastData, dbb.valBroadcastData[i])
 		}
 	}
+	dbb.valBroadcastData = remainingValBroadcastData
 }
 
 func (dbb *delayedBlockBroadcaster) extractMiniBlockHashesCrossFromMe(header data.HeaderHandler) map[string]map[string]struct{} {
