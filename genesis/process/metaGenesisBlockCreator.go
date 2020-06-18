@@ -198,7 +198,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Close when done? (otherwise another Arwen process running)
+
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(
 		argsHook,
 		arg.Economics,
