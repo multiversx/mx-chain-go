@@ -122,7 +122,7 @@
         Name = "UnsignedTransactionStorage"
         Capacity = 75000
         Type = "SizeLRU"
-        SizeInBytes = 209715200 #200MB
+        SizeInBytes = 104857600 #100MB
     [UnsignedTransactionStorage.DB]
         FilePath = "UnsignedTransactions"
         Type = "LvlDBSerial"
@@ -135,7 +135,7 @@
         Name = "RewardTxStorage"
         Capacity = 75000
         Type = "SizeLRU"
-        SizeInBytes = 104857600 #100MB
+        SizeInBytes = 52428800 #50MB
     [RewardTxStorage.DB]
         FilePath = "RewardTransactions"
         Type = "LvlDBSerial"
@@ -252,10 +252,11 @@
 
 [TxDataPool]
     Name = "TxDataPool"
-    Capacity = 900000               # in total, pairs (sourceShard, destinationShard)
+    Capacity = 600000
     SizePerSender = 20000
-    SizeInBytes = 524288000         # 500MB in total, pairs (sourceShard, destinationShard)
-    SizeInBytesPerSender = 12582912 # 12MB
+    SizeInBytes = 419430400 #400MB
+    SizeInBytesPerSender = 12288000
+    Type = "TxCache"
     Shards = 16
 
 [TrieNodesDataPool]
@@ -306,12 +307,6 @@
     Name = "PeerIdShardId"
     Capacity = 30000
     Type = "LRU"
-
-[P2PMessageIDAdditionalCache]
-    Name = "P2PMessageIDAdditionalCache"
-    Capacity = 100000
-    Type = "FIFOSharded"
-    Shards = 100
 
 [Antiflood]
     Enabled = true
@@ -502,45 +497,50 @@
         MessagesMarshalizer = "json"
         MaxLoopTime = 1000
 
+[P2PMessageIDAdditionalCache]
+    Capacity = 100000
+    Type = "FIFOSharded"
+    Shards = 100
+
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true
-    PublicKeyToListenFrom = "b5ea539180627040b2703cabde8ebece0ded59a0c9d2d4a8a73a299fb7bc11d36ac3d1a620501c230059cffa983a7419d192a50ca55ed8aa07254658dda27aba1e54f50fd7cfbb9e66ce1715d72f9c1b0b05272388f9825742161a211debff15"
+    PublicKeyToListenFrom = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
 	CloseAfterExportInMinutes = 10
-	MustImport = false
+	AfterHardFork = false
 	ImportFolder = "export"
 	StartRound = 10000
 	StartNonce = 10000
 	StartEpoch = 100
 	ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
-	[HardFork.ExportStateStorageConfig]
-	    [HardFork.ExportStateStorageConfig.Cache]
+	[Hardfork.ExportStateStorageConfig]
+	    [Hardfork.ExportStateStorageConfig.Cache]
             Name = "HardFork.ExportStateStorageConfig"
             Capacity = 5000
             Type = "LRU"
-        [HardFork.ExportStateStorageConfig.DB]
+        [Hardfork.ExportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
-    [HardFork.ExportTriesStorageConfig]
-        [HardFork.ExportTriesStorageConfig.Cache]
+    [Hardfork.ExportTriesStorageConfig]
+        [Hardfork.ExportTriesStorageConfig.Cache]
             Name = "HardFork.ExportTriesStorageConfig"
             Capacity = 5000
             Type = "LRU"
-        [HardFork.ExportTriesStorageConfig.DB]
+        [Hardfork.ExportTriesStorageConfig.DB]
             FilePath = "ExportTrieStorage/MainTrie"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
-	[HardFork.ImportStateStorageConfig]
-	    [HardFork.ImportStateStorageConfig.Cache]
+	[Hardfork.ImportStateStorageConfig]
+	    [Hardfork.ImportStateStorageConfig.Cache]
             Name = "HardFork.ImportStateStorageConfig"
             Capacity = 5000
             Type = "LRU"
-        [HardFork.ImportStateStorageConfig.DB]
+        [Hardfork.ImportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2

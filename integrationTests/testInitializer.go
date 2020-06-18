@@ -541,6 +541,7 @@ func CreateGenesisMetaBlock(
 			},
 		},
 		BlockSignKeyGen: &mock.KeyGenMock{},
+		ImportStartHandler: &mock.ImportStartHandlerStub{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

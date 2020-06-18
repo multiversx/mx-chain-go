@@ -316,6 +316,7 @@ type HardforkConfig struct {
 	EnableTrigger                bool
 	EnableTriggerFromP2P         bool
 	MustImport                   bool
+	AfterHardFork                bool
 }
 
 // DebugConfig will hold debugging configuration

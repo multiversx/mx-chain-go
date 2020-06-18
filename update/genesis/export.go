@@ -1,6 +1,7 @@
 package genesis
 
 import (
+	"encoding/hex"
 	"encoding/json"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -229,11 +230,16 @@ func (se *stateExport) exportAccountLeafs(leafs map[string][]byte, accType Type,
 		}
 		err = se.marshalizer.Unmarshal(account, buff)
 		if err != nil {
+			log.Trace("error unmarshaling account this is maybe a code error",
+				"address", hex.EncodeToString([]byte(address)),
+				"error", err,
+			)
+
 			err = se.writer.Write(fileName, keyToExport, buff)
 			if err != nil {
 				return err
 			}
-			log.Trace("error unmarshaling account this is maybe a code", "address", address, "error", err)
+
 			continue
 		}
 

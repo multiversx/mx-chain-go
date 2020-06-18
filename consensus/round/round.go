@@ -17,6 +17,7 @@ type round struct {
 	timeStamp    time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
 	timeDuration time.Duration // represents the duration of the round in current chronology
 	syncTimer    ntp.SyncTimer
+	startRound   int64
 }
 
 // NewRound defines a new round object
@@ -25,13 +26,19 @@ func NewRound(
 	currentTimeStamp time.Time,
 	roundTimeDuration time.Duration,
 	syncTimer ntp.SyncTimer,
+	startRound int64,
 ) (*round, error) {
 
 	if check.IfNil(syncTimer) {
 		return nil, ErrNilSyncTimer
 	}
 
-	rnd := round{timeDuration: roundTimeDuration, timeStamp: genesisTimeStamp, syncTimer: syncTimer}
+	rnd := round{
+		timeDuration: roundTimeDuration,
+		timeStamp:    genesisTimeStamp,
+		syncTimer:    syncTimer,
+		startRound:   startRound,
+	}
 	rnd.UpdateRound(genesisTimeStamp, currentTimeStamp)
 	return &rnd, nil
 }
@@ -40,17 +47,22 @@ func NewRound(
 func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
 	delta := currentTimeStamp.Sub(genesisTimeStamp).Nanoseconds()
 
-	index := int64(math.Floor(float64(delta) / float64(rnd.timeDuration.Nanoseconds())))
+	index := int64(math.Floor(float64(delta)/float64(rnd.timeDuration.Nanoseconds()))) + rnd.startRound
 
 	if rnd.index != index {
 		rnd.index = index
-		rnd.timeStamp = genesisTimeStamp.Add(time.Duration(index * rnd.timeDuration.Nanoseconds()))
+		rnd.timeStamp = genesisTimeStamp.Add(time.Duration((index - rnd.startRound) * rnd.timeDuration.Nanoseconds()))
 	}
 }
 
 // Index returns the index of the round in current epoch
 func (rnd *round) Index() int64 {
 	return rnd.index
+}
+
+// BeforeGenesis returns true if round index is before start round
+func (rnd *round) BeforeGenesis() bool {
+	return rnd.index <= rnd.startRound
 }
 
 // TimeStamp returns the time stamp of the round

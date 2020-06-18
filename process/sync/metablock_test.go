@@ -279,6 +279,7 @@ func TestMetaBootstrap_SyncBlockShouldCallRollBack(t *testing.T) {
 	args.Store = createMetaStore()
 
 	blkc := blockchain.NewMetaChain()
+	_ = blkc.SetGenesisHeader(&block.MetaBlock{})
 	_ = blkc.SetCurrentBlockHeader(&hdr)
 	args.ChainHandler = blkc
 
@@ -336,6 +337,7 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		time.Now().Add(2*100*time.Millisecond),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
@@ -440,6 +442,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		time.Now().Add(200*time.Millisecond),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -521,6 +524,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 		time.Now().Add(2*100*time.Millisecond),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -588,6 +592,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 		time.Now().Add(2*100*time.Millisecond),
 		100*time.Millisecond,
 		&mock.SyncTimerMock{},
+		0,
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -608,7 +613,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenCurrentBlockIsNil
 		return 0
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder, _ = round.NewRound(time.Now(), time.Now(), 200*time.Millisecond, &mock.SyncTimerMock{})
+	args.Rounder, _ = round.NewRound(time.Now(), time.Now(), 200*time.Millisecond, &mock.SyncTimerMock{}, 0)
 
 	bs, err := sync.NewMetaBootstrap(args)
 	assert.Nil(t, err)
@@ -630,7 +635,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIs
 		return 1
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder, _ = round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{})
+	args.Rounder, _ = round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{}, 0)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
@@ -686,7 +691,7 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynce
 		return 1
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder, _ = round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{})
+	args.Rounder, _ = round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{}, 0)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
@@ -834,7 +839,7 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		return 0
 	}
 	args.ForkDetector = forkDetector
-	args.Rounder, _ = round.NewRound(time.Now(), time.Now(), 200*time.Millisecond, &mock.SyncTimerMock{})
+	args.Rounder, _ = round.NewRound(time.Now(), time.Now(), 200*time.Millisecond, &mock.SyncTimerMock{}, 0)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	hdr, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.HeadersCalled())

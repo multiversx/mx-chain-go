@@ -4,7 +4,6 @@
 [Node]
     #Port is the port that will be opened by the node on all interfaces so other peers can connect to it
     #If the port = 0, the node will search for a free port on the machine and use it
-    #Can use single values such as 0, 10230, 15670 or a range such as 5000-10000
     Port = "37373-38383"
 
     #Seed represents the seed string generator for p2p identity (used during authentication and message passing).
@@ -48,7 +47,7 @@
     #
     #If the initial peers list is left empty, the node will not try to connect to other peers during initial bootstrap
     #phase but will accept connections and will do the network discovery if another peer connects to it
-    InitialPeerList = ["/ip4/127.0.0.1/tcp/10000/p2p/16Uiu2HAmAzokH1ozUF52Vy3RKqRfCMr9ZdNDkUQFEkXRs9DqvmKf"]
+    InitialPeerList = ["/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"]
 
     #kademlia's routing table bucket size
     BucketSize = 100
