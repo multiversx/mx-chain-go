@@ -271,6 +271,18 @@ func (sd *shardedData) GetCounts() counting.CountsWithSize {
 	return counts
 }
 
+// Diagnose diagnoses the internal caches
+func (sd *shardedData) Diagnose(deep bool) {
+	log.Debug("shardedData.Diagnose()", "deep", deep, "counts", sd.GetCounts().String())
+
+	sd.mutShardedDataStore.RLock()
+	defer sd.mutShardedDataStore.RUnlock()
+
+	for _, shard := range sd.shardedDataStore {
+		shard.cache.Diagnose(deep)
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sd *shardedData) IsInterfaceNil() bool {
 	return sd == nil

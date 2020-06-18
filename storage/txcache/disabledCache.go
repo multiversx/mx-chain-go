@@ -109,7 +109,7 @@ func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 }
 
 // Diagnose does nothing
-func (cache *DisabledCache) Diagnose() {
+func (cache *DisabledCache) Diagnose(_ bool) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

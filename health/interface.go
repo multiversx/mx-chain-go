@@ -1,5 +1,5 @@
 package health
 
 type diagnosable interface {
-	Diagnose()
+	Diagnose(deep bool)
 }

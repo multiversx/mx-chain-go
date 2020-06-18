@@ -152,7 +152,7 @@ func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
 
 func (cache *TxCache) doAfterSelection() {
 	cache.sweepSweepable()
-	cache.Diagnose()
+	cache.Diagnose(false)
 }
 
 // RemoveTxByHash removes tx by hash

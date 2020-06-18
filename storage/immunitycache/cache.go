@@ -242,6 +242,19 @@ func (ic *ImmunityCache) ForEachItem(function storage.ForEachItem) {
 	}
 }
 
+// Diagnose displays a summary of the internal state of the cache
+func (ic *ImmunityCache) Diagnose(_ bool) {
+	count := ic.Count()
+	countImmune := ic.CountImmune()
+	numBytes := ic.NumBytes()
+	log.Debug("ImmunityCache.Diagnose()",
+		"name", ic.config.Name,
+		"count", count,
+		"countImmune", countImmune,
+		"numBytes", numBytes,
+	)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ic *ImmunityCache) IsInterfaceNil() bool {
 	return ic == nil

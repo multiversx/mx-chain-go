@@ -52,20 +52,7 @@ func (cache *CrossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
 		"numNow", numNow,
 		"numFuture", numFuture,
 	)
-	cache.Diagnose()
-}
-
-// Diagnose displays a summary of the internal state of the cache
-func (cache *CrossTxCache) Diagnose() {
-	count := cache.Count()
-	countImmune := cache.CountImmune()
-	numBytes := cache.NumBytes()
-	log.Debug("CrossTxCache.Diagnose()",
-		"name", cache.config.Name,
-		"count", count,
-		"countImmune", countImmune,
-		"numBytes", numBytes,
-	)
+	cache.Diagnose(false)
 }
 
 // AddTx adds a transaction in the cache

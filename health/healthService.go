@@ -10,6 +10,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 var log = logger.GetOrCreate("health")
@@ -41,9 +42,7 @@ func (h *healthService) Start() {
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	h.cancelFunction = cancelFunc
-
-	go h.monitorMemoryContinuously(ctx)
-	go h.diagnoseComponentsContinuously(ctx)
+	go h.monitorContinuously(ctx)
 }
 
 func (h *healthService) prepareFolder() {
@@ -53,24 +52,29 @@ func (h *healthService) prepareFolder() {
 	}
 }
 
-func (h *healthService) monitorMemoryContinuously(ctx context.Context) {
-	afterSeconds := h.config.IntervalVerifyMemoryInSeconds
-	for {
-		if h.shouldContinueInfiniteLoop(ctx, afterSeconds) {
+func (h *healthService) monitorContinuously(ctx context.Context) {
+	for i := 0; h.shouldContinueInfiniteLoop(ctx); i++ {
+		shouldMonitorMemory := i%h.config.IntervalVerifyMemoryInSeconds == 0
+		shouldDiagnoseComponents := i%h.config.IntervalDiagnoseComponentsInSeconds == 0
+		shouldDiagnoseComponentsDeeply := i%h.config.IntervalDiagnoseComponentsDeeplyInSeconds == 0
+
+		if shouldMonitorMemory {
 			h.monitorMemory()
-		} else {
-			break
+		}
+		if shouldDiagnoseComponents {
+			h.diagnoseComponents(false)
+		}
+		if shouldDiagnoseComponentsDeeply {
+			h.diagnoseComponents(true)
 		}
 	}
 
-	log.Info("healthService.monitorMemoryContinuously() ended")
+	log.Info("healthService.monitorContinuously() ended")
 }
 
-func (h *healthService) shouldContinueInfiniteLoop(ctx context.Context, afterSeconds int) bool {
-	interval := time.Duration(afterSeconds) * time.Second
-
+func (h *healthService) shouldContinueInfiniteLoop(ctx context.Context) bool {
 	select {
-	case <-time.After(interval):
+	case <-time.After(time.Second):
 		return true
 	case <-ctx.Done():
 		return false
@@ -78,10 +82,10 @@ func (h *healthService) shouldContinueInfiniteLoop(ctx context.Context, afterSec
 }
 
 func (h *healthService) monitorMemory() {
-	log.Trace("healthService.monitorMemory()")
-
 	var stats runtime.MemStats
 	runtime.ReadMemStats(&stats)
+
+	log.Trace("healthService.monitorMemory()", "heapInUse", core.ConvertBytes(stats.HeapInuse))
 
 	if int(stats.HeapInuse) > h.config.MemoryToCreateProfiles {
 		record := newMemoryRecord(stats)
@@ -89,26 +93,14 @@ func (h *healthService) monitorMemory() {
 	}
 }
 
-func (h *healthService) diagnoseComponentsContinuously(ctx context.Context) {
-	afterSeconds := h.config.IntervalDiagnoseComponentsInSeconds
-	for {
-		if h.shouldContinueInfiniteLoop(ctx, afterSeconds) {
-			h.diagnoseComponents()
-		} else {
-			break
-		}
-	}
+func (h *healthService) diagnoseComponents(deep bool) {
+	log.Trace("healthService.diagnoseComponents()", "deep", deep)
 
-	log.Info("healthService.RegisterComponentsContinuously() ended")
-}
-
-func (h *healthService) diagnoseComponents() {
 	h.diagnosableComponentsMutex.RLock()
 	defer h.diagnosableComponentsMutex.RUnlock()
 
 	for _, component := range h.diagnosableComponents {
-		log.Debug("healthService.diagnoseComponent()", "component")
-		component.Diagnose()
+		component.Diagnose(deep)
 	}
 }
 

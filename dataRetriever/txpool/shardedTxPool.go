@@ -327,12 +327,14 @@ func (txPool *shardedTxPool) GetCounts() counting.CountsWithSize {
 }
 
 // Diagnose diagnoses the internal caches
-func (txPool *shardedTxPool) Diagnose() {
+func (txPool *shardedTxPool) Diagnose(deep bool) {
+	log.Debug("shardedTxPool.Diagnose()", "deep", deep, "counts", txPool.GetCounts().String())
+
 	txPool.mutexBackingMap.RLock()
 	defer txPool.mutexBackingMap.RUnlock()
 
 	for _, shard := range txPool.backingMap {
-		shard.Cache.Diagnose()
+		shard.Cache.Diagnose(deep)
 	}
 }
 

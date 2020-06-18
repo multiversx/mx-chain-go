@@ -54,8 +54,6 @@ func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopW
 		"numSendersWithMiddleGap", numSendersWithMiddleGap,
 		"numSendersInGracePeriod", numSendersInGracePeriod,
 	)
-
-	cache.displaySendersHistogram()
 }
 
 type batchSelectionJournal struct {
@@ -117,7 +115,14 @@ func (journal *evictionJournal) display() {
 }
 
 // Diagnose checks the state of the cache for inconsistencies and displays a summary
-func (cache *TxCache) Diagnose() {
+func (cache *TxCache) Diagnose(deep bool) {
+	cache.diagnoseShallowly()
+	if deep {
+		cache.diagnoseDeeply()
+	}
+}
+
+func (cache *TxCache) diagnoseShallowly() {
 	sw := core.NewStopWatch()
 	sw.Start("diagnose")
 
@@ -145,4 +150,10 @@ func (cache *TxCache) Diagnose() {
 	log.Debug("NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks, "inScoreChunks", numSendersInScoreChunks)
 	log.Debug("NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
 	log.Debug("NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
+}
+
+func (cache *TxCache) diagnoseDeeply() {
+	//displaySendersHistogram
+	//check deep consistency (measure time though)
+	//check and display gaps
 }
