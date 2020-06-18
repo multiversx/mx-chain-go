@@ -272,6 +272,14 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 		return process.ErrHigherGasLimitRequiredInTx
 	}
 
+	if len(tx.GetValue().Bytes()) > len(ed.genesisTotalSupply.Bytes()) {
+		return process.ErrTxValueOutOfBounds
+	}
+
+	if tx.GetValue().Cmp(ed.genesisTotalSupply) > 0 {
+		return process.ErrTxValueTooBig
+	}
+
 	return nil
 }
 
