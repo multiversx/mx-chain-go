@@ -30,19 +30,19 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 
 	// Scenarios where source == me
 
-	scenario := newScenario(300, 1, core.MegabyteSize, "0")
+	scenario := newScenario(200, 1, core.MegabyteSize, "0")
 	pool := newPool()
 	journal := analyzeMemoryFootprint(t, pool, scenario)
 	journals = append(journals, journal)
-	require.True(t, journal.payloadFootprintBetween(300, 300))
+	require.True(t, journal.payloadFootprintBetween(200, 200))
 	require.True(t, journal.structuralFootprintBetween(0, 1))
 	keepPoolInMemoryUpToThisPoint(pool)
 
-	scenario = newScenario(10, 1000, 30720, "0")
+	scenario = newScenario(10, 1000, 20480, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
 	journals = append(journals, journal)
-	require.True(t, journal.payloadFootprintBetween(300, 315))
+	require.True(t, journal.payloadFootprintBetween(190, 205))
 	require.True(t, journal.structuralFootprintBetween(1, 4))
 	keepPoolInMemoryUpToThisPoint(pool)
 
@@ -80,66 +80,58 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 
 	// With largest memory footprint
 
-	scenario = newScenario(100000, 6, 128, "0")
+	scenario = newScenario(100000, 3, 650, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
 	journals = append(journals, journal)
-	require.True(t, journal.payloadFootprintBetween(230, 240))
-	require.True(t, journal.structuralFootprintBetween(165, 185))
+	require.True(t, journal.payloadFootprintBetween(290, 300))
+	require.True(t, journal.structuralFootprintBetween(95, 110))
 	keepPoolInMemoryUpToThisPoint(pool)
 
-	scenario = newScenario(200000, 3, 128, "0")
+	scenario = newScenario(150000, 2, 650, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
 	journals = append(journals, journal)
-	require.True(t, journal.payloadFootprintBetween(230, 240))
-	require.True(t, journal.structuralFootprintBetween(200, 210))
+	require.True(t, journal.payloadFootprintBetween(290, 300))
+	require.True(t, journal.structuralFootprintBetween(120, 130))
 	keepPoolInMemoryUpToThisPoint(pool)
 
-	scenario = newScenario(300000, 2, 128, "0")
+	scenario = newScenario(300000, 1, 650, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
 	journals = append(journals, journal)
-	require.True(t, journal.payloadFootprintBetween(230, 240))
-	require.True(t, journal.structuralFootprintBetween(240, 250))
+	require.True(t, journal.payloadFootprintBetween(290, 300))
+	require.True(t, journal.structuralFootprintBetween(170, 190))
 	keepPoolInMemoryUpToThisPoint(pool)
 
-	scenario = newScenario(600000, 1, 128, "0")
+	scenario = newScenario(30, 10000, 650, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
 	journals = append(journals, journal)
-	require.True(t, journal.payloadFootprintBetween(230, 240))
-	require.True(t, journal.structuralFootprintBetween(350, 360))
+	require.True(t, journal.payloadFootprintBetween(290, 300))
+	require.True(t, journal.structuralFootprintBetween(60, 70))
 	keepPoolInMemoryUpToThisPoint(pool)
 
-	scenario = newScenario(30, 20000, 128, "0")
+	scenario = newScenario(300, 1000, 650, "0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
 	journals = append(journals, journal)
-	require.True(t, journal.payloadFootprintBetween(230, 240))
-	require.True(t, journal.structuralFootprintBetween(120, 136))
-	keepPoolInMemoryUpToThisPoint(pool)
-
-	scenario = newScenario(600, 1000, 128, "0")
-	pool = newPool()
-	journal = analyzeMemoryFootprint(t, pool, scenario)
-	journals = append(journals, journal)
-	require.True(t, journal.payloadFootprintBetween(230, 240))
-	require.True(t, journal.structuralFootprintBetween(120, 136))
+	require.True(t, journal.payloadFootprintBetween(290, 300))
+	require.True(t, journal.structuralFootprintBetween(60, 70))
 	keepPoolInMemoryUpToThisPoint(pool)
 
 	// Scenarios where destination == me
 
-	scenario = newScenario(150, 1, core.MegabyteSize, "1_0")
+	scenario = newScenario(100, 1, core.MegabyteSize, "1_0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
 	journals = append(journals, journal)
-	require.True(t, journal.payloadFootprintBetween(148, 150))
+	require.True(t, journal.payloadFootprintBetween(90, 100))
 	require.True(t, journal.structuralFootprintBetween(0, 1))
-	scenario = newScenario(150, 1, core.MegabyteSize, "4294967295_0")
+	scenario = newScenario(100, 1, core.MegabyteSize, "4294967295_0")
 	journal = analyzeMemoryFootprint(t, pool, scenario)
 	journals = append(journals, journal)
-	require.True(t, journal.payloadFootprintBetween(148, 150))
+	require.True(t, journal.payloadFootprintBetween(90, 100))
 	require.True(t, journal.structuralFootprintBetween(0, 1))
 	keepPoolInMemoryUpToThisPoint(pool)
 
@@ -156,13 +148,13 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	require.True(t, journal.structuralFootprintBetween(0, 4))
 	keepPoolInMemoryUpToThisPoint(pool)
 
-	scenario = newScenario(10, 10000, 1024, "1_0")
+	scenario = newScenario(10, 10000, 1000, "1_0")
 	pool = newPool()
 	journal = analyzeMemoryFootprint(t, pool, scenario)
 	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(96, 128))
 	require.True(t, journal.structuralFootprintBetween(16, 24))
-	scenario = newScenario(10, 10000, 1024, "4294967295_0")
+	scenario = newScenario(10, 10000, 1000, "4294967295_0")
 	journal = analyzeMemoryFootprint(t, pool, scenario)
 	journals = append(journals, journal)
 	require.True(t, journal.payloadFootprintBetween(96, 128))
@@ -226,9 +218,9 @@ func (scenario *scenario) numTxs() int {
 
 func newPool() dataRetriever.ShardedDataCacherNotifier {
 	config := storageUnit.CacheConfig{
-		Capacity:             900000,
+		Capacity:             600000,
 		SizePerSender:        60000,
-		SizeInBytes:          500 * core.MegabyteSize,
+		SizeInBytes:          400 * core.MegabyteSize,
 		SizeInBytesPerSender: 32 * core.MegabyteSize,
 		Shards:               1,
 	}
@@ -261,7 +253,7 @@ func analyzeMemoryFootprint(t *testing.T, pool dataRetriever.ShardedDataCacherNo
 		pool.AddData(tx.hash, tx, tx.Size(), scenario.cacheID)
 	}
 
-	require.Equal(t, len(pool.ShardDataStore(scenario.cacheID).Keys()), scenario.numTxs())
+	require.Equal(t, scenario.numTxs(), len(pool.ShardDataStore(scenario.cacheID).Keys()))
 
 	if useMemPprof {
 		pprofHeap(scenario, "afterAddition")
