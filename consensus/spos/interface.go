@@ -48,6 +48,8 @@ type ConsensusCoreHandler interface {
 	PrivateKey() crypto.PrivateKey
 	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation
 	SingleSigner() crypto.SingleSigner
+	// ConsensusRating returns the consensus rating which will be used in subrounds
+	ConsensusRating() consensus.ConsensusRating
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

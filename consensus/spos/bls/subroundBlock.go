@@ -314,15 +314,27 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 		return false
 	}
 
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		sr.ConsensusRating().Decrease(
+			sr.Rounder().Index(),
+			node,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.ProposerRatingDecreaseFactor)
+
+		return false
+	}
+
+	sr.ConsensusRating().Increase(
+		sr.Rounder().Index(),
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.ProposerRatingIncreaseFactor)
+
 	if sr.IsBlockBodyAlreadyReceived() {
 		return false
 	}
 
 	if sr.IsHeaderAlreadyReceived() {
-		return false
-	}
-
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
 		return false
 	}
 
@@ -353,11 +365,23 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
-	if sr.IsBlockBodyAlreadyReceived() {
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		sr.ConsensusRating().Decrease(
+			sr.Rounder().Index(),
+			node,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.ProposerRatingDecreaseFactor)
+
 		return false
 	}
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	sr.ConsensusRating().Increase(
+		sr.Rounder().Index(),
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.ProposerRatingIncreaseFactor)
+
+	if sr.IsBlockBodyAlreadyReceived() {
 		return false
 	}
 
@@ -388,11 +412,23 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	if sr.IsHeaderAlreadyReceived() {
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		sr.ConsensusRating().Decrease(
+			sr.Rounder().Index(),
+			node,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.ProposerRatingDecreaseFactor)
+
 		return false
 	}
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	sr.ConsensusRating().Increase(
+		sr.Rounder().Index(),
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.ProposerRatingIncreaseFactor)
+
+	if sr.IsHeaderAlreadyReceived() {
 		return false
 	}
 

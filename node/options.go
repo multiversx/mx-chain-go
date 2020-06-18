@@ -675,3 +675,14 @@ func WithApiTransactionByHashThrottler(throttler Throttler) Option {
 		return nil
 	}
 }
+
+// WithConsensusRating sets up a consensus rating for the Node
+func WithConsensusRating(consensusRating consensus.ConsensusRating) Option {
+	return func(n *Node) error {
+		if check.IfNil(consensusRating) {
+			return ErrNilConsensusRating
+		}
+		n.consensusRating = consensusRating
+		return nil
+	}
+}

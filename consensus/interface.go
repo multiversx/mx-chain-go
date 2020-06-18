@@ -97,3 +97,11 @@ type HeadersPoolSubscriber interface {
 	RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte))
 	IsInterfaceNil() bool
 }
+
+// ConsensusRating defines the behaivour of a component able to handle/monitor the rating of nodes which are
+// participating in consensus
+type ConsensusRating interface {
+	Increase(round int64, pk string, topic string, value float64)
+	Decrease(round int64, pk string, topic string, value float64)
+	IsInterfaceNil() bool
+}

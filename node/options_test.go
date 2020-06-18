@@ -1308,3 +1308,27 @@ func TestWithNodeStopChannel_OkNodeStopChannelShouldWork(t *testing.T) {
 	assert.True(t, node.chanStopNodeProcess == ch)
 	assert.Nil(t, err)
 }
+
+func TestWithConsensusRating_NilConsensusRatingShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithConsensusRating(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilConsensusRating, err)
+}
+
+func TestWithConsensusRating_OkConsensusRatingShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	consensusRating := &mock.ConsensusRatingStub{}
+	opt := WithConsensusRating(consensusRating)
+	err := opt(node)
+
+	assert.Equal(t, consensusRating, node.consensusRating)
+	assert.Nil(t, err)
+}

@@ -168,3 +168,6 @@ var ErrSystemBusyTxHash = errors.New("system busy. try again later")
 
 // ErrUnknownPeerID signals that the provided peer is unknown by the current node
 var ErrUnknownPeerID = errors.New("unknown peer ID")
+
+// ErrNilConsensusRating signals that a nil consensus rating has been provided
+var ErrNilConsensusRating = errors.New("nil consensus rating")

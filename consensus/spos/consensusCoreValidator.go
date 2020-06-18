@@ -52,6 +52,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.GetAntiFloodHandler()) {
 		return ErrNilAntifloodHandler
 	}
+	if check.IfNil(container.ConsensusRating()) {
+		return ErrNilConsensusRating
+	}
 
 	return nil
 }

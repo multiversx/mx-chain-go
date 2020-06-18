@@ -125,13 +125,29 @@ func (sr *subroundSignature) doSignatureJob() bool {
 // If the signature is valid, than the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Signature
 func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
-	if !sr.IsSelfLeaderInCurrentRound() {
-		return false
-	}
-
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {
+		return false
+	}
+
+	if !sr.IsNodeInConsensusGroup(node) {
+		sr.ConsensusRating().Decrease(
+			sr.Rounder().Index(),
+			node,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.ValidatorRatingDecreaseFactor)
+
+		return false
+	}
+
+	sr.ConsensusRating().Increase(
+		sr.Rounder().Index(),
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.ValidatorRatingIncreaseFactor)
+
+	if !sr.IsSelfLeaderInCurrentRound() {
 		return false
 	}
 

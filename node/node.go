@@ -149,6 +149,7 @@ type Node struct {
 	queryHandlers    map[string]debug.QueryHandler
 
 	heartbeatHandler *componentHandler.HeartbeatHandler
+	consensusRating  consensus.ConsensusRating
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -327,6 +328,7 @@ func (n *Node) StartConsensus() error {
 		SyncTimer:                     n.syncTimer,
 		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
 		AntifloodHandler:              n.inputAntifloodHandler,
+		ConsensusRating:               n.consensusRating,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

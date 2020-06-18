@@ -458,6 +458,7 @@ func createConsensusOnlyNode(
 		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
 		node.WithSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
+		node.WithConsensusRating(&mock.ConsensusRatingStub{}),
 	)
 
 	if err != nil {
