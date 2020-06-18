@@ -61,6 +61,7 @@ func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
 		node.WithDataPool(dataPool),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
 	)
 	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -85,6 +86,7 @@ func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
 		node.WithDataPool(dataPool),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
 	)
 	expectedTx, _ := getDummyRewardTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -110,6 +112,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) 
 		node.WithDataPool(dataPool),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
 	)
 	expectedTx, _ := getUnsignedTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -141,6 +144,7 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 		node.WithDataStore(storer),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
 	)
 	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -176,6 +180,7 @@ func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 		node.WithDataStore(storer),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
 	)
 	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -212,6 +217,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T
 		node.WithDataStore(storer),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
 	)
 	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -253,6 +259,7 @@ func TestNode_GetTransaction_ShouldFindInStorageButErrorUnmarshaling(t *testing.
 				return expectedErr
 			},
 		}, 0),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
 	)
 	tx, err := n.GetTransaction("aaaa")
 	assert.Nil(t, tx)
