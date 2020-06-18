@@ -91,6 +91,11 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		return nil, err
 	}
 
+	err = processors.vmContainer.Close()
+	if err != nil {
+		return nil, err
+	}
+
 	return header, nil
 }
 
@@ -346,6 +351,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		scrProcessor:   scProcessor,
 		rwdProcessor:   nil,
 		queryService:   queryService,
+		vmContainer:    vmContainer,
 	}, nil
 }
 
