@@ -56,6 +56,20 @@ func createWorkableConfig() config.Config {
 					PeerBanDurationInSeconds:        3600,
 				},
 			},
+			OutOfSpecs: config.FloodPreventerConfig{
+				IntervalInSeconds: 1,
+				ReservedPercent:   0,
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: 1000,
+					TotalSizePerInterval:    8388608,
+				},
+				BlackList: config.BlackListConfig{
+					ThresholdNumMessagesPerInterval: 1500,
+					ThresholdSizePerInterval:        10485760,
+					NumFloodingRounds:               2,
+					PeerBanDurationInSeconds:        3600,
+				},
+			},
 			Topic: config.TopicAntifloodConfig{
 				DefaultMaxMessagesPerSec: 10000,
 			},

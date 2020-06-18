@@ -277,3 +277,10 @@ type Cacher interface {
 	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool)
 	IsInterfaceNil() bool
 }
+
+type Debugger interface {
+	AddIncomingMessage(topic string, size uint64, isRejected bool)
+	AddOutgoingMessage(topic string, size uint64, isRejected bool)
+	Close() error
+	IsInterfaceNil() bool
+}

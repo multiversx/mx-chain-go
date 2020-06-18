@@ -1203,7 +1203,7 @@ func TestNetworkMessenger_MessageIdsCacherShouldPreventReprocessing(t *testing.T
 		},
 	}
 
-	callBackFunc := mes.PubsubCallback(handler)
+	callBackFunc := mes.PubsubCallback(handler, "")
 	ctx := context.Background()
 	pid := peer.ID(mes.ID())
 	msg := &pubsub.Message{
@@ -1256,7 +1256,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 		},
 	}
 
-	callBackFunc := mes.PubsubCallback(handler)
+	callBackFunc := mes.PubsubCallback(handler, "")
 	ctx := context.Background()
 	pid := peer.ID(mes.ID())
 	msg := &pubsub.Message{
@@ -1308,7 +1308,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 		},
 	}
 
-	callBackFunc := mes.PubsubCallback(handler)
+	callBackFunc := mes.PubsubCallback(handler, "")
 	ctx := context.Background()
 	pid := peer.ID(mes.ID())
 	msg := &pubsub.Message{
