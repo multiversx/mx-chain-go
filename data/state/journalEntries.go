@@ -78,21 +78,23 @@ func (jea *journalEntryCode) revertNewCodeEntry() error {
 		return err
 	}
 
-	if len(newCodeEntry.Code) == 0 {
+	if newCodeEntry == nil {
 		return nil
 	}
 
-	if newCodeEntry.NumReferences == 1 {
+	if newCodeEntry.NumReferences <= 1 {
 		err = jea.trie.Update(jea.newCodeHash, nil)
 		if err != nil {
 			return err
 		}
-	} else {
-		newCodeEntry.NumReferences--
-		err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
-		if err != nil {
-			return err
-		}
+
+		return nil
+	}
+
+	newCodeEntry.NumReferences--
+	err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
+	if err != nil {
+		return err
 	}
 
 	return nil

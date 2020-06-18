@@ -134,47 +134,14 @@ func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler, oldAcc Accoun
 		return nil
 	}
 
-	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshalizer)
+	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
 	if err != nil {
 		return err
 	}
 
-	unmodifiedOldCodeEntry := &CodeEntry{
-		Code:          oldCodeEntry.Code,
-		NumReferences: oldCodeEntry.NumReferences,
-	}
-
-	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshalizer)
+	err = adb.updateNewCodeEntry(newCodeHash, newCode)
 	if err != nil {
 		return err
-	}
-
-	if oldCodeEntry.NumReferences != 0 {
-		oldCodeEntry.NumReferences--
-	}
-
-	if len(newCodeEntry.Code) == 0 {
-		newCodeEntry.Code = newCode
-	}
-	newCodeEntry.NumReferences++
-
-	if len(newCode) != 0 {
-		err = saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshalizer)
-		if err != nil {
-			return err
-		}
-	}
-
-	if oldCodeEntry.NumReferences == 0 {
-		err = adb.mainTrie.Update(oldCodeHash, nil)
-		if err != nil {
-			return err
-		}
-	} else {
-		err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshalizer)
-		if err != nil {
-			return err
-		}
 	}
 
 	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshalizer)
@@ -187,17 +154,75 @@ func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler, oldAcc Accoun
 	return nil
 }
 
+func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
+	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	if oldCodeEntry == nil {
+		return nil, nil
+	}
+
+	unmodifiedOldCodeEntry := &CodeEntry{
+		Code:          oldCodeEntry.Code,
+		NumReferences: oldCodeEntry.NumReferences,
+	}
+
+	if oldCodeEntry.NumReferences <= 1 {
+		err = adb.mainTrie.Update(oldCodeHash, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		return unmodifiedOldCodeEntry, nil
+	}
+
+	oldCodeEntry.NumReferences--
+	err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	return unmodifiedOldCodeEntry, nil
+}
+
+func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) error {
+	if len(newCode) == 0 {
+		return nil
+	}
+
+	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	if newCodeEntry == nil {
+		newCodeEntry = &CodeEntry{
+			Code: newCode,
+		}
+	}
+	newCodeEntry.NumReferences++
+
+	err = saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
-	var codeEntry CodeEntry
 	val, err := trie.Get(codeHash)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(val) == 0 {
-		return &codeEntry, nil
+		return nil, nil
 	}
 
+	var codeEntry CodeEntry
 	err = marshalizer.Unmarshal(&codeEntry, val)
 	if err != nil {
 		return nil, err

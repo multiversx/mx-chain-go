@@ -211,7 +211,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 
 	err := adb.SaveAccount(acc)
 	assert.Nil(t, err)
-	assert.Equal(t, 3, updateCalled)
+	assert.Equal(t, 2, updateCalled)
 	assert.NotNil(t, acc.GetCodeHash())
 	assert.NotNil(t, acc.GetRootHash())
 }
