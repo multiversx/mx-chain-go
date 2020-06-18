@@ -729,7 +729,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating core components")
 
-	healthService := health.NewHealthService(generalConfig.Health)
+	healthService := health.NewHealthService(generalConfig.Health, workingDir)
 	if ctx.IsSet(useHealthService.Name) {
 		healthService.Start()
 	}

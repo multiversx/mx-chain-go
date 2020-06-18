@@ -13,12 +13,12 @@ func init() {
 }
 
 func TestNewHealthService(t *testing.T) {
-	h := NewHealthService(config.HealthServiceConfig{})
+	h := NewHealthService(config.HealthServiceConfig{}, "")
 	require.NotNil(t, h)
 }
 
 func TestHealthService_StartThenClose(t *testing.T) {
-	h := NewHealthService(config.HealthServiceConfig{})
+	h := NewHealthService(config.HealthServiceConfig{}, "")
 	require.NotNil(t, h)
 
 	h.Start()

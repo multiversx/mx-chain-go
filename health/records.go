@@ -3,79 +3,72 @@ package health
 import (
 	"container/list"
 	"os"
-	"path"
 )
 
 type records struct {
-	capacity      int
-	folderPath    string
-	memoryRecords *list.List
+	capacity int
+	items    *list.List
 }
 
-func newRecords(capacity int, folderPath string) *records {
+func newRecords(capacity int) *records {
 	return &records{
-		capacity:      capacity,
-		folderPath:    folderPath,
-		memoryRecords: list.New(),
+		capacity: capacity,
+		items:    list.New(),
 	}
 }
 
-func (records *records) addMemoryRecord(incomingRecord *memoryRecord) {
+func (records *records) addRecord(incomingRecord record) {
 	if !records.makeRoomForRecord(incomingRecord) {
 		return
 	}
 
 	insertionPlace := records.findInsertionPlace(incomingRecord)
 	if insertionPlace == nil {
-		records.memoryRecords.PushBack(incomingRecord)
+		records.items.PushBack(incomingRecord)
 	} else {
-		records.memoryRecords.InsertBefore(incomingRecord, insertionPlace)
+		records.items.InsertBefore(incomingRecord, insertionPlace)
 	}
 
-	err := incomingRecord.save(records.folderPath)
+	err := incomingRecord.save()
 	if err != nil {
-		log.Error("records.addMemoryRecord()", "err", err)
+		log.Error("records.addRecord()", "err", err)
 	}
 }
 
-func (records *records) makeRoomForRecord(incomingRecord *memoryRecord) bool {
-	capacityReached := records.memoryRecords.Len() > records.capacity
+func (records *records) makeRoomForRecord(incomingRecord record) bool {
+	capacityReached := records.items.Len() > records.capacity
 	if capacityReached {
-		lowestRecord := records.getLowestMemoryRecord()
-		if lowestRecord.isHigherThan(incomingRecord) {
+		lowestRecord := records.getLeastImportant()
+		if lowestRecord.isMoreImportantThan(incomingRecord) {
 			return false
 		}
 
-		records.removeLowestMemoryRecord()
+		records.removeLeastImportant()
 	}
 
 	return true
 }
 
-func (records *records) getLowestMemoryRecord() *memoryRecord {
-	return records.memoryRecords.Back().Value.(*memoryRecord)
+func (records *records) getLeastImportant() record {
+	return records.items.Back().Value.(record)
 }
 
-func (records *records) removeLowestMemoryRecord() {
-	lowestElement := records.memoryRecords.Back()
-	lowestRecord := lowestElement.Value.(*memoryRecord)
+func (records *records) removeLeastImportant() {
+	lowestElement := records.items.Back()
+	lowestRecord := lowestElement.Value.(record)
 
-	records.memoryRecords.Remove(lowestElement)
-	err := os.Remove(records.getRecordPath(lowestRecord.filename))
+	records.items.Remove(lowestElement)
+	err := os.Remove(lowestRecord.getFilename())
 	if err != nil {
-		log.Error("records.removeLowestMemoryRecord()", "file", lowestRecord.filename, "err", err)
+		log.Error("records.removeLeastImportant()", "file", lowestRecord.getFilename(), "err", err)
 	}
 }
 
-func (records *records) getRecordPath(filename string) string {
-	return path.Join(records.folderPath, filename)
-}
+func (records *records) findInsertionPlace(incomingRecord record) *list.Element {
+	for element := records.items.Front(); element != nil; element = element.Next() {
+		record := element.Value.(record)
 
-func (records *records) findInsertionPlace(incomingRecord *memoryRecord) *list.Element {
-	for element := records.memoryRecords.Front(); element != nil; element = element.Next() {
-		record := element.Value.(*memoryRecord)
-
-		if incomingRecord.isHigherThan(record) {
+		if incomingRecord.isMoreImportantThan(record) {
 			return element
 		}
 	}

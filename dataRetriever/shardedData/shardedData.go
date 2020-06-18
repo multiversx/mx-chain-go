@@ -273,7 +273,7 @@ func (sd *shardedData) GetCounts() counting.CountsWithSize {
 
 // Diagnose diagnoses the internal caches
 func (sd *shardedData) Diagnose(deep bool) {
-	log.Debug("shardedData.Diagnose()", "deep", deep, "counts", sd.GetCounts().String())
+	log.Debug("shardedData.Diagnose()", "counts", sd.GetCounts().String())
 
 	sd.mutShardedDataStore.RLock()
 	defer sd.mutShardedDataStore.RUnlock()

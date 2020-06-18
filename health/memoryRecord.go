@@ -12,15 +12,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
+var _ record = (*memoryRecord)(nil)
+
 type memoryRecord struct {
 	stats    runtime.MemStats
 	filename string
 }
 
-func newMemoryRecord(stats runtime.MemStats) *memoryRecord {
+func newMemoryRecord(stats runtime.MemStats, parentFolder string) *memoryRecord {
+	filename := formatMemoryRecordFilename(stats)
+	filename = path.Join(parentFolder, filename)
+
 	return &memoryRecord{
 		stats:    stats,
-		filename: formatMemoryRecordFilename(stats),
+		filename: filename,
 	}
 }
 
@@ -33,18 +38,18 @@ func formatMemoryRecordFilename(stats runtime.MemStats) string {
 	return filename
 }
 
-func (record *memoryRecord) isHigherThan(otherRecord *memoryRecord) bool {
-	return record.stats.HeapInuse > otherRecord.stats.HeapInuse
+func (record *memoryRecord) getFilename() string {
+	return record.filename
 }
 
-func (record *memoryRecord) save(folderPath string) error {
-	filename := path.Join(folderPath, record.filename)
+func (record *memoryRecord) save() error {
+	filename := path.Join(record.filename)
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 
-	log.Info("record.save()", "file", filename)
+	log.Debug("memoryRecord.save()", "file", filename)
 
 	err = pprof.WriteHeapProfile(file)
 	if err != nil {
@@ -52,4 +57,13 @@ func (record *memoryRecord) save(folderPath string) error {
 	}
 
 	return file.Close()
+}
+
+func (record *memoryRecord) isMoreImportantThan(otherRecord record) bool {
+	asMemoryRecord, ok := otherRecord.(*memoryRecord)
+	if !ok {
+		return false
+	}
+
+	return record.stats.HeapInuse > asMemoryRecord.stats.HeapInuse
 }

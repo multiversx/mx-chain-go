@@ -175,7 +175,7 @@ func (journal *internalConsistencyJournal) isFine() bool {
 }
 
 func (journal *internalConsistencyJournal) display() {
-	log.Debug("internalConsistencyJournal:", "fine", journal.isFine(), "numInMapByHash", journal.numInMapByHash, "numInMapBySender", journal.numInMapBySender, "numMissingInMapByHash", journal.numMissingInMapByHash)
+	log.Debug("TxCache.internalConsistencyJournal:", "fine", journal.isFine(), "numInMapByHash", journal.numInMapByHash, "numInMapBySender", journal.numInMapBySender, "numMissingInMapByHash", journal.numMissingInMapByHash)
 }
 
 func (cache *TxCache) checkInternalConsistency() internalConsistencyJournal {
