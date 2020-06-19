@@ -471,7 +471,7 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 	}
 
 	msg := []byte("test message")
-	numBroadcasts := 2 * libp2p.BroadcastGoRoutines
+	numBroadcasts := libp2p.BroadcastGoRoutines + 1
 
 	ch := make(chan *p2p.SendableData)
 
