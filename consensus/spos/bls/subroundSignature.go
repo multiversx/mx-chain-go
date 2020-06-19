@@ -131,21 +131,11 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	if !sr.IsNodeInConsensusGroup(node) {
-		sr.ConsensusRating().Decrease(
-			sr.Rounder().Index(),
-			node,
-			spos.GetConsensusTopicID(sr.ShardCoordinator()),
-			spos.ValidatorRatingDecreaseFactor)
+	sr.updateValidatorPeerHonesty(node)
 
+	if !sr.IsNodeInConsensusGroup(node) {
 		return false
 	}
-
-	sr.ConsensusRating().Increase(
-		sr.Rounder().Index(),
-		node,
-		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.ValidatorRatingIncreaseFactor)
 
 	if !sr.IsSelfLeaderInCurrentRound() {
 		return false
@@ -278,4 +268,22 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 	remainigTime := sr.Rounder().RemainingTime(startTime, maxTime)
 
 	return remainigTime
+}
+
+func (sr *subroundSignature) updateValidatorPeerHonesty(node string) {
+	if !sr.IsNodeInConsensusGroup(node) {
+		sr.PeerHonestyHandler().Decrease(
+			sr.Rounder().Index(),
+			node,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.ValidatorPeerHonestyDecreaseFactor)
+
+		return
+	}
+
+	sr.PeerHonestyHandler().Increase(
+		sr.Rounder().Index(),
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.ValidatorPeerHonestyIncreaseFactor)
 }

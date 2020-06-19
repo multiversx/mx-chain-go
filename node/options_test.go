@@ -1309,26 +1309,26 @@ func TestWithNodeStopChannel_OkNodeStopChannelShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithConsensusRating_NilConsensusRatingShouldErr(t *testing.T) {
+func TestWithPeerHonestyHandler_NilPeerHonestyHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithConsensusRating(nil)
+	opt := WithPeerHonestyHandler(nil)
 	err := opt(node)
 
-	assert.Equal(t, ErrNilConsensusRating, err)
+	assert.Equal(t, ErrNilPeerHonestyHandler, err)
 }
 
-func TestWithConsensusRating_OkConsensusRatingShouldWork(t *testing.T) {
+func TestWithPeerHonestyHandler_OkPeerHonestyHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	consensusRating := &mock.ConsensusRatingStub{}
-	opt := WithConsensusRating(consensusRating)
+	peerHonestyHandler := &mock.PeerHonestyHandlerStub{}
+	opt := WithPeerHonestyHandler(peerHonestyHandler)
 	err := opt(node)
 
-	assert.Equal(t, consensusRating, node.consensusRating)
+	assert.Equal(t, peerHonestyHandler, node.peerHonestyHandler)
 	assert.Nil(t, err)
 }

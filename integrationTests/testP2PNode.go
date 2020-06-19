@@ -156,7 +156,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{}),
 		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
 		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
-		node.WithConsensusRating(&mock.ConsensusRatingStub{}),
+		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())

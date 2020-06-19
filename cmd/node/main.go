@@ -1203,8 +1203,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 
-	//TODO: This should be set with a real instance which implements ConsensusRating interface
-	consensusRating := &mock.ConsensusRatingStub{}
+	//TODO: This should be set with a real instance which implements PeerHonestyHandler interface
+	peerHonestyHandler := &mock.PeerHonestyHandlerStub{}
 
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
@@ -1233,7 +1233,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		hardForkTrigger,
-		consensusRating,
+		peerHonestyHandler,
 	)
 	if err != nil {
 		return err
@@ -1999,7 +1999,7 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
-	consensusRating consensus.ConsensusRating,
+	peerHonestyHandler consensus.PeerHonestyHandler,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2095,7 +2095,7 @@ func createNode(
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
 		node.WithApiTransactionByHashThrottler(apiTxsByHashThrottler),
-		node.WithConsensusRating(consensusRating),
+		node.WithPeerHonestyHandler(peerHonestyHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

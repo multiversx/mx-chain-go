@@ -202,5 +202,5 @@ var ErrInvalidPublicKeyBitmapSize = errors.New("invalid public key bitmap size")
 // ErrInvalidCacheSize signals an invalid size provided for cache
 var ErrInvalidCacheSize = errors.New("invalid cache size")
 
-// ErrNilConsensusRating signals that a nil consensus rating has been provided
-var ErrNilConsensusRating = errors.New("nil consensus rating")
+// ErrNilPeerHonestyHandler signals that a nil peer honesty handler has been provided
+var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")

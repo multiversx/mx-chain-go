@@ -676,13 +676,13 @@ func WithApiTransactionByHashThrottler(throttler Throttler) Option {
 	}
 }
 
-// WithConsensusRating sets up a consensus rating for the Node
-func WithConsensusRating(consensusRating consensus.ConsensusRating) Option {
+// WithPeerHonestyHandler sets up a peer honesty handler for the Node
+func WithPeerHonestyHandler(peerHonestyHandler consensus.PeerHonestyHandler) Option {
 	return func(n *Node) error {
-		if check.IfNil(consensusRating) {
-			return ErrNilConsensusRating
+		if check.IfNil(peerHonestyHandler) {
+			return ErrNilPeerHonestyHandler
 		}
-		n.consensusRating = consensusRating
+		n.peerHonestyHandler = peerHonestyHandler
 		return nil
 	}
 }

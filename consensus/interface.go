@@ -98,9 +98,9 @@ type HeadersPoolSubscriber interface {
 	IsInterfaceNil() bool
 }
 
-// ConsensusRating defines the behaivour of a component able to handle/monitor the rating of nodes which are
+// PeerHonestyHandler defines the behaivour of a component able to handle/monitor the peer honesty of nodes which are
 // participating in consensus
-type ConsensusRating interface {
+type PeerHonestyHandler interface {
 	Increase(round int64, pk string, topic string, value float64)
 	Decrease(round int64, pk string, topic string, value float64)
 	IsInterfaceNil() bool
