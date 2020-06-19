@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
-const invalidKey = "[invalid key]"
+const invalidKey = "N/A"
 const invalidType = "[not a string]"
 
 func (psh *PresenterStatusHandler) getFromCacheAsUint64(metric string) uint64 {
