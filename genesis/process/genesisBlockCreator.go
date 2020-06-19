@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -161,6 +163,11 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		if err != nil {
 			return nil, err
 		}
+
+		err = gbc.computeDNSAddressesIfHardFork()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	nodesListSplitter, err := intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
@@ -216,6 +223,50 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	//TODO call here trie pruning on all roothashes not from current shard
 
 	return genesisBlocks, nil
+}
+
+// in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
+func (gbc *genesisBlockCreator) computeDNSAddressesIfHardFork() error {
+	var dnsSC genesis.InitialSmartContractHandler
+	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
+		if sc.GetType() == genesis.DNSType {
+			dnsSC = sc
+			break
+		}
+	}
+
+	if check.IfNil(dnsSC) {
+		return nil
+	}
+
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         gbc.arg.Accounts,
+		PubkeyConv:       gbc.arg.PubkeyConv,
+		StorageService:   gbc.arg.Store,
+		BlockChain:       gbc.arg.Blkc,
+		ShardCoordinator: gbc.arg.ShardCoordinator,
+		Marshalizer:      gbc.arg.Marshalizer,
+		Uint64Converter:  gbc.arg.Uint64ByteSliceConverter,
+		BuiltInFunctions: builtInFuncs,
+	}
+	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
+	if err != nil {
+		return err
+	}
+
+	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, gbc.arg.ShardCoordinator, true)
+	for _, address := range initialAddresses {
+		scResultingAddress, err := blockChainHook.NewAddress(address, 0, dnsSC.VmTypeBytes())
+		if err != nil {
+			return err
+		}
+
+		dnsSC.AddAddressBytes(scResultingAddress)
+		dnsSC.AddAddress(gbc.arg.PubkeyConv.Encode(scResultingAddress))
+	}
+
+	return nil
 }
 
 func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBlockCreator, error) {

@@ -57,7 +57,11 @@ func NewDeployLibrarySC(arg ArgDeployLibrarySC) (*deployLibrarySC, error) {
 	return dp, nil
 }
 
-func (dp *deployLibrarySC) generateAllAddressesForShard(baseAddress []byte) [][]byte {
+func GenerateInitialPublicKeys(
+	baseAddress []byte,
+	shardCoordinator sharding.Coordinator,
+	allShards bool,
+) [][]byte {
 	addressLen := len(baseAddress)
 
 	newAddresses := make([][]byte, 0)
@@ -66,8 +70,8 @@ func (dp *deployLibrarySC) generateAllAddressesForShard(baseAddress []byte) [][]
 		shardInBytes := []byte{0, i}
 		tmpAddress := append(baseAddress[:(addressLen-core.ShardIdentiferLen)], shardInBytes...)
 
-		newShardID := dp.shardCoordinator.ComputeId(tmpAddress)
-		if newShardID != dp.shardCoordinator.SelfId() {
+		newShardID := shardCoordinator.ComputeId(tmpAddress)
+		if !allShards && newShardID != shardCoordinator.SelfId() {
 			continue
 		}
 
@@ -77,8 +81,8 @@ func (dp *deployLibrarySC) generateAllAddressesForShard(baseAddress []byte) [][]
 	shardInBytes := []byte{0, i}
 	tmpAddress := append(baseAddress[:(addressLen-core.ShardIdentiferLen)], shardInBytes...)
 
-	newShardID := dp.shardCoordinator.ComputeId(tmpAddress)
-	if newShardID == dp.shardCoordinator.SelfId() {
+	newShardID := shardCoordinator.ComputeId(tmpAddress)
+	if !allShards && newShardID == shardCoordinator.SelfId() {
 		newAddresses = append(newAddresses, tmpAddress)
 	}
 
@@ -93,7 +97,7 @@ func (dp *deployLibrarySC) Deploy(sc genesis.InitialSmartContractHandler) error 
 	}
 
 	resultingScAddresses := make([][]byte, 0)
-	newAddresses := dp.generateAllAddressesForShard(sc.OwnerBytes())
+	newAddresses := GenerateInitialPublicKeys(genesis.InitialDNSAddress, dp.shardCoordinator, false)
 	for _, newAddress := range newAddresses {
 		scAddress, err := dp.deployForOneAddress(sc, newAddress, code, sc.GetInitParameters())
 		if err != nil {
@@ -101,6 +105,7 @@ func (dp *deployLibrarySC) Deploy(sc genesis.InitialSmartContractHandler) error 
 		}
 
 		resultingScAddresses = append(resultingScAddresses, scAddress)
+		err = dp.changeOwnerAddress(scAddress, newAddress, sc.OwnerBytes())
 	}
 
 	return nil

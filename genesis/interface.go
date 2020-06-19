@@ -13,6 +13,9 @@ const DelegationType = "delegation"
 // DNSType defines the constant used when checking if a smart contract is of dns type
 const DNSType = "dns"
 
+// InitialDNSAddress defines the initial address from where the DNS contracts are deployed
+var InitialDNSAddress = []byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+
 // DelegationResult represents the DTO that contains the delegation results metrics
 type DelegationResult struct {
 	NumTotalStaked    int
