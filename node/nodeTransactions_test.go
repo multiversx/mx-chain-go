@@ -296,7 +296,7 @@ func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestNode_ComputeTransactionStatusAllBranches(t *testing.T) {
+func TestNode_ComputeTransactionStatus(t *testing.T) {
 	t.Parallel()
 
 	throttler := &mock.ThrottlerStub{
@@ -336,12 +336,15 @@ func TestNode_ComputeTransactionStatusAllBranches(t *testing.T) {
 	rwdTxCrossShard := &rewardTx.RewardTx{RcvAddr: shardZeroAddr}
 	normalTxIntraShard := &transaction.Transaction{RcvAddr: shardZeroAddr, SndAddr: shardZeroAddr}
 	normalTxCrossShard := &transaction.Transaction{RcvAddr: shardOneAddr, SndAddr: shardZeroAddr}
-	unsignedTxIntraShard := &smartContractResult.SmartContractResult{RcvAddr: shardOneAddr, SndAddr: shardZeroAddr}
+	unsignedTxIntraShard := &smartContractResult.SmartContractResult{RcvAddr: shardZeroAddr, SndAddr: shardZeroAddr}
+	unsignedTxCrossShard := &smartContractResult.SmartContractResult{RcvAddr: shardOneAddr, SndAddr: shardZeroAddr}
 
+	// cross shard reward tx in storage source shard
 	shardCoordinator.SelfShardId = core.MetachainShardId
 	txStatus := n.ComputeTransactionStatus(rwdTxCrossShard, false)
 	assert.Equal(t, core.TxStatusPartiallyExecuted, txStatus)
 
+	// cross shard reward tx in pool source shard
 	shardCoordinator.SelfShardId = core.MetachainShardId
 	txStatus = n.ComputeTransactionStatus(rwdTxCrossShard, true)
 	assert.Equal(t, core.TxStatusReceived, txStatus)
@@ -376,14 +379,24 @@ func TestNode_ComputeTransactionStatusAllBranches(t *testing.T) {
 	txStatus = n.ComputeTransactionStatus(normalTxCrossShard, true)
 	assert.Equal(t, core.TxStatusPartiallyExecuted, txStatus)
 
-	// cross shard scr in storage source shard
+	// intra shard scr in storage source shard
 	shardCoordinator.SelfShardId = 0
 	txStatus = n.ComputeTransactionStatus(unsignedTxIntraShard, false)
+	assert.Equal(t, core.TxStatusExecuted, txStatus)
+
+	// intra shard scr in pool source shard
+	shardCoordinator.SelfShardId = 0
+	txStatus = n.ComputeTransactionStatus(unsignedTxIntraShard, true)
+	assert.Equal(t, core.TxStatusReceived, txStatus)
+
+	// cross shard scr in storage source shard
+	shardCoordinator.SelfShardId = 0
+	txStatus = n.ComputeTransactionStatus(unsignedTxCrossShard, false)
 	assert.Equal(t, core.TxStatusPartiallyExecuted, txStatus)
 
 	// cross shard scr in pool source shard
 	shardCoordinator.SelfShardId = 0
-	txStatus = n.ComputeTransactionStatus(unsignedTxIntraShard, true)
+	txStatus = n.ComputeTransactionStatus(unsignedTxCrossShard, true)
 	assert.Equal(t, core.TxStatusReceived, txStatus)
 }
 
