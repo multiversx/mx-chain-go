@@ -87,7 +87,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 		return false
 	}
 
-	sr.updateLeaderPeerHonesty(node)
+	sr.UpdateLeaderPeerHonesty(node)
 
 	if sr.IsSelfLeaderInCurrentRound() {
 		return false
@@ -521,22 +521,4 @@ func (sr *subroundEndRound) isOutOfTime() bool {
 	}
 
 	return false
-}
-
-func (sr *subroundEndRound) updateLeaderPeerHonesty(node string) {
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
-		sr.PeerHonestyHandler().Decrease(
-			sr.Rounder().Index(),
-			node,
-			spos.GetConsensusTopicID(sr.ShardCoordinator()),
-			spos.LeaderPeerHonestyDecreaseFactor)
-
-		return
-	}
-
-	sr.PeerHonestyHandler().Increase(
-		sr.Rounder().Index(),
-		node,
-		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.LeaderPeerHonestyIncreaseFactor)
 }
