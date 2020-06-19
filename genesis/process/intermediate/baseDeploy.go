@@ -18,6 +18,7 @@ type baseDeploy struct {
 	pubkeyConv     core.PubkeyConverter
 	blockchainHook process.BlockChainHookHandler
 	emptyAddress   []byte
+	getScCodeAsHex func(filename string) (string, error)
 }
 
 func (dp *baseDeploy) deployForOneAddress(

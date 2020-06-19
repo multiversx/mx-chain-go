@@ -53,6 +53,7 @@ func NewDeployProcessor(arg ArgDeployProcessor) (*deployProcessor, error) {
 		pubkeyConv:           arg.PubkeyConv,
 		blockchainHook:       arg.BlockchainHook,
 		emptyAddress:         make([]byte, arg.PubkeyConv.Len()),
+		getScCodeAsHex:       getSCCodeAsHex,
 	}
 
 	dp := &deployProcessor{
@@ -66,7 +67,7 @@ func NewDeployProcessor(arg ArgDeployProcessor) (*deployProcessor, error) {
 
 // Deploy will try to deploy the provided smart contract
 func (dp *deployProcessor) Deploy(sc genesis.InitialSmartContractHandler) error {
-	code, err := getSCCodeAsHex(sc.GetFilename())
+	code, err := dp.getScCodeAsHex(sc.GetFilename())
 	if err != nil {
 		return err
 	}
