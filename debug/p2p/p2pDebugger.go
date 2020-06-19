@@ -14,7 +14,7 @@ import (
 
 var log = logger.GetOrCreate("debug/p2p")
 
-const printTimeOneSecond = time.Second //if this needs to be changed, remember to divide the values when computing metrics
+const printInterval = time.Second
 
 type metric struct {
 	topic string
@@ -28,6 +28,18 @@ type metric struct {
 	outgoingNum          uint32
 	outgoingRejectedSize uint64
 	outgoingRejectedNum  uint32
+}
+
+func (m *metric) divideValues(divideValue float32) {
+	m.incomingSize = uint64(float32(m.incomingSize) / divideValue)
+	m.incomingNum = uint32(float32(m.incomingNum) / divideValue)
+	m.incomingRejectedSize = uint64(float32(m.incomingRejectedSize) / divideValue)
+	m.incomingRejectedNum = uint32(float32(m.incomingRejectedNum) / divideValue)
+
+	m.outgoingSize = uint64(float32(m.outgoingSize) / divideValue)
+	m.outgoingNum = uint32(float32(m.outgoingNum) / divideValue)
+	m.outgoingRejectedSize = uint64(float32(m.outgoingRejectedSize) / divideValue)
+	m.outgoingRejectedNum = uint32(float32(m.outgoingRejectedNum) / divideValue)
 }
 
 func (m *metric) stringify() []string {
@@ -55,18 +67,18 @@ func NewP2PDebugger(selfPeerId core.PeerID) *p2pDebugger {
 		selfPeerId: selfPeerId,
 		data:       make(map[string]*metric),
 	}
-	pd.shouldProcessDataFn = pd.checkLogTrace
+	pd.shouldProcessDataFn = pd.isLogTrace
 	pd.printStringFn = pd.printLog
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	pd.cancelFunc = cancelFunc
 
-	go pd.doStats(ctx)
+	go pd.continuouslyPrintStatistics(ctx)
 
 	return pd
 }
 
-func (pd *p2pDebugger) checkLogTrace() bool {
+func (pd *p2pDebugger) isLogTrace() bool {
 	return log.GetLevel() == logger.LogTrace
 }
 
@@ -122,24 +134,25 @@ func (pd *p2pDebugger) getMetric(topic string) *metric {
 	return m
 }
 
-func (pd *p2pDebugger) doStats(ctx context.Context) {
+func (pd *p2pDebugger) continuouslyPrintStatistics(ctx context.Context) {
+	divideSeconds := float32(printInterval) / float32(time.Second)
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(printTimeOneSecond):
+		case <-time.After(printInterval):
 		}
 
 		if !pd.shouldProcessDataFn() {
 			continue
 		}
 
-		str := pd.doStatsString()
+		str := pd.statsToString(divideSeconds)
 		pd.printStringFn(str)
 	}
 }
 
-func (pd *p2pDebugger) doStatsString() string {
+func (pd *p2pDebugger) statsToString(divideSeconds float32) string {
 	header := []string{
 		"Topic",
 		"Incoming (num / size)",
@@ -156,6 +169,7 @@ func (pd *p2pDebugger) doStatsString() string {
 		topic: "TOTAL",
 	}
 	for _, m := range pd.data {
+		m.divideValues(divideSeconds)
 		metrics = append(metrics, m)
 
 		total.incomingSize += m.incomingSize

@@ -21,7 +21,7 @@ func newTestP2PDebugger(
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	pd.cancelFunc = cancelFunc
 
-	go pd.doStats(ctx)
+	go pd.continuouslyPrintStatistics(ctx)
 
 	return pd
 }

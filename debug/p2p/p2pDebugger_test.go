@@ -156,9 +156,9 @@ func TestP2pDebugger_AddOutgoingMessage(t *testing.T) {
 	assert.Equal(t, expectedMetric, m)
 }
 
-//------- doStats
+//------- continuouslyPrintStatistics
 
-func TestP2pDebugger_doStatsShouldNotPrint(t *testing.T) {
+func TestP2pDebugger_continuouslyPrintStatisticsShouldNotPrint(t *testing.T) {
 	t.Parallel()
 
 	numPrintWasCalled := int32(0)
@@ -170,12 +170,12 @@ func TestP2pDebugger_doStatsShouldNotPrint(t *testing.T) {
 		},
 	)
 
-	time.Sleep(printTimeOneSecond * 3)
+	time.Sleep(printInterval * 3)
 
 	assert.Equal(t, int32(0), atomic.LoadInt32(&numPrintWasCalled))
 }
 
-func TestP2pDebugger_doStatsShouldPrint(t *testing.T) {
+func TestP2pDebugger_continuouslyPrintStatisticsShouldPrint(t *testing.T) {
 	t.Parallel()
 
 	numPrintWasCalled := int32(0)
@@ -187,12 +187,12 @@ func TestP2pDebugger_doStatsShouldPrint(t *testing.T) {
 		},
 	)
 
-	time.Sleep(printTimeOneSecond*3 + time.Millisecond*100)
+	time.Sleep(printInterval*3 + time.Millisecond*100)
 
 	assert.Equal(t, int32(3), atomic.LoadInt32(&numPrintWasCalled))
 }
 
-func TestP2pDebugger_doStatsCloseShouldStop(t *testing.T) {
+func TestP2pDebugger_continuouslyPrintStatisticsCloseShouldStop(t *testing.T) {
 	t.Parallel()
 
 	numPrintWasCalled := int32(0)
@@ -204,17 +204,17 @@ func TestP2pDebugger_doStatsCloseShouldStop(t *testing.T) {
 		},
 	)
 
-	time.Sleep(printTimeOneSecond*3 + time.Millisecond*100)
+	time.Sleep(printInterval*3 + time.Millisecond*100)
 	assert.Equal(t, int32(3), atomic.LoadInt32(&numPrintWasCalled))
 
 	err := pd.Close()
 	assert.Nil(t, err)
 
-	time.Sleep(printTimeOneSecond*3 + time.Millisecond*100)
+	time.Sleep(printInterval*3 + time.Millisecond*100)
 	assert.Equal(t, int32(3), atomic.LoadInt32(&numPrintWasCalled))
 }
 
-func TestP2pDebugger_doStatsString(t *testing.T) {
+func TestP2pDebugger_statsToString(t *testing.T) {
 	t.Parallel()
 
 	pd := newTestP2PDebugger(
@@ -230,7 +230,7 @@ func TestP2pDebugger_doStatsString(t *testing.T) {
 	pd.AddIncomingMessage(topic1, size1, false)
 	pd.AddOutgoingMessage(topic2, size2, false)
 
-	str := pd.doStatsString()
+	str := pd.statsToString(1)
 
 	assert.True(t, strings.Contains(str, topic1))
 	assert.True(t, strings.Contains(str, core.ConvertBytes(size1)))
