@@ -57,6 +57,8 @@ func NewSmartContractsParser(
 }
 
 func (scp *smartContractParser) process() error {
+	numDNSContract := 0
+
 	for _, initialSmartContract := range scp.initialSmartContracts {
 		err := scp.parseElement(initialSmartContract)
 		if err != nil {
@@ -67,6 +69,14 @@ func (scp *smartContractParser) process() error {
 		if err != nil {
 			return err
 		}
+
+		if initialSmartContract.Type == genesis.DNSType {
+			numDNSContract++
+		}
+	}
+
+	if numDNSContract > 1 {
+		return genesis.ErrTooManyDNSContracts
 	}
 
 	return nil
@@ -150,6 +160,26 @@ func (scp *smartContractParser) InitialSmartContractsSplitOnOwnersShards(
 	}
 
 	return smartContracts, nil
+}
+
+// GetDeployedSCAddresses will return the deployed smart contract addresses as a map for a specific type
+func (scp *smartContractParser) GetDeployedSCAddresses(scType string) (map[string]struct{}, error) {
+	mapAddresses := make(map[string]struct{})
+	for _, sc := range scp.initialSmartContracts {
+		if sc.GetType() != scType {
+			continue
+		}
+
+		if len(sc.AddressesBytes()) == 0 {
+			return nil, genesis.ErrSmartContractWasNotDeployed
+		}
+
+		for _, address := range sc.AddressesBytes() {
+			mapAddresses[string(address)] = struct{}{}
+		}
+	}
+
+	return mapAddresses, nil
 }
 
 // IsInterfaceNil returns if underlying object is true

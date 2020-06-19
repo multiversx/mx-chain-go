@@ -10,6 +10,9 @@ import (
 // DelegationType defines the constant used when checking if a smart contract is of delegation type
 const DelegationType = "delegation"
 
+// DNSType defines the constant used when checking if a smart contract is of dns type
+const DNSType = "dns"
+
 // DelegationResult represents the DTO that contains the delegation results metrics
 type DelegationResult struct {
 	NumTotalStaked    int
@@ -61,10 +64,10 @@ type InitialSmartContractHandler interface {
 	GetInitParameters() string
 	GetType() string
 	VmTypeBytes() []byte
-	SetAddressBytes(addressBytes []byte)
-	AddressBytes() []byte
-	SetAddress(address string)
-	Address() string
+	AddAddressBytes(addressBytes []byte)
+	AddressesBytes() [][]byte
+	AddAddress(address string)
+	Addresses() []string
 	GetVersion() string
 	IsInterfaceNil() bool
 }
@@ -73,6 +76,7 @@ type InitialSmartContractHandler interface {
 //json file and has some functionality regarding processed data
 type InitialSmartContractParser interface {
 	InitialSmartContractsSplitOnOwnersShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialSmartContractHandler, error)
+	GetDeployedSCAddresses(scType string) (map[string]struct{}, error)
 	InitialSmartContracts() []InitialSmartContractHandler
 	IsInterfaceNil() bool
 }

@@ -145,3 +145,12 @@ var ErrNilKeyGenerator = errors.New("nil key generator")
 
 // ErrChangeOwnerAddressFailed signals that change owner address failed
 var ErrChangeOwnerAddressFailed = errors.New("change owner address failed")
+
+// ErrInvalidSmartContractType signals that invalid smart contract type has been provided
+var ErrInvalidSmartContractType = errors.New("invalid smart contract type")
+
+// ErrTooManyDNSContracts signals that too many DNS contracts are in genesis contracts json file
+var ErrTooManyDNSContracts = errors.New("too many DNS contracts")
+
+// ErrSmartContractWasNotDeployed signals that smart contract was not deployed
+var ErrSmartContractWasNotDeployed = errors.New("smart contract was not deployed")

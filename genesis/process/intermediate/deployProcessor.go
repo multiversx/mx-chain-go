@@ -115,7 +115,7 @@ func (dp *deployProcessor) checkVersion(sc genesis.InitialSmartContractHandler, 
 	version := string(vmOutputVersion.ReturnData[0])
 
 	log.Debug("SC version",
-		"SC address", sc.Address(),
+		"SC address", scResultingAddressBytes,
 		"SC owner", sc.GetOwner(),
 		"version", version,
 	)

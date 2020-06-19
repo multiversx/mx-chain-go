@@ -12,7 +12,7 @@
     "filename": "./config/genesisContracts/answer.wasm",
     "vm-type": "0500",
     "init-parameters": "",
-    "type": "library@dns",
+    "type": "dns",
     "version": "0.2.*"
   }
 ]
