@@ -316,15 +316,15 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 
 	sr.updateLeaderPeerHonesty(node)
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
-		return false
-	}
-
 	if sr.IsBlockBodyAlreadyReceived() {
 		return false
 	}
 
 	if sr.IsHeaderAlreadyReceived() {
+		return false
+	}
+
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
 		return false
 	}
 
@@ -357,11 +357,11 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 
 	sr.updateLeaderPeerHonesty(node)
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	if sr.IsBlockBodyAlreadyReceived() {
 		return false
 	}
 
-	if sr.IsBlockBodyAlreadyReceived() {
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
 		return false
 	}
 
@@ -394,11 +394,11 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 
 	sr.updateLeaderPeerHonesty(node)
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	if sr.IsHeaderAlreadyReceived() {
 		return false
 	}
 
-	if sr.IsHeaderAlreadyReceived() {
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
 		return false
 	}
 

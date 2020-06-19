@@ -133,11 +133,11 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 
 	sr.updateValidatorPeerHonesty(node)
 
-	if !sr.IsNodeInConsensusGroup(node) {
+	if !sr.IsSelfLeaderInCurrentRound() {
 		return false
 	}
 
-	if !sr.IsSelfLeaderInCurrentRound() {
+	if !sr.IsNodeInConsensusGroup(node) {
 		return false
 	}
 

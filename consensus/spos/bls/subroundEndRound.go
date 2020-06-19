@@ -89,15 +89,15 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 
 	sr.updateLeaderPeerHonesty(node)
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
-		return false
-	}
-
 	if sr.IsSelfLeaderInCurrentRound() {
 		return false
 	}
 
 	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+		return false
+	}
+
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
 		return false
 	}
 
