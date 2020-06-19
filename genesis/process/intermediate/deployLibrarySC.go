@@ -83,7 +83,7 @@ func GenerateInitialPublicKeys(
 	tmpAddress := string(baseAddress[:(addressLen-core.ShardIdentiferLen)]) + string(shardInBytes)
 
 	newShardID := shardCoordinator.ComputeId([]byte(tmpAddress))
-	if !allShards && newShardID == shardCoordinator.SelfId() {
+	if allShards || newShardID == shardCoordinator.SelfId() {
 		newAddresses = append(newAddresses, []byte(tmpAddress))
 	}
 

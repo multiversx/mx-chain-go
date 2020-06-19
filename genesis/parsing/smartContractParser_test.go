@@ -217,3 +217,58 @@ func TestSmartContractsParser_InitialSmartContractsSplitOnOwnersShards(t *testin
 	require.Equal(t, 3, len(icsSplit))
 	assert.Equal(t, 2, len(icsSplit[1]))
 }
+
+func TestSmartContractsParser_InitialSmartContractsNoNeedtoSplit(t *testing.T) {
+	t.Parallel()
+
+	scp := parsing.NewTestSmartContractsParser(createMockHexPubkeyConverter())
+	ics := []*data.InitialSmartContract{
+		{
+			Owner:    "0001",
+			Filename: "dummy.wasm",
+			VmType:   "00",
+			Type:     genesis.DNSType,
+		},
+	}
+
+	scp.SetInitialSmartContracts(ics)
+	err := scp.Process()
+	require.Nil(t, err)
+
+	threeSharder := &mock.ShardCoordinatorMock{
+		NumOfShards: 3,
+		SelfShardId: 0,
+	}
+	icsSplit, err := scp.InitialSmartContractsSplitOnOwnersShards(
+		threeSharder,
+	)
+
+	assert.Nil(t, err)
+	require.Equal(t, 3, len(icsSplit))
+	for i := uint32(0); i < threeSharder.NumOfShards; i++ {
+		assert.Equal(t, 1, len(icsSplit[i]))
+	}
+}
+
+func TestSmartContractsParser_ProcessDNSTwiceShouldError(t *testing.T) {
+	t.Parallel()
+
+	scp := parsing.NewTestSmartContractsParser(createMockHexPubkeyConverter())
+	isc1 := &data.InitialSmartContract{
+		Owner:    "0001",
+		Filename: "dummy.wasm",
+		VmType:   "00",
+		Type:     genesis.DNSType,
+	}
+	isc2 := &data.InitialSmartContract{
+		Owner:    "0002",
+		Filename: "dummy.wasm",
+		VmType:   "00",
+		Type:     genesis.DNSType,
+	}
+	scp.SetInitialSmartContracts([]*data.InitialSmartContract{isc1, isc2})
+
+	err := scp.Process()
+
+	assert.True(t, errors.Is(err, genesis.ErrTooManyDNSContracts))
+}
