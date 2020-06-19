@@ -165,7 +165,7 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 	}
 }
 
-func (n *Node) prepareNormalTx(tx *transaction.Transaction, status string) (*transaction.ApiTransactionResult, error) {
+func (n *Node) prepareNormalTx(tx *transaction.Transaction, status core.TransactionStatus) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Type:      string(normalTx),
 		Nonce:     tx.Nonce,
@@ -176,23 +176,24 @@ func (n *Node) prepareNormalTx(tx *transaction.Transaction, status string) (*tra
 		GasLimit:  tx.GasLimit,
 		Data:      string(tx.Data),
 		Signature: hex.EncodeToString(tx.Signature),
-		Status:    status,
+		Status:    string(status),
 	}, nil
 }
 
-func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx, status string) (*transaction.ApiTransactionResult, error) {
+func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx, status core.TransactionStatus) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Type:     string(rewardTx),
 		Round:    tx.GetRound(),
 		Epoch:    tx.GetEpoch(),
 		Value:    tx.GetValue().String(),
 		Receiver: n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
-		Status:   status,
+		Status:   string(status),
 	}, nil
 }
 
 func (n *Node) prepareUnsignedTx(
-	tx *smartContractResult.SmartContractResult, status string,
+	tx *smartContractResult.SmartContractResult,
+	status core.TransactionStatus,
 ) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Type:      string(unsignedTx),
@@ -205,36 +206,39 @@ func (n *Node) prepareUnsignedTx(
 		Data:      string(tx.GetData()),
 		Code:      string(tx.GetCode()),
 		Signature: "",
-		Status:    status,
+		Status:    string(status),
 	}, nil
 }
 
-func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool bool) string {
+func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool bool) core.TransactionStatus {
 	selfShardID := n.shardCoordinator.SelfId()
 	receiverShardID := n.shardCoordinator.ComputeId(tx.GetRcvAddr())
 
 	var senderShardID uint32
-	if sndAddr := tx.GetSndAddr(); sndAddr != nil {
+	sndAddr := tx.GetSndAddr()
+	if sndAddr != nil {
 		senderShardID = n.shardCoordinator.ComputeId(tx.GetSndAddr())
 	} else {
 		// reward transaction (sender address is nil)
 		senderShardID = core.MetachainShardId
 	}
 
-	// transaction is in pool
+	isDestinationMe := selfShardID == receiverShardID
 	if isInPool {
-		if selfShardID == receiverShardID && senderShardID != receiverShardID {
-			// is in pool on destination shard
-			return core.TxStatusPartiallyExecuted.String()
+
+		isCrossShard := senderShardID != receiverShardID
+		if isDestinationMe && isCrossShard {
+			return core.TxStatusPartiallyExecuted
 		}
-		// is in pool on source shard
-		return core.TxStatusReceived.String()
+
+		return core.TxStatusReceived
 	}
+
 	// transaction is in storage
-	if selfShardID == receiverShardID {
-		// is in storage on destination shard or is intra-shard
-		return core.TxStatusExecuted.String()
+	if isDestinationMe {
+		return core.TxStatusExecuted
 	}
+
 	// is in storage on source shard
-	return core.TxStatusPartiallyExecuted.String()
+	return core.TxStatusPartiallyExecuted
 }

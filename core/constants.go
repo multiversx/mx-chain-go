@@ -332,10 +332,6 @@ const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 // TransactionStatus is the type used to represent the status of a transaction
 type TransactionStatus string
 
-func (ts TransactionStatus) String() string {
-	return string(ts)
-}
-
 const (
 	// TxStatusReceived represents the status of a transaction which was received but not yet executed
 	TxStatusReceived TransactionStatus = "received"
