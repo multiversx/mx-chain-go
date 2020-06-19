@@ -69,22 +69,22 @@ func GenerateInitialPublicKeys(
 	i := uint8(0)
 	for ; i < core.MaxShardNumber-1; i++ {
 		shardInBytes := []byte{0, i}
-		tmpAddress := append(baseAddress[:(addressLen-core.ShardIdentiferLen)], shardInBytes...)
+		tmpAddress := string(baseAddress[:(addressLen-core.ShardIdentiferLen)]) + string(shardInBytes)
 
-		newShardID := shardCoordinator.ComputeId(tmpAddress)
+		newShardID := shardCoordinator.ComputeId([]byte(tmpAddress))
 		if !allShards && newShardID != shardCoordinator.SelfId() {
 			continue
 		}
 
-		newAddresses = append(newAddresses, tmpAddress)
+		newAddresses = append(newAddresses, []byte(tmpAddress))
 	}
 
 	shardInBytes := []byte{0, i}
-	tmpAddress := append(baseAddress[:(addressLen-core.ShardIdentiferLen)], shardInBytes...)
+	tmpAddress := string(baseAddress[:(addressLen-core.ShardIdentiferLen)]) + string(shardInBytes)
 
-	newShardID := shardCoordinator.ComputeId(tmpAddress)
+	newShardID := shardCoordinator.ComputeId([]byte(tmpAddress))
 	if !allShards && newShardID == shardCoordinator.SelfId() {
-		newAddresses = append(newAddresses, tmpAddress)
+		newAddresses = append(newAddresses, []byte(tmpAddress))
 	}
 
 	return newAddresses
@@ -107,6 +107,9 @@ func (dp *deployLibrarySC) Deploy(sc genesis.InitialSmartContractHandler) error 
 
 		resultingScAddresses = append(resultingScAddresses, scAddress)
 		err = dp.changeOwnerAddress(scAddress, newAddress, sc.OwnerBytes())
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
