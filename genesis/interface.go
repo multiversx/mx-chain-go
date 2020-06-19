@@ -3,6 +3,7 @@ package genesis
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -79,7 +80,7 @@ type InitialSmartContractParser interface {
 // TxExecutionProcessor represents a transaction builder and executor containing also related helper functions
 type TxExecutionProcessor interface {
 	ExecuteTransaction(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error
-	AccountExists(address []byte) bool
+	AccountExists(address []byte) (state.UserAccountHandler, bool)
 	GetNonce(senderBytes []byte) (uint64, error)
 	AddBalance(senderBytes []byte, value *big.Int) error
 	AddNonce(senderBytes []byte, nonce uint64) error

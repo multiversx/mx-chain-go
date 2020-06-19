@@ -142,3 +142,6 @@ var ErrEmptyPubKey = errors.New("empty public key")
 
 // ErrNilKeyGenerator signals that nil key generator has been provided
 var ErrNilKeyGenerator = errors.New("nil key generator")
+
+// ErrChangeOwnerAddressFailed signals that change owner address failed
+var ErrChangeOwnerAddressFailed = errors.New("change owner address failed")

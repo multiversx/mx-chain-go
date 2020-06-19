@@ -2,10 +2,6 @@ package intermediate
 
 import (
 	"encoding/hex"
-	"fmt"
-	"io/ioutil"
-	"math/big"
-	"path/filepath"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -31,10 +27,8 @@ type ArgDeployProcessor struct {
 }
 
 type deployProcessor struct {
-	genesis.TxExecutionProcessor
+	*baseDeploy
 	pubkeyConv     core.PubkeyConverter
-	getScCodeAsHex func(filename string) (string, error)
-	blockchainHook process.BlockChainHookHandler
 	scQueryService process.SCQueryService
 	emptyAddress   []byte
 }
@@ -54,87 +48,32 @@ func NewDeployProcessor(arg ArgDeployProcessor) (*deployProcessor, error) {
 		return nil, genesis.ErrNilQueryService
 	}
 
-	dp := &deployProcessor{
+	base := &baseDeploy{
 		TxExecutionProcessor: arg.Executor,
 		pubkeyConv:           arg.PubkeyConv,
 		blockchainHook:       arg.BlockchainHook,
-		scQueryService:       arg.QueryService,
+		emptyAddress:         make([]byte, arg.PubkeyConv.Len()),
 	}
-	dp.getScCodeAsHex = getSCCodeAsHex
-	dp.emptyAddress = make([]byte, dp.pubkeyConv.Len())
+
+	dp := &deployProcessor{
+		pubkeyConv:     arg.PubkeyConv,
+		scQueryService: arg.QueryService,
+		baseDeploy:     base,
+	}
 
 	return dp, nil
 }
 
 // Deploy will try to deploy the provided smart contract
 func (dp *deployProcessor) Deploy(sc genesis.InitialSmartContractHandler) error {
-	code, err := dp.getScCodeAsHex(sc.GetFilename())
+	code, err := getSCCodeAsHex(sc.GetFilename())
 	if err != nil {
 		return err
 	}
 
-	nonce, err := dp.GetNonce(sc.OwnerBytes())
+	scResultingAddressBytes, err := dp.deployForOneAddress(sc, sc.OwnerBytes(), code, applyCommonPlaceholders(sc.GetInitParameters()))
 	if err != nil {
 		return err
-	}
-
-	scResultingAddressBytes, err := dp.blockchainHook.NewAddress(
-		sc.OwnerBytes(),
-		nonce,
-		sc.VmTypeBytes(),
-	)
-	if err != nil {
-		return err
-	}
-
-	sc.SetAddressBytes(scResultingAddressBytes)
-	sc.SetAddress(dp.pubkeyConv.Encode(scResultingAddressBytes))
-
-	vmType := sc.GetVmType()
-	initParams := applyCommonPlaceholders(sc.GetInitParameters())
-	arguments := []string{code, vmType, codeMetadataHexForInitialSC}
-	if len(initParams) > 0 {
-		arguments = append(arguments, initParams)
-	}
-	deployTxData := strings.Join(arguments, "@")
-
-	log.Trace("deploying genesis SC",
-		"SC owner", sc.GetOwner(),
-		"SC address", sc.Address(),
-		"type", sc.GetType(),
-		"VM type", sc.GetVmType(),
-		"init params", initParams,
-	)
-
-	accountExists := dp.AccountExists(scResultingAddressBytes)
-	if accountExists {
-		return fmt.Errorf("%w for SC address %s, owner %s with nonce %d",
-			genesis.ErrAccountAlreadyExists,
-			sc.Address(),
-			sc.GetOwner(),
-			nonce,
-		)
-	}
-
-	err = dp.ExecuteTransaction(
-		nonce,
-		sc.OwnerBytes(),
-		dp.emptyAddress,
-		big.NewInt(0),
-		[]byte(deployTxData),
-	)
-	if err != nil {
-		return err
-	}
-
-	accountExists = dp.AccountExists(scResultingAddressBytes)
-	if !accountExists {
-		return fmt.Errorf("%w for SC address %s, owner %s with nonce %d",
-			genesis.ErrAccountNotCreated,
-			sc.Address(),
-			sc.GetOwner(),
-			nonce,
-		)
 	}
 
 	return dp.checkVersion(sc, scResultingAddressBytes)
@@ -145,15 +84,6 @@ func applyCommonPlaceholders(txData string) string {
 	txData = strings.Replace(txData, auctionScAddressPlaceholder, hex.EncodeToString(vmFactory.AuctionSCAddress), -1)
 
 	return txData
-}
-
-func getSCCodeAsHex(filename string) (string, error) {
-	code, err := ioutil.ReadFile(filepath.Clean(filename))
-	if err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(code), nil
 }
 
 func (dp *deployProcessor) checkVersion(sc genesis.InitialSmartContractHandler, scResultingAddressBytes []byte) error {

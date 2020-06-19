@@ -1,9 +1,9 @@
 package intermediate
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/hex"
 	"math/big"
-	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -21,11 +21,7 @@ type ArgDeployLibrarySC struct {
 }
 
 type deployLibrarySC struct {
-	genesis.TxExecutionProcessor
-	pubkeyConv       core.PubkeyConverter
-	getScCodeAsHex   func(filename string) (string, error)
-	blockchainHook   process.BlockChainHookHandler
-	emptyAddress     []byte
+	*baseDeploy
 	shardCoordinator sharding.Coordinator
 }
 
@@ -46,90 +42,96 @@ func NewDeployLibrarySC(arg ArgDeployLibrarySC) (*deployLibrarySC, error) {
 		return nil, genesis.ErrNilShardCoordinator
 	}
 
-	dp := &deployLibrarySC{
+	base := &baseDeploy{
 		TxExecutionProcessor: arg.Executor,
 		pubkeyConv:           arg.PubkeyConv,
 		blockchainHook:       arg.BlockchainHook,
-		shardCoordinator:     arg.ShardCoordinator,
+		emptyAddress:         make([]byte, arg.PubkeyConv.Len()),
 	}
-	dp.getScCodeAsHex = getSCCodeAsHex
-	dp.emptyAddress = make([]byte, dp.pubkeyConv.Len())
+
+	dp := &deployLibrarySC{
+		baseDeploy:       base,
+		shardCoordinator: arg.ShardCoordinator,
+	}
 
 	return dp, nil
 }
 
+func (dp *deployLibrarySC) generateAllAddressesForShard(baseAddress []byte) [][]byte {
+	addressLen := len(baseAddress)
+
+	newAddresses := make([][]byte, 0)
+	i := uint8(0)
+	for ; i < core.MaxShardNumber-1; i++ {
+		shardInBytes := []byte{0, i}
+		tmpAddress := append(baseAddress[:(addressLen-core.ShardIdentiferLen)], shardInBytes...)
+
+		newShardID := dp.shardCoordinator.ComputeId(tmpAddress)
+		if newShardID != dp.shardCoordinator.SelfId() {
+			continue
+		}
+
+		newAddresses = append(newAddresses, tmpAddress)
+	}
+
+	shardInBytes := []byte{0, i}
+	tmpAddress := append(baseAddress[:(addressLen-core.ShardIdentiferLen)], shardInBytes...)
+
+	newShardID := dp.shardCoordinator.ComputeId(tmpAddress)
+	if newShardID == dp.shardCoordinator.SelfId() {
+		newAddresses = append(newAddresses, tmpAddress)
+	}
+
+	return newAddresses
+}
+
 // Deploy will try to deploy the provided smart contract
 func (dp *deployLibrarySC) Deploy(sc genesis.InitialSmartContractHandler) error {
-	code, err := dp.getScCodeAsHex(sc.GetFilename())
+	code, err := getSCCodeAsHex(sc.GetFilename())
 	if err != nil {
 		return err
 	}
 
-	nonce, err := dp.GetNonce(sc.OwnerBytes())
-	if err != nil {
-		return err
-	}
+	resultingScAddresses := make([][]byte, 0)
+	newAddresses := dp.generateAllAddressesForShard(sc.OwnerBytes())
+	for _, newAddress := range newAddresses {
+		scAddress, err := dp.deployForOneAddress(sc, newAddress, code, sc.GetInitParameters())
+		if err != nil {
+			return err
+		}
 
-	scResultingAddressBytes, err := dp.blockchainHook.NewAddress(
-		sc.OwnerBytes(),
-		nonce,
-		sc.VmTypeBytes(),
-	)
-	if err != nil {
-		return err
-	}
-
-	sc.SetAddressBytes(scResultingAddressBytes)
-	sc.SetAddress(dp.pubkeyConv.Encode(scResultingAddressBytes))
-
-	vmType := sc.GetVmType()
-	initParams := dp.applyCommonPlaceholders(sc.GetInitParameters())
-	arguments := []string{code, vmType, codeMetadataHexForInitialSC}
-	if len(initParams) > 0 {
-		arguments = append(arguments, initParams)
-	}
-	deployTxData := strings.Join(arguments, "@")
-
-	log.Trace("deploying genesis SC",
-		"SC owner", sc.GetOwner(),
-		"SC address", sc.Address(),
-		"type", sc.GetType(),
-		"VM type", sc.GetVmType(),
-		"init params", initParams,
-	)
-
-	accountExists := dp.AccountExists(scResultingAddressBytes)
-	if accountExists {
-		return fmt.Errorf("%w for SC address %s, owner %s with nonce %d",
-			genesis.ErrAccountAlreadyExists,
-			sc.Address(),
-			sc.GetOwner(),
-			nonce,
-		)
-	}
-
-	err = dp.ExecuteTransaction(
-		nonce,
-		sc.OwnerBytes(),
-		dp.emptyAddress,
-		big.NewInt(0),
-		[]byte(deployTxData),
-	)
-	if err != nil {
-		return err
-	}
-
-	accountExists = dp.AccountExists(scResultingAddressBytes)
-	if !accountExists {
-		return fmt.Errorf("%w for SC address %s, owner %s with nonce %d",
-			genesis.ErrAccountNotCreated,
-			sc.Address(),
-			sc.GetOwner(),
-			nonce,
-		)
+		resultingScAddresses = append(resultingScAddresses, scAddress)
 	}
 
 	return nil
+}
+
+func (dp *deployLibrarySC) changeOwnerAddress(
+	scAddress []byte,
+	currentOwner []byte,
+	newOwner []byte,
+) error {
+	nonce, err := dp.GetNonce(currentOwner)
+	if err != nil {
+		return err
+	}
+
+	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
+	err = dp.ExecuteTransaction(nonce, currentOwner, scAddress, big.NewInt(0), txData)
+	if err != nil {
+		return err
+	}
+
+	account, ok := dp.AccountExists(scAddress)
+	if !ok {
+		return genesis.ErrChangeOwnerAddressFailed
+	}
+
+	if !bytes.Equal(account.GetOwnerAddress(), newOwner) {
+		return genesis.ErrChangeOwnerAddressFailed
+	}
+
+	return err
 }
 
 // IsInterfaceNil returns if underlying object is true
