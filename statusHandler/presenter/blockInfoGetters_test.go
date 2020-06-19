@@ -80,7 +80,7 @@ func TestPresenterStatusHandler_GetConsensusStateShouldReturnErrorMessageInvalid
 	presenterStatusHandler.SetUInt64Value(core.MetricConsensusState, consensusState)
 	result := presenterStatusHandler.GetConsensusState()
 
-	assert.Equal(t, invalidType, result)
+	assert.Equal(t, metricNotAvailable, result)
 }
 
 func TestPresenterStatusHandler_GetConsensusStateShouldReturnErrorMessageInvalidKey(t *testing.T) {
@@ -89,7 +89,7 @@ func TestPresenterStatusHandler_GetConsensusStateShouldReturnErrorMessageInvalid
 	presenterStatusHandler := NewPresenterStatusHandler()
 	result := presenterStatusHandler.GetConsensusState()
 
-	assert.Equal(t, invalidKey, result)
+	assert.Equal(t, metricNotAvailable, result)
 }
 
 func TestPresenterStatusHandler_GetConsensusRoundStateState(t *testing.T) {
