@@ -19,6 +19,14 @@ func (adb *AccountsDB) GetAccount(address []byte) (AccountHandler, error) {
 	return adb.getAccount(address)
 }
 
+func (adb *AccountsDB) GetNewCodeMap() map[string]struct{} {
+	return adb.newCode
+}
+
+func (adb *AccountsDB) GetCodeForEvictionMap() map[string]struct{} {
+	return adb.codeForEviction
+}
+
 func (tdaw *TrackableDataTrie) OriginalData() map[string][]byte {
 	return tdaw.originalData
 }

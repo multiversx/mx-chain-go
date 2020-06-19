@@ -9,11 +9,13 @@ import (
 )
 
 type journalEntryCode struct {
-	oldCodeEntry *CodeEntry
-	oldCodeHash  []byte
-	newCodeHash  []byte
-	trie         Updater
-	marshalizer  marshal.Marshalizer
+	oldCodeEntry    *CodeEntry
+	oldCodeHash     []byte
+	newCodeHash     []byte
+	codeForEviction map[string]struct{}
+	newCode         map[string]struct{}
+	trie            Updater
+	marshalizer     marshal.Marshalizer
 }
 
 // NewJournalEntryCode creates a new instance of JournalEntryCode
@@ -21,6 +23,8 @@ func NewJournalEntryCode(
 	oldCodeEntry *CodeEntry,
 	oldCodeHash []byte,
 	newCodeHash []byte,
+	codeForEviction map[string]struct{},
+	newCode map[string]struct{},
 	trie Updater,
 	marshalizer marshal.Marshalizer,
 ) (*journalEntryCode, error) {
@@ -30,13 +34,21 @@ func NewJournalEntryCode(
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
+	if codeForEviction == nil {
+		return nil, ErrNilCodeForEvictionMap
+	}
+	if newCode == nil {
+		return nil, ErrNilNewCodeMap
+	}
 
 	return &journalEntryCode{
-		oldCodeEntry: oldCodeEntry,
-		oldCodeHash:  oldCodeHash,
-		newCodeHash:  newCodeHash,
-		trie:         trie,
-		marshalizer:  marshalizer,
+		oldCodeEntry:    oldCodeEntry,
+		oldCodeHash:     oldCodeHash,
+		newCodeHash:     newCodeHash,
+		trie:            trie,
+		marshalizer:     marshalizer,
+		codeForEviction: codeForEviction,
+		newCode:         newCode,
 	}, nil
 }
 
@@ -64,6 +76,10 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 		return nil
 	}
 
+	if jea.oldCodeEntry.NumReferences == 1 {
+		delete(jea.codeForEviction, string(jea.oldCodeHash))
+	}
+
 	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
@@ -88,6 +104,7 @@ func (jea *journalEntryCode) revertNewCodeEntry() error {
 			return err
 		}
 
+		delete(jea.newCode, string(jea.newCodeHash))
 		return nil
 	}
 

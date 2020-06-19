@@ -13,7 +13,7 @@ import (
 func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), nil, &mock.MarshalizerMock{})
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), map[string]struct{}{}, map[string]struct{}{}, nil, &mock.MarshalizerMock{})
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilUpdater, err)
 }
@@ -21,15 +21,31 @@ func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
 func TestNewJournalEntryCode_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &mock.TrieStub{}, nil)
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), map[string]struct{}{}, map[string]struct{}{}, &mock.TrieStub{}, nil)
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilMarshalizer, err)
+}
+
+func TestNewJournalEntryCode_NilCodeForEvictionMapShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), nil, map[string]struct{}{}, &mock.TrieStub{}, &mock.MarshalizerMock{})
+	assert.True(t, check.IfNil(entry))
+	assert.Equal(t, state.ErrNilCodeForEvictionMap, err)
+}
+
+func TestNewJournalEntryCode_NilNewCodeMapShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), map[string]struct{}{}, nil, &mock.TrieStub{}, &mock.MarshalizerMock{})
+	assert.True(t, check.IfNil(entry))
+	assert.Equal(t, state.ErrNilNewCodeMap, err)
 }
 
 func TestNewJournalEntryCode_OkParams(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &mock.TrieStub{}, &mock.MarshalizerMock{})
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), map[string]struct{}{}, map[string]struct{}{}, &mock.TrieStub{}, &mock.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
@@ -38,7 +54,7 @@ func TestJournalEntryCode_OldHashAndNewHashAreNil(t *testing.T) {
 	t.Parallel()
 
 	trieStub := &mock.TrieStub{}
-	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, nil, trieStub, &mock.MarshalizerMock{})
+	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, nil, map[string]struct{}{}, map[string]struct{}{}, trieStub, &mock.MarshalizerMock{})
 
 	acc, err := entry.Revert()
 	assert.Nil(t, err)
@@ -64,7 +80,7 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 			return nil
 		},
 	}
-	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, []byte("newHash"), trieStub, marsh)
+	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, []byte("newHash"), map[string]struct{}{}, map[string]struct{}{}, trieStub, marsh)
 
 	acc, err := entry.Revert()
 	assert.Nil(t, err)

@@ -948,7 +948,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	assert.True(t, getAllLeavesCalled)
 }
 
-func getTestAccountsDbAndTrie(marsh marshal.Marshalizer, hsh hashing.Hasher) (state.AccountsAdapter, data.Trie) {
+func getTestAccountsDbAndTrie(marsh marshal.Marshalizer, hsh hashing.Hasher) (*state.AccountsDB, data.Trie) {
 	accFactory := factory.NewAccountCreator()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	maxTrieLevelInMemory := uint(5)
@@ -1011,6 +1011,9 @@ func TestAccountsDB_saveCode_OldCodeAndNewCodeAreNil(t *testing.T) {
 	err := adb.SaveAccount(userAcc)
 	assert.Nil(t, err)
 	assert.Nil(t, userAcc.GetCodeHash())
+
+	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 0, len(adb.GetNewCodeMap()))
 }
 
 func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.T) {
@@ -1034,12 +1037,18 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.
 
 	checkCodeEntry(userAcc.GetCodeHash(), code, 1, marsh, tr, t)
 
+	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
+
 	err = adb.RevertToSnapshot(1)
 	assert.Nil(t, err)
 
 	val, err := tr.Get(expectedCodeHash)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
+
+	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 0, len(adb.GetNewCodeMap()))
 }
 
 func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeAlreadyExistsAndRevert(t *testing.T) {
@@ -1072,10 +1081,16 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeAlreadyExistsAndRevert(t *tes
 
 	checkCodeEntry(userAcc.GetCodeHash(), code, 2, marsh, tr, t)
 
+	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
+
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
 	checkCodeEntry(expectedCodeHash, code, 1, marsh, tr, t)
+
+	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
 }
 
 func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeIsNilAndRevert(t *testing.T) {
@@ -1108,10 +1123,16 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeIsNilAndRevert(t *testing.T)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 
+	assert.Equal(t, 1, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
+
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
 	checkCodeEntry(oldCodeHash, code, 1, marsh, tr, t)
+
+	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
 }
 
 func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T) {
@@ -1138,6 +1159,9 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T
 	newCodeHash := hsh.Compute(string(newCode))
 	_ = adb.SaveAccount(userAcc)
 
+	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 2, len(adb.GetNewCodeMap()))
+
 	journalLen := adb.JournalLen()
 
 	acc, _ = adb.LoadAccount(addr)
@@ -1153,11 +1177,17 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T
 
 	checkCodeEntry(newCodeHash, newCode, 2, marsh, tr, t)
 
+	assert.Equal(t, 1, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 2, len(adb.GetNewCodeMap()))
+
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
 	checkCodeEntry(oldCodeHash, oldCode, 1, marsh, tr, t)
 	checkCodeEntry(newCodeHash, newCode, 1, marsh, tr, t)
+
+	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 2, len(adb.GetNewCodeMap()))
 }
 
 func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndRevert(t *testing.T) {
@@ -1183,6 +1213,9 @@ func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndR
 	userAcc.SetCode(code)
 	_ = adb.SaveAccount(userAcc)
 
+	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
+
 	journalLen := adb.JournalLen()
 
 	acc, _ = adb.LoadAccount(addr1)
@@ -1194,8 +1227,14 @@ func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndR
 
 	checkCodeEntry(oldCodeHash, code, 1, marsh, tr, t)
 
+	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
+
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
 	checkCodeEntry(oldCodeHash, code, 2, marsh, tr, t)
+
+	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
+	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
 }
