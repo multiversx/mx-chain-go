@@ -314,17 +314,20 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 		return false
 	}
 
-	sr.UpdateLeaderPeerHonesty(node)
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		sr.PeerHonestyHandler().Decrease(
+			node,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.LeaderPeerHonestyDecreaseFactor)
+
+		return false
+	}
 
 	if sr.IsBlockBodyAlreadyReceived() {
 		return false
 	}
 
 	if sr.IsHeaderAlreadyReceived() {
-		return false
-	}
-
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
 		return false
 	}
 
@@ -348,6 +351,11 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 	sw.Stop("processReceivedBlock")
 
+	sr.PeerHonestyHandler().Increase(
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.LeaderPeerHonestyIncreaseFactor)
+
 	return blockProcessedWithSuccess
 }
 
@@ -355,13 +363,16 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
-	sr.UpdateLeaderPeerHonesty(node)
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		sr.PeerHonestyHandler().Decrease(
+			node,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.LeaderPeerHonestyDecreaseFactor)
 
-	if sr.IsBlockBodyAlreadyReceived() {
 		return false
 	}
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	if sr.IsBlockBodyAlreadyReceived() {
 		return false
 	}
 
@@ -379,6 +390,11 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
 
+	sr.PeerHonestyHandler().Increase(
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.LeaderPeerHonestyIncreaseFactor)
+
 	return blockProcessedWithSuccess
 }
 
@@ -392,13 +408,16 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	sr.UpdateLeaderPeerHonesty(node)
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		sr.PeerHonestyHandler().Decrease(
+			node,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.LeaderPeerHonestyDecreaseFactor)
 
-	if sr.IsHeaderAlreadyReceived() {
 		return false
 	}
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	if sr.IsHeaderAlreadyReceived() {
 		return false
 	}
 
@@ -417,6 +436,11 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 		"nonce", sr.Header.GetNonce(),
 		"hash", cnsDta.BlockHeaderHash)
 	blockProcessedWithSuccess := sr.processReceivedBlock(cnsDta)
+
+	sr.PeerHonestyHandler().Increase(
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.LeaderPeerHonestyIncreaseFactor)
 
 	return blockProcessedWithSuccess
 }

@@ -101,7 +101,7 @@ type HeadersPoolSubscriber interface {
 // PeerHonestyHandler defines the behaivour of a component able to handle/monitor the peer honesty of nodes which are
 // participating in consensus
 type PeerHonestyHandler interface {
-	Increase(round int64, pk string, topic string, value float64)
-	Decrease(round int64, pk string, topic string, value float64)
+	Increase(pk string, topic string, value float64)
+	Decrease(pk string, topic string, value float64)
 	IsInterfaceNil() bool
 }
