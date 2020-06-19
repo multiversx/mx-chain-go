@@ -176,7 +176,7 @@ func (n *Node) prepareNormalTx(tx *transaction.Transaction, status core.Transact
 		GasLimit:  tx.GasLimit,
 		Data:      string(tx.Data),
 		Signature: hex.EncodeToString(tx.Signature),
-		Status:    string(status),
+		Status:    status,
 	}, nil
 }
 
@@ -187,7 +187,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx, status core.Transactio
 		Epoch:    tx.GetEpoch(),
 		Value:    tx.GetValue().String(),
 		Receiver: n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
-		Status:   string(status),
+		Status:   status,
 	}, nil
 }
 
@@ -206,7 +206,7 @@ func (n *Node) prepareUnsignedTx(
 		Data:      string(tx.GetData()),
 		Code:      string(tx.GetCode()),
 		Signature: "",
-		Status:    string(status),
+		Status:    status,
 	}, nil
 }
 
