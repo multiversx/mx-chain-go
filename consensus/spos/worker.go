@@ -394,7 +394,7 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		return false
 	}
 
-	if errors.Is(err, ErrMessageForPastRound) {
+	if errors.Is(err, ErrMessageForPastRound) || errors.Is(err, ErrMessageForFutureRound) {
 		return false
 	}
 
