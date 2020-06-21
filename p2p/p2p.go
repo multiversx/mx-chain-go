@@ -277,3 +277,11 @@ type Cacher interface {
 	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool)
 	IsInterfaceNil() bool
 }
+
+// Debugger represent a p2p debugger able to print p2p statistics (messages received/sent per topic)
+type Debugger interface {
+	AddIncomingMessage(topic string, size uint64, isRejected bool)
+	AddOutgoingMessage(topic string, size uint64, isRejected bool)
+	Close() error
+	IsInterfaceNil() bool
+}
