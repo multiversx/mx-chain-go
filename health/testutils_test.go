@@ -132,7 +132,6 @@ func (dummy *dummyClock) tick() {
 	dummy.ticks++
 
 	eventToHappen, eventToHappenElement := dummy.getEventToHappenNoLock()
-
 	if eventToHappen != nil {
 		dummy.eventsSchedule.Remove(eventToHappenElement)
 	}
