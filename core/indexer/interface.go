@@ -16,7 +16,7 @@ import (
 type Indexer interface {
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string)
-	SaveRoundInfo(roundInfo RoundInfo)
+	SaveRoundsInfos(roundsInfos []RoundInfo)
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRating(indexID string, infoRating []ValidatorRatingInfo)
@@ -30,7 +30,7 @@ type databaseHandler interface {
 	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int)
 	SaveMiniblocks(header data.HeaderHandler, body *block.Body)
 	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32)
-	SaveRoundInfo(info RoundInfo)
+	SaveRoundsInfos(infos []RoundInfo)
 	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte)
 	SaveValidatorsRating(Index string, validatorsRatingInfo []ValidatorRatingInfo)
 	SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark)

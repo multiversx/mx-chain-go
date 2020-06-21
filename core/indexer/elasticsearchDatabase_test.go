@@ -312,7 +312,7 @@ func TestElasticsearch_saveRoundInfo(t *testing.T) {
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveRoundInfo(roundInfo)
+	elasticDatabase.SaveRoundsInfos([]RoundInfo{roundInfo})
 }
 
 func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
@@ -324,13 +324,13 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 	localError := errors.New("local err")
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
-		DoRequestCalled: func(req *esapi.IndexRequest) error {
+		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			return localError
 		},
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveRoundInfo(roundInfo)
+	elasticDatabase.SaveRoundsInfos([]RoundInfo{roundInfo})
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
@@ -371,6 +371,33 @@ func TestUpdateMiniBlock(t *testing.T) {
 	esDatabase.SaveMiniblocks(header1, body1)
 	// update
 	esDatabase.SaveMiniblocks(header2, body1)
+}
+
+func TestSaveRoundsInfo(t *testing.T) {
+	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
+
+	args := elasticSearchDatabaseArgs{
+		url:                    "http://localhost:9200",
+		userName:               "basic_auth_username",
+		password:               "basic_auth_password",
+		marshalizer:            &mock.MarshalizerMock{},
+		hasher:                 &mock.HasherMock{},
+		addressPubkeyConverter: &mock.PubkeyConverterMock{},
+	}
+
+	esDatabase, _ := newElasticSearchDatabase(args)
+
+	roundInfo1 := RoundInfo{
+		Index: 1, ShardId: 0, BlockWasProposed: true,
+	}
+	roundInfo2 := RoundInfo{
+		Index: 2, ShardId: 0, BlockWasProposed: true,
+	}
+	roundInfo3 := RoundInfo{
+		Index: 3, ShardId: 0, BlockWasProposed: true,
+	}
+
+	esDatabase.SaveRoundsInfos([]RoundInfo{roundInfo1, roundInfo2, roundInfo3})
 }
 
 func TestUpdateTransaction(t *testing.T) {

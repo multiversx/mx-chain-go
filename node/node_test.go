@@ -1352,6 +1352,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 	)
 
 	err := n.StartConsensus()

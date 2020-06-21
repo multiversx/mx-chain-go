@@ -87,8 +87,8 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
-	config := storageUnit.CacheConfig{SizeInBytes: 524288000, SizeInBytesPerSender: 614400, Capacity: 900000, SizePerSender: 1000, Shards: 1}
-	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 5}
+	config := storageUnit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
+	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 2}
 
 	poolAsInterface, err := NewShardedTxPool(args)
 	require.Nil(t, err)
@@ -96,15 +96,15 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 
 	require.Equal(t, true, pool.configPrototypeSourceMe.EvictionEnabled)
-	require.Equal(t, uint32(291271110), pool.configPrototypeSourceMe.NumBytesThreshold)
-	require.Equal(t, uint32(614400), pool.configPrototypeSourceMe.NumBytesPerSenderThreshold)
-	require.Equal(t, uint32(1000), pool.configPrototypeSourceMe.CountPerSenderThreshold)
-	require.Equal(t, uint32(100), pool.configPrototypeSourceMe.NumSendersToPreemptivelyEvict)
-	require.Equal(t, uint32(200), pool.configPrototypeSourceMe.MinGasPriceNanoErd)
-	require.Equal(t, uint32(500000), pool.configPrototypeSourceMe.CountThreshold)
+	require.Equal(t, 209715200, int(pool.configPrototypeSourceMe.NumBytesThreshold))
+	require.Equal(t, 614400, int(pool.configPrototypeSourceMe.NumBytesPerSenderThreshold))
+	require.Equal(t, 1000, int(pool.configPrototypeSourceMe.CountPerSenderThreshold))
+	require.Equal(t, 100, int(pool.configPrototypeSourceMe.NumSendersToPreemptivelyEvict))
+	require.Equal(t, 200, int(pool.configPrototypeSourceMe.MinGasPriceNanoErd))
+	require.Equal(t, 300000, int(pool.configPrototypeSourceMe.CountThreshold))
 
-	require.Equal(t, uint32(100000), pool.configPrototypeDestinationMe.MaxNumItems)
-	require.Equal(t, uint32(58254222), pool.configPrototypeDestinationMe.MaxNumBytes)
+	require.Equal(t, 150000, int(pool.configPrototypeDestinationMe.MaxNumItems))
+	require.Equal(t, 104857600, int(pool.configPrototypeDestinationMe.MaxNumBytes))
 }
 
 func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {

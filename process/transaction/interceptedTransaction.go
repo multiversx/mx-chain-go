@@ -171,6 +171,12 @@ func (inTx *InterceptedTransaction) integrity() error {
 	if inTx.tx.Value.Sign() < 0 {
 		return process.ErrNegativeValue
 	}
+	if len(inTx.tx.RcvUserName) > 0 && len(inTx.tx.RcvUserName) != inTx.hasher.Size() {
+		return process.ErrInvalidUserNameLength
+	}
+	if len(inTx.tx.SndUserName) > 0 && len(inTx.tx.SndUserName) != inTx.hasher.Size() {
+		return process.ErrInvalidUserNameLength
+	}
 
 	return inTx.feeHandler.CheckValidityTxValues(inTx.tx)
 }

@@ -428,6 +428,38 @@ func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilValue, err)
 }
 
+func TestInterceptedTransaction_CheckValidityInvalidUserNameLength(t *testing.T) {
+	t.Parallel()
+
+	tx := &dataTransaction.Transaction{
+		Nonce:       1,
+		Value:       big.NewInt(2),
+		Data:        []byte("data"),
+		GasLimit:    3,
+		GasPrice:    4,
+		RcvAddr:     recvAddress,
+		SndAddr:     senderAddress,
+		Signature:   sigOk,
+		RcvUserName: []byte("username"),
+	}
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+
+	err := txi.CheckValidity()
+	assert.Equal(t, process.ErrInvalidUserNameLength, err)
+
+	tx.RcvUserName = nil
+	tx.SndUserName = []byte("username")
+	txi, _ = createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrInvalidUserNameLength, err)
+
+	tx.RcvUserName = []byte("12345678901234567890123456789012")
+	tx.SndUserName = []byte("12345678901234567890123456789012")
+	txi, _ = createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	err = txi.CheckValidity()
+	assert.Nil(t, err)
+}
+
 func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
