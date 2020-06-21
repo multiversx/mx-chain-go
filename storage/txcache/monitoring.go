@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -216,13 +217,18 @@ func (cache *TxCache) displaySendersSummary() {
 		return
 	}
 
-	var builder strings.Builder
 	senders := cache.txListBySender.getSnapshotAscending()
+	if len(senders) == 0 {
+		return
+	}
+
+	var builder strings.Builder
+	builder.WriteString("\n[#index (score)] address [nonce known / nonce vs lowestTxNonce] txs = numTxs, !numFailedSelections\n")
 
 	i := 0
 	for _, sender := range senders {
 		i++
-		address := sender.sender
+		address := hex.EncodeToString([]byte(sender.sender))
 		accountNonce := sender.accountNonce.Get()
 		accountNonceKnown := sender.accountNonceKnown.IsSet()
 		numFailedSelections := sender.numFailedSelections.Get()
@@ -235,9 +241,9 @@ func (cache *TxCache) displaySendersSummary() {
 			lowestTxNonce = int(lowestTx.Tx.GetNonce())
 		}
 
-		fmt.Fprintf(&builder, "[#%d (%d)] %s [%t / %d vs %d] txs = %d, !%d", i, score, address, accountNonceKnown, accountNonce, lowestTxNonce, numTxs, numFailedSelections)
+		fmt.Fprintf(&builder, "[#%d (%d)] %s [%t / %d vs %d] txs = %d, !%d\n", i, score, address, accountNonceKnown, accountNonce, lowestTxNonce, numTxs, numFailedSelections)
 	}
 
 	summary := builder.String()
-	log.Trace("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
+	log.Info("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
 }
