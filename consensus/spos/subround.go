@@ -19,13 +19,14 @@ type Subround struct {
 	ConsensusCoreHandler
 	*ConsensusState
 
-	previous  int
-	current   int
-	next      int
-	startTime int64
-	endTime   int64
-	name      string
-	chainID   []byte
+	previous   int
+	current    int
+	next       int
+	startTime  int64
+	endTime    int64
+	name       string
+	chainID    []byte
+	currentPid core.PeerID
 
 	consensusStateChangedChannel chan bool
 	executeStoredMessages        func()
@@ -49,6 +50,7 @@ func NewSubround(
 	executeStoredMessages func(),
 	container ConsensusCoreHandler,
 	chainID []byte,
+	currentPid core.PeerID,
 ) (*Subround, error) {
 	err := checkNewSubroundParams(
 		consensusState,
@@ -77,6 +79,7 @@ func NewSubround(
 		Check:                        nil,
 		Extend:                       nil,
 		appStatusHandler:             statusHandler.NewNilStatusHandler(),
+		currentPid:                   currentPid,
 	}
 
 	return &sr, nil
@@ -178,6 +181,11 @@ func (sr *Subround) Name() string {
 // ChainID method returns the current chain ID
 func (sr *Subround) ChainID() []byte {
 	return sr.chainID
+}
+
+// CurrentPid returns the current p2p peer ID
+func (sr *Subround) CurrentPid() core.PeerID {
+	return sr.currentPid
 }
 
 // SetAppStatusHandler method sets appStatusHandler

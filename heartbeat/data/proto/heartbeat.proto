@@ -31,7 +31,7 @@ message HeartbeatDTO {
 	string  PeerType                     = 11;
 	string  Identity                     = 12;
 	bool    IsValidator                  = 13;
-	int64	LastUptimeDowntime           = 14;
+	int64	  LastUptimeDowntime           = 14;
 	int64   GenesisTime                  = 15;
 }
 

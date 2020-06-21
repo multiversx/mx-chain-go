@@ -351,12 +351,12 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		"size", len(message.Data()),
 	)
 
-	err = wrk.checkConsensusMessageValidity(cnsMsg)
+	err = wrk.checkConsensusMessageValidity(cnsMsg, message.Peer())
 	if err != nil {
 		return err
 	}
 
-	go wrk.updateNetworkShardingVals(message, cnsMsg)
+	wrk.updateNetworkShardingVals(message, cnsMsg)
 
 	isMessageWithBlockBody := wrk.consensusService.IsMessageWithBlockBody(msgType)
 	isMessageWithBlockHeader := wrk.consensusService.IsMessageWithBlockHeader(msgType)

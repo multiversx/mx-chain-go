@@ -217,6 +217,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		sr.Header.GetPubKeysBitmap(),
 		sr.Header.GetSignature(),
 		sr.Header.GetLeaderSignature(),
+		sr.CurrentPid(),
 	)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
