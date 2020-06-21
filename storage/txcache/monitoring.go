@@ -1,6 +1,9 @@
 package txcache
 
 import (
+	"fmt"
+	"strings"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 )
@@ -155,7 +158,10 @@ func (cache *TxCache) diagnoseShallowly() {
 func (cache *TxCache) diagnoseDeeply() {
 	sw := core.NewStopWatch()
 	sw.Start("diagnose")
+
 	journal := cache.checkInternalConsistency()
+	cache.displaySendersSummary()
+
 	sw.Stop("diagnose")
 	duration := sw.GetMeasurement("diagnose")
 
@@ -203,4 +209,35 @@ func (cache *TxCache) checkInternalConsistency() internalConsistencyJournal {
 		numInMapBySender:      numInMapBySender,
 		numMissingInMapByHash: numMissingInMapByHash,
 	}
+}
+
+func (cache *TxCache) displaySendersSummary() {
+	if log.GetLevel() != logger.LogTrace {
+		return
+	}
+
+	var builder strings.Builder
+	senders := cache.txListBySender.getSnapshotAscending()
+
+	i := 0
+	for _, sender := range senders {
+		i++
+		address := sender.sender
+		accountNonce := sender.accountNonce.Get()
+		accountNonceKnown := sender.accountNonceKnown.IsSet()
+		numFailedSelections := sender.numFailedSelections.Get()
+		score := sender.getLastComputedScore()
+		numTxs := sender.countTxWithLock()
+
+		lowestTxNonce := -1
+		lowestTx := sender.getLowestNonceTx()
+		if lowestTx != nil {
+			lowestTxNonce = int(lowestTx.Tx.GetNonce())
+		}
+
+		fmt.Fprintf(&builder, "[#%d (%d)] %s [%t / %d vs %d] txs = %d, !%d", i, score, address, accountNonceKnown, accountNonce, lowestTxNonce, numTxs, numFailedSelections)
+	}
+
+	summary := builder.String()
+	log.Trace("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
 }
