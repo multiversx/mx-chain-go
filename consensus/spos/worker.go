@@ -69,7 +69,6 @@ type Worker struct {
 
 	antifloodHandler consensus.P2PAntifloodHandler
 	poolAdder        PoolAdder
-	nodesCoordinator sharding.NodesCoordinator
 
 	signatureSize       int
 	publicKeySize       int
@@ -101,7 +100,6 @@ type WorkerArgs struct {
 	PoolAdder                PoolAdder
 	SignatureSize            int
 	PublicKeySize            int
-	NodesCoordinator         sharding.NodesCoordinator
 }
 
 // NewWorker creates a new Worker object
@@ -135,7 +133,6 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		poolAdder:                args.PoolAdder,
 		signatureSize:            args.SignatureSize,
 		publicKeySize:            args.PublicKeySize,
-		nodesCoordinator:         args.NodesCoordinator,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -226,9 +223,6 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.PoolAdder) {
 		return ErrNilPoolAdder
-	}
-	if check.IfNil(args.NodesCoordinator) {
-		return ErrNilNodesCoordinator
 	}
 
 	return nil
@@ -396,37 +390,15 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 }
 
 func (wrk *Worker) shouldBlacklistPeer(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	if errors.Is(err, ErrMessageForPastRound) || errors.Is(err, ErrMessageForFutureRound) {
-		return false
-	}
-
-	isNodeNotSynced := wrk.bootstrapper.GetNodeState() != core.NsSynchronized
-	isShuffleOutInProgress := wrk.isShuffleOutInProgress()
-	if errors.Is(err, ErrNodeIsNotInEligibleList) && (isShuffleOutInProgress || isNodeNotSynced) {
+	if err == nil ||
+		errors.Is(err, ErrMessageForPastRound) ||
+		errors.Is(err, ErrMessageForFutureRound) ||
+		errors.Is(err, ErrNodeIsNotInEligibleList) ||
+		errors.Is(err, sharding.ErrEpochNodesConfigDoesNotExist) {
 		return false
 	}
 
 	return true
-}
-
-func (wrk *Worker) isShuffleOutInProgress() bool {
-	currentHeader := wrk.blockChain.GetCurrentBlockHeader()
-	if check.IfNil(currentHeader) {
-		currentHeader = wrk.blockChain.GetGenesisHeader()
-	}
-
-	epoch := currentHeader.GetEpoch()
-	shardCoordinatorSelfShardID := wrk.shardCoordinator.SelfId()
-	nodesCoordinatorSelfShardID, err := wrk.nodesCoordinator.ShardIdForEpoch(epoch)
-	if err != nil {
-		return true
-	}
-
-	return shardCoordinatorSelfShardID != nodesCoordinatorSelfShardID
 }
 
 func (wrk *Worker) doJobOnMessageWithBlockBody(cnsMsg *consensus.Message) {

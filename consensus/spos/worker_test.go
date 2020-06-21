@@ -36,11 +36,6 @@ var invalidSignature = make([]byte, SignatureSize+1)
 var publicKey = make([]byte, PublicKeySize)
 
 func createDefaultWorkerArgs() *spos.WorkerArgs {
-	blockchainMock := &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
 	blockProcessor := &mock.BlockProcessorMock{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
@@ -98,7 +93,6 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 		PoolAdder:                poolAdder,
 		SignatureSize:            SignatureSize,
 		PublicKeySize:            PublicKeySize,
-		NodesCoordinator:         &mock.NodesCoordinatorMock{},
 	}
 
 	return workerArgs
@@ -359,17 +353,6 @@ func TestWorker_NewWorkerPoolAdderNilShouldFail(t *testing.T) {
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilPoolAdder, err)
-}
-
-func TestWorker_NewWorkerNodesCoordinatorNilShouldFail(t *testing.T) {
-	t.Parallel()
-
-	workerArgs := createDefaultWorkerArgs()
-	workerArgs.NodesCoordinator = nil
-	wrk, err := spos.NewWorker(workerArgs)
-
-	assert.Nil(t, wrk)
-	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {

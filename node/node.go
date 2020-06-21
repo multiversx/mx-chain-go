@@ -293,7 +293,6 @@ func (n *Node) StartConsensus() error {
 		PoolAdder:                n.dataPool.MiniBlocks(),
 		SignatureSize:            n.signatureSize,
 		PublicKeySize:            n.publicKeySize,
-		NodesCoordinator:         n.nodesCoordinator,
 	}
 
 	worker, err := spos.NewWorker(workerArgs)
