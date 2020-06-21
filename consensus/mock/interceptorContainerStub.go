@@ -7,15 +7,11 @@ import (
 
 // InterceptorsContainerStub -
 type InterceptorsContainerStub struct {
-	IterateCalled func(handler func(key string, interceptor process.Interceptor) bool)
-	GetCalled     func(string) (process.Interceptor, error)
+	GetCalled func(string) (process.Interceptor, error)
 }
 
 // Iterate -
-func (ics *InterceptorsContainerStub) Iterate(handler func(key string, interceptor process.Interceptor) bool) {
-	if ics.IterateCalled != nil {
-		ics.IterateCalled(handler)
-	}
+func (ics *InterceptorsContainerStub) Iterate(_ func(key string, interceptor process.Interceptor) bool) {
 }
 
 // Get -

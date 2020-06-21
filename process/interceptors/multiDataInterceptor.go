@@ -194,6 +194,11 @@ func (mdi *MultiDataInterceptor) SetInterceptedDebugHandler(handler process.Inte
 	return nil
 }
 
+// RegisterHandler registers a callback function to be notified on received data
+func (mdi *MultiDataInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
+	mdi.processor.RegisterHandler(handler)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mdi *MultiDataInterceptor) IsInterfaceNil() bool {
 	return mdi == nil
