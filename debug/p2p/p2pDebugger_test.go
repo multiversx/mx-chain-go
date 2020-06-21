@@ -43,7 +43,7 @@ func TestP2pDebugger_AddIncomingMessageShouldNotProcessWillNotAdd(t *testing.T) 
 	size := uint64(3857)
 	pd.AddIncomingMessage(topic, size, false)
 
-	m := pd.data[topic]
+	m := pd.GetClonedMetric(topic)
 	assert.Nil(t, m)
 }
 
@@ -60,7 +60,7 @@ func TestP2pDebugger_AddIncomingMessage(t *testing.T) {
 	size := uint64(3857)
 	pd.AddIncomingMessage(topic, size, false)
 
-	m := pd.data[topic]
+	m := pd.GetClonedMetric(topic)
 	require.NotNil(t, m)
 
 	expectedMetric := &metric{
@@ -77,6 +77,8 @@ func TestP2pDebugger_AddIncomingMessage(t *testing.T) {
 	assert.Equal(t, expectedMetric, m)
 
 	pd.AddIncomingMessage(topic, size, true)
+	m = pd.GetClonedMetric(topic)
+	require.NotNil(t, m)
 
 	expectedMetric = &metric{
 		topic:                topic,
@@ -107,7 +109,7 @@ func TestP2pDebugger_AddOutgoingMessageShouldNotProcessWillNotAdd(t *testing.T) 
 	size := uint64(3857)
 	pd.AddOutgoingMessage(topic, size, false)
 
-	m := pd.data[topic]
+	m := pd.GetClonedMetric(topic)
 	assert.Nil(t, m)
 }
 
@@ -124,7 +126,7 @@ func TestP2pDebugger_AddOutgoingMessage(t *testing.T) {
 	size := uint64(3857)
 	pd.AddOutgoingMessage(topic, size, false)
 
-	m := pd.data[topic]
+	m := pd.GetClonedMetric(topic)
 	require.NotNil(t, m)
 
 	expectedMetric := &metric{
@@ -141,6 +143,8 @@ func TestP2pDebugger_AddOutgoingMessage(t *testing.T) {
 	assert.Equal(t, expectedMetric, m)
 
 	pd.AddOutgoingMessage(topic, size, true)
+	m = pd.GetClonedMetric(topic)
+	require.NotNil(t, m)
 
 	expectedMetric = &metric{
 		topic:                topic,
