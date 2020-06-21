@@ -324,12 +324,11 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	defer func() {
-		shouldBlacklistPeer := err != nil && !errors.Is(err, ErrMessageForPastRound)
-		if shouldBlacklistPeer {
+		if wrk.shouldBlacklistPeer(err) {
 			//this situation is so severe that we have to black list both the message originator and the connected peer
 			//that disseminated this message.
 
-			reason := "blacklisted due to invalid consensus message"
+			reason := fmt.Sprintf("blacklisted due to invalid consensus message: %s", err.Error())
 			wrk.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
 			wrk.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
 		}
@@ -388,6 +387,23 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	go wrk.executeReceivedMessages(cnsMsg)
 
 	return nil
+}
+
+func (wrk *Worker) shouldBlacklistPeer(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if errors.Is(err, ErrMessageForPastRound) || errors.Is(err, ErrMessageForFutureRound) {
+		return false
+	}
+
+	isNodeSynced := wrk.bootstrapper.GetNodeState() == core.NsSynchronized
+	if errors.Is(err, ErrNodeIsNotInEligibleList) && !isNodeSynced {
+		return false
+	}
+
+	return true
 }
 
 func (wrk *Worker) doJobOnMessageWithBlockBody(cnsMsg *consensus.Message) {

@@ -208,44 +208,6 @@ func (sr *Subround) ConsensusChannel() chan bool {
 	return sr.consensusStateChangedChannel
 }
 
-// UpdateValidatorPeerHonesty will increase or decrease the honesty of the given validator public key
-func (sr *Subround) UpdateValidatorPeerHonesty(pk string) {
-	if !sr.IsNodeInConsensusGroup(pk) {
-		sr.PeerHonestyHandler().Decrease(
-			sr.Rounder().Index(),
-			pk,
-			GetConsensusTopicID(sr.ShardCoordinator()),
-			ValidatorPeerHonestyDecreaseFactor)
-
-		return
-	}
-
-	sr.PeerHonestyHandler().Increase(
-		sr.Rounder().Index(),
-		pk,
-		GetConsensusTopicID(sr.ShardCoordinator()),
-		ValidatorPeerHonestyIncreaseFactor)
-}
-
-// UpdateLeaderPeerHonesty will increase or decrease the honesty of the given leader public key
-func (sr *Subround) UpdateLeaderPeerHonesty(pk string) {
-	if !sr.IsNodeLeaderInCurrentRound(pk) { // is NOT this node leader in current round?
-		sr.PeerHonestyHandler().Decrease(
-			sr.Rounder().Index(),
-			pk,
-			GetConsensusTopicID(sr.ShardCoordinator()),
-			LeaderPeerHonestyDecreaseFactor)
-
-		return
-	}
-
-	sr.PeerHonestyHandler().Increase(
-		sr.Rounder().Index(),
-		pk,
-		GetConsensusTopicID(sr.ShardCoordinator()),
-		LeaderPeerHonestyIncreaseFactor)
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (sr *Subround) IsInterfaceNil() bool {
 	return sr == nil

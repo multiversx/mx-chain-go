@@ -11,27 +11,26 @@ var log = logger.GetOrCreate("node/mock")
 
 // PeerHonestyHandlerStub -
 type PeerHonestyHandlerStub struct {
-	IncreaseCalled func(round int64, pk string, topic string, value float64)
-	DecreaseCalled func(round int64, pk string, topic string, value float64)
+	IncreaseCalled func(pk string, topic string, value float64)
+	DecreaseCalled func(pk string, topic string, value float64)
 }
 
 // Increase -
-func (phhs *PeerHonestyHandlerStub) Increase(round int64, pk string, topic string, value float64) {
+func (phhs *PeerHonestyHandlerStub) Increase(pk string, topic string, value float64) {
 	if phhs.IncreaseCalled != nil {
-		phhs.IncreaseCalled(round, pk, topic, value)
+		phhs.IncreaseCalled(pk, topic, value)
 		return
 	}
 }
 
 // Decrease -
-func (phhs *PeerHonestyHandlerStub) Decrease(round int64, pk string, topic string, value float64) {
+func (phhs *PeerHonestyHandlerStub) Decrease(pk string, topic string, value float64) {
 	if phhs.DecreaseCalled != nil {
-		phhs.DecreaseCalled(round, pk, topic, value)
+		phhs.DecreaseCalled(pk, topic, value)
 		return
 	}
 
 	log.Warn("PeerHonestyHandlerStub.Decrease",
-		"round", round,
 		"topic", topic,
 		"pk", core.GetTrimmedPk(hex.EncodeToString([]byte(pk))),
 		"value", value)
