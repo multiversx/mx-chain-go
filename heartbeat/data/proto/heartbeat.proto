@@ -19,7 +19,7 @@ message Heartbeat {
 // HeartbeatDTO is the struct used for handling DB operations for heartbeatMessageInfo struct
 message HeartbeatDTO {
     int64   MaxDurationPeerUnresponsive  = 1 ;
-	int64   MaxInactiveTime              = 2 ;
+    int64   MaxInactiveTime              = 2 ;
     int64   TotalUpTime                  = 3 ;
     int64   TotalDownTime                = 4 ;
     int64   TimeStamp                    = 5 ;
