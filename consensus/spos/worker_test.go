@@ -36,6 +36,7 @@ var invalidSignature = make([]byte, SignatureSize+1)
 var publicKey = make([]byte, PublicKeySize)
 
 func createDefaultWorkerArgs() *spos.WorkerArgs {
+	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
