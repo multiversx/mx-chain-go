@@ -49,7 +49,7 @@ func TestConcurrentShardedCounts_ConcurrentReadsAndWrites(t *testing.T) {
 	asString := counts.String()
 
 	require.Equal(t, int64(85), total)
-	require.True(t, asString == "Total:85; [foo]=42; [bar]=43; " || asString == "Total:85; [bar]=43; [foo]=42; ")
+	require.Equal(t, "Total:85; [bar]=43; [foo]=42; ", asString)
 }
 
 func TestConcurrentShardedCounts_IsInterfaceNil(t *testing.T) {

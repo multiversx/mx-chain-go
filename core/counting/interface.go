@@ -7,7 +7,7 @@ type Counts interface {
 	IsInterfaceNil() bool
 }
 
-// Counts is an interface to interact with counts
+// CountsWithSize is an interface to interact with counts
 type CountsWithSize interface {
 	Counts
 	GetTotalSize() int64

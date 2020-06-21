@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"runtime"
 	"sync"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/check"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 )
@@ -17,12 +17,16 @@ import (
 var log = logger.GetOrCreate("health")
 
 type healthService struct {
-	config                     config.HealthServiceConfig
-	folder                     string
-	cancelFunction             func()
-	records                    *records
-	diagnosableComponents      []diagnosable
-	diagnosableComponentsMutex sync.RWMutex
+	config                              config.HealthServiceConfig
+	folder                              string
+	cancelFunction                      func()
+	records                             *records
+	diagnosableComponents               []diagnosable
+	diagnosableComponentsMutex          sync.RWMutex
+	clock                               clock
+	memory                              memory
+	onMonitorContinuouslyBeginIteration func()
+	onMonitorContinuouslyEndIteration   func()
 }
 
 // NewHealthService creates a new HealthService object
@@ -30,29 +34,42 @@ func NewHealthService(config config.HealthServiceConfig, workingDir string) *hea
 	log.Info("NewHealthService", "config", config)
 
 	folder := path.Join(workingDir, config.FolderPath)
-	records := newRecords(config.NumMemoryRecordsToKeep)
+	records := newRecords(config.NumMemoryUsageRecordsToKeep)
 
 	return &healthService{
-		config:                config,
-		folder:                folder,
-		cancelFunction:        func() {},
-		records:               records,
-		diagnosableComponents: make([]diagnosable, 0),
+		config:                              config,
+		folder:                              folder,
+		cancelFunction:                      func() {},
+		records:                             records,
+		diagnosableComponents:               make([]diagnosable, 0),
+		clock:                               &realClock{},
+		memory:                              &realMemory{},
+		onMonitorContinuouslyBeginIteration: func() {},
+		onMonitorContinuouslyEndIteration:   func() {},
 	}
 }
 
 // RegisterComponent registers a diagnosable component
 func (h *healthService) RegisterComponent(component interface{}) {
-	h.diagnosableComponentsMutex.Lock()
-	defer h.diagnosableComponentsMutex.Unlock()
+	err := h.doRegisterComponent(component)
+	if err != nil {
+		log.Error("healthService.RegisterComponent()", "err", err, "component", fmt.Sprintf("%T", component))
+	}
+}
 
+func (h *healthService) doRegisterComponent(component interface{}) error {
 	asDiagnosable, ok := component.(diagnosable)
 	if !ok {
-		log.Error("healthService.RegisterComponent(): not diagnosable", "component", fmt.Sprintf("%T", component))
-		return
+		return errNotDiagnosableComponent
+	}
+	if check.IfNil(asDiagnosable) {
+		return errNilComponent
 	}
 
+	h.diagnosableComponentsMutex.Lock()
 	h.diagnosableComponents = append(h.diagnosableComponents, asDiagnosable)
+	h.diagnosableComponentsMutex.Unlock()
+	return nil
 }
 
 // Start starts the health service
@@ -78,42 +95,43 @@ func (h *healthService) setupCancellation() context.Context {
 }
 
 func (h *healthService) monitorContinuously(ctx context.Context) {
-	for i := 0; h.shouldContinueInfiniteLoop(ctx); i++ {
-		shouldMonitorMemory := i%h.config.IntervalVerifyMemoryInSeconds == 0
-		shouldDiagnoseComponents := i%h.config.IntervalDiagnoseComponentsInSeconds == 0
-		shouldDiagnoseComponentsDeeply := i%h.config.IntervalDiagnoseComponentsDeeplyInSeconds == 0
+	intervalVerifyMemoryInSeconds := time.Duration(h.config.IntervalVerifyMemoryInSeconds) * time.Second
+	intervalDiagnoseComponentsInSeconds := time.Duration(h.config.IntervalDiagnoseComponentsInSeconds) * time.Second
+	intervalDiagnoseComponentsDeeplyInSeconds := time.Duration(h.config.IntervalDiagnoseComponentsDeeplyInSeconds) * time.Second
 
-		if shouldMonitorMemory {
+	chanMonitorMemory := h.clock.after(intervalVerifyMemoryInSeconds)
+	chanDiagnoseComponents := h.clock.after(intervalDiagnoseComponentsInSeconds)
+	chanDiagnoseComponentsDeeply := h.clock.after(intervalDiagnoseComponentsDeeplyInSeconds)
+
+	for {
+		h.onMonitorContinuouslyBeginIteration()
+
+		select {
+		case <-chanMonitorMemory:
 			h.monitorMemory()
-		}
-		if shouldDiagnoseComponents {
+			chanMonitorMemory = h.clock.after(intervalVerifyMemoryInSeconds)
+		case <-chanDiagnoseComponents:
 			h.diagnoseComponents(false)
-		}
-		if shouldDiagnoseComponentsDeeply {
+			chanDiagnoseComponents = h.clock.after(intervalDiagnoseComponentsInSeconds)
+		case <-chanDiagnoseComponentsDeeply:
 			h.diagnoseComponents(true)
+			chanDiagnoseComponentsDeeply = h.clock.after(intervalDiagnoseComponentsDeeplyInSeconds)
+		case <-ctx.Done():
+			log.Info("healthService.monitorContinuously() ended")
+			return
 		}
-	}
 
-	log.Info("healthService.monitorContinuously() ended")
-}
-
-func (h *healthService) shouldContinueInfiniteLoop(ctx context.Context) bool {
-	select {
-	case <-time.After(time.Second):
-		return true
-	case <-ctx.Done():
-		return false
+		h.onMonitorContinuouslyEndIteration()
 	}
 }
 
 func (h *healthService) monitorMemory() {
-	var stats runtime.MemStats
-	runtime.ReadMemStats(&stats)
+	stats := h.memory.getStats()
 
 	log.Trace("healthService.monitorMemory()", "heapInUse", core.ConvertBytes(stats.HeapInuse))
 
-	if int(stats.HeapInuse) > h.config.MemoryToCreateProfiles {
-		record := newMemoryRecord(stats, h.folder)
+	if int(stats.HeapInuse) > h.config.MemoryUsageToCreateProfiles {
+		record := newMemoryUsageRecord(stats, h.clock.now(), h.folder)
 		h.records.addRecord(record)
 	}
 }

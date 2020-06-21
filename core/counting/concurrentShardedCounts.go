@@ -32,15 +32,13 @@ func (counts *ConcurrentShardedCounts) PutCounts(shardName string, value int64) 
 
 // GetTotal gets total count
 func (counts *ConcurrentShardedCounts) GetTotal() int64 {
-	total := int64(0)
-
 	counts.mutex.RLock()
+	defer counts.mutex.RUnlock()
 
+	total := int64(0)
 	for _, count := range counts.byShard {
 		total += count
 	}
-
-	counts.mutex.RUnlock()
 
 	return total
 }

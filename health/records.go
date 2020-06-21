@@ -2,12 +2,13 @@ package health
 
 import (
 	"container/list"
-	"os"
+	"sync"
 )
 
 type records struct {
 	capacity int
 	items    *list.List
+	mutex    sync.RWMutex
 }
 
 func newRecords(capacity int) *records {
@@ -18,11 +19,14 @@ func newRecords(capacity int) *records {
 }
 
 func (records *records) addRecord(incomingRecord record) {
-	if !records.makeRoomForRecord(incomingRecord) {
+	records.mutex.Lock()
+	defer records.mutex.Unlock()
+
+	if !records.makeRoomForRecordNoLock(incomingRecord) {
 		return
 	}
 
-	insertionPlace := records.findInsertionPlace(incomingRecord)
+	insertionPlace := records.findInsertionPlaceNoLock(incomingRecord)
 	if insertionPlace == nil {
 		records.items.PushBack(incomingRecord)
 	} else {
@@ -35,35 +39,35 @@ func (records *records) addRecord(incomingRecord record) {
 	}
 }
 
-func (records *records) makeRoomForRecord(incomingRecord record) bool {
-	capacityReached := records.items.Len() > records.capacity
+func (records *records) makeRoomForRecordNoLock(incomingRecord record) bool {
+	capacityReached := records.items.Len() >= records.capacity
 	if capacityReached {
-		if records.getLeastImportant().isMoreImportantThan(incomingRecord) {
+		if records.getLeastImportantNoLock().isMoreImportantThan(incomingRecord) {
 			return false
 		}
 
-		records.removeLeastImportant()
+		records.evictLeastImportantNoLock()
 	}
 
 	return true
 }
 
-func (records *records) getLeastImportant() record {
+func (records *records) getLeastImportantNoLock() record {
 	return records.items.Back().Value.(record)
 }
 
-func (records *records) removeLeastImportant() {
+func (records *records) evictLeastImportantNoLock() {
 	leastImportantElement := records.items.Back()
 	leastImportantRecord := leastImportantElement.Value.(record)
 
 	records.items.Remove(leastImportantElement)
-	err := os.Remove(leastImportantRecord.getFilename())
+	err := leastImportantRecord.delete()
 	if err != nil {
-		log.Error("records.removeLeastImportant()", "file", leastImportantRecord.getFilename(), "err", err)
+		log.Error("records.evictLeastImportantNoLock()", "err", err)
 	}
 }
 
-func (records *records) findInsertionPlace(incomingRecord record) *list.Element {
+func (records *records) findInsertionPlaceNoLock(incomingRecord record) *list.Element {
 	for element := records.items.Front(); element != nil; element = element.Next() {
 		record := element.Value.(record)
 
@@ -73,4 +77,18 @@ func (records *records) findInsertionPlace(incomingRecord record) *list.Element 
 	}
 
 	return nil
+}
+
+func (records *records) len() int {
+	records.mutex.RLock()
+	defer records.mutex.RUnlock()
+
+	return records.items.Len()
+}
+
+func (records *records) getMostImportant() record {
+	records.mutex.RLock()
+	defer records.mutex.RUnlock()
+
+	return records.items.Front().Value.(record)
 }

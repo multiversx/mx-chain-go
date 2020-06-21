@@ -565,8 +565,8 @@
     IntervalVerifyMemoryInSeconds = 1
     IntervalDiagnoseComponentsInSeconds = 10
     IntervalDiagnoseComponentsDeeplyInSeconds = 30
-    MemoryToCreateProfiles = 1073741824 # 1GB
-    NumMemoryRecordsToKeep = 100
+    MemoryUsageToCreateProfiles = 3221225472 # 3GB
+    NumMemoryUsageRecordsToKeep = 100
     FolderPath = "health-records"
 
 [SoftwareVersionConfig]

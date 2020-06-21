@@ -1385,6 +1385,7 @@ func closeAllComponents(
 	networkComponents *mainFactory.NetworkComponents,
 	chanCloseComponents chan struct{},
 ) {
+	log.Debug("closing health service...")
 	err := healthService.Close()
 	log.LogIfError(err)
 

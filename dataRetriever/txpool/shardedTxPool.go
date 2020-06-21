@@ -316,7 +316,7 @@ func (txPool *shardedTxPool) GetCounts() counting.CountsWithSize {
 	txPool.mutexBackingMap.RLock()
 	defer txPool.mutexBackingMap.RUnlock()
 
-	counts := counting.NewShardedCountsWithSize()
+	counts := counting.NewConcurrentShardedCountsWithSize()
 
 	for cacheID, shard := range txPool.backingMap {
 		cache := shard.Cache

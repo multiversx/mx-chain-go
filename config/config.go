@@ -330,8 +330,8 @@ type HealthServiceConfig struct {
 	IntervalVerifyMemoryInSeconds             int
 	IntervalDiagnoseComponentsInSeconds       int
 	IntervalDiagnoseComponentsDeeplyInSeconds int
-	MemoryToCreateProfiles                    int
-	NumMemoryRecordsToKeep                    int
+	MemoryUsageToCreateProfiles               int
+	NumMemoryUsageRecordsToKeep               int
 	FolderPath                                string
 }
 
