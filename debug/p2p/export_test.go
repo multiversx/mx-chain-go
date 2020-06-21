@@ -25,3 +25,17 @@ func newTestP2PDebugger(
 
 	return pd
 }
+
+func (pd *p2pDebugger) GetClonedMetric(topic string) *metric {
+	pd.mut.Lock()
+	defer pd.mut.Unlock()
+
+	m := pd.data[topic]
+	if m == nil {
+		return nil
+	}
+
+	clonedMetric := *m
+
+	return &clonedMetric
+}
