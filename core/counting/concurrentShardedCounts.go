@@ -43,7 +43,6 @@ func (counts *ConcurrentShardedCounts) GetTotal() int64 {
 	return total
 }
 
-// String returns a string representation of the counts
 func (counts *ConcurrentShardedCounts) String() string {
 	var builder strings.Builder
 

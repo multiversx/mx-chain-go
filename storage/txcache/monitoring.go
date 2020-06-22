@@ -225,9 +225,7 @@ func (cache *TxCache) displaySendersSummary() {
 	var builder strings.Builder
 	builder.WriteString("\n[#index (score)] address [nonce known / nonce vs lowestTxNonce] txs = numTxs, !numFailedSelections\n")
 
-	i := 0
-	for _, sender := range senders {
-		i++
+	for i, sender := range senders {
 		address := hex.EncodeToString([]byte(sender.sender))
 		accountNonce := sender.accountNonce.Get()
 		accountNonceKnown := sender.accountNonceKnown.IsSet()

@@ -60,7 +60,6 @@ func (counts *ConcurrentShardedCountsWithSize) GetTotalSize() int64 {
 	return total
 }
 
-// String returns a string representation of the counts
 func (counts *ConcurrentShardedCountsWithSize) String() string {
 	var builder strings.Builder
 
