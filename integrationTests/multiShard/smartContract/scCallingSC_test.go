@@ -579,10 +579,9 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	stakerBLSKey, _ := hex.DecodeString(strings.Repeat("a", 96*2))
 	stakerBLSSignature, _ := hex.DecodeString(strings.Repeat("c", 32*2))
 
-	// deploy the delegation smart contract
 	delegateSCAddress := putDeploySCToDataPool(
 		"./testdata/delegate/delegation.wasm", delegateSCOwner, 0, big.NewInt(0),
-		fmt.Sprintf("@%s@%x@%x@%x", hex.EncodeToString(factory2.AuctionSCAddress), serviceFeePer10000, blocksBeforeForceUnstake, blocksBeforeUnBond),
+		"@"+hex.EncodeToString(factory2.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeForceUnstake)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond),
 		nodes)
 	shardNode.OwnAccount.Nonce++
 
