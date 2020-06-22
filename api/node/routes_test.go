@@ -27,6 +27,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type GeneralResponse struct {
@@ -42,6 +43,13 @@ type StatusResponse struct {
 type QueryResponse struct {
 	GeneralResponse
 	Result []string `json:"result"`
+}
+
+// TODO remove this struct, use shared.GenericAPIResponse
+type genericApiResponse struct {
+	Data  interface{} `json:"data"`
+	Error string      `json:"error"`
+	Code  string      `json:"code"`
 }
 
 type StatisticsResponse struct {
@@ -259,30 +267,6 @@ func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	assert.False(t, strings.Contains(respStr, key))
 }
 
-func TestEpochMetrics_ShouldWork(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := core.MetricEpochNumber
-	value := uint64(37)
-	statusMetricsProvider.SetUInt64Value(key, value)
-
-	facade := mock.Facade{}
-	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
-		return statusMetricsProvider
-	}
-
-	ws := startNodeServer(&facade)
-	req, _ := http.NewRequest("GET", "/node/epoch", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	respBytes, _ := ioutil.ReadAll(resp.Body)
-	respStr := string(respBytes)
-	assert.Equal(t, resp.Code, http.StatusOK)
-
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
-	assert.True(t, keyAndValueFoundInResponse)
-}
-
 func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -338,6 +322,78 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Contains(t, queryResponse.Result, str1)
 	assert.Contains(t, queryResponse.Result, str2)
+}
+
+func TestPeerInfo_WrongFacadeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := &mock.WrongFacade{}
+	ws := startNodeServerWithFacade(facade)
+	req, _ := http.NewRequest("GET", "/node/peerinfo?pid=asasdasd", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &genericApiResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(response.Error, "invalid app context")) //TODO replace with errors.ErrInvalidAppContext.Error()
+}
+
+func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errs.New("expected error")
+	facade := &mock.Facade{
+		GetPeerInfoCalled: func(pid string) ([]core.QueryP2PPeerInfo, error) {
+			return nil, expectedErr
+		},
+	}
+	pid := "pid1"
+	ws := startNodeServerWithFacade(facade)
+	req, _ := http.NewRequest("GET", "/node/peerinfo?pid="+pid, nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &genericApiResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+}
+
+func TestPeerInfo_PeerInfoShouldWork(t *testing.T) {
+	t.Parallel()
+
+	pidProvided := "16Uiu2HAmRCVXdXqt8BXfhrzotczHMXXvgHPd7iwGWvS53JT1xdw6"
+	val := core.QueryP2PPeerInfo{
+		Pid: pidProvided,
+	}
+	facade := &mock.Facade{
+		GetPeerInfoCalled: func(pid string) ([]core.QueryP2PPeerInfo, error) {
+			if pid == pidProvided {
+				return []core.QueryP2PPeerInfo{val}, nil
+			}
+
+			assert.Fail(t, "should have received the pid")
+			return nil, nil
+		},
+	}
+	ws := startNodeServerWithFacade(facade)
+	req, _ := http.NewRequest("GET", "/node/peerinfo?pid="+pidProvided, nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &genericApiResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", response.Error)
+
+	responseInfo, ok := response.Data.(map[string]interface{})
+	require.True(t, ok)
+
+	assert.NotNil(t, responseInfo["info"])
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {
@@ -397,8 +453,8 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/statistics", Open: true},
 					{Name: "/heartbeatstatus", Open: true},
 					{Name: "/p2pstatus", Open: true},
-					{Name: "/epoch", Open: true},
 					{Name: "/debug", Open: true},
+					{Name: "/peerinfo", Open: true},
 				},
 			},
 		},

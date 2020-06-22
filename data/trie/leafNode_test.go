@@ -483,9 +483,10 @@ func TestLeafNode_reduceNode(t *testing.T) {
 	expected, _ := newLeafNode([]byte{2, 100, 111, 103}, nil, marsh, hasher)
 	expected.dirty = true
 
-	node, err := ln.reduceNode(2)
+	node, newChildHash, err := ln.reduceNode(2)
 	assert.Equal(t, expected, node)
 	assert.Nil(t, err)
+	assert.True(t, newChildHash)
 }
 
 func TestLeafNode_isEmptyOrNil(t *testing.T) {
@@ -536,7 +537,7 @@ func TestLeafNode_loadChildren(t *testing.T) {
 	nodesCacher, _ := lrucache.NewCache(100)
 	for i := range nodes {
 		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
-		nodesCacher.Put(node.hash, node)
+		nodesCacher.Put(node.hash, node, len(node.EncodedNode()))
 	}
 
 	lnPosition := 5

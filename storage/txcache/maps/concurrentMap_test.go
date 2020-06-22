@@ -66,7 +66,10 @@ func TestConcurrentMap_Remove(t *testing.T) {
 	myMap.SetIfAbsent("a", "a")
 	myMap.SetIfAbsent("b", "b")
 
-	myMap.Remove("b")
+	_, ok := myMap.Remove("b")
+	require.True(t, ok)
+	_, ok = myMap.Remove("x")
+	require.False(t, ok)
 
 	require.True(t, myMap.Has("a"))
 	require.False(t, myMap.Has("b"))
@@ -132,7 +135,7 @@ func TestConcurrentMap_ClearConcurrentWithWrite(t *testing.T) {
 		for j := 0; j < 10000; j++ {
 			myMap.Set("foobar", "foobar")
 			myMap.SetIfAbsent("foobar", "foobar")
-			myMap.Remove("foobar")
+			_, _ = myMap.Remove("foobar")
 		}
 
 		wg.Done()

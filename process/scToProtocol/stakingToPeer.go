@@ -2,6 +2,7 @@ package scToProtocol
 
 import (
 	"bytes"
+	"math"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -25,7 +26,7 @@ var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
-	PubkeyConv       state.PubkeyConverter
+	PubkeyConv       core.PubkeyConverter
 	Hasher           hashing.Hasher
 	ProtoMarshalizer marshal.Marshalizer
 	VmMarshalizer    marshal.Marshalizer
@@ -41,7 +42,7 @@ type ArgStakingToPeer struct {
 // stakingToPeer defines the component which will translate changes from staking SC state
 // to validator statistics trie
 type stakingToPeer struct {
-	pubkeyConv       state.PubkeyConverter
+	pubkeyConv       core.PubkeyConverter
 	hasher           hashing.Hasher
 	protoMarshalizer marshal.Marshalizer
 	vmMarshalizer    marshal.Marshalizer
@@ -143,12 +144,6 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		}
 
 		blsPubKey := []byte(key)
-		var peerAcc state.PeerAccountHandler
-		peerAcc, err = stp.getPeerAccount(blsPubKey)
-		if err != nil {
-			return err
-		}
-
 		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
 
 		query := process.SCQuery{
@@ -169,9 +164,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		// no data under key -> peer can be deleted from trie
 		if len(data) == 0 {
 			err = stp.peerState.RemoveAccount(blsPubKey)
-			if err != nil {
-				return err
-			}
+			log.LogIfError(err, "staking to protocol RemoveAccount blsPubKey", blsPubKey)
 
 			continue
 		}
@@ -182,7 +175,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 			return err
 		}
 
-		err = stp.updatePeerState(stakingData, peerAcc, blsPubKey, nonce)
+		err = stp.updatePeerState(stakingData, blsPubKey, nonce)
 		if err != nil {
 			return err
 		}
@@ -193,12 +186,18 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 
 func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakedData,
-	account state.PeerAccountHandler,
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
+	if stakingData.StakedNonce == math.MaxUint64 {
+		return nil
+	}
 
-	var err error
+	account, err := stp.getPeerAccount(blsPubKey)
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
 		err = account.SetRewardAddress(stakingData.RewardAddress)
 		if err != nil {
@@ -220,7 +219,7 @@ func (stp *stakingToPeer) updatePeerState(
 		if stakingData.RegisterNonce == nonce && !isValidator {
 			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.RegisterNonce))
 			account.SetTempRating(stp.startRating)
-			account.SetUnStakedEpoch(0)
+			account.SetUnStakedEpoch(core.DefaultUnstakedEpoch)
 		}
 
 		if stakingData.UnStakedNonce == nonce && account.GetList() != string(core.InactiveList) {
@@ -234,7 +233,7 @@ func (stp *stakingToPeer) updatePeerState(
 			account.SetTempRating(stp.unJailRating)
 		}
 
-		if !isValidator && account.GetUnStakedEpoch() == 0 {
+		if !isValidator && account.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
 			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.UnJailedNonce))
 		}
 	}

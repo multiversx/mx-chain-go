@@ -18,6 +18,9 @@ var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
+const minHashesToRequest = 10
+const timeToAccumulateTrieHashes = 100 * time.Millisecond
+
 type resolverRequestHandler struct {
 	epoch                 uint32
 	shardID               uint32
@@ -28,6 +31,10 @@ type resolverRequestHandler struct {
 	sweepTime             time.Time
 	requestInterval       time.Duration
 	mutSweepTime          sync.Mutex
+
+	trieHashesAccumulator map[string]struct{}
+	lastTrieRequestTime   time.Time
+	mutexTrieHashes       sync.Mutex
 }
 
 // NewResolverRequestHandler creates a requestHandler interface implementation with request functions
@@ -64,6 +71,7 @@ func NewResolverRequestHandler(
 		maxTxsToRequest:       maxTxsToRequest,
 		whiteList:             whiteList,
 		requestInterval:       requestInterval,
+		trieHashesAccumulator: make(map[string]struct{}),
 	}
 
 	rrh.sweepTime = time.Now()
@@ -111,6 +119,8 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		log.Trace("requestByHashes", "hash", txHash)
 	}
 
+	rrh.whiteList.Add(unrequestedHashes)
+
 	go rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
 
 	rrh.addRequestedItems(unrequestedHashes)
@@ -128,7 +138,6 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 			"num txs", len(unrequestedHashes),
 			"max txs to request", rrh.maxTxsToRequest,
 		)
-		return
 	}
 
 	for _, batch := range sliceBatches {
@@ -175,6 +184,8 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
+	rrh.whiteList.Add([][]byte{miniblockHash})
+
 	err = resolver.RequestDataFromHash(miniblockHash, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestMiniBlock.RequestDataFromHash",
@@ -197,7 +208,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 	log.Debug("requesting miniblocks from network",
 		"topic", factory.MiniBlocksTopic,
 		"shard", destShardID,
-		"num txs", len(unrequestedHashes),
+		"num mbs", len(unrequestedHashes),
 	)
 
 	resolver, err := rrh.resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, destShardID)
@@ -216,12 +227,14 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 		return
 	}
 
+	rrh.whiteList.Add(unrequestedHashes)
+
 	err = miniBlocksResolver.RequestDataFromHashArray(unrequestedHashes, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestMiniBlocks.RequestDataFromHashArray",
 			"error", err.Error(),
 			"epoch", rrh.epoch,
-			"num miniblocks", len(unrequestedHashes),
+			"num mbs", len(unrequestedHashes),
 		)
 		return
 	}
@@ -248,6 +261,8 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		)
 		return
 	}
+
+	rrh.whiteList.Add([][]byte{hash})
 
 	err = headerResolver.RequestDataFromHash(hash, rrh.epoch)
 	if err != nil {
@@ -280,6 +295,8 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		)
 		return
 	}
+
+	rrh.whiteList.Add([][]byte{hash})
 
 	err = resolver.RequestDataFromHash(hash, rrh.epoch)
 	if err != nil {
@@ -315,6 +332,8 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 		return
 	}
 
+	rrh.whiteList.Add([][]byte{key})
+
 	err = headerResolver.RequestDataFromNonce(nonce, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestShardHeaderByNonce.RequestDataFromNonce",
@@ -334,10 +353,33 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	if len(unrequestedHashes) == 0 {
 		return
 	}
+
+	rrh.mutexTrieHashes.Lock()
+	defer rrh.mutexTrieHashes.Unlock()
+
+	for _, hash := range unrequestedHashes {
+		rrh.trieHashesAccumulator[string(hash)] = struct{}{}
+	}
+
+	index := 0
+	itemsToRequest := make([][]byte, len(rrh.trieHashesAccumulator))
+	for hash := range rrh.trieHashesAccumulator {
+		itemsToRequest[index] = []byte(hash)
+		index++
+	}
+
+	rrh.whiteList.Add(itemsToRequest)
+
+	elapsedTime := time.Since(rrh.lastTrieRequestTime)
+	if len(rrh.trieHashesAccumulator) < minHashesToRequest && elapsedTime < timeToAccumulateTrieHashes {
+		return
+	}
+
 	log.Debug("requesting trie nodes from network",
 		"topic", topic,
 		"shard", destShardID,
-		"num nodes", len(unrequestedHashes),
+		"num nodes", len(rrh.trieHashesAccumulator),
+		"firstHash", unrequestedHashes[0],
 	)
 
 	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
@@ -356,13 +398,15 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		return
 	}
 
-	for _, txHash := range hashes {
+	for _, txHash := range rrh.trieHashesAccumulator {
 		log.Trace("requestByHashes", "hash", txHash)
 	}
 
-	go rrh.requestHashesWithDataSplit(unrequestedHashes, trieResolver)
+	go rrh.requestHashesWithDataSplit(itemsToRequest, trieResolver)
 
-	rrh.addRequestedItems(unrequestedHashes)
+	rrh.addRequestedItems(itemsToRequest)
+	rrh.lastTrieRequestTime = time.Now()
+	rrh.trieHashesAccumulator = make(map[string]struct{})
 }
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
@@ -383,6 +427,8 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 		)
 		return
 	}
+
+	rrh.whiteList.Add([][]byte{key})
 
 	err = headerResolver.RequestDataFromNonce(nonce, rrh.epoch)
 	if err != nil {
@@ -416,11 +462,9 @@ func (rrh *resolverRequestHandler) addRequestedItems(keys [][]byte) {
 			log.Trace("addRequestedItems",
 				"error", err.Error(),
 				"key", key)
-			return
+			continue
 		}
 	}
-
-	rrh.whiteList.Add(keys)
 }
 
 func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataRetriever.HeaderResolver, error) {
@@ -506,6 +550,8 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 		log.Warn("wrong assertion type when creating header resolver")
 		return
 	}
+
+	rrh.whiteList.Add([][]byte{epochStartIdentifier})
 
 	err = headerResolver.RequestDataFromEpoch(epochStartIdentifier)
 	if err != nil {

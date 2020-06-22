@@ -3,8 +3,8 @@ package message_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +18,7 @@ func TestMessage_AllFieldsShouldWork(t *testing.T) {
 	topics := []string{"topic 1", "topic 2"}
 	sig := []byte("sig")
 	key := []byte("key")
-	peer := p2p.PeerID("peer")
+	peer := core.PeerID("peer")
 
 	msg := &message.Message{
 		FromField:      from,

@@ -3,13 +3,17 @@ package resolvers
 import (
 	"errors"
 	"testing"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const fromConnectedPeer = core.PeerID("from connected peer")
 
 //------- canProcessMessage
 
@@ -19,13 +23,13 @@ func TestMessageProcessor_CanProcessErrorsShouldErr(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	mp := &messageProcessor{
 		antifloodHandler: &mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return expectedErr
 			},
 		},
 	}
 
-	err := mp.canProcessMessage(nil, "")
+	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
 
 	assert.True(t, errors.Is(err, expectedErr))
 }
@@ -36,16 +40,16 @@ func TestMessageProcessor_CanProcessOnTopicErrorsShouldErr(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	mp := &messageProcessor{
 		antifloodHandler: &mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
-			CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 				return expectedErr
 			},
 		},
 	}
 
-	err := mp.canProcessMessage(nil, "")
+	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
 
 	assert.True(t, errors.Is(err, expectedErr))
 }
@@ -56,10 +60,10 @@ func TestMessageProcessor_CanProcessThrottlerNotAllowingShouldErr(t *testing.T) 
 	canProcessWasCalled := false
 	mp := &messageProcessor{
 		antifloodHandler: &mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
-			CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 				return nil
 			},
 		},
@@ -71,7 +75,7 @@ func TestMessageProcessor_CanProcessThrottlerNotAllowingShouldErr(t *testing.T) 
 		},
 	}
 
-	err := mp.canProcessMessage(nil, "")
+	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
 
 	assert.True(t, errors.Is(err, dataRetriever.ErrSystemBusy))
 	assert.True(t, canProcessWasCalled)
@@ -83,10 +87,10 @@ func TestMessageProcessor_CanProcessShouldWork(t *testing.T) {
 	canProcessWasCalled := false
 	mp := &messageProcessor{
 		antifloodHandler: &mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
-			CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 				return nil
 			},
 		},
@@ -98,7 +102,7 @@ func TestMessageProcessor_CanProcessShouldWork(t *testing.T) {
 		},
 	}
 
-	err := mp.canProcessMessage(nil, "")
+	err := mp.canProcessMessage(&mock.P2PMessageMock{}, "")
 
 	assert.Nil(t, err)
 	assert.True(t, canProcessWasCalled)
@@ -110,19 +114,34 @@ func TestMessageProcessor_ParseReceivedMessageMarshalizerFailsShouldErr(t *testi
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	mp := &messageProcessor{
+	originatorPid := core.PeerID("originator")
+	originatorBlackListed := false
+	fromConnectedPeerBlackListed := false
+	var mp = &messageProcessor{
 		marshalizer: &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return expectedErr
 			},
 		},
+		antifloodHandler: &mock.P2PAntifloodHandlerStub{
+			BlacklistPeerCalled: func(peer core.PeerID, reason string, duration time.Duration) {
+				if peer == originatorPid {
+					originatorBlackListed = true
+				}
+				if peer == fromConnectedPeer {
+					fromConnectedPeerBlackListed = true
+				}
+			},
+		},
 	}
-
 	msg := &mock.P2PMessageMock{
 		DataField: make([]byte, 0),
+		PeerField: originatorPid,
 	}
-	rd, err := mp.parseReceivedMessage(msg)
+	rd, err := mp.parseReceivedMessage(msg, fromConnectedPeer)
 
+	assert.True(t, originatorBlackListed)
+	assert.True(t, fromConnectedPeerBlackListed)
 	assert.Equal(t, err, expectedErr)
 	assert.Nil(t, rd)
 }
@@ -141,7 +160,7 @@ func TestMessageProcessor_ParseReceivedMessageNilValueFieldShouldErr(t *testing.
 	msg := &mock.P2PMessageMock{
 		DataField: make([]byte, 0),
 	}
-	rd, err := mp.parseReceivedMessage(msg)
+	rd, err := mp.parseReceivedMessage(msg, fromConnectedPeer)
 
 	assert.Equal(t, err, dataRetriever.ErrNilValue)
 	assert.Nil(t, rd)
@@ -165,7 +184,7 @@ func TestMessageProcessor_ParseReceivedMessageShouldWork(t *testing.T) {
 	msg := &mock.P2PMessageMock{
 		DataField: make([]byte, 0),
 	}
-	rd, err := mp.parseReceivedMessage(msg)
+	rd, err := mp.parseReceivedMessage(msg, fromConnectedPeer)
 
 	assert.Nil(t, err)
 	require.NotNil(t, rd)

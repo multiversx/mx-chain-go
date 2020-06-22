@@ -90,6 +90,7 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 	nResolver.DataPool.Transactions().AddData(
 		txHash,
 		&tx,
+		tx.Size(),
 		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
 	)
 
@@ -166,6 +167,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	nResolver.DataPool.RewardTransactions().AddData(
 		txHash,
 		&tx,
+		tx.Size(),
 		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), core.MetachainShardId),
 	)
 

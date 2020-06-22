@@ -15,21 +15,28 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var entireGenesisSupply = big.NewInt(22000)
 var nodePrice = big.NewInt(5000)
 
 //TODO improve code coverage of this package
-func createMockArgument(t *testing.T) ArgsGenesisBlockCreator {
+func createMockArgument(
+	t *testing.T,
+	genesisFilename string,
+	initialNodes genesis.InitialNodesHandler,
+	entireSupply *big.Int,
+) ArgsGenesisBlockCreator {
+
 	memDBMock := mock.NewMemDbMock()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(memDBMock)
 
@@ -54,7 +61,7 @@ func createMockArgument(t *testing.T) ArgsGenesisBlockCreator {
 				},
 			},
 			Blkc:     &mock.BlockChainStub{},
-			DataPool: mock.NewPoolsHolderMock(),
+			DataPool: testscommon.NewPoolsHolderMock(),
 		},
 		InitialNodesSetup:    &mock.InitialNodesSetupHandlerStub{},
 		TxLogsProcessor:      &mock.TxLogProcessorMock{},
@@ -67,6 +74,8 @@ func createMockArgument(t *testing.T) ArgsGenesisBlockCreator {
 			},
 		},
 		TrieStorageManagers: trieStorageManagers,
+		BlockSignKeyGen:     &mock.KeyGenMock{},
+		ImportStartHandler:  &mock.ImportStartHandlerStub{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -106,26 +115,34 @@ func createMockArgument(t *testing.T) ArgsGenesisBlockCreator {
 	}
 	ted.SetGenesisNodePrice(nodePrice)
 	ted.SetMinStep(big.NewInt(1))
-	ted.SetTotalSupply(entireGenesisSupply)
+	ted.SetTotalSupply(entireSupply)
 	ted.SetUnJailPrice(big.NewInt(1))
 	ted.SetMaxGasLimitPerBlock(math.MaxUint64)
 	arg.Economics = ted.EconomicsData
 	arg.AccountsParser, err = parsing.NewAccountsParser(
-		"testdata/genesis.json",
+		genesisFilename,
 		arg.Economics.TotalSupply(),
 		arg.Core.AddressPubKeyConverter(),
+		&mock.KeyGeneratorStub{},
 	)
 	require.Nil(t, err)
 
 	arg.SmartContractParser, err = parsing.NewSmartContractsParser(
 		"testdata/smartcontracts.json",
 		arg.Core.AddressPubKeyConverter(),
+		&mock.KeyGeneratorStub{},
 	)
 	require.Nil(t, err)
 
+	arg.InitialNodesSetup = initialNodes
+
+	return arg
+}
+
+func TestGenesisBlockCreator_CreateGenesisBlocksJustDelegationShouldWork(t *testing.T) {
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
-	arg.InitialNodesSetup = &mock.InitialNodesHandlerStub{
+	initialNodesSetup := &mock.InitialNodesHandlerStub{
 		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
 			return map[uint32][]sharding.GenesisNodeInfoHandler{
 				0: {
@@ -150,14 +167,77 @@ func createMockArgument(t *testing.T) ArgsGenesisBlockCreator {
 			return 1
 		},
 	}
+	arg := createMockArgument(
+		t,
+		"testdata/genesisTest1.json",
+		initialNodesSetup,
+		big.NewInt(22000),
+	)
 
-	return arg
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.Nil(t, err)
+
+	blocks, err := gbc.CreateGenesisBlocks()
+
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(blocks))
 }
 
-func TestGenesisBlockCreator_CreateGenesisBlocksShouldWork(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument(t)
+func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWork(t *testing.T) {
+	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
+	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
+	stakedAddr2, _ := hex.DecodeString("d00102030405060708090001020304050607080900010203040506070809000d")
+	initialNodesSetup := &mock.InitialNodesHandlerStub{
+		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+			return map[uint32][]sharding.GenesisNodeInfoHandler{
+				0: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{1}, 96),
+					},
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: stakedAddr,
+						PubKeyBytesValue:  bytes.Repeat([]byte{2}, 96),
+					},
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
+					},
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: stakedAddr2,
+						PubKeyBytesValue:  bytes.Repeat([]byte{8}, 96),
+					},
+				},
+				1: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{4}, 96),
+					},
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{5}, 96),
+					},
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: stakedAddr2,
+						PubKeyBytesValue:  bytes.Repeat([]byte{6}, 96),
+					},
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: stakedAddr2,
+						PubKeyBytesValue:  bytes.Repeat([]byte{7}, 96),
+					},
+				},
+			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return 1
+		},
+	}
+	arg := createMockArgument(
+		t,
+		"testdata/genesisTest2.json",
+		initialNodesSetup,
+		big.NewInt(47000),
+	)
 	gbc, err := NewGenesisBlockCreator(arg)
 	require.Nil(t, err)
 

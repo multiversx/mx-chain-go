@@ -16,8 +16,14 @@ var ErrCouldNotGetAccount = errors.New("could not get requested account")
 // ErrGetBalance signals an error in getting the balance for an account
 var ErrGetBalance = errors.New("get balance error")
 
+// ErrGetValueForKey signals an error in getting the value of a key for an account
+var ErrGetValueForKey = errors.New("get value for key error")
+
 // ErrEmptyAddress signals an empty address was provided
-var ErrEmptyAddress = errors.New("address was empty")
+var ErrEmptyAddress = errors.New("address is empty")
+
+// ErrEmptyKey signals an empty key was provided
+var ErrEmptyKey = errors.New("key is empty")
 
 // ErrValidation signals an error in validation
 var ErrValidation = errors.New("validation error")
@@ -37,5 +43,5 @@ var ErrTxNotFound = errors.New("transaction was not found")
 // ErrQueryError signals a general query error
 var ErrQueryError = errors.New("query error")
 
-// ErrQueryDisabled signals that the query is disabled
-var ErrQueryDisabled = errors.New("query disabled")
+// ErrGetPidInfo signals that an error occurred while getting peer ID info
+var ErrGetPidInfo = errors.New("error getting peer id info")

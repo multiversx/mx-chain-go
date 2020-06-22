@@ -23,13 +23,12 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 
 	argsNewEpochEconomics := ArgsNewEpochEconomics{
-		Hasher:              &mock.HasherMock{},
-		Marshalizer:         &mock.MarshalizerMock{},
-		Store:               createMetaStore(),
-		ShardCoordinator:    shardCoordinator,
-		NodesConfigProvider: &mock.NodesCoordinatorStub{},
-		RewardsHandler:      &mock.RewardsHandlerStub{},
-		RoundTime:           &mock.RoundTimeDurationHandler{},
+		Hasher:           &mock.HasherMock{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		Store:            createMetaStore(),
+		ShardCoordinator: shardCoordinator,
+		RewardsHandler:   &mock.RewardsHandlerStub{},
+		RoundTime:        &mock.RoundTimeDurationHandler{},
 	}
 	return argsNewEpochEconomics
 }
@@ -65,17 +64,6 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilShardCoordinator(t *
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
 	require.Equal(t, epochStart.ErrNilShardCoordinator, err)
-}
-
-func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilNodesdCoordinator(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockEpochEconomicsArguments()
-	arguments.NodesConfigProvider = nil
-
-	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
-	require.Nil(t, esd)
-	require.Equal(t, epochStart.ErrNilNodesConfigProvider, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRewardsHandler(t *testing.T) {
@@ -141,17 +129,6 @@ func TestNewEndOfEpochEconomicsDataCreator_NilShardCoordinator(t *testing.T) {
 
 	assert.True(t, check.IfNil(eoeedc))
 	assert.Equal(t, epochStart.ErrNilShardCoordinator, err)
-}
-
-func TestNewEndOfEpochEconomicsDataCreator_NilNodesCoordinator(t *testing.T) {
-	t.Parallel()
-
-	args := getArguments()
-	args.NodesConfigProvider = nil
-	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
-
-	assert.True(t, check.IfNil(eoeedc))
-	assert.Equal(t, epochStart.ErrNilNodesConfigProvider, err)
 }
 
 func TestNewEndOfEpochEconomicsDataCreator_NilRewardsHandler(t *testing.T) {
@@ -307,11 +284,11 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 					Nonce: 5,
 					EpochStart: block.EpochStart{
 						Economics: block.Economics{
-							TotalSupply:            big.NewInt(100000),
-							TotalToDistribute:      big.NewInt(10),
-							TotalNewlyMinted:       big.NewInt(109),
-							RewardsPerBlockPerNode: big.NewInt(10),
-							NodePrice:              big.NewInt(10),
+							TotalSupply:       big.NewInt(100000),
+							TotalToDistribute: big.NewInt(10),
+							TotalNewlyMinted:  big.NewInt(109),
+							RewardsPerBlock:   big.NewInt(10),
+							NodePrice:         big.NewInt(10),
 						},
 					},
 				}
@@ -371,12 +348,12 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 		Epoch: 0,
 		EpochStart: block.EpochStart{
 			Economics: block.Economics{
-				TotalSupply:            totalSupply,
-				TotalToDistribute:      big.NewInt(10),
-				TotalNewlyMinted:       big.NewInt(10),
-				RewardsPerBlockPerNode: big.NewInt(10),
-				NodePrice:              big.NewInt(10),
-				RewardsForCommunity:    big.NewInt(10),
+				TotalSupply:         totalSupply,
+				TotalToDistribute:   big.NewInt(10),
+				TotalNewlyMinted:    big.NewInt(10),
+				RewardsPerBlock:     big.NewInt(10),
+				NodePrice:           big.NewInt(10),
+				RewardsForCommunity: big.NewInt(10),
 			},
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{ShardID: 0, Nonce: 0},
@@ -425,13 +402,13 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 					{ShardID: 1, Round: uint64(numBlocksInEpoch), Nonce: uint64(numBlocksInEpoch)},
 				},
 				Economics: block.Economics{
-					TotalSupply:            expectedTotalSupply,
-					TotalToDistribute:      expectedTotalToDistribute,
-					TotalNewlyMinted:       expectedTotalNewlyMinted,
-					RewardsPerBlockPerNode: adjustedRwdPerBlock,
-					NodePrice:              big.NewInt(10),
-					PrevEpochStartHash:     hdrPrevEpochStartHash,
-					RewardsForCommunity:    expectedCommunityRewards,
+					TotalSupply:         expectedTotalSupply,
+					TotalToDistribute:   expectedTotalToDistribute,
+					TotalNewlyMinted:    expectedTotalNewlyMinted,
+					RewardsPerBlock:     adjustedRwdPerBlock,
+					NodePrice:           big.NewInt(10),
+					PrevEpochStartHash:  hdrPrevEpochStartHash,
+					RewardsForCommunity: expectedCommunityRewards,
 				},
 			},
 			Epoch:                  1,
@@ -531,12 +508,12 @@ func createArgsForComputeEndOfEpochEconomics(
 		Epoch: 0,
 		EpochStart: block.EpochStart{
 			Economics: block.Economics{
-				TotalSupply:            totalSupply,
-				TotalToDistribute:      big.NewInt(10),
-				TotalNewlyMinted:       big.NewInt(10),
-				RewardsPerBlockPerNode: big.NewInt(10),
-				NodePrice:              nodePrice,
-				RewardsForCommunity:    big.NewInt(10),
+				TotalSupply:         totalSupply,
+				TotalToDistribute:   big.NewInt(10),
+				TotalNewlyMinted:    big.NewInt(10),
+				RewardsPerBlock:     big.NewInt(10),
+				NodePrice:           nodePrice,
+				RewardsForCommunity: big.NewInt(10),
 			},
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{ShardID: 0, Nonce: 0},
@@ -598,15 +575,15 @@ func verifyEconomicsBlock(
 	assert.Equal(t, expectedTotalRewardsToBeDistributed, economicsBlock.TotalToDistribute)
 	assert.Equal(t, expectedCommunityRewards, economicsBlock.RewardsForCommunity)
 	assert.Equal(t, nodePrice, economicsBlock.NodePrice)
-	assert.Equal(t, adjustedRewardsPerBlock, economicsBlock.RewardsPerBlockPerNode)
+	assert.Equal(t, adjustedRewardsPerBlock, economicsBlock.RewardsPerBlock)
 }
 
 func printEconomicsData(eb *block.Economics, hitRate float64, numBlocksTotal int64) {
 	fmt.Printf("Hit rate per shard %.4f%%, Total block produced: %d \n", hitRate, numBlocksTotal)
 	fmt.Printf("Total supply: %vERD, TotalToDistribute %vERD, "+
-		"TotalNewlyMinted %vERD, RewardsPerBlockPerNode %vERD, RewardsForCommunity %vERD, NodePrice: %vERD",
+		"TotalNewlyMinted %vERD, RewardsPerBlock %vERD, RewardsForCommunity %vERD, NodePrice: %vERD",
 		denomination(eb.TotalSupply), denomination(eb.TotalToDistribute), denomination(eb.TotalNewlyMinted),
-		denomination(eb.RewardsPerBlockPerNode), denomination(eb.RewardsForCommunity), denomination(eb.NodePrice))
+		denomination(eb.RewardsPerBlock), denomination(eb.RewardsForCommunity), denomination(eb.NodePrice))
 	fmt.Println()
 }
 
@@ -625,12 +602,11 @@ func denomination(value *big.Int) string {
 
 func getArguments() ArgsNewEpochEconomics {
 	return ArgsNewEpochEconomics{
-		Marshalizer:         &mock.MarshalizerMock{},
-		Hasher:              mock.HasherMock{},
-		Store:               &mock.ChainStorerStub{},
-		ShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
-		NodesConfigProvider: &mock.NodesCoordinatorStub{},
-		RewardsHandler:      &mock.RewardsHandlerStub{},
-		RoundTime:           &mock.RoundTimeDurationHandler{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		Hasher:           mock.HasherMock{},
+		Store:            &mock.ChainStorerStub{},
+		ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
+		RewardsHandler:   &mock.RewardsHandlerStub{},
+		RoundTime:        &mock.RoundTimeDurationHandler{},
 	}
 }

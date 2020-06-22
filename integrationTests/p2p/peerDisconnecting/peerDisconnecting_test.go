@@ -27,17 +27,6 @@ func createDefaultConfig() config.P2PConfig {
 	}
 }
 
-func TestPeerDisconnectionWithOneAdvertiserWithShardingWithPrioBits(t *testing.T) {
-	p2pConfig := createDefaultConfig()
-	p2pConfig.Sharding = config.ShardingConfig{
-		TargetPeerCount: 100,
-		PrioBits:        4,
-		Type:            p2p.PrioBitsSharder,
-	}
-
-	testPeerDisconnectionWithOneAdvertiser(t, p2pConfig)
-}
-
 func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
 	p2pConfig := createDefaultConfig()
 	p2pConfig.Sharding = config.ShardingConfig{

@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"testing"
 
@@ -22,17 +23,21 @@ func TestSendersMap_AddTx_IncrementsCounter(t *testing.T) {
 func TestSendersMap_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
 	myMap := newSendersMapToTest()
 
-	txAlice1 := createTx([]byte("a"), "alice", uint64(1))
-	txAlice2 := createTx([]byte("a"), "alice", uint64(2))
+	txAlice1 := createTx([]byte("a1"), "alice", uint64(1))
+	txAlice2 := createTx([]byte("a2"), "alice", uint64(2))
 	txBob := createTx([]byte("b"), "bob", uint64(1))
 
 	myMap.addTx(txAlice1)
 	myMap.addTx(txAlice2)
 	myMap.addTx(txBob)
 	require.Equal(t, int64(2), myMap.counter.Get())
+	require.Equal(t, uint64(2), myMap.testGetListForSender("alice").countTx())
+	require.Equal(t, uint64(1), myMap.testGetListForSender("bob").countTx())
 
 	myMap.removeTx(txAlice1)
 	require.Equal(t, int64(2), myMap.counter.Get())
+	require.Equal(t, uint64(1), myMap.testGetListForSender("alice").countTx())
+	require.Equal(t, uint64(1), myMap.testGetListForSender("bob").countTx())
 
 	myMap.removeTx(txAlice2)
 	// All alice's transactions have been removed now
@@ -115,7 +120,7 @@ func BenchmarkSendersMap_GetSnapshotAscending(b *testing.B) {
 	}
 
 	numSenders := 250000
-	maps := make([]txListBySenderMap, b.N)
+	maps := make([]*txListBySenderMap, b.N)
 	for i := 0; i < b.N; i++ {
 		maps[i] = createTxListBySenderMap(numSenders)
 	}
@@ -159,7 +164,7 @@ func TestSendersMap_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) 
 	wg.Wait()
 }
 
-func createTxListBySenderMap(numSenders int) txListBySenderMap {
+func createTxListBySenderMap(numSenders int) *txListBySenderMap {
 	myMap := newSendersMapToTest()
 	for i := 0; i < numSenders; i++ {
 		sender := fmt.Sprintf("Sender-%d", i)
@@ -170,6 +175,9 @@ func createTxListBySenderMap(numSenders int) txListBySenderMap {
 	return myMap
 }
 
-func newSendersMapToTest() txListBySenderMap {
-	return newTxListBySenderMap(4, CacheConfig{})
+func newSendersMapToTest() *txListBySenderMap {
+	return newTxListBySenderMap(4, senderConstraints{
+		maxNumBytes: math.MaxUint32,
+		maxNumTxs:   math.MaxUint32,
+	}, &disabledScoreComputer{})
 }

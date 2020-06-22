@@ -1,15 +1,18 @@
 package timecache
 
-import "time"
-
 func (tc *TimeCache) Keys() []string {
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
 
-	return tc.keys
+	keys := make([]string, 0, len(tc.data))
+	for key := range tc.data {
+		keys = append(keys, key)
+	}
+
+	return keys
 }
 
-func (tc *TimeCache) KeyTime(key string) (time.Time, bool) {
+func (tc *TimeCache) Value(key string) (*span, bool) {
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
 
@@ -22,5 +25,5 @@ func (tc *TimeCache) ClearMap() {
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
 
-	tc.data = make(map[string]time.Time)
+	tc.data = make(map[string]*span)
 }

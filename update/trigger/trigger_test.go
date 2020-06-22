@@ -1,6 +1,7 @@
 package trigger_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync/atomic"
@@ -8,8 +9,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,6 +23,17 @@ func createMockArgHardforkTrigger() trigger.ArgHardforkTrigger {
 		SelfPubKeyBytes:      []byte("self"),
 		Enabled:              true,
 		EnabledAuthenticated: true,
+		ArgumentParser:       vmcommon.NewAtArgumentParser(),
+		EpochProvider: &mock.EpochHandlerStub{
+			MetaEpochCalled: func() uint32 {
+				return trigger.MinimumEpochForHarfork
+			},
+		},
+		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
+		CloseAfterExportInMinutes: 2,
+		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
+		EpochConfirmedNotifier:    &mock.EpochStartNotifierStub{},
+		ImportStartHandler:        &mock.ImportStartHandlerStub{},
 	}
 }
 
@@ -63,11 +78,22 @@ func TestTrigger_TriggerNotEnabledShouldErr(t *testing.T) {
 	arg.Enabled = false
 	trig, _ := trigger.NewTrigger(arg)
 
-	err := trig.Trigger()
+	err := trig.Trigger(0)
 	assert.Equal(t, update.ErrTriggerNotEnabled, err)
 
 	_, wasTriggered := trig.RecordedTriggerMessage()
 	assert.False(t, wasTriggered)
+}
+
+func TestTrigger_TriggerWrongEpochShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHardforkTrigger()
+	trig, _ := trigger.NewTrigger(arg)
+
+	err := trig.Trigger(trigger.MinimumEpochForHarfork - 1)
+
+	assert.True(t, errors.Is(err, update.ErrInvalidEpoch))
 }
 
 func TestTrigger_TriggerEnabledShouldWork(t *testing.T) {
@@ -75,16 +101,12 @@ func TestTrigger_TriggerEnabledShouldWork(t *testing.T) {
 
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
-	numTrigCalled := int32(0)
-	_ = trig.RegisterHandler(func() {
-		atomic.AddInt32(&numTrigCalled, 1)
-	})
 
 	payload, wasTriggered := trig.RecordedTriggerMessage()
 	assert.Nil(t, payload)
 	assert.False(t, wasTriggered)
 
-	err := trig.Trigger()
+	err := trig.Trigger(trigger.MinimumEpochForHarfork)
 
 	// delay as to execute the async calls
 	time.Sleep(time.Second)
@@ -92,9 +114,40 @@ func TestTrigger_TriggerEnabledShouldWork(t *testing.T) {
 	payload, wasTriggered = trig.RecordedTriggerMessage()
 
 	assert.Nil(t, err)
-	assert.Equal(t, int32(1), atomic.LoadInt32(&numTrigCalled))
 	assert.Nil(t, payload)
 	assert.True(t, wasTriggered)
+}
+
+func TestTrigger_TriggerCalledTwiceShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHardforkTrigger()
+	trig, _ := trigger.NewTrigger(arg)
+
+	payload, wasTriggered := trig.RecordedTriggerMessage()
+	assert.Nil(t, payload)
+	assert.False(t, wasTriggered)
+
+	err := trig.Trigger(trigger.MinimumEpochForHarfork)
+
+	// delay as to execute the async calls
+	time.Sleep(time.Second)
+
+	payload, wasTriggered = trig.RecordedTriggerMessage()
+
+	assert.Nil(t, err)
+	assert.Nil(t, payload)
+	assert.True(t, wasTriggered)
+
+	err = trig.Trigger(trigger.MinimumEpochForHarfork)
+
+	assert.Equal(t, update.ErrTriggerAlreadyInAction, err)
+
+	select {
+	case <-trig.NotifyTriggerReceived():
+	case <-time.After(time.Second):
+		assert.Fail(t, "should have write on the notify channel")
+	}
 }
 
 func TestTrigger_TriggerReceivedNotAHardforkTriggerRetNilButNotCall(t *testing.T) {
@@ -110,6 +163,33 @@ func TestTrigger_TriggerReceivedNotAHardforkTriggerRetNilButNotCall(t *testing.T
 
 	_, wasTriggered := trig.RecordedTriggerMessage()
 	assert.False(t, wasTriggered)
+}
+
+func TestTrigger_ComputeTriggerStartOfEpoch(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHardforkTrigger()
+	trig, _ := trigger.NewTrigger(arg)
+
+	trig.SetReceivedExecutingEpoch(false, false, 0)
+	assert.False(t, trig.ComputeTriggerStartOfEpoch(0))
+	assert.False(t, trig.TriggerExecuting())
+
+	trig.SetReceivedExecutingEpoch(true, true, 0)
+	assert.False(t, trig.ComputeTriggerStartOfEpoch(0))
+	assert.True(t, trig.TriggerExecuting())
+
+	trig.SetReceivedExecutingEpoch(true, false, 1)
+	assert.False(t, trig.ComputeTriggerStartOfEpoch(0))
+	assert.False(t, trig.TriggerExecuting())
+
+	trig.SetReceivedExecutingEpoch(true, false, 1)
+	assert.False(t, trig.ComputeTriggerStartOfEpoch(1))
+	assert.False(t, trig.TriggerExecuting())
+
+	trig.SetReceivedExecutingEpoch(true, false, 1)
+	assert.True(t, trig.ComputeTriggerStartOfEpoch(2))
+	assert.True(t, trig.TriggerExecuting())
 }
 
 func TestTrigger_TriggerReceivedNotEnabledShouldRetNilButNotCall(t *testing.T) {
@@ -180,7 +260,7 @@ func TestTrigger_TriggerReceivedNotAnIntShouldErr(t *testing.T) {
 
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
-	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + "not-an-int")
+	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + hex.EncodeToString([]byte("not-an-int")))
 
 	isHardfork, err := trig.TriggerReceived(nil, data, arg.TriggerPubKeyBytes)
 	assert.True(t, errors.Is(err, update.ErrIncorrectHardforkMessage))
@@ -210,22 +290,52 @@ func TestTrigger_TriggerReceivedOutOfGracePeriodShouldErr(t *testing.T) {
 	assert.False(t, wasTriggered)
 }
 
-func TestTrigger_TriggerReceivedShouldWork(t *testing.T) {
+func TestTrigger_TriggerReceivedInvalidEpochShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
-	numTrigCalled := int32(0)
 	payloadReceived := []byte("original message")
-	_ = trig.RegisterHandler(func() {
-		atomic.AddInt32(&numTrigCalled, 1)
-	})
 	currentTimeStamp := time.Now().Unix()
 	trig.SetTimeHandler(func() int64 {
 		return currentTimeStamp
 	})
 	messageTimeStamp := currentTimeStamp - int64(trigger.HardforkGracePeriod.Seconds())
-	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + fmt.Sprintf("%d", messageTimeStamp))
+	data := []byte(trigger.HardforkTriggerString +
+		trigger.PayloadSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", messageTimeStamp))) +
+		trigger.PayloadSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", 0))))
+
+	payload, wasTriggered := trig.RecordedTriggerMessage()
+	assert.Nil(t, payload)
+	assert.False(t, wasTriggered)
+
+	isHardfork, err := trig.TriggerReceived(payloadReceived, data, arg.TriggerPubKeyBytes)
+	assert.True(t, isHardfork)
+	assert.True(t, errors.Is(err, update.ErrInvalidEpoch))
+}
+
+func TestTrigger_TriggerReceivedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHardforkTrigger()
+	setStartImportCalled := int32(0)
+	arg.ImportStartHandler = &mock.ImportStartHandlerStub{
+		SetStartImportCalled: func() error {
+			atomic.StoreInt32(&setStartImportCalled, 1)
+			//returned error here should not interfere with the export hardfork process
+			return errors.New("not a critical error")
+		},
+	}
+	trig, _ := trigger.NewTrigger(arg)
+	payloadReceived := []byte("original message")
+	currentTimeStamp := time.Now().Unix()
+	trig.SetTimeHandler(func() int64 {
+		return currentTimeStamp
+	})
+	messageTimeStamp := currentTimeStamp - int64(trigger.HardforkGracePeriod.Seconds())
+	data := []byte(trigger.HardforkTriggerString +
+		trigger.PayloadSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", messageTimeStamp))) +
+		trigger.PayloadSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", trigger.MinimumEpochForHarfork))))
 
 	payload, wasTriggered := trig.RecordedTriggerMessage()
 	assert.Nil(t, payload)
@@ -240,9 +350,9 @@ func TestTrigger_TriggerReceivedShouldWork(t *testing.T) {
 	payload, wasTriggered = trig.RecordedTriggerMessage()
 
 	assert.Nil(t, err)
-	assert.Equal(t, int32(1), atomic.LoadInt32(&numTrigCalled))
 	assert.Equal(t, payloadReceived, payload)
 	assert.True(t, wasTriggered)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&setStartImportCalled))
 }
 
 func TestTrigger_TriggerReceivedCreatePayloadShouldWork(t *testing.T) {
@@ -250,42 +360,55 @@ func TestTrigger_TriggerReceivedCreatePayloadShouldWork(t *testing.T) {
 
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
-
+	trig.SetReceivedExecutingEpoch(false, false, trigger.MinimumEpochForHarfork)
 	data := trig.CreateData()
-	numTrigCalled := int32(0)
 	payloadReceived := []byte("original message")
-	_ = trig.RegisterHandler(func() {
-		atomic.AddInt32(&numTrigCalled, 1)
-	})
+
+	numCloseCalled := int32(0)
+	cs := &mock.CloserStub{
+		CloseCalled: func() error {
+			atomic.AddInt32(&numCloseCalled, 1)
+			return nil
+		},
+	}
+	_ = trig.AddCloser(cs)
 
 	isHardfork, err := trig.TriggerReceived(payloadReceived, data, arg.TriggerPubKeyBytes)
+
 	assert.True(t, isHardfork)
 	assert.Nil(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&numCloseCalled))
 }
 
-//------- RegisterHandler
-
-func TestTrigger_RegisterHandlerNilHandlerShouldErr(t *testing.T) {
+func TestTrigger_TriggerReceivedOneCloseErrorsShouldContinueCalling(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
+	trig.SetReceivedExecutingEpoch(false, false, trigger.MinimumEpochForHarfork)
+	data := trig.CreateData()
+	payloadReceived := []byte("original message")
 
-	err := trig.RegisterHandler(nil)
+	numCloseCalled := int32(0)
+	cs1 := &mock.CloserStub{
+		CloseCalled: func() error {
+			atomic.AddInt32(&numCloseCalled, 1)
+			return errors.New("expected error")
+		},
+	}
+	cs2 := &mock.CloserStub{
+		CloseCalled: func() error {
+			atomic.AddInt32(&numCloseCalled, 1)
+			return nil
+		},
+	}
 
-	assert.True(t, errors.Is(err, update.ErrNilHandler))
-}
+	_ = trig.AddCloser(cs1)
+	_ = trig.AddCloser(cs2)
 
-func TestTrigger_RegisterHandlerShouldWork(t *testing.T) {
-	t.Parallel()
+	_, _ = trig.TriggerReceived(payloadReceived, data, arg.TriggerPubKeyBytes)
 
-	arg := createMockArgHardforkTrigger()
-	trig, _ := trigger.NewTrigger(arg)
-
-	err := trig.RegisterHandler(func() {})
-
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(trig.RegisteredHandlers()))
+	assert.Equal(t, int32(2), atomic.LoadInt32(&numCloseCalled))
 }
 
 //------- IsSelfTrigger
@@ -303,4 +426,30 @@ func TestTrigger_IsSelfTrigger(t *testing.T) {
 	trig2, _ := trigger.NewTrigger(arg2)
 
 	assert.True(t, trig2.IsSelfTrigger())
+}
+
+//------- Close
+
+func TestTrigger_AddCloserNilInstanceShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHardforkTrigger()
+	trig, _ := trigger.NewTrigger(arg)
+
+	err := trig.AddCloser(nil)
+
+	assert.Equal(t, update.ErrNilCloser, err)
+}
+
+func TestTrigger_AddCloserShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHardforkTrigger()
+	trig, _ := trigger.NewTrigger(arg)
+
+	cs := &mock.CloserStub{}
+	err := trig.AddCloser(cs)
+
+	assert.Nil(t, err)
+	assert.True(t, trig.Closers()[0] == cs) //pointer testing
 }

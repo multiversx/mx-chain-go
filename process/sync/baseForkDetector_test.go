@@ -1103,3 +1103,53 @@ func TestShardForkDetector_RemoveHeaderShouldComputeFinalCheckpoint(t *testing.T
 	sfd.RemoveHeader(hdr2.GetNonce(), hash2)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 }
+
+func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldWorkOnEqualRoundWithLowerHash(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewMetaForkDetector(
+		rounderMock,
+		&mock.BlackListHandlerStub{},
+		&mock.BlockTrackerMock{},
+		0,
+	)
+	rounderMock.RoundIndex = 5
+	_ = bfd.AddHeader(
+		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
+		[]byte("hash3"),
+		process.BHProcessed,
+		nil,
+		nil)
+	_ = bfd.AddHeader(
+		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
+		[]byte("hash2"),
+		process.BHReceived,
+		nil,
+		nil)
+	_ = bfd.AddHeader(
+		&block.MetaBlock{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")},
+		[]byte("hash1"),
+		process.BHReceived,
+		nil,
+		nil)
+
+	forkInfo := bfd.CheckFork()
+	assert.True(t, forkInfo.IsDetected)
+	assert.Equal(t, uint64(1), forkInfo.Nonce)
+	assert.Equal(t, uint64(4), forkInfo.Round)
+	assert.Equal(t, []byte("hash1"), forkInfo.Hash)
+
+	_ = bfd.AddHeader(
+		&block.MetaBlock{Nonce: 2, Round: 5, PubKeysBitmap: []byte("X")},
+		[]byte("hash"),
+		process.BHProposed,
+		nil,
+		nil)
+
+	forkInfo = bfd.CheckFork()
+	assert.False(t, forkInfo.IsDetected)
+	assert.Equal(t, uint64(math.MaxUint64), forkInfo.Nonce)
+	assert.Equal(t, uint64(math.MaxUint64), forkInfo.Round)
+	assert.Nil(t, forkInfo.Hash)
+}

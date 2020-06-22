@@ -97,6 +97,15 @@ func (vsp *ValidatorStatisticsProcessorStub) GetPeerAccount(address []byte) (sta
 func (vsp *ValidatorStatisticsProcessorStub) DisplayRatings(_ uint32) {
 }
 
+// SetLastFinalizedRootHash -
+func (vsp *ValidatorStatisticsProcessorStub) SetLastFinalizedRootHash(_ []byte) {
+}
+
+// LastFinalizedRootHash -
+func (vsp *ValidatorStatisticsProcessorStub) LastFinalizedRootHash() []byte {
+	return nil
+}
+
 // IsInterfaceNil -
 func (vsp *ValidatorStatisticsProcessorStub) IsInterfaceNil() bool {
 	return false

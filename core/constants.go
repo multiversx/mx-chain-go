@@ -1,6 +1,9 @@
 package core
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 // PeerType represents the type of a peer
 type PeerType string
@@ -16,6 +19,9 @@ const LeavingList PeerType = "leaving"
 
 // InactiveList represents the list of peers who were taken out because they were leaving
 const InactiveList PeerType = "inactive"
+
+// JailedList represents the list of peers who have stake but are in jail
+const JailedList PeerType = "jailed"
 
 // ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
 const ObserverList PeerType = "observer"
@@ -76,6 +82,9 @@ const MetricCurrentRound = "erd_current_round"
 
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
+
+// MetricNonceForTPS is the metric for monitoring the nonce of a node used in TPS benchmarks
+const MetricNonceForTPS = "erd_nonce_for_tps"
 
 // MetricProbableHighestNonce is the metric for monitoring the max speculative nonce received by the node by listening on the network
 const MetricProbableHighestNonce = "erd_probable_highest_nonce"
@@ -248,11 +257,17 @@ const MetricDenominationCoefficient = "erd_denomination_coefficient"
 // MetricRoundAtEpochStart is the metric for storing the first round of the current epoch
 const MetricRoundAtEpochStart = "erd_round_at_epoch_start"
 
+// MetricNonceAtEpochStart is the metric for storing the first nonce of the current epoch
+const MetricNonceAtEpochStart = "erd_nonce_at_epoch_start"
+
 // MetricRoundsPerEpoch is the metric that tells the number of rounds in an epoch
 const MetricRoundsPerEpoch = "erd_rounds_per_epoch"
 
 // MetricRoundsPassedInCurrentEpoch is the metric that tells the number of rounds passed in current epoch
 const MetricRoundsPassedInCurrentEpoch = "erd_rounds_passed_in_current_epoch"
+
+// MetricNoncesPassedInCurrentEpoch is the metric that tells the number of nonces passed in current epoch
+const MetricNoncesPassedInCurrentEpoch = "erd_nonces_passed_in_current_epoch"
 
 //MetricReceivedProposedBlock is the metric that specify the moment in the round when the received block has reached the
 //current node. The value is provided in percent (0 meaning it has been received just after the round started and
@@ -287,6 +302,18 @@ const MetricStartTime = "erd_start_time"
 // MetricRoundDuration is the metric that specifies the round duration in milliseconds
 const MetricRoundDuration = "erd_round_duration"
 
+// MetricPeakTPS holds the peak transactions per second
+const MetricPeakTPS = "erd_peak_tps"
+
+// MetricLastBlockTxCount holds the number of transactions in the last block
+const MetricLastBlockTxCount = "erd_last_block_tx_count"
+
+// MetricAverageBlockTxCount holds the average count of transactions in a block
+const MetricAverageBlockTxCount = "erd_average_block_tx_count"
+
+// LastNonceKeyMetricsStorage holds the key used for storing the last nonce for stored metrics
+const LastNonceKeyMetricsStorage = "lastNonce"
+
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
 
@@ -304,6 +331,18 @@ const BuiltInCost = "BuiltInCost"
 
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
 const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
+
+// TransactionStatus is the type used to represent the status of a transaction
+type TransactionStatus string
+
+const (
+	// TxStatusReceived represents the status of a transaction which was received but not yet executed
+	TxStatusReceived TransactionStatus = "received"
+	// TxStatusExecuted represents the status of a transaction which was received and executed
+	TxStatusExecuted TransactionStatus = "executed"
+	// TxStatusUnknown represents the status returned for a missing transaction
+	TxStatusUnknown TransactionStatus = "unknown"
+)
 
 const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
@@ -419,3 +458,24 @@ const SecondsToWaitForP2PBootstrap = 20
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
+
+// ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
+// moment when its components, like mini blocks and transactions, would be broadcast too
+const ExtraDelayForBroadcastBlockInfo = 1 * time.Second
+
+// ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
+// moment when its components, like mini blocks and transactions, would be requested too if they are still missing
+const ExtraDelayForRequestBlockInfo = 2 * time.Second
+
+// CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
+const CommitMaxTime = 3 * time.Second
+
+// PutInStorerMaxTime represents max time accepted for a put action, after which a warn message is displayed
+const PutInStorerMaxTime = time.Second
+
+// DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
+const DefaultUnstakedEpoch = math.MaxUint32
+
+// InvalidMessageBlacklistDuration represents the time to keep a peer in the black list if it sends a message that
+// does not follow the protocol: example not useing the same marshaler as the other peers
+const InvalidMessageBlacklistDuration = time.Second * 3600

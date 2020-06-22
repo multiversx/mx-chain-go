@@ -84,6 +84,15 @@ func (vsp *ValidatorStatisticsProcessorStub) RootHash() ([]byte, error) {
 	return nil, nil
 }
 
+// SetLastFinalizedRootHash -
+func (vsp *ValidatorStatisticsProcessorStub) SetLastFinalizedRootHash(_ []byte) {
+}
+
+// LastFinalizedRootHash -
+func (vsp *ValidatorStatisticsProcessorStub) LastFinalizedRootHash() []byte {
+	return nil
+}
+
 // GetPeerAccount -
 func (vsp *ValidatorStatisticsProcessorStub) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	if vsp.GetPeerAccountCalled != nil {

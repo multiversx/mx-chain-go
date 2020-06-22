@@ -69,7 +69,7 @@ func createKeyPair() (crypto.Scalar, crypto.Point) {
 	return scalar, point
 }
 
-func createMockSuite() crypto.Suite {
+func createMockSuite() *mock.SuiteMock {
 	suite := &mock.SuiteMock{
 		CreateKeyPairStub:        createKeyPair,
 		CreateScalarStub:         createScalar,
@@ -190,6 +190,9 @@ func TestKeyGenerator_PublicKeyFromByteArrayInvalidArrayShouldErr(t *testing.T) 
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	pubKeyBytes := invalidStr
+	suite.PointLenStub = func() int {
+		return len(pubKeyBytes)
+	}
 	pubKey, err := kg.PublicKeyFromByteArray(pubKeyBytes)
 
 	assert.Nil(t, pubKey)
@@ -202,6 +205,9 @@ func TestKeyGenerator_PublicKeyFromByteArrayOK(t *testing.T) {
 	suite := createMockSuite()
 	kg := signing.NewKeyGenerator(suite)
 	pubKeyBytes := []byte("valid key")
+	suite.PointLenStub = func() int {
+		return len(pubKeyBytes)
+	}
 	pubKey, err := kg.PublicKeyFromByteArray(pubKeyBytes)
 
 	assert.Nil(t, err)

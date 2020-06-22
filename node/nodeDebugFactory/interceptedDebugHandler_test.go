@@ -86,7 +86,7 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 		&mock.InterceptorsContainerStub{
 			IterateCalled: func(handler func(key string, interceptor process.Interceptor) bool) {
 				handler("key", &mock.InterceptorStub{
-					SetInterceptedDebugHandlerCalled: func(handler process.InterceptedDebugHandler) error {
+					SetInterceptedDebugHandlerCalled: func(handler process.InterceptedDebugger) error {
 						return expectedErr
 					},
 				})

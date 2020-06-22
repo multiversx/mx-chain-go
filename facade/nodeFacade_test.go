@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -202,10 +204,9 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 	t.Parallel()
 
 	testHash := "testHash"
-	testTx := &transaction.Transaction{}
-	//testTx.
+	testTx := &transaction.ApiTransactionResult{}
 	node := &mock.NodeStub{
-		GetTransactionHandler: func(hash string) (*transaction.Transaction, error) {
+		GetTransactionHandler: func(hash string) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
 			}
@@ -238,9 +239,9 @@ func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *tes
 	t.Parallel()
 
 	testHash := "testHash"
-	testTx := &transaction.Transaction{}
+	testTx := &transaction.ApiTransactionResult{}
 	node := &mock.NodeStub{
-		GetTransactionHandler: func(hash string) (*transaction.Transaction, error) {
+		GetTransactionHandler: func(hash string) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
 			}
@@ -485,19 +486,23 @@ func TestNodeFacade_Trigger(t *testing.T) {
 	wasCalled := false
 	expectedErr := errors.New("expected err")
 	arg := createMockArguments()
+	epoch := uint32(4638)
+	recoveredEpoch := uint32(0)
 	arg.Node = &mock.NodeStub{
-		DirectTriggerCalled: func() error {
+		DirectTriggerCalled: func(e uint32) error {
 			wasCalled = true
+			atomic.StoreUint32(&recoveredEpoch, e)
 
 			return expectedErr
 		},
 	}
 	nf, _ := NewNodeFacade(arg)
 
-	err := nf.Trigger()
+	err := nf.Trigger(epoch)
 
 	assert.True(t, wasCalled)
 	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, epoch, atomic.LoadUint32(&recoveredEpoch))
 }
 
 func TestNodeFacade_IsSelfTrigger(t *testing.T) {
@@ -553,4 +558,24 @@ func TestElrondNodeFacade_GetQueryHandler(t *testing.T) {
 	assert.Nil(t, qh)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
+}
+
+func TestNodeFacade_GetPeerInfo(t *testing.T) {
+	t.Parallel()
+
+	pinfo := core.QueryP2PPeerInfo{
+		Pid: "pid",
+	}
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetPeerInfoCalled: func(pid string) ([]core.QueryP2PPeerInfo, error) {
+			return []core.QueryP2PPeerInfo{pinfo}, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	val, err := nf.GetPeerInfo("")
+
+	assert.Nil(t, err)
+	assert.Equal(t, []core.QueryP2PPeerInfo{pinfo}, val)
 }

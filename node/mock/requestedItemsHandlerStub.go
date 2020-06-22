@@ -1,10 +1,22 @@
 package mock
 
+import "time"
+
 // RequestedItemsHandlerStub -
 type RequestedItemsHandlerStub struct {
-	AddCalled   func(key string) error
-	HasCalled   func(key string) bool
-	SweepCalled func()
+	AddCalled         func(key string) error
+	AddWithSpanCalled func(key string, span time.Duration) error
+	HasCalled         func(key string) bool
+	SweepCalled       func()
+}
+
+// AddWithSpan -
+func (rihs *RequestedItemsHandlerStub) AddWithSpan(key string, span time.Duration) error {
+	if rihs.AddWithSpanCalled == nil {
+		return nil
+	}
+
+	return rihs.AddWithSpan(key, span)
 }
 
 // Add -

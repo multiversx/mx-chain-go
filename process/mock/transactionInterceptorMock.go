@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
@@ -12,7 +12,7 @@ type TransactionInterceptorMock struct {
 	RcvShardVal                 uint32
 	SndShardVal                 uint32
 	IsAddressedToOtherShardsVal bool
-	pubkeyConverter             state.PubkeyConverter
+	pubkeyConverter             core.PubkeyConverter
 	Tx                          *transaction.Transaction
 	hash                        []byte
 }
@@ -48,12 +48,12 @@ func (tim *TransactionInterceptorMock) IsAddressedToOtherShards() bool {
 }
 
 // SetPubkeyConverter -
-func (tim *TransactionInterceptorMock) SetPubkeyConverter(converter state.PubkeyConverter) {
+func (tim *TransactionInterceptorMock) SetPubkeyConverter(converter core.PubkeyConverter) {
 	tim.pubkeyConverter = converter
 }
 
 // PubkeyConverter -
-func (tim *TransactionInterceptorMock) PubkeyConverter() state.PubkeyConverter {
+func (tim *TransactionInterceptorMock) PubkeyConverter() core.PubkeyConverter {
 	return tim.pubkeyConverter
 }
 

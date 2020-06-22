@@ -12,7 +12,8 @@
     DenominationCoefficientForView = "0.000000000000000001" #10^-18
 
 [FeeSettings]
-    MaxGasLimitPerBlock = "1500000000"
+    MaxGasLimitPerBlock     = "1500000000"
+    MaxGasLimitPerMetaBlock = "15000000000"
     MinGasPrice = "200000000000" #will yield min tx fee of 0.01ERD
     MinGasLimit = "50000"
     GasPerDataByte = "1500"

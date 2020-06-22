@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/debug/resolver"
@@ -24,7 +25,7 @@ type MultiDataInterceptor struct {
 	whiteListRequest           process.WhiteListHandler
 	antifloodHandler           process.P2PAntifloodHandler
 	mutInterceptedDebugHandler sync.RWMutex
-	interceptedDebugHandler    process.InterceptedDebugHandler
+	interceptedDebugHandler    process.InterceptedDebugger
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -75,7 +76,7 @@ func NewMultiDataInterceptor(
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	err := preProcessMesage(mdi.throttler, mdi.antifloodHandler, message, fromConnectedPeer, mdi.topic)
 	if err != nil {
 		return err
@@ -85,6 +86,12 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	err = mdi.marshalizer.Unmarshal(&b, message.Data())
 	if err != nil {
 		mdi.throttler.EndProcessing()
+
+		//this situation is so severe that we need to black list de peers
+		reason := "unmarshalable data got on topic " + mdi.topic
+		mdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+
 		return err
 	}
 	multiDataBuff := b.Data
@@ -94,7 +101,13 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		return process.ErrNoDataInMessage
 	}
 
-	err = mdi.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, mdi.topic, uint32(lenMultiData))
+	err = mdi.antifloodHandler.CanProcessMessagesOnTopic(
+		fromConnectedPeer,
+		mdi.topic,
+		uint32(lenMultiData),
+		uint64(len(message.Data())),
+		message.SeqNo(),
+	)
 	if err != nil {
 		return err
 	}
@@ -111,7 +124,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 	for _, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
-		interceptedData, err = mdi.interceptedData(dataBuff)
+		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
 		if err != nil {
 			lastErrEncountered = err
 			wgProcess.Done()
@@ -147,9 +160,14 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	return lastErrEncountered
 }
 
-func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.InterceptedData, error) {
+func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {
 	interceptedData, err := mdi.factory.Create(dataBuff)
 	if err != nil {
+		//this situation is so severe that we need to black list de peers
+		reason := "can not create object from received bytes, topic " + mdi.topic
+		mdi.antifloodHandler.BlacklistPeer(originator, reason, core.InvalidMessageBlacklistDuration)
+		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+
 		return nil, err
 	}
 
@@ -165,9 +183,9 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.Inter
 }
 
 // SetInterceptedDebugHandler will set a new intercepted debug handler
-func (mdi *MultiDataInterceptor) SetInterceptedDebugHandler(handler process.InterceptedDebugHandler) error {
+func (mdi *MultiDataInterceptor) SetInterceptedDebugHandler(handler process.InterceptedDebugger) error {
 	if check.IfNil(handler) {
-		return process.ErrNilInterceptedDebugHandler
+		return process.ErrNilDebugger
 	}
 
 	mdi.mutInterceptedDebugHandler.Lock()

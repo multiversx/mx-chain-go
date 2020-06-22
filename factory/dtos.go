@@ -9,8 +9,8 @@ import (
 
 // StateComponents struct holds the state components of the Elrond protocol
 type StateComponents struct {
-	AddressPubkeyConverter   state.PubkeyConverter
-	ValidatorPubkeyConverter state.PubkeyConverter
+	AddressPubkeyConverter   core.PubkeyConverter
+	ValidatorPubkeyConverter core.PubkeyConverter
 	PeerAccounts             state.AccountsAdapter
 	AccountsAdapter          state.AccountsAdapter
 	InBalanceForShard        map[string]*big.Int

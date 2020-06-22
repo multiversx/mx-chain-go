@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -61,7 +62,7 @@ func NewTrieNodeResolver(arg ArgTrieNodeResolver) (*TrieNodeResolver, error) {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	err := tnRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -70,7 +71,7 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 	tnRes.throttler.StartProcessing()
 	defer tnRes.throttler.EndProcessing()
 
-	rd, err := tnRes.parseReceivedMessage(message)
+	rd, err := tnRes.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}

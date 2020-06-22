@@ -32,6 +32,7 @@ type baseInterceptorsContainerFactory struct {
 	antifloodHandler       process.P2PAntifloodHandler
 	whiteListHandler       process.WhiteListHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
+	addressPubkeyConverter core.PubkeyConverter
 }
 
 func checkBaseParams(

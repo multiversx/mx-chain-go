@@ -26,11 +26,12 @@ func createDummyEconomicsConfig() *config.EconomicsConfig {
 			CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock:  "100000",
-			MinGasPrice:          "18446744073709551615",
-			MinGasLimit:          "500",
-			GasPerDataByte:       "1",
-			DataLimitForBaseCalc: "100000000",
+			MaxGasLimitPerBlock:     "100000",
+			MaxGasLimitPerMetaBlock: "1000000",
+			MinGasPrice:             "18446744073709551615",
+			MinGasLimit:             "500",
+			GasPerDataByte:          "1",
+			DataLimitForBaseCalc:    "100000000",
 		},
 		ValidatorSettings: config.ValidatorSettings{
 			GenesisNodePrice:         "500000000",
@@ -161,6 +162,7 @@ func TestEconomicsData_ComputeFeeNoTxData(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
 		GasLimit: minGasLimit,
+		Value:    big.NewInt(0),
 	}
 
 	cost := economicsData.ComputeFee(tx)
@@ -183,6 +185,7 @@ func TestEconomicsData_ComputeFeeWithTxData(t *testing.T) {
 		GasPrice: gasPrice,
 		GasLimit: minGasLimit,
 		Data:     []byte(txData),
+		Value:    big.NewInt(0),
 	}
 
 	cost := economicsData.ComputeFee(tx)
@@ -206,6 +209,7 @@ func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice - 1,
 		GasLimit: minGasLimit,
+		Value:    big.NewInt(0),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
@@ -225,6 +229,7 @@ func TestEconomicsData_TxWithLowerGasLimitShouldErr(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit - 1,
+		Value:    big.NewInt(0),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
@@ -247,6 +252,7 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit + 1,
 		Data:     []byte("1"),
+		Value:    big.NewInt(0),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
@@ -268,6 +274,7 @@ func TestEconomicsData_TxWithWithEqualGasPriceLimitShouldWork(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit,
+		Value:    big.NewInt(0),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
@@ -289,9 +296,35 @@ func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice + 1,
 		GasLimit: minGasLimit + 1,
+		Value:    big.NewInt(0),
 	}
 
 	err := economicsData.CheckValidityTxValues(tx)
 
 	assert.Nil(t, err)
+}
+
+func TestEconomicsData_TxWithWithMoreValueThanGenesisSupplyShouldError(t *testing.T) {
+	t.Parallel()
+
+	minGasPrice := uint64(500)
+	minGasLimit := uint64(12)
+	maxGasLimitPerBlock := minGasLimit + 1
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+	tx := &transaction.Transaction{
+		GasPrice: minGasPrice + 1,
+		GasLimit: minGasLimit + 1,
+		Value:    big.NewInt(0).Add(economicsData.GenesisTotalSupply(), big.NewInt(1)),
+	}
+
+	err := economicsData.CheckValidityTxValues(tx)
+	assert.Equal(t, err, process.ErrTxValueTooBig)
+
+	tx.Value.SetBytes([]byte("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999"))
+	err = economicsData.CheckValidityTxValues(tx)
+	assert.Equal(t, err, process.ErrTxValueOutOfBounds)
 }

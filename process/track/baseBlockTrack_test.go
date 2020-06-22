@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -88,7 +89,7 @@ func generateStorageUnit() storage.Storer {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1, 0)
 	return cache
 }
 
@@ -112,7 +113,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
-			PoolsHolder:      mock.NewPoolsHolderMock(),
+			PoolsHolder:      testscommon.NewPoolsHolderMock(),
 			WhitelistHandler: whitelistHandler,
 		},
 	}
@@ -140,7 +141,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
-			PoolsHolder:      mock.NewPoolsHolderMock(),
+			PoolsHolder:      testscommon.NewPoolsHolderMock(),
 		},
 	}
 
@@ -210,7 +211,7 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 	t.Parallel()
 
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.PoolsHolder = &mock.PoolsHolderStub{
+	shardArguments.PoolsHolder = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},
@@ -221,7 +222,7 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 	assert.Nil(t, sbt)
 
 	metaArguments := CreateShardTrackerMockArguments()
-	metaArguments.PoolsHolder = &mock.PoolsHolderStub{
+	metaArguments.PoolsHolder = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},
@@ -314,7 +315,7 @@ func TestShardGetSelfHeaders_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	shardArguments := CreateShardTrackerMockArguments()
-	shardArguments.PoolsHolder = &mock.PoolsHolderStub{
+	shardArguments.PoolsHolder = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
@@ -351,7 +352,7 @@ func TestMetaGetSelfHeaders_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	metaArguments := CreateMetaTrackerMockArguments()
-	metaArguments.PoolsHolder = &mock.PoolsHolderStub{
+	metaArguments.PoolsHolder = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
@@ -1657,6 +1658,34 @@ func TestIsShardStuck_ShouldReturnFalseWhenSelfShardIsMetachain(t *testing.T) {
 
 	assert.False(t, mbt.IsShardStuck(0))
 	assert.False(t, mbt.IsShardStuck(1))
+}
+
+func TestIsShardStuck_ShouldReturnFalseWhenMetaIsNotStuck(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+	shardID := core.MetachainShardId
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	sbt.AddSelfNotarizedHeader(0, &block.Header{Nonce: nonce + process.MaxShardNoncesBehind}, nil)
+	sbt.AddSelfNotarizedHeader(shardID, &block.Header{Nonce: nonce}, nil)
+
+	assert.False(t, sbt.IsShardStuck(shardID))
+}
+
+func TestIsShardStuck_ShouldReturnTrueWhenMetaIsStuck(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+	shardID := core.MetachainShardId
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	sbt.AddSelfNotarizedHeader(0, &block.Header{Nonce: nonce + process.MaxShardNoncesBehind + 1}, nil)
+	sbt.AddSelfNotarizedHeader(shardID, &block.Header{Nonce: nonce}, nil)
+
+	assert.True(t, sbt.IsShardStuck(shardID))
 }
 
 func TestIsShardStuck_ShouldReturnFalseWhenLastShardProcessedMetaNonceIsZero(t *testing.T) {

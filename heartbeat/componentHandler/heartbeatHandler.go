@@ -40,8 +40,7 @@ type ArgHeartbeat struct {
 	PrivKey                  crypto.PrivateKey
 	HardforkTrigger          heartbeat.HardforkTrigger
 	AntifloodHandler         heartbeat.P2PAntifloodHandler
-	PeerBlackListHandler     heartbeat.BlackListHandler
-	ValidatorPubkeyConverter state.PubkeyConverter
+	ValidatorPubkeyConverter core.PubkeyConverter
 	EpochStartTrigger        sharding.EpochHandler
 	EpochStartRegistration   sharding.EpochStartEventNotifier
 	Timer                    heartbeat.Timer
@@ -102,12 +101,9 @@ func (hbh *HeartbeatHandler) create() error {
 		}
 	}
 	argPeerTypeProvider := peer.ArgPeerTypeProvider{
-		NodesCoordinator:             arg.NodesCoordinator,
-		StartEpoch:                   arg.EpochStartTrigger.MetaEpoch(),
-		EpochStartEventNotifier:      arg.EpochStartRegistration,
-		ValidatorsProvider:           arg.ValidatorsProvider,
-		Context:                      ctx,
-		PeerTypeRefreshIntervalInSec: time.Duration(arg.HeartbeatConfig.PeerTypeRefreshIntervalInSec) * time.Second,
+		NodesCoordinator:        arg.NodesCoordinator,
+		StartEpoch:              arg.EpochStartTrigger.MetaEpoch(),
+		EpochStartEventNotifier: arg.EpochStartRegistration,
 	}
 	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
 	if err != nil {
@@ -176,7 +172,6 @@ func (hbh *HeartbeatHandler) create() error {
 		Timer:                              timer,
 		AntifloodHandler:                   arg.AntifloodHandler,
 		HardforkTrigger:                    arg.HardforkTrigger,
-		PeerBlackListHandler:               arg.PeerBlackListHandler,
 		ValidatorPubkeyConverter:           arg.ValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      arg.HeartbeatConfig.HeartbeatRefreshIntervalInSec,
 		HideInactiveValidatorIntervalInSec: arg.HeartbeatConfig.HideInactiveValidatorIntervalInSec,
@@ -235,6 +230,8 @@ func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 			log.Debug("heartbeat's go routine is stopping...")
 			return
 		case <-time.After(timeToWait):
+		case <-hbh.arg.HardforkTrigger.NotifyTriggerReceived(): //this will force an immediate broadcast of the trigger
+			//message on the network
 		}
 
 		err := hbh.sender.SendHeartbeat()
@@ -278,7 +275,7 @@ func (hbh *HeartbeatHandler) Sender() *process.Sender {
 func (hbh *HeartbeatHandler) Close() error {
 	hbh.cancelFunc()
 
-	return hbh.peerTypeProvider.Close()
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

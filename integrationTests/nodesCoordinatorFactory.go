@@ -37,7 +37,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
-	nodeShuffler := sharding.NewXorValidatorsShuffler(
+	nodeShuffler := sharding.NewHashValidatorsShuffler(
 		uint32(arg.nodesPerShard),
 		uint32(arg.nbMetaNodes),
 		hysteresis,
@@ -80,7 +80,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
-	nodeShuffler := sharding.NewXorValidatorsShuffler(
+	nodeShuffler := sharding.NewHashValidatorsShuffler(
 		uint32(arg.nodesPerShard),
 		uint32(arg.nbMetaNodes),
 		hysteresis,

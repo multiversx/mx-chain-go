@@ -16,7 +16,6 @@ func createMockArg() ArgsSharderFactory {
 	return ArgsSharderFactory{
 		Type:                    "unknown",
 		PeerShardResolver:       &mock.PeerShardResolverStub{},
-		PrioBits:                1,
 		Pid:                     "",
 		MaxConnectionCount:      5,
 		MaxIntraShardValidators: 1,
@@ -24,30 +23,6 @@ func createMockArg() ArgsSharderFactory {
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
 	}
-}
-
-func TestNewSharder_CreatePrioBitsSharderShouldWork(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArg()
-	arg.Type = p2p.PrioBitsSharder
-	sharder, err := NewSharder(arg)
-
-	expectedSharder, _ := networksharding.NewPrioBitsSharder(1, &mock.PeerShardResolverStub{})
-	assert.Nil(t, err)
-	assert.IsType(t, reflect.TypeOf(expectedSharder), reflect.TypeOf(sharder))
-}
-
-func TestNewSharder_CreateSimplePrioBitsSharderShouldWork(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArg()
-	arg.Type = p2p.SimplePrioBitsSharder
-	sharder, err := NewSharder(arg)
-
-	expectedSharder := &networksharding.SimplePrioBitsSharder{}
-	assert.Nil(t, err)
-	assert.IsType(t, reflect.TypeOf(expectedSharder), reflect.TypeOf(sharder))
 }
 
 func TestNewSharder_CreateListsSharderShouldWork(t *testing.T) {

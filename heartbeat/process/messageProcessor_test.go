@@ -4,12 +4,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -259,10 +259,10 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 		keyGen,
 		marshalizer,
 		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {
+			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {
 				updatePubKeyWasCalled = true
 			},
-			UpdatePeerIdShardIdCalled: func(pid p2p.PeerID, shardId uint32) {
+			UpdatePeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
 				updatePidShardIdCalled = true
 			},
 		},
@@ -305,7 +305,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t
 		&mock.KeyGenMock{},
 		&mock.MarshalizerStub{},
 		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
 		},
 	)
 
@@ -339,7 +339,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithUnmarshaliableData
 			},
 		},
 		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
 		},
 	)
 
@@ -395,7 +395,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithTooLongLengthsShou
 		keyGen,
 		marshalizer,
 		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
 		},
 	)
 	assert.Nil(t, err)
@@ -424,7 +424,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2pNilMessageShouldErr(t *testin
 		&mock.KeyGenMock{},
 		&mock.MarshalizerStub{},
 		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
+			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
 		},
 	)
 

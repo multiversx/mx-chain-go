@@ -21,7 +21,6 @@ func createMockArgument() ArgHeartbeat {
 			DurationToConsiderUnresponsiveInSec: 10,
 			HeartbeatRefreshIntervalInSec:       1,
 			HideInactiveValidatorIntervalInSec:  20,
-			PeerTypeRefreshIntervalInSec:        60,
 		},
 		PrefsConfig: config.PreferencesConfig{
 			DestinationShardAsObserver: "0",
@@ -40,7 +39,6 @@ func createMockArgument() ArgHeartbeat {
 		PrivKey:                  &mock.PrivateKeyStub{},
 		HardforkTrigger:          &mock.HardforkTriggerStub{},
 		AntifloodHandler:         &mock.P2PAntifloodHandlerStub{},
-		PeerBlackListHandler:     &mock.BlackListHandlerStub{},
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
 		EpochStartTrigger:        &mock.EpochStartTriggerStub{},
 		EpochStartRegistration:   &mock.EpochStartNotifierStub{},

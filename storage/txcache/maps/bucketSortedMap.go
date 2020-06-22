@@ -69,8 +69,7 @@ func (sortedMap *BucketSortedMap) Set(item BucketSortedMapItem) {
 }
 
 // NotifyScoreChange moves or adds the item to the corresponding score chunk
-func (sortedMap *BucketSortedMap) NotifyScoreChange(item BucketSortedMapItem) {
-	newScore := item.ComputeScore()
+func (sortedMap *BucketSortedMap) NotifyScoreChange(item BucketSortedMapItem, newScore uint32) {
 	if newScore > sortedMap.maxScore {
 		newScore = sortedMap.maxScore
 	}
@@ -109,12 +108,14 @@ func (sortedMap *BucketSortedMap) Has(key string) bool {
 }
 
 // Remove removes an element from the map
-func (sortedMap *BucketSortedMap) Remove(key string) {
+func (sortedMap *BucketSortedMap) Remove(key string) (interface{}, bool) {
 	chunk := sortedMap.getChunk(key)
 	item := chunk.removeItemByKey(key)
 	if item != nil {
 		removeFromScoreChunk(item)
 	}
+
+	return item, item != nil
 }
 
 // getChunk returns the chunk holding the given key.

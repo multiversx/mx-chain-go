@@ -43,8 +43,6 @@ func createKadDhtPeerDiscoverer(
 	}
 
 	switch p2pConfig.Sharding.Type {
-	case p2p.PrioBitsSharder, p2p.SimplePrioBitsSharder:
-		return discovery.NewKadDhtPeerDiscoverer(arg)
 	case p2p.ListsSharder, p2p.OneListSharder, p2p.NilListSharder:
 		return discovery.NewContinuousKadDhtDiscoverer(arg)
 	default:

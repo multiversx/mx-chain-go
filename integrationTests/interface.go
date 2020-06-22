@@ -3,7 +3,6 @@ package integrationTests
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -32,9 +31,9 @@ type NodesCoordinatorFactory interface {
 
 // NetworkShardingUpdater defines the updating methods used by the network sharding component
 type NetworkShardingUpdater interface {
-	GetPeerInfo(pid p2p.PeerID) core.P2PPeerInfo
-	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
+	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
-	UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32)
+	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
 	IsInterfaceNil() bool
 }

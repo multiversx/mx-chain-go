@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
@@ -36,7 +37,7 @@ func (hrm *HeaderResolverMock) RequestDataFromHash(hash []byte, epoch uint32) er
 }
 
 // ProcessReceivedMessage -
-func (hrm *HeaderResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
+func (hrm *HeaderResolverMock) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
 	return hrm.ProcessReceivedMessageCalled(message)
 }
 

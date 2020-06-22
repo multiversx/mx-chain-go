@@ -52,19 +52,23 @@ iterateOverObservers() {
   local OBSERVER_INDEX=0
 
   # Iterate over Shard Observers
-  let "max_shard_id=$SHARDCOUNT - 1"
-  for SHARD in `seq 0 1 $max_shard_id`; do
-    for OBSERVER_IN_SHARD in `seq $SHARD_OBSERVERCOUNT`; do
-      $callback $SHARD $OBSERVER_INDEX
-      let OBSERVER_INDEX++
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    for _ in $(seq $SHARD_OBSERVERCOUNT); do
+      if [ $OBSERVER_INDEX -ne $SKIP_OBSERVER_IDX ]; then
+        $callback $SHARD $OBSERVER_INDEX
+      fi
+      (( OBSERVER_INDEX++ ))
     done
   done
 
   # Iterate over Metachain Observers
   local SHARD="metachain"
-  for META_OBSERVER in `seq $META_OBSERVERCOUNT`; do
-    $callback $SHARD $OBSERVER_INDEX
-    let OBSERVER_INDEX++
+  for META_OBSERVER in $(seq $META_OBSERVERCOUNT); do
+    if [ $OBSERVER_INDEX -ne $SKIP_OBSERVER_IDX ]; then
+      $callback $SHARD $OBSERVER_INDEX
+    fi
+    (( OBSERVER_INDEX++ ))
   done
 }
 
@@ -120,19 +124,23 @@ iterateOverValidators() {
   local VALIDATOR_INDEX=0
 
   # Iterate over Shard Validators
-  let "max_shard_id=$SHARDCOUNT - 1"
-  for SHARD in `seq 0 1 $max_shard_id`; do
-    for VALIDATOR_IN_SHARD in `seq $SHARD_VALIDATORCOUNT`; do
-      $callback $SHARD $VALIDATOR_INDEX
-      let VALIDATOR_INDEX++
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    for _ in $(seq $SHARD_VALIDATORCOUNT); do
+      if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
+        $callback $SHARD $VALIDATOR_INDEX
+      fi
+      (( VALIDATOR_INDEX++ ))
     done
   done
 
   # Iterate over Metachain Validators
   SHARD="metachain"
-  for META_VALIDATOR in `seq $META_VALIDATORCOUNT`; do
-    $callback $SHARD $VALIDATOR_INDEX
-    let VALIDATOR_INDEX++
+  for _ in $(seq $META_VALIDATORCOUNT); do
+    if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
+      $callback $SHARD $VALIDATOR_INDEX
+    fi
+     (( VALIDATOR_INDEX++ ))
   done
 }
 
@@ -173,10 +181,10 @@ assembleCommand_startObserverNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/observer$OBSERVER_INDEX
 
   local nodeCommand="./node \
-        -port $PORT -log-save -log-level $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
+        -port $PORT -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation -rest-api-interface localhost:$RESTAPIPORT \
         -destination-shard-as-observer $SHARD \
         -sk-index $KEY_INDEX \
-        -working-directory $WORKING_DIR"
+        -working-directory $WORKING_DIR -config ./config/config_observer.toml"
 
   if [ -n "$NODE_NICENESS" ]
   then
@@ -199,9 +207,9 @@ assembleCommand_startValidatorNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX
 
   local nodeCommand="./node \
-        -port $PORT -log-save -log-level $LOGLEVEL -rest-api-interface localhost:$RESTAPIPORT \
+        -port $PORT -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation -rest-api-interface localhost:$RESTAPIPORT \
         -sk-index $KEY_INDEX \
-        -working-directory $WORKING_DIR"
+        -working-directory $WORKING_DIR -config ./config/config_validator.toml"
 
   if [ -n "$NODE_NICENESS" ]
   then

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"encoding/hex"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 
 var formatter = logger.PlainFormatter{}
 var webSocket *websocket.Conn
+var retryDuration = time.Second * 10
 
 const (
 	ws  = "ws"
@@ -20,16 +22,25 @@ const (
 )
 
 // InitLogHandler will open the websocket and set the log level
-func InitLogHandler(nodeURL string, profile logger.Profile, useWss bool) error {
+func InitLogHandler(presenter PresenterHandler, nodeURL string, profile logger.Profile, useWss bool) error {
 	var err error
 	scheme := ws
 	if useWss {
 		scheme = wss
 	}
-	webSocket, err = openWebSocket(scheme, nodeURL, profile)
-	if err != nil {
-		return err
-	}
+	go func() {
+		for {
+			webSocket, err = openWebSocket(scheme, nodeURL, profile)
+			if err != nil {
+				_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket error, retrying in %v...", retryDuration)))
+				time.Sleep(retryDuration)
+				continue
+			}
+
+			startListeningOnWebSocket(presenter)
+			time.Sleep(retryDuration)
+		}
+	}()
 
 	return nil
 }
@@ -58,28 +69,26 @@ func openWebSocket(scheme string, address string, profile logger.Profile) (*webs
 	return conn, nil
 }
 
-// StartListeningOnWebSocket will listen if a new log message is received and will display it
-func StartListeningOnWebSocket(presenter PresenterHandler) {
-	go func() {
-		for {
-			msgType, message, err := webSocket.ReadMessage()
-			if msgType == websocket.CloseMessage {
-				return
-			}
-			if err == nil {
-				writeMessage(presenter, message)
-				continue
-			}
-
-			_, isConnectionClosed := err.(*websocket.CloseError)
-			if !isConnectionClosed {
-				log.Error("termui websocket error", "error", err.Error())
-			} else {
-				log.Debug("termui websocket terminated", "error", err.Error())
-			}
+// startListeningOnWebSocket will listen if a new log message is received and will display it
+func startListeningOnWebSocket(presenter PresenterHandler) {
+	for {
+		msgType, message, err := webSocket.ReadMessage()
+		if msgType == websocket.CloseMessage {
 			return
 		}
-	}()
+		if err == nil {
+			writeMessage(presenter, message)
+			continue
+		}
+
+		_, isConnectionClosed := err.(*websocket.CloseError)
+		if !isConnectionClosed {
+			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket error: %s", err.Error())))
+		} else {
+			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket terminated: %s", err.Error())))
+		}
+		return
+	}
 }
 
 func writeMessage(presenter PresenterHandler, message []byte) {

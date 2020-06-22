@@ -137,6 +137,26 @@ func (s *SuiteBLS12) GetUnderlyingSuite() interface{} {
 	return s
 }
 
+// IsPointValid returns error if the point is not valid (zero is also not valid), otherwise nil
+func (s *SuiteBLS12) CheckPointValid(pointBytes []byte) error {
+	if len(pointBytes) != s.PointLen() {
+		return crypto.ErrInvalidParam
+	}
+
+	point := s.G2.CreatePoint()
+	err := point.UnmarshalBinary(pointBytes)
+	if err != nil {
+		return err
+	}
+
+	pG2, ok := point.GetUnderlyingObj().(*bls.G2)
+	if !ok || !pG2.IsValid() || !pG2.IsValidOrder() || pG2.IsZero() {
+		return crypto.ErrInvalidPoint
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *SuiteBLS12) IsInterfaceNil() bool {
 	return s == nil

@@ -35,10 +35,6 @@ func (item *dummyItem) GetKey() string {
 	return item.key
 }
 
-func (item *dummyItem) ComputeScore() uint32 {
-	return item.score.Get()
-}
-
 func (item *dummyItem) GetScoreChunk() *MapChunk {
 	item.chunkMutex.RLock()
 	defer item.chunkMutex.RUnlock()
@@ -55,7 +51,7 @@ func (item *dummyItem) SetScoreChunk(chunk *MapChunk) {
 
 func (item *dummyItem) simulateMutationThatChangesScore(myMap *BucketSortedMap) {
 	item.mutex.Lock()
-	myMap.NotifyScoreChange(item)
+	myMap.NotifyScoreChange(item, item.score.Get())
 	item.mutex.Unlock()
 }
 
@@ -191,7 +187,10 @@ func TestBucketSortedMap_Remove(t *testing.T) {
 	myMap.Set(newDummyItem("a"))
 	myMap.Set(newDummyItem("b"))
 
-	myMap.Remove("b")
+	_, ok := myMap.Remove("b")
+	require.True(t, ok)
+	_, ok = myMap.Remove("x")
+	require.False(t, ok)
 
 	require.True(t, myMap.Has("a"))
 	require.False(t, myMap.Has("b"))
@@ -241,7 +240,7 @@ func TestBucketSortedMap_GetSnapshotAscending(t *testing.T) {
 	myMap := NewBucketSortedMap(4, 100)
 
 	snapshot := myMap.GetSnapshotAscending()
-	require.ElementsMatch(t, []BucketSortedMapItem{}, snapshot)
+	require.Equal(t, []BucketSortedMapItem{}, snapshot)
 
 	a := newScoredDummyItem("a", 15)
 	b := newScoredDummyItem("b", 101)
@@ -256,14 +255,14 @@ func TestBucketSortedMap_GetSnapshotAscending(t *testing.T) {
 	simulateMutationThatChangesScore(myMap, "c")
 
 	snapshot = myMap.GetSnapshotAscending()
-	require.ElementsMatch(t, []BucketSortedMapItem{c, a, b}, snapshot)
+	require.Equal(t, []BucketSortedMapItem{c, a, b}, snapshot)
 }
 
 func TestBucketSortedMap_GetSnapshotDescending(t *testing.T) {
 	myMap := NewBucketSortedMap(4, 100)
 
 	snapshot := myMap.GetSnapshotDescending()
-	require.ElementsMatch(t, []BucketSortedMapItem{}, snapshot)
+	require.Equal(t, []BucketSortedMapItem{}, snapshot)
 
 	a := newScoredDummyItem("a", 15)
 	b := newScoredDummyItem("b", 101)
@@ -278,7 +277,7 @@ func TestBucketSortedMap_GetSnapshotDescending(t *testing.T) {
 	simulateMutationThatChangesScore(myMap, "c")
 
 	snapshot = myMap.GetSnapshotDescending()
-	require.ElementsMatch(t, []BucketSortedMapItem{b, a, c}, snapshot)
+	require.Equal(t, []BucketSortedMapItem{b, a, c}, snapshot)
 }
 
 func TestBucketSortedMap_AddManyItems(t *testing.T) {
@@ -374,8 +373,8 @@ func TestBucketSortedMap_ClearConcurrentWithWrite(t *testing.T) {
 	go func() {
 		for j := 0; j < 10000; j++ {
 			myMap.Set(newDummyItem("foobar"))
-			myMap.Remove("foobar")
-			myMap.NotifyScoreChange(newDummyItem("foobar"))
+			_, _ = myMap.Remove("foobar")
+			myMap.NotifyScoreChange(newDummyItem("foobar"), 42)
 			simulateMutationThatChangesScore(myMap, "foobar")
 		}
 
@@ -414,7 +413,7 @@ func TestBucketSortedMap_NoForgottenItemsOnConcurrentScoreChanges(t *testing.T) 
 		require.Equal(t, uint32(1), myMap.CountSorted())
 		require.Equal(t, uint32(1), myMap.Count())
 
-		myMap.Remove("a")
+		_, _ = myMap.Remove("a")
 
 		require.Equal(t, uint32(0), myMap.CountSorted())
 		require.Equal(t, uint32(0), myMap.Count())

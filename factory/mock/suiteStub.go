@@ -17,6 +17,7 @@ type SuiteStub struct {
 	CreatePointForScalarStub func(scalar crypto.Scalar) (crypto.Point, error)
 	RandomStreamStub         func() cipher.Stream
 	CreateKeyPairStub        func() (crypto.Scalar, crypto.Point)
+	IsPointValidStub         func([]byte) error
 	GetUnderlyingSuiteStub   func() interface{}
 }
 
@@ -89,6 +90,14 @@ func (s *SuiteStub) CreateKeyPair() (crypto.Scalar, crypto.Point) {
 		return s.CreateKeyPairStub()
 	}
 	return nil, nil
+}
+
+// IsPointValid -
+func (s *SuiteStub) CheckPointValid(pointBytes []byte) error {
+	if s.IsPointValidStub != nil {
+		return s.IsPointValidStub(pointBytes)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -6,18 +6,19 @@ import (
 
 // ShardedDataStub -
 type ShardedDataStub struct {
-	RegisterHandlerCalled         func(func(key []byte, value interface{}))
-	ShardDataStoreCalled          func(cacheId string) (c storage.Cacher)
-	AddDataCalled                 func(key []byte, data interface{}, cacheId string)
-	SearchFirstDataCalled         func(key []byte) (value interface{}, ok bool)
-	RemoveDataCalled              func(key []byte, cacheId string)
-	RemoveDataFromAllShardsCalled func(key []byte)
-	MergeShardStoresCalled        func(sourceCacheId, destCacheId string)
-	MoveDataCalled                func(sourceCacheId, destCacheId string, key [][]byte)
-	ClearCalled                   func()
-	ClearShardStoreCalled         func(cacheId string)
-	RemoveSetOfDataFromPoolCalled func(keys [][]byte, destCacheId string)
-	CreateShardStoreCalled        func(destCacheId string)
+	RegisterHandlerCalled                  func(func(key []byte, value interface{}))
+	ShardDataStoreCalled                   func(cacheId string) (c storage.Cacher)
+	AddDataCalled                          func(key []byte, data interface{}, sizeInBytes int, cacheId string)
+	SearchFirstDataCalled                  func(key []byte) (value interface{}, ok bool)
+	RemoveDataCalled                       func(key []byte, cacheId string)
+	RemoveDataFromAllShardsCalled          func(key []byte)
+	MergeShardStoresCalled                 func(sourceCacheId, destCacheId string)
+	MoveDataCalled                         func(sourceCacheId, destCacheId string, key [][]byte)
+	ClearCalled                            func()
+	ClearShardStoreCalled                  func(cacheId string)
+	RemoveSetOfDataFromPoolCalled          func(keys [][]byte, destCacheId string)
+	ImmunizeSetOfDataAgainstEvictionCalled func(keys [][]byte, cacheId string)
+	CreateShardStoreCalled                 func(destCacheId string)
 }
 
 // RegisterHandler -
@@ -31,8 +32,8 @@ func (sd *ShardedDataStub) ShardDataStore(cacheId string) (c storage.Cacher) {
 }
 
 // AddData -
-func (sd *ShardedDataStub) AddData(key []byte, data interface{}, cacheId string) {
-	sd.AddDataCalled(key, data, cacheId)
+func (sd *ShardedDataStub) AddData(key []byte, data interface{}, sizeInBytes int, cacheId string) {
+	sd.AddDataCalled(key, data, sizeInBytes, cacheId)
 }
 
 // SearchFirstData -
@@ -70,9 +71,11 @@ func (sd *ShardedDataStub) RemoveSetOfDataFromPool(keys [][]byte, cacheId string
 	sd.RemoveSetOfDataFromPoolCalled(keys, cacheId)
 }
 
-// CreateShardStore -
-func (sd *ShardedDataStub) CreateShardStore(cacheId string) {
-	sd.CreateShardStoreCalled(cacheId)
+// ImmunizeSetOfDataAgainstEviction -
+func (sd *ShardedDataStub) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string) {
+	if sd.ImmunizeSetOfDataAgainstEvictionCalled != nil {
+		sd.ImmunizeSetOfDataAgainstEvictionCalled(keys, cacheId)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

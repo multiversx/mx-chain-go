@@ -4,8 +4,16 @@ import "github.com/ElrondNetwork/elrond-go/data"
 
 // EpochStartNotifierStub -
 type EpochStartNotifierStub struct {
-	NotifyAllCalled        func(hdr data.HeaderHandler)
-	NotifyAllPrepareCalled func(hdr data.HeaderHandler, body data.BodyHandler)
+	NotifyAllCalled                  func(hdr data.HeaderHandler)
+	NotifyAllPrepareCalled           func(hdr data.HeaderHandler, body data.BodyHandler)
+	NotifyEpochChangeConfirmedCalled func(epoch uint32)
+}
+
+// NotifyEpochChangeConfirmed -
+func (esnm *EpochStartNotifierStub) NotifyEpochChangeConfirmed(epoch uint32) {
+	if esnm.NotifyEpochChangeConfirmedCalled != nil {
+		esnm.NotifyEpochChangeConfirmedCalled(epoch)
+	}
 }
 
 // NotifyAll -

@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -35,8 +34,8 @@ type ElasticIndexerArgs struct {
 	Hasher                   hashing.Hasher
 	EpochStartNotifier       sharding.EpochStartEventNotifier
 	NodesCoordinator         sharding.NodesCoordinator
-	AddressPubkeyConverter   state.PubkeyConverter
-	ValidatorPubkeyConverter state.PubkeyConverter
+	AddressPubkeyConverter   core.PubkeyConverter
+	ValidatorPubkeyConverter core.PubkeyConverter
 	Options                  *Options
 }
 
@@ -108,7 +107,6 @@ func (ei *elasticIndexer) SaveBlock(
 	go ei.database.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes, txsSizeInBytes)
 
 	if len(body.MiniBlocks) == 0 {
-		log.Debug("indexer", "error", ErrNoMiniblocks.Error())
 		return
 	}
 
@@ -119,9 +117,9 @@ func (ei *elasticIndexer) SaveBlock(
 	}
 }
 
-// SaveRoundInfo will save data about a round on elastic search
-func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
-	ei.database.SaveRoundInfo(roundInfo)
+// SaveRoundsInfos will save data about a slice of rounds on elasticsearch
+func (ei *elasticIndexer) SaveRoundsInfos(roundsInfos []RoundInfo) {
+	ei.database.SaveRoundsInfos(roundsInfos)
 }
 
 func (ei *elasticIndexer) epochStartEventHandler() epochStart.ActionHandler {

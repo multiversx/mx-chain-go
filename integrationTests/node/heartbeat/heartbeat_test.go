@@ -7,6 +7,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
@@ -238,8 +239,8 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		keyGen,
 		marshalizer,
 		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
-			UpdatePeerIdShardIdCalled:   func(pid p2p.PeerID, shardId uint32) {},
+			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
+			UpdatePeerIdShardIdCalled:   func(pid core.PeerID, shardId uint32) {},
 		})
 
 	argMonitor := process.ArgHeartbeatMonitor{
@@ -268,12 +269,11 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		PeerTypeProvider: &mock.PeerTypeProviderStub{},
 		Timer:            &process.RealTimer{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 				return nil
 			},
 		},
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
-		PeerBlackListHandler:               &mock.BlackListHandlerStub{},
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,

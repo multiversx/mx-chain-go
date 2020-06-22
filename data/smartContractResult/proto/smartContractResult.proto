@@ -9,16 +9,17 @@ option (gogoproto.stable_marshaler_all) = true;
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message SmartContractResult  {
-	uint64   Nonce          = 1 [(gogoproto.jsontag) = "nonce"];
-	bytes    Value          = 2 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bytes    RcvAddr        = 3 [(gogoproto.jsontag) = "receiver"];
-	bytes    SndAddr        = 4 [(gogoproto.jsontag) = "sender"];
-	bytes    Code           = 5 [(gogoproto.jsontag) = "code,omitempty"];
-	bytes    Data           = 6 [(gogoproto.jsontag) = "data,omitempty"];
-	bytes    PrevTxHash     = 7 [(gogoproto.jsontag) = "prevTxHash"];
-	bytes    OriginalTxHash = 8 [(gogoproto.jsontag) = "originalTxHash"];
-	uint64   GasLimit       = 9 [(gogoproto.jsontag) = "gasLimit"];
+	uint64   Nonce          = 1  [(gogoproto.jsontag) = "nonce"];
+	bytes    Value          = 2  [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes    RcvAddr        = 3  [(gogoproto.jsontag) = "receiver"];
+	bytes    SndAddr        = 4  [(gogoproto.jsontag) = "sender"];
+	bytes    Code           = 5  [(gogoproto.jsontag) = "code,omitempty"];
+	bytes    Data           = 6  [(gogoproto.jsontag) = "data,omitempty"];
+	bytes    PrevTxHash     = 7  [(gogoproto.jsontag) = "prevTxHash"];
+	bytes    OriginalTxHash = 8  [(gogoproto.jsontag) = "originalTxHash"];
+	uint64   GasLimit       = 9  [(gogoproto.jsontag) = "gasLimit"];
 	uint64   GasPrice       = 10 [(gogoproto.jsontag) = "gasPrice"];
-	int64    CallType  	    = 11 [(gogoproto.jsontag)= "callType", (gogoproto.casttype) = "github.com/ElrondNetwork/elrond-vm-common.CallType"];
+	int64    CallType       = 11 [(gogoproto.jsontag) = "callType", (gogoproto.casttype) = "github.com/ElrondNetwork/elrond-vm-common.CallType"];
 	bytes    CodeMetadata   = 12 [(gogoproto.jsontag) = "codeMetadata,omitempty"];
+	bytes    ReturnMessage  = 13 [(gogoproto.jsontag) = "returnMessage,omitempty"];
 }

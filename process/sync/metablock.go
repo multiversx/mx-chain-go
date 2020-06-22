@@ -156,7 +156,7 @@ func (boot *MetaBootstrap) SyncBlock() error {
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
-	log.Debug("requesting metablock from network",
+	log.Debug("requesting meta header from network",
 		"nonce", nonce,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
@@ -166,7 +166,7 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 	boot.setRequestedHeaderHash(hash)
-	log.Debug("requesting metablock from network",
+	log.Debug("requesting meta header from network",
 		"hash", hash,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)

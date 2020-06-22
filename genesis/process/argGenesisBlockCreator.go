@@ -2,6 +2,7 @@ package process
 
 import (
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -18,7 +19,7 @@ import (
 type coreComponentsHandler interface {
 	InternalMarshalizer() marshal.Marshalizer
 	Hasher() hashing.Hasher
-	AddressPubKeyConverter() state.PubkeyConverter
+	AddressPubKeyConverter() core.PubkeyConverter
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	ChainID() string
 	IsInterfaceNil() bool
@@ -32,7 +33,7 @@ type dataComponentsHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis metablock
+// ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis block
 type ArgsGenesisBlockCreator struct {
 	GenesisTime          uint64
 	StartEpochNum        uint32

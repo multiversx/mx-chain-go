@@ -106,7 +106,7 @@ func (hdrRes *HeaderResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	err := hdrRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -115,7 +115,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 	hdrRes.throttler.StartProcessing()
 	defer hdrRes.throttler.EndProcessing()
 
-	rd, err := hdrRes.parseReceivedMessage(message)
+	rd, err := hdrRes.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}

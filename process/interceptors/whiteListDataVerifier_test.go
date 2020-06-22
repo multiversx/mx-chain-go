@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +24,7 @@ func TestNewWhiteListDataVerifier_NilCacherShouldErr(t *testing.T) {
 func TestNewWhiteListDataVerifier_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	wldv, err := NewWhiteListDataVerifier(&mock.CacherStub{})
+	wldv, err := NewWhiteListDataVerifier(testscommon.NewCacherStub())
 
 	assert.False(t, check.IfNil(wldv))
 	assert.Nil(t, err)
@@ -34,8 +35,8 @@ func TestWhiteListDataVerifier_Add(t *testing.T) {
 
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
 	added := map[string]struct{}{}
-	cacher := &mock.CacherStub{
-		PutCalled: func(key []byte, value interface{}) (evicted bool) {
+	cacher := &testscommon.CacherStub{
+		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 			added[string(key)] = struct{}{}
 			return false
 		},
@@ -55,7 +56,7 @@ func TestWhiteListDataVerifier_Remove(t *testing.T) {
 
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
 	removed := map[string]struct{}{}
-	cacher := &mock.CacherStub{
+	cacher := &testscommon.CacherStub{
 		RemoveCalled: func(key []byte) {
 			removed[string(key)] = struct{}{}
 		},
@@ -73,7 +74,7 @@ func TestWhiteListDataVerifier_Remove(t *testing.T) {
 func TestWhiteListDataVerifier_IsWhiteListedNilInterceptedDataShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	wldv, _ := NewWhiteListDataVerifier(&mock.CacherStub{})
+	wldv, _ := NewWhiteListDataVerifier(testscommon.NewCacherStub())
 
 	assert.False(t, wldv.IsWhiteListed(nil))
 }
@@ -83,7 +84,7 @@ func TestWhiteListDataVerifier_IsWhiteListedNotFoundShouldRetFalse(t *testing.T)
 
 	keyCheck := []byte("key")
 	wldv, _ := NewWhiteListDataVerifier(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			HasCalled: func(key []byte) bool {
 				return !bytes.Equal(key, keyCheck)
 			},
@@ -104,7 +105,7 @@ func TestWhiteListDataVerifier_IsWhiteListedFoundShouldRetTrue(t *testing.T) {
 
 	keyCheck := []byte("key")
 	wldv, _ := NewWhiteListDataVerifier(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			HasCalled: func(key []byte) bool {
 				return bytes.Equal(key, keyCheck)
 			},

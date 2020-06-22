@@ -19,14 +19,14 @@ var ErrTopicAlreadyExists = errors.New("topic already exists")
 // ErrTopicValidatorOperationNotSupported signals that an unsupported validator operation occurred
 var ErrTopicValidatorOperationNotSupported = errors.New("topic validator operation is not supported")
 
-// ErrChannelAlreadyExists signals that the channel is already defined (and used)
-var ErrChannelAlreadyExists = errors.New("channel already exists")
-
 // ErrChannelDoesNotExist signals that a requested channel does not exist
 var ErrChannelDoesNotExist = errors.New("channel does not exist")
 
 // ErrChannelCanNotBeDeleted signals that a channel can not be deleted (might be the default channel)
 var ErrChannelCanNotBeDeleted = errors.New("channel can not be deleted")
+
+// ErrChannelCanNotBeReAdded signals that a channel can not be re added as it is the default channel
+var ErrChannelCanNotBeReAdded = errors.New("channel can not be re added")
 
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
@@ -67,23 +67,29 @@ var ErrTooManyGoroutines = errors.New(" number of goroutines exceeded")
 // ErrInvalidValue signals that an invalid value has been provided
 var ErrInvalidValue = errors.New("invalid value")
 
+// ErrInvalidPortValue signals that an invalid port value has been provided
+var ErrInvalidPortValue = errors.New("invalid port value")
+
+// ErrInvalidPortsRangeString signals that an invalid ports range string has been provided
+var ErrInvalidPortsRangeString = errors.New("invalid ports range string")
+
+// ErrInvalidStartingPortValue signals that an invalid starting port value has been provided
+var ErrInvalidStartingPortValue = errors.New("invalid starting port value")
+
+// ErrInvalidEndingPortValue signals that an invalid ending port value has been provided
+var ErrInvalidEndingPortValue = errors.New("invalid ending port value")
+
+// ErrEndPortIsSmallerThanStartPort signals that the ending port value is smaller than the starting port value
+var ErrEndPortIsSmallerThanStartPort = errors.New("ending port value is smaller than the starting port value")
+
+// ErrNoFreePortInRange signals that no free port was found from provided range
+var ErrNoFreePortInRange = errors.New("no free port in range")
+
 // ErrNilSharder signals that the provided sharder is nil
 var ErrNilSharder = errors.New("nil sharder")
 
 // ErrNilPeerShardResolver signals that the peer shard resolver provided is nil
 var ErrNilPeerShardResolver = errors.New("nil PeerShardResolver")
-
-// ErrWatchdogAlreadyStarted signals that a peer discovery watchdog is already started
-var ErrWatchdogAlreadyStarted = errors.New("peer discovery watchdog is already started")
-
-// ErrWatchdogNotStarted signals that a peer discovery watchdog is not started
-var ErrWatchdogNotStarted = errors.New("peer discovery watchdog is not started")
-
-// ErrContextDone signals that an operation was canceled by context done
-var ErrContextDone = errors.New("context done")
-
-// ErrTimeout signals a timeout
-var ErrTimeout = errors.New("timeout")
 
 // ErrNilNetworkShardingCollector signals that the network sharding collector provided is nil
 var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
@@ -110,14 +116,11 @@ var ErrEmptySeed = errors.New("empty seed")
 // ErrEmptyBuffer signals that an empty buffer has been provided
 var ErrEmptyBuffer = errors.New("empty buffer")
 
-// ErrNilFloodPreventer signals that a nil flood preventer has been provided
-var ErrNilFloodPreventer = errors.New("nil flood preventer")
-
-// ErrNilTopicFloodPreventer signals that a nil topic flood preventer has been provided
-var ErrNilTopicFloodPreventer = errors.New("nil topic flood preventer")
-
 // ErrNilPeerBlacklistHandler signals that a nil peer black list handler was provided
 var ErrNilPeerBlacklistHandler = errors.New("nil peer black list handler")
 
 // ErrNilStatusHandler signals that a nil status handler has been provided
 var ErrNilStatusHandler = errors.New("nil status handler")
+
+// ErrNilCacher signals that a nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")

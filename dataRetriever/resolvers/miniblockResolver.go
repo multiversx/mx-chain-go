@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -79,7 +80,7 @@ func NewMiniblockResolver(arg ArgMiniblockResolver) (*miniblockResolver, error) 
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	err := mbRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -88,7 +89,7 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 	mbRes.throttler.StartProcessing()
 	defer mbRes.throttler.EndProcessing()
 
-	rd, err := mbRes.parseReceivedMessage(message)
+	rd, err := mbRes.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
@@ -117,7 +118,7 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 	return err
 }
 
-func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte, pid p2p.PeerID) error {
+func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte, pid core.PeerID) error {
 	mb, err := mbRes.fetchMbAsByteSlice(hash)
 	if err != nil {
 		return err
@@ -143,7 +144,7 @@ func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte) ([]byte, error) 
 	return mbRes.miniBlockStorage.Get(hash)
 }
 
-func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid p2p.PeerID) error {
+func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid core.PeerID) error {
 	b := batch.Batch{}
 	err := mbRes.marshalizer.Unmarshal(&b, mbBuff)
 	if err != nil {

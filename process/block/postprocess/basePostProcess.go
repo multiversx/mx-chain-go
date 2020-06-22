@@ -85,6 +85,7 @@ func (bpp *basePostProcessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte
 	for _, txHash := range txHashes {
 		txInfoObject := bpp.interResultsForBlock[string(txHash)]
 		if txInfoObject == nil || check.IfNil(txInfoObject.tx) {
+			log.Warn("basePostProcessor.CreateMarshalizedData: tx not found", "hash", txHash)
 			continue
 		}
 

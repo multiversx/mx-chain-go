@@ -62,6 +62,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 	scHash3 := []byte("scHash3")
 	scResult3 := &smartContractResult.SmartContractResult{
 		OriginalTxHash: txHash3,
+		Data:           []byte("@" + "6F6B"),
 	}
 
 	body := &block.Body{

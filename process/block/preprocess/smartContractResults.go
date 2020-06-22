@@ -43,7 +43,7 @@ func NewSmartContractResultPreprocessor(
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
 	economicsFee process.FeeHandler,
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
 ) (*smartContractResults, error) {
@@ -187,18 +187,18 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 				return scrRestored, err
 			}
 
-			scr.scrPool.AddData([]byte(txHash), &tx, strCache)
+			scr.scrPool.AddData([]byte(txHash), &tx, tx.Size(), strCache)
 		}
 
 		//TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
 		//would create problems or not
 		if miniBlock.SenderShardID != scr.shardCoordinator.SelfId() {
-			miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
-			if err != nil {
-				return scrRestored, err
+			miniBlockHash, errHash := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
+			if errHash != nil {
+				return scrRestored, errHash
 			}
 
-			miniBlockPool.Put(miniBlockHash, miniBlock)
+			miniBlockPool.Put(miniBlockHash, miniBlock, miniBlock.Size())
 		}
 
 		scrRestored += len(miniBlock.TxHashes)

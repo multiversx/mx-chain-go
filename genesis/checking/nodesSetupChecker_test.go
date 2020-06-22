@@ -36,6 +36,7 @@ func TestNewNodesSetupChecker_NilGenesisParserShouldErr(t *testing.T) {
 		nil,
 		big.NewInt(0),
 		mock.NewPubkeyConverterMock(32),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(nsc))
@@ -49,6 +50,7 @@ func TestNewNodesSetupChecker_NilInitialNodePriceShouldErr(t *testing.T) {
 		&mock.AccountsParserStub{},
 		nil,
 		mock.NewPubkeyConverterMock(32),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(nsc))
@@ -62,6 +64,7 @@ func TestNewNodesSetupChecker_InvalidInitialNodePriceShouldErr(t *testing.T) {
 		&mock.AccountsParserStub{},
 		big.NewInt(-1),
 		mock.NewPubkeyConverterMock(32),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(nsc))
@@ -75,10 +78,25 @@ func TestNewNodesSetupChecker_NilValidatorPubkeyConverterShouldErr(t *testing.T)
 		&mock.AccountsParserStub{},
 		big.NewInt(0),
 		nil,
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(nsc))
 	assert.Equal(t, genesis.ErrNilPubkeyConverter, err)
+}
+
+func TestNewNodesSetupChecker_NilKeyGeneratorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	nsc, err := checking.NewNodesSetupChecker(
+		&mock.AccountsParserStub{},
+		big.NewInt(0),
+		mock.NewPubkeyConverterMock(32),
+		nil,
+	)
+
+	assert.True(t, check.IfNil(nsc))
+	assert.Equal(t, genesis.ErrNilKeyGenerator, err)
 }
 
 func TestNewNodesSetupChecker_ShouldWork(t *testing.T) {
@@ -88,6 +106,7 @@ func TestNewNodesSetupChecker_ShouldWork(t *testing.T) {
 		&mock.AccountsParserStub{},
 		big.NewInt(0),
 		mock.NewPubkeyConverterMock(32),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.False(t, check.IfNil(nsc))
@@ -95,6 +114,41 @@ func TestNewNodesSetupChecker_ShouldWork(t *testing.T) {
 }
 
 //------- Check
+
+func TestNewNodesSetupChecker_CheckNotAValidPubkeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ia := createEmptyInitialAccount()
+	ia.SetAddressBytes([]byte("staked address"))
+
+	expectedErr := errors.New("expected error")
+	nsc, _ := checking.NewNodesSetupChecker(
+		&mock.AccountsParserStub{
+			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+				return []genesis.InitialAccountHandler{ia}
+			},
+		},
+		big.NewInt(0),
+		mock.NewPubkeyConverterMock(32),
+		&mock.KeyGeneratorStub{
+			CheckPublicKeyValidCalled: func(b []byte) error {
+				return expectedErr
+			},
+		},
+	)
+
+	err := nsc.Check(
+		[]sharding.GenesisNodeInfoHandler{
+			&mock.GenesisNodeInfoHandlerMock{
+				AssignedShardValue: 0,
+				AddressBytesValue:  []byte("staked address"),
+				PubKeyBytesValue:   []byte("pubkey"),
+			},
+		},
+	)
+
+	assert.True(t, errors.Is(err, genesis.ErrInvalidPubKey))
+}
 
 func TestNewNodeSetupChecker_CheckNotStakedShouldErr(t *testing.T) {
 	t.Parallel()
@@ -110,6 +164,7 @@ func TestNewNodeSetupChecker_CheckNotStakedShouldErr(t *testing.T) {
 		},
 		big.NewInt(0),
 		mock.NewPubkeyConverterMock(32),
+		&mock.KeyGeneratorStub{},
 	)
 
 	err := nsc.Check(
@@ -141,6 +196,7 @@ func TestNewNodeSetupChecker_CheckNotEnoughStakedShouldErr(t *testing.T) {
 		},
 		big.NewInt(nodePrice.Int64()+1),
 		mock.NewPubkeyConverterMock(32),
+		&mock.KeyGeneratorStub{},
 	)
 
 	err := nsc.Check(
@@ -172,6 +228,7 @@ func TestNewNodeSetupChecker_CheckTooMuchStakedShouldErr(t *testing.T) {
 		},
 		big.NewInt(nodePrice.Int64()-1),
 		mock.NewPubkeyConverterMock(32),
+		&mock.KeyGeneratorStub{},
 	)
 
 	err := nsc.Check(
@@ -203,6 +260,7 @@ func TestNewNodeSetupChecker_CheckNotEnoughDelegatedShouldErr(t *testing.T) {
 		},
 		big.NewInt(nodePrice.Int64()+1),
 		mock.NewPubkeyConverterMock(32),
+		&mock.KeyGeneratorStub{},
 	)
 
 	err := nsc.Check(
@@ -234,6 +292,7 @@ func TestNewNodeSetupChecker_CheckTooMuchDelegatedShouldErr(t *testing.T) {
 		},
 		big.NewInt(nodePrice.Int64()-1),
 		mock.NewPubkeyConverterMock(32),
+		&mock.KeyGeneratorStub{},
 	)
 
 	err := nsc.Check(
@@ -264,11 +323,12 @@ func TestNewNodeSetupChecker_CheckStakedAndDelegatedShouldWork(t *testing.T) {
 	nsc, _ := checking.NewNodesSetupChecker(
 		&mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
-				return []genesis.InitialAccountHandler{iaStaked, iaDelegated}
+				return []genesis.InitialAccountHandler{iaDelegated, iaStaked}
 			},
 		},
 		nodePrice,
 		mock.NewPubkeyConverterMock(32),
+		&mock.KeyGeneratorStub{},
 	)
 
 	err := nsc.Check(

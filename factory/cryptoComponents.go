@@ -119,7 +119,10 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 			return nil, err
 		}
 	} else {
-		messageSignVerifier = &disabled.MessageSignVerifier{}
+		messageSignVerifier, err = disabled.NewMessageSignVerifier(ccf.keyGen)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &cryptoComponents{

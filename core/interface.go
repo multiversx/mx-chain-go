@@ -16,3 +16,11 @@ type AppStatusHandler interface {
 type ConnectedAddressesHandler interface {
 	ConnectedAddresses() []string
 }
+
+// PubkeyConverter can convert public key bytes to/from a human readable form
+type PubkeyConverter interface {
+	Len() int
+	Decode(humanReadable string) ([]byte, error)
+	Encode(pkBytes []byte) string
+	IsInterfaceNil() bool
+}

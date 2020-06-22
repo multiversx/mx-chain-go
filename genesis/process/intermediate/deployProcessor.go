@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/versioning"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -25,14 +25,14 @@ const versionFunction = "version"
 // ArgDeployProcessor is the argument used to create a deployProcessor instance
 type ArgDeployProcessor struct {
 	Executor       genesis.TxExecutionProcessor
-	PubkeyConv     state.PubkeyConverter
+	PubkeyConv     core.PubkeyConverter
 	BlockchainHook process.BlockChainHookHandler
 	QueryService   external.SCQueryService
 }
 
 type deployProcessor struct {
 	genesis.TxExecutionProcessor
-	pubkeyConv     state.PubkeyConverter
+	pubkeyConv     core.PubkeyConverter
 	getScCodeAsHex func(filename string) (string, error)
 	blockchainHook process.BlockChainHookHandler
 	scQueryService process.SCQueryService

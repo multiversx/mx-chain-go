@@ -1,5 +1,7 @@
 package antiflood
 
+import "github.com/ElrondNetwork/elrond-go/core"
+
 type nilQuotaStatusHandler struct {
 }
 
@@ -8,11 +10,7 @@ func (nqsh *nilQuotaStatusHandler) ResetStatistics() {
 }
 
 // AddQuota is not implemented
-func (nqsh *nilQuotaStatusHandler) AddQuota(_ string, _ uint32, _ uint64, _ uint32, _ uint64) {
-}
-
-// SetGlobalQuota is not implemented
-func (nqsh *nilQuotaStatusHandler) SetGlobalQuota(_ uint32, _ uint64, _ uint32, _ uint64) {
+func (nqsh *nilQuotaStatusHandler) AddQuota(_ core.PeerID, _ uint32, _ uint64, _ uint32, _ uint64) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

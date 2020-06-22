@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -31,7 +32,7 @@ var zero = big.NewInt(0)
 type scProcessor struct {
 	accounts         state.AccountsAdapter
 	tempAccounts     process.TemporaryAccountsHandler
-	pubkeyConv       state.PubkeyConverter
+	pubkeyConv       core.PubkeyConverter
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
@@ -56,7 +57,7 @@ type ArgsNewSmartContractProcessor struct {
 	Marshalizer      marshal.Marshalizer
 	AccountsDB       state.AccountsAdapter
 	TempAccounts     process.TemporaryAccountsHandler
-	PubkeyConv       state.PubkeyConverter
+	PubkeyConv       core.PubkeyConverter
 	Coordinator      sharding.Coordinator
 	ScrForwarder     process.IntermediateTransactionHandler
 	TxFeeHandler     process.TransactionFeeHandler
@@ -67,7 +68,7 @@ type ArgsNewSmartContractProcessor struct {
 	TxLogsProcessor  process.TransactionLogProcessor
 }
 
-// NewSmartContractProcessor create a smart contract processor creates and interprets VM data
+// NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
 func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor, error) {
 	if check.IfNil(args.VmContainer) {
 		return nil, process.ErrNoVM
@@ -185,11 +186,18 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
+	returnMessage := ""
+
+	var vmOutput *vmcommon.VMOutput
 	var executedBuiltIn bool
 	snapshot := sc.accounts.JournalLen()
 	defer func() {
 		if err != nil && !executedBuiltIn {
-			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), snapshot)
+			if vmOutput != nil {
+				returnMessage = vmOutput.ReturnMessage
+			}
+
+			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
@@ -198,6 +206,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
+		returnMessage = "cannot prepare smart contract call"
 		log.Debug("prepare smart contract call error", "error", err.Error())
 		return nil
 	}
@@ -205,12 +214,14 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var vmInput *vmcommon.ContractCallInput
 	vmInput, err = sc.createVMCallInput(tx)
 	if err != nil {
+		returnMessage = "cannot create VMInput, check the transaction data field"
 		log.Debug("create vm call input error", "error", err.Error())
 		return nil
 	}
 
 	executedBuiltIn, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
 	if err != nil {
+		returnMessage = "cannot resolve build in function"
 		log.Debug("processed built in functions error", "error", err.Error())
 		return err
 	}
@@ -225,11 +236,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var vm vmcommon.VMExecutionHandler
 	vm, err = findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
+		returnMessage = "cannot get vm from address"
 		log.Debug("get vm from address error", "error", err.Error())
 		return nil
 	}
 
-	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
@@ -238,6 +249,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	err = sc.saveAccounts(acntSnd, acntDst)
 	if err != nil {
+		returnMessage = "cannot save accounts"
 		log.Debug("saveAccounts error", "error", err)
 		return nil
 	}
@@ -246,7 +258,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var results []data.TransactionHandler
 	results, consumedFee, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
 	if err != nil {
-		log.Trace("process vm output error", "error", err.Error())
+		log.Trace("process vm output returned with problem ", "err", err.Error())
 		return nil
 	}
 
@@ -357,6 +369,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		vmOutput.GasRemaining,
 		vmOutput.ReturnCode,
 		vmOutput.ReturnData,
+		vmOutput.ReturnMessage,
 		tx,
 		txHash,
 		acntSnd,
@@ -394,6 +407,7 @@ func (sc *scProcessor) ProcessIfError(
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
+	returnMessage []byte,
 	snapShot int,
 ) error {
 	err := sc.accounts.RevertToSnapshot(snapShot)
@@ -402,7 +416,7 @@ func (sc *scProcessor) ProcessIfError(
 	}
 
 	consumedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
-	scrIfError, err := sc.createSCRsWhenError(txHash, tx, returnCode)
+	scrIfError, err := sc.createSCRsWhenError(txHash, tx, returnCode, returnMessage)
 	if err != nil {
 		return err
 	}
@@ -480,10 +494,16 @@ func (sc *scProcessor) DeploySmartContract(
 		return err
 	}
 
+	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
 	defer func() {
 		if err != nil {
-			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), snapshot)
+			returnMessage := ""
+			if vmOutput != nil {
+				returnMessage = vmOutput.ReturnMessage
+			}
+
+			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
@@ -508,7 +528,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	vmOutput, err := vm.RunSmartContractCreate(vmInput)
+	vmOutput, err = vm.RunSmartContractCreate(vmInput)
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return nil
@@ -546,11 +566,11 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 		}
 
 		addr := account.Address
-		if !core.IsSmartContractAddress([]byte(addr)) {
+		if !core.IsSmartContractAddress(addr) {
 			continue
 		}
 
-		scGenerated = append(scGenerated, sc.pubkeyConv.Encode([]byte(addr)))
+		scGenerated = append(scGenerated, sc.pubkeyConv.Encode(addr))
 	}
 
 	log.Debug("SmartContract deployed",
@@ -595,7 +615,7 @@ func (sc *scProcessor) computeGasRemainingFromVMOutput(vmOutput *vmcommon.VMOutp
 		}
 
 		if gasRemaining < outAcc.GasLimit {
-			log.Error("gasLimit missmatch in vmOutput - too much consumed gas - more then tx.GasLimit")
+			log.Error("gasLimit mismatch in vmOutput - too much consumed gas - more then tx.GasLimit")
 			return 0
 		}
 
@@ -625,6 +645,7 @@ func (sc *scProcessor) processVMOutput(
 		gasRemainedForSender,
 		vmOutput.ReturnCode,
 		vmOutput.ReturnData,
+		vmOutput.ReturnMessage,
 		tx,
 		txHash,
 		acntSnd,
@@ -729,6 +750,7 @@ func (sc *scProcessor) createSCRsWhenError(
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
+	returnMessage []byte,
 ) ([]data.TransactionHandler, error) {
 	rcvAddress := tx.GetSndAddr()
 
@@ -738,13 +760,14 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	scr := &smartContractResult.SmartContractResult{
-		Nonce:      tx.GetNonce(),
-		Value:      tx.GetValue(),
-		RcvAddr:    rcvAddress,
-		SndAddr:    tx.GetRcvAddr(),
-		Code:       nil,
-		Data:       []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)),
-		PrevTxHash: txHash,
+		Nonce:         tx.GetNonce(),
+		Value:         tx.GetValue(),
+		RcvAddr:       rcvAddress,
+		SndAddr:       tx.GetRcvAddr(),
+		Code:          nil,
+		Data:          []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)),
+		PrevTxHash:    txHash,
+		ReturnMessage: returnMessage,
 	}
 	setOriginalTxHash(scr, txHash, tx)
 
@@ -795,10 +818,16 @@ func (sc *scProcessor) createSmartContractResult(
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = tx.GetRcvAddr()
 	result.Code = outAcc.Code
-	result.Data = append(outAcc.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
+	result.Data = outAcc.Data
+	if bytes.Equal(result.GetRcvAddr(), factory.StakingSCAddress) {
+		//TODO: write directly from staking smart contract to the validator trie - it gets complicated in reverts
+		// storage update for staking contract is used in stakingToPeer
+		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
+	}
 	result.GasLimit = outAcc.GasLimit
 	result.GasPrice = tx.GetGasPrice()
 	result.PrevTxHash = txHash
+	result.CallType = outAcc.CallType
 	setOriginalTxHash(result, txHash, tx)
 
 	return result
@@ -811,6 +840,7 @@ func (sc *scProcessor) createSCRForSender(
 	gasRemaining uint64,
 	returnCode vmcommon.ReturnCode,
 	returnData [][]byte,
+	returnMessage string,
 	tx data.TransactionHandler,
 	txHash []byte,
 	acntSnd state.UserAccountHandler,
@@ -838,15 +868,18 @@ func (sc *scProcessor) createSCRForSender(
 	scTx.PrevTxHash = txHash
 	scTx.GasLimit = gasRemaining
 	scTx.GasPrice = tx.GetGasPrice()
+	scTx.ReturnMessage = []byte(returnMessage)
 	setOriginalTxHash(scTx, txHash, tx)
-
-	scTx.Data = []byte("@" + hex.EncodeToString([]byte(returnCode.String())))
-	for _, retData := range returnData {
-		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
-	}
 
 	if callType == vmcommon.AsynchronousCall {
 		scTx.CallType = vmcommon.AsynchronousCallBack
+		scTx.Data = []byte("@" + hex.EncodeToString(big.NewInt(int64(returnCode)).Bytes()))
+	} else {
+		scTx.Data = []byte("@" + hex.EncodeToString([]byte(returnCode.String())))
+	}
+
+	for _, retData := range returnData {
+		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
 	}
 
 	if check.IfNil(acntSnd) {
@@ -1037,7 +1070,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	snapshot := sc.accounts.JournalLen()
 	defer func() {
 		if err != nil {
-			errNotCritical := sc.ProcessIfError(nil, txHash, scr, err.Error(), snapshot)
+			errNotCritical := sc.ProcessIfError(nil, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}

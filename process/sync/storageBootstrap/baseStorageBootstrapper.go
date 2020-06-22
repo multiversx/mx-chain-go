@@ -32,6 +32,7 @@ type ArgsBaseStorageBootstrapper struct {
 	NodesCoordinator    sharding.NodesCoordinator
 	EpochStartTrigger   process.EpochStartTriggerHandler
 	BlockTracker        process.BlockTracker
+	ChainID             string
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -62,13 +63,26 @@ type storageBootstrapper struct {
 	bootstrapper         storageBootstrapperHandler
 	headerNonceHashStore storage.Storer
 	highestNonce         uint64
+	chainID              string
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
 	var err error
 	var headerInfo bootstrapStorage.BootstrapData
 
+	minRound := uint64(0)
+	if !check.IfNil(st.blkc.GetGenesisHeader()) {
+		minRound = st.blkc.GetGenesisHeader().GetRound()
+	}
+
 	round := st.bootStorer.GetHighestRound()
+	if round <= int64(minRound) {
+		log.Debug("Load blocks does nothing as start from genesis")
+		err = st.bootStorer.SaveLastRound(0)
+		log.LogIfError(err, "bootstorer")
+
+		return process.ErrNotEnoughValidBlocksInStorage
+	}
 	storageHeadersInfo := make([]bootstrapStorage.BootstrapData, 0)
 
 	log.Debug("Load blocks started...")
@@ -191,6 +205,13 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return err
 	}
 
+	if string(headerFromStorage.GetChainID()) != st.chainID {
+		log.Debug("chain ID missmatch for header with nonce", "nonce", headerFromStorage.GetNonce(),
+			"reference", []byte(st.chainID),
+			"fromStorage", headerFromStorage.GetChainID())
+		return process.ErrInvalidChainID
+	}
+
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage)
 	if err != nil {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", headerFromStorage.GetNonce())
@@ -222,7 +243,7 @@ func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapDa
 		return bootInfos, nil
 	}
 
-	lowestNonce := core.MaxUint64(highestFinalBlockNonce-1, 1)
+	lowestNonce := uint64(core.MaxInt64(int64(highestFinalBlockNonce)-1, 1))
 	for highestBlockNonce > lowestNonce {
 		strHdrI, err := st.bootStorer.Get(lastRound)
 		if err != nil {
@@ -247,8 +268,8 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 
 	defer func() {
 		if err != nil {
-			st.forkDetector.RestoreToGenesis()
 			st.blockTracker.RestoreToGenesis()
+			st.forkDetector.RestoreToGenesis()
 		}
 	}()
 

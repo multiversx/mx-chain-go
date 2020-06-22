@@ -1,15 +1,13 @@
 package dataRetriever
 
-// TxPoolNumSendersToEvictInOneStep instructs tx pool eviction algorithm to remove this many senders when eviction takes place
-const TxPoolNumSendersToEvictInOneStep = uint32(100)
+// TxPoolNumSendersToPreemptivelyEvict instructs tx pool eviction algorithm to remove this many senders when eviction takes place
+const TxPoolNumSendersToPreemptivelyEvict = uint32(100)
 
-// TxPoolLargeNumOfTxsForASender instructs tx pool eviction algorithm to tag a sender with more transactions than this value
-// as a "sender with a large number of transactions"
-const TxPoolLargeNumOfTxsForASender = uint32(500)
+// TxPoolNumTxsToPreemptivelyEvict instructs tx pool eviction algorithm to remove this many transactions when eviction takes place
+const TxPoolNumTxsToPreemptivelyEvict = uint32(1000)
 
-// TxPoolNumTxsToEvictFromASender instructs tx pool eviction algorithm to remove this many transactions
-// for "a sender with a large number of transactions" when eviction takes place
-const TxPoolNumTxsToEvictFromASender = uint32(100)
+// UnsignedTxPoolName defines the name of the unsigned transactions pool
+const UnsignedTxPoolName = "uTxPool"
 
-// TxPoolMinSizeInBytes is the lower limit of the tx cache / eviction parameter "sizeInBytes"
-const TxPoolMinSizeInBytes = uint32(40960)
+// RewardTxPoolName defines the name of the reward transactions pool
+const RewardTxPoolName = "rewardTxPool"

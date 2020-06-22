@@ -36,9 +36,9 @@ func TestTomlParser(t *testing.T) {
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
-				Size:   uint32(txBlockBodyStorageSize),
-				Type:   txBlockBodyStorageType,
-				Shards: uint32(txBlockBodyStorageShards),
+				Capacity: uint32(txBlockBodyStorageSize),
+				Type:     txBlockBodyStorageType,
+				Shards:   uint32(txBlockBodyStorageShards),
 			},
 			DB: DBConfig{
 				FilePath: txBlockBodyStorageFile,
@@ -47,8 +47,8 @@ func TestTomlParser(t *testing.T) {
 		},
 		AccountsTrieStorage: StorageConfig{
 			Cache: CacheConfig{
-				Size: uint32(accountsStorageSize),
-				Type: accountsStorageType,
+				Capacity: uint32(accountsStorageSize),
+				Type:     accountsStorageType,
 			},
 			DB: DBConfig{
 				FilePath: accountsStorageFile,
@@ -73,7 +73,7 @@ func TestTomlParser(t *testing.T) {
 	testString := `
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
-        Size = ` + strconv.Itoa(txBlockBodyStorageSize) + `
+        Capacity = ` + strconv.Itoa(txBlockBodyStorageSize) + `
         Type = "` + txBlockBodyStorageType + `"
 		Shards = ` + strconv.Itoa(txBlockBodyStorageShards) + `
     [MiniBlocksStorage.DB]
@@ -86,7 +86,7 @@ func TestTomlParser(t *testing.T) {
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
-        Size = ` + strconv.Itoa(accountsStorageSize) + `
+        Capacity = ` + strconv.Itoa(accountsStorageSize) + `
         Type = "` + accountsStorageType + `"
     [AccountsTrieStorage.DB]
         FilePath = "` + accountsStorageFile + `"

@@ -1,6 +1,7 @@
 package txpool
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -15,24 +16,41 @@ type ArgShardedTxPool struct {
 	SelfShardID    uint32
 }
 
+// TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
 func (args *ArgShardedTxPool) verify() error {
 	config := args.Config
 
-	if config.SizeInBytes < dataRetriever.TxPoolMinSizeInBytes {
-		return fmt.Errorf("%w: config.SizeInBytes is less than [dataRetriever.TxPoolMinSizeInBytes]", dataRetriever.ErrCacheConfigInvalidSizeInBytes)
+	if config.SizeInBytes == 0 {
+		return fmt.Errorf("%w: config.SizeInBytes is not valid", dataRetriever.ErrCacheConfigInvalidSizeInBytes)
 	}
-	if config.Size < 1 {
-		return fmt.Errorf("%w: config.Size is less than 1", dataRetriever.ErrCacheConfigInvalidSize)
+	if config.SizeInBytesPerSender == 0 {
+		return fmt.Errorf("%w: config.SizeInBytesPerSender is not valid", dataRetriever.ErrCacheConfigInvalidSizeInBytes)
 	}
-	if config.Shards < 1 {
-		return fmt.Errorf("%w: config.Shards (map chunks) is less than 1", dataRetriever.ErrCacheConfigInvalidShards)
+	if config.Capacity == 0 {
+		return fmt.Errorf("%w: config.Capacity is not valid", dataRetriever.ErrCacheConfigInvalidSize)
 	}
-	if args.MinGasPrice < 1 {
-		return fmt.Errorf("%w: MinGasPrice is less than 1", dataRetriever.ErrCacheConfigInvalidEconomics)
+	if config.SizePerSender == 0 {
+		return fmt.Errorf("%w: config.SizePerSender is not valid", dataRetriever.ErrCacheConfigInvalidSize)
 	}
-	if args.NumberOfShards < 1 {
-		return fmt.Errorf("%w: NumberOfShards is less than 1", dataRetriever.ErrCacheConfigInvalidSharding)
+	if config.Shards == 0 {
+		return fmt.Errorf("%w: config.Shards (map chunks) is not valid", dataRetriever.ErrCacheConfigInvalidShards)
+	}
+	if args.MinGasPrice == 0 {
+		return fmt.Errorf("%w: MinGasPrice is not valid", dataRetriever.ErrCacheConfigInvalidEconomics)
+	}
+	if args.NumberOfShards == 0 {
+		return fmt.Errorf("%w: NumberOfShards is not valid", dataRetriever.ErrCacheConfigInvalidSharding)
 	}
 
 	return nil
+}
+
+// String returns a readable representation of the object
+func (args *ArgShardedTxPool) String() string {
+	bytes, err := json.Marshal(args)
+	if err != nil {
+		log.Error("ArgShardedTxPool.String()", "err", err)
+	}
+
+	return string(bytes)
 }

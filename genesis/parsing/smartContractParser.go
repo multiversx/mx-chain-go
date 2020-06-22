@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -16,18 +16,23 @@ import (
 // smartContractParser hold data for initial smart contracts
 type smartContractParser struct {
 	initialSmartContracts []*data.InitialSmartContract
-	pubkeyConverter       state.PubkeyConverter
+	pubkeyConverter       core.PubkeyConverter
 	checkForFileHandler   func(filename string) error
+	keyGenerator          crypto.KeyGenerator
 }
 
 // NewSmartContractsParser creates a new decoded smart contracts genesis structure from json config file
 func NewSmartContractsParser(
 	genesisFilePath string,
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
+	keyGenerator crypto.KeyGenerator,
 ) (*smartContractParser, error) {
 
 	if check.IfNil(pubkeyConverter) {
 		return nil, genesis.ErrNilPubkeyConverter
+	}
+	if check.IfNil(keyGenerator) {
+		return nil, genesis.ErrNilKeyGenerator
 	}
 
 	initialSmartContracts := make([]*data.InitialSmartContract, 0)
@@ -39,6 +44,7 @@ func NewSmartContractsParser(
 	scp := &smartContractParser{
 		initialSmartContracts: initialSmartContracts,
 		pubkeyConverter:       pubkeyConverter,
+		keyGenerator:          keyGenerator,
 	}
 	scp.checkForFileHandler = scp.checkForFile
 
@@ -74,6 +80,15 @@ func (scp *smartContractParser) parseElement(initialSmartContract *data.InitialS
 	if err != nil {
 		return fmt.Errorf("%w for `%s`",
 			genesis.ErrInvalidOwnerAddress, initialSmartContract.Owner)
+	}
+
+	err = scp.keyGenerator.CheckPublicKeyValid(ownerBytes)
+	if err != nil {
+		return fmt.Errorf("%w for owner `%s`, error: %s",
+			genesis.ErrInvalidPubKey,
+			initialSmartContract.Owner,
+			err.Error(),
+		)
 	}
 
 	initialSmartContract.SetOwnerBytes(ownerBytes)

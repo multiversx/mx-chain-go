@@ -1,15 +1,15 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // TopicResolverSenderStub -
 type TopicResolverSenderStub struct {
 	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData, originalHashes [][]byte) error
-	SendCalled               func(buff []byte, peer p2p.PeerID) error
+	SendCalled               func(buff []byte, peer core.PeerID) error
 	TargetShardIDCalled      func() uint32
 	SetNumPeersToQueryCalled func(intra int, cross int)
 	GetNumPeersToQueryCalled func() (int, int)
@@ -47,7 +47,7 @@ func (trss *TopicResolverSenderStub) SendOnRequestTopic(rd *dataRetriever.Reques
 }
 
 // Send -
-func (trss *TopicResolverSenderStub) Send(buff []byte, peer p2p.PeerID) error {
+func (trss *TopicResolverSenderStub) Send(buff []byte, peer core.PeerID) error {
 	if trss.SendCalled != nil {
 		return trss.SendCalled(buff, peer)
 	}

@@ -696,6 +696,7 @@ func Test_ScalarMulPkOK(t *testing.T) {
 	if len(scalarHexStr)%2 != 0 {
 		scalarHexStr = "0" + scalarHexStr
 	}
+	scalarHexStr = "1" + scalarHexStr[1:] //make the first byte non 0 (resulting value will be 32 bytes long in all cases)
 
 	nb, err := hex.Decode(scalarBytes, []byte(scalarHexStr))
 	require.Nil(t, err)

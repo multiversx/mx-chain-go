@@ -37,7 +37,7 @@ updateSeednodeConfig() {
   pushd $TESTNETDIR/seednode/config
   cp p2p.toml p2p_edit.toml
 
-  updateTOMLValue p2p_edit.toml "Port" $PORT_SEEDNODE
+  updateTOMLValue p2p_edit.toml "Port" "\"$PORT_SEEDNODE\""
 
   cp p2p_edit.toml p2p.toml
   rm p2p_edit.toml
@@ -49,7 +49,8 @@ updateSeednodeConfig() {
 copyNodeConfig() {
   pushd $TESTNETDIR
   cp $NODEDIR/config/api.toml ./node/config
-  cp $NODEDIR/config/config.toml ./node/config
+  cp $NODEDIR/config/config.toml ./node/config/config_validator.toml
+  cp $NODEDIR/config/config.toml ./node/config/config_observer.toml
   cp $NODEDIR/config/economics.toml ./node/config
   cp $NODEDIR/config/ratings.toml ./node/config
   cp $NODEDIR/config/prefs.toml ./node/config
@@ -84,6 +85,11 @@ updateNodeConfig() {
 
   cp nodesSetup_edit.json nodesSetup.json
   rm nodesSetup_edit.json
+
+  if [ $OBSERVERS_ANTIFLOOD_DISABLE -eq 1 ]
+  then
+     sed -i '/\[Antiflood\]/,/\[Logger\]/ s/true/false/' config_observer.toml
+  fi
 
   echo "Updated configuration for Nodes."
   popd
@@ -153,19 +159,30 @@ generateProxyObserverList() {
   OBSERVER_INDEX=0
   OUTPUTFILE=$!
   # Start Shard Observers
-  let "max_shard_id=$SHARDCOUNT - 1"
-  for SHARD in `seq 0 1 $max_shard_id`; do
-    for OBSERVER_IN_SHARD in `seq $SHARD_OBSERVERCOUNT`; do
-      let "PORT = $PORT_ORIGIN_OBSERVER_REST + $OBSERVER_INDEX"
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    for _ in $(seq $SHARD_OBSERVERCOUNT); do
+      (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX))
 
       echo -n "[[Observers]]" >> config_edit.toml
       echo -n "   ShardId = $SHARD" >> config_edit.toml
       echo -n "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
       echo -n ""$'\n' >> config_edit.toml
 
-      let OBSERVER_INDEX++
+      (( OBSERVER_INDEX++ ))
     done
   done
+  # Start Meta Observers
+  for META_OBSERVER in $(seq $META_OBSERVERCOUNT); do
+    (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX ))
+
+      echo -n "[[Observers]]" >> config_edit.toml
+      echo -n "   ShardId = $METASHARD_ID" >> config_edit.toml
+      echo -n "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
+      echo -n ""$'\n' >> config_edit.toml
+
+      (( OBSERVER_INDEX++ ))
+    done
 }
 
 updateTOMLValue() {
@@ -187,4 +204,24 @@ updateJSONValue() {
   escaped_value=$(printf "%q" $value)
 
   sed -i "s,\"$key\": .*\$,\"$key\": $escaped_value\,," $filename
+}
+
+changeConfigForHardfork(){
+  pushd $TESTNETDIR/node/config
+
+  export FIRST_PUBKEY=$(cat nodesSetup.json | grep pubkey -m 1 | sed -E 's/^.*"([0-9a-f]+)".*$/\1/g')
+  updateTOMLValue config_observer.toml "PublicKeyToListenFrom" "\"$FIRST_PUBKEY\""
+  updateTOMLValue config_validator.toml "PublicKeyToListenFrom" "\"$FIRST_PUBKEY\""
+
+  popd
+}
+
+copyBackConfigs(){
+  pushd $TESTNETDIR
+
+  echo "trying to copy-back the configs"
+  cp ./node/config/*.* $NODEDIR/config
+  cp $NODEDIR/config/config_validator.toml $NODEDIR/config/config.toml
+
+  popd
 }

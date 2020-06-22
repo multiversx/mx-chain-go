@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -91,7 +92,7 @@ type ResolverThrottler interface {
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	SetResolverDebugHandler(handler ResolverDebugHandler) error
 	SetNumPeersToQuery(intra int, cross int)
 	NumPeersToQuery() (int, int)
@@ -121,7 +122,7 @@ type MiniBlocksResolver interface {
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
 	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error
-	Send(buff []byte, peer p2p.PeerID) error
+	Send(buff []byte, peer core.PeerID) error
 	RequestTopic() string
 	TargetShardID() uint32
 	SetNumPeersToQuery(intra int, cross int)
@@ -173,8 +174,8 @@ type EpochProviderByNonce interface {
 
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
-	ConnectedPeersOnTopic(topic string) []p2p.PeerID
-	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
+	ConnectedPeersOnTopic(topic string) []core.PeerID
+	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
 	IsInterfaceNil() bool
 }
 
@@ -201,26 +202,6 @@ type IntRandomizer interface {
 // StorageType defines the storage levels on a node
 type StorageType uint8
 
-// DataRetriever interface provides functionality over high level data request component
-type DataRetriever interface {
-	// Get methods searches for data in storage units and returns results, it is a blocking function
-	Get(keys [][]byte, identifier string, lowestLevel StorageType, haveTime func() time.Duration) (map[string]interface{}, [][]byte, error)
-	// Has searches for a value identifier by a key in storage
-	Has(key []byte, identifier string, level StorageType) (StorageType, error)
-	// HasOrAdd searches and adds a value if not exist in storage
-	HasOrAdd(key []byte, value interface{}, identifier string, level StorageType)
-	// Remove deletes an element from storage level
-	Remove(key []byte, identifier string, lowestLevel StorageType) error
-	// Put saves a key-value pair into storage
-	Put(key []byte, value interface{}, identifier string, level StorageType) error
-	// Keys returns all the keys from an identifier and storage type
-	Keys(identifier string, level StorageType)
-	// Request searches for data in specified storage level, if not present launches threads to search in network
-	Request(keys [][]byte, identifier string, level StorageType, haveTime func() time.Duration, callbackHandler func(key []byte)) (map[string]interface{}, [][]byte, error)
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
-
 // Notifier defines a way to register funcs that get called when something useful happens
 type Notifier interface {
 	RegisterHandler(func(key []byte, value interface{}))
@@ -229,8 +210,8 @@ type Notifier interface {
 
 // PeerListCreator is used to create a peer list
 type PeerListCreator interface {
-	PeerList() []p2p.PeerID
-	IntraShardPeerList() []p2p.PeerID
+	PeerList() []core.PeerID
+	IntraShardPeerList() []core.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -239,15 +220,15 @@ type ShardedDataCacherNotifier interface {
 	Notifier
 
 	ShardDataStore(cacheId string) (c storage.Cacher)
-	AddData(key []byte, data interface{}, cacheId string)
+	AddData(key []byte, data interface{}, sizeInBytes int, cacheId string)
 	SearchFirstData(key []byte) (value interface{}, ok bool)
 	RemoveData(key []byte, cacheId string)
 	RemoveSetOfDataFromPool(keys [][]byte, cacheId string)
+	ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string)
 	RemoveDataFromAllShards(key []byte)
 	MergeShardStores(sourceCacheID, destCacheID string)
 	Clear()
 	ClearShardStore(cacheId string)
-	CreateShardStore(cacheId string)
 }
 
 // ShardIdHashMap represents a map for shardId and hash
@@ -344,8 +325,9 @@ type RequestedItemsHandler interface {
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
-	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
-	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, _ uint64, sequence []byte) error
+	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
 }
 

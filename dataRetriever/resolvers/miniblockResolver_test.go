@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -12,16 +13,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
+var fromConnectedPeerId = core.PeerID("from connected peer Id")
 
 func createMockArgMiniblockResolver() resolvers.ArgMiniblockResolver {
 	return resolvers.ArgMiniblockResolver{
 		SenderResolver:   &mock.TopicResolverSenderStub{},
-		MiniBlockPool:    &mock.CacherStub{},
+		MiniBlockPool:    testscommon.NewCacherStub(),
 		MiniBlockStorage: &mock.StorerStub{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
@@ -147,7 +149,7 @@ func TestMiniblockResolver_ProcessReceivedAntifloodErrorsShouldErr(t *testing.T)
 	expectedErr := errors.New("expected error")
 	arg := createMockArgMiniblockResolver()
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return expectedErr
 		},
 	}
@@ -198,7 +200,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(
 	wasResolved := false
 	wasSent := false
 
-	cache := &mock.CacherStub{}
+	cache := testscommon.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(key, mbHash) {
 			wasResolved = true
@@ -210,7 +212,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(
 
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSent = true
 			return nil
 		},
@@ -256,7 +258,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShoul
 
 	assert.Nil(t, merr)
 
-	cache := &mock.CacherStub{}
+	cache := testscommon.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(key, mbHash) {
 			return &block.MiniBlock{}, true
@@ -299,7 +301,7 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 	wasResolved := false
 	wasSend := false
 
-	cache := &mock.CacherStub{}
+	cache := testscommon.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}
@@ -313,7 +315,7 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSend = true
 			return nil
 		},
@@ -345,7 +347,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 
 	wasSent := false
 
-	cache := &mock.CacherStub{}
+	cache := testscommon.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}
@@ -357,7 +359,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendCalled: func(buff []byte, peer p2p.PeerID) error {
+		SendCalled: func(buff []byte, peer core.PeerID) error {
 			wasSent = true
 			return nil
 		},

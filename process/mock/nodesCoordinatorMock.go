@@ -24,6 +24,7 @@ type NodesCoordinatorMock struct {
 	GetValidatorWithPublicKeyCalled          func(publicKey []byte, epoch uint32) (validator sharding.Validator, shardId uint32, err error)
 	GetAllEligibleValidatorsPublicKeysCalled func() (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
+	GetAllLeavingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled                 func(uint32) int
 }
 
@@ -70,11 +71,6 @@ func (ncm *NodesCoordinatorMock) GetChance(uint32) uint32 {
 	return 1
 }
 
-// GetAllLeavingValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
-	return nil, nil
-}
-
 // GetNumTotalEligible -
 func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
 	return 1
@@ -92,6 +88,14 @@ func (ncm *NodesCoordinatorMock) GetAllEligibleValidatorsPublicKeys(_ uint32) (m
 func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	if ncm.GetAllWaitingValidatorsPublicKeysCalled != nil {
 		return ncm.GetAllWaitingValidatorsPublicKeysCalled()
+	}
+	return nil, nil
+}
+
+// GetAllLeavingValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	if ncm.GetAllLeavingValidatorsPublicKeysCalled != nil {
+		return ncm.GetAllLeavingValidatorsPublicKeysCalled()
 	}
 	return nil, nil
 }
@@ -248,7 +252,7 @@ func (ncm *NodesCoordinatorMock) GetSavedStateKey() []byte {
 // ShardIdForEpoch returns the nodesCoordinator configured ShardId for specified epoch if epoch configuration exists,
 // otherwise error
 func (ncm *NodesCoordinatorMock) ShardIdForEpoch(_ uint32) (uint32, error) {
-	panic("not implemented")
+	return 0, nil
 }
 
 // ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler

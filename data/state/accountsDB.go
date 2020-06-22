@@ -20,9 +20,10 @@ type AccountsDB struct {
 	marshalizer    marshal.Marshalizer
 	accountFactory AccountFactory
 
-	dataTries TriesHolder
-	entries   []JournalEntry
-	mutOp     sync.RWMutex
+	lastRootHash []byte
+	dataTries    TriesHolder
+	entries      []JournalEntry
+	mutOp        sync.RWMutex
 }
 
 var log = logger.GetOrCreate("state")
@@ -64,7 +65,7 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 	defer adb.mutOp.Unlock()
 
 	if check.IfNil(account) {
-		return ErrNilAccountHandler
+		return fmt.Errorf("%w in accountsDB SaveAccount", ErrNilAccountHandler)
 	}
 
 	oldAccount, err := adb.getAccount(account.AddressBytes())
@@ -263,6 +264,9 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 	if err != nil {
 		return err
 	}
+	if acnt == nil {
+		return fmt.Errorf("%w in RemoveAccount for address %s", ErrAccNotFound, address)
+	}
 
 	entry, err := NewJournalEntryAccount(acnt)
 	if err != nil {
@@ -406,6 +410,11 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 		return ErrSnapshotValueOutOfBounds
 	}
 
+	if snapshot == 0 {
+		log.Trace("revert snapshot to adb.lastRootHash", "hash", adb.lastRootHash)
+		return adb.recreateTrie(adb.lastRootHash)
+	}
+
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
 		account, err := adb.entries[i].Revert()
 		if err != nil {
@@ -490,6 +499,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		log.Trace("accountsDB.Commit ended", "error", err.Error())
 		return nil, err
 	}
+	adb.lastRootHash = root
 
 	log.Trace("accountsDB.Commit ended", "root hash", root)
 
@@ -515,12 +525,23 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
+	err := adb.recreateTrie(rootHash)
+	if err != nil {
+		return err
+	}
+	adb.lastRootHash = rootHash
+
+	return nil
+}
+
+func (adb *AccountsDB) recreateTrie(rootHash []byte) error {
 	log.Trace("accountsDB.RecreateTrie", "root hash", rootHash)
 	defer func() {
 		log.Trace("accountsDB.RecreateTrie ended")
 	}()
 
 	adb.dataTries.Reset()
+	adb.entries = make([]JournalEntry, 0)
 	newTrie, err := adb.mainTrie.Recreate(rootHash)
 	if err != nil {
 		return err

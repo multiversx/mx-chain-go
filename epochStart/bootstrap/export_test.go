@@ -20,14 +20,14 @@ func getGeneralConfig() config.Config {
 			MinNumConnectedPeersToStart:       2,
 		},
 		WhiteListPool: config.CacheConfig{
-			Size:   10000,
-			Type:   "LRU",
-			Shards: 1,
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
 		},
 		WhiteListerVerifiedTxs: config.CacheConfig{
-			Size:   10000,
-			Type:   "LRU",
-			Shards: 1,
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
 		},
 		StoragePruning: config.StoragePruningConfig{
 			Enabled:             false,
@@ -54,7 +54,9 @@ func getGeneralConfig() config.Config {
 		},
 		AccountsTrieStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "AccountsTrie/MainDB",
@@ -66,7 +68,9 @@ func getGeneralConfig() config.Config {
 		},
 		PeerAccountsTrieStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "PeerAccountsTrie/MainDB",
@@ -84,30 +88,46 @@ func getGeneralConfig() config.Config {
 			MaxPeerTrieLevelInMemory:    5,
 		},
 		TxDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity:             10000,
+			SizePerSender:        1000,
+			SizeInBytes:          1000000000,
+			SizeInBytesPerSender: 10000000,
+			Shards:               1,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity:    10000,
+			SizeInBytes: 1000000000,
+			Shards:      1,
 		},
 		RewardTransactionDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity:    10000,
+			SizeInBytes: 1000000000,
+			Shards:      1,
 		},
 		HeadersPoolConfig: config.HeadersPoolConfig{
 			MaxHeadersPerShard:            100,
 			NumElementsToRemoveOnEviction: 1,
 		},
 		TxBlockBodyDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
 		},
 		PeerBlockBodyDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
 		},
 		TrieNodesDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
 		},
 		TxStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "Transactions",
@@ -119,7 +139,9 @@ func getGeneralConfig() config.Config {
 		},
 		MiniBlocksStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "MiniBlocks",
@@ -131,7 +153,9 @@ func getGeneralConfig() config.Config {
 		},
 		ShardHdrNonceHashStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "ShardHdrHashNonce",
@@ -143,7 +167,9 @@ func getGeneralConfig() config.Config {
 		},
 		MetaBlockStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "MetaBlock",
@@ -155,7 +181,9 @@ func getGeneralConfig() config.Config {
 		},
 		MetaHdrNonceHashStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "MetaHdrHashNonce",
@@ -167,7 +195,9 @@ func getGeneralConfig() config.Config {
 		},
 		UnsignedTransactionStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "UnsignedTransactions",
@@ -179,7 +209,9 @@ func getGeneralConfig() config.Config {
 		},
 		RewardTxStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "RewardTransactions",
@@ -191,7 +223,9 @@ func getGeneralConfig() config.Config {
 		},
 		BlockHeaderStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "BlockHeaders",
@@ -204,7 +238,9 @@ func getGeneralConfig() config.Config {
 		Heartbeat: config.HeartbeatConfig{
 			HeartbeatStorage: config.StorageConfig{
 				Cache: config.CacheConfig{
-					Size: 10000, Type: "LRU", Shards: 1,
+					Capacity: 10000,
+					Type:     "LRU",
+					Shards:   1,
 				},
 				DB: config.DBConfig{
 					FilePath:          "HeartbeatStorage",
@@ -217,7 +253,9 @@ func getGeneralConfig() config.Config {
 		},
 		StatusMetricsStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "StatusMetricsStorageDB",
@@ -229,7 +267,9 @@ func getGeneralConfig() config.Config {
 		},
 		PeerBlockBodyStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "PeerBlocks",
@@ -241,7 +281,9 @@ func getGeneralConfig() config.Config {
 		},
 		BootstrapStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "BootstrapData",
@@ -256,9 +298,9 @@ func getGeneralConfig() config.Config {
 		},
 		TxLogsStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Type:   "LRU",
-				Size:   1000,
-				Shards: 1,
+				Type:     "LRU",
+				Capacity: 1000,
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "Logs",

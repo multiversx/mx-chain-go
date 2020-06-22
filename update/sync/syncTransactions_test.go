@@ -12,13 +12,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgs() ArgsNewPendingTransactionsSyncer {
 	return ArgsNewPendingTransactionsSyncer{
-		DataPools: mock.NewPoolsHolderMock(),
+		DataPools: testscommon.NewPoolsHolderMock(),
 		Storages: &mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 				return &mock.StorerStub{}
@@ -170,7 +171,7 @@ func TestSyncPendingTransactionsFor_ReceiveMissingTx(t *testing.T) {
 		tx := &dataTransaction.Transaction{
 			Nonce: 1, Value: big.NewInt(10), SndAddr: []byte("snd"), RcvAddr: []byte("rcv"),
 		}
-		pendingTxsSyncer.txPools[block.TxBlock].AddData(txHash, tx, "0")
+		pendingTxsSyncer.txPools[block.TxBlock].AddData(txHash, tx, tx.Size(), "0")
 
 		pendingTxsSyncer.receivedTransaction(txHash, tx)
 	}()

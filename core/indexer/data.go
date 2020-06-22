@@ -46,17 +46,18 @@ type Event struct {
 
 // ScResult is a structure containing all the fields that need to be saved for a smart contract result
 type ScResult struct {
-	Nonce        uint64 `json:"nonce"`
-	GasLimit     uint64 `json:"gasLimit"`
-	GasPrice     uint64 `json:"gasPrice"`
-	Value        string `json:"value"`
-	Sender       string `json:"sender"`
-	Receiver     string `json:"receiver"`
-	Code         string `json:"code"`
-	Data         string `json:"data"`
-	PreTxHash    string `json:"prevTxHash"`
-	CallType     string `json:"callType"`
-	CodeMetadata string `json:"codeMetaData"`
+	Nonce         uint64 `json:"nonce"`
+	GasLimit      uint64 `json:"gasLimit"`
+	GasPrice      uint64 `json:"gasPrice"`
+	Value         string `json:"value"`
+	Sender        string `json:"sender"`
+	Receiver      string `json:"receiver"`
+	Code          string `json:"code"`
+	Data          string `json:"data"`
+	PreTxHash     string `json:"prevTxHash"`
+	CallType      string `json:"callType"`
+	CodeMetadata  string `json:"codeMetaData"`
+	ReturnMessage string `json:"returnMessage"`
 }
 
 // Block is a structure containing all the fields that need

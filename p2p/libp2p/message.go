@@ -1,7 +1,7 @@
 package libp2p
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-pubsub"
@@ -23,6 +23,6 @@ func NewMessage(msg *pubsub.Message) (*message.Message, error) {
 		return nil, err
 	}
 
-	newMsg.PeerField = p2p.PeerID(id)
+	newMsg.PeerField = core.PeerID(id)
 	return newMsg, nil
 }

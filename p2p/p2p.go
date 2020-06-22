@@ -3,19 +3,13 @@ package p2p
 import (
 	"encoding/hex"
 	"io"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/mr-tron/base58/base58"
 )
 
 const displayLastPidChars = 12
 
 const (
-	// PrioBitsSharder is the variant that uses priority bits
-	PrioBitsSharder = "PrioBitsSharder"
-	// SimplePrioBitsSharder is the variant that computes the distance without prio bits
-	SimplePrioBitsSharder = "SimplePrioBitsSharder"
 	// ListsSharder is the variant that uses lists
 	ListsSharder = "ListsSharder"
 	// OneListSharder is the variant that is shard agnostic and uses one list
@@ -28,7 +22,7 @@ const (
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 // If the function returns a non nil value, the received message will not be propagated to its connected peers
 type MessageProcessor interface {
-	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer PeerID) error
+	ProcessReceivedMessage(message MessageP2P, fromConnectedPeer core.PeerID) error
 	IsInterfaceNil() bool
 }
 
@@ -36,19 +30,6 @@ type MessageProcessor interface {
 type SendableData struct {
 	Buff  []byte
 	Topic string
-}
-
-// PeerID is a p2p peer identity.
-type PeerID string
-
-// Bytes returns the peer ID as byte slice
-func (pid PeerID) Bytes() []byte {
-	return []byte(pid)
-}
-
-// Pretty returns a b58-encoded string of the peer id
-func (pid PeerID) Pretty() string {
-	return base58.Encode(pid.Bytes())
 }
 
 // PeerDiscoverer defines the behaviour of a peer discovery mechanism
@@ -64,27 +45,16 @@ type Reconnecter interface {
 	IsInterfaceNil() bool
 }
 
-// ReconnecterWithPauseResumeAndWatchdog defines a Reconnecter that supports pausing, resuming and watchdog
-type ReconnecterWithPauseResumeAndWatchdog interface {
-	Reconnecter
-	Pause()  // Pause the peer discovery
-	Resume() // Resume the peer discovery
-
-	StartWatchdog(time.Duration) error // StartWatchdog start a discovery resume watchdog
-	StopWatchdog() error               // StopWatchdog stops the watchdog
-	KickWatchdog() error               // KickWatchdog kicks the watchdog
-}
-
 // Messenger is the main struct used for communication with other peers
 type Messenger interface {
 	io.Closer
 
 	// ID is the Messenger's unique peer identifier across the network (a
 	// string). It is derived from the public key of the P2P credentials.
-	ID() PeerID
+	ID() core.PeerID
 
 	// Peers is the list of IDs of peers known to the Messenger.
-	Peers() []PeerID
+	Peers() []core.PeerID
 
 	// Addresses is the list of addresses that the Messenger is currently bound
 	// to and listening to.
@@ -97,23 +67,22 @@ type Messenger interface {
 	ConnectToPeer(address string) error
 
 	// IsConnected returns true if the Messenger are connected to a specific peer.
-	IsConnected(peerID PeerID) bool
+	IsConnected(peerID core.PeerID) bool
 
 	// ConnectedPeers returns the list of IDs of the peers the Messenger is
 	// currently connected to.
-	ConnectedPeers() []PeerID
+	ConnectedPeers() []core.PeerID
 
 	// ConnectedAddresses returns the list of addresses of the peers to which the
 	// Messenger is currently connected.
 	ConnectedAddresses() []string
 
-	// PeerAddress builds an address for the given peer ID, e.g.
-	// ConnectToPeer(PeerAddress(somePeerID)).
-	PeerAddress(pid PeerID) string
+	// PeerAddresses returns the known addresses for the provided peer ID
+	PeerAddresses(pid core.PeerID) []string
 
 	// ConnectedPeersOnTopic returns the IDs of the peers to which the Messenger
 	// is currently connected, but filtered by a topic they are registered to.
-	ConnectedPeersOnTopic(topic string) []PeerID
+	ConnectedPeersOnTopic(topic string) []core.PeerID
 
 	// Bootstrap runs the initialization phase which includes peer discovery,
 	// setting up initial connections and self-announcement in the network.
@@ -147,10 +116,6 @@ type Messenger interface {
 	// given topic.
 	UnregisterMessageProcessor(topic string) error
 
-	// OutgoingChannelLoadBalancer returns the ChannelLoadBalancer instance
-	// through which the Messenger is sending messages to the network.
-	OutgoingChannelLoadBalancer() ChannelLoadBalancer
-
 	// BroadcastOnChannelBlocking asynchronously waits until it can send a
 	// message on the channel, but once it is able to, it synchronously sends the
 	// message, blocking until sending is completed.
@@ -167,14 +132,16 @@ type Messenger interface {
 	// SendToConnectedPeer asynchronously sends a message to a peer directly,
 	// bypassing pubsub and topics. It opens a new connection with the given
 	// peer, but reuses a connection and a stream if possible.
-	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error
+	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
 
 	IsConnectedToTheNetwork() bool
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
-	SetPeerBlackListHandler(handler BlacklistHandler) error
+	SetPeerBlackListHandler(handler PeerBlacklistHandler) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
+	SetMessageIdsCacher(cacher Cacher) error
+	UnjoinAllTopics() error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -188,7 +155,7 @@ type MessageP2P interface {
 	Topics() []string
 	Signature() []byte
 	Key() []byte
-	Peer() PeerID
+	Peer() core.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -205,7 +172,7 @@ type ChannelLoadBalancer interface {
 // DirectSender defines a component that can send direct messages to connected peers
 type DirectSender interface {
 	NextSeqno(counter *uint64) []byte
-	Send(topic string, buff []byte, peer PeerID) error
+	Send(topic string, buff []byte, peer core.PeerID) error
 	IsInterfaceNil() bool
 }
 
@@ -223,7 +190,7 @@ func MessageOriginatorPid(msg MessageP2P) string {
 
 // PeerIdToShortString trims the first displayLastPidChars characters of the provided peer ID after
 // converting the peer ID to string using the Pretty functionality
-func PeerIdToShortString(pid PeerID) string {
+func PeerIdToShortString(pid core.PeerID) string {
 	prettyPid := pid.Pretty()
 	lenPrettyPid := len(prettyPid)
 
@@ -241,7 +208,7 @@ func MessageOriginatorSeq(msg MessageP2P) string {
 
 // PeerShardResolver is able to resolve the link between the provided PeerID and the shardID
 type PeerShardResolver interface {
-	GetPeerInfo(pid PeerID) core.P2PPeerInfo
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 
@@ -257,7 +224,7 @@ type ConnectedPeersInfo struct {
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 // The interface assures that the collected data will be used by the p2p network sharding components
 type NetworkShardingCollector interface {
-	UpdatePeerIdPublicKey(pid PeerID, pk []byte)
+	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	IsInterfaceNil() bool
 }
 
@@ -289,11 +256,11 @@ type CommonSharder interface {
 	IsInterfaceNil() bool
 }
 
-// BlacklistHandler defines the behavior of a component that is able to decide if a key (peer ID) is black listed or not
+// PeerBlacklistHandler defines the behavior of a component that is able to decide if a peer ID is black listed or not
 //TODO merge this interface with the PeerShardResolver => P2PProtocolHandler ?
 //TODO move antiflooding inside network messenger
-type BlacklistHandler interface {
-	Has(key string) bool
+type PeerBlacklistHandler interface {
+	Has(pid core.PeerID) bool
 	IsInterfaceNil() bool
 }
 
@@ -301,6 +268,12 @@ type BlacklistHandler interface {
 //TODO this should be removed after merging of the PeerShardResolver and BlacklistHandler
 type ConnectionMonitorWrapper interface {
 	CheckConnectionsBlocking()
-	SetBlackListHandler(handler BlacklistHandler) error
+	SetBlackListHandler(handler PeerBlacklistHandler) error
+	IsInterfaceNil() bool
+}
+
+// Cacher defines the interface for a cacher used in p2p to better prevent the reprocessing of an old message
+type Cacher interface {
+	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool)
 	IsInterfaceNil() bool
 }

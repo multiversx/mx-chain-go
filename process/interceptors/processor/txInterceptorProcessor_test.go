@@ -7,15 +7,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockTxArgument() *processor.ArgTxInterceptorProcessor {
 	return &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: &mock.ShardedDataStub{},
+		ShardedDataCache: testscommon.NewShardedDataStub(),
 		TxValidator:      &mock.TxValidatorStub{},
 	}
 }
@@ -147,13 +149,13 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 				return 0
 			},
 			TransactionCalled: func() data.TransactionHandler {
-				return nil
+				return &transaction.Transaction{}
 			},
 		},
 	}
 	arg := createMockTxArgument()
-	shardedDataCache := arg.ShardedDataCache.(*mock.ShardedDataStub)
-	shardedDataCache.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
+	shardedDataCache := arg.ShardedDataCache.(*testscommon.ShardedDataStub)
+	shardedDataCache.AddDataCalled = func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
 		addedWasCalled = true
 	}
 

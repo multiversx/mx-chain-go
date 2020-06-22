@@ -1,12 +1,13 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // MessengerStub -
 type MessengerStub struct {
-	IDCalled                         func() p2p.PeerID
+	IDCalled                         func() core.PeerID
 	CloseCalled                      func() error
 	CreateTopicCalled                func(name string, createChannelForTopic bool) error
 	HasTopicCalled                   func(name string) bool
@@ -15,13 +16,13 @@ type MessengerStub struct {
 	BroadcastCalled                  func(topic string, buff []byte)
 	RegisterMessageProcessorCalled   func(topic string, handler p2p.MessageProcessor) error
 	BootstrapCalled                  func() error
-	PeerAddressCalled                func(pid p2p.PeerID) string
+	PeerAddressesCalled              func(pid core.PeerID) []string
 	BroadcastOnChannelBlockingCalled func(channel string, topic string, buff []byte) error
 	IsConnectedToTheNetworkCalled    func() bool
 }
 
 // ID -
-func (ms *MessengerStub) ID() p2p.PeerID {
+func (ms *MessengerStub) ID() core.PeerID {
 	if ms.IDCalled != nil {
 		return ms.IDCalled()
 	}
@@ -91,8 +92,8 @@ func (ms *MessengerStub) Bootstrap() error {
 }
 
 // PeerAddress -
-func (ms *MessengerStub) PeerAddress(pid p2p.PeerID) string {
-	return ms.PeerAddressCalled(pid)
+func (ms *MessengerStub) PeerAddresses(pid core.PeerID) []string {
+	return ms.PeerAddressesCalled(pid)
 }
 
 // BroadcastOnChannelBlocking -

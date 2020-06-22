@@ -121,7 +121,7 @@ func TestAccountsDB_SaveAccountNilAccountShouldErr(t *testing.T) {
 	adb := generateAccountDBFromTrie(&mock.TrieStub{})
 
 	err := adb.SaveAccount(nil)
-	assert.Equal(t, state.ErrNilAccountHandler, err)
+	assert.True(t, errors.Is(err, state.ErrNilAccountHandler))
 }
 
 func TestAccountsDB_SaveAccountErrWhenGettingOldAccountShouldErr(t *testing.T) {
@@ -823,9 +823,65 @@ func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRoot := make([]byte, 32)
-	root, err := tr.Root()
+	root, err := adb.RootHash()
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRoot, root)
+}
+
+func TestAccountsDB_RevertToSnapshotWithoutLastRootHashSet(t *testing.T) {
+	t.Parallel()
+
+	marsh := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	accFactory := factory.NewAccountCreator()
+	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
+
+	err := adb.RevertToSnapshot(0)
+	assert.Nil(t, err)
+
+	rootHash, err := adb.RootHash()
+	assert.Nil(t, err)
+	assert.Equal(t, make([]byte, 32), rootHash)
+}
+
+func TestAccountsDB_RecreateTrieInvalidatesJournalEntries(t *testing.T) {
+	t.Parallel()
+
+	marsh := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	accFactory := factory.NewAccountCreator()
+	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
+
+	address := make([]byte, 32)
+	key := []byte("key")
+	value := []byte("value")
+
+	acc, _ := adb.LoadAccount(address)
+	_ = adb.SaveAccount(acc)
+	rootHash, _ := adb.Commit()
+
+	acc, _ = adb.LoadAccount(address)
+	acc.(state.UserAccountHandler).SetCode([]byte("code"))
+	_ = adb.SaveAccount(acc)
+
+	acc, _ = adb.LoadAccount(address)
+	acc.(state.UserAccountHandler).IncreaseNonce(1)
+	_ = adb.SaveAccount(acc)
+
+	acc, _ = adb.LoadAccount(address)
+	acc.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, value)
+	_ = adb.SaveAccount(acc)
+
+	assert.Equal(t, 5, adb.JournalLen())
+	err := adb.RecreateTrie(rootHash)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, adb.JournalLen())
 }
 
 func TestAccountsDB_RootHash(t *testing.T) {

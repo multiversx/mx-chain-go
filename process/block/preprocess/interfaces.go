@@ -13,6 +13,13 @@ type SortedTransactionsProvider interface {
 	IsInterfaceNil() bool
 }
 
+// TxCache defines the functionality for the transactions cache
+type TxCache interface {
+	SelectTransactions(numRequested int, batchSizePerSender int) []*txcache.WrappedTransaction
+	NotifyAccountNonce(accountKey []byte, nonce uint64)
+	IsInterfaceNil() bool
+}
+
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
 	IsShardStuck(shardID uint32) bool

@@ -32,7 +32,6 @@ func createMonitor(
 		Timer:                              timer,
 		AntifloodHandler:                   createMockP2PAntifloodHandler(),
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
-		PeerBlackListHandler:               &mock.BlackListHandlerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(32),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,

@@ -60,6 +60,7 @@ func NewPersistentStatusHandler(
 
 func (psh *PersistentStatusHandler) initMap() {
 	initUint := uint64(0)
+	zeroString := "0"
 
 	psh.persistentMetrics.Store(core.MetricCountConsensus, initUint)
 	psh.persistentMetrics.Store(core.MetricCountConsensusAcceptedBlocks, initUint)
@@ -68,6 +69,13 @@ func (psh *PersistentStatusHandler) initMap() {
 	psh.persistentMetrics.Store(core.MetricNumProcessedTxs, initUint)
 	psh.persistentMetrics.Store(core.MetricNumShardHeadersProcessed, initUint)
 	psh.persistentMetrics.Store(core.MetricNonce, initUint)
+	psh.persistentMetrics.Store(core.MetricNonceForTPS, initUint)
+	psh.persistentMetrics.Store(core.MetricPeakTPS, initUint)
+	psh.persistentMetrics.Store(core.MetricAverageBlockTxCount, zeroString)
+	psh.persistentMetrics.Store(core.MetricLastBlockTxCount, initUint)
+	psh.persistentMetrics.Store(core.MetricCurrentRound, initUint)
+	psh.persistentMetrics.Store(core.MetricNonceAtEpochStart, initUint)
+	psh.persistentMetrics.Store(core.MetricRoundAtEpochStart, initUint)
 }
 
 // SetStorage will set storage for persistent status handler
@@ -106,6 +114,21 @@ func (psh *PersistentStatusHandler) saveMetricsInDb(nonce uint64) {
 			"error", err)
 		return
 	}
+
+	err = psh.store.Put([]byte(core.LastNonceKeyMetricsStorage), nonceBytes)
+	if err != nil {
+		log.Debug("cannot save last nonce for metrics storage",
+			"error", err)
+		return
+	}
+	log.Trace("saved tps benchmark",
+		"peak tps", metricsMap[core.MetricPeakTPS],
+		"total num processed txs", metricsMap[core.MetricNumProcessedTxs],
+		"round", metricsMap[core.MetricCurrentRound],
+		"nonce", metricsMap[core.MetricNonce])
+	log.Trace("saved last nonce metrics",
+		"key", []byte("lastNonce"),
+		"value", nonceBytes)
 }
 
 // SetInt64Value method - will update the value for a key

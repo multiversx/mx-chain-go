@@ -9,9 +9,6 @@
         # /node/heartbeatstatus will return all heartbeats messages from the nodes in the network
         { Name = "/heartbeatstatus", Open = true },
 
-        # /node/epoch will return data about the current epoch
-        { Name = "/epoch", Open = true },
-
         # /node/statistics will return statistics about the chain, such as the peak TPS
         { Name = "/statistics", Open = true },
 
@@ -19,7 +16,10 @@
         { Name = "/p2pstatus", Open = true },
 
         # /node/debug will return the debug information after the query has been interpreted
-        { Name = "/debug", Open = true }
+        { Name = "/debug", Open = true },
+
+        # /node/peerinfo will return the p2p peer info of the provided pid
+        { Name = "/peerinfo", Open = true }
 	]
 
 [APIPackages.address]
@@ -27,8 +27,11 @@
          # /address/:address will return data about a given account
         { Name = "/:address", Open = true },
 
-         # /address/:address/balance will return the balance of a given account
-         { Name = "/:address/balance", Open = true }
+        # /address/:address/balance will return the balance of a given account
+        { Name = "/:address/balance", Open = true },
+
+        # /address/:address/key/:key will return the value of a key for a given account
+        { Name = "/:address/key/:key", Open = true }
 	]
 
 [APIPackages.hardfork]
@@ -42,9 +45,9 @@
          # /network/status will return metrics related to current status of the chain (epoch, nonce, round)
         { Name = "/status", Open = true },
 
-         # /network/config will return metrics related to current configuration of the network (number of shards,
-         # consensus group size and so on)
-         { Name = "/config", Open = true }
+        # /network/config will return metrics related to current configuration of the network (number of shards,
+        # consensus group size and so on)
+        { Name = "/config", Open = true }
 	]
 
 [APIPackages.log]
@@ -88,5 +91,8 @@
          { Name = "/cost", Open = true },
 
          # /transaction/:txhash will return the transaction in JSON format based on its hash
-         { Name = "/:txhash", Open = true }
+         { Name = "/:txhash", Open = true },
+
+         # /transaction/:txhash/status will return the status of a transaction based on its hash
+         { Name = "/:txhash/status", Open = true }
 	]

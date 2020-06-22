@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1036,7 +1037,7 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 func TestMetaProcessor_ReceivedHeaderShouldDecreaseMissing(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 	coreComponents, dataComponents := createMockComponentHolders()
 	dataComponents.DataPool = pool
 	dataComponents.Storage = initStore()
@@ -1069,7 +1070,7 @@ func TestMetaProcessor_ReceivedHeaderShouldDecreaseMissing(t *testing.T) {
 func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 	//we will have a 3 hdrs in pool
 	hdrHash1 := []byte("hdr hash 1")
 	hdrHash2 := []byte("hdr hash 2")
@@ -1149,7 +1150,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 	//we will have a 3 hdrs in pool
 	hdrHash1 := []byte("hdr hash 1")
 	hdrHash2 := []byte("hdr hash 2")
@@ -1251,7 +1252,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 	//we will have a 3 hdrs in pool
 	hdrHash1 := []byte("hdr hash 1")
 	hdrHash2 := []byte("hdr hash 2")
@@ -1403,7 +1404,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 	//we will have a 3 hdrs in pool
 	hdrHash1 := []byte("hdr hash 1")
 	hdrHash2 := []byte("hdr hash 2")
@@ -1568,7 +1569,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldErrNilMetaBlockHeader(t *testi
 func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 	marshalizerMock := &mock.MarshalizerMock{}
 	body := &block.Body{}
 	hdr := block.Header{Nonce: 1}
@@ -1606,7 +1607,7 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	coreComponents, dataComponents := createMockComponentHolders()
 	coreComponents.Hash = &mock.HasherMock{}
@@ -1696,7 +1697,7 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	coreComponents, dataComponents := createMockComponentHolders()
 	coreComponents.Hash = &mock.HasherMock{}
@@ -1817,7 +1818,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	coreComponents, dataComponents := createMockComponentHolders()
 	dataComponents.DataPool = pool
@@ -1870,7 +1871,7 @@ func TestMetaProcessor_CheckShardHeadersValidityWrongNonceFromLastNoted(t *testi
 func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 
 	noOfShards := uint32(5)
 	coreComponents, dataComponents := createMockComponentHolders()
@@ -1941,7 +1942,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	coreComponents, dataComponents := createMockComponentHolders()
 	dataComponents.DataPool = pool
@@ -2051,7 +2052,7 @@ func TestMetaProcessor_CheckShardHeadersFinality(t *testing.T) {
 func TestMetaProcessor_IsHdrConstructionValid(t *testing.T) {
 	t.Parallel()
 
-	pool := mock.NewPoolsHolderMock()
+	pool := testscommon.NewPoolsHolderMock()
 	noOfShards := uint32(5)
 	coreComponents, dataComponents := createMockComponentHolders()
 	dataComponents.DataPool = pool
@@ -2233,7 +2234,7 @@ func TestMetaProcessor_UpdateShardsHeadersNonce_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestMetaProcessor_CreateMiniBlocksJournalLenNotZeroShouldErr(t *testing.T) {
+func TestMetaProcessor_CreateMiniBlocksJournalLenNotZeroShouldReturnEmptyBody(t *testing.T) {
 	t.Parallel()
 
 	accntAdapter := &mock.AccountsStub{
@@ -2249,11 +2250,11 @@ func TestMetaProcessor_CreateMiniBlocksJournalLenNotZeroShouldErr(t *testing.T) 
 	metaHdr := &block.MetaBlock{Round: round}
 
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
-	assert.Nil(t, bodyHandler)
-	assert.Equal(t, process.ErrAccountStateDirty, err)
+	assert.Nil(t, err)
+	assert.Equal(t, &block.Body{}, bodyHandler)
 }
 
-func TestMetaProcessor_CreateMiniBlocksNoTimeShouldErr(t *testing.T) {
+func TestMetaProcessor_CreateMiniBlocksNoTimeShouldReturnEmptyBody(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents := createMockComponentHolders()
@@ -2263,8 +2264,8 @@ func TestMetaProcessor_CreateMiniBlocksNoTimeShouldErr(t *testing.T) {
 	metaHdr := &block.MetaBlock{Round: round}
 
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return false })
-	assert.Nil(t, bodyHandler)
-	assert.Equal(t, process.ErrTimeIsOut, err)
+	assert.Nil(t, err)
+	assert.Equal(t, &block.Body{}, bodyHandler)
 }
 
 func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
@@ -2284,7 +2285,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	expectedMiniBlock2 := &block.MiniBlock{TxHashes: [][]byte{[]byte("hash2")}}
 	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
@@ -2447,7 +2448,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	miniBlock2 := &block.MiniBlock{TxHashes: [][]byte{hash2}}
 	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
@@ -2540,7 +2541,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
 	dPool := initDataPool([]byte("tx_hash"))
 	dPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	dPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}

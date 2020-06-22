@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -61,13 +60,13 @@ func NewMiniblockInterceptorProcessor(argument *ArgMiniblockInterceptorProcessor
 // It returns nil as a body might consist of multiple miniblocks
 // Since some might be valid and others not, we rather do the checking when
 // we iterate the slice for processing as it is optimal to do so
-func (mip *MiniblockInterceptorProcessor) Validate(_ process.InterceptedData, _ p2p.PeerID) error {
+func (mip *MiniblockInterceptorProcessor) Validate(_ process.InterceptedData, _ core.PeerID) error {
 	return nil
 }
 
 // Save will save the received miniblocks inside the miniblock cacher after a new validation round
 // that will be done on each miniblock
-func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID) error {
+func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID) error {
 	interceptedMiniblock, ok := data.(*interceptedBlocks.InterceptedMiniblock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -79,7 +78,10 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p
 		return err
 	}
 
-	if mip.isMbCrossShard(miniblock) && !mip.whiteListHandler.IsWhiteListed(data) {
+	shouldRejectMiniBlock := mip.isMbCrossShard(miniblock) &&
+		!mip.whiteListHandler.IsWhiteListed(data) &&
+		mip.shardCoordinator.SelfId() != core.MetachainShardId
+	if shouldRejectMiniBlock {
 		log.Trace(
 			"miniblock interceptor processor : cross shard miniblock for me",
 			"message", "not whitelisted will not be added in pool",
@@ -91,7 +93,7 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p
 		return nil
 	}
 
-	mip.miniblockCache.HasOrAdd(hash, miniblock)
+	mip.miniblockCache.HasOrAdd(hash, miniblock, miniblock.Size())
 
 	return nil
 }

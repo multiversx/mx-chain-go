@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -26,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
+	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -42,6 +45,7 @@ const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
 const roundGracePeriod = 25
+const numConcurrentTrieSyncers = 50
 
 // Parameters defines the DTO for the result produced by the bootstrap component
 type Parameters struct {
@@ -81,6 +85,8 @@ type epochStartBootstrap struct {
 	trieStorageManagers        map[string]data.StorageManager
 	nodeShuffler               sharding.NodesShuffler
 	rounder                    epochStart.Rounder
+	addressPubkeyConverter     core.PubkeyConverter
+	importStartHandler         epochStart.ImportStartHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -104,6 +110,8 @@ type epochStartBootstrap struct {
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
 	shuffledOut        bool
+	startEpoch         uint32
+	startRound         int64
 }
 
 type baseDataInStorage struct {
@@ -120,7 +128,6 @@ type ArgsEpochStartBootstrap struct {
 	CoreComponentsHolder       process.CoreComponentsHolder
 	CryptoComponentsHolder     process.CryptoComponentsHolder
 	DestinationShardAsObserver uint32
-	TrieStorageManagers        map[string]data.StorageManager
 	Messenger                  Messenger
 	GeneralConfig              config.Config
 	EconomicsData              *economics.EconomicsData
@@ -129,9 +136,9 @@ type ArgsEpochStartBootstrap struct {
 	StorageUnitOpener          storage.UnitOpenerHandler
 	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
 	Rater                      sharding.ChanceComputer
-	TrieContainer              state.TriesHolder
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
+	ImportStartHandler         epochStart.ImportStartHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -151,19 +158,19 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		genesisShardCoordinator:    args.GenesisShardCoordinator,
 		rater:                      args.Rater,
 		destinationShardAsObserver: args.DestinationShardAsObserver,
-		trieContainer:              args.TrieContainer,
-		trieStorageManagers:        args.TrieStorageManagers,
 		nodeShuffler:               args.NodeShuffler,
 		rounder:                    args.Rounder,
 		storageOpenerHandler:       args.StorageUnitOpener,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		shuffledOut:                false,
+		importStartHandler:         args.ImportStartHandler,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(
 		storageUnit.CacheType(epochStartProvider.generalConfig.WhiteListPool.Type),
-		epochStartProvider.generalConfig.WhiteListPool.Size,
+		epochStartProvider.generalConfig.WhiteListPool.Capacity,
 		epochStartProvider.generalConfig.WhiteListPool.Shards,
+		epochStartProvider.generalConfig.WhiteListPool.SizeInBytes,
 	)
 	if err != nil {
 		return nil, err
@@ -174,9 +181,20 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		return nil, err
 	}
 
-	epochStartProvider.whiteListerVerifiedTxs, err = interceptors.NewDisabledWhiteListDataVerifier()
+	epochStartProvider.whiteListerVerifiedTxs, err = disabledInterceptors.NewDisabledWhiteListDataVerifier()
 	if err != nil {
 		return nil, err
+	}
+
+	epochStartProvider.trieContainer = state.NewDataTriesHolder()
+	epochStartProvider.trieStorageManagers = make(map[string]data.StorageManager)
+
+	if epochStartProvider.generalConfig.Hardfork.AfterHardFork {
+		epochStartProvider.startEpoch = epochStartProvider.generalConfig.Hardfork.StartEpoch
+		epochStartProvider.baseData.lastEpoch = epochStartProvider.startEpoch
+		epochStartProvider.startRound = int64(epochStartProvider.generalConfig.Hardfork.StartRound)
+		epochStartProvider.baseData.lastRound = epochStartProvider.startRound
+		epochStartProvider.baseData.epochStartRound = uint64(epochStartProvider.startRound)
 	}
 
 	return epochStartProvider, nil
@@ -189,19 +207,29 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 		return true
 	}
 
-	currentRound := e.rounder.Index()
+	currentRound := e.rounder.Index() - e.startRound
 	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
 	log.Debug("IsStartInEpochZero", "currentRound", currentRound, "epochEndRound", epochEndPlusGracePeriod)
 	return float64(currentRound) < epochEndPlusGracePeriod
 }
 
 func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
+	err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	parameters := Parameters{
-		Epoch:       0,
+		Epoch:       e.startEpoch,
 		SelfShardId: e.genesisShardCoordinator.SelfId(),
 		NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 	}
 	return parameters, nil
+}
+
+// GetTriesComponents returns the created tries components according to the shardID for the current epoch
+func (e *epochStartBootstrap) GetTriesComponents() (state.TriesHolder, map[string]data.StorageManager) {
+	return e.trieContainer, e.trieStorageManagers
 }
 
 // Bootstrap runs the fast bootstrap method from the network or local storage
@@ -211,6 +239,11 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		e.initializeFromLocalStorage()
 
+		err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
+		if err != nil {
+			return Parameters{}, err
+		}
+
 		return Parameters{
 			Epoch:       e.baseData.lastEpoch,
 			SelfShardId: e.genesisShardCoordinator.SelfId(),
@@ -219,8 +252,11 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	defer func() {
-		log.Debug("unregistering all message processor")
+		log.Debug("unregistering all message processor and un-joining all topics")
 		errMessenger := e.messenger.UnregisterAllMessageProcessors()
+		log.LogIfError(errMessenger)
+
+		errMessenger = e.messenger.UnjoinAllTopics()
 		log.LogIfError(errMessenger)
 	}()
 
@@ -241,9 +277,8 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
-	if isCurrentEpochSaved || e.isStartInEpochZero() {
-		if e.baseData.lastEpoch == 0 {
+	if e.isStartInEpochZero() || e.computeIfCurrentEpochIsSaved() {
+		if e.baseData.lastEpoch == e.startEpoch {
 			return e.prepareEpochZero()
 		}
 
@@ -254,7 +289,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		if e.shuffledOut {
 			// sync was already tried - not need to continue from here
-			return Parameters{}, err
+			return Parameters{}, errPrepare
 		}
 
 		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
@@ -270,6 +305,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
+	e.setEpochStartMetrics()
 
 	err = e.createSyncers()
 	if err != nil {
@@ -303,7 +339,12 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 }
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
-	err := e.createRequestHandler()
+	err := e.createTriesComponentsForShardId(core.MetachainShardId)
+	if err != nil {
+		return err
+	}
+
+	err = e.createRequestHandler()
 	if err != nil {
 		return err
 	}
@@ -440,13 +481,6 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
-	if e.shardCoordinator.SelfId() != e.genesisShardCoordinator.SelfId() {
-		err = e.createTriesForNewShardId(e.shardCoordinator.SelfId())
-		if err != nil {
-			return Parameters{}, err
-		}
-	}
-
 	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
 	if err != nil {
 		return Parameters{}, err
@@ -458,6 +492,11 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 			return Parameters{}, err
 		}
 	} else {
+		err = e.createTriesComponentsForShardId(e.shardCoordinator.SelfId())
+		if err != nil {
+			return Parameters{}, err
+		}
+
 		err = e.requestAndProcessForShard()
 		if err != nil {
 			return Parameters{}, err
@@ -657,6 +696,11 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 }
 
 func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
+	thr, err := throttler.NewNumGoRoutinesThrottler(numConcurrentTrieSyncers)
+	if err != nil {
+		return err
+	}
+
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:               e.coreComponentsHolder.Hasher(),
@@ -667,7 +711,8 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			Cacher:               e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		},
-		ShardId: e.shardCoordinator.SelfId(),
+		ShardId:   e.shardCoordinator.SelfId(),
+		Throttler: thr,
 	}
 	accountsDBSyncer, err := syncer.NewUserAccountsSyncer(argsUserAccountsSyncer)
 	if err != nil {
@@ -683,7 +728,8 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 	return nil
 }
 
-func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
+func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) error {
+
 	trieFactoryArgs := factory.TrieFactoryArgs{
 		EvictionWaitingListCfg:   e.generalConfig.EvictionWaitingList,
 		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,
@@ -707,7 +753,7 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 		return err
 	}
 
-	e.trieContainer.Replace([]byte(factory.UserAccountTrie), userAccountTrie)
+	e.trieContainer.Put([]byte(factory.UserAccountTrie), userAccountTrie)
 	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
 
 	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
@@ -720,7 +766,7 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 		return err
 	}
 
-	e.trieContainer.Replace([]byte(factory.PeerAccountTrie), peerAccountsTrie)
+	e.trieContainer.Put([]byte(factory.PeerAccountTrie), peerAccountsTrie)
 	e.trieStorageManagers[factory.PeerAccountTrie] = peerStorageManager
 
 	return nil
@@ -784,6 +830,11 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
+	err = resolverFactory.AddShardTrieNodeResolvers(container)
+	if err != nil {
+		return err
+	}
+
 	finder, err := containers.NewResolversFinder(container, e.shardCoordinator)
 	if err != nil {
 		return err
@@ -799,6 +850,13 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		timeBetweenRequests,
 	)
 	return err
+}
+
+func (e *epochStartBootstrap) setEpochStartMetrics() {
+	if e.epochStartMeta != nil {
+		e.statusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, e.epochStartMeta.Nonce)
+		e.statusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, e.epochStartMeta.Round)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

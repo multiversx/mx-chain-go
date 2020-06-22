@@ -11,19 +11,50 @@ import (
 )
 
 const oneMilion = 1000000
-const oneTrilion = oneMilion * oneMilion
+const oneBillion = oneMilion * 1000
 const delta = 0.00000001
+const estimatedSizeOfBoundedTxFields = uint64(128)
 
-func toMicroERD(erd uint64) uint64 {
-	return erd * 1000000
+func toNanoERD(erd float64) uint64 {
+	return uint64(erd * float64(1000000000))
 }
 
 func kBToBytes(kB float32) uint64 {
 	return uint64(kB * 1000)
 }
 
+func (cache *TxCache) areInternalMapsConsistent() bool {
+	internalMapByHash := cache.txByHash
+	internalMapBySender := cache.txListBySender
+
+	senders := internalMapBySender.getSnapshotAscending()
+	numTransactionsInMapByHash := len(internalMapByHash.keys())
+	numTransactionsInMapBySender := 0
+
+	for _, sender := range senders {
+		numTransactionsInMapBySender += int(sender.countTx())
+
+		for _, hash := range sender.getTxHashesAsStrings() {
+			_, ok := internalMapByHash.getTx(hash)
+			if !ok {
+				return false
+			}
+		}
+	}
+
+	return numTransactionsInMapBySender == numTransactionsInMapByHash
+}
+
+func (cache *TxCache) getHashesForSender(sender string) []string {
+	return cache.getListForSender(sender).getTxHashesAsStrings()
+}
+
 func (cache *TxCache) getListForSender(sender string) *txListForSender {
-	list, ok := cache.txListBySender.getListForSender(sender)
+	return cache.txListBySender.testGetListForSender(sender)
+}
+
+func (txMap *txListBySenderMap) testGetListForSender(sender string) *txListForSender {
+	list, ok := txMap.getListForSender(sender)
 	if !ok {
 		panic("sender not in cache")
 	}
@@ -31,8 +62,11 @@ func (cache *TxCache) getListForSender(sender string) *txListForSender {
 	return list
 }
 
-func (cache *TxCache) getRawScoreOfSender(sender string) float64 {
-	return cache.getListForSender(sender).computeRawScore()
+func (cache *TxCache) getScoreOfSender(sender string) uint32 {
+	list := cache.getListForSender(sender)
+	scoreParams := list.getScoreParams()
+	computer := cache.txListBySender.scoreComputer
+	return computer.computeScore(scoreParams)
 }
 
 func (cache *TxCache) getNumFailedSelectionsOfSender(sender string) int {
@@ -47,6 +81,29 @@ func (cache *TxCache) isSenderSweepable(sender string) bool {
 	}
 
 	return false
+}
+
+func (listForSender *txListForSender) getTxHashesAsStrings() []string {
+	hashes := listForSender.getTxHashes()
+	return hashesAsStrings(hashes)
+}
+
+func hashesAsStrings(hashes [][]byte) []string {
+	result := make([]string, len(hashes))
+	for i := 0; i < len(hashes); i++ {
+		result[i] = string(hashes[i])
+	}
+
+	return result
+}
+
+func hashesAsBytes(hashes []string) [][]byte {
+	result := make([][]byte, len(hashes))
+	for i := 0; i < len(hashes); i++ {
+		result[i] = []byte(hashes[i])
+	}
+
+	return result
 }
 
 func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nTransactionsPerSender int) {
@@ -70,19 +127,20 @@ func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {
 	return &WrappedTransaction{
 		Tx:     tx,
 		TxHash: hash,
+		Size:   int64(estimatedSizeOfBoundedTxFields),
 	}
 }
 
-func createTxWithParams(hash []byte, sender string, nonce uint64, dataLength uint64, gasLimit uint64, gasPrice uint64) *WrappedTransaction {
-	payloadLength := int(dataLength) - int(estimatedSizeOfBoundedTxFields)
-	if payloadLength < 0 {
+func createTxWithParams(hash []byte, sender string, nonce uint64, size uint64, gasLimit uint64, gasPrice uint64) *WrappedTransaction {
+	dataLength := int(size) - int(estimatedSizeOfBoundedTxFields)
+	if dataLength < 0 {
 		panic("createTxWithData(): invalid length for dummy tx")
 	}
 
 	tx := &transaction.Transaction{
 		SndAddr:  []byte(sender),
 		Nonce:    nonce,
-		Data:     make([]byte, payloadLength),
+		Data:     make([]byte, dataLength),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
@@ -90,6 +148,7 @@ func createTxWithParams(hash []byte, sender string, nonce uint64, dataLength uin
 	return &WrappedTransaction{
 		Tx:     tx,
 		TxHash: hash,
+		Size:   int64(size),
 	}
 }
 
@@ -133,4 +192,13 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	case <-time.After(timeout):
 		return true // timed out
 	}
+}
+
+var _ scoreComputer = (*disabledScoreComputer)(nil)
+
+type disabledScoreComputer struct {
+}
+
+func (computer *disabledScoreComputer) computeScore(_ senderScoreParams) uint32 {
+	return 0
 }

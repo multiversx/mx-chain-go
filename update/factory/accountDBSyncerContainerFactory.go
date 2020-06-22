@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -16,6 +17,8 @@ import (
 	containers "github.com/ElrondNetwork/elrond-go/update/container"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
+
+const numConcurrentTrieSyncers = 50
 
 // ArgsNewAccountsDBSyncersContainerFactory defines the arguments needed to create accounts DB syncers container
 type ArgsNewAccountsDBSyncersContainerFactory struct {
@@ -106,6 +109,11 @@ func (a *accountDBSyncersContainerFactory) Create() (update.AccountsDBSyncContai
 }
 
 func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint32) error {
+	thr, err := throttler.NewNumGoRoutinesThrottler(numConcurrentTrieSyncers)
+	if err != nil {
+		return err
+	}
+
 	args := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:               a.hasher,
@@ -116,7 +124,8 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			Cacher:               a.trieCacher,
 			MaxTrieLevelInMemory: a.maxTrieLevelinMemory,
 		},
-		ShardId: shardId,
+		ShardId:   shardId,
+		Throttler: thr,
 	}
 	accountSyncer, err := syncer.NewUserAccountsSyncer(args)
 	if err != nil {

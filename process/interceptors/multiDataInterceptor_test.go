@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
+var fromConnectedPeerId = core.PeerID("from connected peer Id")
 var testTopic = "test topic"
 
 func TestNewMultiDataInterceptor_EmptyTopicShouldErr(t *testing.T) {
@@ -182,6 +182,9 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 	t.Parallel()
 
 	errExpeced := errors.New("expected error")
+	originatorPid := core.PeerID("originator")
+	originatorBlackListed := false
+	fromConnectedPeerBlackListed := false
 	mdi, _ := interceptors.NewMultiDataInterceptor(
 		testTopic,
 		&mock.MarshalizerStub{
@@ -192,16 +195,28 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 		&mock.InterceptedDataFactoryStub{},
 		&mock.InterceptorProcessorStub{},
 		createMockThrottler(),
-		&mock.P2PAntifloodHandlerStub{},
+		&mock.P2PAntifloodHandlerStub{
+			BlacklistPeerCalled: func(peer core.PeerID, reason string, duration time.Duration) {
+				if peer == originatorPid {
+					originatorBlackListed = true
+				}
+				if peer == fromConnectedPeerId {
+					fromConnectedPeerBlackListed = true
+				}
+			},
+		},
 		&mock.WhiteListHandlerStub{},
 	)
 
 	msg := &mock.P2PMessageMock{
 		DataField: []byte("data to be processed"),
+		PeerField: originatorPid,
 	}
 	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
 
 	assert.Equal(t, errExpeced, err)
+	assert.True(t, originatorBlackListed)
+	assert.True(t, fromConnectedPeerBlackListed)
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceShouldErr(t *testing.T) {
@@ -239,6 +254,9 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldErr(t *testing.T) 
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
 	errExpected := errors.New("expected err")
+	originatorPid := core.PeerID("originator")
+	originatorBlackListed := false
+	fromConnectedPeerBlackListed := false
 	mdi, _ := interceptors.NewMultiDataInterceptor(
 		testTopic,
 		marshalizer,
@@ -249,13 +267,23 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldErr(t *testing.T) 
 		},
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
-		&mock.P2PAntifloodHandlerStub{},
+		&mock.P2PAntifloodHandlerStub{
+			BlacklistPeerCalled: func(peer core.PeerID, reason string, duration time.Duration) {
+				if peer == originatorPid {
+					originatorBlackListed = true
+				}
+				if peer == fromConnectedPeerId {
+					fromConnectedPeerBlackListed = true
+				}
+			},
+		},
 		&mock.WhiteListHandlerStub{},
 	)
 
 	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
 	msg := &mock.P2PMessageMock{
 		DataField: dataField,
+		PeerField: originatorPid,
 	}
 	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
 
@@ -266,6 +294,8 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldErr(t *testing.T) 
 	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.True(t, originatorBlackListed)
+	assert.True(t, fromConnectedPeerBlackListed)
 }
 
 func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *testing.T) {
@@ -452,7 +482,7 @@ func TestMultiDataInterceptor_SetInterceptedDebugHandlerNilShouldErr(t *testing.
 
 	err := mdi.SetInterceptedDebugHandler(nil)
 
-	assert.Equal(t, process.ErrNilInterceptedDebugHandler, err)
+	assert.Equal(t, process.ErrNilDebugger, err)
 }
 
 func TestMultiDataInterceptor_SetInterceptedDebugHandlerShouldWork(t *testing.T) {

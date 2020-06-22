@@ -18,7 +18,8 @@ type TxService interface {
 		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
-	GetTransaction(hash string) (*transaction.Transaction, error)
+	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
+	GetTransactionStatus(hash string) (string, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	IsInterfaceNil() bool
@@ -67,6 +68,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodPost, "/cost", ComputeTransactionGasLimit)
 	router.RegisterHandler(http.MethodPost, "/send-multiple", SendMultipleTransactions)
 	router.RegisterHandler(http.MethodGet, "/:txhash", GetTransaction)
+	router.RegisterHandler(http.MethodGet, "/:txhash/status", GetTransactionStatus)
 }
 
 // SendTransaction will receive a transaction from the client and propagate it for processing
@@ -176,7 +178,6 @@ func SendMultipleTransactions(c *gin.Context) {
 
 // GetTransaction returns transaction details for a given txhash
 func GetTransaction(c *gin.Context) {
-
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
@@ -191,46 +192,34 @@ func GetTransaction(c *gin.Context) {
 
 	tx, err := ef.GetTransaction(txhash)
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxNotFound.Error(), err.Error())})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"transaction": tx})
+}
+
+// GetTransactionStatus returns the status of a transaction identified by the given hash
+func GetTransactionStatus(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(TxService)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	txhash := c.Param("txhash")
+	if txhash == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyTxHash.Error())})
+		return
+	}
+
+	status, err := ef.GetTransactionStatus(txhash)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrGetTransaction.Error()})
 		return
 	}
 
-	if tx == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": errors.ErrTxNotFound.Error()})
-		return
-	}
-
-	response, err := txResponseFromTransaction(ef, tx)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"transaction": response})
-}
-
-func txResponseFromTransaction(ef TxService, tx *transaction.Transaction) (TxResponse, error) {
-	response := TxResponse{}
-	sender, err := ef.EncodeAddressPubkey(tx.SndAddr)
-	if err != nil {
-		return response, fmt.Errorf("%w for sender adddress", err)
-	}
-
-	receiver, err := ef.EncodeAddressPubkey(tx.RcvAddr)
-	if err != nil {
-		return response, fmt.Errorf("%w for sender adddress", err)
-	}
-
-	response.Nonce = tx.Nonce
-	response.Sender = sender
-	response.Receiver = receiver
-	response.Data = string(tx.Data)
-	response.Signature = hex.EncodeToString(tx.Signature)
-	response.Value = tx.Value.String()
-	response.GasLimit = tx.GasLimit
-	response.GasPrice = tx.GasPrice
-
-	return response, nil
+	c.JSON(http.StatusOK, gin.H{"status": status})
 }
 
 // ComputeTransactionGasLimit returns how many gas units a transaction wil consume

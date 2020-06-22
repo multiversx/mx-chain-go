@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
@@ -46,7 +48,7 @@ type Cacher interface {
 	// Clear is used to completely clear the cache.
 	Clear()
 	// Put adds a value to the cache.  Returns true if an eviction occurred.
-	Put(key []byte, value interface{}) (evicted bool)
+	Put(key []byte, value interface{}, sizeInBytes int) (evicted bool)
 	// Get looks up a key's value from the cache.
 	Get(key []byte) (value interface{}, ok bool)
 	// Has checks if a key is in the cache, without updating the
@@ -55,14 +57,11 @@ type Cacher interface {
 	// Peek returns the key value (or undefined if not found) without updating
 	// the "recently used"-ness of the key.
 	Peek(key []byte) (value interface{}, ok bool)
-	// HasOrAdd checks if a key is in the cache  without updating the
-	// recent-ness or deleting it for being stale,  and if not adds the value.
-	// Returns whether found and whether an eviction occurred.
-	HasOrAdd(key []byte, value interface{}) (ok, evicted bool)
+	// HasOrAdd checks if a key is in the cache without updating the
+	// recent-ness or deleting it for being stale, and if not adds the value.
+	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool)
 	// Remove removes the provided key from the cache.
 	Remove(key []byte)
-	// RemoveOldest removes the oldest item from the cache.
-	RemoveOldest()
 	// Keys returns a slice of the keys in the cache, from oldest to newest.
 	Keys() [][]byte
 	// Len returns the number of items in the cache.
@@ -70,7 +69,9 @@ type Cacher interface {
 	// MaxSize returns the maximum number of items which can be stored in the cache.
 	MaxSize() int
 	// RegisterHandler registers a new handler to be called when a new data is added
-	RegisterHandler(func(key []byte, value interface{}))
+	RegisterHandler(handler func(key []byte, value interface{}), id string)
+	// UnRegisterHandler deletes the handler from the list
+	UnRegisterHandler(id string)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -168,5 +169,44 @@ type ShardCoordinator interface {
 	SelfId() uint32
 	SameShard(firstAddress, secondAddress []byte) bool
 	CommunicationIdentifier(destShardID uint32) string
+	IsInterfaceNil() bool
+}
+
+// ForEachItem is an iterator callback
+type ForEachItem func(key []byte, value interface{})
+
+// LRUCacheHandler is the interface for LRU cache.
+type LRUCacheHandler interface {
+	Add(key, value interface{}) bool
+	Get(key interface{}) (value interface{}, ok bool)
+	Contains(key interface{}) (ok bool)
+	ContainsOrAdd(key, value interface{}) (ok, evicted bool)
+	Peek(key interface{}) (value interface{}, ok bool)
+	Remove(key interface{}) bool
+	Keys() []interface{}
+	Len() int
+	Purge()
+}
+
+// SizedLRUCacheHandler is the interface for size capable LRU cache.
+type SizedLRUCacheHandler interface {
+	AddSized(key, value interface{}, sizeInBytes int64) bool
+	Get(key interface{}) (value interface{}, ok bool)
+	Contains(key interface{}) (ok bool)
+	AddSizedIfMissing(key, value interface{}, sizeInBytes int64) (ok, evicted bool)
+	Peek(key interface{}) (value interface{}, ok bool)
+	Remove(key interface{}) bool
+	Keys() []interface{}
+	Len() int
+	Purge()
+}
+
+// TimeCacheHandler defines the cache that can keep a record for a bounded time
+type TimeCacheHandler interface {
+	Add(key string) error
+	AddWithSpan(key string, span time.Duration) error
+	Update(key string, span time.Duration) error
+	Has(key string) bool
+	Sweep()
 	IsInterfaceNil() bool
 }

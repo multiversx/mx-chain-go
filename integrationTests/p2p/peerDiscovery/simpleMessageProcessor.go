@@ -3,6 +3,7 @@ package peerDiscovery
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -13,7 +14,7 @@ type SimpleMessageProcessor struct {
 }
 
 // ProcessReceivedMessage records the message
-func (smp *SimpleMessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
+func (smp *SimpleMessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
 	smp.mutMessage.Lock()
 	smp.message = message.Data()
 	smp.mutMessage.Unlock()

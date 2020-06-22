@@ -1,22 +1,24 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // MessengerStub -
 type MessengerStub struct {
-	ConnectedPeersCalled           func() []p2p.PeerID
+	ConnectedPeersCalled           func() []core.PeerID
 	RegisterMessageProcessorCalled func(topic string, handler p2p.MessageProcessor) error
+	UnjoinAllTopicsCalled          func() error
 }
 
 // ConnectedPeersOnTopic -
-func (m *MessengerStub) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
-	return []p2p.PeerID{"peer0"}
+func (m *MessengerStub) ConnectedPeersOnTopic(_ string) []core.PeerID {
+	return []core.PeerID{"peer0"}
 }
 
 // SendToConnectedPeer -
-func (m *MessengerStub) SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
+func (m *MessengerStub) SendToConnectedPeer(_ string, _ []byte, _ core.PeerID) error {
 	return nil
 }
 
@@ -26,12 +28,12 @@ func (m *MessengerStub) IsInterfaceNil() bool {
 }
 
 // HasTopic -
-func (m *MessengerStub) HasTopic(name string) bool {
+func (m *MessengerStub) HasTopic(_ string) bool {
 	return false
 }
 
 // CreateTopic -
-func (m *MessengerStub) CreateTopic(name string, createChannelForTopic bool) error {
+func (m *MessengerStub) CreateTopic(_ string, _ bool) error {
 	return nil
 }
 
@@ -45,7 +47,7 @@ func (m *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.Messa
 }
 
 // UnregisterMessageProcessor -
-func (m *MessengerStub) UnregisterMessageProcessor(topic string) error {
+func (m *MessengerStub) UnregisterMessageProcessor(_ string) error {
 	return nil
 }
 
@@ -54,11 +56,20 @@ func (m *MessengerStub) UnregisterAllMessageProcessors() error {
 	return nil
 }
 
+// UnjoinAllTopics -
+func (m *MessengerStub) UnjoinAllTopics() error {
+	if m.UnjoinAllTopicsCalled != nil {
+		return m.UnjoinAllTopicsCalled()
+	}
+
+	return nil
+}
+
 // ConnectedPeers -
-func (m *MessengerStub) ConnectedPeers() []p2p.PeerID {
+func (m *MessengerStub) ConnectedPeers() []core.PeerID {
 	if m.ConnectedPeersCalled != nil {
 		return m.ConnectedPeersCalled()
 	}
 
-	return []p2p.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
+	return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
 }

@@ -81,8 +81,13 @@ func (keyGen *KeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, 
 }
 
 // PublicKeyFromByteArray generates a public key from it's byte array representation
-func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
+func (keyGen *KeyGenMock) PublicKeyFromByteArray(_ []byte) (crypto.PublicKey, error) {
 	return &PublicKeyMock{}, nil
+}
+
+// CheckPublicKeyValid -
+func (keyGen *KeyGenMock) CheckPublicKeyValid(_ []byte) error {
+	return nil
 }
 
 // Suite -

@@ -1,20 +1,22 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+)
 
 // PeerListCreatorStub -
 type PeerListCreatorStub struct {
-	PeerListCalled           func() []p2p.PeerID
-	IntraShardPeerListCalled func() []p2p.PeerID
+	PeerListCalled           func() []core.PeerID
+	IntraShardPeerListCalled func() []core.PeerID
 }
 
 // PeerList -
-func (p *PeerListCreatorStub) PeerList() []p2p.PeerID {
+func (p *PeerListCreatorStub) PeerList() []core.PeerID {
 	return p.PeerListCalled()
 }
 
 // IntraShardPeerList -
-func (p *PeerListCreatorStub) IntraShardPeerList() []p2p.PeerID {
+func (p *PeerListCreatorStub) IntraShardPeerList() []core.PeerID {
 	return p.IntraShardPeerListCalled()
 }
 

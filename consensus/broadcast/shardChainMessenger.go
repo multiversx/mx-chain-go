@@ -3,6 +3,7 @@ package broadcast
 import (
 	"bytes"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -26,7 +27,7 @@ type shardChainMessenger struct {
 	headersSubscriber    consensus.HeadersPoolSubscriber
 	delayedBroadcastData []*delayedBroadcastData
 	maxDelayCacheSize    uint32
-	mutDataForBroadcast  sync.Mutex
+	mutDataForBroadcast  sync.RWMutex
 }
 
 // ShardChainMessengerArgs holds the arguments for creating a shardChainMessenger instance
@@ -59,7 +60,7 @@ func NewShardChainMessenger(
 		headersSubscriber:    args.HeadersSubscriber,
 		delayedBroadcastData: make([]*delayedBroadcastData, 0),
 		maxDelayCacheSize:    args.MaxDelayCacheSize,
-		mutDataForBroadcast:  sync.Mutex{},
+		mutDataForBroadcast:  sync.RWMutex{},
 	}
 
 	scm.headersSubscriber.RegisterHandler(scm.headerReceived)
@@ -167,8 +168,8 @@ func (scm *shardChainMessenger) SetDataForDelayBroadcast(
 }
 
 func (scm *shardChainMessenger) headerReceived(headerHandler data.HeaderHandler, _ []byte) {
-	scm.mutDataForBroadcast.Lock()
-	defer scm.mutDataForBroadcast.Unlock()
+	scm.mutDataForBroadcast.RLock()
+	defer scm.mutDataForBroadcast.RUnlock()
 
 	if len(scm.delayedBroadcastData) == 0 {
 		return
@@ -185,6 +186,15 @@ func (scm *shardChainMessenger) headerReceived(headerHandler data.HeaderHandler,
 	if len(headerHashes) == 0 {
 		return
 	}
+
+	go scm.broadcastDataForHeaders(headerHashes)
+}
+
+func (scm *shardChainMessenger) broadcastDataForHeaders(headerHashes [][]byte) {
+	time.Sleep(core.ExtraDelayForBroadcastBlockInfo)
+
+	scm.mutDataForBroadcast.Lock()
+	defer scm.mutDataForBroadcast.Unlock()
 
 	for i := len(scm.delayedBroadcastData) - 1; i >= 0; i-- {
 		for _, headerHash := range headerHashes {

@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -511,7 +512,7 @@ func TestWithDataPool_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 
 	opt := WithDataPool(dataPool)
 	err := opt(node)
@@ -1052,18 +1053,6 @@ func TestWithBootstrapRoundIndex(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithTxStorageSize(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-	txStorageSize := uint32(100)
-	opt := WithTxStorageSize(txStorageSize)
-
-	err := opt(node)
-	assert.Equal(t, txStorageSize, node.txStorageSize)
-	assert.Nil(t, err)
-}
-
 func TestWithEpochStartTrigger_NilEpoch(t *testing.T) {
 	t.Parallel()
 
@@ -1134,7 +1123,7 @@ func TestWithPeerBlackListHandler_OkHandlerShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	blackListHandler := &mock.BlackListHandlerStub{}
+	blackListHandler := &mock.PeerBlackListHandlerStub{}
 	opt := WithPeerBlackListHandler(blackListHandler)
 	err := opt(node)
 

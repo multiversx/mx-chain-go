@@ -208,27 +208,6 @@ func TestElasticIndexer_SaveBlockNilBodyHandler(t *testing.T) {
 	require.True(t, strings.Contains(output.String(), indexer.ErrBodyTypeAssertion.Error()))
 }
 
-func TestElasticIndexer_SaveBlockNoMiniBlocks(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-
-	output := &bytes.Buffer{}
-	_ = logger.SetLogLevel("core/indexer:TRACE")
-	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
-	arguments := NewElasticIndexerArguments()
-	arguments.Url = ts.URL
-	ei, _ := indexer.NewElasticIndexer(arguments)
-
-	defer func() {
-		_ = logger.RemoveLogObserver(output)
-		_ = logger.SetLogLevel("core/indexer:INFO")
-	}()
-
-	header := &block.Header{}
-	body := &block.Body{}
-	ei.SaveBlock(body, header, nil, []uint64{0}, nil)
-	require.True(t, strings.Contains(output.String(), indexer.ErrNoMiniblocks.Error()))
-}
-
 func TestElasticIndexer_SaveRoundInfo(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 
@@ -245,7 +224,7 @@ func TestElasticIndexer_SaveRoundInfo(t *testing.T) {
 		_ = logger.SetLogLevel("core/indexer:INFO")
 	}()
 
-	ei.SaveRoundInfo(indexer.RoundInfo{})
+	ei.SaveRoundsInfos([]indexer.RoundInfo{})
 	require.Empty(t, output.String())
 }
 

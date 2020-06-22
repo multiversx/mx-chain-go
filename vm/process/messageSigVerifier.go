@@ -32,6 +32,10 @@ func NewMessageSigVerifier(
 
 // Verify checks if message was signed by public key given as byte array
 func (m *messageSigVerifier) Verify(message []byte, signedMessage []byte, pubKey []byte) error {
+	if len(pubKey) == 0 {
+		return vm.ErrNilPublicKey
+	}
+
 	actPubKey, err := m.kg.PublicKeyFromByteArray(pubKey)
 	if err != nil {
 		return err

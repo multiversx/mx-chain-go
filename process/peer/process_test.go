@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -20,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,6 +38,7 @@ const (
 	maxRating                       = uint32(100)
 	startRating                     = uint32(50)
 	defaultChancesSelection         = uint32(1)
+	consensusGroupFormat            = "%s_%v_%v_%v"
 )
 
 func createMockPubkeyConverter() *mock.PubkeyConverterMock {
@@ -56,11 +59,12 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:  "10000000",
-				MinGasPrice:          "10",
-				MinGasLimit:          "10",
-				GasPerDataByte:       "1",
-				DataLimitForBaseCalc: "10000",
+				MaxGasLimitPerBlock:     "10000000",
+				MaxGasLimitPerMetaBlock: "10000000",
+				MinGasPrice:             "10",
+				MinGasLimit:             "10",
+				GasPerDataByte:          "1",
+				DataLimitForBaseCalc:    "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
 				GenesisNodePrice:         "500",
@@ -79,7 +83,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer: &mock.MarshalizerMock{},
-		DataPool: &mock.PoolsHolderStub{
+		DataPool: &testscommon.PoolsHolderStub{
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return nil
 			},
@@ -481,7 +485,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = marshalizer
-	arguments.DataPool = &mock.PoolsHolderStub{
+	arguments.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -537,7 +541,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = marshalizer
-	arguments.DataPool = &mock.PoolsHolderStub{
+	arguments.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -595,6 +599,545 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	assert.True(t, increaseValidatorCalled)
 }
 
+func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPreviousMetaBlock_SameEpoch(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]sharding.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+	prevHeader, header := generateTestMetaBlockHeaders(cache)
+
+	header.Round = prevHeader.Round + 1
+	header.Epoch = 1
+
+	v1 := mock.NewValidatorMock([]byte("pk1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"))
+
+	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
+	prevHeaderConsensus := []sharding.Validator{v1, v2}
+	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
+
+	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
+	currentHeaderConsensus := []sharding.Validator{v3, v4}
+	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
+	assert.Nil(t, err)
+
+	pa1, _ := validatorStatistics.GetPeerAccount(v1.PubKey())
+	leader := pa1.(*mock.PeerAccountHandlerMock)
+	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	validator := pa2.(*mock.PeerAccountHandlerMock)
+
+	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
+	assert.Equal(t, uint32(1), validator.IncreaseValidatorSuccessRateValue)
+}
+
+func generateTestMetaBlockHeaders(cache map[string]data.HeaderHandler) (*block.MetaBlock, *block.MetaBlock) {
+	prevHeader := &block.MetaBlock{
+		Round:           1,
+		Epoch:           1,
+		Nonce:           1,
+		PubKeysBitmap:   []byte{255, 255},
+		AccumulatedFees: big.NewInt(0),
+		PrevRandSeed:    []byte("prevRandSeed"),
+	}
+
+	header := getMetaHeaderHandler([]byte("header"))
+	header.PubKeysBitmap = []byte{255, 0}
+	header.RandSeed = []byte{1}
+
+	cache[string(header.GetPrevHash())] = prevHeader
+	return prevHeader, header
+}
+
+func generateTestShardBlockHeaders(cache map[string]data.HeaderHandler) (*block.Header, *block.Header) {
+	prevHeader := &block.Header{
+		Round:           1,
+		Epoch:           1,
+		Nonce:           1,
+		PubKeysBitmap:   []byte{255, 255},
+		AccumulatedFees: big.NewInt(0),
+		PrevRandSeed:    []byte("prevRandSeed"),
+		RandSeed:        []byte("prevHeaderRandSeed"),
+	}
+
+	header := getShardHeaderHandler([]byte("header"))
+	header.PubKeysBitmap = []byte{255, 0}
+	header.RandSeed = []byte{1}
+
+	cache[string(header.GetPrevHash())] = prevHeader
+	return prevHeader, header
+}
+
+func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_SameEpoch(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]sharding.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+
+	prevHeader, header := generateTestMetaBlockHeaders(cache)
+
+	header.Round = prevHeader.Round + 2
+	header.Epoch = 1
+
+	v1 := mock.NewValidatorMock([]byte("pk1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"))
+
+	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
+	prevHeaderConsensus := []sharding.Validator{v1, v2}
+	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
+
+	missedHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.RandSeed, prevHeader.Round+1, prevHeader.GetShardID(), prevHeader.Epoch)
+	missedHeaderConsensus := []sharding.Validator{v2, v3}
+	consensusGroup[missedHeaderConsensusKey] = missedHeaderConsensus
+
+	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
+	currentHeaderConsensus := []sharding.Validator{v3, v4}
+	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
+	assert.Nil(t, err)
+
+	pa1, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	missedLeader := pa1.(*mock.PeerAccountHandlerMock)
+	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
+
+	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
+	assert.Equal(t, uint32(1), missedValidator.DecreaseValidatorSuccessRateValue)
+}
+
+func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPreviousMetaBlock_StartOfEpoch(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]sharding.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+	prevHeader, header := generateTestMetaBlockHeaders(cache)
+
+	header.Round = prevHeader.Round + 1
+	header.Epoch = 1
+	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0}}
+
+	v1 := mock.NewValidatorMock([]byte("pk1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"))
+
+	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
+	prevHeaderConsensus := []sharding.Validator{v1, v2}
+	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
+
+	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch-1)
+	currentHeaderConsensus := []sharding.Validator{v3, v4}
+	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
+	assert.Nil(t, err)
+
+	pa1, _ := validatorStatistics.GetPeerAccount(v1.PubKey())
+	leader := pa1.(*mock.PeerAccountHandlerMock)
+	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	validator := pa2.(*mock.PeerAccountHandlerMock)
+
+	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
+	assert.Equal(t, uint32(1), validator.IncreaseValidatorSuccessRateValue)
+}
+
+func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_StartOfEpoch(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]sharding.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+
+	prevHeader, header := generateTestMetaBlockHeaders(cache)
+
+	header.Round = prevHeader.Round + 2
+	header.Epoch = 2
+	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0}}
+
+	v1 := mock.NewValidatorMock([]byte("pk1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"))
+
+	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
+	prevHeaderConsensus := []sharding.Validator{v1, v2}
+	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
+
+	missedHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.RandSeed, prevHeader.Round+1, prevHeader.GetShardID(), prevHeader.Epoch)
+	missedHeaderConsensus := []sharding.Validator{v2, v3}
+	consensusGroup[missedHeaderConsensusKey] = missedHeaderConsensus
+
+	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch-1)
+	currentHeaderConsensus := []sharding.Validator{v3, v4}
+	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
+	assert.Nil(t, err)
+
+	pa1, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	missedLeader := pa1.(*mock.PeerAccountHandlerMock)
+	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
+
+	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
+	assert.Equal(t, uint32(1), missedValidator.DecreaseValidatorSuccessRateValue)
+}
+
+func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPreviousMetaBlock_PrevStartOfEpoch(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]sharding.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+
+	prevHeader, header := generateTestMetaBlockHeaders(cache)
+
+	prevHeader.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0}}
+
+	header.Round = prevHeader.Round + 1
+	header.Epoch = 1
+
+	v1 := mock.NewValidatorMock([]byte("pk1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"))
+
+	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch-1)
+	prevHeaderConsensus := []sharding.Validator{v1, v2}
+	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
+
+	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
+	currentHeaderConsensus := []sharding.Validator{v3, v4}
+	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
+	assert.Nil(t, err)
+
+	pa1, _ := validatorStatistics.GetPeerAccount(v1.PubKey())
+	leader := pa1.(*mock.PeerAccountHandlerMock)
+	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	validator := pa2.(*mock.PeerAccountHandlerMock)
+
+	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
+	assert.Equal(t, uint32(1), validator.IncreaseValidatorSuccessRateValue)
+}
+
+func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_PrevStartOfEpoch(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]sharding.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+
+	prevHeader, header := generateTestMetaBlockHeaders(cache)
+
+	prevHeader.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0}}
+
+	header.Round = prevHeader.Round + 2
+	header.Epoch = 1
+
+	v1 := mock.NewValidatorMock([]byte("pk1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"))
+
+	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch-1)
+	prevHeaderConsensus := []sharding.Validator{v1, v2}
+	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
+
+	missedHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.RandSeed, prevHeader.Round+1, prevHeader.GetShardID(), prevHeader.Epoch)
+	missedHeaderConsensus := []sharding.Validator{v2, v3}
+	consensusGroup[missedHeaderConsensusKey] = missedHeaderConsensus
+
+	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
+	currentHeaderConsensus := []sharding.Validator{v3, v4}
+	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
+	assert.Nil(t, err)
+
+	pa1, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	missedLeader := pa1.(*mock.PeerAccountHandlerMock)
+	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
+
+	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
+	assert.Equal(t, uint32(1), missedValidator.DecreaseValidatorSuccessRateValue)
+}
+
+func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensusCurrentShardBlock_SameEpoch(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]sharding.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+
+	prevHeader, header := generateTestShardBlockHeaders(cache)
+
+	header.Round = prevHeader.Round + 1
+	header.Nonce = prevHeader.Nonce + 1
+	header.Epoch = 1
+	header.PrevRandSeed = prevHeader.RandSeed
+
+	metaHeader := getMetaHeaderHandler([]byte("metaheader"))
+	metaHeader.Round = prevHeader.Round + 1
+	metaHeader.PubKeysBitmap = []byte{255, 0}
+	metaHeader.Epoch = 1
+	metaHeader.RandSeed = []byte{1}
+
+	headerHash := []byte("headerHash")
+	prevHeaderHash := []byte("prevHeaderHash")
+	metaHeader.ShardInfo = []block.ShardData{
+		shardDataFromHeader(headerHash, header),
+	}
+
+	cache[string(prevHeaderHash)] = prevHeader
+	cache[string(headerHash)] = header
+
+	v1 := mock.NewValidatorMock([]byte("pk1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"))
+
+	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
+	prevHeaderConsensus := []sharding.Validator{v1, v2}
+	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
+
+	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
+	currentHeaderConsensus := []sharding.Validator{v3, v4}
+	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+
+	err := validatorStatistics.UpdateShardDataPeerState(metaHeader, cache)
+	assert.Nil(t, err)
+
+	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	leader := pa3.(*mock.PeerAccountHandlerMock)
+	pa4, _ := validatorStatistics.GetPeerAccount(v4.PubKey())
+	validator := pa4.(*mock.PeerAccountHandlerMock)
+
+	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
+	assert.Equal(t, uint32(1), validator.IncreaseValidatorSuccessRateValue)
+}
+
+func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedShardBlock_SameEpoch(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]sharding.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+
+	prevHeader, header := generateTestShardBlockHeaders(cache)
+
+	header.Round = prevHeader.Round + 2
+	header.Nonce = prevHeader.Nonce + 1
+	header.Epoch = 1
+	header.PrevRandSeed = prevHeader.RandSeed
+
+	metaHeader := getMetaHeaderHandler([]byte("metaheader"))
+	metaHeader.Round = prevHeader.Round + 1
+	metaHeader.PubKeysBitmap = []byte{255, 0}
+	metaHeader.Epoch = 1
+	metaHeader.RandSeed = []byte{1}
+
+	headerHash := []byte("headerHash")
+	prevHeaderHash := []byte("prevHeaderHash")
+	metaHeader.ShardInfo = []block.ShardData{
+		shardDataFromHeader(headerHash, header),
+	}
+
+	cache[string(prevHeaderHash)] = prevHeader
+	cache[string(headerHash)] = header
+
+	v1 := mock.NewValidatorMock([]byte("pk1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"))
+
+	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
+	prevHeaderConsensus := []sharding.Validator{v1, v2}
+	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
+
+	missedHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.RandSeed, prevHeader.Round+1, prevHeader.GetShardID(), prevHeader.Epoch)
+	missedHeaderConsensus := []sharding.Validator{v2, v3}
+	consensusGroup[missedHeaderConsensusKey] = missedHeaderConsensus
+
+	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
+	currentHeaderConsensus := []sharding.Validator{v3, v4}
+	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+
+	err := validatorStatistics.UpdateShardDataPeerState(metaHeader, cache)
+	assert.Nil(t, err)
+
+	err = validatorStatistics.UpdateMissedBlocksCounters()
+	assert.Nil(t, err)
+
+	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	missedLeader := pa2.(*mock.PeerAccountHandlerMock)
+	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
+
+	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
+	assert.Equal(t, uint32(1), missedValidator.DecreaseValidatorSuccessRateValue)
+}
+
+func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensusShardBlock_StartOfEpoch(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]sharding.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+
+	prevHeader, header := generateTestShardBlockHeaders(cache)
+
+	header.Round = prevHeader.Round + 1
+	header.Nonce = prevHeader.Nonce + 1
+	header.Epoch = 2
+	header.PrevRandSeed = prevHeader.RandSeed
+	header.EpochStartMetaHash = []byte("epochStartMetaHash")
+
+	metaHeader := getMetaHeaderHandler([]byte("metaheader"))
+	metaHeader.Round = prevHeader.Round + 1
+	metaHeader.PubKeysBitmap = []byte{255, 0}
+	metaHeader.Epoch = 1
+	metaHeader.RandSeed = []byte{1}
+
+	headerHash := []byte("headerHash")
+	prevHeaderHash := []byte("prevHeaderHash")
+	metaHeader.ShardInfo = []block.ShardData{
+		shardDataFromHeader(headerHash, header),
+	}
+
+	cache[string(prevHeaderHash)] = prevHeader
+	cache[string(headerHash)] = header
+
+	v1 := mock.NewValidatorMock([]byte("pk1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"))
+
+	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
+	prevHeaderConsensus := []sharding.Validator{v1, v2}
+	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
+
+	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch-1)
+	currentHeaderConsensus := []sharding.Validator{v3, v4}
+	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+
+	err := validatorStatistics.UpdateShardDataPeerState(metaHeader, cache)
+	assert.Nil(t, err)
+
+	err = validatorStatistics.UpdateMissedBlocksCounters()
+	assert.Nil(t, err)
+
+	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	leader := pa3.(*mock.PeerAccountHandlerMock)
+	pa4, _ := validatorStatistics.GetPeerAccount(v4.PubKey())
+	validator := pa4.(*mock.PeerAccountHandlerMock)
+
+	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
+	assert.Equal(t, uint32(1), validator.IncreaseValidatorSuccessRateValue)
+}
+
+func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedShardBlock_StartOfEpoch(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]sharding.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+
+	prevHeader, header := generateTestShardBlockHeaders(cache)
+
+	header.Round = prevHeader.Round + 2
+	header.Nonce = prevHeader.Nonce + 1
+	header.Epoch = 1
+	header.PrevRandSeed = prevHeader.RandSeed
+
+	metaHeader := getMetaHeaderHandler([]byte("metaheader"))
+	metaHeader.Round = prevHeader.Round + 1
+	metaHeader.PubKeysBitmap = []byte{255, 0}
+	metaHeader.Epoch = 1
+	metaHeader.RandSeed = []byte{1}
+
+	headerHash := []byte("headerHash")
+	prevHeaderHash := []byte("prevHeaderHash")
+	metaHeader.ShardInfo = []block.ShardData{
+		shardDataFromHeader(headerHash, header),
+	}
+
+	cache[string(prevHeaderHash)] = prevHeader
+	cache[string(headerHash)] = header
+
+	v1 := mock.NewValidatorMock([]byte("pk1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"))
+
+	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
+	prevHeaderConsensus := []sharding.Validator{v1, v2}
+	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
+
+	missedHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.RandSeed, prevHeader.Round+1, prevHeader.GetShardID(), prevHeader.Epoch)
+	missedHeaderConsensus := []sharding.Validator{v2, v3}
+	consensusGroup[missedHeaderConsensusKey] = missedHeaderConsensus
+
+	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
+	currentHeaderConsensus := []sharding.Validator{v3, v4}
+	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+
+	err := validatorStatistics.UpdateShardDataPeerState(metaHeader, cache)
+	assert.Nil(t, err)
+
+	err = validatorStatistics.UpdateMissedBlocksCounters()
+	assert.Nil(t, err)
+
+	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	missedLeader := pa2.(*mock.PeerAccountHandlerMock)
+	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
+
+	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
+	assert.Equal(t, uint32(1), missedValidator.DecreaseValidatorSuccessRateValue)
+}
+
 func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *testing.T) {
 	t.Parallel()
 
@@ -623,7 +1166,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
 	arguments := createMockArguments()
-	arguments.DataPool = &mock.PoolsHolderStub{
+	arguments.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -678,6 +1221,20 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	assert.Equal(t, missedBlocksErr, err)
 }
 
+func shardDataFromHeader(headerHash []byte, prevHeader *block.Header) block.ShardData {
+	sd := block.ShardData{HeaderHash: headerHash,
+		PrevRandSeed:    prevHeader.PrevRandSeed,
+		PubKeysBitmap:   prevHeader.PubKeysBitmap,
+		Signature:       prevHeader.Signature,
+		Round:           prevHeader.Round,
+		PrevHash:        prevHeader.PrevHash,
+		Nonce:           prevHeader.Nonce,
+		ShardID:         prevHeader.ShardID,
+		AccumulatedFees: big.NewInt(0)}
+
+	return sd
+}
+
 func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *testing.T) {
 	t.Parallel()
 
@@ -686,7 +1243,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
-	arguments.DataPool = &mock.PoolsHolderStub{}
+	arguments.DataPool = testscommon.NewPoolsHolderStub()
 	arguments.StorageService = &mock.ChainStorerMock{}
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
@@ -719,7 +1276,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
-	arguments.DataPool = &mock.PoolsHolderStub{}
+	arguments.DataPool = testscommon.NewPoolsHolderStub()
 	arguments.StorageService = &mock.ChainStorerMock{}
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
@@ -1172,7 +1729,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 			}, &mock.ValidatorMock{}}, nil
 		},
 	}
-	arguments.DataPool = &mock.PoolsHolderStub{
+	arguments.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
@@ -1194,6 +1751,16 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 
 func getMetaHeaderHandler(randSeed []byte) *block.MetaBlock {
 	return &block.MetaBlock{
+		Nonce:           2,
+		PrevRandSeed:    randSeed,
+		PrevHash:        randSeed,
+		PubKeysBitmap:   randSeed,
+		AccumulatedFees: big.NewInt(0),
+	}
+}
+
+func getShardHeaderHandler(randSeed []byte) *block.Header {
+	return &block.Header{
 		Nonce:           2,
 		PrevRandSeed:    randSeed,
 		PrevHash:        randSeed,
@@ -1568,7 +2135,7 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 	pad := state.PeerAccountData{
 		BLSPublicKey:  []byte("blsKey"),
 		ShardId:       7,
-		List:          "List",
+		List:          "list",
 		IndexInList:   2,
 		TempRating:    51,
 		Rating:        70,
@@ -1591,6 +2158,7 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 		},
 		NumSelectedInSuccessBlocks: 3,
 		AccumulatedFees:            big.NewInt(70),
+		UnStakedEpoch:              core.DefaultUnstakedEpoch,
 	}
 
 	peerAccount := state.NewEmptyPeerAccount()
@@ -1619,7 +2187,79 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NumFailure, vs.TotalValidatorFailure)
 	assert.Equal(t, peerAccount.GetNumSelectedInSuccessBlocks(), vs.NumSelectedInSuccessBlocks)
 	assert.Equal(t, big.NewInt(0).Set(peerAccount.GetAccumulatedFees()), vs.AccumulatedFees)
+}
 
+func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
+	eligibleList := string(core.EligibleList)
+	eligiblePeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return eligibleList
+		},
+	}
+	computedEligibleList := peer.GetActualList(eligiblePeer)
+	assert.Equal(t, eligibleList, computedEligibleList)
+
+	waitingList := string(core.WaitingList)
+	waitingPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return waitingList
+		},
+	}
+	computedWaiting := peer.GetActualList(waitingPeer)
+	assert.Equal(t, waitingList, computedWaiting)
+
+	leavingList := string(core.LeavingList)
+	leavingPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return leavingList
+		},
+	}
+	computedLeavingList := peer.GetActualList(leavingPeer)
+	assert.Equal(t, leavingList, computedLeavingList)
+
+	newList := string(core.NewList)
+	newPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return newList
+		},
+	}
+	computedNewList := peer.GetActualList(newPeer)
+	assert.Equal(t, newList, computedNewList)
+
+	inactiveList := string(core.InactiveList)
+	inactivePeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return inactiveList
+		},
+		GetUnStakedEpochCalled: func() uint32 {
+			return 2
+		},
+	}
+	computedInactiveList := peer.GetActualList(inactivePeer)
+	assert.Equal(t, inactiveList, computedInactiveList)
+
+	inactivePeer2 := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return inactiveList
+		},
+		GetUnStakedEpochCalled: func() uint32 {
+			return 0
+		},
+	}
+	computedInactiveList = peer.GetActualList(inactivePeer2)
+	assert.Equal(t, inactiveList, computedInactiveList)
+
+	jailedList := string(core.JailedList)
+	jailedPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return inactiveList
+		},
+		GetUnStakedEpochCalled: func() uint32 {
+			return core.DefaultUnstakedEpoch
+		},
+	}
+	computedJailedList := peer.GetActualList(jailedPeer)
+	assert.Equal(t, jailedList, computedJailedList)
 }
 
 func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess uint32, validatorFailure uint32) *state.ValidatorInfo {
@@ -1687,6 +2327,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		Rating:                     51,
 		TempRating:                 61,
 		Nonce:                      7,
+		UnStakedEpoch:              core.DefaultUnstakedEpoch,
 	}
 
 	addr = addrBytesMeta
@@ -1708,6 +2349,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		TempRating:                 611,
 		Nonce:                      8,
 		ShardId:                    core.MetachainShardId,
+		UnStakedEpoch:              core.DefaultUnstakedEpoch,
 	}
 	return pa0, paMeta
 }
@@ -1732,4 +2374,36 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 		return pa0, nil
 	}
 	arguments.PeerAdapter = peerAdapter
+}
+
+func createUpdateTestArgs(consensusGroup map[string][]sharding.Validator) peer.ArgValidatorStatisticsProcessor {
+	peerAccountsMap := make(map[string]state.PeerAccountHandler)
+	arguments := createMockArguments()
+
+	arguments.Rater = mock.GetNewMockRater()
+	adapter := getAccountsMock()
+	adapter.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		pk := string(address)
+		_, ok := peerAccountsMap[pk]
+		if !ok {
+			peerAccountsMap[pk] = &mock.PeerAccountHandlerMock{}
+		}
+		return peerAccountsMap[pk], nil
+	}
+	adapter.RootHashCalled = func() ([]byte, error) {
+		return nil, nil
+	}
+	arguments.PeerAdapter = adapter
+
+	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
+			key := fmt.Sprintf(consensusGroupFormat, string(randomness), round, shardId, epoch)
+			validatorsArray, ok := consensusGroup[key]
+			if !ok {
+				return nil, spos.ErrEmptyConsensusGroup
+			}
+			return validatorsArray, nil
+		},
+	}
+	return arguments
 }

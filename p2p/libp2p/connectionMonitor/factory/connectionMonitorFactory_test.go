@@ -13,8 +13,8 @@ import (
 
 func createMockArg() ArgsConnectionMonitorFactory {
 	return ArgsConnectionMonitorFactory{
-		Reconnecter:                &mock.ReconnecterWithPauseAndResumeStub{},
-		Sharder:                    &mock.PrioSharderStub{},
+		Reconnecter:                &mock.ReconnecterStub{},
+		Sharder:                    &mock.SharderStub{},
 		ThresholdMinConnectedPeers: 1,
 		TargetCount:                1,
 	}
@@ -29,30 +29,6 @@ func TestNewConnectionMonitor_NilReconnecterShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(cm))
 	assert.Equal(t, p2p.ErrNilReconnecter, err)
-}
-
-func TestNewConnectionMonitor_PrioSharderWithInvalidReconnecterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArg()
-	arg.Reconnecter = &mock.ReconnecterStub{}
-	cm, err := NewConnectionMonitor(arg)
-
-	assert.True(t, check.IfNil(cm))
-	assert.True(t, errors.Is(err, p2p.ErrWrongTypeAssertion))
-}
-
-func TestNewConnectionMonitor_PrioSharderWithReconnecterShouldWork(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArg()
-	cm, err := NewConnectionMonitor(arg)
-
-	assert.False(t, check.IfNil(cm))
-	assert.Nil(t, err)
-	cmExpected, _ := connectionMonitor.NewLibp2pConnectionMonitor(nil, 0, 0, nil)
-	//this works even though cmExpected is nil because it checks only the type
-	assert.IsType(t, cmExpected, cm)
 }
 
 func TestNewConnectionMonitor_ListSharderWithReconnecterShouldWork(t *testing.T) {

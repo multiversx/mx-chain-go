@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -65,9 +66,9 @@ type nodeFacade struct {
 	syncer                 ntp.SyncTimer
 	tpsBenchmark           *statistics.TpsBenchmark
 	config                 config.FacadeConfig
-	restAPIServerDebugMode bool
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	apiRoutesConfig        config.ApiRoutesConfig
+	restAPIServerDebugMode bool
 }
 
 // NewNodeFacade creates a new Facade with a NodeWrapper
@@ -203,6 +204,11 @@ func (nf *nodeFacade) GetBalance(address string) (*big.Int, error) {
 	return nf.node.GetBalance(address)
 }
 
+// GetValueForKey gets the value for a key in a given address
+func (nf *nodeFacade) GetValueForKey(address string, key string) (string, error) {
+	return nf.node.GetValueForKey(address, key)
+}
+
 // CreateTransaction creates a transaction from all needed fields
 func (nf *nodeFacade) CreateTransaction(
 	nonce uint64,
@@ -234,8 +240,13 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 }
 
 // GetTransaction gets the transaction with a specified hash
-func (nf *nodeFacade) GetTransaction(hash string) (*transaction.Transaction, error) {
+func (nf *nodeFacade) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
 	return nf.node.GetTransaction(hash)
+}
+
+// GetTransactionStatus gets the current transaction status, given a specific tx hash
+func (nf *nodeFacade) GetTransactionStatus(hash string) (string, error) {
+	return nf.node.GetTransactionStatus(hash)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
@@ -275,8 +286,8 @@ func (nf *nodeFacade) PprofEnabled() bool {
 }
 
 // Trigger will trigger a hardfork event
-func (nf *nodeFacade) Trigger() error {
-	return nf.node.DirectTrigger()
+func (nf *nodeFacade) Trigger(epoch uint32) error {
+	return nf.node.DirectTrigger(epoch)
 }
 
 // IsSelfTrigger returns true if the self public key is the same with the registered public key
@@ -297,6 +308,11 @@ func (nf *nodeFacade) DecodeAddressPubkey(pk string) ([]byte, error) {
 // GetQueryHandler returns the query handler if existing
 func (nf *nodeFacade) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	return nf.node.GetQueryHandler(name)
+}
+
+// GetPeerInfo returns the peer info of a provided pid
+func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
+	return nf.node.GetPeerInfo(pid)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

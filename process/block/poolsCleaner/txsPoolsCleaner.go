@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -39,7 +38,7 @@ type txInfo struct {
 
 // txsPoolsCleaner represents a pools cleaner that checks and cleans txs which should not be in pool anymore
 type txsPoolsCleaner struct {
-	addressPubkeyConverter   state.PubkeyConverter
+	addressPubkeyConverter   core.PubkeyConverter
 	blockTransactionsPool    dataRetriever.ShardedDataCacherNotifier
 	rewardTransactionsPool   dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactionsPool dataRetriever.ShardedDataCacherNotifier
@@ -54,7 +53,7 @@ type txsPoolsCleaner struct {
 
 // NewTxsPoolsCleaner will return a new txs pools cleaner
 func NewTxsPoolsCleaner(
-	addressPubkeyConverter state.PubkeyConverter,
+	addressPubkeyConverter core.PubkeyConverter,
 	dataPool dataRetriever.PoolsHolder,
 	rounder process.Rounder,
 	shardCoordinator sharding.Coordinator,

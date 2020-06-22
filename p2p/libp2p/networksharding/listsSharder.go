@@ -209,7 +209,7 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 	}
 
 	ls.mutResolver.RLock()
-	selfPeerInfo := ls.peerShardResolver.GetPeerInfo(p2p.PeerID(ls.selfPeerId))
+	selfPeerInfo := ls.peerShardResolver.GetPeerInfo(core.PeerID(ls.selfPeerId))
 	ls.mutResolver.RUnlock()
 
 	for _, p := range peers {
@@ -217,7 +217,7 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 			ID:       p,
 			Distance: ls.computeDistance(p, ls.selfPeerId),
 		}
-		pid := p2p.PeerID(p)
+		pid := core.PeerID(p)
 		ls.mutResolver.RLock()
 		peerInfo := ls.peerShardResolver.GetPeerInfo(pid)
 		ls.mutResolver.RUnlock()
@@ -232,7 +232,7 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 			switch peerInfo.PeerType {
 			case core.ValidatorPeer:
 				peerDistances[crossShardValidators] = append(peerDistances[crossShardValidators], pd)
-			case core.ObserverdPeer:
+			case core.ObserverPeer:
 				peerDistances[crossShardObservers] = append(peerDistances[crossShardObservers], pd)
 			}
 
@@ -242,7 +242,7 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 		switch peerInfo.PeerType {
 		case core.ValidatorPeer:
 			peerDistances[intraShardValidators] = append(peerDistances[intraShardValidators], pd)
-		case core.ObserverdPeer:
+		case core.ObserverPeer:
 			peerDistances[intraShardObservers] = append(peerDistances[intraShardObservers], pd)
 		}
 	}

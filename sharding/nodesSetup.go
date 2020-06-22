@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 var _ GenesisNodesSetupHandler = (*NodesSetup)(nil)
@@ -66,15 +65,15 @@ type NodesSetup struct {
 	nrOfMetaChainNodes       uint32
 	eligible                 map[uint32][]GenesisNodeInfoHandler
 	waiting                  map[uint32][]GenesisNodeInfoHandler
-	validatorPubkeyConverter state.PubkeyConverter
-	addressPubkeyConverter   state.PubkeyConverter
+	validatorPubkeyConverter core.PubkeyConverter
+	addressPubkeyConverter   core.PubkeyConverter
 }
 
 // NewNodesSetup creates a new decoded nodes structure from json config file
 func NewNodesSetup(
 	nodesFilePath string,
-	addressPubkeyConverter state.PubkeyConverter,
-	validatorPubkeyConverter state.PubkeyConverter,
+	addressPubkeyConverter core.PubkeyConverter,
+	validatorPubkeyConverter core.PubkeyConverter,
 ) (*NodesSetup, error) {
 
 	if check.IfNil(addressPubkeyConverter) {

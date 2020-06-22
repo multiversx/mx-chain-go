@@ -58,8 +58,8 @@ func parseCacherIdentifierPart(cacheID string) (uint32, error) {
 	return uint32(part), err
 }
 
-// IsShardCacherIdentifierIntraShard checks whether the specified cache is for the pair (sender = self, destination = self)
-func IsShardCacherIdentifierIntraShard(cacheID string, shardID uint32) bool {
+// IsShardCacherIdentifierForSourceMe checks whether the specified cache is for the pair (sender = me, destination = *)
+func IsShardCacherIdentifierForSourceMe(cacheID string, shardID uint32) bool {
 	parsed, err := parseCacherIdentifierPart(cacheID)
 	if err != nil {
 		return false

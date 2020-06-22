@@ -22,7 +22,7 @@ func (fh *FeeHandler) MinGasPrice() uint64 {
 }
 
 // MaxGasLimitPerBlock return max uint64
-func (fh *FeeHandler) MaxGasLimitPerBlock() uint64 {
+func (fh *FeeHandler) MaxGasLimitPerBlock(uint32) uint64 {
 	return math.MaxUint64
 }
 

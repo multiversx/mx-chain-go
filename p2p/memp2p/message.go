@@ -3,6 +3,7 @@ package memp2p
 import (
 	"encoding/binary"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -30,11 +31,11 @@ type message struct {
 	key []byte
 
 	// sending PeerID
-	peer p2p.PeerID
+	peer core.PeerID
 }
 
 // NewMessage constructs a new Message instance from arguments
-func newMessage(topic string, data []byte, peerID p2p.PeerID, seqNo uint64) *message {
+func newMessage(topic string, data []byte, peerID core.PeerID, seqNo uint64) *message {
 	empty := make([]byte, 0)
 	seqNoBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(seqNoBytes, seqNo)
@@ -81,7 +82,7 @@ func (msg *message) Key() []byte {
 }
 
 // Peer returns the peer that originated the message
-func (msg *message) Peer() p2p.PeerID {
+func (msg *message) Peer() core.PeerID {
 	return msg.peer
 }
 

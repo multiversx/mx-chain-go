@@ -177,7 +177,7 @@ func addTxsInDataPool(proposer *integrationTests.TestProcessorNode, txs []data.T
 	txCache := proposer.DataPool.Transactions()
 
 	for i := 0; i < len(txs); i++ {
-		txCache.AddData(hashes[i], txs[i], cacherIdentifier)
+		txCache.AddData(hashes[i], txs[i], txs[i].Size(), cacherIdentifier)
 	}
 }
 

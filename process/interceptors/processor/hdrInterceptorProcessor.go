@@ -1,9 +1,9 @@
 package processor
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -40,7 +40,7 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 }
 
 // Validate checks if the intercepted data can be processed
-func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ p2p.PeerID) error {
+func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ core.PeerID) error {
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -57,7 +57,7 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ p2p
 
 // Save will save the received data into the headers cacher as hash<->[plain header structure]
 // and in headersNonces as nonce<->hash
-func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID) error {
+func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID) error {
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion

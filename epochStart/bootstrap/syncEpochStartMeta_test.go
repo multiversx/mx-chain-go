@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -49,8 +50,8 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaProcessorFailsShouldErr(t *testi
 
 	args := getEpochStartSyncerArgs()
 	messenger := &mock.MessengerStub{
-		ConnectedPeersCalled: func() []p2p.PeerID {
-			return []p2p.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+		ConnectedPeersCalled: func() []core.PeerID {
+			return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 		},
 	}
 	args.Messenger = messenger
@@ -75,8 +76,8 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaShouldWork(t *testing.T) {
 
 	args := getEpochStartSyncerArgs()
 	messenger := &mock.MessengerStub{
-		ConnectedPeersCalled: func() []p2p.PeerID {
-			return []p2p.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+		ConnectedPeersCalled: func() []core.PeerID {
+			return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 		},
 	}
 	args.Messenger = messenger

@@ -77,7 +77,7 @@ func TestNewJournalEntryAccount_NilAccountShouldErr(t *testing.T) {
 
 	entry, err := state.NewJournalEntryAccount(nil)
 	assert.True(t, check.IfNil(entry))
-	assert.Equal(t, state.ErrNilAccountHandler, err)
+	assert.True(t, errors.Is(err, state.ErrNilAccountHandler))
 }
 
 func TestNewJournalEntryAccount_OkParams(t *testing.T) {
@@ -169,7 +169,7 @@ func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {
 	entry, err := state.NewJournalEntryDataTrieUpdates(trieUpdates, nil)
 
 	assert.True(t, check.IfNil(entry))
-	assert.Equal(t, state.ErrNilAccountHandler, err)
+	assert.True(t, errors.Is(err, state.ErrNilAccountHandler))
 }
 
 func TestNewJournalEntryDataTrieUpdates_EmptyTrieUpdatesShouldErr(t *testing.T) {

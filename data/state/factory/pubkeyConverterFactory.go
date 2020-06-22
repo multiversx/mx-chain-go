@@ -4,8 +4,9 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 )
 
 // HexFormat defines the hex format for the pubkey converter
@@ -15,7 +16,7 @@ const HexFormat = "hex"
 const Bech32Format = "bech32"
 
 // NewPubkeyConverter will create a new pubkey converter based on the config provided
-func NewPubkeyConverter(config config.PubkeyConfig) (state.PubkeyConverter, error) {
+func NewPubkeyConverter(config config.PubkeyConfig) (core.PubkeyConverter, error) {
 	switch config.Type {
 	case HexFormat:
 		return pubkeyConverter.NewHexPubkeyConverter(config.Length)

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/stretchr/testify/assert"
@@ -45,7 +46,7 @@ func TestTopicFloodPreventer_IncreaseLoadShouldReturnFalseIfNumberIsExceeded(t *
 
 	// no max limit is set for the topic, so the default value given as a parameter on the constructor will be used
 
-	id := "identifier"
+	id := core.PeerID("identifier")
 	topic := "topic_1"
 	// call Accumulate 2 times so this will return true
 	err := tfp.IncreaseLoad(id, topic, 1)
@@ -66,7 +67,7 @@ func TestTopicFloodPreventer_IncreaseLoadShouldReturnFalseIfNumberIsExceededUsin
 	customMaxMessages := uint32(3)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
 
-	id := "identifier"
+	id := core.PeerID("identifier")
 	topic := "topic_1"
 
 	// set the limit for the topic, so it should use the custom value instead of the default
@@ -93,7 +94,7 @@ func TestTopicFloodPreventer_IncreaseLoadShouldReturnFalseIfNumberIsExceededWith
 	defaultMaxMessages := uint32(20)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
 
-	id := "identifier"
+	id := core.PeerID("identifier")
 	topic := "topic_1"
 
 	err := tfp.IncreaseLoad(id, topic, defaultMaxMessages-1)
@@ -123,7 +124,7 @@ func TestTopicFloodPreventer_ResetForTopic(t *testing.T) {
 	maxMessages := uint32(2)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(maxMessages)
 
-	id := "identifier"
+	id := core.PeerID("identifier")
 	topic := "topic_1"
 
 	// call IncreaseLoad 2 times. it should work
@@ -148,7 +149,7 @@ func TestTopicFloodPreventer_ResetForTopicWithBadWildcardNothingShouldHappen(t *
 	maxMessages := uint32(2)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(maxMessages)
 
-	id := "identifier"
+	id := core.PeerID("identifier")
 	topic1 := "topic_1"
 	topic2 := "topic_2"
 
@@ -183,7 +184,7 @@ func TestTopicFloodPreventer_ResetForTopicWithOkWildcardShouldReset(t *testing.T
 	maxMessages := uint32(2)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(maxMessages)
 
-	id := "identifier"
+	id := core.PeerID("identifier")
 	topic1 := "topic_1"
 	topic2 := "topic_2"
 
@@ -258,7 +259,7 @@ func TestTopicFloodPreventer_ResetForNotRegisteredTopics(t *testing.T) {
 	defaultMaxMessages := uint32(2)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
 
-	identifier := "pid"
+	identifier := core.PeerID("pid")
 	headersTopic := "headers"
 	headersMaxMessages := uint32(100)
 	tfp.SetMaxMessagesForTopic(headersTopic, headersMaxMessages)
@@ -288,7 +289,7 @@ func TestTopicFloodPreventer_ResetForNotRegisteredTopicsWithWildcardShuldWork(t 
 	defaultMaxMessages := uint32(2)
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
 
-	identifier := "pid"
+	identifier := core.PeerID("pid")
 	headersTopic := "headers"
 	headersMaxMessages := uint32(100)
 	tfp.SetMaxMessagesForTopic(headersTopic+floodPreventers.WildcardCharacter, headersMaxMessages)

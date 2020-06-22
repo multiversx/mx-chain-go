@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type vmContext struct {
@@ -22,7 +22,8 @@ type vmContext struct {
 	outputAccounts map[string]*vmcommon.OutputAccount
 	gasRemaining   uint64
 
-	output [][]byte
+	returnMessage string
+	output        [][]byte
 }
 
 // NewVMContext creates a context where smart contracts can run and write
@@ -161,6 +162,7 @@ func (host *vmContext) copyToNewContext() *vmContext {
 
 func (host *vmContext) copyFromContext(currContext *vmContext) {
 	host.output = append(host.output, currContext.output...)
+	host.AddReturnMessage(currContext.returnMessage)
 
 	for key, storageUpdate := range currContext.storageUpdate {
 		if _, ok := host.storageUpdate[key]; !ok {
@@ -239,7 +241,10 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 	}
 
 	if input.Function == core.SCDeployInitFunctionName {
-		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
+		return &vmcommon.VMOutput{
+			ReturnCode:    vmcommon.UserError,
+			ReturnMessage: "cannot call smart contract init function",
+		}, nil
 	}
 
 	returnCode := contract.Execute(input)
@@ -249,6 +254,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		vmOutput = host.CreateVMOutput()
 	}
 	vmOutput.ReturnCode = returnCode
+	vmOutput.ReturnMessage = host.returnMessage
 
 	return vmOutput, nil
 }
@@ -256,6 +262,20 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 // Finish append the value to the final output
 func (host *vmContext) Finish(value []byte) {
 	host.output = append(host.output, value)
+}
+
+// AddReturnMessage will set the return message
+func (host *vmContext) AddReturnMessage(message string) {
+	if message == "" {
+		return
+	}
+
+	if host.returnMessage == "" {
+		host.returnMessage = message
+		return
+	}
+
+	host.returnMessage += "@" + message
 }
 
 // BlockChainHook returns the blockchain hook
@@ -273,6 +293,7 @@ func (host *vmContext) CleanCache() {
 	host.storageUpdate = make(map[string]map[string][]byte)
 	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([][]byte, 0)
+	host.returnMessage = ""
 	host.gasRemaining = 0
 }
 
@@ -293,6 +314,7 @@ func (host *vmContext) UseGas(gasToConsume uint64) error {
 func (host *vmContext) softCleanCache() {
 	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([][]byte, 0)
+	host.returnMessage = ""
 }
 
 // CreateVMOutput adapts vm output and all saved data from sc run into VM Output
@@ -344,6 +366,8 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 
 	vmOutput.GasRemaining = host.gasRemaining
 	vmOutput.GasRefund = big.NewInt(0)
+
+	vmOutput.ReturnMessage = host.returnMessage
 
 	if len(host.output) > 0 {
 		vmOutput.ReturnData = append(vmOutput.ReturnData, host.output...)

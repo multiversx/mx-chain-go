@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -116,14 +116,14 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(esmbp))
 }
 
-func getConnectedPeers(counter int) []p2p.PeerID {
+func getConnectedPeers(counter int) []core.PeerID {
 	switch counter {
 	case 0:
-		return []p2p.PeerID{"peer0", "peer1"}
+		return []core.PeerID{"peer0", "peer1"}
 	case 1:
-		return []p2p.PeerID{"peer0", "peer1", "peer2", "peer3"}
+		return []core.PeerID{"peer0", "peer1", "peer2", "peer3"}
 	case 2:
-		return []p2p.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
+		return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
 	}
 	return nil
 }
@@ -134,7 +134,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWorkAfterMoreTriesWaitingFor
 	counter := 0
 	esmbp, err := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{
-			ConnectedPeersCalled: func() []p2p.PeerID {
+			ConnectedPeersCalled: func() []core.PeerID {
 				peers := getConnectedPeers(counter)
 				counter++
 				return peers
@@ -215,8 +215,8 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldTimeOut(t *tes
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{
-			ConnectedPeersCalled: func() []p2p.PeerID {
-				return []p2p.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},
 		},
 		&mock.RequestHandlerStub{},
@@ -239,8 +239,8 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{
-			ConnectedPeersCalled: func() []p2p.PeerID {
-				return []p2p.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},
 		},
 		&mock.RequestHandlerStub{},
@@ -258,7 +258,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
 
 	for i := 0; i < esmbp.minNumOfPeersToConsiderBlockValid; i++ {
-		_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", i)))
+		_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -273,8 +273,8 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{
-			ConnectedPeersCalled: func() []p2p.PeerID {
-				return []p2p.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},
 		},
 		&mock.RequestHandlerStub{},
@@ -292,7 +292,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
 
 	for i := 0; i < 6; i++ {
-		_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", i)))
+		_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -317,8 +317,8 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMulti
 func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tts time.Duration) {
 	esmbp, _ := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{
-			ConnectedPeersCalled: func() []p2p.PeerID {
-				return []p2p.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
 			},
 		},
 		&mock.RequestHandlerStub{},
@@ -337,8 +337,8 @@ func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tt
 		index := 0
 		for {
 			time.Sleep(tts)
-			_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", index)))
-			_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", index+1)))
+			_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index)))
+			_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index+1)))
 			index += 2
 		}
 	}()

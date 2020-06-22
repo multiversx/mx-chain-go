@@ -25,3 +25,6 @@ var ErrNilUint64Converter = errors.New("unit64converter is nil")
 
 // ErrNilStorage signals that a nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
+
+// ErrNilTermUIStartChannel signals that a nil TermUI start channel has been provided
+var ErrNilTermUIStartChannel = errors.New("nil TermUI start channel")

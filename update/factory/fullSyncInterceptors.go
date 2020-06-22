@@ -35,7 +35,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
-	addressPubkeyConv      state.PubkeyConverter
+	addressPubkeyConv      core.PubkeyConverter
 	whiteListHandler       update.WhiteListHandler
 	whiteListerVerifiedTxs update.WhiteListHandler
 	antifloodHandler       process.P2PAntifloodHandler

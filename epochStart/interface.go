@@ -78,6 +78,7 @@ type RegistrationHandler interface {
 type Notifier interface {
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NotifyEpochChangeConfirmed(epoch uint32)
 	IsInterfaceNil() bool
 }
 
@@ -120,6 +121,13 @@ type StartOfEpochMetaSyncer interface {
 
 // NodesConfigProvider will provide the necessary information for start in epoch economics block creation
 type NodesConfigProvider interface {
-	GetNumTotalEligible() uint64
+	ConsensusGroupSize(shardID uint32) int
+	IsInterfaceNil() bool
+}
+
+// ImportStartHandler can manage the process of starting the import after the hardfork event
+type ImportStartHandler interface {
+	ShouldStartImport() bool
+	IsAfterExportBeforeImport() bool
 	IsInterfaceNil() bool
 }

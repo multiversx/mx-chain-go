@@ -85,7 +85,10 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	}
 
 	if input.Function == core.SCDeployInitFunctionName {
-		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
+		return &vmcommon.VMOutput{
+			ReturnCode:    vmcommon.UserError,
+			ReturnMessage: "cannot call smart contract init function",
+		}, nil
 	}
 
 	returnCode := contract.Execute(input)

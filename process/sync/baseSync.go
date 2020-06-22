@@ -229,7 +229,7 @@ func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
 
 // getNonceForNextBlock will get the nonce for the next block
 func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
-	nonce := uint64(1) // first block nonce after genesis block
+	nonce := boot.chainHandler.GetGenesisHeader().GetNonce() + 1 // first block nonce after genesis block
 	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currentBlockHeader) {
 		nonce = currentBlockHeader.GetNonce() + 1
@@ -239,7 +239,7 @@ func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
 
 // getNonceForCurrentBlock will get the nonce for the current block
 func (boot *baseBootstrap) getNonceForCurrentBlock() uint64 {
-	nonce := uint64(0) // genesis block nonce
+	nonce := boot.chainHandler.GetGenesisHeader().GetNonce() // genesis block nonce
 	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currentBlockHeader) {
 		nonce = currentBlockHeader.GetNonce()
@@ -278,9 +278,10 @@ func (boot *baseBootstrap) computeNodeState() {
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
 
+	genesisNonce := boot.chainHandler.GetGenesisHeader().GetNonce()
 	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if check.IfNil(currentHeader) {
-		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == 0
+		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() == genesisNonce
 	} else {
 		boot.hasLastBlock = boot.forkDetector.ProbableHighestNonce() <= boot.chainHandler.GetCurrentBlockHeader().GetNonce()
 	}
@@ -311,7 +312,7 @@ func (boot *baseBootstrap) computeNodeState() {
 }
 
 func (boot *baseBootstrap) shouldTryToRequestHeaders() bool {
-	if boot.rounder.Index() < 0 {
+	if boot.rounder.BeforeGenesis() {
 		return false
 	}
 	if boot.isForcedRollBackOneBlock() {
@@ -328,7 +329,7 @@ func (boot *baseBootstrap) shouldTryToRequestHeaders() bool {
 }
 
 func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
-	lastSyncedRound := uint64(0)
+	lastSyncedRound := boot.chainHandler.GetGenesisHeader().GetRound()
 	currHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currHeader) {
 		lastSyncedRound = currHeader.GetRound()
@@ -473,6 +474,9 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 		if !boot.networkWatcher.IsConnectedToTheNetwork() {
 			continue
 		}
+		if boot.rounder.BeforeGenesis() {
+			continue
+		}
 
 		err := boot.syncStarter.SyncBlock()
 		if err != nil {
@@ -603,9 +607,13 @@ func (boot *baseBootstrap) syncBlock() error {
 	startCommitBlockTime := time.Now()
 	err = boot.blockProcessor.CommitBlock(header, body)
 	elapsedTime = time.Since(startCommitBlockTime)
-	log.Debug("elapsed time to commit block",
-		"time [s]", elapsedTime,
-	)
+	if elapsedTime >= core.CommitMaxTime {
+		log.Warn("syncBlock.CommitBlock", "elapsed time", elapsedTime)
+	} else {
+		log.Debug("elapsed time to commit block",
+			"time [s]", elapsedTime,
+		)
+	}
 	if err != nil {
 		return err
 	}
@@ -953,7 +961,7 @@ func (boot *baseBootstrap) init() {
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedMiniBlocks(nil)
 
-	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock)
+	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock, core.UniqueIdentifier())
 	boot.headers.RegisterHandler(boot.processReceivedHeader)
 
 	boot.statusHandler = statusHandler.NewNilStatusHandler()

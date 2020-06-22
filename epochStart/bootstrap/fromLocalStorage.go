@@ -66,6 +66,11 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.EpochStart.LastFinalizedHeaders))
 
 	newShardId, isShuffledOut := e.checkIfShuffledOut(pubKey, e.nodesConfig)
+	err = e.createTriesComponentsForShardId(newShardId)
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	if !isShuffledOut {
 		parameters := Parameters{
 			Epoch:       e.baseData.lastEpoch,
@@ -105,13 +110,6 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
 		return Parameters{}, err
-	}
-
-	if e.shardCoordinator.SelfId() != e.genesisShardCoordinator.SelfId() {
-		err = e.createTriesForNewShardId(e.shardCoordinator.SelfId())
-		if err != nil {
-			return Parameters{}, err
-		}
 	}
 
 	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)

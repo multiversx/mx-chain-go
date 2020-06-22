@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -12,12 +12,12 @@ type InterceptorProcessorStub struct {
 }
 
 // Validate -
-func (ips *InterceptorProcessorStub) Validate(data process.InterceptedData, _ p2p.PeerID) error {
+func (ips *InterceptorProcessorStub) Validate(data process.InterceptedData, _ core.PeerID) error {
 	return ips.ValidateCalled(data)
 }
 
 // Save -
-func (ips *InterceptorProcessorStub) Save(data process.InterceptedData, _ p2p.PeerID) error {
+func (ips *InterceptorProcessorStub) Save(data process.InterceptedData, _ core.PeerID) error {
 	return ips.SaveCalled(data)
 }
 

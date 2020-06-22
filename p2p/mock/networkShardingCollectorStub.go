@@ -1,16 +1,16 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // NetworkShardingCollectorStub -
 type NetworkShardingCollectorStub struct {
-	UpdatePeerIdPublicKeyCalled func(pid p2p.PeerID, pk []byte)
+	UpdatePeerIdPublicKeyCalled func(pid core.PeerID, pk []byte)
 }
 
 // UpdatePeerIdPublicKey -
-func (nscs *NetworkShardingCollectorStub) UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte) {
+func (nscs *NetworkShardingCollectorStub) UpdatePeerIdPublicKey(pid core.PeerID, pk []byte) {
 	nscs.UpdatePeerIdPublicKeyCalled(pid, pk)
 }
 

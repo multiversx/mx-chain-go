@@ -2,11 +2,14 @@ package ed25519_test
 
 import (
 	goEd25519 "crypto/ed25519"
+	"encoding/hex"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewEd25519(t *testing.T) {
@@ -55,4 +58,27 @@ func TestNewEd25519ScalarLen(t *testing.T) {
 func TestNewEd25519PointLen(t *testing.T) {
 	suite := ed25519.NewEd25519()
 	assert.Equal(t, goEd25519.PublicKeySize, suite.PointLen())
+}
+
+func TestSuiteEd25519_CheckPointValid(t *testing.T) {
+	validPointHexStr :="246008bbf5ebb46892c4b079c4ba5d76ee2d5f648ab8005ff082029c8e8daa18"
+	shortPointHexStr :="246008bbf5ebb46892c4b079c4ba5d76ee2d5f648ab8005ff082029c8e8daa"
+	longPointHexStr := "246008bbf5ebb46892c4b079c4ba5d76ee2d5f648ab8005ff082029c8e8daa1818"
+
+	suite := ed25519.NewEd25519()
+
+	validPointBytes, err:= hex.DecodeString(validPointHexStr)
+	require.Nil(t, err)
+	err = suite.CheckPointValid(validPointBytes)
+	require.Nil(t, err)
+
+	shortPointBytes, err:= hex.DecodeString(shortPointHexStr)
+	require.Nil(t, err)
+	err = suite.CheckPointValid(shortPointBytes)
+	require.Equal(t, crypto.ErrInvalidParam, err)
+
+	longPointBytes, err:= hex.DecodeString(longPointHexStr)
+	require.Nil(t, err)
+	err = suite.CheckPointValid(longPointBytes)
+	require.Equal(t, crypto.ErrInvalidParam, err)
 }

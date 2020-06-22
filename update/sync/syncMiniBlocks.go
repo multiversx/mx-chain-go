@@ -68,14 +68,14 @@ func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMi
 		waitTimeBetweenRequests: args.RequestHandler.RequestInterval(),
 	}
 
-	p.pool.RegisterHandler(p.receivedMiniBlock)
+	p.pool.RegisterHandler(p.receivedMiniBlock, core.UniqueIdentifier())
 
 	return p, nil
 }
 
 // SyncPendingMiniBlocksFromMeta syncs the pending miniblocks from an epoch start metaBlock
 func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart *block.MetaBlock, unFinished map[string]*block.MetaBlock, ctx context.Context) error {
-	if !epochStart.IsStartOfEpochBlock() {
+	if !epochStart.IsStartOfEpochBlock() && epochStart.Nonce > 0 {
 		return update.ErrNotEpochStartBlock
 	}
 	if unFinished == nil {

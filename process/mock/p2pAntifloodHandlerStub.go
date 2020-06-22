@@ -1,15 +1,24 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import (
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
+)
 
 // P2PAntifloodHandlerStub -
 type P2PAntifloodHandlerStub struct {
-	CanProcessMessageCalled         func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
-	CanProcessMessagesOnTopicCalled func(peer p2p.PeerID, topic string, numMessages uint32) error
+	CanProcessMessageCalled         func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessagesOnTopicCalled func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
+	ApplyConsensusSizeCalled        func(size int)
+	SetDebuggerCalled               func(debugger process.AntifloodDebugger) error
+	BlacklistPeerCalled             func(peer core.PeerID, reason string, duration time.Duration)
 }
 
 // CanProcessMessage -
-func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if p2pahs.CanProcessMessageCalled == nil {
 		return nil
 	}
@@ -17,11 +26,34 @@ func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message p2p.MessageP2P,
 }
 
 // CanProcessMessagesOnTopic -
-func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error {
+func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 	if p2pahs.CanProcessMessagesOnTopicCalled == nil {
 		return nil
 	}
-	return p2pahs.CanProcessMessagesOnTopicCalled(peer, topic, numMessages)
+	return p2pahs.CanProcessMessagesOnTopicCalled(peer, topic, numMessages, totalSize, sequence)
+}
+
+// ApplyConsensusSize -
+func (p2pahs *P2PAntifloodHandlerStub) ApplyConsensusSize(size int) {
+	if p2pahs.ApplyConsensusSizeCalled != nil {
+		p2pahs.ApplyConsensusSizeCalled(size)
+	}
+}
+
+// SetDebugger -
+func (p2pahs *P2PAntifloodHandlerStub) SetDebugger(debugger process.AntifloodDebugger) error {
+	if p2pahs.SetDebuggerCalled != nil {
+		return p2pahs.SetDebuggerCalled(debugger)
+	}
+
+	return nil
+}
+
+// BlacklistPeer -
+func (p2pahs *P2PAntifloodHandlerStub) BlacklistPeer(peer core.PeerID, reason string, duration time.Duration) {
+	if p2pahs.BlacklistPeerCalled != nil {
+		p2pahs.BlacklistPeerCalled(peer, reason, duration)
+	}
 }
 
 // IsInterfaceNil -

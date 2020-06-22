@@ -3,11 +3,7 @@ package random
 import (
 	"crypto/rand"
 	"encoding/binary"
-
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
-
-var _ dataRetriever.IntRandomizer = (*ConcurrentSafeIntRandomizer)(nil)
 
 // ConcurrentSafeIntRandomizer implements dataRetriever.IntRandomizer and can be accessed in a concurrent manner
 type ConcurrentSafeIntRandomizer struct {

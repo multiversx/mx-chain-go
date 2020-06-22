@@ -696,42 +696,41 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 	}
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
-		miniblock := body.MiniBlocks[i]
-		if miniblock.SenderShardID != tc.shardCoordinator.SelfId() ||
-			miniblock.ReceiverShardID == tc.shardCoordinator.SelfId() {
+		miniBlock := body.MiniBlocks[i]
+		if miniBlock.SenderShardID != tc.shardCoordinator.SelfId() ||
+			miniBlock.ReceiverShardID == tc.shardCoordinator.SelfId() {
 			continue
 		}
 
-		broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, miniblock.ReceiverShardID, miniblock.Type)
+		broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, miniBlock.ReceiverShardID, miniBlock.Type)
 		if err != nil {
-			log.Trace("createBroadcastTopic", "error", err.Error())
+			log.Warn("CreateMarshalizedData.createBroadcastTopic", "error", err.Error())
 			continue
 		}
 
-		preproc := tc.getPreProcessor(miniblock.Type)
-		if !check.IfNil(preproc) {
-
+		isPreProcessMiniBlock := miniBlock.Type == block.TxBlock
+		preproc := tc.getPreProcessor(miniBlock.Type)
+		if !check.IfNil(preproc) && isPreProcessMiniBlock {
 			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
 			if ok {
 				//preproc supports marshalizing items
 				tc.appendMarshalizedItems(
 					dataMarshalizer,
-					miniblock.TxHashes,
+					miniBlock.TxHashes,
 					mrsTxs,
 					broadcastTopic,
 				)
 			}
 		}
 
-		interimProc := tc.getInterimProcessor(miniblock.Type)
-		if !check.IfNil(interimProc) {
-
+		interimProc := tc.getInterimProcessor(miniBlock.Type)
+		if !check.IfNil(interimProc) && !isPreProcessMiniBlock {
 			dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
 			if ok {
 				//interimProc supports marshalizing items
 				tc.appendMarshalizedItems(
 					dataMarshalizer,
-					miniblock.TxHashes,
+					miniBlock.TxHashes,
 					mrsTxs,
 					broadcastTopic,
 				)
@@ -750,7 +749,7 @@ func (tc *transactionCoordinator) appendMarshalizedItems(
 ) {
 	currMrsTxs, err := dataMarshalizer.CreateMarshalizedData(txHashes)
 	if err != nil {
-		log.Trace("CreateMarshalizedData", "error", err.Error())
+		log.Debug("appendMarshalizedItems.CreateMarshalizedData", "error", err.Error())
 		return
 	}
 

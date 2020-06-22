@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	ggio "github.com/gogo/protobuf/io"
 	"github.com/libp2p/go-libp2p-core/helpers"
@@ -29,7 +30,7 @@ type directSender struct {
 	counter        uint64
 	ctx            context.Context
 	hostP2P        host.Host
-	messageHandler func(msg p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	messageHandler func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	mutSeenMesages sync.Mutex
 	seenMessages   *timecache.TimeCache
 	mutexForPeer   *MutexHolder
@@ -39,7 +40,7 @@ type directSender struct {
 func NewDirectSender(
 	ctx context.Context,
 	h host.Host,
-	messageHandler func(msg p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error,
+	messageHandler func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error,
 ) (*directSender, error) {
 
 	if h == nil {
@@ -127,7 +128,7 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 	if err != nil {
 		return err
 	}
-	return ds.messageHandler(p2pMsg, p2p.PeerID(fromConnectedPeer))
+	return ds.messageHandler(p2pMsg, core.PeerID(fromConnectedPeer))
 }
 
 func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
@@ -153,7 +154,7 @@ func (ds *directSender) NextSeqno(counter *uint64) []byte {
 }
 
 // Send will send a direct message to the connected peer
-func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
+func (ds *directSender) Send(topic string, buff []byte, peer core.PeerID) error {
 	if len(buff) >= maxSendBuffSize {
 		return p2p.ErrMessageTooLarge
 	}
@@ -194,7 +195,7 @@ func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 	return nil
 }
 
-func (ds *directSender) getConnection(p p2p.PeerID) (network.Conn, error) {
+func (ds *directSender) getConnection(p core.PeerID) (network.Conn, error) {
 	conns := ds.hostP2P.Network().ConnsToPeer(peer.ID(p))
 	if len(conns) == 0 {
 		return nil, p2p.ErrPeerNotDirectlyConnected

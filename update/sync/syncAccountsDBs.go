@@ -52,7 +52,7 @@ func NewSyncAccountsDBsHandler(args ArgsNewSyncAccountsDBsHandler) (*syncAccount
 
 // SyncTriesFrom syncs all the state tries from an epoch start metachain
 func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration) error {
-	if !meta.IsStartOfEpochBlock() {
+	if !meta.IsStartOfEpochBlock() && meta.Nonce > 0 {
 		return update.ErrNotEpochStartBlock
 	}
 

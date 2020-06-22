@@ -895,9 +895,10 @@ func TestBranchNode_reduceNode(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 	ln, _ := newLeafNode(key, []byte("dog"), bn.marsh, bn.hasher)
 
-	node, err := bn.children[childPos].reduceNode(int(childPos))
+	node, newChildHash, err := bn.children[childPos].reduceNode(int(childPos))
 	assert.Equal(t, ln, node)
 	assert.Nil(t, err)
+	assert.True(t, newChildHash)
 }
 
 func TestBranchNode_getChildPosition(t *testing.T) {
@@ -1057,7 +1058,7 @@ func TestBranchNode_loadChildren(t *testing.T) {
 	nodesCacher, _ := lrucache.NewCache(100)
 	for i := range nodes {
 		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
-		nodesCacher.Put(node.hash, node)
+		nodesCacher.Put(node.hash, node, len(node.EncodedNode()))
 	}
 
 	firstChildIndex := 5
@@ -1145,7 +1146,6 @@ func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 	_ = tr.Commit()
 
 	assert.False(t, tr.root.isDirty())
-	assert.True(t, tr.root.isCollapsed())
 }
 
 func testSameBranchNodeContent(t *testing.T, expected *branchNode, actual *branchNode) {
@@ -1302,9 +1302,10 @@ func TestBranchNode_reduceNodeBnChild(t *testing.T) {
 	pos := 5
 	expectedNode, _ := newExtensionNode([]byte{byte(pos)}, en.child, marsh, hasher)
 
-	newNode, err := en.child.reduceNode(pos)
+	newNode, newChildHash, err := en.child.reduceNode(pos)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNode, newNode)
+	assert.False(t, newChildHash)
 }
 
 func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {

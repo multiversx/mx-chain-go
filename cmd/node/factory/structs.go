@@ -18,6 +18,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const (
@@ -37,13 +41,18 @@ type EpochStartNotifier interface {
 	UnregisterHandler(handler epochStart.ActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
+	NotifyEpochChangeConfirmed(epoch uint32)
 	IsInterfaceNil() bool
 }
 
 // CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
 // is available
-func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwareVersion.SoftwareVersionChecker, error) {
-	softwareVersionCheckerFactory, err := factorySoftwareVersion.NewSoftwareVersionFactory(statusHandler)
+func CreateSoftwareVersionChecker(
+	statusHandler core.AppStatusHandler,
+	config config.SoftwareVersionConfig,
+) (*softwareVersion.SoftwareVersionChecker, error) {
+	softwareVersionCheckerFactory, err := factorySoftwareVersion.NewSoftwareVersionFactory(statusHandler, config)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +80,8 @@ func PrepareNetworkShardingCollector(
 		return nil, err
 	}
 
-	localId := network.NetworkMessenger().ID()
-	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
+	localID := network.NetworkMessenger().ID()
+	networkShardingCollector.UpdatePeerIdShardId(localID, coordinator.SelfId())
 
 	err = network.NetworkMessenger().SetPeerShardResolver(networkShardingCollector)
 	if err != nil {
@@ -96,21 +105,21 @@ func createNetworkShardingCollector(
 	}
 
 	cacheConfig = config.PublicKeyShardId
-	cachePkShardId, err := createCache(cacheConfig)
+	cachePkShardID, err := createCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	cacheConfig = config.PeerIdShardId
-	cachePidShardId, err := createCache(cacheConfig)
+	cachePidShardID, err := createCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	psm, err := networksharding.NewPeerShardMapper(
 		cachePkPid,
-		cachePkShardId,
-		cachePidShardId,
+		cachePkShardID,
+		cachePidShardID,
 		nodesCoordinator,
 		epochStart,
 	)
@@ -124,7 +133,7 @@ func createNetworkShardingCollector(
 }
 
 func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
-	return storageUnit.NewCache(storageUnit.CacheType(cacheConfig.Type), cacheConfig.Size, cacheConfig.Shards)
+	return storageUnit.NewCache(storageUnit.CacheType(cacheConfig.Type), cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
 }
 
 // CreateLatestStorageDataProvider will create a latest storage data provider handler

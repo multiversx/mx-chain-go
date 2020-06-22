@@ -30,3 +30,9 @@ var ErrInvalidCacheSize = errors.New("cache size is invalid")
 
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNilThrottler signals that nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrTimeIsOut signals that time is out
+var ErrTimeIsOut = errors.New("time is out")

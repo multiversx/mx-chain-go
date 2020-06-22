@@ -16,7 +16,7 @@
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
-   Enabled = true
+   Enabled = false
 
    # If this flag is set to true, the node won't delete any database between epochs
    FullArchive = false
@@ -32,8 +32,9 @@
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
-        Size = 300
-        Type = "LRU"
+        Capacity = 300
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
         Type = "LvlDBSerial"
@@ -43,8 +44,9 @@
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
     [PeerBlockBodyStorage.DB]
         FilePath = "PeerBlocks"
         Type = "LvlDBSerial"
@@ -54,8 +56,9 @@
 
 [BlockHeaderStorage]
     [BlockHeaderStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
     [BlockHeaderStorage.DB]
         FilePath = "BlockHeaders"
         Type = "LvlDBSerial"
@@ -65,7 +68,7 @@
 
 [BootstrapStorage]
     [BootstrapStorage.Cache]
-        Size = 1000
+        Capacity = 1000
         Type = "LRU"
     [BootstrapStorage.DB]
         FilePath = "BootstrapData"
@@ -76,8 +79,9 @@
 
 [MetaBlockStorage]
     [MetaBlockStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
         Type = "LvlDBSerial"
@@ -87,8 +91,9 @@
 
 [TxStorage]
     [TxStorage.Cache]
-        Size = 75000
-        Type = "LRU"
+        Capacity = 75000
+        Type = "SizeLRU"
+        SizeInBytes = 209715200 #200MB
     [TxStorage.DB]
         FilePath = "Transactions"
         Type = "LvlDBSerial"
@@ -98,8 +103,9 @@
 
 [TxLogsStorage]
     [TxLogsStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
     [TxLogsStorage.DB]
         FilePath = "Logs"
         Type = "LvlDBSerial"
@@ -109,8 +115,9 @@
 
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
-        Size = 75000
-        Type = "LRU"
+        Capacity = 75000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
     [UnsignedTransactionStorage.DB]
         FilePath = "UnsignedTransactions"
         Type = "LvlDBSerial"
@@ -120,8 +127,9 @@
 
 [RewardTxStorage]
     [RewardTxStorage.Cache]
-        Size = 75000
-        Type = "LRU"
+        Capacity = 75000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
     [RewardTxStorage.DB]
         FilePath = "RewardTransactions"
         Type = "LvlDBSerial"
@@ -131,7 +139,7 @@
 
 [StatusMetricsStorage]
     [StatusMetricsStorage.Cache]
-        Size = 1000
+        Capacity = 1000
         Type = "LRU"
     [StatusMetricsStorage.DB]
         FilePath = "StatusMetricsStorageDB"
@@ -142,8 +150,9 @@
 
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
     [ShardHdrNonceHashStorage.DB]
         FilePath = "ShardHdrHashNonce"
         Type = "LvlDBSerial"
@@ -153,8 +162,9 @@
 
 [MetaHdrNonceHashStorage]
     [MetaHdrNonceHashStorage.Cache]
-        Size = 1000
-        Type = "LRU"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
     [MetaHdrNonceHashStorage.DB]
         FilePath = "MetaHdrHashNonce"
         Type = "LvlDBSerial"
@@ -164,8 +174,9 @@
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
-        Size = 75000
-        Type = "LRU"
+        Capacity = 75000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie/MainDB"
         Type = "LvlDBSerial"
@@ -196,8 +207,9 @@
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
-        Size = 5000
-        Type = "LRU"
+        Capacity = 5000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
     [PeerAccountsTrieStorage.DB]
         FilePath = "PeerAccountsTrie/MainDB"
         Type = "LvlDBSerial"
@@ -210,86 +222,129 @@
     NumElementsToRemoveOnEviction = 200
 
 [BadBlocksCache]
-    Size = 1000
-    Type = "LRU"
+    Capacity = 1000
+    Type = "SizeLRU"
+    SizeInBytes = 3145728 #3MB
 
 [TxBlockBodyDataPool]
-    Size = 300
-    Type = "LRU"
+    Capacity = 300
+    Type = "SizeLRU"
+    SizeInBytes = 314572800 #300MB
 
 [PeerBlockBodyDataPool]
-    Size = 1000
-    Type = "LRU"
+    Capacity = 1000
+    Type = "SizeLRU"
+    SizeInBytes = 314572800 #300MB
 
 [TxDataPool]
-    Size = 900000
-    SizeInBytes = 524288000
+    Capacity = 600000
+    SizePerSender = 20000
+    SizeInBytes = 419430400 #400MB
+    SizeInBytesPerSender = 12288000
     Type = "TxCache"
     Shards = 16
 
 [TrieNodesDataPool]
-    Size = 50000
-    Type = "LRU"
+    Capacity = 900000
+    Type = "SizeLRU"
+    SizeInBytes = 314572800 #300MB
 
 [WhiteListPool]
-    Size = 100000
+    Capacity = 100000
     Type = "FIFOSharded"
     Shards = 10
 
 [WhiteListerVerifiedTxs]
-    Size = 50000
+    Capacity = 50000
     Type = "FIFOSharded"
     Shards = 50
 
 [UnsignedTransactionDataPool]
-    Size = 75000
-    Type = "LRU"
+    Capacity = 75000        # per each pair (sourceShard, destinationShard)
+    SizeInBytes = 31457280  # 30MB per each pair (sourceShard, destinationShard)
+    Shards = 4
 
 [RewardTransactionDataPool]
-    Size = 75000
-    Type = "LRU"
+    Capacity = 75000        # per each pair (metachain, destinationShard)
+    SizeInBytes = 26214400  # 25MB per each pair (metachain, destinationShard)
+    Shards = 4
 
 #PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
-    Size = 30000
+    Capacity = 30000
     Type = "LRU"
 
 #PublicKeyShardId is the fallback cache used to map public keys to the shard they belong.
 [PublicKeyShardId]
-    Size = 30000
+    Capacity = 30000
     Type = "LRU"
 
 #PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
 # Used mainly for observers.
 [PeerIdShardId]
-    Size = 30000
+    Capacity = 30000
     Type = "LRU"
 
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
-    [Antiflood.NetworkMaxInput]
-        MessagesPerSecond = 400
-        TotalSizePerSecond = 4194304
-    [Antiflood.PeerMaxInput]
-        MessagesPerSecond = 75
-        TotalSizePerSecond = 2097152
+    [Antiflood.FastReacting]
+        IntervalInSeconds = 1
+        ReservedPercent   = 20
+        [Antiflood.FastReacting.PeerMaxInput]
+            BaseMessagesPerInterval  = 140
+            TotalSizePerInterval = 4194304 #4MB/s
+            [Antiflood.FastReacting.PeerMaxInput.IncreaseFactor]
+                Threshold = 10 #if consensus size will exceed this value, then
+                Factor = 1     #increase the base value with [factor*consensus size]
+        [Antiflood.FastReacting.BlackList]
+            ThresholdNumMessagesPerInterval = 1000
+            ThresholdSizePerInterval = 8388608 #8MB/s
+            NumFloodingRounds = 10
+            PeerBanDurationInSeconds = 300
+
+    [Antiflood.SlowReacting]
+        IntervalInSeconds = 30
+        ReservedPercent   = 20.0
+        [Antiflood.SlowReacting.PeerMaxInput]
+            BaseMessagesPerInterval = 6000
+            TotalSizePerInterval = 18874368 # 18MB/interval
+            [Antiflood.SlowReacting.PeerMaxInput.IncreaseFactor]
+                Threshold = 10 #if consensus size will exceed this value, then
+                Factor = 0     #increase the base value with [factor*consensus size]
+        [Antiflood.SlowReacting.BlackList]
+            ThresholdNumMessagesPerInterval = 10000
+            ThresholdSizePerInterval = 37748736 # 36MB/interval
+            NumFloodingRounds = 2
+            PeerBanDurationInSeconds = 3600
+
+    [Antiflood.OutOfSpecs]
+        IntervalInSeconds = 1
+        ReservedPercent   = 0.0
+        [Antiflood.OutOfSpecs.PeerMaxInput]
+            BaseMessagesPerInterval = 2000
+            TotalSizePerInterval = 10485760 # 10MB/interval
+            [Antiflood.OutOfSpecs.PeerMaxInput.IncreaseFactor]
+                Threshold = 0 #if consensus size will exceed this value, then
+                Factor = 0     #increase the base value with [factor*consensus size]
+        [Antiflood.OutOfSpecs.BlackList]
+            ThresholdNumMessagesPerInterval = 3600
+            ThresholdSizePerInterval = 12582912 # 12MB/interval
+            NumFloodingRounds = 2
+            PeerBanDurationInSeconds = 3600
+
     [Antiflood.PeerMaxOutput]
-        MessagesPerSecond = 75
-        TotalSizePerSecond = 2097152
+        BaseMessagesPerInterval  = 75
+        TotalSizePerInterval     = 2097152 #2MB/s
+
     [Antiflood.Cache]
-        Size = 5000
+        Capacity = 7000
         Type = "LRU"
     [Antiflood.Topic]
-        DefaultMaxMessagesPerSec = 10000
-        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 10 },
-                       { Topic = "shardBlocks*", NumMessagesPerSec = 20 },
-                       { Topic = "metachainBlocks", NumMessagesPerSec = 20 }]
-    [Antiflood.BlackList]
-        ThresholdNumMessagesPerSecond = 150
-        ThresholdSizePerSecond = 4194304
-        NumFloodingRounds = 10
-        PeerBanDurationInSeconds = 300
+        DefaultMaxMessagesPerSec = 15000
+        MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 30 },
+                       { Topic = "shardBlocks*", NumMessagesPerSec = 30 },
+                       { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
     [Antiflood.WebServer]
         # SimultaneousRequests represents the number of concurrent requests accepted by the web server
         # this is a global throttler that acts on all http connections regardless of the originating source
@@ -335,7 +390,7 @@
 #     0 disables the feature.
 [Marshalizer]
    Type = "gogo protobuf"
-   SizeCheckDelta = 0
+   SizeCheckDelta = 10
 
 # The marshalizer used for smartcontracts data exchange
 [VmMarshalizer]
@@ -354,7 +409,7 @@
     ShuffledOutRestartThreshold = 0.25
 
     # ShuffleBetweenShards enables the shuffling of validators between shards at the end of epoch
-    ShuffleBetweenShards = false
+    ShuffleBetweenShards = true
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
 
@@ -373,10 +428,9 @@
    HeartbeatRefreshIntervalInSec        = 60
    HideInactiveValidatorIntervalInSec   = 3600
    DurationToConsiderUnresponsiveInSec  = 60
-   PeerTypeRefreshIntervalInSec         = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
-           Size = 1000
+           Capacity = 1000
            Type = "LRU"
        [Heartbeat.HeartbeatStorage.DB]
            FilePath = "HeartbeatStorage"
@@ -384,6 +438,9 @@
            BatchDelaySeconds = 5
            MaxBatchSize = 100
            MaxOpenFiles = 10
+
+[ValidatorStatistics]
+    CacheRefreshIntervalInSec = 60
 
 # Consensus type which will be used (the current implementation can manage "bn" and "bls")
 # When consensus type is "bls" the multisig hasher type should be "blake2b"
@@ -415,31 +472,47 @@
         MessagesMarshalizer = "json"
         MaxLoopTime = 1000
 
+[P2PMessageIDAdditionalCache]
+    Capacity = 100000
+    Type = "FIFOSharded"
+    Shards = 100
+
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true
-    PublicKeyToListenFrom = "b5ea539180627040b2703cabde8ebece0ded59a0c9d2d4a8a73a299fb7bc11d36ac3d1a620501c230059cffa983a7419d192a50ca55ed8aa07254658dda27aba1e54f50fd7cfbb9e66ce1715d72f9c1b0b05272388f9825742161a211debff15"
-	MustImport = false
-	ImportFolder = ""
-	StartRound = 0
-	StartNonce = 0
-	StartEpoch = 0
-	ValidatorGracePeriodInEpochs = 0 #defines how long is the rating computation disabled after hardfork
-	[HardFork.ExportStateStorageConfig]
-	    [HardFork.ExportStateStorageConfig.Cache]
-            Size = 5000
+    PublicKeyToListenFrom = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
+	CloseAfterExportInMinutes = 10
+	AfterHardFork = false
+	ImportFolder = "export"
+	StartRound = 10000
+	StartNonce = 10000
+	StartEpoch = 100
+	ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
+	[Hardfork.ExportStateStorageConfig]
+	    [Hardfork.ExportStateStorageConfig.Cache]
+            Capacity = 5000
             Type = "LRU"
-        [HardFork.ExportStateStorageConfig.DB]
+        [Hardfork.ExportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
-	[HardFork.ImportStateStorageConfig]
-	    [HardFork.ImportStateStorageConfig.Cache]
-            Size = 5000
+    [Hardfork.ExportTriesStorageConfig]
+        [Hardfork.ExportTriesStorageConfig.Cache]
+            Capacity = 5000
             Type = "LRU"
-        [HardFork.ImportStateStorageConfig.DB]
+        [Hardfork.ExportTriesStorageConfig.DB]
+            FilePath = "ExportTrieStorage/MainTrie"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+	[Hardfork.ImportStateStorageConfig]
+	    [Hardfork.ImportStateStorageConfig.Cache]
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ImportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
@@ -455,3 +528,12 @@
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3
         DebugLineExpiration = 10 #Will remove the debug line after a `DebugLineExpiration` number of prints
+    [Debug.Antiflood]
+        Enabled = true
+        CacheSize = 10000
+        IntervalAutoPrintInSeconds = 20
+
+[SoftwareVersionConfig]
+    StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
+    PollingIntervalInMinutes = 65
+

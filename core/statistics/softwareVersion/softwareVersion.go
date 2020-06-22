@@ -2,16 +2,12 @@ package softwareVersion
 
 import (
 	"context"
-	"crypto/rand"
-	"math/big"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
-
-const checkInterval = time.Hour + 5*time.Minute
 
 type tagVersion struct {
 	TagVersion string `json:"tag_name"`
@@ -22,36 +18,38 @@ type SoftwareVersionChecker struct {
 	statusHandler             core.AppStatusHandler
 	stableTagProvider         StableTagProviderHandler
 	mostRecentSoftwareVersion string
-	checkRandInterval         time.Duration
-	closeFunc                 context.CancelFunc
+	checkInterval             time.Duration
+	cancelFunc                func()
 }
 
 var log = logger.GetOrCreate("core/statistics")
 
 // NewSoftwareVersionChecker will create an object for software  version checker
-func NewSoftwareVersionChecker(appStatusHandler core.AppStatusHandler, stableTagProvider StableTagProviderHandler) (*SoftwareVersionChecker, error) {
+func NewSoftwareVersionChecker(
+	appStatusHandler core.AppStatusHandler,
+	stableTagProvider StableTagProviderHandler,
+	pollingIntervalInMinutes int,
+) (*SoftwareVersionChecker, error) {
 	if check.IfNil(appStatusHandler) {
 		return nil, core.ErrNilAppStatusHandler
 	}
 	if check.IfNil(stableTagProvider) {
 		return nil, core.ErrNilStatusTagProvider
 	}
-
-	// check interval will be a random duration in the interval [1hour5minutes , 1hour20minutes]
-	randBigInt, err := rand.Int(rand.Reader, big.NewInt(15))
-	if err != nil {
-		return nil, err
+	if pollingIntervalInMinutes <= 0 {
+		return nil, core.ErrInvalidPollingInterval
 	}
 
-	randInt := randBigInt.Int64()
-	randInterval := time.Duration(randInt)
-	checkRandInterval := checkInterval + randInterval*time.Minute
+	checkInterval := time.Duration(pollingIntervalInMinutes) * time.Minute
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	return &SoftwareVersionChecker{
 		statusHandler:             appStatusHandler,
 		stableTagProvider:         stableTagProvider,
 		mostRecentSoftwareVersion: "",
-		checkRandInterval:         checkRandInterval,
+		checkInterval:             checkInterval,
+		cancelFunc:                cancelFunc,
 	}, nil
 }
 
@@ -59,27 +57,30 @@ func NewSoftwareVersionChecker(appStatusHandler core.AppStatusHandler, stableTag
 func (svc *SoftwareVersionChecker) StartCheckSoftwareVersion() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	svc.closeFunc = cancelFunc
-	go func(ctx context.Context) {
-		for {
-			svc.readLatestStableVersion()
-			select {
-			case <-ctx.Done():
-				log.Info("software version checker closed")
-				return
-			case <-time.After(svc.checkRandInterval):
-			}
+	go svc.checkSoftwareVersion(ctx)
+}
+
+func (svc *SoftwareVersionChecker) checkSoftwareVersion(ctx context.Context) {
+	for {
+		svc.readLatestStableVersion()
+
+		select {
+		case <-ctx.Done():
+			log.Debug("softwareVersionChecker's go routine is stopping...")
+			return
+		case <-time.After(svc.checkInterval):
 		}
-	}(ctx)
+	}
 }
 
 func (svc *SoftwareVersionChecker) readLatestStableVersion() {
-	tagVersionFromUrl, err := svc.stableTagProvider.FetchTagVersion()
+	tagVersionFromURL, err := svc.stableTagProvider.FetchTagVersion()
 	if err != nil {
 		log.Debug("cannot read json with latest stable tag", err)
 		return
 	}
-	if tagVersionFromUrl != "" {
-		svc.mostRecentSoftwareVersion = tagVersionFromUrl
+	if tagVersionFromURL != "" {
+		svc.mostRecentSoftwareVersion = tagVersionFromURL
 	}
 
 	svc.statusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, svc.mostRecentSoftwareVersion)

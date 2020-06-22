@@ -21,9 +21,9 @@ type P2PMessenger interface {
 	HasTopic(name string) bool
 	HasTopicValidator(name string) bool
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
-	PeerAddress(pid p2p.PeerID) string
+	PeerAddresses(pid core.PeerID) []string
 	IsConnectedToTheNetwork() bool
-	ID() p2p.PeerID
+	ID() core.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -60,17 +60,18 @@ type HeartbeatStorageHandler interface {
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 // The interface assures that the collected data will be used by the p2p network sharding components
 type NetworkShardingCollector interface {
-	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
+	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
-	UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32)
+	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
 	IsInterfaceNil() bool
 }
 
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
-	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
-	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
+	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
 }
 
@@ -85,14 +86,15 @@ type PeerTypeProviderHandler interface {
 type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
+	NotifyTriggerReceived() <-chan struct{}
 	CreateData() []byte
 	IsInterfaceNil() bool
 }
 
-// BlackListHandler can determine if a certain key is or not blacklisted
-type BlackListHandler interface {
-	Add(key string) error
-	Has(key string) bool
+// PeerBlackListHandler can determine if a certain peer ID is or not blacklisted
+type PeerBlackListHandler interface {
+	Add(pid core.PeerID) error
+	Has(pid core.PeerID) bool
 	Sweep()
 	IsInterfaceNil() bool
 }

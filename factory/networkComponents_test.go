@@ -46,6 +46,7 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
+			Port: "0",
 			Seed: "seed",
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
@@ -58,7 +59,6 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 		},
 		Sharding: config.ShardingConfig{
 			TargetPeerCount:         10,
-			PrioBits:                10,
 			MaxIntraShardValidators: 10,
 			MaxCrossShardValidators: 10,
 			MaxIntraShardObservers:  10,
@@ -66,7 +66,24 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 			Type:                    "NilListSharder",
 		},
 	}
-	ncf, _ := NewNetworkComponentsFactory(p2pConfig, config.Config{}, &mock.AppStatusHandlerMock{})
+	ncf, _ := NewNetworkComponentsFactory(
+		p2pConfig,
+		config.Config{
+			P2PMessageIDAdditionalCache: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 100,
+				Shards:   16,
+			},
+			Debug: config.DebugConfig{
+				Antiflood: config.AntifloodDebugConfig{
+					Enabled:                    true,
+					CacheSize:                  100,
+					IntervalAutoPrintInSeconds: 1,
+				},
+			},
+		},
+		&mock.AppStatusHandlerMock{},
+	)
 
 	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
 

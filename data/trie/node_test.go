@@ -678,3 +678,20 @@ func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
 }
+
+func TestPatriciaMerkleTrie_newHashesAndOldHashesAreResetAfterEveryCommit(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	_ = tr.Commit()
+
+	_ = tr.Update([]byte("doe"), []byte("deer"))
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	newHashes, _ := tr.GetDirtyHashes()
+	tr.SetNewHashes(newHashes)
+
+	err := tr.Commit()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(tr.oldHashes))
+	assert.Equal(t, 0, len(tr.newHashes))
+}

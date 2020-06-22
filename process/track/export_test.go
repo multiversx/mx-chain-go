@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -186,4 +187,18 @@ func (bp *blockProcessor) GetHighestRoundInReceivedHeaders(latestValidHeader dat
 
 func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce uint64, latestValidHeader data.HeaderHandler, highestRoundInReceivedHeaders uint64) {
 	bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce, latestValidHeader, highestRoundInReceivedHeaders)
+}
+
+// miniBlockTrack
+
+func (mbt *miniBlockTrack) ReceivedMiniBlock(key []byte, value interface{}) {
+	mbt.receivedMiniBlock(key, value)
+}
+
+func (mbt *miniBlockTrack) GetTransactionPool(mbType block.Type) dataRetriever.ShardedDataCacherNotifier {
+	return mbt.getTransactionPool(mbType)
+}
+
+func (mbt *miniBlockTrack) SetBlockTransactionsPool(blockTransactionsPool dataRetriever.ShardedDataCacherNotifier) {
+	mbt.blockTransactionsPool = blockTransactionsPool
 }

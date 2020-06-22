@@ -79,7 +79,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 		CallerAddr:  query.ScAddress,
 		CallValue:   big.NewInt(0),
 		GasPrice:    gasPrice,
-		GasProvided: service.economicsFee.MaxGasLimitPerBlock(),
+		GasProvided: service.economicsFee.MaxGasLimitPerBlock(0),
 		Arguments:   query.Arguments,
 		CallType:    vmcommon.DirectCall,
 	}
@@ -134,7 +134,7 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 		return 0, err
 	}
 
-	gasConsumed := service.economicsFee.MaxGasLimitPerBlock() - vmOutput.GasRemaining
+	gasConsumed := service.economicsFee.MaxGasLimitPerBlock(0) - vmOutput.GasRemaining
 
 	return gasConsumed, nil
 }

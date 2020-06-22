@@ -7,9 +7,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 type networkComponentsFactory struct {
@@ -61,9 +63,25 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(ncf.mainConfig, ncf.statusHandler)
+	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(
+		ncf.mainConfig,
+		ncf.statusHandler,
+		netMessenger.ID(),
+	)
 	if err != nil {
 		return nil, err
+	}
+
+	if ncf.mainConfig.Debug.Antiflood.Enabled {
+		debugger, err := antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
+		if err != nil {
+			return nil, err
+		}
+
+		err = inAntifloodHandler.SetDebugger(debugger)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	inputAntifloodHandler, ok := antiFloodComponents.AntiFloodHandler.(P2PAntifloodHandler)
@@ -84,6 +102,21 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	err = netMessenger.SetPeerBlackListHandler(antiFloodComponents.BlacklistHandler)
 	if err != nil {
 		return nil, err
+	}
+
+	cache, err := storageUnit.NewCache(
+		storageUnit.CacheType(ncf.mainConfig.P2PMessageIDAdditionalCache.Type),
+		ncf.mainConfig.P2PMessageIDAdditionalCache.Capacity,
+		ncf.mainConfig.P2PMessageIDAdditionalCache.Shards,
+		ncf.mainConfig.P2PMessageIDAdditionalCache.SizeInBytes,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating p2p cacher", err)
+	}
+
+	err = netMessenger.SetMessageIdsCacher(cache)
+	if err != nil {
+		return nil, fmt.Errorf("%w while setting p2p cacher", err)
 	}
 
 	return &networkComponents{

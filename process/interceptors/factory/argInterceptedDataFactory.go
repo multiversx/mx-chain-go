@@ -1,8 +1,8 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -16,7 +16,7 @@ type interceptedDataCoreComponentsHolder interface {
 	TxMarshalizer() marshal.Marshalizer
 	Hasher() hashing.Hasher
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
-	AddressPubKeyConverter() state.PubkeyConverter
+	AddressPubKeyConverter() core.PubkeyConverter
 	ChainID() string
 	IsInterfaceNil() bool
 }

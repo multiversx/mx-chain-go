@@ -3,6 +3,7 @@ package dataValidators
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -16,7 +17,7 @@ type txValidator struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
 	whiteListHandler     process.WhiteListHandler
-	pubkeyConverter      state.PubkeyConverter
+	pubkeyConverter      core.PubkeyConverter
 	maxNonceDeltaAllowed int
 }
 
@@ -25,7 +26,7 @@ func NewTxValidator(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	whiteListHandler process.WhiteListHandler,
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
 	if check.IfNil(accounts) {

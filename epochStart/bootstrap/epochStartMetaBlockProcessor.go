@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
@@ -32,7 +31,7 @@ type epochStartMetaBlockProcessor struct {
 	hasher                            hashing.Hasher
 	mutReceivedMetaBlocks             sync.RWMutex
 	mapReceivedMetaBlocks             map[string]*block.MetaBlock
-	mapMetaBlocksFromPeers            map[string][]p2p.PeerID
+	mapMetaBlocksFromPeers            map[string][]core.PeerID
 	chanConsensusReached              chan bool
 	metaBlock                         *block.MetaBlock
 	peerCountTarget                   int
@@ -81,7 +80,7 @@ func NewEpochStartMetaBlockProcessor(
 		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValidConfig,
 		mutReceivedMetaBlocks:             sync.RWMutex{},
 		mapReceivedMetaBlocks:             make(map[string]*block.MetaBlock),
-		mapMetaBlocksFromPeers:            make(map[string][]p2p.PeerID),
+		mapMetaBlocksFromPeers:            make(map[string][]core.PeerID),
 		chanConsensusReached:              make(chan bool, 1),
 	}
 
@@ -95,7 +94,7 @@ func NewEpochStartMetaBlockProcessor(
 }
 
 // Validate will return nil as there is no need for validation
-func (e *epochStartMetaBlockProcessor) Validate(_ process.InterceptedData, _ p2p.PeerID) error {
+func (e *epochStartMetaBlockProcessor) Validate(_ process.InterceptedData, _ core.PeerID) error {
 	return nil
 }
 
@@ -116,7 +115,7 @@ func (e *epochStartMetaBlockProcessor) waitForEnoughNumConnectedPeers(messenger 
 // Save will handle the consensus mechanism for the fetched metablocks
 // All errors are just logged because if this function returns an error, the processing is finished. This way, we ignore
 // wrong received data and wait for relevant intercepted data
-func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromConnectedPeer p2p.PeerID) error {
+func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID) error {
 	if check.IfNil(data) {
 		log.Debug("epoch bootstrapper: nil intercepted data")
 		return nil
@@ -151,7 +150,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 }
 
 // this func should be called under mutex protection
-func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer p2p.PeerID) {
+func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer core.PeerID) {
 	peersListForHash := e.mapMetaBlocksFromPeers[hash]
 	for _, pid := range peersListForHash {
 		if pid == peer {
@@ -250,7 +249,7 @@ func (e *epochStartMetaBlockProcessor) checkMaps() {
 }
 
 func (e *epochStartMetaBlockProcessor) processEntry(
-	peersList []p2p.PeerID,
+	peersList []core.PeerID,
 	hash string,
 ) bool {
 	if len(peersList) >= e.peerCountTarget {

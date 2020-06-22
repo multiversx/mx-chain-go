@@ -131,7 +131,7 @@ func (boot *ShardBootstrap) SyncBlock() error {
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
-	log.Debug("requesting header from network",
+	log.Debug("requesting shard header from network",
 		"nonce", nonce,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
@@ -141,7 +141,7 @@ func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
 func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 	boot.setRequestedHeaderHash(hash)
-	log.Debug("requesting header from network",
+	log.Debug("requesting shard header from network",
 		"hash", hash,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)

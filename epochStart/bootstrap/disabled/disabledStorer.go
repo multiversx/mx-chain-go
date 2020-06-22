@@ -6,12 +6,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-const defaultMemDBSize = 10000
+const defaultCapacity = 10000
 const defaultNumShards = 1
+const zeroSize = 0
 
 // CreateMemUnit creates an in-memory storer unit using maps
 func CreateMemUnit() storage.Storer {
-	cache, err := storageUnit.NewCache(storageUnit.LRUCache, defaultMemDBSize, defaultNumShards)
+	cache, err := storageUnit.NewCache(storageUnit.LRUCache, defaultCapacity, defaultNumShards, zeroSize)
 	if err != nil {
 		return nil
 	}

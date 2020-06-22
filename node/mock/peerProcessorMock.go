@@ -100,6 +100,15 @@ func (vsp *ValidatorStatisticsProcessorMock) GetPeerAccount(address []byte) (sta
 func (vsp *ValidatorStatisticsProcessorMock) DisplayRatings(_ uint32) {
 }
 
+// SetLastFinalizedRootHash -
+func (vsp *ValidatorStatisticsProcessorMock) SetLastFinalizedRootHash(_ []byte) {
+}
+
+// LastFinalizedRootHash -
+func (vsp *ValidatorStatisticsProcessorMock) LastFinalizedRootHash() []byte {
+	return nil
+}
+
 // IsInterfaceNil -
 func (vsp *ValidatorStatisticsProcessorMock) IsInterfaceNil() bool {
 	return false

@@ -18,12 +18,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 const roundTimeDuration = 100 * time.Millisecond
 
-var fromConnectedPeerId = p2p.PeerID("connected peer id")
+var fromConnectedPeerId = core.PeerID("connected peer id")
 
 const HashSize = 32
 const SignatureSize = 48
@@ -69,7 +70,7 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 	syncTimerMock := &mock.SyncTimerMock{}
 	hasher := &mock.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
-	poolAdder := &mock.CacherMock{}
+	poolAdder := testscommon.NewCacherMock()
 
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         blsService,
@@ -101,18 +102,18 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 
 func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
 	return &mock.NetworkShardingCollectorStub{
-		UpdatePeerIdPublicKeyCalled:  func(pid p2p.PeerID, pk []byte) {},
+		UpdatePeerIdPublicKeyCalled:  func(pid core.PeerID, pk []byte) {},
 		UpdatePublicKeyShardIdCalled: func(pk []byte, shardId uint32) {},
-		UpdatePeerIdShardIdCalled:    func(pid p2p.PeerID, shardId uint32) {},
+		UpdatePeerIdShardIdCalled:    func(pid core.PeerID, shardId uint32) {},
 	}
 }
 
 func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 	return &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
 		},
-		CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 			return nil
 		},
 	}
@@ -373,7 +374,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetected(t *testing.T) {
 	workerArgs := createDefaultWorkerArgs()
 
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return expectedErr
 		},
 	}
@@ -392,10 +393,10 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 	expectedErr := errors.New("flood detected")
 	workerArgs := createDefaultWorkerArgs()
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
 		},
-		CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
 			return expectedErr
 		},
 	}
@@ -1311,7 +1312,7 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 
 	assert.Nil(t, wrk.ReceivedMessages()[msgType][0])
 
-	wrk.Close()
+	_ = wrk.Close()
 }
 
 func TestWorker_CheckChannelsShouldWork(t *testing.T) {
@@ -1351,7 +1352,7 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, isBlockJobDone)
 
-	wrk.Close()
+	_ = wrk.Close()
 }
 
 func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
@@ -1490,7 +1491,7 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 	rcvMsg = wrk.ReceivedMessages()
 	assert.Equal(t, 0, len(rcvMsg[msgType]))
 
-	wrk.Close()
+	_ = wrk.Close()
 }
 
 func TestWorker_SetAppStatusHandlerNilShouldErr(t *testing.T) {

@@ -31,10 +31,12 @@ type ArgsEpochStartInterceptorContainer struct {
 	DataPool               dataRetriever.PoolsHolder
 	WhiteListHandler       update.WhiteListHandler
 	WhiteListerVerifiedTxs update.WhiteListHandler
+	AddressPubkeyConv      core.PubkeyConverter
+	NonceConverter         typeConverters.Uint64ByteSliceConverter
+	ChainID                []byte
 }
 
-// NewEpochStartInterceptorsContainer will return a real interceptors container factory, but will many disabled
-// components
+// NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
 func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, error) {
 	if check.IfNil(args.CoreComponents) {
 		return nil, epochStart.ErrNilCoreComponentsHolder
@@ -93,6 +95,11 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	}
 
 	container, err := interceptorsContainerFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(container)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"math"
 	"math/big"
 	"testing"
 
@@ -211,44 +212,6 @@ func TestStakingToPeer_UpdateProtocolCannotGetStorageUpdatesShouldErr(t *testing
 	blockBody := createBlockBody()
 	err := stp.UpdateProtocol(blockBody, 0)
 	assert.Nil(t, err)
-}
-
-func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
-	t.Parallel()
-
-	currTx := &mock.TxForCurrentBlockStub{}
-	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
-		return &smartContractResult.SmartContractResult{
-			RcvAddr: factory.StakingSCAddress,
-		}, nil
-	}
-
-	arguments := createMockArgumentsNewStakingToPeer()
-	offset := make([]byte, 0, arguments.PubkeyConv.Len())
-	for i := 0; i < arguments.PubkeyConv.Len(); i++ {
-		offset = append(offset, 99)
-	}
-
-	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
-		return []*vmcommon.StorageUpdate{
-			{Offset: offset, Data: []byte("data1")},
-		}, nil
-	}
-
-	peerState := &mock.AccountsStub{}
-	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
-		return &mock.AccountWrapMock{}, nil
-	}
-
-	arguments.ArgParser = argParser
-	arguments.CurrTxs = currTx
-	arguments.PeerState = peerState
-	stp, _ := NewStakingToPeer(arguments)
-
-	blockBody := createBlockBody()
-	err := stp.UpdateProtocol(blockBody, 0)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
 func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) {
@@ -602,53 +565,67 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	t.Parallel()
 
+	var peerAccount state.PeerAccountHandler
+	peerAccount = state.NewEmptyPeerAccount()
+	peerAccountsDB := &mock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return peerAccount, nil
+		},
+	}
+
 	arguments := createMockArgumentsNewStakingToPeer()
+	arguments.PeerState = peerAccountsDB
 	stp, _ := NewStakingToPeer(arguments)
 
 	stakingData := systemSmartContracts.StakedData{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		UnStakedEpoch: 0,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
 		RewardAddress: []byte("rwd"),
 		StakeValue:    big.NewInt(0),
 		JailedRound:   0,
 		JailedNonce:   0,
 		UnJailedNonce: 0,
+		StakedNonce:   math.MaxUint64,
 	}
-	var peerAccount state.PeerAccountHandler
-	peerAccount = state.NewEmptyPeerAccount()
+
 	blsPubKey := []byte("key")
 	nonce := uint64(1)
-	err := stp.updatePeerState(stakingData, peerAccount, blsPubKey, nonce)
+	err := stp.updatePeerState(stakingData, blsPubKey, nonce)
 	assert.Nil(t, err)
+	assert.Equal(t, 0, len(peerAccount.GetRewardAddress()))
+
+	stakingData.Staked = true
+	stakingData.StakedNonce = nonce
+	err = stp.updatePeerState(stakingData, blsPubKey, nonce)
 	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
 	assert.Equal(t, 0, len(peerAccount.GetList()))
 
 	stakingData.RegisterNonce = 10
-	_ = stp.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.RegisterNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.RegisterNonce)
 	assert.Equal(t, string(core.NewList), peerAccount.GetList())
 
 	stakingData.UnStakedNonce = 11
-	_ = stp.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.UnStakedNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 
 	peerAccount.SetListAndIndex(0, string(core.EligibleList), 5)
 	stakingData.JailedNonce = 12
-	_ = stp.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.JailedNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.JailedNonce)
 	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 
 	// it is still jailed - no change allowed
 	stakingData.RegisterNonce = 13
-	_ = stp.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.RegisterNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.RegisterNonce)
 	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 
 	stakingData.UnJailedNonce = 14
-	_ = stp.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.UnJailedNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
 	assert.Equal(t, string(core.NewList), peerAccount.GetList())
 
 	stakingData.UnStakedNonce = 15
-	_ = stp.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.UnStakedNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 }

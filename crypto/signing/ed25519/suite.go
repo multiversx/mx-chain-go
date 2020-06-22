@@ -90,6 +90,22 @@ func (s *suiteEd25519) GetUnderlyingSuite() interface{} {
 	return nil
 }
 
+// IsPointValid -
+func (s *suiteEd25519) CheckPointValid(pointBytes []byte) error {
+	if len(pointBytes) != s.PointLen() {
+		return crypto.ErrInvalidParam
+	}
+
+	point := s.CreatePoint()
+	err := point.UnmarshalBinary(pointBytes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
 // RandomStream returns nothing - TODO: Remove this
 func (s *suiteEd25519) RandomStream() cipher.Stream {
 	log.Debug("suiteEd25519",

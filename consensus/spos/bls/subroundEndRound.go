@@ -3,6 +3,7 @@ package bls
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -111,7 +112,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 }
 
 func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
-	if sr.IsSelfLeaderInCurrentRound() {
+	if sr.ConsensusGroup() == nil || sr.IsSelfLeaderInCurrentRound() {
 		return
 	}
 
@@ -160,7 +161,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	// create and broadcast header final info
 	sr.createAndBroadcastHeaderFinalInfo()
 
-	// broadcast block body and header
+	// broadcast header
 	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
 	if err != nil {
 		log.Debug("doEndRoundJob.BroadcastHeader", "error", err.Error())
@@ -169,9 +170,13 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	startTime := time.Now()
 	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to commit block",
-		"time [s]", elapsedTime,
-	)
+	if elapsedTime >= core.CommitMaxTime {
+		log.Warn("doEndRoundJobByLeader.CommitBlock", "elapsed time", elapsedTime)
+	} else {
+		log.Debug("elapsed time to commit block",
+			"time [s]", elapsedTime,
+		)
+	}
 	if err != nil {
 		log.Debug("doEndRoundJob.CommitBlock", "error", err)
 		return false
@@ -270,9 +275,13 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	startTime := time.Now()
 	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to commit block",
-		"time [s]", elapsedTime,
-	)
+	if elapsedTime >= core.CommitMaxTime {
+		log.Warn("doEndRoundJobByParticipant.CommitBlock", "elapsed time", elapsedTime)
+	} else {
+		log.Debug("elapsed time to commit block",
+			"time [s]", elapsedTime,
+		)
+	}
 	if err != nil {
 		log.Debug("doEndRoundJobByParticipant.CommitBlock", "error", err.Error())
 		return false
@@ -376,15 +385,72 @@ func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
 			return err
 		}
 
-		return sr.BroadcastMessenger().SetDataForDelayBroadcast(headerHash, miniBlocks, transactions)
+		metaMiniBlocks, metaTransactions := sr.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
+
+		err = sr.BroadcastMessenger().SetDataForDelayBroadcast(headerHash, miniBlocks, transactions)
+		if err != nil {
+			return err
+		}
+
+		go sr.broadcast(metaMiniBlocks, metaTransactions, 0)
+		return nil
 	}
 
-	err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
-	if err != nil {
-		return err
+	go sr.broadcast(miniBlocks, transactions, core.ExtraDelayForBroadcastBlockInfo)
+	return nil
+}
+
+func (sr *subroundEndRound) extractMetaMiniBlocksAndTransactions(
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+) (map[uint32][]byte, map[string][][]byte) {
+
+	metaMiniBlocks := make(map[uint32][]byte, 0)
+	metaTransactions := make(map[string][][]byte, 0)
+
+	for shardID, mbsMarshalized := range miniBlocks {
+		if shardID != core.MetachainShardId {
+			continue
+		}
+
+		metaMiniBlocks[shardID] = mbsMarshalized
+		delete(miniBlocks, shardID)
 	}
 
-	return sr.BroadcastMessenger().BroadcastTransactions(transactions)
+	identifier := sr.ShardCoordinator().CommunicationIdentifier(core.MetachainShardId)
+
+	for broadcastTopic, txsMarshalized := range transactions {
+		if !strings.Contains(broadcastTopic, identifier) {
+			continue
+		}
+
+		metaTransactions[broadcastTopic] = txsMarshalized
+		delete(transactions, broadcastTopic)
+	}
+
+	return metaMiniBlocks, metaTransactions
+}
+
+func (sr *subroundEndRound) broadcast(
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	extraDelayForBroadcast time.Duration,
+) {
+	time.Sleep(extraDelayForBroadcast)
+
+	if len(miniBlocks) > 0 {
+		err := sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
+		if err != nil {
+			log.Warn("broadcast.BroadcastMiniBlocks", "error", err.Error())
+		}
+	}
+
+	if len(transactions) > 0 {
+		err := sr.BroadcastMessenger().BroadcastTransactions(transactions)
+		if err != nil {
+			log.Warn("broadcast.BroadcastTransactions", "error", err.Error())
+		}
+	}
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved

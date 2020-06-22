@@ -240,6 +240,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	}
 
 	t.appStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, metaBlock.Round)
+	t.appStatusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, metaBlock.Nonce)
 
 	metaHash := t.hasher.Compute(string(metaBuff))
 
@@ -277,6 +278,7 @@ func (t *trigger) SetFinalityAttestingRound(round uint64) {
 	if round > t.currEpochStartRound {
 		t.epochFinalityAttestingRound = round
 		t.saveCurrentState(round)
+		t.epochStartNotifier.NotifyEpochChangeConfirmed(t.epoch)
 	}
 }
 

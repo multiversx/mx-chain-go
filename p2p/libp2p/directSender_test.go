@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
@@ -25,7 +26,7 @@ import (
 
 const timeout = time.Second * 5
 
-var blankMessageHandler = func(msg p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+var blankMessageHandler = func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	return nil
 }
 
@@ -70,7 +71,7 @@ func TestNewDirectSender_NilContextShouldErr(t *testing.T) {
 	hs := &mock.ConnectableHostStub{}
 
 	var ctx context.Context = nil
-	ds, err := libp2p.NewDirectSender(ctx, hs, func(msg p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	ds, err := libp2p.NewDirectSender(ctx, hs, func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 		return nil
 	})
 
@@ -79,7 +80,7 @@ func TestNewDirectSender_NilContextShouldErr(t *testing.T) {
 }
 
 func TestNewDirectSender_NilHostShouldErr(t *testing.T) {
-	ds, err := libp2p.NewDirectSender(context.Background(), nil, func(msg p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	ds, err := libp2p.NewDirectSender(context.Background(), nil, func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 		return nil
 	})
 
@@ -95,7 +96,7 @@ func TestNewDirectSender_NilMessageHandlerShouldErr(t *testing.T) {
 }
 
 func TestNewDirectSender_OkValsShouldWork(t *testing.T) {
-	ds, err := libp2p.NewDirectSender(context.Background(), generateHostStub(), func(msg p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	ds, err := libp2p.NewDirectSender(context.Background(), generateHostStub(), func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 		return nil
 	})
 
@@ -114,7 +115,7 @@ func TestNewDirectSender_OkValsShouldCallSetStreamHandlerWithCorrectValues(t *te
 		},
 	}
 
-	_, _ = libp2p.NewDirectSender(context.Background(), hs, func(msg p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	_, _ = libp2p.NewDirectSender(context.Background(), hs, func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 		return nil
 	})
 
@@ -225,7 +226,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		generateHostStub(),
-		func(msg p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			wasCalled = true
 			return nil
 		},
@@ -250,7 +251,7 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		generateHostStub(),
-		func(msg p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return checkErr
 		},
 	)
@@ -298,7 +299,7 @@ func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing
 
 	messageTooLarge := bytes.Repeat([]byte{65}, libp2p.MaxSendBuffSize)
 
-	err := ds.Send("topic", messageTooLarge, p2p.PeerID(cs.RemotePeer()))
+	err := ds.Send("topic", messageTooLarge, core.PeerID(cs.RemotePeer()))
 
 	assert.Equal(t, p2p.ErrMessageTooLarge, err)
 }
@@ -360,7 +361,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 
 	data := []byte("data")
 	topic := "topic"
-	err := ds.Send(topic, data, p2p.PeerID(cs.RemotePeer()))
+	err := ds.Send(topic, data, core.PeerID(cs.RemotePeer()))
 
 	assert.Equal(t, errNewStream, err)
 }
@@ -411,7 +412,7 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 
 	data := []byte("data")
 	topic := "topic"
-	err := ds.Send(topic, data, p2p.PeerID(cs.RemotePeer()))
+	err := ds.Send(topic, data, core.PeerID(cs.RemotePeer()))
 
 	select {
 	case <-chanDone:
@@ -481,7 +482,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 
 	data := []byte("data")
 	topic := "topic"
-	err := ds.Send(topic, data, p2p.PeerID(cs.RemotePeer()))
+	err := ds.Send(topic, data, core.PeerID(cs.RemotePeer()))
 
 	select {
 	case <-chanDone:
@@ -517,7 +518,7 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		hs,
-		func(msg p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			receivedMsg = msg
 			chanDone <- true
 			return nil
@@ -546,7 +547,7 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 
 	data := []byte("data")
 	topic := "topic"
-	_ = ds.Send(topic, data, p2p.PeerID(cs.RemotePeer()))
+	_ = ds.Send(topic, data, core.PeerID(cs.RemotePeer()))
 
 	select {
 	case <-chanDone:

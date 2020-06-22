@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -18,7 +19,8 @@ var zero = big.NewInt(0)
 type nodeSetupChecker struct {
 	accountsParser           genesis.AccountsParser
 	initialNodePrice         *big.Int
-	validatorPubkeyConverter state.PubkeyConverter
+	validatorPubkeyConverter core.PubkeyConverter
+	keyGenerator             crypto.KeyGenerator
 }
 
 type delegationAddress struct {
@@ -30,7 +32,8 @@ type delegationAddress struct {
 func NewNodesSetupChecker(
 	accountsParser genesis.AccountsParser,
 	initialNodePrice *big.Int,
-	validatorPubkeyConverter state.PubkeyConverter,
+	validatorPubkeyConverter core.PubkeyConverter,
+	keyGenerator crypto.KeyGenerator,
 ) (*nodeSetupChecker, error) {
 	if check.IfNil(accountsParser) {
 		return nil, genesis.ErrNilAccountsParser
@@ -45,11 +48,15 @@ func NewNodesSetupChecker(
 	if check.IfNil(validatorPubkeyConverter) {
 		return nil, genesis.ErrNilPubkeyConverter
 	}
+	if check.IfNil(keyGenerator) {
+		return nil, genesis.ErrNilKeyGenerator
+	}
 
 	return &nodeSetupChecker{
 		accountsParser:           accountsParser,
 		initialNodePrice:         initialNodePrice,
 		validatorPubkeyConverter: validatorPubkeyConverter,
+		keyGenerator:             keyGenerator,
 	}, nil
 }
 
@@ -57,14 +64,34 @@ func NewNodesSetupChecker(
 // also, it checks that the amount staked (either directly or delegated) matches exactly the total
 // staked value defined in the genesis file
 func (nsc *nodeSetupChecker) Check(initialNodes []sharding.GenesisNodeInfoHandler) error {
+	err := nsc.ckeckGenesisNodes(initialNodes)
+	if err != nil {
+		return err
+	}
+
 	initialAccounts := nsc.getClonedInitialAccounts()
 	delegated := nsc.createDelegatedValues(initialAccounts)
-	err := nsc.traverseInitialNodesSubtractingStakedValue(initialAccounts, initialNodes, delegated)
+	err = nsc.traverseInitialNodesSubtractingStakedValue(initialAccounts, initialNodes, delegated)
 	if err != nil {
 		return err
 	}
 
 	return nsc.checkRemainderInitialAccounts(initialAccounts, delegated)
+}
+
+func (nsc *nodeSetupChecker) ckeckGenesisNodes(initialNodes []sharding.GenesisNodeInfoHandler) error {
+	for _, node := range initialNodes {
+		err := nsc.keyGenerator.CheckPublicKeyValid(node.PubKeyBytes())
+		if err != nil {
+			return fmt.Errorf("%w for node's public key `%s`, error: %s",
+				genesis.ErrInvalidPubKey,
+				nsc.validatorPubkeyConverter.Encode(node.PubKeyBytes()),
+				err.Error(),
+			)
+		}
+	}
+
+	return nil
 }
 
 func (nsc *nodeSetupChecker) getClonedInitialAccounts() []genesis.InitialAccountHandler {
@@ -113,6 +140,9 @@ func (nsc *nodeSetupChecker) subtractStakedValue(
 		dh := ia.GetDelegationHandler()
 		if check.IfNil(dh) {
 			return genesis.ErrNilDelegationHandler
+		}
+		if !bytes.Equal(dh.AddressBytes(), addressBytes) {
+			continue
 		}
 
 		addr, ok := delegated[string(dh.AddressBytes())]

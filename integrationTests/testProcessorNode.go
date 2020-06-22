@@ -16,13 +16,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
@@ -67,6 +67,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -243,6 +244,7 @@ type TestProcessorNode struct {
 	ChainID []byte
 
 	ExportHandler update.ExportHandler
+	WaitTime      time.Duration
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -468,13 +470,13 @@ func (tpn *TestProcessorNode) initTestNode() {
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	tpn.DataPool = CreateTestDataPool(nil, tpn.ShardCoordinator.SelfId())
-	cacherCfg := storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache, Shards: 1}
-	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	tpn.DataPool = testscommon.CreatePoolsHolder(1, tpn.ShardCoordinator.SelfId())
+	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
+	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(cache)
 
-	cacherVerifiedCfg := storageUnit.CacheConfig{Size: 5000, Type: storageUnit.LRUCache, Shards: 1}
-	cacheVerified, _ := storageUnit.NewCache(cacherVerifiedCfg.Type, cacherVerifiedCfg.Size, cacherVerifiedCfg.Shards)
+	cacherVerifiedCfg := storageUnit.CacheConfig{Capacity: 5000, Type: storageUnit.LRUCache, Shards: 1}
+	cacheVerified, _ := storageUnit.NewCache(cacherVerifiedCfg.Type, cacherVerifiedCfg.Capacity, cacherVerifiedCfg.Shards, cacherVerifiedCfg.SizeInBytes)
 	tpn.WhiteListerVerifiedTxs, _ = interceptors.NewWhiteListDataVerifier(cacheVerified)
 }
 
@@ -523,11 +525,12 @@ func CreateEconomicsData() *economics.EconomicsData {
 				CommunityAddress:    testCommunityAddress,
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:  maxGasLimitPerBlock,
-				MinGasPrice:          minGasPrice,
-				MinGasLimit:          minGasLimit,
-				GasPerDataByte:       "1",
-				DataLimitForBaseCalc: "10000",
+				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
+				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
+				MinGasPrice:             minGasPrice,
+				MinGasLimit:             minGasLimit,
+				GasPerDataByte:          "1",
+				DataLimitForBaseCalc:    "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
 				GenesisNodePrice:         "500000000",
@@ -1001,10 +1004,11 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
+	signVerifer, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 	vmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
 		tpn.EconomicsData.EconomicsData,
-		&disabled.MessageSignVerifier{},
+		signVerifer,
 		gasSchedule,
 		tpn.NodesSetup,
 		TestHasher,
@@ -1214,27 +1218,27 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
 		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
-			Marshalizer:         TestMarshalizer,
-			Hasher:              TestHasher,
-			Store:               tpn.Storage,
-			ShardCoordinator:    tpn.ShardCoordinator,
-			NodesConfigProvider: tpn.NodesCoordinator,
-			RewardsHandler:      tpn.EconomicsData,
-			RoundTime:           tpn.Rounder,
+			Marshalizer:      TestMarshalizer,
+			Hasher:           TestHasher,
+			Store:            tpn.Storage,
+			ShardCoordinator: tpn.ShardCoordinator,
+			RewardsHandler:   tpn.EconomicsData,
+			RoundTime:        tpn.Rounder,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.ArgsNewRewardsCreator{
-			ShardCoordinator: tpn.ShardCoordinator,
-			PubkeyConverter:  TestAddressPubkeyConverter,
-			RewardsStorage:   rewardsStorage,
-			MiniBlockStorage: miniBlockStorage,
-			Hasher:           TestHasher,
-			Marshalizer:      TestMarshalizer,
-			DataPool:         tpn.DataPool,
-			CommunityAddress: testCommunityAddress,
+			ShardCoordinator:    tpn.ShardCoordinator,
+			PubkeyConverter:     TestAddressPubkeyConverter,
+			RewardsStorage:      rewardsStorage,
+			MiniBlockStorage:    miniBlockStorage,
+			Hasher:              TestHasher,
+			Marshalizer:         TestMarshalizer,
+			DataPool:            tpn.DataPool,
+			CommunityAddress:    testCommunityAddress,
+			NodesConfigProvider: tpn.NodesCoordinator,
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 
@@ -1345,10 +1349,11 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 		node.WithBlockBlackListHandler(tpn.BlockBlackListHandler),
-		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
+		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{}),
 		node.WithDataPool(tpn.DataPool),
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	log.LogIfError(err)
 
@@ -1419,7 +1424,7 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 		tpn.DataPool.Transactions().RegisterHandler(txHandler)
 		tpn.DataPool.RewardTransactions().RegisterHandler(txHandler)
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
-		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers)
+		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers, core.UniqueIdentifier())
 	}
 }
 
@@ -1501,6 +1506,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 // BroadcastBlock broadcasts the block and body to the connected peers
 func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
+
+	time.Sleep(tpn.WaitTime)
+
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -171,11 +172,11 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 
 	arg := createMockArgTopicResolverSender()
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []p2p.PeerID {
-			return make([]p2p.PeerID, 0)
+		PeerListCalled: func() []core.PeerID {
+			return make([]core.PeerID, 0)
 		},
-		IntraShardPeerListCalled: func() []p2p.PeerID {
-			return make([]p2p.PeerID, 0)
+		IntraShardPeerListCalled: func() []core.PeerID {
+			return make([]core.PeerID, 0)
 		},
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
@@ -188,14 +189,14 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 	t.Parallel()
 
-	pID1 := p2p.PeerID("peer1")
-	pID2 := p2p.PeerID("peer2")
+	pID1 := core.PeerID("peer1")
+	pID2 := core.PeerID("peer2")
 	sentToPid1 := false
 	sentToPid2 := false
 
 	arg := createMockArgTopicResolverSender()
 	arg.Messenger = &mock.MessageHandlerStub{
-		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			if bytes.Equal(peerID.Bytes(), pID1.Bytes()) {
 				sentToPid1 = true
 			}
@@ -207,11 +208,11 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 		},
 	}
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []p2p.PeerID {
-			return []p2p.PeerID{pID1}
+		PeerListCalled: func() []core.PeerID {
+			return []core.PeerID{pID1}
 		},
-		IntraShardPeerListCalled: func() []p2p.PeerID {
-			return []p2p.PeerID{pID2}
+		IntraShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{pID2}
 		},
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
@@ -226,22 +227,22 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 func TestTopicResolverSender_SendOnRequestShouldStopAfterSendingToRequiredNum(t *testing.T) {
 	t.Parallel()
 
-	pIDs := []p2p.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5"}
+	pIDs := []core.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5"}
 
 	numSent := 0
 	arg := createMockArgTopicResolverSender()
 	arg.Messenger = &mock.MessageHandlerStub{
-		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			numSent++
 
 			return nil
 		},
 	}
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []p2p.PeerID {
+		PeerListCalled: func() []core.PeerID {
 			return pIDs
 		},
-		IntraShardPeerListCalled: func() []p2p.PeerID {
+		IntraShardPeerListCalled: func() []core.PeerID {
 			return pIDs
 		},
 	}
@@ -256,13 +257,13 @@ func TestTopicResolverSender_SendOnRequestShouldStopAfterSendingToRequiredNum(t 
 func TestTopicResolverSender_SendOnRequestNoIntraShardShouldNotCallIntraShard(t *testing.T) {
 	t.Parallel()
 
-	pIDs := []p2p.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5"}
-	pIDNotCalled := p2p.PeerID("pid not called")
+	pIDs := []core.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5"}
+	pIDNotCalled := core.PeerID("pid not called")
 
 	numSent := 0
 	arg := createMockArgTopicResolverSender()
 	arg.Messenger = &mock.MessageHandlerStub{
-		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			if peerID == pIDNotCalled {
 				assert.Fail(t, fmt.Sprintf("should not have called pid %s", peerID))
 			}
@@ -273,11 +274,11 @@ func TestTopicResolverSender_SendOnRequestNoIntraShardShouldNotCallIntraShard(t 
 	}
 	arg.NumIntraShardPeers = 0
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []p2p.PeerID {
+		PeerListCalled: func() []core.PeerID {
 			return pIDs
 		},
-		IntraShardPeerListCalled: func() []p2p.PeerID {
-			return []p2p.PeerID{pIDNotCalled}
+		IntraShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{pIDNotCalled}
 		},
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
@@ -291,13 +292,13 @@ func TestTopicResolverSender_SendOnRequestNoIntraShardShouldNotCallIntraShard(t 
 func TestTopicResolverSender_SendOnRequestNoCrossShardShouldNotCallCrossShard(t *testing.T) {
 	t.Parallel()
 
-	pIDs := []p2p.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5"}
-	pIDNotCalled := p2p.PeerID("pid not called")
+	pIDs := []core.PeerID{"pid1", "pid2", "pid3", "pid4", "pid5"}
+	pIDNotCalled := core.PeerID("pid not called")
 
 	numSent := 0
 	arg := createMockArgTopicResolverSender()
 	arg.Messenger = &mock.MessageHandlerStub{
-		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			if peerID == pIDNotCalled {
 				assert.Fail(t, fmt.Sprintf("should not have called pid %s", peerID))
 			}
@@ -308,10 +309,10 @@ func TestTopicResolverSender_SendOnRequestNoCrossShardShouldNotCallCrossShard(t 
 	}
 	arg.NumCrossShardPeers = 0
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []p2p.PeerID {
-			return []p2p.PeerID{pIDNotCalled}
+		PeerListCalled: func() []core.PeerID {
+			return []core.PeerID{pIDNotCalled}
 		},
-		IntraShardPeerListCalled: func() []p2p.PeerID {
+		IntraShardPeerListCalled: func() []core.PeerID {
 			return pIDs
 		},
 	}
@@ -326,13 +327,13 @@ func TestTopicResolverSender_SendOnRequestNoCrossShardShouldNotCallCrossShard(t 
 func TestTopicResolverSender_SendOnRequestTopicErrorsShouldReturnError(t *testing.T) {
 	t.Parallel()
 
-	pID1 := p2p.PeerID("peer1")
+	pID1 := core.PeerID("peer1")
 	sentToPid1 := false
 
 	expectedErr := errors.New("expected error")
 	arg := createMockArgTopicResolverSender()
 	arg.Messenger = &mock.MessageHandlerStub{
-		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			if bytes.Equal(peerID.Bytes(), pID1.Bytes()) {
 				sentToPid1 = true
 			}
@@ -341,11 +342,11 @@ func TestTopicResolverSender_SendOnRequestTopicErrorsShouldReturnError(t *testin
 		},
 	}
 	arg.PeerListCreator = &mock.PeerListCreatorStub{
-		PeerListCalled: func() []p2p.PeerID {
-			return []p2p.PeerID{pID1}
+		PeerListCalled: func() []core.PeerID {
+			return []core.PeerID{pID1}
 		},
-		IntraShardPeerListCalled: func() []p2p.PeerID {
-			return make([]p2p.PeerID, 0)
+		IntraShardPeerListCalled: func() []core.PeerID {
+			return make([]core.PeerID, 0)
 		},
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
@@ -361,20 +362,20 @@ func TestTopicResolverSender_SendOnRequestTopicErrorsShouldReturnError(t *testin
 func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t *testing.T) {
 	t.Parallel()
 
-	pID1 := p2p.PeerID("peer1")
+	pID1 := core.PeerID("peer1")
 	buffToSend := []byte("buff")
 
 	expectedErr := errors.New("can not send to peer")
 	arg := createMockArgTopicResolverSender()
 	arg.Messenger = &mock.MessageHandlerStub{
-		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			assert.Fail(t, "send shouldn't have been called")
 
 			return nil
 		},
 	}
 	arg.OutputAntiflooder = &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			if fromConnectedPeer == pID1 {
 				return expectedErr
 			}
@@ -393,13 +394,13 @@ func TestTopicResolverSender_SendOutputAntiflooderErrorsShouldNotSendButError(t 
 func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 	t.Parallel()
 
-	pID1 := p2p.PeerID("peer1")
+	pID1 := core.PeerID("peer1")
 	sentToPid1 := false
 	buffToSend := []byte("buff")
 
 	arg := createMockArgTopicResolverSender()
 	arg.Messenger = &mock.MessageHandlerStub{
-		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			if bytes.Equal(peerID.Bytes(), pID1.Bytes()) &&
 				bytes.Equal(buff, buffToSend) {
 				sentToPid1 = true
@@ -463,48 +464,4 @@ func TestTopicResolverSender_NumPeersToQueryr(t *testing.T) {
 
 	assert.Equal(t, intra, recoveredIntra)
 	assert.Equal(t, cross, recoveredCross)
-}
-
-// ------- FisherYatesShuffle
-
-func TestFisherYatesShuffle_EmptyShouldReturnEmpty(t *testing.T) {
-	indexes := make([]int, 0)
-	randomizer := &mock.IntRandomizerStub{}
-
-	resultIndexes := topicResolverSender.FisherYatesShuffle(indexes, randomizer)
-
-	assert.Empty(t, resultIndexes)
-}
-
-func TestFisherYatesShuffle_OneElementShouldReturnTheSame(t *testing.T) {
-	indexes := []int{1}
-	randomizer := &mock.IntRandomizerStub{
-		IntnCalled: func(n int) int {
-			return n - 1
-		},
-	}
-
-	resultIndexes := topicResolverSender.FisherYatesShuffle(indexes, randomizer)
-
-	assert.Equal(t, indexes, resultIndexes)
-}
-
-func TestFisherYatesShuffle_ShouldWork(t *testing.T) {
-	indexes := []int{1, 2, 3, 4, 5}
-	randomizer := &mock.IntRandomizerStub{
-		IntnCalled: func(n int) int {
-			return 0
-		},
-	}
-
-	//this will cause a rotation of the first element:
-	//i = 4: 5, 2, 3, 4, 1 (swap 1 <-> 5)
-	//i = 3: 4, 2, 3, 5, 1 (swap 5 <-> 4)
-	//i = 2: 3, 2, 4, 5, 1 (swap 3 <-> 4)
-	//i = 1: 2, 3, 4, 5, 1 (swap 3 <-> 2)
-
-	resultIndexes := topicResolverSender.FisherYatesShuffle(indexes, randomizer)
-	expectedResult := []int{2, 3, 4, 5, 1}
-
-	assert.Equal(t, expectedResult, resultIndexes)
 }

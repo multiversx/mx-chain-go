@@ -6,10 +6,10 @@ import (
 	"math/big"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -28,7 +28,7 @@ type InterceptedTransaction struct {
 	hasher                 hashing.Hasher
 	keyGen                 crypto.KeyGenerator
 	singleSigner           crypto.SingleSigner
-	pubkeyConv             state.PubkeyConverter
+	pubkeyConv             core.PubkeyConverter
 	coordinator            sharding.Coordinator
 	hash                   []byte
 	rcvShard               uint32
@@ -46,7 +46,7 @@ func NewInterceptedTransaction(
 	hasher hashing.Hasher,
 	keyGen crypto.KeyGenerator,
 	signer crypto.SingleSigner,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	coordinator sharding.Coordinator,
 	feeHandler process.FeeHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
@@ -170,6 +170,12 @@ func (inTx *InterceptedTransaction) integrity() error {
 	}
 	if inTx.tx.Value.Sign() < 0 {
 		return process.ErrNegativeValue
+	}
+	if len(inTx.tx.RcvUserName) > 0 && len(inTx.tx.RcvUserName) != inTx.hasher.Size() {
+		return process.ErrInvalidUserNameLength
+	}
+	if len(inTx.tx.SndUserName) > 0 && len(inTx.tx.SndUserName) != inTx.hasher.Size() {
+		return process.ErrInvalidUserNameLength
 	}
 
 	return inTx.feeHandler.CheckValidityTxValues(inTx.tx)

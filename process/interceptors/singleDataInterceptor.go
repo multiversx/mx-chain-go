@@ -3,6 +3,7 @@ package interceptors
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/debug/resolver"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -18,7 +19,7 @@ type SingleDataInterceptor struct {
 	whiteListRequested         process.WhiteListHandler
 	antifloodHandler           process.P2PAntifloodHandler
 	mutInterceptedDebugHandler sync.RWMutex
-	interceptedDebugHandler    process.InterceptedDebugHandler
+	interceptedDebugHandler    process.InterceptedDebugger
 }
 
 // NewSingleDataInterceptor hooks a new interceptor for single data
@@ -64,7 +65,7 @@ func NewSingleDataInterceptor(
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	sdi.mutInterceptedDebugHandler.RLock()
 	defer sdi.mutInterceptedDebugHandler.RUnlock()
 
@@ -76,6 +77,12 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	interceptedData, err := sdi.factory.Create(message.Data())
 	if err != nil {
 		sdi.throttler.EndProcessing()
+
+		//this situation is so severe that we need to black list the peers
+		reason := "can not create object from received bytes, topic " + sdi.topic
+		sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+		sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+
 		return err
 	}
 
@@ -127,9 +134,9 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 }
 
 // SetInterceptedDebugHandler will set a new intercepted debug handler
-func (sdi *SingleDataInterceptor) SetInterceptedDebugHandler(handler process.InterceptedDebugHandler) error {
+func (sdi *SingleDataInterceptor) SetInterceptedDebugHandler(handler process.InterceptedDebugger) error {
 	if check.IfNil(handler) {
-		return process.ErrNilInterceptedDebugHandler
+		return process.ErrNilDebugger
 	}
 
 	sdi.mutInterceptedDebugHandler.Lock()

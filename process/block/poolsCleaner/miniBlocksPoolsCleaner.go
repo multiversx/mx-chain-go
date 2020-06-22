@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -60,7 +61,7 @@ func NewMiniBlocksPoolsCleaner(
 	}
 
 	mbpc.mapMiniBlocksRounds = make(map[string]*mbInfo)
-	mbpc.miniblocksPool.RegisterHandler(mbpc.receivedMiniBlock)
+	mbpc.miniblocksPool.RegisterHandler(mbpc.receivedMiniBlock, core.UniqueIdentifier())
 
 	return &mbpc, nil
 }

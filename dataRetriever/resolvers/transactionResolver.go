@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -84,7 +85,7 @@ func NewTxResolver(arg ArgTxResolver) (*TxResolver, error) {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	err := txRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -93,7 +94,7 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 	txRes.throttler.StartProcessing()
 	defer txRes.throttler.EndProcessing()
 
-	rd, err := txRes.parseReceivedMessage(message)
+	rd, err := txRes.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
@@ -114,7 +115,7 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 	return err
 }
 
-func (txRes *TxResolver) resolveTxRequestByHash(hash []byte, pid p2p.PeerID) error {
+func (txRes *TxResolver) resolveTxRequestByHash(hash []byte, pid core.PeerID) error {
 	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
 	tx, err := txRes.fetchTxAsByteSlice(hash)
 	if err != nil {
@@ -152,7 +153,7 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte) ([]byte, error) {
 	return buff, err
 }
 
-func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.PeerID) error {
+func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core.PeerID) error {
 	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
 	b := batch.Batch{}
 	err := txRes.marshalizer.Unmarshal(&b, hashesBuff)

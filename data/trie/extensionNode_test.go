@@ -715,9 +715,10 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 	expected.marsh = en.marsh
 	expected.hasher = en.hasher
 
-	node, err := en.reduceNode(2)
+	node, newChildPos, err := en.reduceNode(2)
 	assert.Equal(t, expected, node)
 	assert.Nil(t, err)
+	assert.True(t, newChildPos)
 }
 
 func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
@@ -854,7 +855,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	nodesCacher, _ := lrucache.NewCache(100)
 	for i := range nodes {
 		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
-		nodesCacher.Put(node.hash, node)
+		nodesCacher.Put(node.hash, node, len(node.EncodedNode()))
 	}
 
 	en := getCollapsedEn(t, tr.root)

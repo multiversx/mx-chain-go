@@ -29,7 +29,12 @@ func (vm *ValidatorMock) Chances() uint32 {
 	return vm.chances
 }
 
-// Chances -
+// Size -
+func (vm *ValidatorMock) Size() int {
+	return len(vm.pubKey) + 8
+}
+
+// Index -
 func (vm *ValidatorMock) Index() uint32 {
 	return vm.index
 }

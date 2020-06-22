@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -88,12 +89,17 @@ func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	ws := startNodeServer(&mock.HardforkFacade{
-		TriggerCalled: func() error {
+		TriggerCalled: func(epoch uint32) error {
 			return expectedErr
 		},
 	})
 
-	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(nil))
+	hr := &hardfork.HarforkRequest{
+		Epoch: 4,
+	}
+
+	buffHr, _ := json.Marshal(hr)
+	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(buffHr))
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -104,11 +110,33 @@ func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
 	assert.Contains(t, triggerResponse.Error, expectedErr.Error())
 }
 
+func TestTrigger_TriggerWrongRequestTypeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(&mock.HardforkFacade{})
+
+	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer([]byte("wrong buffer")))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	triggerResponse := TriggerResponse{}
+	loadResponse(resp.Body, &triggerResponse)
+
+	assert.Equal(t, resp.Code, http.StatusBadRequest)
+}
+
 func TestTrigger_ManualShouldWork(t *testing.T) {
 	t.Parallel()
 
+	recoveredEpoch := uint32(0)
+	hr := &hardfork.HarforkRequest{
+		Epoch: 4,
+	}
+	buffHr, _ := json.Marshal(hr)
 	ws := startNodeServer(&mock.HardforkFacade{
-		TriggerCalled: func() error {
+		TriggerCalled: func(epoch uint32) error {
+			atomic.StoreUint32(&recoveredEpoch, epoch)
+
 			return nil
 		},
 		IsSelfTriggerCalled: func() bool {
@@ -116,7 +144,7 @@ func TestTrigger_ManualShouldWork(t *testing.T) {
 		},
 	})
 
-	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(nil))
+	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(buffHr))
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -125,13 +153,14 @@ func TestTrigger_ManualShouldWork(t *testing.T) {
 
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.Equal(t, hardfork.ExecManualTrigger, triggerResponse.Status)
+	assert.Equal(t, hr.Epoch, atomic.LoadUint32(&recoveredEpoch))
 }
 
 func TestTrigger_BroadcastShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ws := startNodeServer(&mock.HardforkFacade{
-		TriggerCalled: func() error {
+		TriggerCalled: func(_ uint32) error {
 			return nil
 		},
 		IsSelfTriggerCalled: func() bool {
@@ -139,7 +168,11 @@ func TestTrigger_BroadcastShouldWork(t *testing.T) {
 		},
 	})
 
-	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(nil))
+	hr := &hardfork.HarforkRequest{
+		Epoch: 4,
+	}
+	buffHr, _ := json.Marshal(hr)
+	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(buffHr))
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 

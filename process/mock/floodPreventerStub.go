@@ -1,20 +1,24 @@
 package mock
 
+import "github.com/ElrondNetwork/elrond-go/core"
+
 // FloodPreventerStub -
 type FloodPreventerStub struct {
-	IncreaseLoadGlobalCalled func(identifier string, size uint64) error
-	IncreaseLoadCalled       func(identifier string, size uint64) error
+	IncreaseLoadCalled       func(pid core.PeerID, size uint64) error
+	ApplyConsensusSizeCalled func(size int)
 	ResetCalled              func()
 }
 
-// IncreaseLoadGlobal -
-func (fps *FloodPreventerStub) IncreaseLoadGlobal(identifier string, size uint64) error {
-	return fps.IncreaseLoadGlobalCalled(identifier, size)
+// IncreaseLoad -
+func (fps *FloodPreventerStub) IncreaseLoad(pid core.PeerID, size uint64) error {
+	return fps.IncreaseLoadCalled(pid, size)
 }
 
-// IncreaseLoad -
-func (fps *FloodPreventerStub) IncreaseLoad(identifier string, size uint64) error {
-	return fps.IncreaseLoadCalled(identifier, size)
+// ApplyConsensusSize -
+func (fps *FloodPreventerStub) ApplyConsensusSize(size int) {
+	if fps.ApplyConsensusSizeCalled != nil {
+		fps.ApplyConsensusSizeCalled(size)
+	}
 }
 
 // Reset -

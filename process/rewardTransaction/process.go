@@ -17,14 +17,14 @@ const rewardKey = "reward"
 
 type rewardTxProcessor struct {
 	accounts         state.AccountsAdapter
-	pubkeyConv       state.PubkeyConverter
+	pubkeyConv       core.PubkeyConverter
 	shardCoordinator sharding.Coordinator
 }
 
 // NewRewardTxProcessor creates a rewardTxProcessor instance
 func NewRewardTxProcessor(
 	accountsDB state.AccountsAdapter,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	coordinator sharding.Coordinator,
 ) (*rewardTxProcessor, error) {
 	if check.IfNil(accountsDB) {

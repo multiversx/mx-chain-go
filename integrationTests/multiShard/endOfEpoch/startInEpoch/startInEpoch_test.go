@@ -8,23 +8,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
@@ -177,8 +171,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	nodeToJoinLate.Messenger = messenger
 
 	rounder := &mock.RounderMock{IndexField: int64(round)}
-
-	trieStorageManager, triesHolder, _ := createTries(getGeneralConfig(), integrationTests.TestMarshalizer, integrationTests.TestHasher, 0, &mock.PathManagerStub{})
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		CryptoComponentsHolder: &mock.CryptoComponentsMock{
 			PubKey:   nodeToJoinLate.NodeKeys.Pk,
@@ -207,10 +199,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		GenesisNodesConfig:         nodesConfig,
 		Rater:                      &mock.RaterMock{},
 		DestinationShardAsObserver: shardID,
-		TrieContainer:              triesHolder,
-		TrieStorageManagers:        trieStorageManager,
 		NodeShuffler:               &mock.NodeShufflerMock{},
 		Rounder:                    rounder,
+		ImportStartHandler:         &mock.ImportStartHandlerStub{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
@@ -255,6 +246,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		BlockTracker: &mock.BlockTrackerStub{
 			RestoreToGenesisCalled: func() {},
 		},
+		ChainID: string(integrationTests.ChainID),
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)
@@ -282,56 +274,6 @@ func getBootstrapper(shardID uint32, baseArgs storageBootstrap.ArgsBaseStorageBo
 	return storageBootstrap.NewShardStorageBootstrapper(bootstrapperArgs)
 }
 
-func createTries(
-	config config.Config,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	shardId uint32,
-	pathManager storage.PathManagerHandler,
-) (map[string]data.StorageManager, state.TriesHolder, error) {
-
-	trieContainer := state.NewDataTriesHolder()
-	trieFactoryArgs := triesFactory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   config.EvictionWaitingList,
-		SnapshotDbCfg:            config.TrieSnapshotDB,
-		Marshalizer:              marshalizer,
-		Hasher:                   hasher,
-		PathManager:              pathManager,
-		TrieStorageManagerConfig: config.TrieStorageManagerConfig,
-	}
-	trieFactory, err := triesFactory.NewTrieFactory(trieFactoryArgs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactory.Create(
-		config.AccountsTrieStorage,
-		core.GetShardIdString(shardId),
-		config.StateTriesConfig.AccountsStatePruningEnabled,
-		config.StateTriesConfig.MaxStateTrieLevelInMemory,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(triesFactory.UserAccountTrie), userAccountTrie)
-	trieStorageManagers[triesFactory.UserAccountTrie] = userStorageManager
-
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
-		config.PeerAccountsTrieStorage,
-		core.GetShardIdString(shardId),
-		config.StateTriesConfig.PeerStatePruningEnabled,
-		config.StateTriesConfig.MaxPeerTrieLevelInMemory,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(triesFactory.PeerAccountTrie), peerAccountsTrie)
-	trieStorageManagers[triesFactory.PeerAccountTrie] = peerStorageManager
-
-	return trieStorageManagers, trieContainer, nil
-}
-
 // TODO: We should remove this type of configs hidden in tests
 func getGeneralConfig() config.Config {
 	return config.Config{
@@ -345,14 +287,14 @@ func getGeneralConfig() config.Config {
 			MinNumOfPeersToConsiderBlockValid: 2,
 		},
 		WhiteListPool: config.CacheConfig{
-			Size:   10000,
-			Type:   "LRU",
-			Shards: 1,
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
 		},
 		WhiteListerVerifiedTxs: config.CacheConfig{
-			Size:   10000,
-			Type:   "LRU",
-			Shards: 1,
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
 		},
 		StoragePruning: config.StoragePruningConfig{
 			Enabled:             false,
@@ -379,7 +321,9 @@ func getGeneralConfig() config.Config {
 		},
 		AccountsTrieStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "AccountsTrie/MainDB",
@@ -391,7 +335,9 @@ func getGeneralConfig() config.Config {
 		},
 		PeerAccountsTrieStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "PeerAccountsTrie/MainDB",
@@ -414,30 +360,46 @@ func getGeneralConfig() config.Config {
 			MaxSnapshots:       2,
 		},
 		TxDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity:             10000,
+			SizePerSender:        1000,
+			SizeInBytes:          1000000000,
+			SizeInBytesPerSender: 10000000,
+			Shards:               1,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity:    10000,
+			SizeInBytes: 1000000000,
+			Shards:      1,
 		},
 		RewardTransactionDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity:    10000,
+			SizeInBytes: 1000000000,
+			Shards:      1,
 		},
 		HeadersPoolConfig: config.HeadersPoolConfig{
 			MaxHeadersPerShard:            100,
 			NumElementsToRemoveOnEviction: 1,
 		},
 		TxBlockBodyDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
 		},
 		PeerBlockBodyDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
 		},
 		TrieNodesDataPool: config.CacheConfig{
-			Size: 10000, Type: "LRU", Shards: 1,
+			Capacity: 10000,
+			Type:     "LRU",
+			Shards:   1,
 		},
 		TxStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "Transactions",
@@ -449,7 +411,9 @@ func getGeneralConfig() config.Config {
 		},
 		MiniBlocksStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "MiniBlocks",
@@ -461,7 +425,9 @@ func getGeneralConfig() config.Config {
 		},
 		ShardHdrNonceHashStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "ShardHdrHashNonce",
@@ -473,7 +439,9 @@ func getGeneralConfig() config.Config {
 		},
 		MetaBlockStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "MetaBlock",
@@ -485,7 +453,9 @@ func getGeneralConfig() config.Config {
 		},
 		MetaHdrNonceHashStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "MetaHdrHashNonce",
@@ -497,7 +467,9 @@ func getGeneralConfig() config.Config {
 		},
 		UnsignedTransactionStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "UnsignedTransactions",
@@ -509,7 +481,9 @@ func getGeneralConfig() config.Config {
 		},
 		RewardTxStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "RewardTransactions",
@@ -521,7 +495,9 @@ func getGeneralConfig() config.Config {
 		},
 		BlockHeaderStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "BlockHeaders",
@@ -534,7 +510,9 @@ func getGeneralConfig() config.Config {
 		Heartbeat: config.HeartbeatConfig{
 			HeartbeatStorage: config.StorageConfig{
 				Cache: config.CacheConfig{
-					Size: 10000, Type: "LRU", Shards: 1,
+					Capacity: 10000,
+					Type:     "LRU",
+					Shards:   1,
 				},
 				DB: config.DBConfig{
 					FilePath:          "HeartbeatStorage",
@@ -547,7 +525,9 @@ func getGeneralConfig() config.Config {
 		},
 		StatusMetricsStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "StatusMetricsStorageDB",
@@ -559,7 +539,9 @@ func getGeneralConfig() config.Config {
 		},
 		PeerBlockBodyStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "PeerBlocks",
@@ -571,7 +553,9 @@ func getGeneralConfig() config.Config {
 		},
 		BootstrapStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
+				Capacity: 10000,
+				Type:     "LRU",
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "BootstrapData",
@@ -583,9 +567,9 @@ func getGeneralConfig() config.Config {
 		},
 		TxLogsStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Type:   "LRU",
-				Size:   1000,
-				Shards: 1,
+				Type:     "LRU",
+				Capacity: 1000,
+				Shards:   1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "Logs",

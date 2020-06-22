@@ -10,7 +10,7 @@ type txCache interface {
 
 	AddTx(tx *txcache.WrappedTransaction) (ok bool, added bool)
 	GetByTxHash(txHash []byte) (*txcache.WrappedTransaction, bool)
-	RemoveTxByHash(txHash []byte) error
-	CountTx() int64
+	RemoveTxByHash(txHash []byte) bool
+	ImmunizeTxsAgainstEviction(keys [][]byte)
 	ForEachTransaction(function txcache.ForEachTransaction)
 }

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -18,6 +19,7 @@ type EconomicsData struct {
 	communityPercentage      float64
 	communityAddress         string
 	maxGasLimitPerBlock      uint64
+	maxGasLimitPerMetaBlock  uint64
 	gasPerDataByte           uint64
 	dataLimitForBaseCalc     uint64
 	minGasPrice              uint64
@@ -58,6 +60,7 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 		communityPercentage:      economics.RewardsSettings.CommunityPercentage,
 		communityAddress:         economics.RewardsSettings.CommunityAddress,
 		maxGasLimitPerBlock:      data.maxGasLimitPerBlock,
+		maxGasLimitPerMetaBlock:  data.maxGasLimitPerMetaBlock,
 		minGasPrice:              data.minGasPrice,
 		minGasLimit:              data.minGasLimit,
 		genesisNodePrice:         data.genesisNodePrice,
@@ -104,6 +107,11 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 	}
 
 	maxGasLimitPerBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerBlock, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidMaxGasLimitPerBlock
+	}
+
+	maxGasLimitPerMetaBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerMetaBlock, conversionBase, bitConversionSize)
 	if err != nil {
 		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
@@ -167,6 +175,7 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 		genesisNodePrice:         genesisNodePrice,
 		unBondPeriod:             unBondPeriod,
 		maxGasLimitPerBlock:      maxGasLimitPerBlock,
+		maxGasLimitPerMetaBlock:  maxGasLimitPerMetaBlock,
 		gasPerDataByte:           gasPerDataByte,
 		dataLimitForBaseCalc:     dataLimitForBaseCalc,
 		genesisTotalSupply:       genesisTotalSupply,
@@ -263,11 +272,22 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 		return process.ErrHigherGasLimitRequiredInTx
 	}
 
+	if len(tx.GetValue().Bytes()) > len(ed.genesisTotalSupply.Bytes()) {
+		return process.ErrTxValueOutOfBounds
+	}
+
+	if tx.GetValue().Cmp(ed.genesisTotalSupply) > 0 {
+		return process.ErrTxValueTooBig
+	}
+
 	return nil
 }
 
 // MaxGasLimitPerBlock will return maximum gas limit allowed per block
-func (ed *EconomicsData) MaxGasLimitPerBlock() uint64 {
+func (ed *EconomicsData) MaxGasLimitPerBlock(shardID uint32) uint64 {
+	if shardID == core.MetachainShardId {
+		return ed.maxGasLimitPerMetaBlock
+	}
 	return ed.maxGasLimitPerBlock
 }
 

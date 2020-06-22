@@ -5,10 +5,10 @@ import (
 	"math/big"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -23,7 +23,7 @@ type InterceptedUnsignedTransaction struct {
 	uTx               *smartContractResult.SmartContractResult
 	marshalizer       marshal.Marshalizer
 	hasher            hashing.Hasher
-	pubkeyConv        state.PubkeyConverter
+	pubkeyConv        core.PubkeyConverter
 	coordinator       sharding.Coordinator
 	hash              []byte
 	rcvShard          uint32
@@ -36,7 +36,7 @@ func NewInterceptedUnsignedTransaction(
 	uTxBuff []byte,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	coordinator sharding.Coordinator,
 ) (*InterceptedUnsignedTransaction, error) {
 	if uTxBuff == nil {

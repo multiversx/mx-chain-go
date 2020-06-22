@@ -3,6 +3,7 @@ package facade
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -20,6 +21,9 @@ type NodeHandler interface {
 	//GetBalance returns the balance for a specific address
 	GetBalance(address string) (*big.Int, error)
 
+	// GetValueForKey returns the value of a key from a given account
+	GetValueForKey(address string, key string) (string, error)
+
 	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
@@ -30,8 +34,11 @@ type NodeHandler interface {
 	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
-	//GetTransaction gets the transaction
-	GetTransaction(hash string) (*transaction.Transaction, error)
+	//GetTransaction will return a transaction based on the hash
+	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
+
+	//GetTransactionStatus gets the transaction status
+	GetTransactionStatus(hash string) (string, error)
 
 	// GetAccount returns an accountResponse containing information
 	//  about the account corelated with provided address
@@ -45,13 +52,14 @@ type NodeHandler interface {
 
 	// ValidatorStatisticsApi return the statistics for all the validators
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
-	DirectTrigger() error
+	DirectTrigger(epoch uint32) error
 	IsSelfTrigger() bool
 
 	EncodeAddressPubkey(pk []byte) (string, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 
 	GetQueryHandler(name string) (debug.QueryHandler, error)
+	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests
@@ -64,7 +72,7 @@ type ApiResolver interface {
 
 // HardforkTrigger defines the structure used to trigger hardforks
 type HardforkTrigger interface {
-	Trigger() error
+	Trigger(epoch uint32) error
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }

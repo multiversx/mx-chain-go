@@ -61,7 +61,7 @@ func NewTrie(
 	if maxTrieLevelInMemory <= 0 {
 		return nil, ErrInvalidLevelValue
 	}
-	log.Debug("created new trie", "max trie level in memory", maxTrieLevelInMemory)
+	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
 	return &patriciaMerkleTrie{
 		trieStorage:          trieStorage,
@@ -101,6 +101,8 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	log.Trace("update trie", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value))
+
 	hexKey := keyBytesToHex(key)
 	newLn, err := newLeafNode(hexKey, value, tr.marshalizer, tr.hasher)
 	if err != nil {
@@ -130,6 +132,8 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		}
 		tr.root = newRoot
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
+
+		logArrayWithTrace("oldHashes after insert", "hash", oldHashes)
 	} else {
 		if tr.root == nil {
 			return nil
@@ -145,6 +149,8 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		}
 		tr.root = newRoot
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
+
+		logArrayWithTrace("oldHashes after delete", "hash", oldHashes)
 	}
 
 	return nil
@@ -217,6 +223,14 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		}
 	}
 
+	tr.newHashes = make(data.ModifiedHashes)
+	tr.oldRoot = make([]byte, 0)
+	tr.oldHashes = make([][]byte, 0)
+
+	if log.GetLevel() == logger.LogTrace {
+		log.Trace("started committing trie", "trie", tr.root.getHash())
+	}
+
 	err = tr.root.commit(false, 0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
 	if err != nil {
 		return err
@@ -228,11 +242,17 @@ func (tr *patriciaMerkleTrie) Commit() error {
 func (tr *patriciaMerkleTrie) markForEviction() error {
 	newRoot := tr.root.getHash()
 
+	if bytes.Equal(newRoot, tr.oldRoot) {
+		log.Trace("old root and new root are identical", "rootHash", newRoot)
+		return nil
+	}
+
 	oldHashes := make(data.ModifiedHashes)
 	for i := range tr.oldHashes {
 		oldHashes[hex.EncodeToString(tr.oldHashes[i])] = struct{}{}
 	}
 
+	log.Trace("trie hashes sizes", "newHashes", len(tr.newHashes), "oldHashes", len(oldHashes))
 	removeDuplicatedKeys(oldHashes, tr.newHashes)
 
 	if len(tr.newHashes) > 0 && len(newRoot) > 0 {
@@ -242,26 +262,17 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 			return err
 		}
 
-		for key := range tr.newHashes {
-			log.Trace("MarkForEviction newHashes", "hash", key)
-		}
-
-		tr.newHashes = make(data.ModifiedHashes)
+		logMapWithTrace("MarkForEviction newHashes", "hash", tr.newHashes)
 	}
 
-	if len(tr.oldHashes) > 0 && len(tr.oldRoot) > 0 {
+	if len(oldHashes) > 0 && len(tr.oldRoot) > 0 {
 		tr.oldRoot = append(tr.oldRoot, byte(data.OldRoot))
 		err := tr.trieStorage.MarkForEviction(tr.oldRoot, oldHashes)
 		if err != nil {
 			return err
 		}
 
-		for key := range oldHashes {
-			log.Trace("MarkForEviction oldHashes", "hash", key)
-		}
-
-		tr.oldRoot = make([]byte, 0)
-		tr.oldHashes = make([][]byte, 0)
+		logMapWithTrace("MarkForEviction oldHashes", "hash", oldHashes)
 	}
 	return nil
 }
@@ -272,6 +283,7 @@ func removeDuplicatedKeys(oldHashes map[string]struct{}, newHashes map[string]st
 		if ok {
 			delete(oldHashes, key)
 			delete(newHashes, key)
+			log.Trace("found in newHashes and oldHashes", "hash", key)
 		}
 	}
 }
@@ -290,9 +302,44 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 		)
 	}
 
-	newTr, err := tr.recreateFromDb(root)
+	newTr := tr.recreateFromMainDb(root)
+	if newTr != nil {
+		return newTr, nil
+	}
+
+	return tr.recreateFromSnapshotDb(root)
+}
+
+func (tr *patriciaMerkleTrie) recreateFromMainDb(rootHash []byte) data.Trie {
+	_, err := tr.Database().Get(rootHash)
 	if err != nil {
-		err = fmt.Errorf("trie recreate error: %w, for root %v", err, hex.EncodeToString(root))
+		return nil
+	}
+
+	newTr, _, err := tr.recreateFromDb(rootHash, tr.Database(), tr.trieStorage)
+	if err != nil {
+		log.Warn("trie recreate error:", "error", err, "root", hex.EncodeToString(rootHash))
+		return nil
+	}
+
+	return newTr
+}
+
+func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (data.Trie, error) {
+	db := tr.trieStorage.GetSnapshotThatContainsHash(rootHash)
+	if db == nil {
+		return nil, ErrHashNotFound
+	}
+	defer db.DecreaseNumReferences()
+
+	newTr, newRoot, err := tr.recreateFromDb(rootHash, db, tr.trieStorage)
+	if err != nil {
+		err = fmt.Errorf("trie recreate error: %w, for root %v", err, hex.EncodeToString(rootHash))
+		return nil, err
+	}
+
+	err = newRoot.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.Database())
+	if err != nil {
 		return nil, err
 	}
 
@@ -361,6 +408,9 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	oldHashes := tr.oldHashes
 	tr.oldHashes = make([][]byte, 0)
 	tr.oldRoot = make([]byte, 0)
+
+	logArrayWithTrace("old trie hash", "hash", oldHashes)
+
 	tr.mutOperation.Unlock()
 
 	return oldHashes
@@ -385,6 +435,8 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (data.ModifiedHashes, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	logMapWithTrace("new trie hash", "hash", dirtyHashes)
 
 	return dirtyHashes, nil
 }
@@ -423,38 +475,26 @@ func (tr *patriciaMerkleTrie) Database() data.DBWriteCacher {
 	return tr.trieStorage.Database()
 }
 
-func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error) {
-	db := tr.trieStorage.GetDbThatContainsHash(rootHash)
-	if db == nil {
-		return nil, ErrHashNotFound
-	}
-
+func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db data.DBWriteCacher, tsm data.StorageManager) (data.Trie, snapshotNode, error) {
 	newTr, err := NewTrie(
-		tr.trieStorage,
+		tsm,
 		tr.marshalizer,
 		tr.hasher,
 		tr.maxTrieLevelInMemory,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, tr.marshalizer, tr.hasher)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	newRoot.setGivenHash(rootHash)
 	newTr.root = newRoot
 
-	if db != tr.Database() {
-		err = newTr.root.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.Database())
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return newTr, nil
+	return newTr, newRoot, nil
 }
 
 // EnterSnapshotMode sets the snapshot mode on
@@ -467,14 +507,42 @@ func (tr *patriciaMerkleTrie) ExitSnapshotMode() {
 	tr.trieStorage.ExitSnapshotMode()
 }
 
+func getDbThatContainsHash(trieStorage data.StorageManager, rootHash []byte) data.SnapshotDbHandler {
+	db := trieStorage.GetSnapshotThatContainsHash(rootHash)
+	if db != nil {
+		return db
+	}
+
+	_, err := trieStorage.Database().Get(rootHash)
+	if err != nil {
+		return nil
+	}
+
+	return &snapshotDb{
+		DBWriteCacher: trieStorage.Database(),
+	}
+}
+
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
 func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	log.Trace("GetSerializedNodes", "rootHash", rootHash)
 	size := uint64(0)
 
-	newTr, err := tr.recreateFromDb(rootHash)
+	db := getDbThatContainsHash(tr.trieStorage, rootHash)
+	if db == nil {
+		return nil, 0, ErrHashNotFound
+	}
+	defer db.DecreaseNumReferences()
+
+	newTsm, err := NewTrieStorageManagerWithoutPruning(db)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	newTr, _, err := tr.recreateFromDb(rootHash, db, newTsm)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -512,6 +580,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	}
 
 	remainingSpace := maxBuffToSend - size
+
 	return nodes, remainingSpace, nil
 }
 
@@ -536,4 +605,20 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 // IsPruningEnabled returns true if state pruning is enabled
 func (tr *patriciaMerkleTrie) IsPruningEnabled() bool {
 	return tr.trieStorage.IsPruningEnabled()
+}
+
+func logArrayWithTrace(message string, paramName string, hashes [][]byte) {
+	if log.GetLevel() == logger.LogTrace {
+		for _, hash := range hashes {
+			log.Trace(message, paramName, hash)
+		}
+	}
+}
+
+func logMapWithTrace(message string, paramName string, hashes data.ModifiedHashes) {
+	if log.GetLevel() == logger.LogTrace {
+		for key := range hashes {
+			log.Trace(message, paramName, key)
+		}
+	}
 }
