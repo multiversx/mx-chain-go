@@ -1131,7 +1131,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
@@ -1146,7 +1146,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 			},
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
@@ -1214,7 +1214,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
@@ -1229,7 +1229,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 			},
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
@@ -1303,7 +1303,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 				return 0
 			},
 		}),
-		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
@@ -1327,7 +1327,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 			},
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
@@ -1931,8 +1931,8 @@ func TestNode_ShouldWork(t *testing.T) {
 			},
 		}),
 		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(32)),
-		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{
-			HasCalled: func(pid core.PeerID) bool {
+		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{
+			IsDeniedCalled: func(pid core.PeerID) bool {
 				return pid == core.PeerID(pid1)
 			},
 		}),

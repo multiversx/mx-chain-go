@@ -369,7 +369,7 @@ func TestNewShardBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 	bs, err := sync.NewShardBootstrap(args)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilBlackListHandler, err)
+	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
 func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {

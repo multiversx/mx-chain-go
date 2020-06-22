@@ -14,7 +14,7 @@ var _ process.InterceptorProcessor = (*HdrInterceptorProcessor)(nil)
 type HdrInterceptorProcessor struct {
 	headers      dataRetriever.HeadersPool
 	hdrValidator process.HeaderValidator
-	blackList    process.BlackListHandler
+	blackList    process.TimeCacher
 }
 
 // NewHdrInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -28,14 +28,14 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	if check.IfNil(argument.HdrValidator) {
 		return nil, process.ErrNilHdrValidator
 	}
-	if check.IfNil(argument.BlackList) {
-		return nil, process.ErrNilBlackListHandler
+	if check.IfNil(argument.BlockBlackList) {
+		return nil, process.ErrNilBlackListCacher
 	}
 
 	return &HdrInterceptorProcessor{
 		headers:      argument.Headers,
 		hdrValidator: argument.HdrValidator,
-		blackList:    argument.BlackList,
+		blackList:    argument.BlockBlackList,
 	}, nil
 }
 

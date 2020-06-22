@@ -234,7 +234,7 @@ func TestNewMetaBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
 	bs, err := sync.NewMetaBootstrap(args)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilBlackListHandler, err)
+	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
 func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {

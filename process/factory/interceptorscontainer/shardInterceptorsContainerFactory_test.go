@@ -261,11 +261,11 @@ func TestNewShardInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *te
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.BlackList = nil
+	args.BlockBlackList = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilBlackListHandler, err)
+	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
 func TestNewShardInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
@@ -521,7 +521,7 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		AddressPubkeyConverter:  mock.NewPubkeyConverterMock(32),
 		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
 		TxFeeHandler:            &mock.FeeHandlerStub{},
-		BlackList:               &mock.BlackListHandlerStub{},
+		BlockBlackList:          &mock.BlackListHandlerStub{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		SizeCheckDelta:          0,

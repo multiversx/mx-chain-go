@@ -43,7 +43,7 @@ type baseForkDetector struct {
 	fork       forkInfo
 	mutFork    sync.RWMutex
 
-	blackListHandler   process.BlackListHandler
+	blackListHandler   process.TimeCacher
 	genesisTime        int64
 	blockTracker       process.BlockTracker
 	forkDetector       forkDetector

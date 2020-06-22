@@ -214,3 +214,6 @@ var ErrNilChanStopNodeProcess = errors.New("nil channel to stop node")
 
 // ErrNilEpochConfirmedNotifier signals that nil epoch confirmed notifier was provided
 var ErrNilEpochConfirmedNotifier = errors.New("nil epoch confirmed notifier")
+
+// ErrNilTimeCache signals that a nil time cache was provided
+var ErrNilTimeCache = errors.New("nil time cache")

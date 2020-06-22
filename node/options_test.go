@@ -988,7 +988,7 @@ func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.
 
 	node, _ := NewNode()
 
-	requestedItemsHeanlder := &mock.RequestedItemsHandlerStub{}
+	requestedItemsHeanlder := &mock.TimeCacheStub{}
 	opt := WithRequestedItemsHandler(requestedItemsHeanlder)
 	err := opt(node)
 
@@ -1090,7 +1090,7 @@ func TestWithBlockBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
 	opt := WithBlockBlackListHandler(nil)
 	err := opt(node)
 
-	assert.True(t, errors.Is(err, ErrNilBlackListHandler))
+	assert.True(t, errors.Is(err, ErrNilTimeCache))
 }
 
 func TestWithBlockBlackListHandler_OkHandlerShouldWork(t *testing.T) {
@@ -1098,7 +1098,7 @@ func TestWithBlockBlackListHandler_OkHandlerShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	blackListHandler := &mock.BlackListHandlerStub{}
+	blackListHandler := &mock.TimeCacheStub{}
 	opt := WithBlockBlackListHandler(blackListHandler)
 	err := opt(node)
 
@@ -1106,27 +1106,27 @@ func TestWithBlockBlackListHandler_OkHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithPeerBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
+func TestWithPeerDenialEvaluator_NilBlackListHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithPeerBlackListHandler(nil)
+	opt := WithPeerDenialEvaluator(nil)
 	err := opt(node)
 
-	assert.True(t, errors.Is(err, ErrNilBlackListHandler))
+	assert.True(t, errors.Is(err, ErrNilPeerDenialEvaluator))
 }
 
-func TestWithPeerBlackListHandler_OkHandlerShouldWork(t *testing.T) {
+func TestWithPeerDenialEvaluator_OkHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	blackListHandler := &mock.PeerBlackListHandlerStub{}
-	opt := WithPeerBlackListHandler(blackListHandler)
+	blackListHandler := &mock.PeerDenialEvaluatorStub{}
+	opt := WithPeerDenialEvaluator(blackListHandler)
 	err := opt(node)
 
-	assert.True(t, node.peerBlackListHandler == blackListHandler)
+	assert.True(t, node.peerDenialEvaluator == blackListHandler)
 	assert.Nil(t, err)
 }
 

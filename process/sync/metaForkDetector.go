@@ -19,7 +19,7 @@ type metaForkDetector struct {
 // NewMetaForkDetector method creates a new metaForkDetector object
 func NewMetaForkDetector(
 	rounder consensus.Rounder,
-	blackListHandler process.BlackListHandler,
+	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
 ) (*metaForkDetector, error) {
@@ -28,7 +28,7 @@ func NewMetaForkDetector(
 		return nil, process.ErrNilRounder
 	}
 	if check.IfNil(blackListHandler) {
-		return nil, process.ErrNilBlackListHandler
+		return nil, process.ErrNilBlackListCacher
 	}
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker

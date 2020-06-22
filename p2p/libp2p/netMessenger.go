@@ -330,7 +330,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	cmw := newConnectionMonitorWrapper(
 		netMes.p2pHost.Network(),
 		netMes.connMonitor,
-		&nilBlacklistHandler{},
+		&disabled.NilPeerDenialEvaluator{},
 	)
 	netMes.p2pHost.Network().Notify(cmw)
 	netMes.connMonitorWrapper = cmw
@@ -891,10 +891,10 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 	return nil
 }
 
-// SetPeerBlackListHandler sets the peer black list handler
+// SetPeerDenialEvaluator sets the peer black list handler
 //TODO decide if we continue on using setters or switch to options. Refactor if necessary
-func (netMes *networkMessenger) SetPeerBlackListHandler(handler p2p.PeerBlacklistHandler) error {
-	return netMes.connMonitorWrapper.SetBlackListHandler(handler)
+func (netMes *networkMessenger) SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error {
+	return netMes.connMonitorWrapper.SetPeerDenialEvaluator(handler)
 }
 
 // SetMessageIdsCacher sets the message id cacher

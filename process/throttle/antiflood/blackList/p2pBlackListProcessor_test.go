@@ -50,7 +50,7 @@ func TestNewP2PQuotaBlacklistProcessor_NilBlackListHandlerShouldErr(t *testing.T
 	)
 
 	assert.True(t, check.IfNil(pbp))
-	assert.True(t, errors.Is(err, process.ErrNilBlackListHandler))
+	assert.True(t, errors.Is(err, process.ErrNilBlackListCacher))
 }
 
 func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdNumReceivedFloodShouldErr(t *testing.T) {
@@ -395,7 +395,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsUnderNumFloodingRoundsShouldN
 
 	key := "key"
 	removedCalled := false
-	addToBlacklistCalled := false
+	upsertCalled := false
 	duration := time.Second * 3892
 	pbp, _ := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{
@@ -410,8 +410,8 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsUnderNumFloodingRoundsShouldN
 			},
 		},
 		&mock.PeerBlackListHandlerStub{
-			AddWithSpanCalled: func(pid core.PeerID, span time.Duration) error {
-				addToBlacklistCalled = true
+			UpsertCalled: func(pid core.PeerID, span time.Duration) error {
+				upsertCalled = true
 				assert.Equal(t, duration, span)
 
 				return nil
@@ -428,7 +428,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsUnderNumFloodingRoundsShouldN
 	pbp.ResetStatistics()
 
 	assert.False(t, removedCalled)
-	assert.False(t, addToBlacklistCalled)
+	assert.False(t, upsertCalled)
 }
 
 func TestP2PQuotaBlacklistProcessor_ResetStatisticsOverNumFloodingRoundsShouldBlackList(t *testing.T) {
@@ -440,7 +440,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsOverNumFloodingRoundsShouldBl
 
 	key := "key"
 	removedCalled := false
-	addToBlacklistCalled := false
+	upsertCalled := false
 	duration := time.Second * 3892
 	pbp, _ := blackList.NewP2PBlackListProcessor(
 		&mock.CacherStub{
@@ -455,8 +455,8 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsOverNumFloodingRoundsShouldBl
 			},
 		},
 		&mock.PeerBlackListHandlerStub{
-			UpdateCalled: func(pid core.PeerID, span time.Duration) error {
-				addToBlacklistCalled = true
+			UpsertCalled: func(pid core.PeerID, span time.Duration) error {
+				upsertCalled = true
 				assert.Equal(t, duration, span)
 
 				return nil
@@ -473,5 +473,5 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsOverNumFloodingRoundsShouldBl
 	pbp.ResetStatistics()
 
 	assert.True(t, removedCalled)
-	assert.True(t, addToBlacklistCalled)
+	assert.True(t, upsertCalled)
 }

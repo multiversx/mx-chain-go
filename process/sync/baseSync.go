@@ -62,7 +62,7 @@ type baseBootstrap struct {
 	shardCoordinator  sharding.Coordinator
 	accounts          state.AccountsAdapter
 	blockBootstrapper blockBootstrapper
-	blackListHandler  process.BlackListHandler
+	blackListHandler  process.TimeCacher
 
 	mutHeader     sync.RWMutex
 	headerNonce   *uint64
@@ -430,7 +430,7 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 		return process.ErrNilStore
 	}
 	if check.IfNil(arguments.BlackListHandler) {
-		return process.ErrNilBlackListHandler
+		return process.ErrNilBlackListCacher
 	}
 	if check.IfNil(arguments.NetworkWatcher) {
 		return process.ErrNilNetworkWatcher

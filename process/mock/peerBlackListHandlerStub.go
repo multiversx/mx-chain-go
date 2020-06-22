@@ -8,38 +8,18 @@ import (
 
 // PeerBlackListHandlerStub -
 type PeerBlackListHandlerStub struct {
-	AddCalled         func(pid core.PeerID) error
-	AddWithSpanCalled func(pid core.PeerID, span time.Duration) error
-	UpdateCalled      func(pid core.PeerID, span time.Duration) error
-	HasCalled         func(pid core.PeerID) bool
-	SweepCalled       func()
+	UpsertCalled func(pid core.PeerID, span time.Duration) error
+	HasCalled    func(pid core.PeerID) bool
+	SweepCalled  func()
 }
 
-// Add -
-func (pblhs *PeerBlackListHandlerStub) Add(pid core.PeerID) error {
-	if pblhs.AddCalled == nil {
+// Upsert -
+func (pblhs *PeerBlackListHandlerStub) Upsert(pid core.PeerID, span time.Duration) error {
+	if pblhs.UpsertCalled == nil {
 		return nil
 	}
 
-	return pblhs.AddCalled(pid)
-}
-
-// AddWithSpan -
-func (pblhs *PeerBlackListHandlerStub) AddWithSpan(pid core.PeerID, span time.Duration) error {
-	if pblhs.AddWithSpanCalled == nil {
-		return nil
-	}
-
-	return pblhs.AddWithSpanCalled(pid, span)
-}
-
-// Update -
-func (pblhs *PeerBlackListHandlerStub) Update(pid core.PeerID, span time.Duration) error {
-	if pblhs.UpdateCalled == nil {
-		return nil
-	}
-
-	return pblhs.UpdateCalled(pid, span)
+	return pblhs.UpsertCalled(pid, span)
 }
 
 // Has -

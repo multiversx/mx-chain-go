@@ -31,7 +31,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	AddressPubkeyConverter  core.PubkeyConverter
 	MaxTxNonceDeltaAllowed  int
 	TxFeeHandler            process.FeeHandler
-	BlackList               process.BlackListHandler
+	BlockBlackList          process.TimeCacher
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	SizeCheckDelta          uint32
@@ -62,7 +62,7 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	BlockKeyGen             crypto.KeyGenerator
 	MaxTxNonceDeltaAllowed  int
 	TxFeeHandler            process.FeeHandler
-	BlackList               process.BlackListHandler
+	BlackList               process.TimeCacher
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	SizeCheckDelta          uint32

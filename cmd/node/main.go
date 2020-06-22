@@ -63,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -2035,6 +2036,20 @@ func createNode(
 		return nil, err
 	}
 
+	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
+		network.PeerBlackListHandler,
+		network.PkTimeCache,
+		networkShardingCollector,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = network.NetMessenger.SetPeerDenialEvaluator(peerDenialEvaluator)
+	if err != nil {
+		return nil, err
+	}
+
 	var nd *node.Node
 	nd, err = node.NewNode(
 		node.WithMessenger(network.NetMessenger),
@@ -2075,7 +2090,7 @@ func createNode(
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBlockBlackListHandler(process.BlackListHandler),
-		node.WithPeerBlackListHandler(network.PeerBlackListHandler),
+		node.WithPeerDenialEvaluator(peerDenialEvaluator),
 		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),

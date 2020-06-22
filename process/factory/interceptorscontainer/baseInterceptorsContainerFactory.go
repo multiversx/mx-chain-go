@@ -31,7 +31,7 @@ type baseInterceptorsContainerFactory struct {
 	messenger              process.TopicHandler
 	multiSigner            crypto.MultiSigner
 	nodesCoordinator       sharding.NodesCoordinator
-	blackList              process.BlackListHandler
+	blockBlackList         process.TimeCacher
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
@@ -52,7 +52,7 @@ func checkBaseParams(
 	messenger process.TopicHandler,
 	multiSigner crypto.MultiSigner,
 	nodesCoordinator sharding.NodesCoordinator,
-	blackList process.BlackListHandler,
+	blackList process.TimeCacher,
 	antifloodHandler process.P2PAntifloodHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
@@ -86,7 +86,7 @@ func checkBaseParams(
 		return process.ErrNilAccountsAdapter
 	}
 	if check.IfNil(blackList) {
-		return process.ErrNilBlackListHandler
+		return process.ErrNilBlackListCacher
 	}
 	if check.IfNil(antifloodHandler) {
 		return process.ErrNilAntifloodHandler
@@ -287,9 +287,9 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      bicf.dataPool.Headers(),
-		HdrValidator: hdrValidator,
-		BlackList:    bicf.blackList,
+		Headers:        bicf.dataPool.Headers(),
+		HdrValidator:   hdrValidator,
+		BlockBlackList: bicf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -414,9 +414,9 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      bicf.dataPool.Headers(),
-		HdrValidator: hdrValidator,
-		BlackList:    bicf.blackList,
+		Headers:        bicf.dataPool.Headers(),
+		HdrValidator:   hdrValidator,
+		BlockBlackList: bicf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
