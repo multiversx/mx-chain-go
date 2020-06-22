@@ -52,7 +52,7 @@ func (msc *multiShardCoordinator) ComputeId(address []byte) uint32 {
 
 // ComputeIdFromBytes calculates the shard for a given address
 func (msc *multiShardCoordinator) ComputeIdFromBytes(address []byte) uint32 {
-	bytesNeed := int(msc.numberOfShards/core.MaxShardNumber) + 1
+	bytesNeed := int(msc.numberOfShards/core.MaxNumShards) + 1
 	startingIndex := 0
 	if len(address) > bytesNeed {
 		startingIndex = len(address) - bytesNeed

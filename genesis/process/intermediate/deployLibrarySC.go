@@ -26,8 +26,8 @@ type deployLibrarySC struct {
 }
 
 // NewDeployLibrarySC returns a new instance of deploy library SC able to deploy library SC that needs to be present
-// on all shards - same contract is deployed core.MaxShards time with addresses which end with all possibilities of the
-// last 2 bytes
+// on all shards - same contract is deployed core.MaxNumShards == 256 times with addresses which end with all
+// possibilities of the last byte
 func NewDeployLibrarySC(arg ArgDeployLibrarySC) (*deployLibrarySC, error) {
 	if check.IfNil(arg.Executor) {
 		return nil, genesis.ErrNilTxExecutionProcessor
@@ -67,16 +67,14 @@ func GenerateInitialPublicKeys(
 
 	newAddresses := make([][]byte, 0)
 	i := uint8(0)
-	for ; i < core.MaxShardNumber-1; i++ {
+	for ; i < core.MaxNumShards-1; i++ {
 		shardInBytes := []byte{0, i}
 		tmpAddress := string(baseAddress[:(addressLen-core.ShardIdentiferLen)]) + string(shardInBytes)
 
 		newShardID := shardCoordinator.ComputeId([]byte(tmpAddress))
-		if !allShards && newShardID != shardCoordinator.SelfId() {
-			continue
+		if allShards || newShardID == shardCoordinator.SelfId() {
+			newAddresses = append(newAddresses, []byte(tmpAddress))
 		}
-
-		newAddresses = append(newAddresses, []byte(tmpAddress))
 	}
 
 	shardInBytes := []byte{0, i}

@@ -61,9 +61,6 @@ func (isc *InitialSmartContract) GetType() string {
 
 // AddAddressBytes adds a deployed address to the initial smart contract
 func (isc *InitialSmartContract) AddAddressBytes(addressBytes []byte) {
-	if len(isc.addressesBytes) == 0 {
-		isc.addressesBytes = make([][]byte, 0)
-	}
 	isc.addressesBytes = append(isc.addressesBytes, addressBytes)
 }
 
@@ -74,9 +71,6 @@ func (isc *InitialSmartContract) AddressesBytes() [][]byte {
 
 // AddAddress adds a deployed address to the initial smart contract addresses as string
 func (isc *InitialSmartContract) AddAddress(address string) {
-	if len(isc.addresses) == 0 {
-		isc.addresses = make([]string, 0)
-	}
 	isc.addresses = append(isc.addresses, address)
 }
 

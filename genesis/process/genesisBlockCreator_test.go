@@ -179,7 +179,7 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardFrokShouldCreateSCResult
 
 	mapAddressesWithDeploy, err := arg.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
 	assert.Nil(t, err)
-	assert.Equal(t, len(mapAddressesWithDeploy), core.MaxShardNumber)
+	assert.Equal(t, len(mapAddressesWithDeploy), core.MaxNumShards)
 
 	newArgs := createMockArgument(
 		t,
@@ -194,7 +194,7 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardFrokShouldCreateSCResult
 
 	mapAfterHardForkAddresses, err := newArgs.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
 	assert.Nil(t, err)
-	assert.Equal(t, len(mapAfterHardForkAddresses), core.MaxShardNumber)
+	assert.Equal(t, len(mapAfterHardForkAddresses), core.MaxNumShards)
 	for address := range mapAddressesWithDeploy {
 		_, ok := mapAfterHardForkAddresses[address]
 		assert.True(t, ok)

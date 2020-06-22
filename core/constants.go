@@ -449,5 +449,5 @@ const CommitMaxTime = time.Second
 // DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
 const DefaultUnstakedEpoch = math.MaxUint32
 
-// MaxShardNumber represents the maximum number of shards possible in the system
-const MaxShardNumber = 256
+// MaxNumShards represents the maximum number of shards possible in the system
+const MaxNumShards = 256
