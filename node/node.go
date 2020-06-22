@@ -346,6 +346,7 @@ func (n *Node) StartConsensus() error {
 		n.appStatusHandler,
 		n.indexer,
 		n.chainID,
+		n.messenger.ID(),
 	)
 	if err != nil {
 		return err
