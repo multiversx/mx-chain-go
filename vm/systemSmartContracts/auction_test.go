@@ -439,7 +439,7 @@ func TestStakingAuctionSC_ExecuteStakeUnJail(t *testing.T) {
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForAuction()
 
-	atArgParser := vmcommon.NewAtArgumentParser()
+	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
