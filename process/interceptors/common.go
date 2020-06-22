@@ -59,7 +59,7 @@ func processInterceptedData(
 		return err
 	}
 
-	err = processor.Save(data, msg.Peer())
+	err = processor.Save(data, msg.Peer(), topic)
 	if err != nil {
 		log.Trace("intercepted data can not be processed",
 			"hash", data.Hash(),

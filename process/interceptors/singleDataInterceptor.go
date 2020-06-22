@@ -138,6 +138,11 @@ func (sdi *SingleDataInterceptor) SetInterceptedDebugHandler(handler process.Int
 	return nil
 }
 
+// RegisterHandler registers a callback function to be notified on received data
+func (sdi *SingleDataInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
+	sdi.processor.RegisterHandler(handler)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sdi *SingleDataInterceptor) IsInterfaceNil() bool {
 	return sdi == nil
