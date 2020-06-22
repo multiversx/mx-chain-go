@@ -115,6 +115,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 
 	pubkeys := tP2pNode.getPubkeys()
 
+	pkBytes, _ := tP2pNode.NodeKeys.Pk.ToByteArray()
 	argHardforkTrigger := trigger.ArgHardforkTrigger{
 		TriggerPubKeyBytes:        []byte("invalid trigger public key"),
 		Enabled:                   false,
@@ -122,12 +123,17 @@ func (tP2pNode *TestP2PNode) initNode() {
 		ArgumentParser:            vmcommon.NewAtArgumentParser(),
 		EpochProvider:             &mock.EpochStartTriggerStub{},
 		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
-		CloseAfterExportInMinutes: 0,
+		CloseAfterExportInMinutes: 5,
 		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
 		EpochConfirmedNotifier:    &mock.EpochStartNotifierStub{},
+		SelfPubKeyBytes:           pkBytes,
+		ImportStartHandler:        &mock.ImportStartHandlerStub{},
 	}
 	argHardforkTrigger.SelfPubKeyBytes, _ = tP2pNode.NodeKeys.Pk.ToByteArray()
-	hardforkTrigger, _ := trigger.NewTrigger(argHardforkTrigger)
+	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)
+	if err != nil {
+		fmt.Printf("Error creating hardfork trigger: %s\n", err.Error())
+	}
 
 	tP2pNode.Node, err = node.NewNode(
 		node.WithMessenger(tP2pNode.Messenger),

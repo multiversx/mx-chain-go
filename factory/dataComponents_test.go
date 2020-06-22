@@ -116,9 +116,12 @@ func TestDataComponentsFactory_CreateForMetaShouldWork(t *testing.T) {
 }
 
 func getDataArgs() factory.DataComponentsFactoryArgs {
+	testEconomics := &economics.TestEconomicsData{EconomicsData: &economics.EconomicsData{}}
+	testEconomics.SetMinGasPrice(200000000000)
+
 	return factory.DataComponentsFactoryArgs{
 		Config:             getGeneralConfig(),
-		EconomicsData:      &economics.EconomicsData{},
+		EconomicsData:      testEconomics.EconomicsData,
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
 		Core:               getCoreComponents(),
 		PathManager:        &mock.PathManagerStub{},
@@ -141,9 +144,23 @@ func getGeneralConfig() config.Config {
 			NumEpochsToKeep:     3,
 			NumActivePersisters: 3,
 		},
-		TxDataPool:                  cacheCfg,
-		UnsignedTransactionDataPool: cacheCfg,
-		RewardTransactionDataPool:   cacheCfg,
+		TxDataPool: config.CacheConfig{
+			Capacity:             10000,
+			SizePerSender:        1000,
+			SizeInBytes:          1000000000,
+			SizeInBytesPerSender: 10000000,
+			Shards:               1,
+		},
+		UnsignedTransactionDataPool: config.CacheConfig{
+			Capacity:    10000,
+			SizeInBytes: 1000000000,
+			Shards:      1,
+		},
+		RewardTransactionDataPool: config.CacheConfig{
+			Capacity:    10000,
+			SizeInBytes: 1000000000,
+			Shards:      1,
+		},
 		HeadersPoolConfig: config.HeadersPoolConfig{
 			MaxHeadersPerShard:            100,
 			NumElementsToRemoveOnEviction: 1,

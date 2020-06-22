@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +23,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		&mock.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, ipcf)
@@ -38,7 +39,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		&mock.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, ipcf)
@@ -54,7 +55,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		nil,
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, ipcf)
@@ -70,7 +71,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		&mock.HasherMock{},
 		nil,
 		&mock.ChainStorerMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, ipcf)
@@ -86,7 +87,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		&mock.HasherMock{},
 		createMockPubkeyConverter(),
 		nil,
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, ipcf)
@@ -102,7 +103,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		&mock.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, err)
@@ -119,7 +120,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.HasherMock{},
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 	)
 
 	assert.Nil(t, err)

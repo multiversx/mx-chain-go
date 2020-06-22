@@ -199,6 +199,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
 		StatusHandler:              &mock.AppStatusHandlerStub{},
+		ImportStartHandler:         &mock.ImportStartHandlerStub{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
@@ -243,6 +244,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		BlockTracker: &mock.BlockTrackerStub{
 			RestoreToGenesisCalled: func() {},
 		},
+		ChainID: string(integrationTests.ChainID),
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)
@@ -356,19 +358,21 @@ func getGeneralConfig() config.Config {
 			MaxSnapshots:       2,
 		},
 		TxDataPool: config.CacheConfig{
-			Capacity: 10000,
-			Type:     "LRU",
-			Shards:   1,
+			Capacity:             10000,
+			SizePerSender:        1000,
+			SizeInBytes:          1000000000,
+			SizeInBytesPerSender: 10000000,
+			Shards:               1,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
-			Capacity: 10000,
-			Type:     "LRU",
-			Shards:   1,
+			Capacity:    10000,
+			SizeInBytes: 1000000000,
+			Shards:      1,
 		},
 		RewardTransactionDataPool: config.CacheConfig{
-			Capacity: 10000,
-			Type:     "LRU",
-			Shards:   1,
+			Capacity:    10000,
+			SizeInBytes: 1000000000,
+			Shards:      1,
 		},
 		HeadersPoolConfig: config.HeadersPoolConfig{
 			MaxHeadersPerShard:            100,

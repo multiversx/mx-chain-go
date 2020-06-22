@@ -21,7 +21,7 @@ type P2PMessenger interface {
 	HasTopic(name string) bool
 	HasTopicValidator(name string) bool
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
-	PeerAddress(pid core.PeerID) string
+	PeerAddresses(pid core.PeerID) []string
 	IsConnectedToTheNetwork() bool
 	ID() core.PeerID
 	IsInterfaceNil() bool
@@ -71,6 +71,7 @@ type NetworkShardingCollector interface {
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
+	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
 }
 
@@ -85,6 +86,7 @@ type PeerTypeProviderHandler interface {
 type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
+	NotifyTriggerReceived() <-chan struct{}
 	CreateData() []byte
 	IsInterfaceNil() bool
 }

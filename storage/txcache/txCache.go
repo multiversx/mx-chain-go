@@ -241,7 +241,7 @@ func (cache *TxCache) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd is not implemented
-func (cache *TxCache) HasOrAdd(_ []byte, _ interface{}, _ int) (ok, evicted bool) {
+func (cache *TxCache) HasOrAdd(_ []byte, _ interface{}, _ int) (has, added bool) {
 	log.Error("TxCache.HasOrAdd is not implemented")
 	return false, false
 }

@@ -6,6 +6,7 @@ import "time"
 type TimeCacheStub struct {
 	AddCalled         func(key string) error
 	AddWithSpanCalled func(key string, span time.Duration) error
+	UpdateCalled      func(key string, span time.Duration) error
 	HasCalled         func(key string) bool
 	SweepCalled       func()
 }
@@ -23,6 +24,15 @@ func (tcs *TimeCacheStub) Add(key string) error {
 func (tcs *TimeCacheStub) AddWithSpan(key string, span time.Duration) error {
 	if tcs.AddWithSpanCalled != nil {
 		return tcs.AddWithSpanCalled(key, span)
+	}
+
+	return nil
+}
+
+// Update -
+func (tcs *TimeCacheStub) Update(key string, span time.Duration) error {
+	if tcs.UpdateCalled != nil {
+		return tcs.UpdateCalled(key, span)
 	}
 
 	return nil

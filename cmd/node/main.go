@@ -70,6 +70,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/update"
 	exportFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -88,6 +89,7 @@ const (
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
 	maxNumGoRoutinesTxsByHashApi = 10
+	maxTimeToClose               = 10 * time.Second
 )
 
 var (
@@ -795,7 +797,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	nodesShuffler := sharding.NewXorValidatorsShuffler(
+	nodesShuffler := sharding.NewHashValidatorsShuffler(
 		genesisNodesConfig.MinNodesPerShard,
 		genesisNodesConfig.MetaChainMinNodes,
 		genesisNodesConfig.Hysteresis,
@@ -808,11 +810,22 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	startRound := int64(0)
+	if generalConfig.Hardfork.AfterHardFork {
+		startRound = int64(generalConfig.Hardfork.StartRound)
+	}
 	rounder, err := round.NewRound(
 		time.Unix(genesisNodesConfig.StartTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
-		syncer)
+		syncer,
+		startRound,
+	)
+	if err != nil {
+		return err
+	}
+
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, defaultDBPath), appVersion)
 	if err != nil {
 		return err
 	}
@@ -880,6 +893,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		AddressPubkeyConverter:     addressPubkeyConverter,
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		StatusHandler:              coreComponents.StatusHandler,
+		ImportStartHandler:         importStartHandler,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -996,6 +1010,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator.SelfId(),
 		chanStopNodeProcess,
 		bootstrapParameters,
+		currentEpoch,
 	)
 	if err != nil {
 		return err
@@ -1167,6 +1182,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ratingsData,
 		systemSCConfig,
 		version,
+		importStartHandler,
+		workingDir,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1189,6 +1206,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		epochStartNotifier,
+		importStartHandler,
+		workingDir,
 	)
 	if err != nil {
 		return err
@@ -1331,8 +1350,31 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Info("terminating at internal stop signal", "reason", sig.Reason)
 	}
 
+	chanCloseComponents := make(chan struct{})
+	go func() {
+		closeAllComponents(log, dataComponents, triesComponents, networkComponents, chanCloseComponents)
+	}()
+
+	select {
+	case <-chanCloseComponents:
+	case <-time.After(maxTimeToClose):
+		log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
+	}
+
+	handleAppClose(log, sig)
+
+	return nil
+}
+
+func closeAllComponents(
+	log logger.Logger,
+	dataComponents *mainFactory.DataComponents,
+	triesComponents *mainFactory.TriesComponents,
+	networkComponents *mainFactory.NetworkComponents,
+	chanCloseComponents chan struct{},
+) {
 	log.Debug("closing all store units....")
-	err = dataComponents.Store.CloseAll()
+	err := dataComponents.Store.CloseAll()
 	log.LogIfError(err)
 
 	dataTries := triesComponents.TriesContainer.GetAll()
@@ -1346,13 +1388,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 
-	log.Info("closing network connections...")
+	log.Debug("calling close on the network messenger instance...")
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
 
-	handleAppClose(log, sig)
-
-	return nil
+	chanCloseComponents <- struct{}{}
 }
 
 func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
@@ -1691,6 +1731,7 @@ func createNodesCoordinator(
 	currentShardID uint32,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	bootstrapParameters bootstrap.Parameters,
+	startEpoch uint32,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
@@ -1711,7 +1752,8 @@ func createNodesCoordinator(
 	if errWaitingValidators != nil {
 		return nil, errWaitingValidators
 	}
-	currentEpoch := uint32(0)
+
+	currentEpoch := startEpoch
 	if bootstrapParameters.NodesConfig != nil {
 		nodeRegistry := bootstrapParameters.NodesConfig
 		currentEpoch = bootstrapParameters.Epoch
@@ -1776,6 +1818,7 @@ func createNodesCoordinator(
 		ConsensusGroupCache:     consensusGroupCache,
 		ShuffledOutHandler:      shuffledOutHandler,
 		Epoch:                   currentEpoch,
+		StartEpoch:              startEpoch,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -1872,6 +1915,8 @@ func createHardForkTrigger(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	epochNotifier factory.EpochStartNotifier,
+	importStartHandler update.ImportStartHandler,
+	workingDir string,
 ) (node.HardforkTrigger, error) {
 
 	selfPubKeyBytes, err := pubKey.ToByteArray()
@@ -1887,6 +1932,7 @@ func createHardForkTrigger(
 	accountsDBs[state.UserAccountsState] = stateComponents.AccountsAdapter
 	accountsDBs[state.PeerAccountsState] = stateComponents.PeerAccounts
 	hardForkConfig := config.Hardfork
+	exportFolder := filepath.Join(workingDir, hardForkConfig.ImportFolder)
 	argsExporter := exportFactory.ArgsExporter{
 		TxSignMarshalizer:        coreData.TxSignMarshalizer,
 		Marshalizer:              coreData.InternalMarshalizer,
@@ -1900,9 +1946,9 @@ func createHardForkTrigger(
 		Messenger:                network.NetMessenger,
 		ActiveAccountsDBs:        accountsDBs,
 		ExistingResolvers:        process.ResolversFinder,
-		ExportFolder:             hardForkConfig.ImportFolder,
-		ExportTriesStorageConfig: hardForkConfig.ExportStateStorageConfig,
-		ExportStateStorageConfig: hardForkConfig.ExportTriesStorageConfig,
+		ExportFolder:             exportFolder,
+		ExportTriesStorageConfig: hardForkConfig.ExportTriesStorageConfig,
+		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
 		WhiteListHandler:         whiteListRequest,
 		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
 		InterceptorsContainer:    process.InterceptorsContainer,
@@ -1927,15 +1973,17 @@ func createHardForkTrigger(
 
 	atArgumentParser := vmcommon.NewAtArgumentParser()
 	argTrigger := trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:     triggerPubKeyBytes,
-		SelfPubKeyBytes:        selfPubKeyBytes,
-		Enabled:                config.Hardfork.EnableTrigger,
-		EnabledAuthenticated:   config.Hardfork.EnableTriggerFromP2P,
-		ArgumentParser:         atArgumentParser,
-		EpochProvider:          process.EpochStartTrigger,
-		ExportFactoryHandler:   hardForkExportFactory,
-		ChanStopNodeProcess:    chanStopNodeProcess,
-		EpochConfirmedNotifier: epochNotifier,
+		TriggerPubKeyBytes:        triggerPubKeyBytes,
+		SelfPubKeyBytes:           selfPubKeyBytes,
+		Enabled:                   config.Hardfork.EnableTrigger,
+		EnabledAuthenticated:      config.Hardfork.EnableTriggerFromP2P,
+		ArgumentParser:            atArgumentParser,
+		EpochProvider:             process.EpochStartTrigger,
+		ExportFactoryHandler:      hardForkExportFactory,
+		ChanStopNodeProcess:       chanStopNodeProcess,
+		EpochConfirmedNotifier:    epochNotifier,
+		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
+		ImportStartHandler:        importStartHandler,
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {

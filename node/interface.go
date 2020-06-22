@@ -2,9 +2,11 @@ package node
 
 import (
 	"io"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
@@ -18,9 +20,10 @@ type P2PMessenger interface {
 	HasTopic(name string) bool
 	HasTopicValidator(name string) bool
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
-	PeerAddress(pid core.PeerID) string
+	PeerAddresses(pid core.PeerID) []string
 	IsConnectedToTheNetwork() bool
 	ID() core.PeerID
+	Peers() []core.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -30,6 +33,7 @@ type NetworkShardingCollector interface {
 	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
 	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 
@@ -41,6 +45,7 @@ type P2PAntifloodHandler interface {
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	ApplyConsensusSize(size int)
+	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
 }
 
@@ -57,6 +62,8 @@ type HardforkTrigger interface {
 	RecordedTriggerMessage() ([]byte, bool)
 	Trigger(epoch uint32) error
 	CreateData() []byte
+	AddCloser(closer update.Closer) error
+	NotifyTriggerReceived() <-chan struct{}
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }

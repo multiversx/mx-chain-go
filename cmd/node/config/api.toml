@@ -16,7 +16,10 @@
         { Name = "/p2pstatus", Open = true },
 
         # /node/debug will return the debug information after the query has been interpreted
-        { Name = "/debug", Open = true }
+        { Name = "/debug", Open = true },
+
+        # /node/peerinfo will return the p2p peer info of the provided pid
+        { Name = "/peerinfo", Open = true }
 	]
 
 [APIPackages.address]

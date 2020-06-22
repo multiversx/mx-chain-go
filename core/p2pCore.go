@@ -28,4 +28,14 @@ const (
 type P2PPeerInfo struct {
 	PeerType P2PPeerType
 	ShardID  uint32
+	PkBytes  []byte
+}
+
+// QueryP2PPeerInfo represents a DTO used in exporting p2p peer info after a query
+type QueryP2PPeerInfo struct {
+	IsBlacklisted bool     `json:"isblacklisted"`
+	Pid           string   `json:"pid"`
+	Pk            string   `json:"pk"`
+	PeerType      string   `json:"peertype"`
+	Addresses     []string `json:"addresses"`
 }

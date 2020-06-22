@@ -228,7 +228,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	tr.oldHashes = make([][]byte, 0)
 
 	if log.GetLevel() == logger.LogTrace {
-		log.Trace("started committing trie", "trie", tr.String())
+		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
 	err = tr.root.commit(false, 0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
@@ -302,9 +302,44 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 		)
 	}
 
-	newTr, err := tr.recreateFromDb(root)
+	newTr := tr.recreateFromMainDb(root)
+	if newTr != nil {
+		return newTr, nil
+	}
+
+	return tr.recreateFromSnapshotDb(root)
+}
+
+func (tr *patriciaMerkleTrie) recreateFromMainDb(rootHash []byte) data.Trie {
+	_, err := tr.Database().Get(rootHash)
 	if err != nil {
-		err = fmt.Errorf("trie recreate error: %w, for root %v", err, hex.EncodeToString(root))
+		return nil
+	}
+
+	newTr, _, err := tr.recreateFromDb(rootHash, tr.Database(), tr.trieStorage)
+	if err != nil {
+		log.Warn("trie recreate error:", "error", err, "root", hex.EncodeToString(rootHash))
+		return nil
+	}
+
+	return newTr
+}
+
+func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (data.Trie, error) {
+	db := tr.trieStorage.GetSnapshotThatContainsHash(rootHash)
+	if db == nil {
+		return nil, ErrHashNotFound
+	}
+	defer db.DecreaseNumReferences()
+
+	newTr, newRoot, err := tr.recreateFromDb(rootHash, db, tr.trieStorage)
+	if err != nil {
+		err = fmt.Errorf("trie recreate error: %w, for root %v", err, hex.EncodeToString(rootHash))
+		return nil, err
+	}
+
+	err = newRoot.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.Database())
+	if err != nil {
 		return nil, err
 	}
 
@@ -440,38 +475,26 @@ func (tr *patriciaMerkleTrie) Database() data.DBWriteCacher {
 	return tr.trieStorage.Database()
 }
 
-func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error) {
-	db := tr.trieStorage.GetDbThatContainsHash(rootHash)
-	if db == nil {
-		return nil, ErrHashNotFound
-	}
-
+func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db data.DBWriteCacher, tsm data.StorageManager) (data.Trie, snapshotNode, error) {
 	newTr, err := NewTrie(
-		tr.trieStorage,
+		tsm,
 		tr.marshalizer,
 		tr.hasher,
 		tr.maxTrieLevelInMemory,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, tr.marshalizer, tr.hasher)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	newRoot.setGivenHash(rootHash)
 	newTr.root = newRoot
 
-	if db != tr.Database() {
-		err = newTr.root.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.Database())
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return newTr, nil
+	return newTr, newRoot, nil
 }
 
 // EnterSnapshotMode sets the snapshot mode on
@@ -484,14 +507,42 @@ func (tr *patriciaMerkleTrie) ExitSnapshotMode() {
 	tr.trieStorage.ExitSnapshotMode()
 }
 
+func getDbThatContainsHash(trieStorage data.StorageManager, rootHash []byte) data.SnapshotDbHandler {
+	db := trieStorage.GetSnapshotThatContainsHash(rootHash)
+	if db != nil {
+		return db
+	}
+
+	_, err := trieStorage.Database().Get(rootHash)
+	if err != nil {
+		return nil
+	}
+
+	return &snapshotDb{
+		DBWriteCacher: trieStorage.Database(),
+	}
+}
+
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
 func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	log.Trace("GetSerializedNodes", "rootHash", rootHash)
 	size := uint64(0)
 
-	newTr, err := tr.recreateFromDb(rootHash)
+	db := getDbThatContainsHash(tr.trieStorage, rootHash)
+	if db == nil {
+		return nil, 0, ErrHashNotFound
+	}
+	defer db.DecreaseNumReferences()
+
+	newTsm, err := NewTrieStorageManagerWithoutPruning(db)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	newTr, _, err := tr.recreateFromDb(rootHash, db, newTsm)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -529,6 +580,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	}
 
 	remainingSpace := maxBuffToSend - size
+
 	return nodes, remainingSpace, nil
 }
 

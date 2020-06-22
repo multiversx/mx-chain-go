@@ -57,7 +57,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 
 	eligibleMap := createDummyNodesMap(3, 1, "waiting")
 	waitingMap := make(map[uint32][]Validator)
-	nodeShuffler := NewXorValidatorsShuffler(3, 3, hysteresis, adaptivity, shuffleBetweenShards)
+	nodeShuffler := NewHashValidatorsShuffler(3, 3, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -138,7 +138,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = listMeta
-	nodeShuffler := NewXorValidatorsShuffler(400, 1, hysteresis, adaptivity, shuffleBetweenShards)
+	nodeShuffler := NewHashValidatorsShuffler(400, 1, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -198,7 +198,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = listMeta
-	nodeShuffler := NewXorValidatorsShuffler(shardSize, 1, hysteresis, adaptivity, shuffleBetweenShards)
+	nodeShuffler := NewHashValidatorsShuffler(shardSize, 1, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -255,7 +255,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = list
-	nodeShuffler := NewXorValidatorsShuffler(1, 1, hysteresis, adaptivity, shuffleBetweenShards)
+	nodeShuffler := NewHashValidatorsShuffler(1, 1, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -292,7 +292,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = list
-	nodeShuffler := NewXorValidatorsShuffler(1, 1, hysteresis, adaptivity, shuffleBetweenShards)
+	nodeShuffler := NewHashValidatorsShuffler(1, 1, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -339,7 +339,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 
 	eligibleMap := make(map[uint32][]Validator)
 	waitingMap := make(map[uint32][]Validator)
-	nodeShuffler := NewXorValidatorsShuffler(3, 3, hysteresis, adaptivity, shuffleBetweenShards)
+	nodeShuffler := NewHashValidatorsShuffler(3, 3, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -407,7 +407,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 
 	eligibleMap := make(map[uint32][]Validator)
 	waitingMap := make(map[uint32][]Validator)
-	nodeShuffler := NewXorValidatorsShuffler(3, 3, hysteresis, adaptivity, shuffleBetweenShards)
+	nodeShuffler := NewHashValidatorsShuffler(3, 3, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -705,7 +705,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap[0] = list
 	eligibleMap[core.MetachainShardId] = listMeta
-	nodeShuffler := NewXorValidatorsShuffler(400, 1, hysteresis, adaptivity, shuffleBetweenShards)
+	nodeShuffler := NewHashValidatorsShuffler(400, 1, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 

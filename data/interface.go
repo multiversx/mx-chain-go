@@ -200,7 +200,7 @@ type StorageManager interface {
 	Prune([]byte, TriePruningIdentifier)
 	CancelPrune([]byte, TriePruningIdentifier)
 	MarkForEviction([]byte, ModifiedHashes) error
-	GetDbThatContainsHash([]byte) DBWriteCacher
+	GetSnapshotThatContainsHash(rootHash []byte) SnapshotDbHandler
 	IsPruningEnabled() bool
 	EnterSnapshotMode()
 	ExitSnapshotMode()
@@ -239,4 +239,14 @@ type GoRoutineThrottler interface {
 	StartProcessing()
 	EndProcessing()
 	IsInterfaceNil() bool
+}
+
+// SnapshotDbHandler is used to keep track of how many references a snapshot db has
+type SnapshotDbHandler interface {
+	DBWriteCacher
+	IsInUse() bool
+	DecreaseNumReferences()
+	IncreaseNumReferences()
+	MarkForRemoval()
+	SetPath(string)
 }

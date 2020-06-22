@@ -173,6 +173,7 @@ func findPeerMiniBlockHeaders(metaBlock *block.MetaBlock) []block.MiniBlockHeade
 			ReceiverShardID: mbHeader.ReceiverShardID,
 			SenderShardID:   core.MetachainShardId,
 			TxCount:         mbHeader.TxCount,
+			Type:            mbHeader.Type,
 		}
 		shardMBHeaders = append(shardMBHeaders, shardMBHdr)
 	}

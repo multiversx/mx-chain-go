@@ -77,9 +77,8 @@ type Messenger interface {
 	// Messenger is currently connected.
 	ConnectedAddresses() []string
 
-	// PeerAddress builds an address for the given peer ID, e.g.
-	// ConnectToPeer(PeerAddress(somePeerID)).
-	PeerAddress(pid core.PeerID) string
+	// PeerAddresses returns the known addresses for the provided peer ID
+	PeerAddresses(pid core.PeerID) []string
 
 	// ConnectedPeersOnTopic returns the IDs of the peers to which the Messenger
 	// is currently connected, but filtered by a topic they are registered to.
@@ -142,6 +141,7 @@ type Messenger interface {
 	SetPeerBlackListHandler(handler PeerBlacklistHandler) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
 	SetMessageIdsCacher(cacher Cacher) error
+	UnjoinAllTopics() error
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
@@ -274,6 +274,6 @@ type ConnectionMonitorWrapper interface {
 
 // Cacher defines the interface for a cacher used in p2p to better prevent the reprocessing of an old message
 type Cacher interface {
-	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool)
+	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool)
 	IsInterfaceNil() bool
 }

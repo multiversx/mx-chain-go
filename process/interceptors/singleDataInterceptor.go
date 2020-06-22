@@ -77,6 +77,12 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	interceptedData, err := sdi.factory.Create(message.Data())
 	if err != nil {
 		sdi.throttler.EndProcessing()
+
+		//this situation is so severe that we need to black list the peers
+		reason := "can not create object from received bytes, topic " + sdi.topic
+		sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+		sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+
 		return err
 	}
 
@@ -137,6 +143,11 @@ func (sdi *SingleDataInterceptor) SetInterceptedDebugHandler(handler process.Int
 	sdi.mutInterceptedDebugHandler.Unlock()
 
 	return nil
+}
+
+// RegisterHandler registers a callback function to be notified on received data
+func (sdi *SingleDataInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
+	sdi.processor.RegisterHandler(handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

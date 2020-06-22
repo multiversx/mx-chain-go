@@ -167,6 +167,8 @@ func createBlacklistHandlersAndProcessors(
 			thresholdSizeReceived,
 			maxFloodingRounds,
 			time.Minute*5,
+			"",
+			peers[i].ID(),
 		)
 		log.LogIfError(err)
 	}

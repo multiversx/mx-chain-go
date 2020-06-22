@@ -19,6 +19,9 @@ var ErrNilPublicKey = errors.New("public key is nil")
 // ErrNilPrivateKey is raised when a valid private key was expected but nil was used
 var ErrNilPrivateKey = errors.New("private key is nil")
 
+// ErrNilPrevRandSeed is raised when the provided previous random seed is nil
+var ErrNilPrevRandSeed = errors.New("previous random seed is nil")
+
 // ErrNilConsensusData is raised when valid consensus data was expected but nil was received
 var ErrNilConsensusData = errors.New("consensus data is nil")
 
@@ -91,6 +94,12 @@ var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 // ErrNilNodesCoordinator is raised when a valid validator group selector is expected but nil used
 var ErrNilNodesCoordinator = errors.New("validator group selector is nil")
 
+// ErrNilInterceptorsContainer is raised when a nil interceptor container is provided
+var ErrNilInterceptorsContainer = errors.New("interceptor container is nil")
+
+// ErrNilParameter is raised when a nil parameter is provided
+var ErrNilParameter = errors.New("parameter is nil")
+
 // ErrNilChronologyHandler is raised when a valid chronology handler is expected but nil used
 var ErrNilChronologyHandler = errors.New("chronology handler is nil")
 
@@ -141,6 +150,9 @@ var ErrNilHeaderHash = errors.New("header hash is nil")
 
 // ErrNilBody is raised when an expected body is nil
 var ErrNilBody = errors.New("body is nil")
+
+// ErrInvalidDataToBroadcast is raised when invalid data is set to be broadcast
+var ErrInvalidDataToBroadcast = errors.New("data to broadcast is invalid")
 
 // ErrNilMetaHeader is raised when an expected meta header is nil
 var ErrNilMetaHeader = errors.New("meta header is nil")

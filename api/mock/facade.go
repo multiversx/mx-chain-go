@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -35,6 +36,7 @@ type Facade struct {
 	GetQueryHandlerCalled             func(name string) (debug.QueryHandler, error)
 	GetTransactionStatusCalled        func(hash string) (string, error)
 	GetValueForKeyCalled              func(address string, key string) (string, error)
+	GetPeerInfoCalled                 func(pid string) ([]core.QueryP2PPeerInfo, error)
 }
 
 // GetTransactionStatus -
@@ -156,6 +158,11 @@ func (f *Facade) DecodeAddressPubkey(pk string) ([]byte, error) {
 // GetQueryHandler -
 func (f *Facade) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	return f.GetQueryHandlerCalled(name)
+}
+
+// GetPeerInfo -
+func (f *Facade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
+	return f.GetPeerInfoCalled(pid)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

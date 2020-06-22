@@ -2,6 +2,7 @@ package storageUnit
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sync"
@@ -76,6 +77,16 @@ type CacheConfig struct {
 	Capacity             uint32
 	SizePerSender        uint32
 	Shards               uint32
+}
+
+// String returns a readable representation of the object
+func (config *CacheConfig) String() string {
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		log.Error("CacheConfig.String()", "err", err)
+	}
+
+	return string(bytes)
 }
 
 // DBConfig holds the configurable elements of a database

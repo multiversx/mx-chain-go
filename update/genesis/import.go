@@ -2,6 +2,7 @@ package genesis
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -229,8 +230,12 @@ func newAccountCreator(accType Type) (state.AccountFactory, error) {
 }
 
 func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) {
-	shIDString := core.ShardIdToString(shardID)
-	trieForShard, ok := si.tries[shIDString]
+	trieString := core.ShardIdToString(shardID)
+	if accType == ValidatorAccount {
+		trieString = "validator"
+	}
+
+	trieForShard, ok := si.tries[trieString]
 	if ok {
 		return trieForShard, nil
 	}
@@ -245,12 +250,12 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) 
 		return nil, err
 	}
 
-	si.tries[shIDString] = trieForShard
+	si.tries[trieString] = trieForShard
 
 	return trieForShard, nil
 }
 
-func (si *stateImport) importDataTrie(fileName string) error {
+func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
 	var key string
 	var value []byte
 	var err error
@@ -303,6 +308,12 @@ func (si *stateImport) importDataTrie(fileName string) error {
 	si.tries[fileName] = dataTrie
 	si.reader.CloseFile(fileName)
 
+	rootHash, err := dataTrie.Root()
+	if err != nil {
+		return err
+	}
+	log.Info("imported state", "rootHash", rootHash, "shID", shID, "accType", DataTrie)
+
 	return nil
 }
 
@@ -345,7 +356,7 @@ func (si *stateImport) importState(fileName string) error {
 	}
 
 	if accType == DataTrie {
-		return si.importDataTrie(fileName)
+		return si.importDataTrie(fileName, shId)
 	}
 
 	accountsDB, mainTrie, err := si.getAccountsDB(accType, shId)
@@ -393,7 +404,10 @@ func (si *stateImport) importState(fileName string) error {
 
 		err = json.Unmarshal(marshalledData, account)
 		if err != nil {
-			log.Trace("error unmarshaling account this is maybe a code", "address", address, "error", err)
+			log.Trace("error unmarshaling account this is maybe a code error",
+				"address", hex.EncodeToString(address),
+				"error", err,
+			)
 			err = mainTrie.Update(address, marshalledData)
 			if err != nil {
 				break
@@ -421,7 +435,6 @@ func (si *stateImport) saveRootHash(accountsDB state.AccountsAdapter, accType Ty
 		return err
 	}
 
-	accountsDB.SnapshotState(rootHash)
 	log.Info("imported state", "rootHash", rootHash, "shID", shardID, "accType", accType)
 
 	return nil

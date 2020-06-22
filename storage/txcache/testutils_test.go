@@ -13,6 +13,7 @@ import (
 const oneMilion = 1000000
 const oneBillion = oneMilion * 1000
 const delta = 0.00000001
+const estimatedSizeOfBoundedTxFields = uint64(128)
 
 func toNanoERD(erd float64) uint64 {
 	return uint64(erd * float64(1000000000))
@@ -41,11 +42,7 @@ func (cache *TxCache) areInternalMapsConsistent() bool {
 		}
 	}
 
-	if numTransactionsInMapBySender != numTransactionsInMapByHash {
-		return false
-	}
-
-	return true
+	return numTransactionsInMapBySender == numTransactionsInMapByHash
 }
 
 func (cache *TxCache) getHashesForSender(sender string) []string {
@@ -130,19 +127,20 @@ func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {
 	return &WrappedTransaction{
 		Tx:     tx,
 		TxHash: hash,
+		Size:   int64(estimatedSizeOfBoundedTxFields),
 	}
 }
 
-func createTxWithParams(hash []byte, sender string, nonce uint64, dataLength uint64, gasLimit uint64, gasPrice uint64) *WrappedTransaction {
-	payloadLength := int(dataLength) - int(estimatedSizeOfBoundedTxFields)
-	if payloadLength < 0 {
+func createTxWithParams(hash []byte, sender string, nonce uint64, size uint64, gasLimit uint64, gasPrice uint64) *WrappedTransaction {
+	dataLength := int(size) - int(estimatedSizeOfBoundedTxFields)
+	if dataLength < 0 {
 		panic("createTxWithData(): invalid length for dummy tx")
 	}
 
 	tx := &transaction.Transaction{
 		SndAddr:  []byte(sender),
 		Nonce:    nonce,
-		Data:     make([]byte, payloadLength),
+		Data:     make([]byte, dataLength),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
@@ -150,6 +148,7 @@ func createTxWithParams(hash []byte, sender string, nonce uint64, dataLength uin
 	return &WrappedTransaction{
 		Tx:     tx,
 		TxHash: hash,
+		Size:   int64(size),
 	}
 }
 

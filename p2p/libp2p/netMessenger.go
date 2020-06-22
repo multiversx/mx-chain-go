@@ -84,6 +84,7 @@ type networkMessenger struct {
 	mutTopics           sync.RWMutex
 	processors          map[string]p2p.MessageProcessor
 	topics              map[string]*pubsub.Topic
+	subscriptions       map[string]*pubsub.Subscription
 	outgoingPLB         p2p.ChannelLoadBalancer
 	poc                 *peersOnChannel
 	goRoutinesThrottler *throttler.NumGoRoutinesThrottler
@@ -176,6 +177,7 @@ func createMessenger(
 		p2pHost:           NewConnectableHost(p2pHost),
 		processors:        make(map[string]p2p.MessageProcessor),
 		topics:            make(map[string]*pubsub.Topic),
+		subscriptions:     make(map[string]*pubsub.Subscription),
 		outgoingPLB:       loadBalancer.NewOutgoingChannelLoadBalancer(),
 		peerShardResolver: &unknownPeerShardResolver{},
 		messageIdCacher:   &disabled.Cacher{},
@@ -239,7 +241,7 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 		return err
 	}
 
-	go func(pubsub *pubsub.PubSub, plb p2p.ChannelLoadBalancer) {
+	go func(plb p2p.ChannelLoadBalancer) {
 		for {
 			select {
 			case <-time.After(durationBetweenSends):
@@ -269,7 +271,7 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 				log.Trace("error sending data", "error", errPublish)
 			}
 		}
-	}(netMes.pb, netMes.outgoingPLB)
+	}(netMes.outgoingPLB)
 
 	return nil
 }
@@ -414,17 +416,9 @@ func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
 
 // Close closes the host, connections and streams
 func (netMes *networkMessenger) Close() error {
-	netMes.cancelFunc()
+	log.Debug("closing network messenger's host...")
 
 	var err error
-	errOplb := netMes.outgoingPLB.Close()
-	if errOplb != nil {
-		err = errOplb
-		log.Warn("networkMessenger.Close",
-			"component", "outgoingPLB",
-			"error", err)
-	}
-
 	errHost := netMes.p2pHost.Close()
 	if errHost != nil {
 		err = errHost
@@ -433,8 +427,22 @@ func (netMes *networkMessenger) Close() error {
 			"error", err)
 	}
 
+	log.Debug("closing network messenger's outgoing load balancer...")
+
+	errOplb := netMes.outgoingPLB.Close()
+	if errOplb != nil {
+		err = errOplb
+		log.Warn("networkMessenger.Close",
+			"component", "outgoingPLB",
+			"error", err)
+	}
+
+	log.Debug("closing network messenger's components through the context...")
+
+	netMes.cancelFunc()
+
 	if err == nil {
-		log.Debug("network messenger closed successfully")
+		log.Info("network messenger closed successfully")
 	}
 
 	return err
@@ -523,25 +531,26 @@ func (netMes *networkMessenger) ConnectedAddresses() []string {
 	return conns
 }
 
-// PeerAddress returns the peer's address or empty string if the peer is unknown
-func (netMes *networkMessenger) PeerAddress(pid core.PeerID) string {
+// PeerAddresses returns the peer's addresses or empty slice if the peer is unknown
+func (netMes *networkMessenger) PeerAddresses(pid core.PeerID) []string {
 	h := netMes.p2pHost
+	result := make([]string, 0)
 
 	//check if the peer is connected to return it's connected address
 	for _, c := range h.Network().Conns() {
 		if string(c.RemotePeer()) == string(pid.Bytes()) {
-			return c.RemoteMultiaddr().String()
+			result = append(result, c.RemoteMultiaddr().String())
+			break
 		}
 	}
 
 	//check in peerstore (maybe it is known but not connected)
 	addresses := h.Peerstore().Addrs(peer.ID(pid.Bytes()))
-	if len(addresses) == 0 {
-		return ""
+	for _, addr := range addresses {
+		result = append(result, addr.String())
 	}
 
-	//return the first address from multi address slice
-	return addresses[0].String()
+	return result
 }
 
 // ConnectedPeersOnTopic returns the connected peers on a provided topic
@@ -569,6 +578,7 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		return fmt.Errorf("%w for topic %s", err, name)
 	}
 
+	netMes.subscriptions[name] = subscrRequest
 	if createChannelForTopic {
 		err = netMes.outgoingPLB.AddChannel(name)
 	}
@@ -579,6 +589,10 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		for {
 			_, errSubscrNext = subscrRequest.Next(netMes.ctx)
 			if errSubscrNext != nil {
+				log.Debug("closed subscription",
+					"topic", subscrRequest.Topic(),
+					"err", errSubscrNext,
+				)
 				return
 			}
 		}
@@ -689,12 +703,14 @@ func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor) fun
 			return false
 		}
 
-		err = handler.ProcessReceivedMessage(wrappedMsg, core.PeerID(pid))
+		fromConnectedPeer := core.PeerID(pid)
+		err = handler.ProcessReceivedMessage(wrappedMsg, fromConnectedPeer)
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
 				"topics", message.TopicIDs,
-				"pid", p2p.MessageOriginatorPid(wrappedMsg),
+				"originator", p2p.MessageOriginatorPid(wrappedMsg),
+				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 				"seq no", p2p.MessageOriginatorSeq(wrappedMsg),
 			)
 
@@ -720,9 +736,36 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 			return err
 		}
 
-		netMes.processors[topic] = nil
+		delete(netMes.processors, topic)
 	}
 	return nil
+}
+
+// UnjoinAllTopics call close on all topics
+func (netMes *networkMessenger) UnjoinAllTopics() error {
+	netMes.mutMessageIdCacher.Lock()
+	defer netMes.mutMessageIdCacher.Unlock()
+
+	var errFound error
+	for topicName, t := range netMes.topics {
+		subscr := netMes.subscriptions[topicName]
+		if subscr != nil {
+			subscr.Cancel()
+		}
+
+		err := t.Close()
+		if err != nil {
+			log.Warn("error closing topic",
+				"topic", topicName,
+				"error", err,
+			)
+			errFound = err
+		}
+
+		delete(netMes.topics, topicName)
+	}
+
+	return errFound
 }
 
 // UnregisterMessageProcessor unregisters a message processes on a topic
@@ -768,7 +811,8 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 			log.Trace("p2p validator",
 				"error", err.Error(),
 				"topics", msg.Topics(),
-				"pid", p2p.MessageOriginatorPid(msg),
+				"originator", p2p.MessageOriginatorPid(msg),
+				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 				"seq no", p2p.MessageOriginatorSeq(msg),
 			)
 		}

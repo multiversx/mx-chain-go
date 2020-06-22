@@ -464,6 +464,9 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.Root()
 
+	dirtyHashes, _ := tr.GetDirtyHashes()
+	tr.SetNewHashes(dirtyHashes)
+
 	tr.TakeSnapshot(rootHash)
 	time.Sleep(time.Second)
 	tr.Prune(rootHash, data.NewRoot)
@@ -554,6 +557,62 @@ func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing
 	newHashes, _ := tr.GetDirtyHashes()
 
 	assert.Equal(t, len(oldHashes), len(newHashes))
+}
+
+func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainDB(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	newHashes, _ := tr.GetDirtyHashes()
+	tr.SetNewHashes(newHashes)
+	_ = tr.Commit()
+
+	rootHash, _ := tr.Root()
+	tr.TakeSnapshot(rootHash)
+	time.Sleep(time.Second)
+
+	tr.Prune(rootHash, data.NewRoot)
+
+	val, err := tr.Database().Get(rootHash)
+	assert.NotNil(t, err)
+	assert.Nil(t, val)
+
+	nodes, _, _ := tr.GetSerializedNodes(rootHash, 2000)
+	assert.NotEqual(t, 0, len(nodes))
+
+	val, err = tr.Database().Get(rootHash)
+	assert.NotNil(t, err)
+	assert.Nil(t, val)
+}
+
+func TestPatriciaMerkleTrie_GetSerializedNodesShouldCheckFirstInSnapshotsDB(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.ProtobufMarshalizerMock{}
+	hasher := &mock.KeccakMock{}
+
+	getDbCalled := false
+	getSnapshotCalled := false
+
+	trieStorageManager := &mock.StorageManagerStub{
+		GetDbThatContainsHashCalled: func(bytes []byte) data.DBWriteCacher {
+			getDbCalled = true
+			return nil
+		},
+		DatabaseCalled: func() data.DBWriteCacher {
+			getSnapshotCalled = true
+			return mock.NewMemDbMock()
+		},
+	}
+	maxTrieLevelInMemory := uint(5)
+
+	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory)
+
+	rootHash := []byte("rootHash")
+	_, _, _ = tr.GetSerializedNodes(rootHash, 2000)
+
+	assert.False(t, getDbCalled)
+	assert.True(t, getSnapshotCalled)
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

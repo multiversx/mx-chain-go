@@ -20,14 +20,14 @@ type span struct {
 // This data structure is concurrent safe.
 type TimeCache struct {
 	mut         sync.Mutex
-	data        map[string]span
+	data        map[string]*span
 	defaultSpan time.Duration
 }
 
 // NewTimeCache creates a new time cache data structure instance
 func NewTimeCache(defaultSpan time.Duration) *TimeCache {
 	return &TimeCache{
-		data:        make(map[string]span),
+		data:        make(map[string]*span),
 		defaultSpan: defaultSpan,
 	}
 }
@@ -46,7 +46,7 @@ func (tc *TimeCache) add(key string, duration time.Duration) error {
 	tc.mut.Lock()
 	defer tc.mut.Unlock()
 
-	tc.data[key] = span{
+	tc.data[key] = &span{
 		timestamp: time.Now(),
 		span:      duration,
 	}
@@ -57,6 +57,34 @@ func (tc *TimeCache) add(key string, duration time.Duration) error {
 // Double adding the key is not permitted by the time cache. Also, add will trigger sweeping.
 func (tc *TimeCache) AddWithSpan(key string, duration time.Duration) error {
 	return tc.add(key, duration)
+}
+
+// Update will add the key and provided duration if not exists
+// If the record exists, will update the duration if the provided duration is larger than existing
+// Also, it will reset the contained timestamp to time.Now
+func (tc *TimeCache) Update(key string, duration time.Duration) error {
+	if len(key) == 0 {
+		return storage.ErrEmptyKey
+	}
+
+	tc.mut.Lock()
+	defer tc.mut.Unlock()
+
+	existing, found := tc.data[key]
+	if found {
+		if existing.span < duration {
+			existing.span = duration
+		}
+		existing.timestamp = time.Now()
+
+		return nil
+	}
+
+	tc.data[key] = &span{
+		timestamp: time.Now(),
+		span:      duration,
+	}
+	return nil
 }
 
 // Sweep starts from the oldest element and will search each element if it is still valid to be kept. Sweep ends when

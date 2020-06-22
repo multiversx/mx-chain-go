@@ -10,6 +10,7 @@ import (
 type PeerBlackListHandlerStub struct {
 	AddCalled         func(pid core.PeerID) error
 	AddWithSpanCalled func(pid core.PeerID, span time.Duration) error
+	UpdateCalled      func(pid core.PeerID, span time.Duration) error
 	HasCalled         func(pid core.PeerID) bool
 	SweepCalled       func()
 }
@@ -25,6 +26,15 @@ func (pblhs *PeerBlackListHandlerStub) Sweep() {
 func (pblhs *PeerBlackListHandlerStub) AddWithSpan(pid core.PeerID, span time.Duration) error {
 	if pblhs.AddWithSpanCalled != nil {
 		return pblhs.AddWithSpanCalled(pid, span)
+	}
+
+	return nil
+}
+
+// Update -
+func (pblhs *PeerBlackListHandlerStub) Update(pid core.PeerID, span time.Duration) error {
+	if pblhs.UpdateCalled != nil {
+		return pblhs.UpdateCalled(pid, span)
 	}
 
 	return nil

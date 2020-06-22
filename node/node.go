@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
+	"strings"
 	syncGo "sync"
 	"sync/atomic"
 	"time"
@@ -46,6 +48,7 @@ import (
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // SendTransactionsPipe is the pipe used for sending new transactions
@@ -232,7 +235,7 @@ func (n *Node) StartConsensus() error {
 
 	bootstrapper.StartSyncingBlocks()
 
-	epoch := uint32(0)
+	epoch := n.blkc.GetGenesisHeader().GetEpoch()
 	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
 	if !check.IfNil(crtBlockHeader) {
 		epoch = crtBlockHeader.GetEpoch()
@@ -251,11 +254,13 @@ func (n *Node) StartConsensus() error {
 
 	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
 		n.internalMarshalizer,
+		n.hasher,
 		n.messenger,
 		n.shardCoordinator,
 		n.privKey,
 		n.singleSigner,
 		n.dataPool.Headers(),
+		n.interceptorsContainer,
 	)
 
 	if err != nil {
@@ -354,6 +359,17 @@ func (n *Node) StartConsensus() error {
 
 	chronologyHandler.StartRounds()
 
+	return n.addCloserInstances(chronologyHandler, bootstrapper, worker, n.syncTimer)
+}
+
+func (n *Node) addCloserInstances(closers ...update.Closer) error {
+	for _, c := range closers {
+		err := n.hardforkTrigger.AddCloser(c)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -427,7 +443,6 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 		rounder,
 		n.syncTimer,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -474,6 +489,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
+		ChainID:             string(n.chainID),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -533,6 +549,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
+		ChainID:             string(n.chainID),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
@@ -958,7 +975,6 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		PrivKey:                  n.privKey,
 		HardforkTrigger:          n.hardforkTrigger,
 		AntifloodHandler:         n.inputAntifloodHandler,
-		PeerBlackListHandler:     n.peerBlackListHandler,
 		ValidatorPubkeyConverter: n.validatorPubkeyConverter,
 		EpochStartTrigger:        n.epochStartTrigger,
 		EpochStartRegistration:   n.epochStartRegistrationHandler,
@@ -1069,6 +1085,51 @@ func (n *Node) GetQueryHandler(name string) (debug.QueryHandler, error) {
 	}
 
 	return qh, nil
+}
+
+// GetPeerInfo returns information about a peer id
+func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
+	peers := n.messenger.Peers()
+	pidsFound := make([]core.PeerID, 0)
+	for _, p := range peers {
+		if strings.Contains(p.Pretty(), pid) {
+			pidsFound = append(pidsFound, p)
+		}
+	}
+
+	if len(pidsFound) == 0 {
+		return nil, fmt.Errorf("%w for provided peer %s", ErrUnknownPeerID, pid)
+	}
+
+	sort.Slice(pidsFound, func(i, j int) bool {
+		return pidsFound[i].Pretty() < pidsFound[j].Pretty()
+	})
+
+	peerInfoSlice := make([]core.QueryP2PPeerInfo, 0, len(pidsFound))
+	for _, p := range pidsFound {
+		pidInfo := n.createPidInfo(p)
+		peerInfoSlice = append(peerInfoSlice, pidInfo)
+	}
+
+	return peerInfoSlice, nil
+}
+
+func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
+	result := core.QueryP2PPeerInfo{
+		Pid:           p.Pretty(),
+		Addresses:     n.messenger.PeerAddresses(p),
+		IsBlacklisted: n.peerBlackListHandler.Has(p),
+	}
+
+	peerInfo := n.networkShardingCollector.GetPeerInfo(p)
+	result.PeerType = peerInfo.PeerType.String()
+	if len(peerInfo.PkBytes) == 0 {
+		result.Pk = ""
+	} else {
+		result.Pk = n.validatorPubkeyConverter.Encode(peerInfo.PkBytes)
+	}
+
+	return result
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

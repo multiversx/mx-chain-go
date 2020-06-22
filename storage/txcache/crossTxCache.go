@@ -69,13 +69,13 @@ func (cache *CrossTxCache) diagnose() {
 }
 
 // AddTx adds a transaction in the cache
-func (cache *CrossTxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
-	return cache.Add(tx)
+func (cache *CrossTxCache) AddTx(tx *WrappedTransaction) (has, added bool) {
+	return cache.HasOrAdd(tx.TxHash, tx, int(tx.Size))
 }
 
 // GetByTxHash gets the transaction by hash
 func (cache *CrossTxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
-	item, ok := cache.GetItem(txHash)
+	item, ok := cache.ImmunityCache.Get(txHash)
 	if !ok {
 		return nil, false
 	}
@@ -111,7 +111,7 @@ func (cache *CrossTxCache) RemoveTxByHash(txHash []byte) bool {
 
 // ForEachTransaction iterates over the transactions in the cache
 func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
-	cache.ForEachItem(func(key []byte, item storage.CacheItem) {
+	cache.ForEachItem(func(key []byte, item interface{}) {
 		tx, ok := item.(*WrappedTransaction)
 		if !ok {
 			return

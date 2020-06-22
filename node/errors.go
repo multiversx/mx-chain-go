@@ -165,3 +165,6 @@ var ErrNilApiTransactionByHashThrottler = errors.New("nil api transaction by has
 
 // ErrSystemBusyTxHash signals that too many requests occur in the same time on the transaction by hash provider
 var ErrSystemBusyTxHash = errors.New("system busy. try again later")
+
+// ErrUnknownPeerID signals that the provided peer is unknown by the current node
+var ErrUnknownPeerID = errors.New("unknown peer ID")

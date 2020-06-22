@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -117,16 +116,6 @@ func (config *ConfigDestinationMe) verify() error {
 	return nil
 }
 
-func (config *ConfigDestinationMe) getChunkConfig() crossTxChunkConfig {
-	numChunks := core.MaxUint32(config.NumChunks, 1)
-
-	return crossTxChunkConfig{
-		maxNumItems:                 config.MaxNumItems / numChunks,
-		maxNumBytes:                 config.MaxNumBytes / numChunks,
-		numItemsToPreemptivelyEvict: config.NumItemsToPreemptivelyEvict / numChunks,
-	}
-}
-
 // String returns a readable representation of the object
 func (config *ConfigDestinationMe) String() string {
 	bytes, err := json.Marshal(config)
@@ -135,19 +124,4 @@ func (config *ConfigDestinationMe) String() string {
 	}
 
 	return string(bytes)
-}
-
-type crossTxChunkConfig struct {
-	maxNumItems                 uint32
-	maxNumBytes                 uint32
-	numItemsToPreemptivelyEvict uint32
-}
-
-func (config *crossTxChunkConfig) String() string {
-	return fmt.Sprintf(
-		"maxNumItems: %d, maxNumBytes: %d, numItemsToPreemptivelyEvict: %d",
-		config.maxNumItems,
-		config.maxNumBytes,
-		config.numItemsToPreemptivelyEvict,
-	)
 }

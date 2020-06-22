@@ -21,12 +21,13 @@ import (
 
 func createMockHeadersSyncHandlerArgs() ArgsNewHeadersSyncHandler {
 	return ArgsNewHeadersSyncHandler{
-		StorageService:  &mock.ChainStorerMock{},
-		Cache:           &mock.HeadersCacherStub{},
-		Marshalizer:     &mock.MarshalizerFake{},
-		EpochHandler:    &mock.EpochStartTriggerStub{},
-		RequestHandler:  &mock.RequestHandlerStub{},
-		Uint64Converter: &mock.Uint64ByteSliceConverterStub{},
+		StorageService:   &mock.ChainStorerMock{},
+		Cache:            &mock.HeadersCacherStub{},
+		Marshalizer:      &mock.MarshalizerFake{},
+		EpochHandler:     &mock.EpochStartTriggerStub{},
+		RequestHandler:   &mock.RequestHandlerStub{},
+		Uint64Converter:  &mock.Uint64ByteSliceConverterStub{},
+		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 	}
 }
 

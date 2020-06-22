@@ -52,6 +52,7 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 	inAntifloodHandler, p2pPeerBlackList, errNewAntiflood := antifloodFactory.NewP2PAntiFloodAndBlackList(
 		ncf.mainConfig,
 		ncf.statusHandler,
+		netMessenger.ID(),
 	)
 	if errNewAntiflood != nil {
 		return nil, errNewAntiflood

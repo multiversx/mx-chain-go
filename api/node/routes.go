@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -14,13 +15,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const pidQueryParam = "pid"
+
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
+	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	IsInterfaceNil() bool
+}
+
+// TODO remove this struct, use shared.GenericAPIResponse
+type genericApiResponse struct {
+	Data  interface{} `json:"data"`
+	Error string      `json:"error"`
+	Code  string      `json:"code"`
 }
 
 // QueryDebugRequest represents the structure on which user input for querying a debug info will validate against
@@ -60,6 +71,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, "/status", StatusMetrics)
 	router.RegisterHandler(http.MethodGet, "/p2pstatus", P2pStatusMetrics)
 	router.RegisterHandler(http.MethodPost, "/debug", QueryDebug)
+	router.RegisterHandler(http.MethodGet, "/peerinfo", PeerInfo)
 	// placeholder for custom routes
 }
 
@@ -167,4 +179,49 @@ func QueryDebug(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"result": qh.Query(gtx.Search)})
+}
+
+// PeerInfo returns the information of a provided p2p peer ID
+func PeerInfo(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			genericApiResponse{
+				Data:  nil,
+				Error: "invalid app context", //TODO replace with errors.ErrInvalidAppContext.Error()
+				Code:  "internal_issue",      //TODO replace with shared.ReturnCodeInternalError
+			},
+		)
+		return
+	}
+
+	queryVals := c.Request.URL.Query()
+	pids := queryVals[pidQueryParam]
+	pid := ""
+	if len(pids) > 0 {
+		pid = pids[0]
+	}
+
+	info, err := ef.GetPeerInfo(pid)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			genericApiResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetPidInfo.Error(), err.Error()),
+				Code:  "internal error", //TODO return shared.ReturnCodeInternalError
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		genericApiResponse{
+			Data:  gin.H{"info": info},
+			Error: "",
+			Code:  "successful", //TODO replace with shared.ReturnCodeSuccess,
+		},
+	)
 }

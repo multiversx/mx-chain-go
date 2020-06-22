@@ -47,6 +47,11 @@ func (nscm *networkShardingCollectorMock) UpdatePeerIdShardId(pid core.PeerID, s
 	nscm.mutFallbackPidShardMap.Unlock()
 }
 
+// GetPeerInfo -
+func (nscm *networkShardingCollectorMock) GetPeerInfo(_ core.PeerID) core.P2PPeerInfo {
+	return core.P2PPeerInfo{}
+}
+
 // IsInterfaceNil -
 func (nscm *networkShardingCollectorMock) IsInterfaceNil() bool {
 	return nscm == nil

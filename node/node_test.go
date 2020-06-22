@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -56,16 +57,6 @@ func getAccAdapter(balance *big.Int) *mock.AccountsStub {
 
 func getPrivateKey() *mock.PrivateKeyStub {
 	return &mock.PrivateKeyStub{}
-}
-
-func containString(search string, list []string) bool {
-	for _, str := range list {
-		if str == search {
-			return true
-		}
-	}
-
-	return false
 }
 
 func getMessenger() *mock.MessengerStub {
@@ -590,7 +581,7 @@ func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {
 
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	messenger := getMessenger()
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -630,7 +621,7 @@ func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
@@ -657,9 +648,9 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
@@ -688,9 +679,9 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	nrOfShards := uint32(2)
 	shardCoordinator.SetNoShards(nrOfShards)
 
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{}
@@ -914,9 +905,9 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 	}
 
 	n, _ := node.NewNode(
-		node.WithDataPool(&mock.PoolsHolderStub{
+		node.WithDataPool(&testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},
@@ -1083,7 +1074,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(shardingCoordinator),
 		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithDataPool(&mock.PoolsHolderStub{}),
+		node.WithDataPool(testscommon.NewPoolsHolderStub()),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 	)
 
@@ -1114,9 +1105,9 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 
 	localErr := errors.New("err")
 	n, _ := node.NewNode(
-		node.WithDataPool(&mock.PoolsHolderStub{
+		node.WithDataPool(&testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},
@@ -1197,9 +1188,9 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	n, _ := node.NewNode(
-		node.WithDataPool(&mock.PoolsHolderStub{
+		node.WithDataPool(&testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},
@@ -1279,9 +1270,9 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	n, _ := node.NewNode(
-		node.WithDataPool(&mock.PoolsHolderStub{
+		node.WithDataPool(&testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},
@@ -1360,6 +1351,8 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 	)
 
 	err := n.StartConsensus()
@@ -1721,9 +1714,9 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		},
 	}
 
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 					return nil
 				},
@@ -1895,4 +1888,79 @@ func TestNode_GetQueryHandlerShouldWork(t *testing.T) {
 
 	assert.Equal(t, qhRecovered, qh)
 	assert.Nil(t, err)
+}
+
+func TestNode_GetPeerInfoUnknownPeerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithMessenger(&mock.MessengerStub{
+			PeersCalled: func() []core.PeerID {
+				return make([]core.PeerID, 0)
+			},
+		}),
+	)
+
+	pid := "pid"
+	vals, err := n.GetPeerInfo(pid)
+
+	assert.Nil(t, vals)
+	assert.True(t, errors.Is(err, node.ErrUnknownPeerID))
+}
+
+func TestNode_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	pid1 := "pid1"
+	pid2 := "pid2"
+	n, _ := node.NewNode(
+		node.WithMessenger(&mock.MessengerStub{
+			PeersCalled: func() []core.PeerID {
+				//return them unsorted
+				return []core.PeerID{core.PeerID(pid2), core.PeerID(pid1)}
+			},
+			PeerAddressesCalled: func(pid core.PeerID) []string {
+				return []string{"addr" + string(pid)}
+			},
+		}),
+		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{
+			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+				return core.P2PPeerInfo{
+					PeerType: 0,
+					ShardID:  0,
+					PkBytes:  pid.Bytes(),
+				}
+			},
+		}),
+		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(32)),
+		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{
+			HasCalled: func(pid core.PeerID) bool {
+				return pid == core.PeerID(pid1)
+			},
+		}),
+	)
+
+	vals, err := n.GetPeerInfo("3sf1k") //will return both pids, sorted
+
+	assert.Nil(t, err)
+	require.Equal(t, 2, len(vals))
+
+	expected := []core.QueryP2PPeerInfo{
+		{
+			Pid:           core.PeerID(pid1).Pretty(),
+			Addresses:     []string{"addr" + pid1},
+			Pk:            hex.EncodeToString([]byte(pid1)),
+			IsBlacklisted: true,
+			PeerType:      core.UnknownPeer.String(),
+		},
+		{
+			Pid:           core.PeerID(pid2).Pretty(),
+			Addresses:     []string{"addr" + pid2},
+			Pk:            hex.EncodeToString([]byte(pid2)),
+			IsBlacklisted: false,
+			PeerType:      core.UnknownPeer.String(),
+		},
+	}
+
+	assert.Equal(t, expected, vals)
 }

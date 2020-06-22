@@ -143,9 +143,9 @@ func (messenger *Messenger) ConnectedAddresses() []string {
 	return messenger.network.ListAddressesExceptOne(messenger.ID())
 }
 
-// PeerAddress creates the address string from a given peer ID.
-func (messenger *Messenger) PeerAddress(pid core.PeerID) string {
-	return fmt.Sprintf("/memp2p/%s", string(pid))
+// PeerAddresses creates the address string from a given peer ID.
+func (messenger *Messenger) PeerAddresses(pid core.PeerID) []string {
+	return []string{fmt.Sprintf("/memp2p/%s", string(pid))}
 }
 
 // ConnectedPeersOnTopic returns a slice of IDs belonging to the peers in the

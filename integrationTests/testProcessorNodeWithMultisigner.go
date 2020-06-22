@@ -430,7 +430,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestProcessorNode)
-	nodeShuffler := sharding.NewXorValidatorsShuffler(
+	nodeShuffler := sharding.NewHashValidatorsShuffler(
 		uint32(nodesPerShard),
 		uint32(nbMetaNodes),
 		hysteresis,
