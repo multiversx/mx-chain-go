@@ -3,6 +3,7 @@ package systemSmartContracts
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
