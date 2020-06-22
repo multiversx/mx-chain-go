@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -221,4 +222,29 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 
 	txType := tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.BuiltInFunctionCall, txType)
+}
+
+func TestTxTypeHandler_ComputeTransactionTypeRelayedFunc(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("000")
+	tx.RcvAddr = []byte("001")
+	tx.Data = []byte(core.RelayedTransaction)
+	tx.Value = big.NewInt(45)
+
+	arg := createMockArguments()
+	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+		LenCalled: func() int {
+			return len(tx.RcvAddr)
+		},
+	}
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.NotNil(t, tth)
+	assert.Nil(t, err)
+
+	txType := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.RelayedTx, txType)
 }
