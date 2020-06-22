@@ -181,7 +181,7 @@ assembleCommand_startObserverNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/observer$OBSERVER_INDEX
 
   local nodeCommand="./node \
-        -port $PORT -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation -rest-api-interface localhost:$RESTAPIPORT \
+        -port $PORT -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
         -destination-shard-as-observer $SHARD \
         -sk-index $KEY_INDEX \
         -working-directory $WORKING_DIR -config ./config/config_observer.toml"
@@ -207,7 +207,7 @@ assembleCommand_startValidatorNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX
 
   local nodeCommand="./node \
-        -port $PORT -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation -rest-api-interface localhost:$RESTAPIPORT \
+        -port $PORT -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
         -sk-index $KEY_INDEX \
         -working-directory $WORKING_DIR -config ./config/config_validator.toml"
 

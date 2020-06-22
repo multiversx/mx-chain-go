@@ -12,7 +12,7 @@ const zeroSize = 0
 
 // CreateMemUnit creates an in-memory storer unit using maps
 func CreateMemUnit() storage.Storer {
-	cache, err := storageUnit.NewCache(storageUnit.LRUCache, defaultCapacity, defaultNumShards, zeroSize)
+	cache, err := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: defaultCapacity, Shards: defaultNumShards, SizeInBytes: zeroSize})
 	if err != nil {
 		return nil
 	}

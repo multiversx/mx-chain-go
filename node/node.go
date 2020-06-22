@@ -254,11 +254,13 @@ func (n *Node) StartConsensus() error {
 
 	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
 		n.internalMarshalizer,
+		n.hasher,
 		n.messenger,
 		n.shardCoordinator,
 		n.privKey,
 		n.singleSigner,
 		n.dataPool.Headers(),
+		n.interceptorsContainer,
 	)
 
 	if err != nil {

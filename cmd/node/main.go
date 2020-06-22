@@ -47,6 +47,7 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/health"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -214,6 +215,11 @@ VERSION:
 		Name: "profile-mode",
 		Usage: "Boolean option for enabling the profiling mode. If set, the /debug/pprof routes will be available " +
 			"on the node for profiling the application.",
+	}
+	// useHealthService is used to enable the health service
+	useHealthService = cli.BoolFlag{
+		Name:  "use-health-service",
+		Usage: "Boolean option for enabling the health service.",
 	}
 	// validatorKeyIndex defines a flag that specifies the 0-th based index of the private key to be used from validatorKey.pem file
 	validatorKeyIndex = cli.IntFlag{
@@ -407,6 +413,7 @@ func main() {
 		validatorKeyPemFile,
 		port,
 		profileMode,
+		useHealthService,
 		storageCleanup,
 		gopsEn,
 		nodeDisplayName,
@@ -722,6 +729,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating core components")
 
+	healthService := health.NewHealthService(generalConfig.Health, workingDir)
+	if ctx.IsSet(useHealthService.Name) {
+		healthService.Start()
+	}
+
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:  *generalConfig,
 		ShardId: shardId,
@@ -958,6 +970,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	healthService.RegisterComponent(dataComponents.Datapool.Transactions())
+	healthService.RegisterComponent(dataComponents.Datapool.UnsignedTransactions())
+	healthService.RegisterComponent(dataComponents.Datapool.RewardTransactions())
+
 	log.Trace("initializing metrics")
 	err = metrics.InitMetrics(
 		coreComponents.StatusHandler,
@@ -1127,12 +1143,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating time cache for requested items components")
 	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * genesisNodesConfig.RoundDuration))
 
-	whiteListCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(generalConfig.WhiteListPool.Type),
-		generalConfig.WhiteListPool.Capacity,
-		generalConfig.WhiteListPool.Shards,
-		generalConfig.WhiteListPool.SizeInBytes,
-	)
+	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListPool))
 	if err != nil {
 		return err
 	}
@@ -1350,10 +1361,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Info("terminating at internal stop signal", "reason", sig.Reason)
 	}
 
+	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(log, dataComponents, triesComponents, networkComponents)
+		closeAllComponents(log, healthService, dataComponents, triesComponents, networkComponents, chanCloseComponents)
 	}()
-	time.Sleep(maxTimeToClose)
+
+	select {
+	case <-chanCloseComponents:
+	case <-time.After(maxTimeToClose):
+		log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
+	}
+
 	handleAppClose(log, sig)
 
 	return nil
@@ -1361,12 +1379,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 func closeAllComponents(
 	log logger.Logger,
+	healthService io.Closer,
 	dataComponents *mainFactory.DataComponents,
 	triesComponents *mainFactory.TriesComponents,
 	networkComponents *mainFactory.NetworkComponents,
+	chanCloseComponents chan struct{},
 ) {
+	log.Debug("closing health service...")
+	err := healthService.Close()
+	log.LogIfError(err)
+
 	log.Debug("closing all store units....")
-	err := dataComponents.Store.CloseAll()
+	err = dataComponents.Store.CloseAll()
 	log.LogIfError(err)
 
 	dataTries := triesComponents.TriesContainer.GetAll()
@@ -1383,6 +1407,8 @@ func closeAllComponents(
 	log.Debug("calling close on the network messenger instance...")
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
+
+	chanCloseComponents <- struct{}{}
 }
 
 func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
@@ -2321,12 +2347,7 @@ func createApiResolver(
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
-	whiteListCacheVerified, err := storageUnit.NewCache(
-		storageUnit.CacheType(generalConfig.WhiteListerVerifiedTxs.Type),
-		generalConfig.WhiteListerVerifiedTxs.Capacity,
-		generalConfig.WhiteListerVerifiedTxs.Shards,
-		generalConfig.WhiteListPool.SizeInBytes,
-	)
+	whiteListCacheVerified, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListerVerifiedTxs))
 	if err != nil {
 		return nil, err
 	}

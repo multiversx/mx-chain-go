@@ -34,6 +34,7 @@ import (
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -210,12 +211,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		importStartHandler:         args.ImportStartHandler,
 	}
 
-	whiteListCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(epochStartProvider.generalConfig.WhiteListPool.Type),
-		epochStartProvider.generalConfig.WhiteListPool.Capacity,
-		epochStartProvider.generalConfig.WhiteListPool.Shards,
-		epochStartProvider.generalConfig.WhiteListPool.SizeInBytes,
-	)
+	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
 	if err != nil {
 		return nil, err
 	}
@@ -282,16 +278,38 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		log.Warn("fast bootstrap is disabled")
 
 		e.initializeFromLocalStorage()
+		if !e.baseData.storageExists {
+			err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
+			if err != nil {
+				return Parameters{}, err
+			}
 
-		err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
+			return Parameters{
+				Epoch:       0,
+				SelfShardId: e.genesisShardCoordinator.SelfId(),
+				NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
+			}, nil
+		}
+
+		newShardId, shuffledOut, err := e.getShardIDForLatestEpoch()
 		if err != nil {
 			return Parameters{}, err
 		}
 
+		err = e.createTriesComponentsForShardId(newShardId)
+		if err != nil {
+			return Parameters{}, err
+		}
+
+		epochToStart := e.baseData.lastEpoch
+		if shuffledOut {
+			epochToStart = 0
+		}
+
 		return Parameters{
-			Epoch:       e.baseData.lastEpoch,
-			SelfShardId: e.genesisShardCoordinator.SelfId(),
-			NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
+			Epoch:       epochToStart,
+			SelfShardId: newShardId,
+			NumOfShards: e.baseData.numberOfShards,
 		}, nil
 	}
 

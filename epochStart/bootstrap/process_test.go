@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -164,6 +165,12 @@ func TestIsStartInEpochZero(t *testing.T) {
 func TestEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs()
 
+	err := errors.New("localErr")
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetCalled: func() (storage.LatestDataFromStorage, error) {
+			return storage.LatestDataFromStorage{}, err
+		},
+	}
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
 	params, err := epochStartProvider.Bootstrap()
@@ -180,7 +187,7 @@ func TestEpochStartBootstrap_Bootstrap(t *testing.T) {
 			return roundDuration
 		},
 	}
-	args.GeneralConfig = getGeneralConfig()
+	args.GeneralConfig = testscommon.GetGeneralConfig()
 	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
@@ -303,7 +310,7 @@ func TestSyncPeerAccountsState_NilRequestHandlerErr(t *testing.T) {
 
 func TestCreateTriesForNewShardID(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs()
-	args.GeneralConfig = getGeneralConfig()
+	args.GeneralConfig = testscommon.GetGeneralConfig()
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
 	err := epochStartProvider.createTriesComponentsForShardId(1)
