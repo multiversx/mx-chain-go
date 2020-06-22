@@ -428,9 +428,9 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
-	nodesPerShard := 1
-	numMetachainNodes := 1
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
@@ -476,28 +476,25 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
+	dnsRegisterValue := big.NewInt(100)
+	genesisSCs := nodes[0].SmartContractParser.InitialSmartContracts()
+	for _, genesisSC := range genesisSCs {
+		if genesisSC.GetType() == genesis.DNSType {
+			decodedValue, _ := hex.DecodeString(genesisSC.GetInitParameters())
+			dnsRegisterValue.SetBytes(decodedValue)
+		}
+	}
+
 	mapDNSAddresses, _ := nodes[0].SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
 	sortedDNSAddresses := make([]string, 0, len(mapDNSAddresses))
 	for address := range mapDNSAddresses {
 		sortedDNSAddresses = append(sortedDNSAddresses, address)
 	}
 	sort.Slice(sortedDNSAddresses, func(i, j int) bool {
-		return sortedDNSAddresses[i] > sortedDNSAddresses[j]
+		return sortedDNSAddresses[i][31] < sortedDNSAddresses[j][31]
 	})
 
-	dnsRegisterValue := big.NewInt(10)
-	gasLimit := uint64(100000)
-
-	_ = logger.SetLogLevel("*:TRACE")
-
-	integrationTests.PlayerSendsTransaction(
-		nodes,
-		players[0],
-		[]byte(sortedDNSAddresses[0]),
-		dnsRegisterValue,
-		"version",
-		gasLimit,
-	)
+	gasLimit := uint64(1000000)
 
 	userNames := make([]string, len(players))
 	for i, player := range players {
@@ -514,7 +511,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		userNames[i] = userName
 	}
 
-	nrRoundsToPropagateMultiShard := 2
+	nrRoundsToPropagateMultiShard := 10
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	for i, player := range players {
@@ -541,7 +538,7 @@ func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) 
 func generateNewUserName() string {
 	buff := make([]byte, 10)
 	_, _ = rand.Read(buff)
-	return string(buff)
+	return hex.EncodeToString(buff)
 }
 
 func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
