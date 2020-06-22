@@ -180,7 +180,7 @@ func TestEpochStartBootstrap_Bootstrap(t *testing.T) {
 			return roundDuration
 		},
 	}
-	args.GeneralConfig = getGeneralConfig()
+	args.GeneralConfig = testscommon.GetGeneralConfig()
 	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
@@ -303,7 +303,7 @@ func TestSyncPeerAccountsState_NilRequestHandlerErr(t *testing.T) {
 
 func TestCreateTriesForNewShardID(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs()
-	args.GeneralConfig = getGeneralConfig()
+	args.GeneralConfig = testscommon.GetGeneralConfig()
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
 	err := epochStartProvider.createTriesComponentsForShardId(1)

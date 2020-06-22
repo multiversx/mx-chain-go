@@ -34,6 +34,7 @@ import (
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -210,12 +211,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		importStartHandler:         args.ImportStartHandler,
 	}
 
-	whiteListCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(epochStartProvider.generalConfig.WhiteListPool.Type),
-		epochStartProvider.generalConfig.WhiteListPool.Capacity,
-		epochStartProvider.generalConfig.WhiteListPool.Shards,
-		epochStartProvider.generalConfig.WhiteListPool.SizeInBytes,
-	)
+	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
 	if err != nil {
 		return nil, err
 	}

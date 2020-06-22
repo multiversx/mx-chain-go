@@ -32,7 +32,7 @@ func createMockHeadersSyncHandlerArgs() ArgsNewHeadersSyncHandler {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1, 0)
+	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
 	return cache
 }
 
