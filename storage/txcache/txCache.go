@@ -30,7 +30,8 @@ type TxCache struct {
 
 // NewTxCache creates a new transaction cache
 func NewTxCache(config ConfigSourceMe) (*TxCache, error) {
-	log.Debug("NewTxCache", "config", config.String())
+	log.Info("NewTxCache", "config", config.String())
+	storage.MonitorNewCache(config.Name, uint64(config.NumBytesThreshold))
 
 	err := config.verify()
 	if err != nil {
@@ -151,7 +152,7 @@ func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
 
 func (cache *TxCache) doAfterSelection() {
 	cache.sweepSweepable()
-	cache.diagnose()
+	cache.Diagnose(false)
 }
 
 // RemoveTxByHash removes tx by hash
@@ -178,8 +179,8 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 }
 
 // NumBytes gets the approximate number of bytes stored in the cache
-func (cache *TxCache) NumBytes() uint64 {
-	return cache.txByHash.numBytes.GetUint64()
+func (cache *TxCache) NumBytes() int {
+	return int(cache.txByHash.numBytes.GetUint64())
 }
 
 // CountTx gets the number of transactions in the cache
