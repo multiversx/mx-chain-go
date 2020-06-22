@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +19,7 @@ func TestNewShardStorageHandler_ShouldWork(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := getGeneralConfig()
+	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -35,7 +36,7 @@ func TestShardStorageHandler_SaveDataToStorageShardDataNotFound(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := getGeneralConfig()
+	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -59,7 +60,7 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := getGeneralConfig()
+	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -90,7 +91,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := getGeneralConfig()
+	gCfg := testscommon.GetGeneralConfig()
 	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}

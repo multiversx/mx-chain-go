@@ -29,6 +29,7 @@
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
+        Name = "MiniBlocksStorage"
         Capacity = 300
         Type = "SizeLRU"
         SizeInBytes = 104857600 #100MB
@@ -41,6 +42,7 @@
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
+        Name = "PeerBlockBodyStorage"
         Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 104857600 #100MB
@@ -53,6 +55,7 @@
 
 [BlockHeaderStorage]
     [BlockHeaderStorage.Cache]
+        Name = "BlockHeaderStorage"
         Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 3145728 #3MB
@@ -65,6 +68,7 @@
 
 [BootstrapStorage]
     [BootstrapStorage.Cache]
+        Name = "BootstrapStorage"
         Capacity = 1000
         Type = "LRU"
     [BootstrapStorage.DB]
@@ -76,6 +80,7 @@
 
 [MetaBlockStorage]
     [MetaBlockStorage.Cache]
+        Name = "MetaBlockStorage"
         Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 20971520 #20MB
@@ -88,6 +93,7 @@
 
 [TxStorage]
     [TxStorage.Cache]
+        Name = "TxStorage"
         Capacity = 75000
         Type = "SizeLRU"
         SizeInBytes = 209715200 #200MB
@@ -100,6 +106,7 @@
 
 [TxLogsStorage]
     [TxLogsStorage.Cache]
+        Name = "TxLogsStorage"
         Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 20971520 #20MB
@@ -112,6 +119,7 @@
 
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
+        Name = "UnsignedTransactionStorage"
         Capacity = 75000
         Type = "SizeLRU"
         SizeInBytes = 104857600 #100MB
@@ -124,6 +132,7 @@
 
 [RewardTxStorage]
     [RewardTxStorage.Cache]
+        Name = "RewardTxStorage"
         Capacity = 75000
         Type = "SizeLRU"
         SizeInBytes = 52428800 #50MB
@@ -136,6 +145,7 @@
 
 [StatusMetricsStorage]
     [StatusMetricsStorage.Cache]
+        Name = "StatusMetricsStorage"
         Capacity = 1000
         Type = "LRU"
     [StatusMetricsStorage.DB]
@@ -147,6 +157,7 @@
 
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
+        Name = "ShardHdrNonceHashStorage"
         Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 3145728 #3MB
@@ -159,6 +170,7 @@
 
 [MetaHdrNonceHashStorage]
     [MetaHdrNonceHashStorage.Cache]
+        Name = "MetaHdrNonceHashStorage"
         Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 3145728 #3MB
@@ -171,6 +183,7 @@
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
+        Name = "AccountsTrieStorage"
         Capacity = 75000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
@@ -204,6 +217,7 @@
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
+        Name = "PeerAccountsTrieStorage"
         Capacity = 5000
         Type = "SizeLRU"
         SizeInBytes = 104857600 #100MB
@@ -219,21 +233,25 @@
     NumElementsToRemoveOnEviction = 200
 
 [BadBlocksCache]
+    Name = "BadBlocksCache"
     Capacity = 1000
     Type = "SizeLRU"
     SizeInBytes = 3145728 #3MB
 
 [TxBlockBodyDataPool]
+    Name = "TxBlockBodyDataPool"
     Capacity = 300
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
 
 [PeerBlockBodyDataPool]
+    Name = "PeerBlockBodyDataPool"
     Capacity = 1000
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
 
 [TxDataPool]
+    Name = "TxDataPool"
     Capacity = 600000
     SizePerSender = 20000
     SizeInBytes = 419430400 #400MB
@@ -242,43 +260,51 @@
     Shards = 16
 
 [TrieNodesDataPool]
+    Name = "TrieNodesDataPool"
     Capacity = 900000
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
 
 [WhiteListPool]
+    Name = "WhiteListPool"
     Capacity = 100000
     Type = "FIFOSharded"
     Shards = 10
 
 [WhiteListerVerifiedTxs]
+    Name = "WhiteListerVerifiedTxs"
     Capacity = 50000
     Type = "FIFOSharded"
     Shards = 50
 
 [UnsignedTransactionDataPool]
+    Name = "UnsignedTransactionDataPool"
     Capacity = 75000        # per each pair (sourceShard, destinationShard)
     SizeInBytes = 31457280  # 30MB per each pair (sourceShard, destinationShard)
     Shards = 4
 
 [RewardTransactionDataPool]
+    Name = "RewardTransactionDataPool"
     Capacity = 75000        # per each pair (metachain, destinationShard)
     SizeInBytes = 26214400  # 25MB per each pair (metachain, destinationShard)
     Shards = 4
 
 #PublicKeyPeerId represents the main cache used to map Elrond block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
+    Name = "PublicKeyPeerId"
     Capacity = 30000
     Type = "LRU"
 
 #PublicKeyShardId is the fallback cache used to map public keys to the shard they belong.
 [PublicKeyShardId]
+    Name = "PublicKeyShardId"
     Capacity = 30000
     Type = "LRU"
 
 #PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
 # Used mainly for observers.
 [PeerIdShardId]
+    Name = "PeerIdShardId"
     Capacity = 30000
     Type = "LRU"
 
@@ -335,6 +361,7 @@
         TotalSizePerInterval     = 2097152 #2MB/s
 
     [Antiflood.Cache]
+        Name = "Antiflood"
         Capacity = 7000
         Type = "LRU"
     [Antiflood.Topic]
@@ -427,14 +454,15 @@
    DurationToConsiderUnresponsiveInSec  = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
-           Capacity = 1000
-           Type = "LRU"
+            Name = "HeartbeatStorage"
+            Capacity = 1000
+            Type = "LRU"
        [Heartbeat.HeartbeatStorage.DB]
-           FilePath = "HeartbeatStorage"
-           Type = "LvlDBSerial"
-           BatchDelaySeconds = 5
-           MaxBatchSize = 100
-           MaxOpenFiles = 10
+            FilePath = "HeartbeatStorage"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 5
+            MaxBatchSize = 100
+            MaxOpenFiles = 10
 
 [ValidatorStatistics]
     CacheRefreshIntervalInSec = 60
@@ -487,6 +515,7 @@
 	ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
 	[Hardfork.ExportStateStorageConfig]
 	    [Hardfork.ExportStateStorageConfig.Cache]
+            Name = "HardFork.ExportStateStorageConfig"
             Capacity = 5000
             Type = "LRU"
         [Hardfork.ExportStateStorageConfig.DB]
@@ -497,6 +526,7 @@
             MaxOpenFiles = 10
     [Hardfork.ExportTriesStorageConfig]
         [Hardfork.ExportTriesStorageConfig.Cache]
+            Name = "HardFork.ExportTriesStorageConfig"
             Capacity = 5000
             Type = "LRU"
         [Hardfork.ExportTriesStorageConfig.DB]
@@ -507,6 +537,7 @@
             MaxOpenFiles = 10
 	[Hardfork.ImportStateStorageConfig]
 	    [Hardfork.ImportStateStorageConfig.Cache]
+            Name = "HardFork.ImportStateStorageConfig"
             Capacity = 5000
             Type = "LRU"
         [Hardfork.ImportStateStorageConfig.DB]
@@ -529,6 +560,14 @@
         Enabled = true
         CacheSize = 10000
         IntervalAutoPrintInSeconds = 20
+
+[Health]
+    IntervalVerifyMemoryInSeconds = 1
+    IntervalDiagnoseComponentsInSeconds = 10
+    IntervalDiagnoseComponentsDeeplyInSeconds = 30
+    MemoryUsageToCreateProfiles = 2147483648 # 2GB
+    NumMemoryUsageRecordsToKeep = 100
+    FolderPath = "health-records"
 
 [SoftwareVersionConfig]
     StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"

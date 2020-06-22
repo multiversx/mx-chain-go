@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestShardedCounts(t *testing.T) {
-	counts := NewShardedCounts()
+func TestConcurrentShardedCounts(t *testing.T) {
+	counts := NewConcurrentShardedCounts()
 	counts.PutCounts("foo", 42)
 	counts.PutCounts("bar", 43)
 
@@ -17,11 +17,11 @@ func TestShardedCounts(t *testing.T) {
 	asString := counts.String()
 
 	require.Equal(t, int64(85), total)
-	require.True(t, asString == "Total:85; [foo]=42; [bar]=43; " || asString == "Total:85; [bar]=43; [foo]=42; ")
+	require.Equal(t, "Total:85; [bar]=43; [foo]=42; ", asString)
 }
 
-func TestShardedCounts_ConcurrentReadsAndWrites(t *testing.T) {
-	counts := NewShardedCounts()
+func TestConcurrentShardedCounts_ConcurrentReadsAndWrites(t *testing.T) {
+	counts := NewConcurrentShardedCounts()
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -49,13 +49,13 @@ func TestShardedCounts_ConcurrentReadsAndWrites(t *testing.T) {
 	asString := counts.String()
 
 	require.Equal(t, int64(85), total)
-	require.True(t, asString == "Total:85; [foo]=42; [bar]=43; " || asString == "Total:85; [bar]=43; [foo]=42; ")
+	require.Equal(t, "Total:85; [bar]=43; [foo]=42; ", asString)
 }
 
-func TestShardedCounts_IsInterfaceNil(t *testing.T) {
-	counts := NewShardedCounts()
+func TestConcurrentShardedCounts_IsInterfaceNil(t *testing.T) {
+	counts := NewConcurrentShardedCounts()
 	require.False(t, counts.IsInterfaceNil())
 
-	thisIsNil := (*ShardedCounts)(nil)
+	thisIsNil := (*ConcurrentShardedCounts)(nil)
 	require.True(t, thisIsNil.IsInterfaceNil())
 }

@@ -21,6 +21,7 @@ type ImmunityCache struct {
 // NewImmunityCache creates a new cache
 func NewImmunityCache(config CacheConfig) (*ImmunityCache, error) {
 	log.Debug("NewImmunityCache", "config", config.String())
+	storage.MonitorNewCache(config.Name, uint64(config.MaxNumBytes))
 
 	err := config.Verify()
 	if err != nil {
@@ -239,6 +240,19 @@ func (ic *ImmunityCache) ForEachItem(function storage.ForEachItem) {
 	for _, chunk := range ic.getChunksWithLock() {
 		chunk.ForEachItem(function)
 	}
+}
+
+// Diagnose displays a summary of the internal state of the cache
+func (ic *ImmunityCache) Diagnose(_ bool) {
+	count := ic.Count()
+	countImmune := ic.CountImmune()
+	numBytes := ic.NumBytes()
+	log.Debug("ImmunityCache.Diagnose()",
+		"name", ic.config.Name,
+		"count", count,
+		"countImmune", countImmune,
+		"numBytes", numBytes,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

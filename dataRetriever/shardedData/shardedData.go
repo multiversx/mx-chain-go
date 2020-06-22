@@ -257,17 +257,30 @@ func (sd *shardedData) RegisterHandler(handler func(key []byte, value interface{
 }
 
 // GetCounts returns the total number of transactions in the pool
-func (sd *shardedData) GetCounts() counting.Counts {
+func (sd *shardedData) GetCounts() counting.CountsWithSize {
 	sd.mutShardedDataStore.RLock()
 	defer sd.mutShardedDataStore.RUnlock()
 
-	counts := counting.NewShardedCounts()
+	counts := counting.NewConcurrentShardedCountsWithSize()
 
 	for cacheID, shard := range sd.shardedDataStore {
-		counts.PutCounts(cacheID, int64(shard.cache.Len()))
+		cache := shard.cache
+		counts.PutCounts(cacheID, int64(cache.Len()), int64(cache.NumBytes()))
 	}
 
 	return counts
+}
+
+// Diagnose diagnoses the internal caches
+func (sd *shardedData) Diagnose(deep bool) {
+	log.Debug("shardedData.Diagnose()", "counts", sd.GetCounts().String())
+
+	sd.mutShardedDataStore.RLock()
+	defer sd.mutShardedDataStore.RUnlock()
+
+	for _, shard := range sd.shardedDataStore {
+		shard.cache.Diagnose(deep)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
