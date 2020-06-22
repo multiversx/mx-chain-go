@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var currentPid = core.PeerID("pid")
+
 func TestGetConsensusCoreFactory_InvalidTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -46,6 +48,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		statusHandler,
 		indexer,
 		chainID,
+		currentPid,
 	)
 
 	assert.Nil(t, sf)
@@ -68,6 +71,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		nil,
 		indexer,
 		chainID,
+		currentPid,
 	)
 
 	assert.Nil(t, sf)
@@ -91,6 +95,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		statusHandler,
 		indexer,
 		chainID,
+		currentPid,
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sf))
@@ -108,6 +113,7 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 
 	assert.Nil(t, sf)
