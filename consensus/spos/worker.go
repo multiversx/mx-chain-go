@@ -390,16 +390,11 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 }
 
 func (wrk *Worker) shouldBlacklistPeer(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	if errors.Is(err, ErrMessageForPastRound) || errors.Is(err, ErrMessageForFutureRound) {
-		return false
-	}
-
-	isNodeSynced := wrk.bootstrapper.GetNodeState() == core.NsSynchronized
-	if errors.Is(err, ErrNodeIsNotInEligibleList) && !isNodeSynced {
+	if err == nil ||
+		errors.Is(err, ErrMessageForPastRound) ||
+		errors.Is(err, ErrMessageForFutureRound) ||
+		errors.Is(err, ErrNodeIsNotInEligibleList) ||
+		errors.Is(err, sharding.ErrEpochNodesConfigDoesNotExist) {
 		return false
 	}
 
