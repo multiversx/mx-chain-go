@@ -50,6 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -1201,6 +1202,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
+
+	//TODO: This should be set with a real instance which implements PeerHonestyHandler interface
+	peerHonestyHandler := &mock.PeerHonestyHandlerStub{}
+
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		generalConfig,
@@ -1228,6 +1233,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		hardForkTrigger,
+		peerHonestyHandler,
 	)
 	if err != nil {
 		return err
@@ -1993,6 +1999,7 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
+	peerHonestyHandler consensus.PeerHonestyHandler,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2088,6 +2095,7 @@ func createNode(
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
 		node.WithApiTransactionByHashThrottler(apiTxsByHashThrottler),
+		node.WithPeerHonestyHandler(peerHonestyHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

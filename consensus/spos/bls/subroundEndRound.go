@@ -81,21 +81,26 @@ func checkNewSubroundEndRoundParams(
 
 // receivedBlockHeaderFinalInfo method is called when a block header final info is received
 func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
-	if sr.IsSelfLeaderInCurrentRound() {
-		return false
-	}
-
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {
 		return false
 	}
 
-	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		sr.PeerHonestyHandler().Decrease(
+			node,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.LeaderPeerHonestyDecreaseFactor)
+
 		return false
 	}
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	if sr.IsSelfLeaderInCurrentRound() {
+		return false
+	}
+
+	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
 		return false
 	}
 
@@ -107,6 +112,11 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 		"PubKeysBitmap", cnsDta.PubKeysBitmap,
 		"AggregateSignature", cnsDta.AggregateSignature,
 		"LeaderSignature", cnsDta.LeaderSignature)
+
+	sr.PeerHonestyHandler().Increase(
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.LeaderPeerHonestyIncreaseFactor)
 
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }

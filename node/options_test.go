@@ -1308,3 +1308,27 @@ func TestWithNodeStopChannel_OkNodeStopChannelShouldWork(t *testing.T) {
 	assert.True(t, node.chanStopNodeProcess == ch)
 	assert.Nil(t, err)
 }
+
+func TestWithPeerHonestyHandler_NilPeerHonestyHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithPeerHonestyHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilPeerHonestyHandler, err)
+}
+
+func TestWithPeerHonestyHandler_OkPeerHonestyHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	peerHonestyHandler := &mock.PeerHonestyHandlerStub{}
+	opt := WithPeerHonestyHandler(peerHonestyHandler)
+	err := opt(node)
+
+	assert.Equal(t, peerHonestyHandler, node.peerHonestyHandler)
+	assert.Nil(t, err)
+}

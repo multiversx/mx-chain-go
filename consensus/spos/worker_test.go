@@ -1549,3 +1549,19 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidHeader))
 }
+
+func TestWorker_TestIsError(t *testing.T) {
+	var err error
+
+	err = fmt.Errorf("%w : received message from consensus topic has a past round", spos.ErrMessageForPastRound)
+	shouldBlacklistPeer := err != nil && !errors.Is(err, spos.ErrMessageForPastRound)
+	assert.False(t, shouldBlacklistPeer)
+
+	err = nil
+	shouldBlacklistPeer = err != nil && !errors.Is(err, spos.ErrMessageForPastRound)
+	assert.False(t, shouldBlacklistPeer)
+
+	err = nil
+	shouldBlacklistPeer = !errors.Is(err, spos.ErrMessageForPastRound)
+	assert.True(t, shouldBlacklistPeer)
+}

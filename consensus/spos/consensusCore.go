@@ -31,6 +31,7 @@ type ConsensusCore struct {
 	syncTimer                     ntp.SyncTimer
 	epochStartRegistrationHandler epochStart.RegistrationHandler
 	antifloodHandler              consensus.P2PAntifloodHandler
+	peerHonestyHandler            consensus.PeerHonestyHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -51,6 +52,7 @@ type ConsensusCoreArgs struct {
 	SyncTimer                     ntp.SyncTimer
 	EpochStartRegistrationHandler epochStart.RegistrationHandler
 	AntifloodHandler              consensus.P2PAntifloodHandler
+	PeerHonestyHandler            consensus.PeerHonestyHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -74,6 +76,7 @@ func NewConsensusCore(
 		syncTimer:                     args.SyncTimer,
 		epochStartRegistrationHandler: args.EpochStartRegistrationHandler,
 		antifloodHandler:              args.AntifloodHandler,
+		peerHonestyHandler:            args.PeerHonestyHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -162,6 +165,11 @@ func (cc *ConsensusCore) PrivateKey() crypto.PrivateKey {
 // SingleSigner returns the bls single signer stored in the ConsensusStore
 func (cc *ConsensusCore) SingleSigner() crypto.SingleSigner {
 	return cc.blsSingleSigner
+}
+
+// PeerHonestyHandler will return the peer honesty handler which will be used in subrounds
+func (cc *ConsensusCore) PeerHonestyHandler() consensus.PeerHonestyHandler {
+	return cc.peerHonestyHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
