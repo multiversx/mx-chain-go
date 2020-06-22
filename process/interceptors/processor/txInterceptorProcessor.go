@@ -44,7 +44,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 }
 
 // Save will save the received data into the cacher
-func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID) error {
+func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
 	interceptedTx, ok := data.(InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -59,6 +59,11 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 	)
 
 	return nil
+}
+
+// RegisterHandler registers a callback function to be notified of incoming transactions
+func (txip *TxInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
+	log.Error("txInterceptorProcessor.RegisterHandler", "error", "not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

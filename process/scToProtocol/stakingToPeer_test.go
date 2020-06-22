@@ -575,7 +575,7 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		UnStakedEpoch: 0,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
 		RewardAddress: []byte("rwd"),
 		StakeValue:    big.NewInt(0),
 		JailedRound:   0,

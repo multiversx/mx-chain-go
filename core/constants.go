@@ -437,14 +437,21 @@ const MaxSoftwareVersionLengthInBytes = 10
 
 // ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
 // moment when its components, like mini blocks and transactions, would be broadcast too
-const ExtraDelayForBroadcastBlockInfo = 2 * time.Second
+const ExtraDelayForBroadcastBlockInfo = 1 * time.Second
 
 // ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
 // moment when its components, like mini blocks and transactions, would be requested too if they are still missing
-const ExtraDelayForRequestBlockInfo = 4 * time.Second
+const ExtraDelayForRequestBlockInfo = 2 * time.Second
 
-// CommitMaxTime represents max time accepted for a put/commit action, after which a warn message is displayed
-const CommitMaxTime = time.Second
+// CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
+const CommitMaxTime = 3 * time.Second
+
+// PutInStorerMaxTime represents max time accepted for a put action, after which a warn message is displayed
+const PutInStorerMaxTime = time.Second
 
 // DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
 const DefaultUnstakedEpoch = math.MaxUint32
+
+// InvalidMessageBlacklistDuration represents the time to keep a peer in the black list if it sends a message that
+// does not follow the protocol: example not useing the same marshaler as the other peers
+const InvalidMessageBlacklistDuration = time.Second * 3600

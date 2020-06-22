@@ -94,6 +94,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.StatusHandler) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilStatusHandler)
 	}
+	if check.IfNil(args.ImportStartHandler) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilImportStartHandler)
+	}
 
 	return nil
 }

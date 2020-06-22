@@ -181,7 +181,7 @@ func TestEpochStartMetaBlockProcessor_SaveNilInterceptedDataShouldNotReturnError
 		3,
 	)
 
-	err := esmbp.Save(nil, "peer0")
+	err := esmbp.Save(nil, "peer0", "")
 	assert.NoError(t, err)
 }
 
@@ -204,7 +204,7 @@ func TestEpochStartMetaBlockProcessor_SaveOkInterceptedDataShouldWork(t *testing
 		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
 	}
 	intData := mock.NewInterceptedMetaBlockMock(mb, []byte("hash"))
-	err := esmbp.Save(intData, "peer0")
+	err := esmbp.Save(intData, "peer0", "")
 	assert.NoError(t, err)
 
 	assert.Equal(t, 1, len(esmbp.GetMapMetaBlock()))
@@ -258,7 +258,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
 
 	for i := 0; i < esmbp.minNumOfPeersToConsiderBlockValid; i++ {
-		_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)))
+		_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -292,7 +292,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
 
 	for i := 0; i < 6; i++ {
-		_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)))
+		_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -337,8 +337,8 @@ func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tt
 		index := 0
 		for {
 			time.Sleep(tts)
-			_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index)))
-			_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index+1)))
+			_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index)), "")
+			_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index+1)), "")
 			index += 2
 		}
 	}()

@@ -5,7 +5,7 @@ type Cacher struct {
 }
 
 // HasOrAdd does nothing and returns (false, false)
-func (c *Cacher) HasOrAdd(_ []byte, _ interface{}, _ int) (ok, evicted bool) {
+func (c *Cacher) HasOrAdd(_ []byte, _ interface{}, _ int) (has, added bool) {
 	return false, false
 }
 

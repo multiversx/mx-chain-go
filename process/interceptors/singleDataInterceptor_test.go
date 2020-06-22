@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
@@ -178,6 +179,9 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
+	originatorPid := core.PeerID("originator")
+	originatorBlackListed := false
+	fromConnectedPeerBlackListed := false
 	sdi, _ := interceptors.NewSingleDataInterceptor(
 		testTopic,
 		&mock.InterceptedDataFactoryStub{
@@ -191,16 +195,28 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 				return true
 			},
 		},
-		&mock.P2PAntifloodHandlerStub{},
+		&mock.P2PAntifloodHandlerStub{
+			BlacklistPeerCalled: func(peer core.PeerID, reason string, duration time.Duration) {
+				if peer == originatorPid {
+					originatorBlackListed = true
+				}
+				if peer == fromConnectedPeerId {
+					fromConnectedPeerBlackListed = true
+				}
+			},
+		},
 		&mock.WhiteListHandlerStub{},
 	)
 
 	msg := &mock.P2PMessageMock{
 		DataField: []byte("data to be processed"),
+		PeerField: originatorPid,
 	}
 	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
 
 	assert.Equal(t, errExpected, err)
+	assert.True(t, originatorBlackListed)
+	assert.True(t, fromConnectedPeerBlackListed)
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProcess(t *testing.T) {

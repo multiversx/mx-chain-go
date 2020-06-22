@@ -115,6 +115,9 @@ func TestChronology_StartRoundShouldReturnWhenRoundIndexIsNegative(t *testing.T)
 	rounderMock.IndexCalled = func() int64 {
 		return -1
 	}
+	rounderMock.BeforeGenesisCalled = func() bool {
+		return true
+	}
 	syncTimerMock := &mock.SyncTimerMock{}
 	genesisTime := time.Now()
 	chr, _ := chronology.NewChronology(
@@ -253,6 +256,9 @@ func TestChronology_InitRoundShouldNotSetSubroundWhenRoundIndexIsNegative(t *tes
 	chr.AddSubround(initSubroundHandlerMock())
 	rounderMock.IndexCalled = func() int64 {
 		return -1
+	}
+	rounderMock.BeforeGenesisCalled = func() bool {
+		return true
 	}
 	chr.InitRound()
 

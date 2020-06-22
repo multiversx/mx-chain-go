@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/require"
@@ -17,7 +18,7 @@ import (
 func createMockArgsPendingMiniBlock() ArgsNewPendingMiniBlocksSyncer {
 	return ArgsNewPendingMiniBlocksSyncer{
 		Storage: &mock.StorerStub{},
-		Cache: &mock.CacherStub{
+		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
@@ -88,7 +89,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 	mb := &block.MiniBlock{}
 	args := ArgsNewPendingMiniBlocksSyncer{
 		Storage: &mock.StorerStub{},
-		Cache: &mock.CacherStub{
+		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				miniBlockInPool = true
@@ -142,7 +143,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 				return nil, localErr
 			},
 		},
-		Cache: &mock.CacherStub{
+		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
@@ -191,7 +192,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 				return nil, localErr
 			},
 		},
-		Cache:          mock.NewCacherMock(),
+		Cache:          testscommon.NewCacherMock(),
 		Marshalizer:    &mock.MarshalizerFake{},
 		RequestHandler: &mock.RequestHandlerStub{},
 	}
@@ -239,7 +240,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) 
 				return mbBytes, nil
 			},
 		},
-		Cache: &mock.CacherStub{
+		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(_ func(_ []byte, _ interface{})) {},
 			PeekCalled: func(key []byte) (interface{}, bool) {
 				return nil, false
@@ -293,7 +294,7 @@ func TestSyncPendingMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 				return nil, localErr
 			},
 		},
-		Cache: &mock.CacherStub{
+		Cache: &testscommon.CacherStub{
 			RegisterHandlerCalled: func(_ func(_ []byte, _ interface{})) {},
 			PeekCalled: func(key []byte) (interface{}, bool) {
 				return nil, false

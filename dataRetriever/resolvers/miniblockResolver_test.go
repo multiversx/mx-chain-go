@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +23,7 @@ var fromConnectedPeerId = core.PeerID("from connected peer Id")
 func createMockArgMiniblockResolver() resolvers.ArgMiniblockResolver {
 	return resolvers.ArgMiniblockResolver{
 		SenderResolver:   &mock.TopicResolverSenderStub{},
-		MiniBlockPool:    &mock.CacherStub{},
+		MiniBlockPool:    testscommon.NewCacherStub(),
 		MiniBlockStorage: &mock.StorerStub{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{},
@@ -199,7 +200,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(
 	wasResolved := false
 	wasSent := false
 
-	cache := &mock.CacherStub{}
+	cache := testscommon.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(key, mbHash) {
 			wasResolved = true
@@ -257,7 +258,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShoul
 
 	assert.Nil(t, merr)
 
-	cache := &mock.CacherStub{}
+	cache := testscommon.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(key, mbHash) {
 			return &block.MiniBlock{}, true
@@ -300,7 +301,7 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 	wasResolved := false
 	wasSend := false
 
-	cache := &mock.CacherStub{}
+	cache := testscommon.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}
@@ -346,7 +347,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 
 	wasSent := false
 
-	cache := &mock.CacherStub{}
+	cache := testscommon.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}

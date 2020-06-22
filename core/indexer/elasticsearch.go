@@ -117,9 +117,9 @@ func (ei *elasticIndexer) SaveBlock(
 	}
 }
 
-// SaveRoundInfo will save data about a round on elastic search
-func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
-	ei.database.SaveRoundInfo(roundInfo)
+// SaveRoundsInfos will save data about a slice of rounds on elasticsearch
+func (ei *elasticIndexer) SaveRoundsInfos(roundsInfos []RoundInfo) {
+	ei.database.SaveRoundsInfos(roundsInfos)
 }
 
 func (ei *elasticIndexer) epochStartEventHandler() epochStart.ActionHandler {
