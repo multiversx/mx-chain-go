@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// ArgDeployProcessor is the argument used to create a deployLibrarySC instance
+// ArgDeployLibrarySC is the argument used to create a deployLibrarySC instance
 type ArgDeployLibrarySC struct {
 	Executor         genesis.TxExecutionProcessor
 	PubkeyConv       core.PubkeyConverter
@@ -58,10 +58,10 @@ func NewDeployLibrarySC(arg ArgDeployLibrarySC) (*deployLibrarySC, error) {
 	return dp, nil
 }
 
+// GenerateInitialPublicKeys will create public keys for given shard or for all shards in case of deployment to core.MaxNumShards
 func GenerateInitialPublicKeys(
 	baseAddress []byte,
-	shardCoordinator sharding.Coordinator,
-	allShards bool,
+	isForCurrentShard func(address []byte) bool,
 ) [][]byte {
 	addressLen := len(baseAddress)
 
@@ -71,8 +71,7 @@ func GenerateInitialPublicKeys(
 		shardInBytes := []byte{0, i}
 		tmpAddress := string(baseAddress[:(addressLen-core.ShardIdentiferLen)]) + string(shardInBytes)
 
-		newShardID := shardCoordinator.ComputeId([]byte(tmpAddress))
-		if allShards || newShardID == shardCoordinator.SelfId() {
+		if isForCurrentShard([]byte(tmpAddress)) {
 			newAddresses = append(newAddresses, []byte(tmpAddress))
 		}
 	}
@@ -80,8 +79,7 @@ func GenerateInitialPublicKeys(
 	shardInBytes := []byte{0, i}
 	tmpAddress := string(baseAddress[:(addressLen-core.ShardIdentiferLen)]) + string(shardInBytes)
 
-	newShardID := shardCoordinator.ComputeId([]byte(tmpAddress))
-	if allShards || newShardID == shardCoordinator.SelfId() {
+	if isForCurrentShard([]byte(tmpAddress)) {
 		newAddresses = append(newAddresses, []byte(tmpAddress))
 	}
 
@@ -95,8 +93,12 @@ func (dp *deployLibrarySC) Deploy(sc genesis.InitialSmartContractHandler) error 
 		return err
 	}
 
+	isForCurrentShard := func(address []byte) bool {
+		return dp.shardCoordinator.SelfId() == dp.shardCoordinator.ComputeId(address)
+	}
+
 	resultingScAddresses := make([][]byte, 0)
-	newAddresses := GenerateInitialPublicKeys(genesis.InitialDNSAddress, dp.shardCoordinator, false)
+	newAddresses := GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
 	for _, newAddress := range newAddresses {
 		scAddress, err := dp.deployForOneAddress(sc, newAddress, code, sc.GetInitParameters())
 		if err != nil {
@@ -129,7 +131,7 @@ func (dp *deployLibrarySC) changeOwnerAddress(
 		return err
 	}
 
-	account, ok := dp.AccountExists(scAddress)
+	account, ok := dp.GetAccount(scAddress)
 	if !ok {
 		return genesis.ErrChangeOwnerAddressFailed
 	}

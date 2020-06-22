@@ -1,6 +1,7 @@
 package genesis
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -14,7 +15,7 @@ const DelegationType = "delegation"
 const DNSType = "dns"
 
 // InitialDNSAddress defines the initial address from where the DNS contracts are deployed
-var InitialDNSAddress = []byte{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+var InitialDNSAddress = bytes.Repeat([]byte{1}, 32)
 
 // DelegationResult represents the DTO that contains the delegation results metrics
 type DelegationResult struct {
@@ -87,7 +88,7 @@ type InitialSmartContractParser interface {
 // TxExecutionProcessor represents a transaction builder and executor containing also related helper functions
 type TxExecutionProcessor interface {
 	ExecuteTransaction(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error
-	AccountExists(address []byte) (state.UserAccountHandler, bool)
+	GetAccount(address []byte) (state.UserAccountHandler, bool)
 	GetNonce(senderBytes []byte) (uint64, error)
 	AddBalance(senderBytes []byte, value *big.Int) error
 	AddNonce(senderBytes []byte, nonce uint64) error

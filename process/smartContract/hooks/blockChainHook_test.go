@@ -124,7 +124,7 @@ func TestNewBlockChainHookImpl_ShouldWork(t *testing.T) {
 	assert.False(t, bh.IsInterfaceNil())
 }
 
-//------- AccountExists
+//------- GetAccount
 
 func TestBlockChainHookImpl_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T) {
 	t.Parallel()

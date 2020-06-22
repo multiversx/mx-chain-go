@@ -1,0 +1,17 @@
+[
+  {
+    "owner": "erd16grmckn46ry7fwyvass8e8pz88klazzpc0c5f0pnrv643td4797sgnvjkm",
+    "filename": "testdata/answer.wasm",
+    "vm-type": "0500",
+    "init-parameters": "",
+    "type": "dns"
+  },
+  {
+    "owner": "erd16grmckn46ry7fwyvass8e8pz88klazzpc0c5f0pnrv643td4797sgnvjkm",
+    "filename": "testdata/delegation.wasm",
+    "vm-type": "0500",
+    "init-parameters": "0BB8@%auction_sc_address%@0A61D0",
+    "type": "delegation",
+    "version": "0.2.*"
+  }
+]

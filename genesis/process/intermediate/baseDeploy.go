@@ -59,7 +59,7 @@ func (dp *baseDeploy) deployForOneAddress(
 		"init params", initParams,
 	)
 
-	_, accountExists := dp.AccountExists(scResultingAddressBytes)
+	_, accountExists := dp.GetAccount(scResultingAddressBytes)
 	if accountExists {
 		return nil, fmt.Errorf("%w for SC ownerAddress %s, owner %s with nonce %d",
 			genesis.ErrAccountAlreadyExists,
@@ -80,7 +80,7 @@ func (dp *baseDeploy) deployForOneAddress(
 		return nil, err
 	}
 
-	_, accountExists = dp.AccountExists(scResultingAddressBytes)
+	_, accountExists = dp.GetAccount(scResultingAddressBytes)
 	if !accountExists {
 		return nil, fmt.Errorf("%w for SC ownerAddress %s, owner %s with nonce %d",
 			genesis.ErrAccountNotCreated,

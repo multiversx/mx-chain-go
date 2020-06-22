@@ -67,8 +67,8 @@ func (tep *txExecutionProcessor) GetNonce(senderBytes []byte) (uint64, error) {
 	return accnt.GetNonce(), nil
 }
 
-// AccountExists returns if an account exists in the accounts DB
-func (tep *txExecutionProcessor) AccountExists(address []byte) (state.UserAccountHandler, bool) {
+// GetAccount returns if an account exists in the accounts DB
+func (tep *txExecutionProcessor) GetAccount(address []byte) (state.UserAccountHandler, bool) {
 	account, err := tep.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, false

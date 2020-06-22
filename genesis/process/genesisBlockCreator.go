@@ -24,6 +24,8 @@ import (
 	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
+const accountStartNonce = uint64(0)
+
 type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error)
 
 type genesisBlockCreator struct {
@@ -235,7 +237,7 @@ func (gbc *genesisBlockCreator) computeDNSAddressesIfHardFork() error {
 		}
 	}
 
-	if check.IfNil(dnsSC) {
+	if dnsSC == nil || check.IfNil(dnsSC) {
 		return nil
 	}
 
@@ -255,9 +257,12 @@ func (gbc *genesisBlockCreator) computeDNSAddressesIfHardFork() error {
 		return err
 	}
 
-	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, gbc.arg.ShardCoordinator, true)
+	isForCurrentShard := func([]byte) bool {
+		return true
+	}
+	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
 	for _, address := range initialAddresses {
-		scResultingAddress, err := blockChainHook.NewAddress(address, 0, dnsSC.VmTypeBytes())
+		scResultingAddress, err := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
 		if err != nil {
 			return err
 		}

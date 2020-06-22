@@ -9,7 +9,7 @@
   },
   {
     "owner": "erd16grmckn46ry7fwyvass8e8pz88klazzpc0c5f0pnrv643td4797sgnvjkm",
-    "filename": "./config/genesisContracts/answer.wasm",
+    "filename": "./config/genesisContracts/dns.wasm",
     "vm-type": "0500",
     "init-parameters": "",
     "type": "dns",

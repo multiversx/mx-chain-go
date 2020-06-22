@@ -2,11 +2,13 @@ package smartContract
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -417,6 +421,127 @@ func TestSCCallingInCrossShard(t *testing.T) {
 			assert.Equal(t, uint64(len(nodes)), numCalled.Uint64(), fmt.Sprintf("Node %d, Shard %d", index, shId))
 		}
 	}
+}
+
+func TestSCCallingDNSUserNames(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	genesisFile := "testdata/smartcontracts.json"
+	nodes := integrationTests.CreateNodesWithFullGenesis(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+		genesisFile,
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	numPlayers := 10
+	players := make([]*integrationTests.TestWalletAccount, numPlayers)
+	for i := 0; i < numPlayers; i++ {
+		players[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
+	}
+
+	initialVal := big.NewInt(10000000000000)
+	initialVal.Mul(initialVal, initialVal)
+	fmt.Printf("Initial minted sum: %s\n", initialVal.String())
+	integrationTests.MintAllNodes(nodes, initialVal)
+	integrationTests.MintAllPlayers(nodes, players, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	mapDNSAddresses, _ := nodes[0].SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+	sortedDNSAddresses := make([]string, 0, len(mapDNSAddresses))
+	for address := range mapDNSAddresses {
+		sortedDNSAddresses = append(sortedDNSAddresses, address)
+	}
+	sort.Slice(sortedDNSAddresses, func(i, j int) bool {
+		return sortedDNSAddresses[i] > sortedDNSAddresses[j]
+	})
+
+	dnsRegisterValue := big.NewInt(10)
+	gasLimit := uint64(100000)
+
+	_ = logger.SetLogLevel("*:TRACE")
+
+	integrationTests.PlayerSendsTransaction(
+		nodes,
+		players[0],
+		[]byte(sortedDNSAddresses[0]),
+		dnsRegisterValue,
+		"version",
+		gasLimit,
+	)
+
+	userNames := make([]string, len(players))
+	for i, player := range players {
+		userName := generateNewUserName()
+		scAddress := selectDNSAddressFromUserName(sortedDNSAddresses, userName)
+		integrationTests.PlayerSendsTransaction(
+			nodes,
+			player,
+			[]byte(scAddress),
+			dnsRegisterValue,
+			"register@"+hex.EncodeToString([]byte(userName)),
+			gasLimit,
+		)
+		userNames[i] = userName
+	}
+
+	nrRoundsToPropagateMultiShard := 2
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+
+	for i, player := range players {
+		playerShID := nodes[0].ShardCoordinator.ComputeId(player.Address)
+		for _, node := range nodes {
+			if node.ShardCoordinator.SelfId() != playerShID {
+				continue
+			}
+
+			acnt, _ := node.AccntState.GetExistingAccount(player.Address)
+			userAcc, _ := acnt.(state.UserAccountHandler)
+
+			hashedUserName := keccak.Keccak{}.Compute(userNames[i])
+			assert.Equal(t, hashedUserName, userAcc.GetUserName())
+		}
+	}
+}
+
+func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) string {
+	hashedAddr := keccak.Keccak{}.Compute(userName)
+	return sortedDNSAddresses[hashedAddr[31]]
+}
+
+func generateNewUserName() string {
+	buff := make([]byte, 10)
+	_, _ = rand.Read(buff)
+	return string(buff)
 }
 
 func TestSCCallingInCrossShardDelegationMock(t *testing.T) {

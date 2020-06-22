@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -39,6 +40,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -532,6 +535,67 @@ func CreateGenesisBlocks(
 		dataPool,
 		economics,
 	)
+
+	return genesisBlocks
+}
+
+// CreateFullGenesisBlocks does the full genesis process, deploys smart contract at genesis
+func CreateFullGenesisBlocks(
+	accounts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
+	trieStorageManagers map[string]data.StorageManager,
+	nodesSetup sharding.GenesisNodesSetupHandler,
+	shardCoordinator sharding.Coordinator,
+	store dataRetriever.StorageService,
+	blkc data.ChainHandler,
+	dataPool dataRetriever.PoolsHolder,
+	economics *economics.EconomicsData,
+	accountsParser genesis.AccountsParser,
+	smartContractParser genesis.InitialSmartContractParser,
+) map[uint32]data.HeaderHandler {
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule = arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasSchedule, 1)
+
+	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
+		GenesisTime:              0,
+		StartEpochNum:            0,
+		Accounts:                 accounts,
+		PubkeyConv:               TestAddressPubkeyConverter,
+		InitialNodesSetup:        nodesSetup,
+		Economics:                economics,
+		ShardCoordinator:         shardCoordinator,
+		Store:                    store,
+		Blkc:                     blkc,
+		Marshalizer:              TestMarshalizer,
+		Hasher:                   TestHasher,
+		Uint64ByteSliceConverter: TestUint64Converter,
+		DataPool:                 dataPool,
+		ValidatorAccounts:        validatorAccounts,
+		GasMap:                   gasSchedule,
+		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig:     config.VirtualMachineConfig{},
+		TrieStorageManagers:      trieStorageManagers,
+		SystemSCConfig: config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "aaaaaa",
+			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				ProposalCost:     "500",
+				NumNodes:         100,
+				MinQuorum:        50,
+				MinPassThreshold: 50,
+				MinVetoThreshold: 50,
+			},
+		},
+		AccountsParser:      accountsParser,
+		SmartContractParser: smartContractParser,
+		BlockSignKeyGen:     &mock.KeyGenMock{},
+	}
+
+	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
+	genesisBlocks, _ := genesisProcessor.CreateGenesisBlocks()
 
 	return genesisBlocks
 }
@@ -1040,6 +1104,60 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), core.MetachainShardId, 0, serviceID)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+	}
+
+	return nodes
+}
+
+// CreateNodes creates multiple nodes in different shards
+func CreateNodesWithFullGenesis(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	serviceID string,
+	genesisFile string,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			accountParser := &mock.AccountsParserStub{}
+			smartContractParser, _ := parsing.NewSmartContractsParser(
+				genesisFile,
+				TestAddressPubkeyConverter,
+				&mock.KeyGenMock{},
+			)
+			n := NewTestProcessorNodeWithFullGenesis(
+				uint32(numOfShards),
+				shardId,
+				shardId,
+				serviceID,
+				accountParser,
+				smartContractParser,
+			)
+			nodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		accountParser := &mock.AccountsParserStub{}
+		smartContractParser, _ := parsing.NewSmartContractsParser(
+			genesisFile,
+			TestAddressPubkeyConverter,
+			&mock.KeyGenMock{},
+		)
+		metaNode := NewTestProcessorNodeWithFullGenesis(
+			uint32(numOfShards),
+			core.MetachainShardId,
+			0,
+			serviceID,
+			accountParser,
+			smartContractParser,
+		)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}

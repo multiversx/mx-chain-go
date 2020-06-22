@@ -24,8 +24,8 @@ func (teps *TxExecutionProcessorStub) ExecuteTransaction(nonce uint64, sndAddr [
 	return nil
 }
 
-// AccountExists -
-func (teps *TxExecutionProcessorStub) AccountExists(address []byte) (state.UserAccountHandler, bool) {
+// GetAccount -
+func (teps *TxExecutionProcessorStub) GetAccount(address []byte) (state.UserAccountHandler, bool) {
 	if teps.AccountExistsCalled != nil {
 		return nil, teps.AccountExistsCalled(address)
 	}

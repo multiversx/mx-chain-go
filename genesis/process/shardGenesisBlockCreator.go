@@ -445,21 +445,9 @@ func deployInitialSmartContract(
 		return err
 	}
 
-	switch sc.GetType() {
-	case genesis.DelegationType:
-		deployMetrics.numDelegation++
-		argDeploy := intermediate.ArgDeployProcessor{
-			Executor:       txExecutor,
-			PubkeyConv:     arg.PubkeyConv,
-			BlockchainHook: processors.blockchainHook,
-			QueryService:   processors.queryService,
-		}
-		deployProc, err := intermediate.NewDeployProcessor(argDeploy)
-		if err != nil {
-			return err
-		}
+	var deployProc genesis.DeployProcessor
 
-		return deployProc.Deploy(sc)
+	switch sc.GetType() {
 	case genesis.DNSType:
 		deployMetrics.numOtherTypes++
 		argDeployLibrary := intermediate.ArgDeployLibrarySC{
@@ -468,15 +456,27 @@ func deployInitialSmartContract(
 			BlockchainHook:   processors.blockchainHook,
 			ShardCoordinator: arg.ShardCoordinator,
 		}
-		deployLibrary, err := intermediate.NewDeployLibrarySC(argDeployLibrary)
+		deployProc, err = intermediate.NewDeployLibrarySC(argDeployLibrary)
 		if err != nil {
 			return err
 		}
-
-		return deployLibrary.Deploy(sc)
+	case genesis.DelegationType:
+		deployMetrics.numDelegation++
+		fallthrough
+	default:
+		argDeploy := intermediate.ArgDeployProcessor{
+			Executor:       txExecutor,
+			PubkeyConv:     arg.PubkeyConv,
+			BlockchainHook: processors.blockchainHook,
+			QueryService:   processors.queryService,
+		}
+		deployProc, err = intermediate.NewDeployProcessor(argDeploy)
+		if err != nil {
+			return err
+		}
 	}
 
-	return genesis.ErrInvalidSmartContractType
+	return deployProc.Deploy(sc)
 }
 
 func increaseStakersNonces(processors *genesisProcessors, arg ArgsGenesisBlockCreator) (int, error) {
