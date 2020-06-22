@@ -3,6 +3,7 @@ package spos
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -142,7 +143,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 	wrk.initReceivedMessages()
 
 	// set the limit for the antiflood handler
-	topic := GetConsensusTopicIDFromShardCoordinator(args.ShardCoordinator)
+	topic := GetConsensusTopicID(args.ShardCoordinator)
 	maxMessagesInARoundPerPeer := wrk.consensusService.GetMaxMessagesInARoundPerPeer()
 	wrk.antifloodHandler.SetMaxMessagesForTopic(topic, maxMessagesInARoundPerPeer)
 
@@ -316,22 +317,26 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		return err
 	}
 
-	topic := GetConsensusTopicIDFromShardCoordinator(wrk.shardCoordinator)
+	topic := GetConsensusTopicID(wrk.shardCoordinator)
 	err = wrk.antifloodHandler.CanProcessMessagesOnTopic(message.Peer(), topic, 1, uint64(len(message.Data())), message.SeqNo())
 	if err != nil {
 		return err
 	}
 
+	defer func() {
+		if wrk.shouldBlacklistPeer(err) {
+			//this situation is so severe that we have to black list both the message originator and the connected peer
+			//that disseminated this message.
+
+			reason := fmt.Sprintf("blacklisted due to invalid consensus message: %s", err.Error())
+			wrk.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+			wrk.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+		}
+	}()
+
 	cnsMsg := &consensus.Message{}
 	err = wrk.marshalizer.Unmarshal(cnsMsg, message.Data())
 	if err != nil {
-		//this situation is so severe that we have to black list both the message originator and the connected peer
-		//that disseminated this message.
-
-		reason := "blacklisted due to invalid consensus message"
-		wrk.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
-		wrk.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
-
 		return err
 	}
 
@@ -382,6 +387,18 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	go wrk.executeReceivedMessages(cnsMsg)
 
 	return nil
+}
+
+func (wrk *Worker) shouldBlacklistPeer(err error) bool {
+	if err == nil ||
+		errors.Is(err, ErrMessageForPastRound) ||
+		errors.Is(err, ErrMessageForFutureRound) ||
+		errors.Is(err, ErrNodeIsNotInEligibleList) ||
+		errors.Is(err, sharding.ErrEpochNodesConfigDoesNotExist) {
+		return false
+	}
+
+	return true
 }
 
 func (wrk *Worker) doJobOnMessageWithBlockBody(cnsMsg *consensus.Message) {

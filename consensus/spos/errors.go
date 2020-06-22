@@ -201,3 +201,6 @@ var ErrInvalidPublicKeyBitmapSize = errors.New("invalid public key bitmap size")
 
 // ErrInvalidCacheSize signals an invalid size provided for cache
 var ErrInvalidCacheSize = errors.New("invalid cache size")
+
+// ErrNilPeerHonestyHandler signals that a nil peer honesty handler has been provided
+var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")
