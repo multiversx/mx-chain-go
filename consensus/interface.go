@@ -97,3 +97,11 @@ type HeadersPoolSubscriber interface {
 	RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte))
 	IsInterfaceNil() bool
 }
+
+// PeerHonestyHandler defines the behaivour of a component able to handle/monitor the peer honesty of nodes which are
+// participating in consensus
+type PeerHonestyHandler interface {
+	Increase(pk string, topic string, value float64)
+	Decrease(pk string, topic string, value float64)
+	IsInterfaceNil() bool
+}
