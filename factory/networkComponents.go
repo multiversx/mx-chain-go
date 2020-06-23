@@ -88,13 +88,6 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
 	}
 
-	cache, err := storageUnit.NewCache(
-		storageUnit.CacheType(ncf.mainConfig.P2PMessageIDAdditionalCache.Type),
-		ncf.mainConfig.P2PMessageIDAdditionalCache.Capacity,
-		ncf.mainConfig.P2PMessageIDAdditionalCache.Shards,
-		ncf.mainConfig.P2PMessageIDAdditionalCache.SizeInBytes,
-	)
-
 	cache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(ncf.mainConfig.P2PMessageIDAdditionalCache))
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating p2p cacher", err)
