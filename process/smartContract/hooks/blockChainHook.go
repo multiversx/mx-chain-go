@@ -110,7 +110,7 @@ func checkForNil(args ArgBlockChainHook) error {
 	return nil
 }
 
-// AccountExists checks if an account exists in provided AccountAdapter
+// GetAccount checks if an account exists in provided AccountAdapter
 func (bh *BlockChainHookImpl) AccountExists(address []byte) (bool, error) {
 	_, err := bh.getAccountFromAddressBytes(address)
 	if err != nil {

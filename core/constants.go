@@ -455,3 +455,6 @@ const DefaultUnstakedEpoch = math.MaxUint32
 // InvalidMessageBlacklistDuration represents the time to keep a peer in the black list if it sends a message that
 // does not follow the protocol: example not useing the same marshaler as the other peers
 const InvalidMessageBlacklistDuration = time.Second * 3600
+
+// MaxNumShards represents the maximum number of shards possible in the system
+const MaxNumShards = 256

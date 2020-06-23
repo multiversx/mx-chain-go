@@ -4,7 +4,7 @@
     "filename": "testdata/answer.wasm",
     "vm-type": "0500",
     "init-parameters": "",
-    "type": "test"
+    "type": "dns"
   },
   {
     "owner": "0102030405060708090001020304050607080900010203040506070809000102",

@@ -10,8 +10,8 @@ type InitialSmartContract struct {
 	Version        string `json:"version"`
 	ownerBytes     []byte
 	vmTypeBytes    []byte
-	addressBytes   []byte
-	address        string
+	addressesBytes [][]byte
+	addresses      []string
 }
 
 // OwnerBytes will return the owner's address as raw bytes
@@ -59,24 +59,24 @@ func (isc *InitialSmartContract) GetType() string {
 	return isc.Type
 }
 
-// SetAddressBytes sets the initial smart contract address bytes
-func (isc *InitialSmartContract) SetAddressBytes(addressBytes []byte) {
-	isc.addressBytes = addressBytes
+// AddAddressBytes adds a deployed address to the initial smart contract
+func (isc *InitialSmartContract) AddAddressBytes(addressBytes []byte) {
+	isc.addressesBytes = append(isc.addressesBytes, addressBytes)
 }
 
-// AddressBytes returns the smart contract address bytes
-func (isc *InitialSmartContract) AddressBytes() []byte {
-	return isc.addressBytes
+// AddressesBytes returns the smart contract addresses bytes
+func (isc *InitialSmartContract) AddressesBytes() [][]byte {
+	return isc.addressesBytes
 }
 
-// SetAddress sets the initial smart contract address as string
-func (isc *InitialSmartContract) SetAddress(address string) {
-	isc.address = address
+// AddAddress adds a deployed address to the initial smart contract addresses as string
+func (isc *InitialSmartContract) AddAddress(address string) {
+	isc.addresses = append(isc.addresses, address)
 }
 
-// Address returns the smart contract address string
-func (isc *InitialSmartContract) Address() string {
-	return isc.address
+// Addresses returns the smart contract addresses string
+func (isc *InitialSmartContract) Addresses() []string {
+	return isc.addresses
 }
 
 // GetVersion returns the recorded version (if existing) of the SC
