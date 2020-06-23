@@ -17,7 +17,7 @@ func TestRound_NewRoundShouldErrNilSyncTimer(t *testing.T) {
 
 	genesisTime := time.Now()
 
-	rnd, err := round.NewRound(genesisTime, genesisTime, roundTimeDuration, nil)
+	rnd, err := round.NewRound(genesisTime, genesisTime, roundTimeDuration, nil, 0)
 
 	assert.Nil(t, rnd)
 	assert.Equal(t, round.ErrNilSyncTimer, err)
@@ -30,7 +30,7 @@ func TestRound_NewRoundShouldWork(t *testing.T) {
 
 	syncTimerMock := &mock.SyncTimerMock{}
 
-	rnd, err := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
+	rnd, err := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(rnd))
@@ -43,7 +43,7 @@ func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
 
 	syncTimerMock := &mock.SyncTimerMock{}
 
-	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
+	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 	oldIndex := rnd.Index()
 	oldTimeStamp := rnd.TimeStamp()
 
@@ -63,7 +63,7 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 
 	syncTimerMock := &mock.SyncTimerMock{}
 
-	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
+	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 	oldIndex := rnd.Index()
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration))
 	newIndex := rnd.Index()
@@ -78,7 +78,7 @@ func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {
 
 	syncTimerMock := &mock.SyncTimerMock{}
 
-	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
+	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration/2))
 	index := rnd.Index()
 
@@ -92,7 +92,7 @@ func TestRound_TimeStampShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 
 	syncTimerMock := &mock.SyncTimerMock{}
 
-	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
+	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration+roundTimeDuration/2))
 	timeStamp := rnd.TimeStamp()
 
@@ -106,7 +106,7 @@ func TestRound_TimeDurationShouldReturnTheDurationOfOneRound(t *testing.T) {
 
 	syncTimerMock := &mock.SyncTimerMock{}
 
-	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
+	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 	timeDuration := rnd.TimeDuration()
 
 	assert.Equal(t, roundTimeDuration, timeDuration)
@@ -125,7 +125,7 @@ func TestRound_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T
 		return time.Unix(0, timeElapsed)
 	}
 
-	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
+	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 
 	remainingTime := rnd.RemainingTime(rnd.TimeStamp(), roundTimeDuration)
 
@@ -146,7 +146,7 @@ func TestRound_RemainingTimeInCurrentRoundShouldReturnNegativeValue(t *testing.T
 		return time.Unix(0, timeElapsed)
 	}
 
-	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
+	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, 0)
 
 	remainingTime := rnd.RemainingTime(rnd.TimeStamp(), roundTimeDuration)
 

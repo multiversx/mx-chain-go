@@ -1,8 +1,6 @@
 package broadcast
 
 import (
-	"bytes"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -14,27 +12,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
-var _ consensus.BroadcastMessenger = (*shardChainMessenger)(nil)
+const validatorDelayPerOrder = time.Second
 
-type delayedBroadcastData struct {
-	headerHash   []byte
-	miniblocks   map[uint32][]byte
-	transactions map[string][][]byte
-}
+var _ consensus.BroadcastMessenger = (*shardChainMessenger)(nil)
 
 type shardChainMessenger struct {
 	*commonMessenger
-	headersSubscriber    consensus.HeadersPoolSubscriber
-	delayedBroadcastData []*delayedBroadcastData
-	maxDelayCacheSize    uint32
-	mutDataForBroadcast  sync.RWMutex
 }
 
 // ShardChainMessengerArgs holds the arguments for creating a shardChainMessenger instance
 type ShardChainMessengerArgs struct {
 	CommonMessengerArgs
-	HeadersSubscriber consensus.HeadersPoolSubscriber
-	MaxDelayCacheSize uint32
 }
 
 // NewShardChainMessenger creates a new shardChainMessenger object
@@ -49,21 +37,37 @@ func NewShardChainMessenger(
 
 	cm := &commonMessenger{
 		marshalizer:      args.Marshalizer,
+		hasher:           args.Hasher,
 		messenger:        args.Messenger,
 		privateKey:       args.PrivateKey,
 		shardCoordinator: args.ShardCoordinator,
 		singleSigner:     args.SingleSigner,
 	}
 
-	scm := &shardChainMessenger{
-		commonMessenger:      cm,
-		headersSubscriber:    args.HeadersSubscriber,
-		delayedBroadcastData: make([]*delayedBroadcastData, 0),
-		maxDelayCacheSize:    args.MaxDelayCacheSize,
-		mutDataForBroadcast:  sync.RWMutex{},
+	dbbArgs := &ArgsDelayedBlockBroadcaster{
+		InterceptorsContainer: args.InterceptorsContainer,
+		HeadersSubscriber:     args.HeadersSubscriber,
+		LeaderCacheSize:       args.MaxDelayCacheSize,
+		ValidatorCacheSize:    args.MaxValidatorDelayCacheSize,
+		ShardCoordinator:      args.ShardCoordinator,
 	}
 
-	scm.headersSubscriber.RegisterHandler(scm.headerReceived)
+	dbb, err := NewDelayedBlockBroadcaster(dbbArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	cm.delayedBlockBroadcaster = dbb
+
+	scm := &shardChainMessenger{
+		commonMessenger: cm,
+	}
+
+	err = dbb.SetBroadcastHandlers(scm.BroadcastMiniBlocks, scm.BroadcastTransactions, scm.BroadcastHeader)
+	if err != nil {
+		return nil, err
+	}
+
 	return scm, nil
 }
 
@@ -73,12 +77,6 @@ func checkShardChainNilParameters(
 	err := checkCommonMessengerNilParameters(args.CommonMessengerArgs)
 	if err != nil {
 		return err
-	}
-	if check.IfNil(args.HeadersSubscriber) {
-		return spos.ErrNilHeadersSubscriber
-	}
-	if args.MaxDelayCacheSize == 0 {
-		return spos.ErrInvalidCacheSize
 	}
 
 	return nil
@@ -136,105 +134,99 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 	return nil
 }
 
-// SetDataForDelayBroadcast sets the miniblocks and transactions to be broadcast with delay
-func (scm *shardChainMessenger) SetDataForDelayBroadcast(
-	headerHash []byte,
+// BroadcastBlockDataLeader broadcasts the block data as consensus group leader
+func (scm *shardChainMessenger) BroadcastBlockDataLeader(
+	header data.HeaderHandler,
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 ) error {
-	if len(headerHash) == 0 {
-		return spos.ErrNilHeaderHash
+	if check.IfNil(header) {
+		return spos.ErrNilHeader
 	}
 	if len(miniBlocks) == 0 {
 		return nil
 	}
 
-	scm.mutDataForBroadcast.Lock()
-	defer scm.mutDataForBroadcast.Unlock()
+	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
+	if err != nil {
+		return err
+	}
+
+	metaMiniBlocks, metaTransactions := scm.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
 
 	broadcastData := &delayedBroadcastData{
-		headerHash:   headerHash,
-		miniblocks:   miniBlocks,
-		transactions: transactions,
+		headerHash:     headerHash,
+		miniBlocksData: miniBlocks,
+		transactions:   transactions,
 	}
 
-	scm.delayedBroadcastData = append(scm.delayedBroadcastData, broadcastData)
-	if len(scm.delayedBroadcastData) > int(scm.maxDelayCacheSize) {
-		scm.broadcastDelayedData(scm.delayedBroadcastData[:1])
-		scm.delayedBroadcastData = scm.delayedBroadcastData[1:]
+	err = scm.delayedBlockBroadcaster.SetLeaderData(broadcastData)
+	if err != nil {
+		return err
 	}
 
+	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, 0)
 	return nil
 }
 
-func (scm *shardChainMessenger) headerReceived(headerHandler data.HeaderHandler, _ []byte) {
-	scm.mutDataForBroadcast.RLock()
-	defer scm.mutDataForBroadcast.RUnlock()
-
-	if len(scm.delayedBroadcastData) == 0 {
-		return
+// PrepareBroadcastHeaderValidator prepares the validator header broadcast in case leader broadcast fails
+func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
+	header data.HeaderHandler,
+	_ map[uint32][]byte,
+	_ map[string][][]byte,
+	idx int,
+) error {
+	if check.IfNil(header) {
+		return spos.ErrNilHeader
 	}
-	if headerHandler.GetShardID() != core.MetachainShardId {
-		return
-	}
 
-	headerHashes, err := getShardHeaderHashesFromMetachainBlock(headerHandler, scm.shardCoordinator.SelfId())
+	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
 	if err != nil {
-		log.Error("notifier headerReceived", "error", err.Error())
-		return
-	}
-	if len(headerHashes) == 0 {
-		return
+		return err
 	}
 
-	go scm.broadcastDataForHeaders(headerHashes)
+	vData := &validatorHeaderBroadcastData{
+		headerHash: headerHash,
+		header:     header,
+		order:      uint32(idx),
+	}
+
+	return scm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
 }
 
-func (scm *shardChainMessenger) broadcastDataForHeaders(headerHashes [][]byte) {
-	time.Sleep(core.ExtraDelayForBroadcastBlockInfo)
-
-	scm.mutDataForBroadcast.Lock()
-	defer scm.mutDataForBroadcast.Unlock()
-
-	for i := len(scm.delayedBroadcastData) - 1; i >= 0; i-- {
-		for _, headerHash := range headerHashes {
-			if bytes.Equal(scm.delayedBroadcastData[i].headerHash, headerHash) {
-				scm.broadcastDelayedData(scm.delayedBroadcastData[:i+1])
-				scm.delayedBroadcastData = scm.delayedBroadcastData[i+1:]
-				return
-			}
-		}
+// PrepareBroadcastBlockDataValidator prepares the validator block data broadcast in case leader broadcast fails
+func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
+	header data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	idx int,
+) error {
+	if check.IfNil(header) {
+		return spos.ErrNilHeader
 	}
+	if len(miniBlocks) == 0 {
+		return nil
+	}
+
+	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
+	if err != nil {
+		return err
+	}
+
+	broadcastData := &delayedBroadcastData{
+		headerHash:     headerHash,
+		header:         header,
+		miniBlocksData: miniBlocks,
+		transactions:   transactions,
+		order:          uint32(idx),
+	}
+
+	return scm.delayedBlockBroadcaster.SetValidatorData(broadcastData)
 }
 
-func (scm *shardChainMessenger) broadcastDelayedData(broadcastData []*delayedBroadcastData) {
-	for _, bData := range broadcastData {
-		err := scm.BroadcastMiniBlocks(bData.miniblocks)
-		if err != nil {
-			log.Error("broadcastDelayedData miniblocks", "error", err.Error())
-		}
-
-		err = scm.BroadcastTransactions(bData.transactions)
-		if err != nil {
-			log.Error("broadcastDelayedData transactions", "error", err.Error())
-		}
-	}
-}
-
-func getShardHeaderHashesFromMetachainBlock(headerHandler data.HeaderHandler, shardID uint32) ([][]byte, error) {
-	metaHeader, ok := headerHandler.(*block.MetaBlock)
-	if !ok {
-		return nil, spos.ErrInvalidMetaHeader
-	}
-
-	shardHeaderHashes := make([][]byte, 0)
-	shardsInfo := metaHeader.GetShardInfo()
-	for _, shardInfo := range shardsInfo {
-		if shardInfo.ShardID == shardID {
-			shardHeaderHashes = append(shardHeaderHashes, shardInfo.HeaderHash)
-		}
-	}
-	return shardHeaderHashes, nil
+// Close closes all the started infinite looping goroutines and subcomponents
+func (scm *shardChainMessenger) Close() {
+	scm.delayedBlockBroadcaster.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

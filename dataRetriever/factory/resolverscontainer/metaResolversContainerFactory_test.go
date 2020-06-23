@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,21 +46,21 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 }
 
 func createDataPoolsForMeta() dataRetriever.PoolsHolder {
-	pools := &mock.PoolsHolderStub{
+	pools := &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 	}
 
@@ -239,11 +240,15 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolversUnsigned := noOfShards + 1
 	numResolversRewards := noOfShards
 	numResolversTxs := noOfShards + 1
-	numResolversTrieNodes := noOfShards + 2
+	numResolversTrieNodes := 2
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
 		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards
 
 	assert.Equal(t, totalResolvers, container.Len())
+
+	err := rcf.AddShardTrieNodeResolvers(container)
+	assert.Nil(t, err)
+	assert.Equal(t, totalResolvers+noOfShards, container.Len())
 }
 
 func getArgumentsMeta() resolverscontainer.FactoryArgs {

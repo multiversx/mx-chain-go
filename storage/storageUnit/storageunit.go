@@ -2,6 +2,7 @@ package storageUnit
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sync"
@@ -70,12 +71,23 @@ type UnitConfig struct {
 
 // CacheConfig holds the configurable elements of a cache
 type CacheConfig struct {
+	Name                 string
 	Type                 CacheType
 	SizeInBytes          uint64
 	SizeInBytesPerSender uint32
 	Capacity             uint32
 	SizePerSender        uint32
 	Shards               uint32
+}
+
+// String returns a readable representation of the object
+func (config *CacheConfig) String() string {
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		log.Error("CacheConfig.String()", "err", err)
+	}
+
+	return string(bytes)
 }
 
 // DBConfig holds the configurable elements of a database
@@ -304,7 +316,7 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		return nil, storage.ErrCacheSizeIsLowerThanBatchSize
 	}
 
-	cache, err = NewCache(cacheConf.Type, cacheConf.Capacity, cacheConf.Shards, cacheConf.SizeInBytes)
+	cache, err = NewCache(cacheConf)
 	if err != nil {
 		return nil, err
 	}
@@ -333,9 +345,15 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 	return NewStorageUnitWithBloomFilter(cache, db, bf)
 }
 
-//NewCache creates a new cache from a cache config
-//TODO: add a cacher factory or a cacheConfig param instead
-func NewCache(cacheType CacheType, capacity uint32, shards uint32, sizeInBytes uint64) (storage.Cacher, error) {
+// NewCache creates a new cache from a cache config
+func NewCache(config CacheConfig) (storage.Cacher, error) {
+	storage.MonitorNewCache(config.Name, config.SizeInBytes)
+
+	cacheType := config.Type
+	capacity := config.Capacity
+	shards := config.Shards
+	sizeInBytes := config.SizeInBytes
+
 	var cacher storage.Cacher
 	var err error
 

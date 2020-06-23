@@ -93,7 +93,7 @@ func CreateMemUnit() storage.Storer {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, capacity, shards, sizeInBytes)
+	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 
 	unit, _ := storageUnit.NewStorageUnit(cache, memorydb.New())
 	return unit

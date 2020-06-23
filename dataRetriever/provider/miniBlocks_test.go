@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +34,7 @@ func createMockMiniblockProviderArgs(
 				return nil, fmt.Errorf("not found")
 			},
 		},
-		MiniBlockPool: &mock.CacherStub{
+		MiniBlockPool: &testscommon.CacherStub{
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				if isByteSliceInSlice(key, dataPoolExistingHashes) {
 					return &dataBlock.MiniBlock{}, true
@@ -136,7 +137,7 @@ func TestMiniBlockProvider_GetMiniBlocksFromPoolWrongTypeInPoolShouldNotReturn(t
 
 	hashes := [][]byte{[]byte("hash1"), []byte("hash2")}
 	arg := createMockMiniblockProviderArgs(hashes, nil)
-	arg.MiniBlockPool = &mock.CacherStub{
+	arg.MiniBlockPool = &testscommon.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			return "not a miniblock", true
 		},

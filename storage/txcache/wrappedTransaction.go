@@ -3,49 +3,20 @@ package txcache
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-const estimatedSizeOfBoundedTxFields = uint64(128)
-
 // WrappedTransaction contains a transaction, its hash and extra information
 type WrappedTransaction struct {
-	Tx                     data.TransactionHandler
-	TxHash                 []byte
-	SenderShardID          uint32
-	ReceiverShardID        uint32
-	isImmuneToEvictionFlag atomic.Flag
-}
-
-// GetKey gets the transaction hash
-func (wrappedTx *WrappedTransaction) GetKey() []byte {
-	return wrappedTx.TxHash
-}
-
-// Size gets the size (in bytes) of the transaction
-func (wrappedTx *WrappedTransaction) Size() int {
-	return int(estimateTxSize(wrappedTx))
-}
-
-// IsImmuneToEviction returns whether the transaction is immune to eviction
-func (wrappedTx *WrappedTransaction) IsImmuneToEviction() bool {
-	return wrappedTx.isImmuneToEvictionFlag.IsSet()
-}
-
-// ImmunizeAgainstEviction marks the transaction as immune to eviction
-func (wrappedTx *WrappedTransaction) ImmunizeAgainstEviction() {
-	wrappedTx.isImmuneToEvictionFlag.Set()
+	Tx              data.TransactionHandler
+	TxHash          []byte
+	SenderShardID   uint32
+	ReceiverShardID uint32
+	Size            int64
 }
 
 func (wrappedTx *WrappedTransaction) sameAs(another *WrappedTransaction) bool {
 	return bytes.Equal(wrappedTx.TxHash, another.TxHash)
-}
-
-// estimateTxSize returns an approximation
-func estimateTxSize(tx *WrappedTransaction) uint64 {
-	sizeOfData := uint64(len(tx.Tx.GetData()))
-	return estimatedSizeOfBoundedTxFields + sizeOfData
 }
 
 // estimateTxGas returns an approximation for the necessary computation units (gas units)

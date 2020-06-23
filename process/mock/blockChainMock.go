@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // BlockChainMock is a mock implementation of the blockchain interface
@@ -28,7 +29,7 @@ func (bc *BlockChainMock) GetGenesisHeader() data.HeaderHandler {
 	if bc.GetGenesisHeaderCalled != nil {
 		return bc.GetGenesisHeaderCalled()
 	}
-	return nil
+	return &block.Header{}
 }
 
 // SetGenesisHeader sets the genesis block header pointer

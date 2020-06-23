@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -36,16 +37,18 @@ type headersToSync struct {
 	epochToSync            uint32
 	requestHandler         process.RequestHandler
 	uint64Converter        typeConverters.Uint64ByteSliceConverter
+	shardCoordinator       sharding.Coordinator
 }
 
 // ArgsNewHeadersSyncHandler defines the arguments needed for the new header syncer
 type ArgsNewHeadersSyncHandler struct {
-	StorageService  dataRetriever.StorageService
-	Cache           dataRetriever.HeadersPool
-	Marshalizer     marshal.Marshalizer
-	EpochHandler    update.EpochStartVerifier
-	RequestHandler  process.RequestHandler
-	Uint64Converter typeConverters.Uint64ByteSliceConverter
+	StorageService   dataRetriever.StorageService
+	Cache            dataRetriever.HeadersPool
+	Marshalizer      marshal.Marshalizer
+	EpochHandler     update.EpochStartVerifier
+	RequestHandler   process.RequestHandler
+	Uint64Converter  typeConverters.Uint64ByteSliceConverter
+	ShardCoordinator sharding.Coordinator
 }
 
 // NewHeadersSyncHandler creates a new header syncer
@@ -68,6 +71,9 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 	if check.IfNil(args.Uint64Converter) {
 		return nil, update.ErrNilUint64Converter
 	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, update.ErrNilShardCoordinator
+	}
 
 	h := &headersToSync{
 		mutMeta:                sync.Mutex{},
@@ -84,6 +90,7 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 		missingMetaBlocks:      make(map[string]struct{}),
 		missingMetaNonces:      make(map[uint64]struct{}),
 		uint64Converter:        args.Uint64Converter,
+		shardCoordinator:       args.ShardCoordinator,
 	}
 
 	h.metaBlockPool.RegisterHandler(h.receivedMetaBlockFirstPending)
@@ -203,7 +210,7 @@ func (h *headersToSync) syncEpochStartMetaHeader(epoch uint32, waitTime time.Dur
 				continue
 			}
 
-			meta, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), h.marshalizer, h.store)
+			meta, err = process.GetMetaHeaderFromStorage([]byte(epochStartId), h.marshalizer, h.store)
 			if err != nil {
 				continue
 			}
@@ -343,7 +350,7 @@ func (h *headersToSync) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
 	meta := h.epochStartMetaBlock
 	h.mutMeta.Unlock()
 
-	if meta.IsStartOfEpochBlock() {
+	if meta.IsStartOfEpochBlock() || meta.Nonce == 0 {
 		return meta, nil
 	}
 
@@ -357,7 +364,7 @@ func (h *headersToSync) GetUnfinishedMetaBlocks() (map[string]*block.MetaBlock, 
 	unFinished := h.unFinishedMetaBlocks
 	h.mutMeta.Unlock()
 
-	if len(unFinished) > 0 {
+	if len(unFinished) > 0 || h.shardCoordinator.SelfId() == core.MetachainShardId {
 		return unFinished, nil
 	}
 

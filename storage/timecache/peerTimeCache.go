@@ -29,9 +29,15 @@ func (ptc *peerTimeCache) Add(pid core.PeerID) error {
 }
 
 // AddWithSpan will call the inner time cache method with the provided pid as string
-// TODO maybe add a new function that will replace existing data with the larger span (between existing and providing)
 func (ptc *peerTimeCache) AddWithSpan(pid core.PeerID, duration time.Duration) error {
 	return ptc.timeCache.AddWithSpan(string(pid), duration)
+}
+
+// Update will add the pid and provided duration if not exists
+// If the record exists, will update the duration if the provided duration is larger than existing
+// Also, it will reset the contained timestamp to time.Now
+func (ptc *peerTimeCache) Update(pid core.PeerID, duration time.Duration) error {
+	return ptc.timeCache.Update(string(pid), duration)
 }
 
 // Sweep will call the inner time cache method
