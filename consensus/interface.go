@@ -101,6 +101,14 @@ type HeadersPoolSubscriber interface {
 	IsInterfaceNil() bool
 }
 
+// PeerHonestyHandler defines the behaivour of a component able to handle/monitor the peer honesty of nodes which are
+// participating in consensus
+type PeerHonestyHandler interface {
+	Increase(pk string, topic string, value float64)
+	Decrease(pk string, topic string, value float64)
+	IsInterfaceNil() bool
+}
+
 // InterceptorSubscriber can subscribe for notifications when data is received by an interceptor
 type InterceptorSubscriber interface {
 	RegisterHandler(handler func(toShard uint32, data []byte))

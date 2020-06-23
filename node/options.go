@@ -675,3 +675,14 @@ func WithApiTransactionByHashThrottler(throttler Throttler) Option {
 		return nil
 	}
 }
+
+// WithPeerHonestyHandler sets up a peer honesty handler for the Node
+func WithPeerHonestyHandler(peerHonestyHandler consensus.PeerHonestyHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(peerHonestyHandler) {
+			return ErrNilPeerHonestyHandler
+		}
+		n.peerHonestyHandler = peerHonestyHandler
+		return nil
+	}
+}
