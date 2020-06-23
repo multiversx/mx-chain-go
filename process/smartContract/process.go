@@ -359,6 +359,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	if vmOutput.GasRefund != nil {
 		refund = vmOutput.GasRefund
 	}
+
 	scrForSender, consumedFee := sc.createSCRForSender(
 		refund,
 		vmOutput.GasRemaining,
