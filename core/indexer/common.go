@@ -239,13 +239,30 @@ func canInterpretAsString(bytes []byte) bool {
 	return true
 }
 
-func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) bytes.Buffer {
+func serializeBulkMiniBlocks(
+	hdrShardID uint32,
+	bulkMbs []*Miniblock,
+	getAlreadyIndexedItems func(hashes []string, index string) (map[string]bool, error),
+) bytes.Buffer {
 	var err error
 	var buff bytes.Buffer
+
+	mbsHashes := make([]string, len(bulkMbs))
+	for idx := range bulkMbs {
+		mbsHashes[idx] = bulkMbs[idx].Hash
+	}
+
+	existsInDb, err := getAlreadyIndexedItems(mbsHashes, miniblocksIndex)
+	if err != nil {
+		log.Warn("indexer get indexed items miniblocks",
+			"error", err.Error())
+		return buff
+	}
+
 	for _, mb := range bulkMbs {
 		var meta, serializedData []byte
-		if hdrShardID == mb.SenderShardID {
-			//insert miniblock
+		if !existsInDb[mb.Hash] {
+			//insert miniblock in database
 			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, mb.Hash, "_doc", "\n"))
 			serializedData, err = json.Marshal(mb)
 			if err != nil {
@@ -254,12 +271,18 @@ func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) bytes.Buff
 					"mb hash", mb.Hash)
 				continue
 			}
-
 		} else {
 			// update miniblock
 			meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s", "_type" : "%s"  } }%s`, mb.Hash, "_doc", "\n"))
-			serializedData = []byte(fmt.Sprintf(`{ "doc" : { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
+			if hdrShardID == mb.SenderShardID {
+				// update sender block hash
+				serializedData = []byte(fmt.Sprintf(`{ "doc" : { "senderBlockHash" : "%s" } }`, mb.SenderBlockHash))
+			} else {
+				// update receiver block hash
+				serializedData = []byte(fmt.Sprintf(`{ "doc" : { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
+			}
 		}
+
 		buff = prepareBufferMiniblocks(buff, meta, serializedData)
 	}
 
@@ -282,30 +305,46 @@ func prepareBufferMiniblocks(buff bytes.Buffer, meta, serializedData []byte) byt
 	return buff
 }
 
-func serializeBulkTxs(bulk []*Transaction, selfShardID uint32) bytes.Buffer {
-	var buff bytes.Buffer
+func serializeTransactions(
+	transactions []*Transaction,
+	selfShardID uint32,
+	getAlreadyIndexedItems func(hashes []string, index string) (map[string]bool, error),
+) []bytes.Buffer {
 	var err error
 
-	for _, tx := range bulk {
-		var meta, serializedData []byte
+	txsHashes := make([]string, len(transactions))
+	for idx := range transactions {
+		txsHashes[idx] = transactions[idx].Hash
+	}
 
-		if isCrossShardDstMe(tx, selfShardID) && tx.Status != txStatusInvalid {
-			// update tx
-			meta, serializedData = prepareTxUpdate(tx)
-		} else {
-			// write tx
-			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
-			serializedData, err = json.Marshal(tx)
-			if err != nil {
-				log.Debug("indexer: marshal",
-					"error", "could not serialize transaction, will skip indexing",
-					"tx hash", tx.Hash)
-				continue
-			}
+	existsInDb := make(map[string]bool)
+	bulksTxsHashes := buildBulksOfHashes(txsHashes)
+	for i := 0; i < len(bulksTxsHashes); i++ {
+		exitsInDbBulk, errGet := getAlreadyIndexedItems(bulksTxsHashes[i], txIndex)
+		if errGet != nil {
+			log.Warn("indexer get indexed items", "error", errGet.Error())
+			continue
+		}
+
+		mergeMaps(existsInDb, exitsInDbBulk)
+	}
+
+	var buff bytes.Buffer
+	buffSlice := make([]bytes.Buffer, 0)
+	for _, tx := range transactions {
+		meta, serializedData := prepareSerializedDataForATransaction(tx, selfShardID, existsInDb[tx.Hash])
+		if len(meta) == 0 {
+			continue
 		}
 
 		// append a newline for each element
 		serializedData = append(serializedData, "\n"...)
+
+		buffLenWithCurrentTx := buff.Len() + len(meta) + len(serializedData)
+		if buffLenWithCurrentTx > txsBulkSizeThreshold {
+			buffSlice = append(buffSlice, buff)
+			buff = bytes.Buffer{}
+		}
 
 		buff.Grow(len(meta) + len(serializedData))
 		_, err = buff.Write(meta)
@@ -318,7 +357,58 @@ func serializeBulkTxs(bulk []*Transaction, selfShardID uint32) bytes.Buffer {
 		}
 	}
 
-	return buff
+	// check if the last buffer contains data
+	if buff.Len() != 0 {
+		buffSlice = append(buffSlice, buff)
+	}
+
+	return buffSlice
+}
+
+func buildBulksOfHashes(hashes []string) [][]string {
+	bulks := make([][]string, (len(hashes)/maxNumberOfDocumentsGet)+1)
+	for i := 0; i < len(bulks); i++ {
+		if i == len(bulks)-1 {
+			bulks[i] = append(bulks[i], hashes[i*maxNumberOfDocumentsGet:]...)
+			continue
+		}
+
+		bulks[i] = append(bulks[i], hashes[i*maxNumberOfDocumentsGet:(i+1)*maxNumberOfDocumentsGet]...)
+	}
+
+	return bulks
+}
+
+func mergeMaps(m1, m2 map[string]bool) {
+	for key, value := range m2 {
+		m1[key] = value
+	}
+}
+
+func prepareSerializedDataForATransaction(
+	tx *Transaction,
+	selfShardID uint32,
+	existsInDb bool,
+) (meta []byte, serializedData []byte) {
+	var err error
+	if existsInDb {
+		if !isCrossShardDstMe(tx, selfShardID) || tx.Status == txStatusInvalid {
+			return
+		}
+		// update transaction
+		meta, serializedData = prepareTxUpdate(tx)
+	} else {
+		// insert transaction in database
+		meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
+		serializedData, err = json.Marshal(tx)
+		if err != nil {
+			log.Debug("indexer: marshal",
+				"error", "could not serialize transaction, will skip indexing",
+				"tx hash", tx.Hash)
+			return
+		}
+	}
+	return
 }
 
 func prepareTxUpdate(tx *Transaction) ([]byte, []byte) {
@@ -383,4 +473,22 @@ func computeSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.Trans
 	}
 
 	return txsSize
+}
+
+func getDecodedResponseMultiGet(response object) map[string]bool {
+	founded := make(map[string]bool)
+	interfaceSlice, ok := response["docs"].([]interface{})
+	if !ok {
+		return founded
+	}
+
+	for _, element := range interfaceSlice {
+		obj := element.(object)
+		if _, ok := obj["error"]; ok {
+			continue
+		}
+		founded[obj["_id"].(string)] = obj["found"].(bool)
+	}
+
+	return founded
 }

@@ -131,8 +131,11 @@ var ErrWhileVerifyingDelegation = errors.New("error occurred while verifying del
 // ErrNilQueryService signals that a nil query service has been provided
 var ErrNilQueryService = errors.New("nil query service")
 
-// ErrMissingElement signals a missing element event
-var ErrMissingElement = errors.New("missing element")
+// ErrEmptyReturnData signals an empty return data from vmOutput was received
+var ErrEmptyReturnData = errors.New("empty return data")
+
+// ErrSignatureMismatch signals a signature mismatch occurred
+var ErrSignatureMismatch = errors.New("signature mismatch")
 
 // ErrGetVersionFromSC signals that a call to "version" function on a contract resulted in an unexpected result
 var ErrGetVersionFromSC = errors.New("get version from contract returned an invalid response")

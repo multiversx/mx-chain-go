@@ -1,6 +1,8 @@
 package disabled
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -38,6 +40,10 @@ func (af *AntiFlood) ApplyConsensusSize(_ int) {
 // SetDebugger returns nil
 func (af *AntiFlood) SetDebugger(_ process.AntifloodDebugger) error {
 	return nil
+}
+
+// BlacklistPeer does nothing
+func (af *AntiFlood) BlacklistPeer(_ core.PeerID, _ string, _ time.Duration) {
 }
 
 // IsInterfaceNil return true if there is no value under the interface

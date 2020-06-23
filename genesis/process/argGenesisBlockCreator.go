@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-// ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis metablock
+// ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis block
 type ArgsGenesisBlockCreator struct {
 	GenesisTime              uint64
 	StartEpochNum            uint32
@@ -43,6 +43,8 @@ type ArgsGenesisBlockCreator struct {
 	ChainID                  string
 	SystemSCConfig           config.SystemSmartContractsConfig
 	BlockSignKeyGen          crypto.KeyGenerator
+	ImportStartHandler       update.ImportStartHandler
+	WorkingDir               string
 	// created component needed only for hardfork
 	importHandler update.ImportHandler
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -710,7 +711,7 @@ func TestRewardTxPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 
 	blockBody := &block.Body{}
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
-	miniBlockPool := mock.NewCacherMock()
+	miniBlockPool := testscommon.NewCacherMock()
 
 	numRestoredTxs, err := rtp.RestoreTxBlockIntoPools(blockBody, miniBlockPool)
 	assert.Equal(t, 1, numRestoredTxs)

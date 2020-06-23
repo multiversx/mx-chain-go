@@ -270,7 +270,7 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 // UpdatePeerState takes a header, updates the peer state for all of the
 // consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
-	if header.GetNonce() == 0 {
+	if header.GetNonce() == vs.genesisNonce {
 		return vs.peerAdapter.RootHash()
 	}
 
@@ -290,7 +290,8 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	epoch := computeEpoch(header)
 
 	var err error
-	if previousHeader.IsStartOfEpochBlock() {
+	isFirstBlockAfterHardFork := previousHeader.GetNonce() == vs.genesisNonce && vs.genesisNonce > 0
+	if previousHeader.IsStartOfEpochBlock() || isFirstBlockAfterHardFork {
 		err = vs.saveNodesCoordinatorUpdates(previousHeader.GetEpoch())
 		if err != nil {
 			log.Warn("could not update info from nodesCoordinator")
@@ -774,7 +775,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			return shardInfoErr
 		}
 
-		if h.Nonce == 1 {
+		if h.Nonce == vs.genesisNonce+1 {
 			continue
 		}
 

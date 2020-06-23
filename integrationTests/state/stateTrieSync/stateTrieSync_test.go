@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,7 +68,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.Root()
 	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			PutCalled: func(_ []byte, _ interface{}, _ int) (evicted bool) {
 				return false
 			},
@@ -149,7 +150,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.Root()
 	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			PutCalled: func(_ []byte, _ interface{}, _ int) (evicted bool) {
 				return false
 			},

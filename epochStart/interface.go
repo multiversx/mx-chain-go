@@ -124,3 +124,10 @@ type NodesConfigProvider interface {
 	ConsensusGroupSize(shardID uint32) int
 	IsInterfaceNil() bool
 }
+
+// ImportStartHandler can manage the process of starting the import after the hardfork event
+type ImportStartHandler interface {
+	ShouldStartImport() bool
+	IsAfterExportBeforeImport() bool
+	IsInterfaceNil() bool
+}

@@ -20,6 +20,13 @@ const minArgsLenToChangeValidatorKey = 4
 
 var zero = big.NewInt(0)
 
+// return codes for each input blskey
+const (
+	ok uint8 = iota
+	invalidKey
+	failed
+)
+
 type stakingAuctionSC struct {
 	eei                vm.SystemEI
 	unBondPeriod       uint64
@@ -158,13 +165,31 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.OutOfGas
 	}
 
-	for _, argument := range args.Arguments {
-		_, err := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(argument)))
+	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
+	if err != nil {
+		s.eei.AddReturnMessage("cannot get or create registration data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	blsKeys, err := getBLSPublicKeys(registrationData, args)
+	if err != nil {
+		s.eei.AddReturnMessage("could not get all blsKeys from registration data: " + err.Error())
+		return vmcommon.UserError
+	}
+
+	for _, blsKey := range blsKeys {
+		vmOutput, err := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(blsKey)))
 		if err != nil {
 			s.eei.AddReturnMessage(err.Error())
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
 			continue
 		}
 
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
+		}
 	}
 
 	return vmcommon.Ok
@@ -486,10 +511,15 @@ func (s *stakingAuctionSC) registerBLSKeys(
 		vmOutput, err := s.executeOnStakingSC([]byte("register@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
 		if err != nil {
 			s.eei.AddReturnMessage("cannot do register: " + err.Error())
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
 			return nil, nil
 		}
 
 		if vmOutput.ReturnCode != vmcommon.Ok {
+			s.eei.AddReturnMessage("cannot do register: " + vmOutput.ReturnCode.String())
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
 			return nil, nil
 		}
 
@@ -524,7 +554,9 @@ func (s *stakingAuctionSC) getVerifiedBLSKeysFromArgs(txPubKey []byte, args [][]
 		signedMessage := args[i+1]
 		err := s.sigVerifier.Verify(txPubKey, signedMessage, blsKey)
 		if err != nil {
-			invalidBlsKeys = append(invalidBlsKeys, hex.EncodeToString(txPubKey))
+			invalidBlsKeys = append(invalidBlsKeys, hex.EncodeToString(blsKey))
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{invalidKey})
 			continue
 		}
 
@@ -685,10 +717,15 @@ func (s *stakingAuctionSC) activateStakingFor(
 		vmOutput, err := s.executeOnStakingSC([]byte("stake@" + hex.EncodeToString(blsKeys[i]) + "@" + hex.EncodeToString(rewardAddress)))
 		if err != nil {
 			s.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(blsKeys[i]), err.Error()))
+			s.eei.Finish(blsKeys[i])
+			s.eei.Finish([]byte{failed})
 			continue
 		}
 
 		if vmOutput.ReturnCode != vmcommon.Ok {
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(blsKeys[i]), vmOutput.ReturnCode.String()))
+			s.eei.Finish(blsKeys[i])
+			s.eei.Finish([]byte{failed})
 			continue
 		}
 
@@ -756,7 +793,7 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		UnStakedEpoch: 0,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
 		RewardAddress: nil,
 		StakeValue:    big.NewInt(0),
 	}
@@ -809,22 +846,30 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 
 	blsKeys, err := getBLSPublicKeys(registrationData, args)
 	if err != nil {
-		s.eei.AddReturnMessage("bls key problem: " + err.Error())
+		s.eei.AddReturnMessage("could not get all blsKeys from registration data: " + err.Error())
 		return vmcommon.UserError
 	}
 
 	for _, blsKey := range blsKeys {
 		if registrationData.NumStaked == 0 {
-			break
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s as it is not staked", hex.EncodeToString(blsKey)))
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
+			continue
 		}
 
 		vmOutput, err := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
 		if err != nil {
 			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s: %s", hex.EncodeToString(blsKey), err.Error()))
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
 			continue
 		}
 
 		if vmOutput.ReturnCode != vmcommon.Ok {
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s: %s", hex.EncodeToString(blsKey), vmOutput.ReturnCode.String()))
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
 			continue
 		}
 
@@ -882,7 +927,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	blsKeys, err := getBLSPublicKeys(registrationData, args)
 	if err != nil {
-		s.eei.AddReturnMessage("bls key problem: error " + err.Error())
+		s.eei.AddReturnMessage("could not get all blsKeys from registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -899,10 +944,15 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		vmOutput, err := s.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
 		if err != nil {
 			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s, error: %s", hex.EncodeToString(blsKey), err.Error()))
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
 			continue
 		}
 
 		if len(vmOutput.ReturnData) < 2 || vmOutput.ReturnCode != vmcommon.Ok {
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s, error: %s", hex.EncodeToString(blsKey), vmOutput.ReturnCode.String()))
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
 			continue
 		}
 

@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -26,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,10 +48,10 @@ func createShardedDataChacherNotifier(
 	testHash []byte,
 ) func() dataRetriever.ShardedDataCacherNotifier {
 	return func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
+		return &testscommon.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
 						if reflect.DeepEqual(key, testHash) {
 							return handler, true
@@ -79,7 +79,7 @@ func createShardedDataChacherNotifier(
 	}
 }
 
-func initDataPool(testHash []byte) *mock.PoolsHolderStub {
+func initDataPool(testHash []byte) *testscommon.PoolsHolderStub {
 	tx := &transaction.Transaction{
 		Nonce: 10,
 		Value: big.NewInt(0),
@@ -91,12 +91,12 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 	unsignedTxHandler := createShardedDataChacherNotifier(sc, testHash)
 	rewardTxCalled := createShardedDataChacherNotifier(rTx, testHash)
 
-	sdp := &mock.PoolsHolderStub{
+	sdp := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         txCalled,
 		UnsignedTransactionsCalled: unsignedTxHandler,
 		RewardTransactionsCalled:   rewardTxCalled,
 		MetaBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
@@ -119,7 +119,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			cs := &mock.CacherStub{}
+			cs := testscommon.NewCacherStub()
 			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			}
 			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -170,7 +170,7 @@ func initStore() *dataRetriever.ChainStorer {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1, 0)
+	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
 	return cache
 }
 
@@ -200,7 +200,7 @@ func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -222,7 +222,7 @@ func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
 		nil,
 		mock.NewMultipleShardsCoordinatorMock(),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -244,7 +244,7 @@ func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
 		&mock.MarshalizerMock{},
 		nil,
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -266,7 +266,7 @@ func TestNewTransactionCoordinator_NilAccountsStub(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		nil,
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -310,7 +310,7 @@ func TestNewTransactionCoordinator_NilRequestHandler(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		nil,
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -332,7 +332,7 @@ func TestNewTransactionCoordinator_NilPreProcessor(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		nil,
 		&mock.InterimProcessorContainerMock{},
@@ -354,7 +354,7 @@ func TestNewTransactionCoordinator_NilInterProcessor(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		&mock.PreProcessorContainerMock{},
 		nil,
@@ -376,7 +376,7 @@ func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -398,7 +398,7 @@ func TestNewTransactionCoordinator_NilFeeAcumulator(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -420,7 +420,7 @@ func TestNewTransactionCoordinator_NilBlockSizeComputation(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -442,7 +442,7 @@ func TestNewTransactionCoordinator_NilBalanceComputation(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -464,7 +464,7 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -487,7 +487,7 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
@@ -642,7 +642,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
@@ -679,7 +679,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
@@ -723,7 +723,7 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
@@ -748,7 +748,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		createPreProcessorContainer(),
 		interimContainer,
@@ -804,7 +804,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
@@ -857,7 +857,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
@@ -888,7 +888,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
@@ -916,7 +916,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	cacherCfg := storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.LRUCache}
-	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
+	hdrPool, _ := storageUnit.NewCache(cacherCfg)
 	tdp.MiniBlocksCalled = func() storage.Cacher {
 		return hdrPool
 	}
@@ -1009,7 +1009,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	cacherCfg := storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.LRUCache}
-	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
+	hdrPool, _ := storageUnit.NewCache(cacherCfg)
 	tdp.MiniBlocksCalled = func() storage.Cacher {
 		return hdrPool
 	}
@@ -1097,10 +1097,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToProcess(t *testing.T) {
 	t.Parallel()
 
-	shardedCacheMock := &mock.ShardedDataStub{
+	shardedCacheMock := &testscommon.ShardedDataStub{
 		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					return nil, false
 				},
@@ -1126,7 +1126,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		initStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		&mock.PoolsHolderStub{
+		&testscommon.PoolsHolderStub{
 			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return shardedCacheMock
 			},
@@ -1165,7 +1165,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
 		&mock.RequestHandlerStub{},
 		container,
 		&mock.InterimProcessorContainerMock{},
@@ -1249,12 +1249,12 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := createTxPool()
+	nrShards := uint32(5)
+	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
 	}
-	nrShards := uint32(5)
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -1297,7 +1297,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	t.Parallel()
 
 	nrShards := uint32(5)
-	txPool, _ := createTxPool()
+	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1360,7 +1360,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	numMiniBlocks := allTxs / numTxsToAdd
 
 	nrShards := uint32(5)
-	txPool, _ := createTxPool()
+	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1426,7 +1426,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
 
 	nrShards := uint32(5)
-	txPool, _ := createTxPool()
+	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
@@ -1492,12 +1492,12 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	t.Parallel()
 
-	txPool, _ := createTxPool()
+	nrShards := uint32(5)
+	txPool, _ := testscommon.CreateTxPool(nrShards, 0)
 	tdp := initDataPool([]byte("tx_hash1"))
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txPool
 	}
-	nrShards := uint32(5)
 
 	tc, err := NewTransactionCoordinator(
 		&mock.HasherMock{},
@@ -1984,7 +1984,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderMock()
+	dataPool := testscommon.NewPoolsHolderMock()
 
 	//we will have a miniblock that will have 3 tx hashes
 	//all txs will be in datapool and none of them will return err when processed
@@ -2126,7 +2126,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 
 	hasher := mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	dataPool := mock.NewPoolsHolderMock()
+	dataPool := testscommon.NewPoolsHolderMock()
 
 	//we will have a miniblock that will have 3 tx hashes
 	//all txs will be in datapool and none of them will return err when processed
@@ -2371,10 +2371,10 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	}
 
 	tdp.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
+		return &testscommon.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
 						if reflect.DeepEqual(key, scrHash) {
 							return scr, true
@@ -2536,20 +2536,4 @@ func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *tes
 	lastKey := tc.keysTxPreProcs[preProcLen-1]
 
 	assert.Equal(t, block.RewardsBlock, lastKey)
-}
-
-func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
-	return txpool.NewShardedTxPool(
-		txpool.ArgShardedTxPool{
-			Config: storageUnit.CacheConfig{
-				Capacity:             100000,
-				SizePerSender:        1000,
-				SizeInBytes:          1000000000,
-				SizeInBytesPerSender: 10000000,
-				Shards:               16,
-			},
-			MinGasPrice:    200000000000,
-			NumberOfShards: 1,
-		},
-	)
 }

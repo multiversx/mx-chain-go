@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +22,7 @@ func TestNewMiniBlocksPoolsCleaner_NilMiniblockPoolShouldErr(t *testing.T) {
 func TestNewMiniBlocksPoolsCleaner_NilRounderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	miniblockCleaner, err := NewMiniBlocksPoolsCleaner(&mock.CacherStub{}, nil, &mock.CoordinatorStub{})
+	miniblockCleaner, err := NewMiniBlocksPoolsCleaner(testscommon.NewCacherStub(), nil, &mock.CoordinatorStub{})
 
 	assert.Equal(t, process.ErrNilRounder, err)
 	assert.Nil(t, miniblockCleaner)
@@ -30,7 +31,7 @@ func TestNewMiniBlocksPoolsCleaner_NilRounderShouldErr(t *testing.T) {
 func TestNewMiniBlocksPoolsCleaner_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	miniblockCleaner, err := NewMiniBlocksPoolsCleaner(&mock.CacherStub{}, &mock.RoundStub{}, nil)
+	miniblockCleaner, err := NewMiniBlocksPoolsCleaner(testscommon.NewCacherStub(), &mock.RoundStub{}, nil)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 	assert.Nil(t, miniblockCleaner)
@@ -39,7 +40,7 @@ func TestNewMiniBlocksPoolsCleaner_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewMiniBlocksPoolsCleaner_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	miniblockCleaner, err := NewMiniBlocksPoolsCleaner(&mock.CacherStub{}, &mock.RoundStub{}, &mock.CoordinatorStub{})
+	miniblockCleaner, err := NewMiniBlocksPoolsCleaner(testscommon.NewCacherStub(), &mock.RoundStub{}, &mock.CoordinatorStub{})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, miniblockCleaner)
@@ -48,7 +49,7 @@ func TestNewMiniBlocksPoolsCleaner_ShouldWork(t *testing.T) {
 func TestReceivedMiniBlock_WrongTypeShouldBeIgnored(t *testing.T) {
 	t.Parallel()
 
-	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(&mock.CacherStub{}, &mock.RounderMock{}, &mock.CoordinatorStub{})
+	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(testscommon.NewCacherStub(), &mock.RounderMock{}, &mock.CoordinatorStub{})
 
 	key := []byte("mbKey")
 	miniblock := &block.MiniBlockHeader{}
@@ -59,7 +60,7 @@ func TestReceivedMiniBlock_WrongTypeShouldBeIgnored(t *testing.T) {
 func TestReceivedMiniBlock_ShouldBeAddedInMap(t *testing.T) {
 	t.Parallel()
 
-	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(&mock.CacherStub{}, &mock.RounderMock{}, &mock.CoordinatorStub{})
+	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(testscommon.NewCacherStub(), &mock.RounderMock{}, &mock.CoordinatorStub{})
 
 	key := []byte("mbKey")
 	miniblock := &block.MiniBlock{}
@@ -71,7 +72,7 @@ func TestCleanMiniblocksPoolsIfNeeded_MiniblockNotInPoolShouldBeRemovedFromMap(t
 	t.Parallel()
 
 	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
@@ -92,7 +93,7 @@ func TestCleanMiniblocksPoolsIfNeeded_RoundDiffTooSmallMiniblockShouldRemainInMa
 	t.Parallel()
 
 	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, true
 			},
@@ -119,7 +120,7 @@ func TestCleanMiniblocksPoolsIfNeeded_MbShouldBeRemovedFromPoolAndMap(t *testing
 		},
 	}
 	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, true
 			},

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -202,26 +203,6 @@ type IntRandomizer interface {
 // StorageType defines the storage levels on a node
 type StorageType uint8
 
-// DataRetriever interface provides functionality over high level data request component
-type DataRetriever interface {
-	// Get methods searches for data in storage units and returns results, it is a blocking function
-	Get(keys [][]byte, identifier string, lowestLevel StorageType, haveTime func() time.Duration) (map[string]interface{}, [][]byte, error)
-	// Has searches for a value identifier by a key in storage
-	Has(key []byte, identifier string, level StorageType) (StorageType, error)
-	// HasOrAdd searches and adds a value if not exist in storage
-	HasOrAdd(key []byte, value interface{}, identifier string, level StorageType)
-	// Remove deletes an element from storage level
-	Remove(key []byte, identifier string, lowestLevel StorageType) error
-	// Put saves a key-value pair into storage
-	Put(key []byte, value interface{}, identifier string, level StorageType) error
-	// Keys returns all the keys from an identifier and storage type
-	Keys(identifier string, level StorageType)
-	// Request searches for data in specified storage level, if not present launches threads to search in network
-	Request(keys [][]byte, identifier string, level StorageType, haveTime func() time.Duration, callbackHandler func(key []byte)) (map[string]interface{}, [][]byte, error)
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
-
 // Notifier defines a way to register funcs that get called when something useful happens
 type Notifier interface {
 	RegisterHandler(func(key []byte, value interface{}))
@@ -249,7 +230,7 @@ type ShardedDataCacherNotifier interface {
 	MergeShardStores(sourceCacheID, destCacheID string)
 	Clear()
 	ClearShardStore(cacheId string)
-	CreateShardStore(cacheId string)
+	GetCounts() counting.CountsWithSize
 }
 
 // ShardIdHashMap represents a map for shardId and hash
@@ -348,6 +329,7 @@ type RequestedItemsHandler interface {
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32, _ uint64, sequence []byte) error
+	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
 }
 

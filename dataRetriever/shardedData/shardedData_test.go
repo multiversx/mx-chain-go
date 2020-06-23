@@ -1,4 +1,4 @@
-package shardedData_test
+package shardedData
 
 import (
 	"bytes"
@@ -10,17 +10,16 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var timeoutWaitForWaitGroups = time.Second * 2
 
 var defaultTestConfig = storageUnit.CacheConfig{
-	Capacity: 1000,
-	Type:     storageUnit.LRUCache,
+	Capacity:    75000,
+	SizeInBytes: 104857600,
+	Shards:      1,
 }
 
 func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
@@ -28,10 +27,9 @@ func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
 
 	cacheConfigBad := storageUnit.CacheConfig{
 		Capacity: 0,
-		Type:     storageUnit.LRUCache,
 	}
 
-	sd, err := shardedData.NewShardedData(cacheConfigBad)
+	sd, err := NewShardedData("", cacheConfigBad)
 	assert.NotNil(t, err)
 	assert.Nil(t, sd)
 }
@@ -39,44 +37,15 @@ func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
 func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cacheConfigBad := storageUnit.CacheConfig{
-		Capacity: 10,
-		Type:     storageUnit.LRUCache,
-	}
-
-	sd, err := shardedData.NewShardedData(cacheConfigBad)
+	sd, err := NewShardedData("", defaultTestConfig)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sd))
-}
-
-func TestNewShardedData_CreateShardStore(t *testing.T) {
-	t.Parallel()
-
-	cacheConfigBad := storageUnit.CacheConfig{
-		Capacity: 10,
-		Type:     storageUnit.LRUCache,
-	}
-
-	sd, err := shardedData.NewShardedData(cacheConfigBad)
-	assert.Nil(t, err)
-
-	id := "id"
-	key := []byte("key")
-	sd.CreateShardStore(id)
-	sd.AddData(key, key, len(key), id)
-
-	shardStore := sd.ShardDataStore(id)
-	require.NotNil(t, shardStore)
-
-	sd.RemoveSetOfDataFromPool([][]byte{key}, id)
-	_, found := sd.SearchFirstData(key)
-	require.False(t, found)
 }
 
 func TestShardedData_AddData(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	keyTx1 := []byte("hash_tx1")
 	shardID1 := "1"
@@ -101,21 +70,21 @@ func TestShardedData_AddData(t *testing.T) {
 func TestShardedData_StorageEvictsData(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	for i := 1; i < int(defaultTestConfig.Capacity+100); i++ {
 		key := []byte(strconv.Itoa(i))
 		sd.AddData(key, &transaction.Transaction{Nonce: uint64(i)}, 0, "1")
 	}
 
-	assert.Equal(t, int(defaultTestConfig.Capacity), sd.ShardDataStore("1").Len(),
+	assert.Less(t, sd.ShardDataStore("1").Len(), int(defaultTestConfig.Capacity),
 		"Transaction pool entries excedes the maximum configured number")
 }
 
 func TestShardedData_NoDuplicates(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 0, "1")
 	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 0, "1")
@@ -126,7 +95,7 @@ func TestShardedData_NoDuplicates(t *testing.T) {
 func TestShardedData_AddDataInParallel(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	wg := sync.WaitGroup{}
 
@@ -146,14 +115,14 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 	//checking
 	for i := 0; i < vals; i++ {
 		key := []byte(strconv.Itoa(i))
-		assert.True(t, sd.ShardStore("1").DataStore.Has(key), fmt.Sprintf("for val %d", i))
+		assert.True(t, sd.shardStore("1").cache.Has(key), fmt.Sprintf("for val %d", i))
 	}
 }
 
 func TestShardedData_RemoveData(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 0, "1")
 	assert.Equal(t, 1, sd.ShardDataStore("1").Len(),
@@ -180,7 +149,7 @@ func TestShardedData_RemoveData(t *testing.T) {
 func TestShardedData_Clear(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 0, "1")
 	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 0, "2")
@@ -193,14 +162,14 @@ func TestShardedData_Clear(t *testing.T) {
 		"Mini pool for shard 1 should still have one element")
 
 	sd.Clear()
-	assert.Nil(t, sd.ShardStore("1"), "Shard 1 should not be in the store anymore")
-	assert.Nil(t, sd.ShardStore("2"), "Shard 2 should not be in the store anymore")
+	assert.Nil(t, sd.shardStore("1"), "Shard 1 should not be in the store anymore")
+	assert.Nil(t, sd.shardStore("2"), "Shard 2 should not be in the store anymore")
 }
 
 func TestShardedData_MergeShardStores(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 0, "1")
 	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 0, "2")
@@ -215,11 +184,11 @@ func TestShardedData_MergeShardStores(t *testing.T) {
 func TestShardedData_RegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	sd.RegisterHandler(nil)
 
-	assert.Equal(t, 0, len(sd.AddedDataHandlers()))
+	assert.Equal(t, 0, len(sd.addedDataHandlers))
 }
 
 func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
@@ -242,7 +211,7 @@ func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
 		chDone <- true
 	}()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	sd.RegisterHandler(f)
 	sd.AddData([]byte("aaaa"), "bbbb", 4, "0")
@@ -261,11 +230,11 @@ func TestShardedData_RegisterAddedDataHandlerReallyAddsAhandler(t *testing.T) {
 	f := func(key []byte, value interface{}) {
 	}
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	sd.RegisterHandler(f)
 
-	assert.Equal(t, 1, len(sd.AddedDataHandlers()))
+	assert.Equal(t, 1, len(sd.addedDataHandlers))
 }
 
 func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T) {
@@ -284,7 +253,7 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 		chDone <- true
 	}()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	//first add, no call
 	sd.AddData([]byte("aaaa"), "bbbb", 4, "0")
@@ -299,13 +268,13 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 	case <-time.After(timeoutWaitForWaitGroups):
 	}
 
-	assert.Equal(t, 1, len(sd.AddedDataHandlers()))
+	assert.Equal(t, 1, len(sd.addedDataHandlers))
 }
 
 func TestShardedData_SearchFirstDataNotFoundShouldRetNilAndFalse(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	value, ok := sd.SearchFirstData([]byte("aaaa"))
 	assert.Nil(t, value)
@@ -315,7 +284,7 @@ func TestShardedData_SearchFirstDataNotFoundShouldRetNilAndFalse(t *testing.T) {
 func TestShardedData_SearchFirstDataFoundShouldRetResults(t *testing.T) {
 	t.Parallel()
 
-	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+	sd, _ := NewShardedData("", defaultTestConfig)
 
 	sd.AddData([]byte("aaa"), "a1", 2, "0")
 	sd.AddData([]byte("aaaa"), "a2", 2, "4")
@@ -325,3 +294,5 @@ func TestShardedData_SearchFirstDataFoundShouldRetResults(t *testing.T) {
 	assert.NotNil(t, value)
 	assert.True(t, ok)
 }
+
+// TODO: Add high load test, reach maximum capacity and inspect RAM usage. EN-6735.

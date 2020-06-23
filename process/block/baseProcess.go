@@ -781,7 +781,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.CommitMaxTime {
+	if elapsedTime >= core.PutInStorerMaxTime {
 		log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
 	}
 }
@@ -961,7 +961,7 @@ func (bp *baseProcessor) saveBody(body *block.Body) {
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.CommitMaxTime {
+	if elapsedTime >= core.PutInStorerMaxTime {
 		log.Warn("saveBody", "elapsed time", elapsedTime)
 	}
 }
@@ -985,7 +985,7 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.CommitMaxTime {
+	if elapsedTime >= core.PutInStorerMaxTime {
 		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
 	}
 }
@@ -1006,7 +1006,7 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= core.CommitMaxTime {
+	if elapsedTime >= core.PutInStorerMaxTime {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
 }

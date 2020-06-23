@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +22,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -48,7 +49,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -75,7 +76,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&mock.ChainStorerMock{},
 		nil,
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -102,7 +103,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		nil,
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -156,7 +157,7 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		nil,
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -183,7 +184,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		nil,
 		&mock.RequestHandlerStub{},
@@ -210,7 +211,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -237,7 +238,7 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -264,7 +265,7 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -291,7 +292,7 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -318,7 +319,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		nil,
@@ -345,7 +346,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -372,7 +373,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -399,7 +400,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -426,7 +427,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -453,7 +454,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -480,7 +481,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.ChainStorerMock{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
+		testscommon.NewPoolsHolderMock(),
 		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
@@ -502,7 +503,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 
 func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 	t.Parallel()
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
@@ -537,9 +538,9 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 
 func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 	t.Parallel()
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
+		return &testscommon.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 			},
 		}
@@ -578,21 +579,21 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 
 func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 	t.Parallel()
-	dataPool := &mock.PoolsHolderStub{}
+	dataPool := testscommon.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
+		return &testscommon.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 			},
 		}
 	}
 	dataPool.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
+		return &testscommon.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 			},
 		}
 	}
 	dataPool.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
+		return &testscommon.ShardedDataStub{
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 			},
 		}

@@ -24,6 +24,11 @@ func (pdbh *PeerBlacklistHandler) AddWithSpan(_ core.PeerID, _ time.Duration) er
 	return nil
 }
 
+// Update does nothing
+func (pdbh *PeerBlacklistHandler) Update(_ core.PeerID, _ time.Duration) error {
+	return nil
+}
+
 // Sweep does nothing
 func (pdbh *PeerBlacklistHandler) Sweep() {
 }

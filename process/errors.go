@@ -799,3 +799,18 @@ var ErrRecursiveRelayedTxIsNotAllowed = errors.New("recursive relayed tx is not 
 
 // ErrRelayedTxValueHigherThenUserTxValue signals that relayed tx value is higher then user tx value
 var ErrRelayedTxValueHigherThenUserTxValue = errors.New("relayed tx value is higher than user tx value")
+
+// ErrNilInterceptorContainer signals that nil interceptor container has been provided
+var ErrNilInterceptorContainer = errors.New("nil interceptor container")
+
+// ErrInvalidChainID signals that an invalid chain ID has been provided
+var ErrInvalidChainID = errors.New("invalid chain ID")
+
+// ErrTxValueTooBig signals that transaction value is too big
+var ErrTxValueTooBig = errors.New("tx value is too big")
+
+// ErrInvalidUserNameLength signals that provided user name length is invalid
+var ErrInvalidUserNameLength = errors.New("invalid user name length")
+
+// ErrTxValueOutOfBounds signals that transaction value is out of bounds
+var ErrTxValueOutOfBounds = errors.New("tx value is out of bounds")

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,7 +12,7 @@ func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t 
 	t.Parallel()
 
 	marsh, hasher := getTestMarshAndHasher()
-	ts, err := NewTrieSyncer(&mock.RequestHandlerStub{}, &mock.CacherMock{}, &patriciaMerkleTrie{}, 0, "trieNodes")
+	ts, err := NewTrieSyncer(&mock.RequestHandlerStub{}, testscommon.NewCacherMock(), &patriciaMerkleTrie{}, 0, "trieNodes")
 	assert.Nil(t, err)
 	assert.NotNil(t, ts)
 

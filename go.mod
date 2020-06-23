@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm v0.3.20
 	github.com/ElrondNetwork/concurrent-map v0.1.2
-	github.com/ElrondNetwork/elrond-go-logger v1.0.3
+	github.com/ElrondNetwork/elrond-go-logger v1.0.4
 	github.com/ElrondNetwork/elrond-vm v0.0.25
 	github.com/ElrondNetwork/elrond-vm-common v0.1.20
 	github.com/beevik/ntp v0.2.0
@@ -26,11 +26,11 @@ require (
 	github.com/jbenet/goprocess v0.1.4
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/libp2p/go-libp2p v0.9.2
-	github.com/libp2p/go-libp2p-core v0.5.6
+	github.com/libp2p/go-libp2p-core v0.5.7
 	github.com/libp2p/go-libp2p-discovery v0.4.0
 	github.com/libp2p/go-libp2p-kad-dht v0.8.0
 	github.com/libp2p/go-libp2p-kbucket v0.4.2
-	github.com/libp2p/go-libp2p-pubsub v0.3.1
+	github.com/libp2p/go-libp2p-pubsub v0.3.3-0.20200615073058-8945f91465bc
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/mr-tron/base58 v1.1.3
 	github.com/multiformats/go-multiaddr v0.2.2

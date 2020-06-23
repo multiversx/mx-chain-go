@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -113,9 +114,9 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 		MiniBlockStorage: createMemUnit(),
 		Hasher:           &mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
-		DataPool: &mock.PoolsHolderStub{
+		DataPool: &testscommon.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{
+				return &testscommon.CacherStub{
 					RemoveCalled: func(key []byte) {},
 				}
 			},

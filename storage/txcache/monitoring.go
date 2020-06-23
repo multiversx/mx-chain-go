@@ -1,6 +1,10 @@
 package txcache
 
 import (
+	"encoding/hex"
+	"fmt"
+	"strings"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 )
@@ -54,8 +58,6 @@ func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopW
 		"numSendersWithMiddleGap", numSendersWithMiddleGap,
 		"numSendersInGracePeriod", numSendersInGracePeriod,
 	)
-
-	cache.displaySendersHistogram()
 }
 
 type batchSelectionJournal struct {
@@ -116,7 +118,15 @@ func (journal *evictionJournal) display() {
 	log.Debug("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders, "steps", journal.passOneNumSteps)
 }
 
-func (cache *TxCache) diagnose() {
+// Diagnose checks the state of the cache for inconsistencies and displays a summary
+func (cache *TxCache) Diagnose(deep bool) {
+	cache.diagnoseShallowly()
+	if deep {
+		cache.diagnoseDeeply()
+	}
+}
+
+func (cache *TxCache) diagnoseShallowly() {
 	sw := core.NewStopWatch()
 	sw.Start("diagnose")
 
@@ -139,14 +149,99 @@ func (cache *TxCache) diagnose() {
 	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
 	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
 
-	logFunc := log.Trace
-	if !fine {
-		logFunc = log.Debug
+	log.Debug("TxCache.diagnoseShallowly()", "name", cache.name, "duration", duration, "fine", fine)
+	log.Debug("TxCache.Size:", "current", sizeInBytes, "max", cache.config.NumBytesThreshold)
+	log.Debug("TxCache.NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks, "inScoreChunks", numSendersInScoreChunks)
+	log.Debug("TxCache.NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
+	log.Debug("TxCache.NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
+}
+
+func (cache *TxCache) diagnoseDeeply() {
+	sw := core.NewStopWatch()
+	sw.Start("diagnose")
+
+	journal := cache.checkInternalConsistency()
+	cache.displaySendersSummary()
+
+	sw.Stop("diagnose")
+	duration := sw.GetMeasurement("diagnose")
+
+	log.Debug("TxCache.diagnoseDeeply()", "name", cache.name, "duration", duration)
+	journal.display()
+	cache.displaySendersHistogram()
+}
+
+type internalConsistencyJournal struct {
+	numInMapByHash        int
+	numInMapBySender      int
+	numMissingInMapByHash int
+}
+
+func (journal *internalConsistencyJournal) isFine() bool {
+	return (journal.numInMapByHash == journal.numInMapBySender) && (journal.numMissingInMapByHash == 0)
+}
+
+func (journal *internalConsistencyJournal) display() {
+	log.Debug("TxCache.internalConsistencyJournal:", "fine", journal.isFine(), "numInMapByHash", journal.numInMapByHash, "numInMapBySender", journal.numInMapBySender, "numMissingInMapByHash", journal.numMissingInMapByHash)
+}
+
+func (cache *TxCache) checkInternalConsistency() internalConsistencyJournal {
+	internalMapByHash := cache.txByHash
+	internalMapBySender := cache.txListBySender
+
+	senders := internalMapBySender.getSnapshotAscending()
+	numInMapByHash := len(internalMapByHash.keys())
+	numInMapBySender := 0
+	numMissingInMapByHash := 0
+
+	for _, sender := range senders {
+		numInMapBySender += int(sender.countTx())
+
+		for _, hash := range sender.getTxHashes() {
+			_, ok := internalMapByHash.getTx(string(hash))
+			if !ok {
+				numMissingInMapByHash++
+			}
+		}
 	}
 
-	logFunc("Diagnose", "name", cache.name, "duration", duration, "fine", fine)
-	logFunc("Size:", "current", sizeInBytes, "max", cache.config.NumBytesThreshold)
-	logFunc("NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks, "inScoreChunks", numSendersInScoreChunks)
-	logFunc("NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
-	logFunc("NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
+	return internalConsistencyJournal{
+		numInMapByHash:        numInMapByHash,
+		numInMapBySender:      numInMapBySender,
+		numMissingInMapByHash: numMissingInMapByHash,
+	}
+}
+
+func (cache *TxCache) displaySendersSummary() {
+	if log.GetLevel() != logger.LogTrace {
+		return
+	}
+
+	senders := cache.txListBySender.getSnapshotAscending()
+	if len(senders) == 0 {
+		return
+	}
+
+	var builder strings.Builder
+	builder.WriteString("\n[#index (score)] address [nonce known / nonce vs lowestTxNonce] txs = numTxs, !numFailedSelections\n")
+
+	for i, sender := range senders {
+		address := hex.EncodeToString([]byte(sender.sender))
+		accountNonce := sender.accountNonce.Get()
+		accountNonceKnown := sender.accountNonceKnown.IsSet()
+		numFailedSelections := sender.numFailedSelections.Get()
+		score := sender.getLastComputedScore()
+		numTxs := sender.countTxWithLock()
+
+		lowestTxNonce := -1
+		lowestTx := sender.getLowestNonceTx()
+		if lowestTx != nil {
+			lowestTxNonce = int(lowestTx.Tx.GetNonce())
+		}
+
+		fmt.Fprintf(&builder, "[#%d (%d)] %s [%t / %d vs %d] txs = %d, !%d\n", i, score, address, accountNonceKnown, accountNonce, lowestTxNonce, numTxs, numFailedSelections)
+	}
+
+	summary := builder.String()
+	log.Info("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
 }
