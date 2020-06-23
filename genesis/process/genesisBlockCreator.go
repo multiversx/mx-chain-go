@@ -272,6 +272,7 @@ func (gbc *genesisBlockCreator) computeDNSAddressesIfHardFork() error {
 	}
 
 	isForCurrentShard := func([]byte) bool {
+		// after hardfork we are interested only in the smart contract addresses, as they are already deployed
 		return true
 	}
 	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)

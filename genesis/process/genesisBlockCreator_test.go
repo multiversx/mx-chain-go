@@ -143,7 +143,7 @@ func createMockArgument(
 	return arg
 }
 
-func TestGenesisBlockCreator_CreateGenesisBlockAfterHardFrokShouldCreateSCResultingAddresses(t *testing.T) {
+func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResultingAddresses(t *testing.T) {
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
 		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
