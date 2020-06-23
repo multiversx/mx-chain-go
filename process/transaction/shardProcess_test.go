@@ -8,12 +8,14 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
@@ -1322,4 +1324,93 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, err, process.ErrFailedTransaction)
+}
+
+func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
+	t.Parallel()
+
+	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+
+	userAddr := []byte("user")
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("sSRC")
+	tx.RcvAddr = userAddr
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
+
+	userTx := transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(50),
+		RcvAddr:  []byte("sDST"),
+		SndAddr:  userAddr,
+		GasPrice: 1,
+		GasLimit: 1,
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	userTxMarshalled, _ := marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
+
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr)
+	acntSrc.Balance = big.NewInt(100)
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr)
+	acntDst.Balance = big.NewInt(10)
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
+	acntFinal.Balance = big.NewInt(10)
+
+	adb := &mock.AccountsStub{}
+	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		if bytes.Equal(address, tx.SndAddr) {
+			return acntSrc, nil
+		}
+		if bytes.Equal(address, tx.RcvAddr) {
+			return acntDst, nil
+		}
+		if bytes.Equal(address, userTx.RcvAddr) {
+			return acntFinal, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+	scProcessorMock := &mock.SCProcessorMock{}
+	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
+
+	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  pubKeyConverter,
+		ShardCoordinator: shardC,
+		BuiltInFuncNames: make(map[string]struct{}),
+		ArgumentParser:   parsers.NewCallArgsParser(),
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
+
+	execTx, _ := txproc.NewTxProcessor(
+		adb,
+		mock.HasherMock{},
+		pubKeyConverter,
+		&mock.MarshalizerMock{},
+		shardC,
+		scProcessorMock,
+		&mock.FeeAccumulatorStub{},
+		txTypeHandler,
+		feeHandlerMock(),
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		smartContract.NewArgumentParser(),
+		&mock.IntermediateTransactionHandlerMock{},
+	)
+
+	returnCode, err := execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	tx.Nonce = tx.Nonce + 1
+	userTx.Nonce = userTx.Nonce + 1
+	userTx.Value = big.NewInt(200)
+	userTxMarshalled, _ = marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
+
+	returnCode, err = execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.UserError, returnCode)
 }

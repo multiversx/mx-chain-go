@@ -30,6 +30,7 @@ type TestWalletAccount struct {
 func CreateTestWalletAccount(coordinator sharding.Coordinator, shardId uint32) *TestWalletAccount {
 	testWalletAccount := &TestWalletAccount{}
 	testWalletAccount.initCrypto(coordinator, shardId)
+	testWalletAccount.Balance = big.NewInt(0)
 	return testWalletAccount
 }
 
