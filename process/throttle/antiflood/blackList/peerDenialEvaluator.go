@@ -9,22 +9,22 @@ import (
 )
 
 type peerDenialEvaluator struct {
-	peerIdsCache    process.PeerBlackListCacher
-	publicKeysCache process.TimeCacher
-	peerShardMapper process.PeerShardMapper
+	blackListIDsCache          process.PeerBlackListCacher
+	blackListedPublicKeysCache process.TimeCacher
+	peerShardMapper            process.PeerShardMapper
 }
 
 // NewPeerDenialEvaluator will create a new instance of a peer deny cache evaluator
 func NewPeerDenialEvaluator(
-	pids process.PeerBlackListCacher,
-	pks process.TimeCacher,
+	blackListIDsCache process.PeerBlackListCacher,
+	blackListedPublicKeysCache process.TimeCacher,
 	psm process.PeerShardMapper,
 ) (*peerDenialEvaluator, error) {
 
-	if check.IfNil(pids) {
+	if check.IfNil(blackListIDsCache) {
 		return nil, fmt.Errorf("%w for peer IDs cacher", process.ErrNilBlackListCacher)
 	}
-	if check.IfNil(pks) {
+	if check.IfNil(blackListedPublicKeysCache) {
 		return nil, fmt.Errorf("%w for public keys cacher", process.ErrNilBlackListCacher)
 	}
 	if check.IfNil(psm) {
@@ -32,16 +32,16 @@ func NewPeerDenialEvaluator(
 	}
 
 	return &peerDenialEvaluator{
-		peerIdsCache:    pids,
-		publicKeysCache: pks,
-		peerShardMapper: psm,
+		blackListIDsCache:          blackListIDsCache,
+		blackListedPublicKeysCache: blackListedPublicKeysCache,
+		peerShardMapper:            psm,
 	}, nil
 }
 
 // IsDenied returns true if the provided peer id is denied to access the network
 // It also checks if the provided peer id has a backing public key, checking also that the public key is not denied
 func (pde *peerDenialEvaluator) IsDenied(pid core.PeerID) bool {
-	if pde.peerIdsCache.Has(pid) {
+	if pde.blackListIDsCache.Has(pid) {
 		return true
 	}
 
@@ -51,7 +51,7 @@ func (pde *peerDenialEvaluator) IsDenied(pid core.PeerID) bool {
 		return false //no need to further search in the next cache, this is an unknown peer
 	}
 
-	return pde.publicKeysCache.Has(string(pkBytes))
+	return pde.blackListedPublicKeysCache.Has(string(pkBytes))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
