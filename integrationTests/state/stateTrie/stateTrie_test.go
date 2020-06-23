@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"math/rand"
 	"runtime"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -1664,4 +1665,147 @@ func testNodeStateCheckpointSnapshotAndPruning(
 		assert.Nil(t, tr)
 		assert.NotNil(t, err)
 	}
+}
+
+func TestContinuouslyAccountCodeChanges(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+	senderShard := uint32(0)
+	round := uint64(0)
+	nonce := uint64(0)
+	valMinting := big.NewInt(1000000000)
+
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+
+	fmt.Println("Generating private keys for senders...")
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
+	nrAccounts := 20
+
+	sendersPrivateKeys := make([]crypto.PrivateKey, nrAccounts)
+	for i := 0; i < nrAccounts; i++ {
+		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
+	}
+
+	accounts := make([][]byte, len(sendersPrivateKeys))
+	for i := range sendersPrivateKeys {
+		accounts[i], _ = sendersPrivateKeys[i].GeneratePublic().ToByteArray()
+	}
+
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	numCodes := 10
+	codeMap := getCodeMap(numCodes)
+	codeArray := make([][]byte, 0)
+	for code := range codeMap {
+		codeArray = append(codeArray, []byte(code))
+	}
+
+	maxCodeUpdates := 10
+	maxCodeDeletes := 10
+
+	shardNode := nodes[0]
+	roundsToWait := 50
+	for i := 0; i < roundsToWait; i++ {
+		numCodeUpdates := rand.Intn(maxCodeUpdates)
+		numCodeDeletes := rand.Intn(maxCodeDeletes)
+
+		for j := 0; j < numCodeUpdates; j++ {
+			snapshot := shardNode.AccntState.JournalLen()
+			codeIndex := rand.Intn(numCodes)
+			code := codeArray[codeIndex]
+
+			accountIndex := rand.Intn(nrAccounts)
+			account, _ := shardNode.AccntState.LoadAccount(accounts[accountIndex])
+			oldCode := account.(state.UserAccountHandler).GetCode()
+			account.(state.UserAccountHandler).SetCode(code)
+			_ = shardNode.AccntState.SaveAccount(account)
+
+			if shouldRevert() && snapshot != 0 {
+				err := shardNode.AccntState.RevertToSnapshot(snapshot)
+				assert.Nil(t, err)
+				fmt.Printf("updated code %v to account %v and reverted\n", code, hex.EncodeToString(accounts[accountIndex]))
+				continue
+			}
+
+			codeMap[string(code)]++
+			if len(oldCode) != 0 {
+				codeMap[string(oldCode)]--
+			}
+
+			fmt.Printf("updated code %v to account %v \n", code, hex.EncodeToString(accounts[accountIndex]))
+		}
+
+		for j := 0; j < numCodeDeletes; j++ {
+			snapshot := shardNode.AccntState.JournalLen()
+			accountIndex := rand.Intn(nrAccounts)
+			account, _ := shardNode.AccntState.LoadAccount(accounts[accountIndex])
+			code := account.(state.UserAccountHandler).GetCode()
+			account.(state.UserAccountHandler).SetCode(nil)
+			_ = shardNode.AccntState.SaveAccount(account)
+
+			if shouldRevert() && snapshot != 0 {
+				err := shardNode.AccntState.RevertToSnapshot(snapshot)
+				assert.Nil(t, err)
+				fmt.Printf("removed old code %v from account %v and reverted\n", code, hex.EncodeToString(accounts[accountIndex]))
+				continue
+			}
+
+			if len(code) != 0 {
+				codeMap[string(code)]--
+			}
+
+			fmt.Printf("removed old code %v from account %v \n", code, hex.EncodeToString(accounts[accountIndex]))
+		}
+		_, _ = shardNode.AccntState.Commit()
+
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+		for j := range codeArray {
+			fmt.Printf("%v - %v \n", codeArray[j], codeMap[string(codeArray[j])])
+		}
+
+		for code := range codeMap {
+			codeHash := integrationTests.TestHasher.Compute(code)
+			tr := shardNode.TrieContainer.Get([]byte(factory2.UserAccountTrie))
+
+			if codeMap[code] != 0 {
+				val, err := tr.Get(codeHash)
+				assert.Nil(t, err)
+				assert.NotNil(t, val)
+
+				var codeEntry state.CodeEntry
+				err = integrationTests.TestMarshalizer.Unmarshal(&codeEntry, val)
+				assert.Nil(t, err)
+
+				assert.Equal(t, uint32(codeMap[code]), codeEntry.NumReferences)
+			}
+		}
+	}
+}
+
+func shouldRevert() bool {
+	return (rand.Intn(10) % 3) == 0
+}
+
+func getCodeMap(numCodes int) map[string]int {
+	codeMap := make(map[string]int)
+	for i := 0; i < numCodes; i++ {
+		code := "code" + strconv.Itoa(i)
+		codeMap[code] = 0
+	}
+
+	return codeMap
 }
