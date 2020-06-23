@@ -402,11 +402,13 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
+		TestHasher,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.SingleSigner,
 		tpn.DataPool.Headers(),
+		tpn.InterceptorsContainer,
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()

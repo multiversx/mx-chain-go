@@ -287,7 +287,7 @@ func (sdp *standardDelegationProcessor) executeManageBlsKeys(
 		if lenDelegated == 0 {
 			log.Debug("genesis delegation SC does not have staked nodes",
 				"SC owner", sc.GetOwner(),
-				"SC address", sc.Address(),
+				"SC address", getDeployedSCAddress(sc),
 				"function", addNodesFunction,
 			)
 			continue
@@ -340,7 +340,7 @@ func (sdp *standardDelegationProcessor) executeActivation(smartContracts []genes
 	for _, sc := range smartContracts {
 		log.Trace("executeActivation",
 			"SC owner", sc.GetOwner(),
-			"SC address", sc.Address(),
+			"SC address", getDeployedSCAddress(sc),
 			"shard ID", sdp.shardCoordinator.SelfId(),
 			"function", activateFunction,
 		)
@@ -353,7 +353,7 @@ func (sdp *standardDelegationProcessor) executeActivation(smartContracts []genes
 		err = sdp.ExecuteTransaction(
 			nonce,
 			sc.OwnerBytes(),
-			sc.AddressBytes(),
+			getDeployedSCAddressBytes(sc),
 			big.NewInt(0),
 			[]byte(activateFunction),
 		)
@@ -422,7 +422,7 @@ func (sdp *standardDelegationProcessor) checkDelegator(
 	sc genesis.InitialSmartContractHandler,
 ) error {
 	scQueryStakeValue := &process.SCQuery{
-		ScAddress: sc.AddressBytes(),
+		ScAddress: getDeployedSCAddressBytes(sc),
 		FuncName:  "getUserStake",
 		Arguments: [][]byte{delegator.AddressBytes()},
 	}
@@ -445,11 +445,11 @@ func (sdp *standardDelegationProcessor) checkDelegator(
 }
 
 func (sdp *standardDelegationProcessor) verifyRegisteredNodes(sc genesis.InitialSmartContractHandler) error {
-	delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(sc.AddressBytes())
+	delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(getDeployedSCAddressBytes(sc))
 	if len(delegatedNodes) == 0 {
 		log.Debug("genesis delegation SC does not have staked nodes",
 			"SC owner", sc.GetOwner(),
-			"SC address", sc.Address(),
+			"SC address", getDeployedSCAddress(sc),
 			"function", addNodesFunction,
 		)
 
@@ -473,7 +473,7 @@ func (sdp *standardDelegationProcessor) verifyOneNode(
 
 	function := "getNodeSignature"
 	scQueryBlsKeys := &process.SCQuery{
-		ScAddress: sc.AddressBytes(),
+		ScAddress: getDeployedSCAddressBytes(sc),
 		FuncName:  function,
 		Arguments: [][]byte{node.PubKeyBytes()},
 	}
@@ -485,14 +485,14 @@ func (sdp *standardDelegationProcessor) verifyOneNode(
 
 	if len(vmOutput.ReturnData) == 0 {
 		return fmt.Errorf("%w for SC %s, owner %s, function %s, node %s",
-			genesis.ErrEmptyReturnData, sc.Address(), sc.GetOwner(), function,
+			genesis.ErrEmptyReturnData, getDeployedSCAddress(sc), sc.GetOwner(), function,
 			hex.EncodeToString(node.PubKeyBytes()),
 		)
 	}
 
 	if !bytes.Equal(vmOutput.ReturnData[0], genesisSignature) {
 		return fmt.Errorf("%w for SC %s, owner %s, function %s, node %s",
-			genesis.ErrSignatureMismatch, sc.Address(), sc.GetOwner(), function,
+			genesis.ErrSignatureMismatch, getDeployedSCAddress(sc), sc.GetOwner(), function,
 			hex.EncodeToString(node.PubKeyBytes()),
 		)
 	}
