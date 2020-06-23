@@ -7,12 +7,14 @@ import (
 
 // BroadcastMessengerMock -
 type BroadcastMessengerMock struct {
-	BroadcastBlockCalled            func(data.BodyHandler, data.HeaderHandler) error
-	BroadcastHeaderCalled           func(data.HeaderHandler) error
-	SetDataForDelayBroadcastCalled  func([]byte, map[uint32][]byte, map[string][][]byte) error
-	BroadcastMiniBlocksCalled       func(map[uint32][]byte) error
-	BroadcastTransactionsCalled     func(map[string][][]byte) error
-	BroadcastConsensusMessageCalled func(*consensus.Message) error
+	BroadcastBlockCalled                     func(data.BodyHandler, data.HeaderHandler) error
+	BroadcastHeaderCalled                    func(data.HeaderHandler) error
+	PrepareBroadcastBlockDataValidatorCalled func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int) error
+	PrepareBroadcastHeaderValidatorCalled    func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int) error
+	BroadcastMiniBlocksCalled                func(map[uint32][]byte) error
+	BroadcastTransactionsCalled              func(map[string][][]byte) error
+	BroadcastConsensusMessageCalled          func(*consensus.Message) error
+	BroadcastBlockDataLeaderCalled           func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte) error
 }
 
 // BroadcastBlock -
@@ -31,14 +33,14 @@ func (bmm *BroadcastMessengerMock) BroadcastMiniBlocks(miniBlocks map[uint32][]b
 	return nil
 }
 
-// SetDataForDelayBroadcast -
-func (bmm *BroadcastMessengerMock) SetDataForDelayBroadcast(
-	headerHash []byte,
+// BroadcastBlockDataLeader -
+func (bmm *BroadcastMessengerMock) BroadcastBlockDataLeader(
+	header data.HeaderHandler,
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 ) error {
-	if bmm.SetDataForDelayBroadcastCalled != nil {
-		return bmm.SetDataForDelayBroadcastCalled(headerHash, miniBlocks, transactions)
+	if bmm.BroadcastBlockDataLeaderCalled != nil {
+		return bmm.BroadcastBlockDataLeaderCalled(header, miniBlocks, transactions)
 	}
 
 	err := bmm.BroadcastMiniBlocks(miniBlocks)
@@ -47,6 +49,42 @@ func (bmm *BroadcastMessengerMock) SetDataForDelayBroadcast(
 	}
 
 	return bmm.BroadcastTransactions(transactions)
+}
+
+// PrepareBroadcastBlockDataValidator -
+func (bmm *BroadcastMessengerMock) PrepareBroadcastBlockDataValidator(
+	header data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	idx int,
+) error {
+	if bmm.PrepareBroadcastBlockDataValidatorCalled != nil {
+		return bmm.PrepareBroadcastBlockDataValidatorCalled(
+			header,
+			miniBlocks,
+			transactions,
+			idx,
+		)
+	}
+	return nil
+}
+
+// PrepareBroadcastHeaderValidator -
+func (bmm *BroadcastMessengerMock) PrepareBroadcastHeaderValidator(
+	header data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	order int,
+) error {
+	if bmm.PrepareBroadcastHeaderValidatorCalled != nil {
+		return bmm.PrepareBroadcastHeaderValidatorCalled(
+			header,
+			miniBlocks,
+			transactions,
+			order,
+		)
+	}
+	return nil
 }
 
 // BroadcastTransactions -

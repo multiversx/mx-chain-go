@@ -230,6 +230,8 @@ func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 			log.Debug("heartbeat's go routine is stopping...")
 			return
 		case <-time.After(timeToWait):
+		case <-hbh.arg.HardforkTrigger.NotifyTriggerReceived(): //this will force an immediate broadcast of the trigger
+			//message on the network
 		}
 
 		err := hbh.sender.SendHeartbeat()

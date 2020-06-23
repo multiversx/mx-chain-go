@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,7 +40,7 @@ func TestNewP2PQuotaBlacklistProcessor_NilBlackListHandlerShouldErr(t *testing.T
 	t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
 		nil,
 		1,
 		1,
@@ -57,7 +58,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdNumReceivedFloodShouldErr
 	t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
 		&mock.PeerBlackListHandlerStub{},
 		0,
 		1,
@@ -75,7 +76,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdSizeReceivedFloodShouldEr
 	t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
 		&mock.PeerBlackListHandlerStub{},
 		1,
 		0,
@@ -93,7 +94,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidNumFloodingRoundsShouldErr(t *test
 	t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
 		&mock.PeerBlackListHandlerStub{},
 		1,
 		1,
@@ -111,7 +112,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidBanDurationShouldErr(t *testing.T)
 	t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
 		&mock.PeerBlackListHandlerStub{},
 		1,
 		1,
@@ -129,7 +130,7 @@ func TestNewP2PQuotaBlacklistProcessor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pbp, err := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{},
+		testscommon.NewCacherStub(),
 		&mock.PeerBlackListHandlerStub{},
 		1,
 		1,
@@ -152,7 +153,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaUnderThresholdShouldNotCallGetOrPut(
 	thresholdSize := uint64(20)
 
 	pbp, _ := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			GetCalled: func(key []byte) (interface{}, bool) {
 				assert.Fail(t, "should not have called get")
 				return nil, false
@@ -183,7 +184,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdInexistentDataOnGetShou
 	putCalled := false
 	identifier := core.PeerID("identifier")
 	pbp, _ := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			GetCalled: func(key []byte) (interface{}, bool) {
 				return nil, false
 			},
@@ -218,7 +219,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdDataNotValidOnGetShould
 	putCalled := false
 	identifier := core.PeerID("identifier")
 	pbp, _ := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			GetCalled: func(key []byte) (interface{}, bool) {
 				return "invalid data", true
 			},
@@ -254,7 +255,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaShouldIncrement(t *testing.T) {
 	identifier := core.PeerID("identifier")
 	existingValue := uint32(445)
 	pbp, _ := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			GetCalled: func(key []byte) (interface{}, bool) {
 				return existingValue, true
 			},
@@ -289,7 +290,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaForSelfShouldNotIncrement(t *testing
 	putCalled := false
 	existingValue := uint32(445)
 	pbp, _ := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			GetCalled: func(key []byte) (interface{}, bool) {
 				return existingValue, true
 			},
@@ -323,7 +324,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsRemoveNilValueKey(t *testing.
 	nilValKey := "nil val key"
 	removedCalled := false
 	pbp, _ := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			KeysCalled: func() [][]byte {
 				return [][]byte{[]byte(nilValKey)}
 			},
@@ -359,7 +360,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsShouldRemoveInvalidValueKey(t
 	invalidValKey := "invalid val key"
 	removedCalled := false
 	pbp, _ := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			KeysCalled: func() [][]byte {
 				return [][]byte{[]byte(invalidValKey)}
 			},
@@ -398,7 +399,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsUnderNumFloodingRoundsShouldN
 	upsertCalled := false
 	duration := time.Second * 3892
 	pbp, _ := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			KeysCalled: func() [][]byte {
 				return [][]byte{[]byte(key)}
 			},
@@ -443,7 +444,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsOverNumFloodingRoundsShouldBl
 	upsertCalled := false
 	duration := time.Second * 3892
 	pbp, _ := blackList.NewP2PBlackListProcessor(
-		&mock.CacherStub{
+		&testscommon.CacherStub{
 			KeysCalled: func() [][]byte {
 				return [][]byte{[]byte(key)}
 			},

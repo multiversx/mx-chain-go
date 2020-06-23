@@ -24,10 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -47,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 const blsConsensusType = "bls"
@@ -141,7 +138,7 @@ func createTestBlockChain() data.ChainHandler {
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1, 0)
+	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
 
 	unit, _ := storageUnit.NewStorageUnit(cache, memorydb.New())
 	return unit
@@ -157,51 +154,6 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
 	return store
-}
-
-func createTestShardDataPool() dataRetriever.PoolsHolder {
-	txPool, _ := txpool.NewShardedTxPool(
-		txpool.ArgShardedTxPool{
-			Config: storageUnit.CacheConfig{
-				Capacity:             100000,
-				SizePerSender:        1000,
-				SizeInBytes:          1000000000,
-				SizeInBytesPerSender: 10000000,
-				Shards:               16,
-			},
-			MinGasPrice:    200000000000,
-			NumberOfShards: 1,
-		},
-	)
-
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache})
-	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.LRUCache})
-
-	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
-
-	cacherCfg := storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	cacherCfg = storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache}
-	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	cacherCfg = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	currTxs, _ := dataPool.NewCurrentBlockPool()
-
-	dPool, _ := dataPool.NewDataPool(
-		txPool,
-		uTxPool,
-		rewardsTxPool,
-		hdrPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		currTxs,
-	)
-
-	return dPool
 }
 
 func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
@@ -362,7 +314,8 @@ func createConsensusOnlyNode(
 		time.Unix(startTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(roundTime),
-		syncer)
+		syncer,
+		0)
 
 	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 		GenesisTime:        time.Unix(startTime, 0),
@@ -438,7 +391,7 @@ func createConsensusOnlyNode(
 		node.WithTxSingleSigner(singlesigner),
 		node.WithPubKey(privKey.GeneratePublic()),
 		node.WithBlockProcessor(blockProcessor),
-		node.WithDataPool(createTestShardDataPool()),
+		node.WithDataPool(testscommon.CreatePoolsHolder(1, 0)),
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
@@ -459,6 +412,8 @@ func createConsensusOnlyNode(
 		node.WithSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
 		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
+		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 
 	if err != nil {

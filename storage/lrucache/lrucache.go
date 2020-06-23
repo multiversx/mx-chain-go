@@ -3,7 +3,7 @@ package lrucache
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache/capacity"
 	lru "github.com/hashicorp/golang-lru"
@@ -117,14 +117,14 @@ func (c *lruCache) Peek(key []byte) (value interface{}, ok bool) {
 // HasOrAdd checks if a key is in the cache  without updating the
 // recent-ness or deleting it for being stale,  and if not, adds the value.
 // Returns whether found and whether an eviction occurred.
-func (c *lruCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (found, evicted bool) {
-	found, evicted = c.cache.AddSizedIfMissing(string(key), value, int64(sizeInBytes))
+func (c *lruCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
+	has, _ = c.cache.AddSizedIfMissing(string(key), value, int64(sizeInBytes))
 
-	if !found {
+	if !has {
 		c.callAddedDataHandlers(key, value)
 	}
 
-	return
+	return has, !has
 }
 
 func (c *lruCache) callAddedDataHandlers(key []byte, value interface{}) {

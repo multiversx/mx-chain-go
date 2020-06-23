@@ -1287,6 +1287,15 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
+	body = createBlockBodyFromNodesCoordinator(ihgs, 2)
+	header = &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        3,
+	}
+	ihgs.EpochStartPrepare(header, body)
+	ihgs.EpochStartAction(header)
+
 	nodesEpoch1, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)
 	require.Nil(t, err)
 

@@ -11,12 +11,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockTxArgument() *processor.ArgTxInterceptorProcessor {
 	return &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: &mock.ShardedDataStub{},
+		ShardedDataCache: testscommon.NewShardedDataStub(),
 		TxValidator:      &mock.TxValidatorStub{},
 	}
 }
@@ -122,7 +123,7 @@ func TestTxInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 
 	txip, _ := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
-	err := txip.Save(nil, "")
+	err := txip.Save(nil, "", "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -153,14 +154,14 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 		},
 	}
 	arg := createMockTxArgument()
-	shardedDataCache := arg.ShardedDataCache.(*mock.ShardedDataStub)
+	shardedDataCache := arg.ShardedDataCache.(*testscommon.ShardedDataStub)
 	shardedDataCache.AddDataCalled = func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
 		addedWasCalled = true
 	}
 
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
 
-	err := txip.Save(txInterceptedData, "")
+	err := txip.Save(txInterceptedData, "", "")
 
 	assert.Nil(t, err)
 	assert.True(t, addedWasCalled)

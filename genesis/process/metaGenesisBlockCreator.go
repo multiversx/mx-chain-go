@@ -58,6 +58,8 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		return nil, err
 	}
 
+	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
+
 	header := &block.MetaBlock{
 		RootHash:               rootHash,
 		PrevHash:               rootHash,
@@ -71,6 +73,9 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		ChainID:                []byte(arg.ChainID),
 		SoftwareVersion:        []byte(""),
 		TimeStamp:              arg.GenesisTime,
+		Round:                  round,
+		Nonce:                  nonce,
+		Epoch:                  epoch,
 	}
 	header.EpochStart.Economics = block.Economics{
 		TotalSupply:       big.NewInt(0).Set(arg.Economics.GenesisTotalSupply()),
@@ -130,6 +135,7 @@ func createMetaGenesisAfterHardFork(
 	if err != nil {
 		return nil, err
 	}
+	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	metaHdr, ok := hdrHandler.(*block.MetaBlock)
 	if !ok {
@@ -147,6 +153,11 @@ func createMetaGenesisAfterHardFork(
 	}
 	saveGenesisBodyToStorage(processors.txCoordinator, bodyHandler)
 
+	err = saveGenesisMetaToStorage(arg.Store, arg.Marshalizer, metaHdr)
+	if err != nil {
+		return nil, err
+	}
+
 	return metaHdr, nil
 }
 
@@ -156,7 +167,7 @@ func saveGenesisMetaToStorage(
 	genesisBlock data.HeaderHandler,
 ) error {
 
-	epochStartID := core.EpochStartIdentifier(0)
+	epochStartID := core.EpochStartIdentifier(genesisBlock.GetEpoch())
 	metaHdrStorage := storageService.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
 		return process.ErrNilStorage

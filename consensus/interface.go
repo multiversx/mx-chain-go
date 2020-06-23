@@ -14,6 +14,7 @@ const BlsConsensusType = "bls"
 // Rounder defines the actions which should be handled by a round implementation
 type Rounder interface {
 	Index() int64
+	BeforeGenesis() bool
 	// UpdateRound updates the index and the time stamp of the round depending of the genesis time and the current time given
 	UpdateRound(time.Time, time.Time)
 	TimeStamp() time.Time
@@ -61,7 +62,9 @@ type BroadcastMessenger interface {
 	BroadcastMiniBlocks(map[uint32][]byte) error
 	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
-	SetDataForDelayBroadcast(headerHash []byte, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
+	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
+	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, order int) error
+	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int) error
 	IsInterfaceNil() bool
 }
 
@@ -103,5 +106,11 @@ type HeadersPoolSubscriber interface {
 type PeerHonestyHandler interface {
 	Increase(pk string, topic string, value float64)
 	Decrease(pk string, topic string, value float64)
+	IsInterfaceNil() bool
+}
+
+// InterceptorSubscriber can subscribe for notifications when data is received by an interceptor
+type InterceptorSubscriber interface {
+	RegisterHandler(handler func(toShard uint32, data []byte))
 	IsInterfaceNil() bool
 }

@@ -48,6 +48,9 @@ type baseForkDetector struct {
 	blockTracker       process.BlockTracker
 	forkDetector       forkDetector
 	maxForkHeaderEpoch uint32
+	genesisNonce       uint64
+	genesisRound       uint64
+	genesisEpoch       uint32
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -330,7 +333,10 @@ func (bfd *baseForkDetector) lastCheckpoint() *checkpointInfo {
 	lastIndex := len(bfd.fork.checkpoint) - 1
 	if lastIndex < 0 {
 		bfd.mutFork.RUnlock()
-		return &checkpointInfo{}
+		return &checkpointInfo{
+			nonce: bfd.genesisNonce,
+			round: bfd.genesisRound,
+		}
 	}
 	lastCheckpoint := bfd.fork.checkpoint[lastIndex]
 	bfd.mutFork.RUnlock()
@@ -351,11 +357,15 @@ func (bfd *baseForkDetector) RestoreToGenesis() {
 	bfd.mutHeaders.Unlock()
 
 	bfd.mutFork.Lock()
-	checkpoint := &checkpointInfo{}
+
+	checkpoint := &checkpointInfo{
+		nonce: bfd.genesisNonce,
+		round: bfd.genesisRound,
+	}
 	bfd.fork.checkpoint = []*checkpointInfo{checkpoint}
 	bfd.fork.finalCheckpoint = checkpoint
-	bfd.fork.probableHighestNonce = 0
-	bfd.fork.highestNonceReceived = 0
+	bfd.fork.probableHighestNonce = bfd.genesisNonce
+	bfd.fork.highestNonceReceived = bfd.genesisNonce
 	bfd.mutFork.Unlock()
 }
 
@@ -642,7 +652,7 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 }
 
 func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
-	genesisTime := int64(headerHandler.GetTimeStamp() - headerHandler.GetRound()*uint64(bfd.rounder.TimeDuration().Seconds()))
+	genesisTime := int64(headerHandler.GetTimeStamp() - (headerHandler.GetRound()-bfd.genesisRound)*uint64(bfd.rounder.TimeDuration().Seconds()))
 	return genesisTime
 }
 

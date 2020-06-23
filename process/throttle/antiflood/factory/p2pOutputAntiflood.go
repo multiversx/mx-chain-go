@@ -23,7 +23,7 @@ func NewP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandle
 
 func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
-	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
+	antifloodCache, err := storageUnit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}

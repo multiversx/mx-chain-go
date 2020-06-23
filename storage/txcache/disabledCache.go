@@ -40,6 +40,11 @@ func (cache *DisabledCache) Len() int {
 	return 0
 }
 
+// NumBytes returns zero
+func (cache *DisabledCache) NumBytes() int {
+	return 0
+}
+
 // ForEachTransaction does nothing
 func (cache *DisabledCache) ForEachTransaction(_ ForEachTransaction) {
 }
@@ -69,7 +74,7 @@ func (cache *DisabledCache) Peek(_ []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd returns false, does nothing
-func (cache *DisabledCache) HasOrAdd(_ []byte, _ interface{}, _ int) (ok, evicted bool) {
+func (cache *DisabledCache) HasOrAdd(_ []byte, _ interface{}, _ int) (has, added bool) {
 	return false, false
 }
 
@@ -101,6 +106,10 @@ func (cache *DisabledCache) NotifyAccountNonce(_ []byte, _ uint64) {
 
 // ImmunizeTxsAgainstEviction does nothing
 func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
+}
+
+// Diagnose does nothing
+func (cache *DisabledCache) Diagnose(_ bool) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
