@@ -42,7 +42,7 @@ var ErrLowerNonceInTransaction = errors.New("lower nonce in transaction")
 var ErrInsufficientFunds = errors.New("insufficient funds")
 
 // ErrInsufficientFee signals that the current balance doesn't have the required transaction fee
-var ErrInsufficientFee = errors.New("insufficient fees")
+var ErrInsufficientFee = errors.New("insufficient balance for fees")
 
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
