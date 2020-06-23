@@ -390,7 +390,7 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	machineID, err := machineid.ID()
+	machineID, err := machineid.ProtectedID(app.Name)
 	if err != nil {
 		log.Warn("error fetching machine id", "error", err)
 		machineID = "unknown"
