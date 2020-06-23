@@ -919,6 +919,9 @@ func (sc *scProcessor) createSCRForSender(
 	acntSnd state.UserAccountHandler,
 	callType vmcommon.CallType,
 ) (*smartContractResult.SmartContractResult, *big.Int) {
+	if gasRefund == nil {
+		gasRefund = big.NewInt(0)
+	}
 	storageFreeRefund := big.NewInt(0).Mul(gasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
 
 	consumedFee := big.NewInt(0)
@@ -1139,6 +1142,11 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	if err != nil {
 		return returnCode, err
 	}
+	sndAcc, err := sc.getAccountFromAddress(scr.SndAddr)
+	if err != nil {
+		return returnCode, err
+	}
+
 	if check.IfNil(dstAcc) {
 		err = process.ErrNilSCDestAccount
 		return returnCode, err
@@ -1158,22 +1166,22 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	case process.MoveBalance:
 		err = sc.processSimpleSCR(scr, dstAcc)
 		if err != nil {
-			return returnCode, sc.ProcessIfError(nil, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
+			return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
 		}
 		return vmcommon.Ok, nil
 	case process.SCDeployment:
 		err = process.ErrSCDeployFromSCRIsNotPermitted
-		return returnCode, sc.ProcessIfError(nil, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
+		return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
 	case process.SCInvoking:
-		returnCode, err = sc.ExecuteSmartContractTransaction(scr, nil, dstAcc)
+		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
-		returnCode, err = sc.ExecuteSmartContractTransaction(scr, nil, dstAcc)
+		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	}
 
 	err = process.ErrWrongTransaction
-	return returnCode, sc.ProcessIfError(nil, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
+	return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
 }
 
 func (sc *scProcessor) processSimpleSCR(
