@@ -32,7 +32,7 @@ type BlockChainHookStub struct {
 	GetAllStateCalled             func(address []byte) (map[string][]byte, error)
 }
 
-// AccountExists -
+// GetAccount -
 func (b *BlockChainHookStub) AccountExists(address []byte) (bool, error) {
 	if b.AccountExtistsCalled != nil {
 		return b.AccountExtistsCalled(address)

@@ -455,22 +455,35 @@ func deployInitialSmartContract(
 		return err
 	}
 
-	argDeploy := intermediate.ArgDeployProcessor{
-		Executor:       txExecutor,
-		PubkeyConv:     arg.PubkeyConv,
-		BlockchainHook: processors.blockchainHook,
-		QueryService:   processors.queryService,
-	}
-	deployProc, err := intermediate.NewDeployProcessor(argDeploy)
-	if err != nil {
-		return err
-	}
+	var deployProc genesis.DeployProcessor
 
 	switch sc.GetType() {
+	case genesis.DNSType:
+		deployMetrics.numOtherTypes++
+		argDeployLibrary := intermediate.ArgDeployLibrarySC{
+			Executor:         txExecutor,
+			PubkeyConv:       arg.PubkeyConv,
+			BlockchainHook:   processors.blockchainHook,
+			ShardCoordinator: arg.ShardCoordinator,
+		}
+		deployProc, err = intermediate.NewDeployLibrarySC(argDeployLibrary)
+		if err != nil {
+			return err
+		}
 	case genesis.DelegationType:
 		deployMetrics.numDelegation++
+		fallthrough
 	default:
-		deployMetrics.numOtherTypes++
+		argDeploy := intermediate.ArgDeployProcessor{
+			Executor:       txExecutor,
+			PubkeyConv:     arg.PubkeyConv,
+			BlockchainHook: processors.blockchainHook,
+			QueryService:   processors.queryService,
+		}
+		deployProc, err = intermediate.NewDeployProcessor(argDeploy)
+		if err != nil {
+			return err
+		}
 	}
 
 	return deployProc.Deploy(sc)

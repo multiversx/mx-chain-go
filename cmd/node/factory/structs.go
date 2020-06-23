@@ -1048,6 +1048,7 @@ func newBlockProcessor(
 			processArgs.maxSizeInBytes,
 			txLogsProcessor,
 			processArgs.version,
+			processArgs.smartContractParser,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1106,12 +1107,18 @@ func newShardBlockProcessor(
 	maxSizeInBytes uint32,
 	txLogsProcessor process.TransactionLogProcessor,
 	version string,
+	smartContractParser genesis.InitialSmartContractParser,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
+	mapDNSAddresses, err := smartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+	if err != nil {
+		return nil, err
+	}
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
+		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     core.InternalMarshalizer,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
