@@ -1762,6 +1762,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 		}
 		return shardCoordinator.SelfId() + 1
 	}
+
 	executeCalled := false
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
