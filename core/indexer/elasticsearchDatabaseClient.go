@@ -165,6 +165,7 @@ func (dc *databaseClient) DoMultiGet(obj object, index string) (object, error) {
 		log.Warn("indexer: response body",
 			"body", string(responseBody))
 		log.Warn("indexer:cannot read from response body", "error", err)
+		return nil, err
 	}
 
 	var decodedBody object
