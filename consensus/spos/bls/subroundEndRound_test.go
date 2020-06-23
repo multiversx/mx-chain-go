@@ -32,6 +32,7 @@ func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bls.Su
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 
 	srEndRound, _ := bls.NewSubroundEndRound(
@@ -81,6 +82,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 	container.SetBlockchain(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -113,6 +115,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 	container.SetBlockProcessor(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -145,6 +148,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 
 	sr.ConsensusState = nil
@@ -178,6 +182,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 	container.SetMultiSigner(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -210,6 +215,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 	container.SetRounder(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -242,6 +248,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 	container.SetSyncTimer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
@@ -274,6 +281,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 
 	srEndRound, err := bls.NewSubroundEndRound(

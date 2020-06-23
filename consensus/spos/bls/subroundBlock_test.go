@@ -29,6 +29,7 @@ func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 }
 
@@ -331,6 +332,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	sr.Body = &block.Body{}
 	r := sr.ReceivedBlockBody(cnsMsg)
@@ -367,6 +369,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
@@ -417,6 +420,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
@@ -447,6 +451,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	sr.Header = hdr
 	sr.Body = blkBody
@@ -473,6 +478,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	sr.Header = hdr
 	sr.Body = blkBody
@@ -507,6 +513,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	sr.Header = hdr
 	sr.Body = blkBody
@@ -872,6 +879,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	sr.Header = hdr
 	sr.Body = blkBody
