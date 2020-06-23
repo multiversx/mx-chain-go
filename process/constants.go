@@ -94,10 +94,10 @@ const MaxShardNoncesBehind = 15
 const MaxRoundsWithoutNewBlockReceived = 10
 
 // MaxMetaHeadersAllowedInOneShardBlock defines the maximum meta headers allowed to be included in one shard block
-const MaxMetaHeadersAllowedInOneShardBlock = 100
+const MaxMetaHeadersAllowedInOneShardBlock = 50
 
 // MaxShardHeadersAllowedInOneMetaBlock defines the maximum shard headers allowed to be included in one meta block
-const MaxShardHeadersAllowedInOneMetaBlock = 100
+const MaxShardHeadersAllowedInOneMetaBlock = 50
 
 // MaxNumOfTxsToSelect defines the maximum number of transactions that should be selected from the cache
 const MaxNumOfTxsToSelect = 30000
