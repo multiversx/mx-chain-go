@@ -3,6 +3,7 @@ package antiflood
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -181,6 +182,26 @@ func (af *p2pAntiflood) SetDebugger(debugger process.AntifloodDebugger) error {
 	af.mutDebugger.Unlock()
 
 	return nil
+}
+
+// BlacklistPeer will add a peer to the black list
+func (af *p2pAntiflood) BlacklistPeer(peer core.PeerID, reason string, duration time.Duration) {
+	err := af.blacklistHandler.AddWithSpan(peer, duration)
+	if err != nil {
+		log.Warn("error adding in blacklist",
+			"pid", peer.Pretty(),
+			"time", duration,
+			"reason", reason,
+			"error", "err",
+		)
+		return
+	}
+
+	log.Debug("blacklisted peer",
+		"pid", peer.Pretty(),
+		"time", duration,
+		"reason", reason,
+	)
 }
 
 // Close will call the close function on all sub components

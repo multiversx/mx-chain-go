@@ -599,7 +599,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesShouldCheckFirstInSnapshotsDB(t *t
 			getDbCalled = true
 			return nil
 		},
-		GetSnapshotThatContainsHashCalled: func(rootHash []byte) data.DBWriteCacher {
+		DatabaseCalled: func() data.DBWriteCacher {
 			getSnapshotCalled = true
 			return mock.NewMemDbMock()
 		},

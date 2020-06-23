@@ -38,7 +38,7 @@ func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
 	}
 
 	// tx is not processed due to the invalid sc code
-	_ = testContext.TxProcessor.ProcessTransaction(tx)
+	_, _ = testContext.TxProcessor.ProcessTransaction(tx)
 
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
@@ -73,7 +73,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
-	err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -124,7 +124,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
-	err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()

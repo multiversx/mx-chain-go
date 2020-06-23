@@ -37,7 +37,7 @@ func DeployContract(
 		scCode,
 	)
 
-	err := txProc.ProcessTransaction(tx)
+	_, err := txProc.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}

@@ -84,6 +84,7 @@ type networkMessenger struct {
 	mutTopics           sync.RWMutex
 	processors          map[string]p2p.MessageProcessor
 	topics              map[string]*pubsub.Topic
+	subscriptions       map[string]*pubsub.Subscription
 	outgoingPLB         p2p.ChannelLoadBalancer
 	poc                 *peersOnChannel
 	goRoutinesThrottler *throttler.NumGoRoutinesThrottler
@@ -176,6 +177,7 @@ func createMessenger(
 		p2pHost:           NewConnectableHost(p2pHost),
 		processors:        make(map[string]p2p.MessageProcessor),
 		topics:            make(map[string]*pubsub.Topic),
+		subscriptions:     make(map[string]*pubsub.Subscription),
 		outgoingPLB:       loadBalancer.NewOutgoingChannelLoadBalancer(),
 		peerShardResolver: &unknownPeerShardResolver{},
 		messageIdCacher:   &disabled.Cacher{},
@@ -239,7 +241,7 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 		return err
 	}
 
-	go func(pubsub *pubsub.PubSub, plb p2p.ChannelLoadBalancer) {
+	go func(plb p2p.ChannelLoadBalancer) {
 		for {
 			select {
 			case <-time.After(durationBetweenSends):
@@ -269,7 +271,7 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 				log.Trace("error sending data", "error", errPublish)
 			}
 		}
-	}(netMes.pb, netMes.outgoingPLB)
+	}(netMes.outgoingPLB)
 
 	return nil
 }
@@ -576,6 +578,7 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		return fmt.Errorf("%w for topic %s", err, name)
 	}
 
+	netMes.subscriptions[name] = subscrRequest
 	if createChannelForTopic {
 		err = netMes.outgoingPLB.AddChannel(name)
 	}
@@ -586,6 +589,10 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 		for {
 			_, errSubscrNext = subscrRequest.Next(netMes.ctx)
 			if errSubscrNext != nil {
+				log.Debug("closed subscription",
+					"topic", subscrRequest.Topic(),
+					"err", errSubscrNext,
+				)
 				return
 			}
 		}
@@ -696,12 +703,14 @@ func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor) fun
 			return false
 		}
 
-		err = handler.ProcessReceivedMessage(wrappedMsg, core.PeerID(pid))
+		fromConnectedPeer := core.PeerID(pid)
+		err = handler.ProcessReceivedMessage(wrappedMsg, fromConnectedPeer)
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
 				"topics", message.TopicIDs,
-				"pid", p2p.MessageOriginatorPid(wrappedMsg),
+				"originator", p2p.MessageOriginatorPid(wrappedMsg),
+				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 				"seq no", p2p.MessageOriginatorSeq(wrappedMsg),
 			)
 
@@ -727,9 +736,36 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 			return err
 		}
 
-		netMes.processors[topic] = nil
+		delete(netMes.processors, topic)
 	}
 	return nil
+}
+
+// UnjoinAllTopics call close on all topics
+func (netMes *networkMessenger) UnjoinAllTopics() error {
+	netMes.mutMessageIdCacher.Lock()
+	defer netMes.mutMessageIdCacher.Unlock()
+
+	var errFound error
+	for topicName, t := range netMes.topics {
+		subscr := netMes.subscriptions[topicName]
+		if subscr != nil {
+			subscr.Cancel()
+		}
+
+		err := t.Close()
+		if err != nil {
+			log.Warn("error closing topic",
+				"topic", topicName,
+				"error", err,
+			)
+			errFound = err
+		}
+
+		delete(netMes.topics, topicName)
+	}
+
+	return errFound
 }
 
 // UnregisterMessageProcessor unregisters a message processes on a topic
@@ -775,7 +811,8 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 			log.Trace("p2p validator",
 				"error", err.Error(),
 				"topics", msg.Topics(),
-				"pid", p2p.MessageOriginatorPid(msg),
+				"originator", p2p.MessageOriginatorPid(msg),
+				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 				"seq no", p2p.MessageOriginatorSeq(msg),
 			)
 		}

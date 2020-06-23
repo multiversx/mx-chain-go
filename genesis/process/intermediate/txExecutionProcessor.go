@@ -53,7 +53,8 @@ func (tep *txExecutionProcessor) ExecuteTransaction(
 		Signature: nil,
 	}
 
-	return tep.txProcessor.ProcessTransaction(tx)
+	_, err := tep.txProcessor.ProcessTransaction(tx)
+	return err
 }
 
 // GetNonce returns the current nonce of the provided sender account

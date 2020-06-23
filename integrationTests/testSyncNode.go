@@ -112,11 +112,13 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initBlockProcessorWithSync()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
+		TestHasher,
 		tpn.Messenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.SingleSigner,
 		tpn.DataPool.Headers(),
+		tpn.InterceptorsContainer,
 	)
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()

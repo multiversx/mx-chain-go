@@ -43,10 +43,10 @@ type ArgsEpochStartInterceptorContainer struct {
 	AddressPubkeyConv      core.PubkeyConverter
 	NonceConverter         typeConverters.Uint64ByteSliceConverter
 	ChainID                []byte
+	ArgumentsParser        process.ArgumentsParser
 }
 
-// NewEpochStartInterceptorsContainer will return a real interceptors container factory, but will many disabled
-// components
+// NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
 func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, error) {
 	nodesCoordinator := disabled.NewNodesCoordinator()
 	storer := disabled.NewChainStorer()
@@ -95,6 +95,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		AntifloodHandler:        antiFloodHandler,
 		NonceConverter:          args.NonceConverter,
+		ArgumentsParser:         args.ArgumentsParser,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
@@ -103,6 +104,11 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	}
 
 	container, err := interceptorsContainerFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(container)
 	if err != nil {
 		return nil, err
 	}

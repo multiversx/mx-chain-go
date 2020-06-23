@@ -31,4 +31,5 @@ type ArgInterceptedDataFactory struct {
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	ArgsParser              process.ArgumentsParser
 }

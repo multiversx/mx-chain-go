@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,7 +52,7 @@ func createMockArgument(
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &mock.HasherMock{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
-		DataPool:                 mock.NewPoolsHolderMock(),
+		DataPool:                 testscommon.NewPoolsHolderMock(),
 		TxLogsProcessor:          &mock.TxLogProcessorMock{},
 		VirtualMachineConfig:     config.VirtualMachineConfig{},
 		HardForkConfig:           config.HardforkConfig{},
@@ -60,9 +61,17 @@ func createMockArgument(
 				BaseIssuingCost: "5000000000000000000000",
 				OwnerAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				ProposalCost:     "500",
+				NumNodes:         100,
+				MinQuorum:        50,
+				MinPassThreshold: 50,
+				MinVetoThreshold: 50,
+			},
 		},
 		TrieStorageManagers: trieStorageManagers,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
+		ImportStartHandler:  &mock.ImportStartHandlerStub{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

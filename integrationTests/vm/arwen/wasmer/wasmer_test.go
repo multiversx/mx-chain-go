@@ -106,7 +106,7 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 		gasLimit,
 		arwen.CreateDeployTxData(scCode),
 	)
-	err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 
 	wasmVM, _ := testContext.VMContainer.Get(factory.ArwenVirtualMachine)
@@ -151,6 +151,6 @@ func defaultVMInput(arguments [][]byte) vmcommon.VMInput {
 
 func closeVM(wasmvm vmcommon.VMExecutionHandler) {
 	if asCloser, ok := wasmvm.(interface{ Close() error }); ok {
-		asCloser.Close()
+		_ = asCloser.Close()
 	}
 }

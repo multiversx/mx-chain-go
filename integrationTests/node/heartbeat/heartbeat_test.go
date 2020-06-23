@@ -274,7 +274,6 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 			},
 		},
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
-		PeerBlackListHandler:               &mock.PeerBlackListHandlerStub{},
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,

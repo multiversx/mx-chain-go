@@ -2,9 +2,11 @@ package node
 
 import (
 	"io"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
@@ -43,6 +45,7 @@ type P2PAntifloodHandler interface {
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	ApplyConsensusSize(size int)
+	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
 }
 
@@ -59,6 +62,8 @@ type HardforkTrigger interface {
 	RecordedTriggerMessage() ([]byte, bool)
 	Trigger(epoch uint32) error
 	CreateData() []byte
+	AddCloser(closer update.Closer) error
+	NotifyTriggerReceived() <-chan struct{}
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }

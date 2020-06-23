@@ -122,5 +122,14 @@ var ErrNilSystemSCConfig = errors.New("nil system sc config")
 // ErrNilValidatorAccountsDB signals that nil validator accounts DB was provided
 var ErrNilValidatorAccountsDB = errors.New("nil validator accounts DB")
 
+// ErrInvalidStartEndVoteNonce signals that invalid arguments where passed for start or end vote nonce
+var ErrInvalidStartEndVoteNonce = errors.New("invalid start/end vote nonce")
+
+// ErrEmptyStorage signals that the storage is empty for given key
+var ErrEmptyStorage = errors.New("storage is nil for given key")
+
+// ErrVotedForAnExpiredProposal signals that voting was done for an expired proposal
+var ErrVotedForAnExpiredProposal = errors.New("voted for an expired proposal")
+
 // ErrNilPublicKey signals that nil public key has been provided
 var ErrNilPublicKey = errors.New("nil public key")

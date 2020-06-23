@@ -26,12 +26,11 @@ var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
-	PubkeyConv       core.PubkeyConverter
-	Hasher           hashing.Hasher
-	ProtoMarshalizer marshal.Marshalizer
-	VmMarshalizer    marshal.Marshalizer
-	PeerState        state.AccountsAdapter
-	BaseState        state.AccountsAdapter
+	PubkeyConv  core.PubkeyConverter
+	Hasher      hashing.Hasher
+	Marshalizer marshal.Marshalizer
+	PeerState   state.AccountsAdapter
+	BaseState   state.AccountsAdapter
 
 	ArgParser   process.ArgumentsParser
 	CurrTxs     dataRetriever.TransactionCacher
@@ -42,12 +41,11 @@ type ArgStakingToPeer struct {
 // stakingToPeer defines the component which will translate changes from staking SC state
 // to validator statistics trie
 type stakingToPeer struct {
-	pubkeyConv       core.PubkeyConverter
-	hasher           hashing.Hasher
-	protoMarshalizer marshal.Marshalizer
-	vmMarshalizer    marshal.Marshalizer
-	peerState        state.AccountsAdapter
-	baseState        state.AccountsAdapter
+	pubkeyConv  core.PubkeyConverter
+	hasher      hashing.Hasher
+	marshalizer marshal.Marshalizer
+	peerState   state.AccountsAdapter
+	baseState   state.AccountsAdapter
 
 	argParser    process.ArgumentsParser
 	currTxs      dataRetriever.TransactionCacher
@@ -65,18 +63,17 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	}
 
 	st := &stakingToPeer{
-		pubkeyConv:       args.PubkeyConv,
-		hasher:           args.Hasher,
-		protoMarshalizer: args.ProtoMarshalizer,
-		vmMarshalizer:    args.VmMarshalizer,
-		peerState:        args.PeerState,
-		baseState:        args.BaseState,
-		argParser:        args.ArgParser,
-		currTxs:          args.CurrTxs,
-		scQuery:          args.ScQuery,
-		startRating:      args.RatingsData.StartRating(),
-		unJailRating:     args.RatingsData.StartRating(),
-		jailRating:       args.RatingsData.MinRating(),
+		pubkeyConv:   args.PubkeyConv,
+		hasher:       args.Hasher,
+		marshalizer:  args.Marshalizer,
+		peerState:    args.PeerState,
+		baseState:    args.BaseState,
+		argParser:    args.ArgParser,
+		currTxs:      args.CurrTxs,
+		scQuery:      args.ScQuery,
+		startRating:  args.RatingsData.StartRating(),
+		unJailRating: args.RatingsData.StartRating(),
+		jailRating:   args.RatingsData.MinRating(),
 	}
 
 	return st, nil
@@ -89,10 +86,7 @@ func checkIfNil(args ArgStakingToPeer) error {
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(args.ProtoMarshalizer) {
-		return process.ErrNilMarshalizer
-	}
-	if check.IfNil(args.VmMarshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
 	if check.IfNil(args.PeerState) {
@@ -170,7 +164,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		}
 
 		var stakingData systemSmartContracts.StakedData
-		err = stp.vmMarshalizer.Unmarshal(&stakingData, data)
+		err = stp.marshalizer.Unmarshal(&stakingData, data)
 		if err != nil {
 			return err
 		}
@@ -233,7 +227,7 @@ func (stp *stakingToPeer) updatePeerState(
 			account.SetTempRating(stp.unJailRating)
 		}
 
-		if !isValidator && account.GetUnStakedEpoch() == 0 {
+		if !isValidator && account.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
 			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.UnJailedNonce))
 		}
 	}

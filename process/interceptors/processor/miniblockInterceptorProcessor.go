@@ -1,6 +1,8 @@
 package processor
 
 import (
+	"sync"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -19,11 +21,13 @@ var log = logger.GetOrCreate("process/interceptors/processor")
 
 // MiniblockInterceptorProcessor is the processor used when intercepting miniblocks
 type MiniblockInterceptorProcessor struct {
-	miniblockCache   storage.Cacher
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	shardCoordinator sharding.Coordinator
-	whiteListHandler process.WhiteListHandler
+	miniblockCache     storage.Cacher
+	marshalizer        marshal.Marshalizer
+	hasher             hashing.Hasher
+	shardCoordinator   sharding.Coordinator
+	whiteListHandler   process.WhiteListHandler
+	registeredHandlers []func(topic string, hash []byte, data interface{})
+	mutHandlers        sync.RWMutex
 }
 
 // NewMiniblockInterceptorProcessor creates a new MiniblockInterceptorProcessor instance
@@ -48,11 +52,12 @@ func NewMiniblockInterceptorProcessor(argument *ArgMiniblockInterceptorProcessor
 	}
 
 	return &MiniblockInterceptorProcessor{
-		miniblockCache:   argument.MiniblockCache,
-		marshalizer:      argument.Marshalizer,
-		hasher:           argument.Hasher,
-		shardCoordinator: argument.ShardCoordinator,
-		whiteListHandler: argument.WhiteListHandler,
+		miniblockCache:     argument.MiniblockCache,
+		marshalizer:        argument.Marshalizer,
+		hasher:             argument.Hasher,
+		shardCoordinator:   argument.ShardCoordinator,
+		whiteListHandler:   argument.WhiteListHandler,
+		registeredHandlers: make([]func(topic string, hash []byte, data interface{}), 0),
 	}, nil
 }
 
@@ -66,7 +71,7 @@ func (mip *MiniblockInterceptorProcessor) Validate(_ process.InterceptedData, _ 
 
 // Save will save the received miniblocks inside the miniblock cacher after a new validation round
 // that will be done on each miniblock
-func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID) error {
+func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string) error {
 	interceptedMiniblock, ok := data.(*interceptedBlocks.InterceptedMiniblock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -77,6 +82,8 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ c
 	if err != nil {
 		return err
 	}
+
+	go mip.notify(miniblock, interceptedMiniblock.Hash(), topic)
 
 	shouldRejectMiniBlock := mip.isMbCrossShard(miniblock) &&
 		!mip.whiteListHandler.IsWhiteListed(data) &&
@@ -98,6 +105,17 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ c
 	return nil
 }
 
+// RegisterHandler registers a callback function to be notified of incoming miniBlocks
+func (mip *MiniblockInterceptorProcessor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
+	if handler == nil {
+		return
+	}
+
+	mip.mutHandlers.Lock()
+	mip.registeredHandlers = append(mip.registeredHandlers, handler)
+	mip.mutHandlers.Unlock()
+}
+
 func (mip *MiniblockInterceptorProcessor) isMbCrossShard(miniblock *block.MiniBlock) bool {
 	return miniblock.SenderShardID != mip.shardCoordinator.SelfId()
 }
@@ -105,4 +123,12 @@ func (mip *MiniblockInterceptorProcessor) isMbCrossShard(miniblock *block.MiniBl
 // IsInterfaceNil returns true if there is no value under the interface
 func (mip *MiniblockInterceptorProcessor) IsInterfaceNil() bool {
 	return mip == nil
+}
+
+func (mip *MiniblockInterceptorProcessor) notify(miniBlock *block.MiniBlock, hash []byte, topic string) {
+	mip.mutHandlers.RLock()
+	for _, handler := range mip.registeredHandlers {
+		handler(topic, hash, miniBlock)
+	}
+	mip.mutHandlers.RUnlock()
 }

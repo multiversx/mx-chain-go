@@ -24,7 +24,8 @@ type CacheConfig struct {
 	NumItemsToPreemptivelyEvict uint32
 }
 
-func (config *CacheConfig) verify() error {
+// Verify verifies the validity of the configuration
+func (config *CacheConfig) Verify() error {
 	if len(config.Name) == 0 {
 		return fmt.Errorf("%w: config.Name is invalid", storage.ErrInvalidConfig)
 	}

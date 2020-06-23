@@ -1,8 +1,11 @@
 package processor
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -12,9 +15,11 @@ var _ process.InterceptorProcessor = (*HdrInterceptorProcessor)(nil)
 // HdrInterceptorProcessor is the processor used when intercepting headers
 // (shard headers, meta headers) structs which satisfy HeaderHandler interface.
 type HdrInterceptorProcessor struct {
-	headers      dataRetriever.HeadersPool
-	hdrValidator process.HeaderValidator
-	blackList    process.BlackListHandler
+	headers            dataRetriever.HeadersPool
+	hdrValidator       process.HeaderValidator
+	blackList          process.BlackListHandler
+	registeredHandlers []func(topic string, hash []byte, data interface{})
+	mutHandlers        sync.RWMutex
 }
 
 // NewHdrInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -33,9 +38,10 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	}
 
 	return &HdrInterceptorProcessor{
-		headers:      argument.Headers,
-		hdrValidator: argument.HdrValidator,
-		blackList:    argument.BlackList,
+		headers:            argument.Headers,
+		hdrValidator:       argument.HdrValidator,
+		blackList:          argument.BlackList,
+		registeredHandlers: make([]func(topic string, hash []byte, data interface{}), 0),
 	}, nil
 }
 
@@ -57,18 +63,39 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 
 // Save will save the received data into the headers cacher as hash<->[plain header structure]
 // and in headersNonces as nonce<->hash
-func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID) error {
+func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string) error {
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
+
+	go hip.notify(interceptedHdr.HeaderHandler(), interceptedHdr.Hash(), topic)
 
 	hip.headers.AddHeader(interceptedHdr.Hash(), interceptedHdr.HeaderHandler())
 
 	return nil
 }
 
+// RegisterHandler registers a callback function to be notified of incoming headers
+func (hip *HdrInterceptorProcessor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
+	if handler == nil {
+		return
+	}
+
+	hip.mutHandlers.Lock()
+	hip.registeredHandlers = append(hip.registeredHandlers, handler)
+	hip.mutHandlers.Unlock()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (hip *HdrInterceptorProcessor) IsInterfaceNil() bool {
 	return hip == nil
+}
+
+func (hip *HdrInterceptorProcessor) notify(header data.HeaderHandler, hash []byte, topic string) {
+	hip.mutHandlers.RLock()
+	for _, handler := range hip.registeredHandlers {
+		handler(topic, hash, header)
+	}
+	hip.mutHandlers.RUnlock()
 }

@@ -55,7 +55,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		data,
 	)
 
-	err = testContext.TxProcessor.ProcessTransaction(txRun)
+	_, err = testContext.TxProcessor.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -125,7 +125,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		data,
 	)
 
-	err = testContext.TxProcessor.ProcessTransaction(txRun)
+	_, err = testContext.TxProcessor.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()

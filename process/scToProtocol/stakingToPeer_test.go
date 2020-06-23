@@ -24,16 +24,15 @@ import (
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
-		PubkeyConv:       mock.NewPubkeyConverterMock(32),
-		Hasher:           &mock.HasherMock{},
-		ProtoMarshalizer: &mock.MarshalizerStub{},
-		VmMarshalizer:    &mock.MarshalizerStub{},
-		PeerState:        &mock.AccountsStub{},
-		BaseState:        &mock.AccountsStub{},
-		ArgParser:        &mock.ArgumentParserMock{},
-		CurrTxs:          &mock.TxForCurrentBlockStub{},
-		ScQuery:          &mock.ScQueryStub{},
-		RatingsData:      &mock.RatingsInfoMock{},
+		PubkeyConv:  mock.NewPubkeyConverterMock(32),
+		Hasher:      &mock.HasherMock{},
+		Marshalizer: &mock.MarshalizerStub{},
+		PeerState:   &mock.AccountsStub{},
+		BaseState:   &mock.AccountsStub{},
+		ArgParser:   &mock.ArgumentParserMock{},
+		CurrTxs:     &mock.TxForCurrentBlockStub{},
+		ScQuery:     &mock.ScQueryStub{},
+		RatingsData: &mock.RatingsInfoMock{},
 	}
 }
 
@@ -76,7 +75,7 @@ func TestNewStakingToPeerNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
-	arguments.ProtoMarshalizer = nil
+	arguments.Marshalizer = nil
 
 	stp, err := NewStakingToPeer(arguments)
 	assert.Nil(t, stp)
@@ -252,7 +251,7 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.ProtoMarshalizer = marshalizer
+	arguments.Marshalizer = marshalizer
 	stp, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
@@ -305,8 +304,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.ProtoMarshalizer = marshalizer
-	arguments.VmMarshalizer = marshalizer
+	arguments.Marshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
 	stp, _ := NewStakingToPeer(arguments)
 
@@ -367,8 +365,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.ProtoMarshalizer = marshalizer
-	arguments.VmMarshalizer = marshalizer
+	arguments.Marshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
 	stp, _ := NewStakingToPeer(arguments)
 
@@ -429,8 +426,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.ProtoMarshalizer = marshalizer
-	arguments.VmMarshalizer = marshalizer
+	arguments.Marshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
 	stp, _ := NewStakingToPeer(arguments)
 
@@ -490,8 +486,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.ProtoMarshalizer = marshalizer
-	arguments.VmMarshalizer = marshalizer
+	arguments.Marshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
 	stp, _ := NewStakingToPeer(arguments)
 
@@ -552,8 +547,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
-	arguments.ProtoMarshalizer = marshalizer
-	arguments.VmMarshalizer = marshalizer
+	arguments.Marshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
 	stp, _ := NewStakingToPeer(arguments)
 
@@ -581,7 +575,7 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		UnStakedEpoch: 0,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
 		RewardAddress: []byte("rwd"),
 		StakeValue:    big.NewInt(0),
 		JailedRound:   0,

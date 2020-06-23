@@ -43,11 +43,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // SendTransactionsPipe is the pipe used for sending new transactions
@@ -234,7 +236,7 @@ func (n *Node) StartConsensus() error {
 
 	bootstrapper.StartSyncingBlocks()
 
-	epoch := uint32(0)
+	epoch := n.blkc.GetGenesisHeader().GetEpoch()
 	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
 	if !check.IfNil(crtBlockHeader) {
 		epoch = crtBlockHeader.GetEpoch()
@@ -253,11 +255,13 @@ func (n *Node) StartConsensus() error {
 
 	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
 		n.internalMarshalizer,
+		n.hasher,
 		n.messenger,
 		n.shardCoordinator,
 		n.privKey,
 		n.singleSigner,
 		n.dataPool.Headers(),
+		n.interceptorsContainer,
 	)
 
 	if err != nil {
@@ -356,6 +360,17 @@ func (n *Node) StartConsensus() error {
 
 	chronologyHandler.StartRounds()
 
+	return n.addCloserInstances(chronologyHandler, bootstrapper, worker, n.syncTimer)
+}
+
+func (n *Node) addCloserInstances(closers ...update.Closer) error {
+	for _, c := range closers {
+		err := n.hardforkTrigger.AddCloser(c)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -429,7 +444,6 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 		rounder,
 		n.syncTimer,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -476,6 +490,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
+		ChainID:             string(n.chainID),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -535,6 +550,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
+		ChainID:             string(n.chainID),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
@@ -786,6 +802,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
+	argumentParser := smartContract.NewArgumentParser()
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
 		n.internalMarshalizer,
@@ -797,6 +814,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.shardCoordinator,
 		n.feeHandler,
 		n.whiteListerVerifiedTxs,
+		argumentParser,
 	)
 	if err != nil {
 		return err
@@ -960,7 +978,6 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		PrivKey:                  n.privKey,
 		HardforkTrigger:          n.hardforkTrigger,
 		AntifloodHandler:         n.inputAntifloodHandler,
-		PeerBlackListHandler:     n.peerBlackListHandler,
 		ValidatorPubkeyConverter: n.validatorPubkeyConverter,
 		EpochStartTrigger:        n.epochStartTrigger,
 		EpochStartRegistration:   n.epochStartRegistrationHandler,

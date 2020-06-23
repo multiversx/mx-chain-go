@@ -182,12 +182,6 @@ var ErrNilGenesisNodesConfig = errors.New("nil genesis nodes config")
 // ErrNilRater signals that a nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilTriesContainer signals that a nil tries container has been provided
-var ErrNilTriesContainer = errors.New("nil tries container")
-
-// ErrNilTrieStorageManagers signals that a nil trie storage managers map has been provided
-var ErrNilTrieStorageManagers = errors.New("nil trie storage managers map")
-
 // ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
 var ErrInvalidDefaultDBPath = errors.New("invalid default db path")
 
@@ -217,3 +211,12 @@ var ErrNotEnoughNumConnectedPeers = errors.New("not enough min num of connected 
 
 // ErrNotEnoughNumOfPeersToConsiderBlockValid signals that config is invalid for num of peer to consider block valid
 var ErrNotEnoughNumOfPeersToConsiderBlockValid = errors.New("not enough num of peers to consider block valid from config")
+
+// ErrNilArgumentsParser signals that nil arguments parser was provided
+var ErrNilArgumentsParser = errors.New("nil arguments parsers")
+
+// ErrNilImportStartHandler signals that a nil import start handler has been provided
+var ErrNilImportStartHandler = errors.New("nil import start handler")
+
+// ErrCommunityAddressInMetachain signals that community address is in metachain which is not allowed
+var ErrCommunityAddressInMetachain = errors.New("community address in metachain")

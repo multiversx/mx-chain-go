@@ -18,11 +18,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
-	ProcessTransaction(transaction *transaction.Transaction) error
+	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
 	IsInterfaceNil() bool
 }
 
@@ -40,7 +41,7 @@ type RewardTransactionPreProcessor interface {
 
 // SmartContractResultProcessor is the main interface for smart contract result execution engine
 type SmartContractResultProcessor interface {
-	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
+	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
 	IsInterfaceNil() bool
 }
 
@@ -97,7 +98,8 @@ type InterceptedData interface {
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer core.PeerID) error
-	Save(data InterceptedData, fromConnectedPeer core.PeerID) error
+	Save(data InterceptedData, fromConnectedPeer core.PeerID, topic string) error
+	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	IsInterfaceNil() bool
 }
 
@@ -140,8 +142,8 @@ type TransactionCoordinator interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error
-	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) error
+	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
+	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error
 	IsInterfaceNil() bool
 }
@@ -436,6 +438,7 @@ type BlockChainHookHandler interface {
 type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	SetInterceptedDebugHandler(handler InterceptedDebugger) error
+	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	IsInterfaceNil() bool
 }
 
@@ -473,16 +476,29 @@ type RequestHandler interface {
 	IsInterfaceNil() bool
 }
 
+// CallArgumentsParser defines the functionality to parse transaction data into call arguments
+type CallArgumentsParser interface {
+	ParseData(data string) (string, [][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// DeployArgumentsParser defines the functionality to parse transaction data into call arguments
+type DeployArgumentsParser interface {
+	ParseData(data string) (*parsers.DeployArgs, error)
+	IsInterfaceNil() bool
+}
+
+// StorageArgumentsParser defines the functionality to parse transaction data into call arguments
+type StorageArgumentsParser interface {
+	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
+	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
+	IsInterfaceNil() bool
+}
+
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
-	GetFunctionArguments() ([][]byte, error)
-	GetConstructorArguments() ([][]byte, error)
-	GetCode() ([]byte, error)
-	GetCodeDecoded() ([]byte, error)
-	GetVMType() ([]byte, error)
-	GetCodeMetadata() (vmcommon.CodeMetadata, error)
-	GetFunction() (string, error)
-	ParseData(data string) error
+	ParseCallData(data string) (string, [][]byte, error)
+	ParseDeployData(data string) (*parsers.DeployArgs, error)
 
 	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
 	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
@@ -550,6 +566,7 @@ type TransactionWithFeeHandler interface {
 	GetGasPrice() uint64
 	GetData() []byte
 	GetRcvAddr() []byte
+	GetValue() *big.Int
 }
 
 // EconomicsAddressesHandler will return information about economics addresses
@@ -585,6 +602,7 @@ type BlackListHandler interface {
 type PeerBlackListHandler interface {
 	Add(pid core.PeerID) error
 	AddWithSpan(pid core.PeerID, span time.Duration) error
+	Update(pid core.PeerID, span time.Duration) error
 	Has(pid core.PeerID) bool
 	Sweep()
 	IsInterfaceNil() bool
@@ -711,6 +729,7 @@ type P2PAntifloodHandler interface {
 	CanProcessMessagesOnTopic(pid core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
 	ApplyConsensusSize(size int)
 	SetDebugger(debugger AntifloodDebugger) error
+	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
 }
 

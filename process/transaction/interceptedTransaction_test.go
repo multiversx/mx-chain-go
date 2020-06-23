@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -92,6 +93,7 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		shardCoordinator,
 		txFeeHandler,
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 }
 
@@ -111,6 +113,7 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -131,6 +134,7 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -151,6 +155,7 @@ func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -171,6 +176,7 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -191,6 +197,7 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -211,6 +218,7 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -231,6 +239,7 @@ func TestNewInterceptedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -251,6 +260,7 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 		nil,
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -271,6 +281,7 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -291,6 +302,7 @@ func TestNewInterceptedTransaction_NilWhiteListerVerifiedTxsShouldErr(t *testing
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		nil,
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -317,6 +329,7 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -425,6 +438,38 @@ func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
 	err = txi.CheckValidity()
 
 	assert.Equal(t, process.ErrNilValue, err)
+}
+
+func TestInterceptedTransaction_CheckValidityInvalidUserNameLength(t *testing.T) {
+	t.Parallel()
+
+	tx := &dataTransaction.Transaction{
+		Nonce:       1,
+		Value:       big.NewInt(2),
+		Data:        []byte("data"),
+		GasLimit:    3,
+		GasPrice:    4,
+		RcvAddr:     recvAddress,
+		SndAddr:     senderAddress,
+		Signature:   sigOk,
+		RcvUserName: []byte("username"),
+	}
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+
+	err := txi.CheckValidity()
+	assert.Equal(t, process.ErrInvalidUserNameLength, err)
+
+	tx.RcvUserName = nil
+	tx.SndUserName = []byte("username")
+	txi, _ = createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrInvalidUserNameLength, err)
+
+	tx.RcvUserName = []byte("12345678901234567890123456789012")
+	tx.SndUserName = []byte("12345678901234567890123456789012")
+	txi, _ = createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	err = txi.CheckValidity()
+	assert.Nil(t, err)
 }
 
 func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testing.T) {
@@ -602,6 +647,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
 	)
 
 	assert.Nil(t, err)
@@ -729,7 +775,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		return shardCoordinator.CurrentShard
 	}
 
-	cache := mock.NewCacherMock()
+	cache := testscommon.NewCacherMock()
 	whiteListerVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(cache)
 	require.Nil(t, err)
 
@@ -744,6 +790,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		whiteListerVerifiedTxs,
+		&mock.ArgumentParserMock{},
 	)
 	require.Nil(t, err)
 

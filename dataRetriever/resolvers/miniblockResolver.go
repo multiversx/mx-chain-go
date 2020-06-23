@@ -89,7 +89,7 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 	mbRes.throttler.StartProcessing()
 	defer mbRes.throttler.EndProcessing()
 
-	rd, err := mbRes.parseReceivedMessage(message)
+	rd, err := mbRes.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}

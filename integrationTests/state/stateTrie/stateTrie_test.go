@@ -1032,7 +1032,7 @@ func createAccounts(
 	balance int,
 	persist storage.Persister,
 ) (*state.AccountsDB, [][]byte, data.Trie) {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1, 0)
+	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
 	store, _ := storageUnit.NewStorageUnit(cache, persist)
 	evictionWaitListSize := uint(100)
 
@@ -1077,7 +1077,7 @@ func createAndExecTxs(
 		}
 
 		startTime := time.Now()
-		err := txProcessor.ProcessTransaction(tx)
+		_, err := txProcessor.ProcessTransaction(tx)
 		duration := time.Since(startTime)
 		totalTime += int64(duration)
 		assert.Nil(b, err)
