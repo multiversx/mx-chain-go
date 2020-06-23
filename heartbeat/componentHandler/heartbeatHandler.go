@@ -40,7 +40,6 @@ type ArgHeartbeat struct {
 	PrivKey                  crypto.PrivateKey
 	HardforkTrigger          heartbeat.HardforkTrigger
 	AntifloodHandler         heartbeat.P2PAntifloodHandler
-	PeerBlackListHandler     heartbeat.PeerBlackListHandler
 	ValidatorPubkeyConverter core.PubkeyConverter
 	EpochStartTrigger        sharding.EpochHandler
 	EpochStartRegistration   sharding.EpochStartEventNotifier
@@ -173,7 +172,6 @@ func (hbh *HeartbeatHandler) create() error {
 		Timer:                              timer,
 		AntifloodHandler:                   arg.AntifloodHandler,
 		HardforkTrigger:                    arg.HardforkTrigger,
-		PeerBlackListHandler:               arg.PeerBlackListHandler,
 		ValidatorPubkeyConverter:           arg.ValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      arg.HeartbeatConfig.HeartbeatRefreshIntervalInSec,
 		HideInactiveValidatorIntervalInSec: arg.HeartbeatConfig.HideInactiveValidatorIntervalInSec,
@@ -232,6 +230,8 @@ func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 			log.Debug("heartbeat's go routine is stopping...")
 			return
 		case <-time.After(timeToWait):
+		case <-hbh.arg.HardforkTrigger.NotifyTriggerReceived(): //this will force an immediate broadcast of the trigger
+			//message on the network
 		}
 
 		err := hbh.sender.SendHeartbeat()

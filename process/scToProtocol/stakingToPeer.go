@@ -227,7 +227,7 @@ func (stp *stakingToPeer) updatePeerState(
 			account.SetTempRating(stp.unJailRating)
 		}
 
-		if !isValidator && account.GetUnStakedEpoch() == 0 {
+		if !isValidator && account.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
 			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.UnJailedNonce))
 		}
 	}

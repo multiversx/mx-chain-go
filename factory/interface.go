@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -33,5 +35,6 @@ type P2PAntifloodHandler interface {
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	SetDebugger(debugger process.AntifloodDebugger) error
 	ApplyConsensusSize(size int)
+	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsInterfaceNil() bool
 }

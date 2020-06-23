@@ -32,7 +32,6 @@ type ArgHeartbeatMonitor struct {
 	Timer                              heartbeat.Timer
 	AntifloodHandler                   heartbeat.P2PAntifloodHandler
 	HardforkTrigger                    heartbeat.HardforkTrigger
-	PeerBlackListHandler               heartbeat.PeerBlackListHandler
 	ValidatorPubkeyConverter           core.PubkeyConverter
 	HeartbeatRefreshIntervalInSec      uint32
 	HideInactiveValidatorIntervalInSec uint32
@@ -56,7 +55,6 @@ type Monitor struct {
 	timer                              heartbeat.Timer
 	antifloodHandler                   heartbeat.P2PAntifloodHandler
 	hardforkTrigger                    heartbeat.HardforkTrigger
-	peerBlackListHandler               heartbeat.PeerBlackListHandler
 	validatorPubkeyConverter           core.PubkeyConverter
 	heartbeatRefreshIntervalInSec      uint32
 	hideInactiveValidatorIntervalInSec uint32
@@ -88,9 +86,6 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.HardforkTrigger) {
 		return nil, heartbeat.ErrNilHardforkTrigger
 	}
-	if check.IfNil(arg.PeerBlackListHandler) {
-		return nil, fmt.Errorf("%w in NewMonitor", heartbeat.ErrNilBlackListHandler)
-	}
 	if check.IfNil(arg.ValidatorPubkeyConverter) {
 		return nil, heartbeat.ErrNilPubkeyConverter
 	}
@@ -113,7 +108,6 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		timer:                              arg.Timer,
 		antifloodHandler:                   arg.AntifloodHandler,
 		hardforkTrigger:                    arg.HardforkTrigger,
-		peerBlackListHandler:               arg.PeerBlackListHandler,
 		validatorPubkeyConverter:           arg.ValidatorPubkeyConverter,
 		heartbeatRefreshIntervalInSec:      arg.HeartbeatRefreshIntervalInSec,
 		hideInactiveValidatorIntervalInSec: arg.HideInactiveValidatorIntervalInSec,
@@ -271,6 +265,13 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 
 	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2PMessage(message)
 	if err != nil {
+		//this situation is so severe that we have to black list both the message originator and the connected peer
+		//that disseminated this message.
+
+		reason := "blacklisted due to invalid heartbeat message"
+		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+
 		return err
 	}
 
@@ -282,13 +283,9 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	if !bytes.Equal(hbRecv.Pid, message.Peer().Bytes()) {
 		//this situation is so severe that we have to black list both the message originator and the connected peer
 		//that disseminated this message.
-		_ = m.peerBlackListHandler.Add(message.Peer())
-		_ = m.peerBlackListHandler.Add(fromConnectedPeer)
-
-		log.Debug("blacklisted due to inconsistent heartbeat message",
-			"message originator", p2p.PeerIdToShortString(message.Peer()),
-			"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
-		)
+		reason := "blacklisted due to inconsistent heartbeat message"
+		m.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+		m.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
 
 		return fmt.Errorf("%w heartbeat pid %s, message pid %s",
 			heartbeat.ErrHeartbeatPidMismatch,

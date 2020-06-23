@@ -901,6 +901,7 @@ func (sc *scProcessor) createSmartContractResult(
 	result.GasLimit = outAcc.GasLimit
 	result.GasPrice = tx.GetGasPrice()
 	result.PrevTxHash = txHash
+	result.CallType = outAcc.CallType
 	setOriginalTxHash(result, txHash, tx)
 
 	return result
@@ -947,13 +948,15 @@ func (sc *scProcessor) createSCRForSender(
 	scTx.ReturnMessage = []byte(returnMessage)
 	setOriginalTxHash(scTx, txHash, tx)
 
-	scTx.Data = []byte("@" + hex.EncodeToString([]byte(returnCode.String())))
-	for _, retData := range returnData {
-		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
-	}
-
 	if callType == vmcommon.AsynchronousCall {
 		scTx.CallType = vmcommon.AsynchronousCallBack
+		scTx.Data = []byte("@" + hex.EncodeToString(big.NewInt(int64(returnCode)).Bytes()))
+	} else {
+		scTx.Data = []byte("@" + hex.EncodeToString([]byte(returnCode.String())))
+	}
+
+	for _, retData := range returnData {
+		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
 	}
 
 	if check.IfNil(acntSnd) {

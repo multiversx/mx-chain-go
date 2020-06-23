@@ -32,14 +32,11 @@ func NewTransactionCounter() *transactionCounter {
 	}
 }
 
-func (txc *transactionCounter) getTxPoolCounts(dataPool dataRetriever.PoolsHolder) counting.Counts {
-	txPool := dataPool.Transactions()
-	asCountable, ok := txPool.(counting.Countable)
-	if !ok {
-		return &counting.NullCounts{}
-	}
-
-	return asCountable.GetCounts()
+func (txc *transactionCounter) getPoolCounts(poolsHolder dataRetriever.PoolsHolder) (txCounts counting.Counts, rewardCounts counting.Counts, unsignedCounts counting.Counts) {
+	txCounts = poolsHolder.Transactions().GetCounts()
+	rewardCounts = poolsHolder.RewardTransactions().GetCounts()
+	unsignedCounts = poolsHolder.UnsignedTransactions().GetCounts()
+	return
 }
 
 // subtractRestoredTxs updated the total processed txs in case of restore
@@ -82,7 +79,6 @@ func (txc *transactionCounter) displayLogInfo(
 	arguments := []interface{}{
 		"total txs processed", txc.totalTxs,
 		"block txs processed", txc.currentBlockTxs,
-		"txs in pool", txc.getTxPoolCounts(dataPool).String(),
 		"num shards", numShards,
 		"shard", selfId,
 	}

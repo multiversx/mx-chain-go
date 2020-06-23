@@ -15,4 +15,5 @@ type genesisProcessors struct {
 	rwdProcessor   process.RewardTransactionProcessor
 	blockchainHook process.BlockChainHookHandler
 	queryService   external.SCQueryService
+	vmContainer    process.VirtualMachinesContainer
 }

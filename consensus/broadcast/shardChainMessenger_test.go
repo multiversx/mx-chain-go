@@ -1,9 +1,6 @@
 package broadcast_test
 
 import (
-	"bytes"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"sync"
 	"testing"
 	"time"
 
@@ -12,11 +9,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func createDelayData(prefix string) ([]byte, map[uint32][]byte, map[string][][]byte) {
+func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, map[string][][]byte) {
 	miniblocks := make(map[uint32][]byte)
 	receiverShardID := uint32(1)
 	miniblocks[receiverShardID] = []byte(prefix + "miniblock data")
@@ -28,70 +28,49 @@ func createDelayData(prefix string) ([]byte, map[uint32][]byte, map[string][][]b
 		[]byte(prefix + "tx1"),
 	}
 	headerHash := []byte(prefix + "header hash")
+	header := &block.Header{
+		Round:        0,
+		PrevRandSeed: []byte(prefix),
+	}
 
-	return headerHash, miniblocks, transactions
+	return headerHash, header, miniblocks, transactions
 }
 
-func createMetaBlock() *block.MetaBlock {
-	return &block.MetaBlock{
-		Nonce: 0,
-		Round: 0,
-		ShardInfo: []block.ShardData{
-			{
-				HeaderHash: []byte("shard0 headerHash"),
-				ShardMiniBlockHeaders: []block.MiniBlockHeader{
-					{
-						Hash:            []byte("miniblock hash"),
-						ReceiverShardID: 1,
-						SenderShardID:   0,
-						TxCount:         2,
-					},
+func createInterceptorContainer() process.InterceptorsContainer {
+	return &mock.InterceptorsContainerStub{
+		GetCalled: func(topic string) (process.Interceptor, error) {
+			return &mock.InterceptorStub{
+				ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
+					return nil
 				},
-				ShardID: 0,
-			},
+			}, nil
 		},
 	}
 }
 
-// elements in who and where need to be unique
-func isIncluded(who [][]byte, where [][]byte) bool {
-	initialLenWho := len(who)
-	initialLenWhere := len(where)
-	if initialLenWho > initialLenWhere {
-		return false
-	}
-
-	cntEqual := 0
-	for _, elem := range who {
-		for _, elem2 := range where {
-			if bytes.Equal(elem, elem2) {
-				cntEqual++
-				break
-			}
-		}
-	}
-
-	return cntEqual == initialLenWho
-}
-
 func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	marshalizerMock := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
 	messengerMock := &mock.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	headersSubscriber := &mock.HeadersCacherStub{}
+	interceptorsContainer := createInterceptorContainer()
 
 	return broadcast.ShardChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
-			Marshalizer:      marshalizerMock,
-			Messenger:        messengerMock,
-			PrivateKey:       privateKeyMock,
-			ShardCoordinator: shardCoordinatorMock,
-			SingleSigner:     singleSignerMock,
+			Marshalizer:                marshalizerMock,
+			Hasher:                     hasher,
+			Messenger:                  messengerMock,
+			PrivateKey:                 privateKeyMock,
+			ShardCoordinator:           shardCoordinatorMock,
+			SingleSigner:               singleSignerMock,
+			HeadersSubscriber:          headersSubscriber,
+			InterceptorsContainer:      interceptorsContainer,
+			MaxDelayCacheSize:          1,
+			MaxValidatorDelayCacheSize: 1,
 		},
-		HeadersSubscriber: headersSubscriber,
-		MaxDelayCacheSize: 1,
 	}
 }
 
@@ -138,6 +117,15 @@ func TestShardChainMessenger_NewShardChainMessengerNilSingleSignerShouldFail(t *
 
 	assert.Nil(t, scm)
 	assert.Equal(t, spos.ErrNilSingleSigner, err)
+}
+
+func TestShardChainMessenger_NewShardChainMessengerNilInterceptorsContainerShouldFail(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	args.InterceptorsContainer = nil
+	scm, err := broadcast.NewShardChainMessenger(args)
+
+	assert.Nil(t, scm)
+	assert.Equal(t, spos.ErrNilInterceptorsContainer, err)
 }
 
 func TestShardChainMessenger_NewShardChainMessengerNilHeadersSubscriberShouldFail(t *testing.T) {
@@ -335,27 +323,27 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestShardChainMessenger_SetDataForDelayBroadcastNilHeaderHashShouldErr(t *testing.T) {
+func TestShardChainMessenger_BroadcastBlockDataLeaderNilHeaderShouldErr(t *testing.T) {
 	args := createDefaultShardChainArgs()
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	_, miniblocks, transactions := createDelayData("1")
+	_, _, miniblocks, transactions := createDelayData("1")
 
-	err := scm.SetDataForDelayBroadcast(nil, miniblocks, transactions)
-	assert.Equal(t, spos.ErrNilHeaderHash, err)
+	err := scm.BroadcastBlockDataLeader(nil, miniblocks, transactions)
+	assert.Equal(t, spos.ErrNilHeader, err)
 }
 
-func TestShardChainMessenger_SetDataForDelayBroadcastNilMiniblocksShouldReturnNil(t *testing.T) {
+func TestShardChainMessenger_BroadcastBlockDataLeaderNilMiniblocksShouldReturnNil(t *testing.T) {
 	args := createDefaultShardChainArgs()
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	headerHash, _, transactions := createDelayData("1")
+	_, header, _, transactions := createDelayData("1")
 
-	err := scm.SetDataForDelayBroadcast(headerHash, nil, transactions)
+	err := scm.BroadcastBlockDataLeader(header, nil, transactions)
 	assert.Nil(t, err)
 }
 
-func TestShardChainMessenger_SetDataForDelayBroadcastShouldTriggerWaitingDelayedMessage(t *testing.T) {
+func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayedMessage(t *testing.T) {
 	wasCalled := atomic.Flag{}
 	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
@@ -366,161 +354,64 @@ func TestShardChainMessenger_SetDataForDelayBroadcastShouldTriggerWaitingDelayed
 	args.Messenger = messenger
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
-	headerHash, miniBlocksMarshalled, transactions := createDelayData("1")
-	err := scm.SetDataForDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
+	_, header, miniBlocksMarshalled, transactions := createDelayData("1")
+	err := scm.BroadcastBlockDataLeader(header, miniBlocksMarshalled, transactions)
 	time.Sleep(10 * time.Millisecond)
 	assert.Nil(t, err)
 	assert.False(t, wasCalled.IsSet())
 
 	wasCalled.Unset()
-	headerHash2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
-	err = scm.SetDataForDelayBroadcast(headerHash2, miniBlocksMarshalled2, transactions2)
+	_, header2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
+	err = scm.BroadcastBlockDataLeader(header2, miniBlocksMarshalled2, transactions2)
 	time.Sleep(10 * time.Millisecond)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled.IsSet())
 }
 
-func TestShardChainMessenger_HeaderReceivedNoDelayedDataRegistered(t *testing.T) {
-	wasCalled := atomic.Flag{}
-
-	messenger := &mock.MessengerStub{
-		BroadcastCalled: func(topic string, buff []byte) {
-			wasCalled.Set()
-		},
-	}
+func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorNilHeaderShouldErr(t *testing.T) {
 	args := createDefaultShardChainArgs()
-	args.Messenger = messenger
 	scm, _ := broadcast.NewShardChainMessenger(args)
-	metaBlock := createMetaBlock()
+	vArgs := createValidatorDelayArgs(0)
+	vArgs.header = nil
 
-	scm.HeaderReceived(metaBlock, []byte("metablock hash"))
-	time.Sleep(10 * time.Millisecond)
-	assert.False(t, wasCalled.IsSet())
+	err := scm.PrepareBroadcastBlockDataValidator(
+		vArgs.header,
+		vArgs.miniBlocks,
+		vArgs.transactions,
+		int(vArgs.order),
+	)
+
+	require.Equal(t, spos.ErrNilHeader, err)
 }
 
-func TestShardChainMessenger_HeaderReceivedForRegisteredDelayedDataShouldBroadcastTheData(t *testing.T) {
-	wasCalled := false
-	mutData := &sync.Mutex{}
-	broadcastBuffer := make([][]byte, 0)
-
-	messenger := &mock.MessengerStub{
-		BroadcastCalled: func(topic string, buff []byte) {
-			mutData.Lock()
-			wasCalled = true
-			broadcastBuffer = append(broadcastBuffer, buff)
-			mutData.Unlock()
-		},
-	}
-
+func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorNoMiniBlocksShouldReturn(t *testing.T) {
 	args := createDefaultShardChainArgs()
-	args.MaxDelayCacheSize = 2
-	args.Messenger = messenger
 	scm, _ := broadcast.NewShardChainMessenger(args)
-	headerHash, miniBlocksMarshalled, transactions := createDelayData("1")
-	metaBlock := createMetaBlock()
-	metaBlock.ShardInfo[0].HeaderHash = headerHash
+	vArgs := createValidatorDelayArgs(0)
+	vArgs.miniBlocks = nil
+	vArgs.transactions = nil
 
-	err := scm.SetDataForDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
-	assert.Nil(t, err)
-	time.Sleep(10 * time.Millisecond)
-	mutData.Lock()
-	assert.False(t, wasCalled)
-	mutData.Unlock()
+	err := scm.PrepareBroadcastBlockDataValidator(
+		vArgs.header,
+		vArgs.miniBlocks,
+		vArgs.transactions,
+		int(vArgs.order),
+	)
 
-	scm.HeaderReceived(metaBlock, []byte("meta hash"))
-	time.Sleep(core.ExtraDelayForBroadcastBlockInfo + 10*time.Millisecond)
-	mutData.Lock()
-	assert.True(t, wasCalled)
-	assert.Contains(t, broadcastBuffer, miniBlocksMarshalled[1])
-	mutData.Unlock()
+	require.Nil(t, err)
 }
 
-func TestShardChainMessenger_HeaderReceivedForNotRegisteredDelayedDataShouldNotBroadcast(t *testing.T) {
-	wasCalled := false
-	mutData := &sync.Mutex{}
-	broadcastBuffer := make([][]byte, 0)
-
-	messenger := &mock.MessengerStub{
-		BroadcastCalled: func(topic string, buff []byte) {
-			mutData.Lock()
-			wasCalled = true
-			broadcastBuffer = append(broadcastBuffer, buff)
-			mutData.Unlock()
-		},
-	}
-
+func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorOK(t *testing.T) {
 	args := createDefaultShardChainArgs()
-	args.MaxDelayCacheSize = 2
-	args.Messenger = messenger
 	scm, _ := broadcast.NewShardChainMessenger(args)
-	headerHash, miniBlocksMarshalled, transactions := createDelayData("1")
-	metaBlock := createMetaBlock()
-	metaBlock.ShardInfo[0].HeaderHash = headerHash[1:]
+	vArgs := createValidatorDelayArgs(0)
 
-	err := scm.SetDataForDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
-	assert.Nil(t, err)
-	time.Sleep(10 * time.Millisecond)
-	mutData.Lock()
-	assert.False(t, wasCalled)
-	mutData.Unlock()
+	err := scm.PrepareBroadcastBlockDataValidator(
+		vArgs.header,
+		vArgs.miniBlocks,
+		vArgs.transactions,
+		int(vArgs.order),
+	)
 
-	var expectedSent [][]byte
-	expectedSent = append(expectedSent, miniBlocksMarshalled[1])
-
-	scm.HeaderReceived(metaBlock, []byte("meta hash"))
-	time.Sleep(10 * time.Millisecond)
-	mutData.Lock()
-	assert.False(t, wasCalled)
-	assert.False(t, isIncluded(expectedSent, broadcastBuffer))
-	mutData.Unlock()
-}
-
-func TestShardChainMessenger_HeaderReceivedForNextRegisteredDelayedDataShouldBroadcastBoth(t *testing.T) {
-	wasCalled := false
-	mutData := &sync.Mutex{}
-	broadcastBuffer := make([][]byte, 0)
-
-	messenger := &mock.MessengerStub{
-		BroadcastCalled: func(topic string, buff []byte) {
-			mutData.Lock()
-			wasCalled = true
-			broadcastBuffer = append(broadcastBuffer, buff)
-			mutData.Unlock()
-		},
-	}
-
-	args := createDefaultShardChainArgs()
-	args.MaxDelayCacheSize = 2
-	args.Messenger = messenger
-	scm, _ := broadcast.NewShardChainMessenger(args)
-
-	headerHash, miniBlocksMarshalled, transactions := createDelayData("1")
-	err := scm.SetDataForDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
-	assert.Nil(t, err)
-	time.Sleep(10 * time.Millisecond)
-	mutData.Lock()
-	assert.False(t, wasCalled)
-	mutData.Unlock()
-
-	headerHash2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
-	err = scm.SetDataForDelayBroadcast(headerHash2, miniBlocksMarshalled2, transactions2)
-	assert.Nil(t, err)
-	time.Sleep(10 * time.Millisecond)
-	mutData.Lock()
-	assert.False(t, wasCalled)
-	mutData.Unlock()
-
-	metaBlock := createMetaBlock()
-	metaBlock.ShardInfo[0].HeaderHash = headerHash2
-
-	var expectedSent [][]byte
-	expectedSent = append(expectedSent, miniBlocksMarshalled[1])
-	expectedSent = append(expectedSent, miniBlocksMarshalled2[1])
-
-	scm.HeaderReceived(metaBlock, []byte("meta hash"))
-	time.Sleep(core.ExtraDelayForBroadcastBlockInfo + 10*time.Millisecond)
-	mutData.Lock()
-	assert.True(t, wasCalled)
-	assert.True(t, isIncluded(expectedSent, broadcastBuffer))
-	mutData.Unlock()
+	require.Nil(t, err)
 }

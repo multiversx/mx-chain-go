@@ -4,17 +4,20 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
 	"github.com/stretchr/testify/assert"
 )
 
+const currentPid = core.PeerID("current pid")
+
 func TestNewP2PAntiFloodAndBlackList_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Config{}
-	af, bl, err := NewP2PAntiFloodAndBlackList(cfg, nil)
+	af, bl, err := NewP2PAntiFloodAndBlackList(cfg, nil, currentPid)
 	assert.Nil(t, af)
 	assert.Nil(t, bl)
 	assert.Equal(t, p2p.ErrNilStatusHandler, err)
@@ -29,7 +32,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 		},
 	}
 	ash := &mock.AppStatusHandlerMock{}
-	af, bl, err := NewP2PAntiFloodAndBlackList(cfg, ash)
+	af, bl, err := NewP2PAntiFloodAndBlackList(cfg, ash, currentPid)
 	assert.NotNil(t, af)
 	assert.NotNil(t, bl)
 	assert.Nil(t, err)
@@ -61,7 +64,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 	}
 
 	ash := &mock.AppStatusHandlerMock{}
-	af, bl, err := NewP2PAntiFloodAndBlackList(cfg, ash)
+	af, bl, err := NewP2PAntiFloodAndBlackList(cfg, ash, currentPid)
 	assert.Nil(t, err)
 	assert.NotNil(t, af)
 	assert.NotNil(t, bl)

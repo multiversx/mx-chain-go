@@ -8,7 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -55,26 +57,31 @@ func GetConsensusCoreFactory(consensusType string) (spos.ConsensusService, error
 // GetBroadcastMessenger returns a consensus service depending of the given parameter
 func GetBroadcastMessenger(
 	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
 	messenger consensus.P2PMessenger,
 	shardCoordinator sharding.Coordinator,
 	privateKey crypto.PrivateKey,
 	singleSigner crypto.SingleSigner,
 	headersSubscriber consensus.HeadersPoolSubscriber,
+	interceptorsContainer process.InterceptorsContainer,
 ) (consensus.BroadcastMessenger, error) {
 
 	commonMessengerArgs := broadcast.CommonMessengerArgs{
-		Marshalizer:      marshalizer,
-		Messenger:        messenger,
-		PrivateKey:       privateKey,
-		ShardCoordinator: shardCoordinator,
-		SingleSigner:     singleSigner,
+		Marshalizer:                marshalizer,
+		Hasher:                     hasher,
+		Messenger:                  messenger,
+		PrivateKey:                 privateKey,
+		ShardCoordinator:           shardCoordinator,
+		SingleSigner:               singleSigner,
+		HeadersSubscriber:          headersSubscriber,
+		MaxDelayCacheSize:          maxDelayCacheSize,
+		MaxValidatorDelayCacheSize: maxDelayCacheSize,
+		InterceptorsContainer:      interceptorsContainer,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		shardMessengerArgs := broadcast.ShardChainMessengerArgs{
 			CommonMessengerArgs: commonMessengerArgs,
-			HeadersSubscriber:   headersSubscriber,
-			MaxDelayCacheSize:   maxDelayCacheSize,
 		}
 
 		return broadcast.NewShardChainMessenger(shardMessengerArgs)

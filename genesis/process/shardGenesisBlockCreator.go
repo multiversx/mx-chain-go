@@ -96,8 +96,11 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		"cross shard delegation calls", numCrossShardDelegations,
 	)
 
+	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
 	header := &block.Header{
-		Nonce:           0,
+		Epoch:           epoch,
+		Round:           round,
+		Nonce:           nonce,
 		ShardID:         arg.ShardCoordinator.SelfId(),
 		BlockBodyType:   block.StateBlock,
 		PubKeysBitmap:   []byte{1},
@@ -110,6 +113,11 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		DeveloperFees:   big.NewInt(0),
 		ChainID:         []byte(arg.ChainID),
 		SoftwareVersion: []byte(""),
+	}
+
+	err = processors.vmContainer.Close()
+	if err != nil {
+		return nil, err
 	}
 
 	return header, nil
@@ -158,6 +166,7 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 	if err != nil {
 		return nil, err
 	}
+	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
@@ -408,6 +417,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		rwdProcessor:   rewardsTxProcessor,
 		blockchainHook: vmFactoryImpl.BlockChainHookImpl(),
 		queryService:   queryService,
+		vmContainer:    vmContainer,
 	}, nil
 }
 

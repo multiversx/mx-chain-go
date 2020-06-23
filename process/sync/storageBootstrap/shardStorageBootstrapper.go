@@ -36,6 +36,7 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 
 		uint64Converter:     arguments.Uint64Converter,
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
+		chainID:             arguments.ChainID,
 	}
 
 	boot := shardStorageBootstrapper{

@@ -254,6 +254,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 		RewardAddress: []byte{100},
 		StakeValue:    big.NewInt(0).Set(stakeValue),
 		JailedRound:   math.MaxUint64,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
 	}
 
 	blockChainHook := &mock.BlockChainHookStub{}

@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -36,6 +38,10 @@ func (nah *NilAntifloodHandler) SetDebugger(_ process.AntifloodDebugger) error {
 
 // ApplyConsensusSize does nothing
 func (nah *NilAntifloodHandler) ApplyConsensusSize(_ int) {
+}
+
+// BlacklistPeer does nothing
+func (nah *NilAntifloodHandler) BlacklistPeer(_ core.PeerID, _ string, _ time.Duration) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
