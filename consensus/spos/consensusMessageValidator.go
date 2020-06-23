@@ -7,9 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message) error {
+func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message, originator core.PeerID) error {
 	if !bytes.Equal(cnsMsg.ChainID, wrk.chainID) {
 		return fmt.Errorf("%w : received chain ID from consensus topic is invalid: %s",
 			ErrInvalidChainID,
@@ -81,6 +82,12 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message) erro
 		return fmt.Errorf("%w : verify signature for received message from consensus topic failed: %s",
 			ErrInvalidSignature,
 			err.Error())
+	}
+
+	cnsMsgOriginator := core.PeerID(cnsMsg.OriginatorPid)
+	if cnsMsgOriginator != originator {
+		return fmt.Errorf("%w : pubsub originator pid: %s, cnsMsg.OriginatorPid: %s",
+			ErrOriginatorMismatch, p2p.PeerIdToShortString(originator), p2p.PeerIdToShortString(cnsMsgOriginator))
 	}
 
 	return nil
