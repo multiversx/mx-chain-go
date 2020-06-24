@@ -94,7 +94,13 @@ func (psh *PresenterStatusHandler) computeRoundsPerHourAccordingToHitRate() floa
 
 func (psh *PresenterStatusHandler) computeRewardsInErd() *big.Float {
 	rewardsValue := psh.getBigIntFromStringMetric(core.MetricRewardsValue)
-	denominationCoefficient := psh.getBigFloatFromStringMetric(core.MetricDenominationCoefficient)
+	denomination := psh.getFromCacheAsUint64(core.MetricDenomination)
+	denominationCoefficientStr := "0."
+	for i := uint64(1); i < denomination; i++ {
+		denominationCoefficientStr += "0"
+	}
+	denominationCoefficientStr += "1"
+	denominationCoefficient := psh.getBigFloatFromStringMetric(denominationCoefficientStr)
 	if rewardsValue.Cmp(big.NewInt(0)) <= 0 {
 		return big.NewFloat(0)
 	}
