@@ -602,24 +602,23 @@ func TestDoBulkRequestLimit(t *testing.T) {
 	esDatabase, _ := newElasticSearchDatabase(args)
 
 	//Generate transaction and hashes
-
+	numTransactions := 1
+	dataSize := 900001
 	for i := 0; i < 1000; i++ {
-		numTransactions := 1
-		dataSize := 900001
 		txs, hashes := generateTransactions(numTransactions, dataSize)
 
 		header := &dataBlock.Header{}
 		txsPool := make(map[string]data.TransactionHandler)
-		for i := 0; i < numTransactions; i++ {
-			txsPool[hashes[i]] = &txs[i]
+		for j := 0; j < numTransactions; j++ {
+			txsPool[hashes[j]] = &txs[j]
 		}
 
 		miniblock := &dataBlock.MiniBlock{
 			TxHashes: make([][]byte, numTransactions),
 			Type:     dataBlock.TxBlock,
 		}
-		for i := 0; i < numTransactions; i++ {
-			miniblock.TxHashes[i] = []byte(hashes[i])
+		for j := 0; j < numTransactions; j++ {
+			miniblock.TxHashes[j] = []byte(hashes[j])
 		}
 
 		body := &dataBlock.Body{

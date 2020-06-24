@@ -162,17 +162,15 @@ func (dc *databaseClient) DoMultiGet(obj object, index string) (object, error) {
 	var responseBody []byte
 	responseBody, err = ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Warn("indexer: response body",
+		log.Warn("indexer:cannot read from response body", "error", err,
 			"body", string(responseBody))
-		log.Warn("indexer:cannot read from response body", "error", err)
 		return nil, err
 	}
 
 	var decodedBody object
 	if err := json.Unmarshal(responseBody, &decodedBody); err != nil {
-		log.Warn("indexer: response body",
+		log.Warn("indexer cannot decode body", "error", err,
 			"body", string(responseBody))
-		log.Warn("indexer cannot decode body", "error", err)
 		return nil, err
 	}
 
