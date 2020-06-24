@@ -269,6 +269,8 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 			err, shardID)
 	}
 
+	// create copy of components handlers we need to change temporarily
+	newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
 	return newArgument, err
 }
 

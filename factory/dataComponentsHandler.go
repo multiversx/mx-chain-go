@@ -105,6 +105,24 @@ func (mdc *managedDataComponents) Datapool() dataRetriever.PoolsHolder {
 	return mdc.DataComponents.Datapool
 }
 
+// Clone creates a shallow clone of a managedDataComponents
+func (mdc *managedDataComponents) Clone() interface{} {
+	dataComponents := (*DataComponents)(nil)
+	if mdc.DataComponents != nil {
+		dataComponents = &DataComponents{
+			Blkc:     mdc.Blockchain(),
+			Store:    mdc.StorageService(),
+			Datapool: mdc.Datapool(),
+		}
+	}
+
+	return &managedDataComponents{
+		DataComponents:        dataComponents,
+		dataComponentsFactory: mdc.dataComponentsFactory,
+		mutDataComponents:     sync.RWMutex{},
+	}
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (mdc *managedDataComponents) IsInterfaceNil() bool {
 	return mdc == nil

@@ -22,6 +22,15 @@ func (dcm *DataComponentsMock) Blockchain() data.ChainHandler {
 	return dcm.Blkc
 }
 
+// Clone -
+func (dcm *DataComponentsMock) Clone() interface{} {
+	return &DataComponentsMock{
+		Storage:  dcm.StorageService(),
+		Blkc:     dcm.Blockchain(),
+		DataPool: dcm.Datapool(),
+	}
+}
+
 // Datapool -
 func (dcm *DataComponentsMock) Datapool() dataRetriever.PoolsHolder {
 	return dcm.DataPool

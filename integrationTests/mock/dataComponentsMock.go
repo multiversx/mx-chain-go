@@ -32,6 +32,16 @@ func (dcm *DataComponentsMock) Blockchain() data.ChainHandler {
 	return dcm.BlockChain
 }
 
+// Clone -
+func (dcm *DataComponentsMock) Clone() interface{} {
+	return &DataComponentsMock{
+		Storage:       dcm.Storage,
+		DataPool:      dcm.DataPool,
+		BlockChain:    dcm.BlockChain,
+		mutBlockchain: sync.RWMutex{},
+	}
+}
+
 // SetBlockchain -
 func (dcm *DataComponentsMock) SetBlockchain(chain data.ChainHandler) {
 	dcm.mutBlockchain.Lock()

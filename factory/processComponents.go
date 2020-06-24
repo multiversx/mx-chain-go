@@ -421,6 +421,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		RequestHandler:              requestHandler,
 		TxLogsProcessor:             txLogsProcessor,
 		HeaderConstructionValidator: headerValidator,
+		HeaderIntegrityVerifier:     headerIntegrityVerifier,
 	}, nil
 }
 

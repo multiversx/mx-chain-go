@@ -31,6 +31,7 @@ type dataComponentsHandler interface {
 	Blockchain() data.ChainHandler
 	Datapool() dataRetriever.PoolsHolder
 	SetBlockchain(chain data.ChainHandler)
+	Clone() interface{}
 	IsInterfaceNil() bool
 }
 

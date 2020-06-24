@@ -124,6 +124,7 @@ type DataComponentsHolder interface {
 	SetBlockchain(chain data.ChainHandler)
 	StorageService() dataRetriever.StorageService
 	Datapool() dataRetriever.PoolsHolder
+	Clone() interface{}
 	IsInterfaceNil() bool
 }
 

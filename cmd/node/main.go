@@ -835,7 +835,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		NodeShuffler:               nodesShuffler,
 		Rounder:                    rounder,
 		LatestStorageDataProvider:  latestStorageDataProvider,
-		StatusHandler:              statusHandlersInfo.StatusHandler,
+		StatusHandler:              managedCoreComponents.StatusHandler(),
 		ImportStartHandler:         importStartHandler,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
@@ -1096,7 +1096,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating process components")
-
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
 		CoreFactoryArgs:           (*mainFactory.CoreComponentsFactoryArgs)(&coreArgs),
 		AccountsParser:            accountsParser,
@@ -1137,6 +1136,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	managedProcessComponents, err := mainFactory.NewManagedProcessComponents(processArgs)
+	if err != nil {
+		return err
+	}
+	err = managedProcessComponents.Create()
 	if err != nil {
 		return err
 	}
