@@ -19,9 +19,6 @@ var ErrNilPublicKey = errors.New("public key is nil")
 // ErrNilPrivateKey is raised when a valid private key was expected but nil was used
 var ErrNilPrivateKey = errors.New("private key is nil")
 
-// ErrNilPrevRandSeed is raised when the provided previous random seed is nil
-var ErrNilPrevRandSeed = errors.New("previous random seed is nil")
-
 // ErrNilConsensusData is raised when valid consensus data was expected but nil was received
 var ErrNilConsensusData = errors.New("consensus data is nil")
 
@@ -151,9 +148,6 @@ var ErrNilHeaderHash = errors.New("header hash is nil")
 // ErrNilBody is raised when an expected body is nil
 var ErrNilBody = errors.New("body is nil")
 
-// ErrInvalidDataToBroadcast is raised when invalid data is set to be broadcast
-var ErrInvalidDataToBroadcast = errors.New("data to broadcast is invalid")
-
 // ErrNilMetaHeader is raised when an expected meta header is nil
 var ErrNilMetaHeader = errors.New("meta header is nil")
 
@@ -213,3 +207,9 @@ var ErrInvalidPublicKeyBitmapSize = errors.New("invalid public key bitmap size")
 
 // ErrInvalidCacheSize signals an invalid size provided for cache
 var ErrInvalidCacheSize = errors.New("invalid cache size")
+
+// ErrNilAlarmScheduler is raised when a valid alarm scheduler is expected but nil is used
+var ErrNilAlarmScheduler = errors.New("nil alarm scheduler")
+
+// ErrNilEndProcessChan is raised when a valid end process chan is expected but nil is used
+var ErrNilEndProcessChan = errors.New("nil end process chan")

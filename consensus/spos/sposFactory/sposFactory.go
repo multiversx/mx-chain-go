@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -23,10 +24,19 @@ func GetSubroundsFactory(
 	appStatusHandler core.AppStatusHandler,
 	indexer indexer.Indexer,
 	chainID []byte,
+	alarmScheduler core.TimersScheduler,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (spos.SubroundsFactory, error) {
 	switch consensusType {
 	case blsConsensusType:
-		subRoundFactoryBls, err := bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker, chainID)
+		subRoundFactoryBls, err := bls.NewSubroundsFactory(
+			consensusDataContainer,
+			consensusState,
+			worker,
+			chainID,
+			alarmScheduler,
+			chanStopNodeProcess,
+		)
 		if err != nil {
 			return nil, err
 		}

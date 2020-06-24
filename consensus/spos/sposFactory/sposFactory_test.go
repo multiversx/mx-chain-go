@@ -8,7 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,6 +48,8 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		statusHandler,
 		indexer,
 		chainID,
+		alarm.NewAlarmScheduler(),
+		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, sf)
@@ -68,6 +72,8 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		nil,
 		indexer,
 		chainID,
+		alarm.NewAlarmScheduler(),
+		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, sf)
@@ -91,6 +97,8 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		statusHandler,
 		indexer,
 		chainID,
+		alarm.NewAlarmScheduler(),
+		make(chan endProcess.ArgEndProcess),
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sf))
@@ -108,6 +116,8 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		alarm.NewAlarmScheduler(),
+		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, sf)

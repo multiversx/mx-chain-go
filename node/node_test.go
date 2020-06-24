@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -953,6 +954,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithDataStore(&mock.ChainStorerMock{}),
+		node.WithNodeStopChannel(make(chan endProcess.ArgEndProcess)),
 	)
 
 	err := n.StartConsensus()
@@ -1002,6 +1004,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithNodeStopChannel(make(chan endProcess.ArgEndProcess)),
 	)
 
 	err := n.StartConsensus()
@@ -1048,6 +1051,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
+		node.WithNodeStopChannel(make(chan endProcess.ArgEndProcess)),
 	)
 
 	err := n.StartConsensus()
@@ -1076,6 +1080,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithDataStore(&mock.ChainStorerMock{}),
 		node.WithDataPool(testscommon.NewPoolsHolderStub()),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithNodeStopChannel(make(chan endProcess.ArgEndProcess)),
 	)
 
 	err := n.StartConsensus()
@@ -1159,6 +1164,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithNodeStopChannel(make(chan endProcess.ArgEndProcess)),
 	)
 
 	err := n.StartConsensus()
@@ -1241,6 +1247,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithNodeStopChannel(make(chan endProcess.ArgEndProcess)),
 	)
 
 	err := n.StartConsensus()
@@ -1353,6 +1360,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
+		node.WithNodeStopChannel(make(chan endProcess.ArgEndProcess)),
 	)
 
 	err := n.StartConsensus()

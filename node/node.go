@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
@@ -218,7 +219,13 @@ func (n *Node) StartConsensus() error {
 		return ErrGenesisBlockNotInitialized
 	}
 
-	chronologyHandler, err := n.createChronologyHandler(n.rounder, n.appStatusHandler)
+	alarmScheduler := alarm.NewAlarmScheduler()
+	chronologyHandler, err := n.createChronologyHandler(
+		n.rounder,
+		n.appStatusHandler,
+		alarmScheduler,
+		n.chanStopNodeProcess,
+	)
 	if err != nil {
 		return err
 	}
@@ -347,6 +354,8 @@ func (n *Node) StartConsensus() error {
 		n.appStatusHandler,
 		n.indexer,
 		n.chainID,
+		alarmScheduler,
+		n.chanStopNodeProcess,
 	)
 	if err != nil {
 		return err
@@ -437,11 +446,18 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 }
 
 // createChronologyHandler method creates a chronology object
-func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandler core.AppStatusHandler) (consensus.ChronologyHandler, error) {
+func (n *Node) createChronologyHandler(
+	rounder consensus.Rounder,
+	appStatusHandler core.AppStatusHandler,
+	alarmScheduler core.TimersScheduler,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
+) (consensus.ChronologyHandler, error) {
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
 		n.syncTimer,
+		alarmScheduler,
+		chanStopNodeProcess,
 	)
 	if err != nil {
 		return nil, err

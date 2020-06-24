@@ -1,8 +1,11 @@
 package chronology
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"runtime/pprof"
 	"sync"
 	"time"
 
@@ -11,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/close"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -23,6 +27,8 @@ var log = logger.GetOrCreate("consensus/chronology")
 
 // srBeforeStartRound defines the state which exist before the start of the round
 const srBeforeStartRound = -1
+
+const numRoundsToWaitBeforeSignalingChronologyStuck = 10
 
 // chronology defines the data needed by the chronology
 type chronology struct {
@@ -38,6 +44,9 @@ type chronology struct {
 	mutSubrounds     sync.RWMutex
 	appStatusHandler core.AppStatusHandler
 	cancelFunc       func()
+
+	alarmScheduler      core.TimersScheduler
+	chanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
 // NewChronology creates a new chronology object
@@ -45,22 +54,27 @@ func NewChronology(
 	genesisTime time.Time,
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
+	alarmScheduler core.TimersScheduler,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (*chronology, error) {
 
 	err := checkNewChronologyParams(
 		rounder,
 		syncTimer,
+		alarmScheduler,
+		chanStopNodeProcess,
 	)
-
 	if err != nil {
 		return nil, err
 	}
 
 	chr := chronology{
-		genesisTime:      genesisTime,
-		rounder:          rounder,
-		syncTimer:        syncTimer,
-		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		genesisTime:         genesisTime,
+		rounder:             rounder,
+		syncTimer:           syncTimer,
+		appStatusHandler:    statusHandler.NewNilStatusHandler(),
+		alarmScheduler:      alarmScheduler,
+		chanStopNodeProcess: chanStopNodeProcess,
 	}
 
 	chr.subroundId = srBeforeStartRound
@@ -74,6 +88,8 @@ func NewChronology(
 func checkNewChronologyParams(
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
+	alarmScheduler core.TimersScheduler,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) error {
 
 	if check.IfNil(rounder) {
@@ -81,6 +97,12 @@ func checkNewChronologyParams(
 	}
 	if check.IfNil(syncTimer) {
 		return ErrNilSyncTimer
+	}
+	if check.IfNil(alarmScheduler) {
+		return ErrNilAlarmScheduler
+	}
+	if chanStopNodeProcess == nil {
+		return ErrNilEndProcessChan
 	}
 
 	return nil
@@ -114,6 +136,33 @@ func (chr *chronology) RemoveAllSubrounds() {
 	chr.subroundHandlers = make([]consensus.SubroundHandler, 0)
 
 	chr.mutSubrounds.Unlock()
+}
+
+func (chr *chronology) resetChronologyStuckAlarm() {
+	duration := chr.rounder.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuck
+	alarmID := "chronologyStuck"
+
+	chr.alarmScheduler.Cancel(alarmID)
+
+	cb := func(alarmID string) {
+		buffer := new(bytes.Buffer)
+		err := pprof.Lookup("goroutine").WriteTo(buffer, 1)
+		if err != nil {
+			log.Error("could not dump goroutines")
+		}
+		log.Debug(buffer.String())
+
+		arg := endProcess.ArgEndProcess{
+			Reason:      "chronology is stuck",
+			Description: "startRound() was not called before the alarm expired",
+		}
+		chr.chanStopNodeProcess <- arg
+
+		time.Sleep(core.TimeToGracefullyCloseNode)
+		os.Exit(1)
+	}
+
+	chr.alarmScheduler.Add(cb, duration, alarmID)
 }
 
 // StartRounds actually starts the chronology and calls the DoWork() method of the subroundHandlers loaded
@@ -150,6 +199,8 @@ func (chr *chronology) startRound() {
 	if sr == nil {
 		return
 	}
+
+	chr.resetChronologyStuckAlarm()
 
 	msg := fmt.Sprintf("SUBROUND %s BEGINS", sr.Name())
 	log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))

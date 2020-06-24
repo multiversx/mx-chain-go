@@ -1,5 +1,7 @@
 package core
 
+import "time"
+
 // AppStatusHandler interface will handle different implementations of monitoring tools, such as term-ui or status metrics
 type AppStatusHandler interface {
 	IsInterfaceNil() bool
@@ -22,5 +24,13 @@ type PubkeyConverter interface {
 	Len() int
 	Decode(humanReadable string) ([]byte, error)
 	Encode(pkBytes []byte) string
+	IsInterfaceNil() bool
+}
+
+// TimersScheduler exposes functionality for scheduling multiple timers
+type TimersScheduler interface {
+	Add(callback func(alarmID string), duration time.Duration, alarmID string)
+	Cancel(alarmID string)
+	Close()
 	IsInterfaceNil() bool
 }

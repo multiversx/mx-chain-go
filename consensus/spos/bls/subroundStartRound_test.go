@@ -5,6 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+
+	"github.com/ElrondNetwork/elrond-go/core/alarm"
+
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
@@ -19,6 +23,8 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStart
 		extend,
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
+		alarm.NewAlarmScheduler(),
+		make(chan endProcess.ArgEndProcess),
 	)
 
 	return startRound, err
@@ -30,6 +36,8 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.Su
 		extend,
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
+		alarm.NewAlarmScheduler(),
+		make(chan endProcess.ArgEndProcess),
 	)
 
 	return startRound
@@ -65,6 +73,8 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 		extend,
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
+		alarm.NewAlarmScheduler(),
+		make(chan endProcess.ArgEndProcess),
 	)
 
 	return srStartRound
@@ -83,6 +93,8 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testin
 		extend,
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
+		alarm.NewAlarmScheduler(),
+		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, srStartRound)
