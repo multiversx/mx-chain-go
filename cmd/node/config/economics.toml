@@ -3,7 +3,7 @@
     TotalSupply = "20000000000000000000000000000" #20BILERD
     MinimumInflation = 0.0
     MaximumInflation = 0.075 #fraction of value 1 - 7.5%
-    Denomination = 18
+    Denomination = 18 # represents the smallest erd subdivision (10^-X ERD for a denomination of X)
 
 [RewardsSettings]
     LeaderPercentage = 0.1 #fraction of value 1 - 10%
