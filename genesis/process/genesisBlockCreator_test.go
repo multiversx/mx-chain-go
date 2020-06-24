@@ -9,6 +9,7 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
@@ -142,7 +143,67 @@ func createMockArgument(
 	return arg
 }
 
-func TestGenesisBlockCreator_CreateGenesisBlocksJustDelegationShouldWork(t *testing.T) {
+func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResultingAddresses(t *testing.T) {
+	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
+	initialNodesSetup := &mock.InitialNodesHandlerStub{
+		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+			return map[uint32][]sharding.GenesisNodeInfoHandler{
+				0: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{1}, 96),
+					},
+				},
+				1: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
+					},
+				},
+			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return 1
+		},
+	}
+	arg := createMockArgument(
+		t,
+		"testdata/genesisTest1.json",
+		initialNodesSetup,
+		big.NewInt(22000),
+	)
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.Nil(t, err)
+
+	blocks, err := gbc.CreateGenesisBlocks()
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(blocks))
+
+	mapAddressesWithDeploy, err := arg.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+	assert.Nil(t, err)
+	assert.Equal(t, len(mapAddressesWithDeploy), core.MaxNumShards)
+
+	newArgs := createMockArgument(
+		t,
+		"testdata/genesisTest1.json",
+		initialNodesSetup,
+		big.NewInt(22000),
+	)
+	hardForkGbc, err := NewGenesisBlockCreator(newArgs)
+	assert.Nil(t, err)
+	err = hardForkGbc.computeDNSAddressesIfHardFork()
+	assert.Nil(t, err)
+
+	mapAfterHardForkAddresses, err := newArgs.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+	assert.Nil(t, err)
+	assert.Equal(t, len(mapAfterHardForkAddresses), core.MaxNumShards)
+	for address := range mapAddressesWithDeploy {
+		_, ok := mapAfterHardForkAddresses[address]
+		assert.True(t, ok)
+	}
+}
+
+func TestGenesisBlockCreator_CreateGenesisBlocksJustDelegationShouldWorkAndDNS(t *testing.T) {
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
@@ -186,7 +247,7 @@ func TestGenesisBlockCreator_CreateGenesisBlocksJustDelegationShouldWork(t *test
 	assert.Equal(t, 3, len(blocks))
 }
 
-func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWork(t *testing.T) {
+func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAndDNS(t *testing.T) {
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
 	stakedAddr2, _ := hex.DecodeString("d00102030405060708090001020304050607080900010203040506070809000d")

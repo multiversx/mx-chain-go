@@ -411,6 +411,7 @@ func createConsensusOnlyNode(
 		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
 		node.WithSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
+		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)

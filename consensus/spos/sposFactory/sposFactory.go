@@ -23,10 +23,11 @@ func GetSubroundsFactory(
 	appStatusHandler core.AppStatusHandler,
 	indexer indexer.Indexer,
 	chainID []byte,
+	currentPid core.PeerID,
 ) (spos.SubroundsFactory, error) {
 	switch consensusType {
 	case blsConsensusType:
-		subRoundFactoryBls, err := bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker, chainID)
+		subRoundFactoryBls, err := bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker, chainID, currentPid)
 		if err != nil {
 			return nil, err
 		}
