@@ -200,7 +200,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		Hasher:            pcf.coreData.Hasher(),
 		NodesCoordinator:  pcf.nodesCoordinator,
 		MultiSigVerifier:  pcf.crypto.MultiSigner(),
-		SingleSigVerifier: pcf.crypto.TxSingleSigner(),
+		SingleSigVerifier: pcf.crypto.BlockSigner(),
 		KeyGen:            pcf.crypto.BlockSignKeyGen(),
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
