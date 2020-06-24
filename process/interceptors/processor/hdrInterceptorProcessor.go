@@ -17,7 +17,7 @@ var _ process.InterceptorProcessor = (*HdrInterceptorProcessor)(nil)
 type HdrInterceptorProcessor struct {
 	headers            dataRetriever.HeadersPool
 	hdrValidator       process.HeaderValidator
-	blackList          process.BlackListHandler
+	blackList          process.TimeCacher
 	registeredHandlers []func(topic string, hash []byte, data interface{})
 	mutHandlers        sync.RWMutex
 }
@@ -33,14 +33,14 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	if check.IfNil(argument.HdrValidator) {
 		return nil, process.ErrNilHdrValidator
 	}
-	if check.IfNil(argument.BlackList) {
-		return nil, process.ErrNilBlackListHandler
+	if check.IfNil(argument.BlockBlackList) {
+		return nil, process.ErrNilBlackListCacher
 	}
 
 	return &HdrInterceptorProcessor{
 		headers:            argument.Headers,
 		hdrValidator:       argument.HdrValidator,
-		blackList:          argument.BlackList,
+		blackList:          argument.BlockBlackList,
 		registeredHandlers: make([]func(topic string, hash []byte, data interface{}), 0),
 	}, nil
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/p2p/antiflood"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -140,9 +141,15 @@ func reConnectFloodingPeer(peers []p2p.Messenger, flooderIdx int, floodedIdxes [
 	}
 }
 
-func applyBlacklistComponents(peers []p2p.Messenger, blacklistHandler []process.PeerBlackListHandler) {
+func applyBlacklistComponents(peers []p2p.Messenger, blacklistHandler []process.PeerBlackListCacher) {
 	for idx, peer := range peers {
-		_ = peer.SetPeerBlackListHandler(blacklistHandler[idx])
+		pde, _ := blackList.NewPeerDenialEvaluator(
+			blacklistHandler[idx],
+			&mock.TimeCacheStub{},
+			&mock.PeerShardMapperStub{},
+		)
+
+		_ = peer.SetPeerDenialEvaluator(pde)
 	}
 }
 
@@ -151,18 +158,18 @@ func createBlacklistHandlersAndProcessors(
 	thresholdNumReceived uint32,
 	thresholdSizeReceived uint64,
 	maxFloodingRounds uint32,
-) ([]floodPreventers.QuotaStatusHandler, []process.PeerBlackListHandler) {
+) ([]floodPreventers.QuotaStatusHandler, []process.PeerBlackListCacher) {
 	var err error
 
 	blacklistProcessors := make([]floodPreventers.QuotaStatusHandler, len(peers))
-	blacklistHandlers := make([]process.PeerBlackListHandler, len(peers))
+	blacklistCachers := make([]process.PeerBlackListCacher, len(peers))
 	for i := range peers {
 		blacklistCache, _ := lrucache.NewCache(5000)
-		blacklistHandlers[i], _ = timecache.NewPeerTimeCache(timecache.NewTimeCache(time.Minute * 5))
+		blacklistCachers[i], _ = timecache.NewPeerTimeCache(timecache.NewTimeCache(time.Minute * 5))
 
 		blacklistProcessors[i], err = blackList.NewP2PBlackListProcessor(
 			blacklistCache,
-			blacklistHandlers[i],
+			blacklistCachers[i],
 			thresholdNumReceived,
 			thresholdSizeReceived,
 			maxFloodingRounds,
@@ -172,7 +179,7 @@ func createBlacklistHandlersAndProcessors(
 		)
 		log.LogIfError(err)
 	}
-	return blacklistProcessors, blacklistHandlers
+	return blacklistProcessors, blacklistCachers
 }
 
 func printConnected(peers []p2p.Messenger) {

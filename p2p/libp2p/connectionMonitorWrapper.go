@@ -17,20 +17,20 @@ var _ ConnectionMonitor = (*connectionMonitorWrapper)(nil)
 // it handles black list peers
 type connectionMonitorWrapper struct {
 	ConnectionMonitor
-	network          network.Network
-	mutPeerBlackList sync.RWMutex
-	peerBlackList    p2p.PeerBlacklistHandler
+	network             network.Network
+	mutPeerBlackList    sync.RWMutex
+	peerDenialEvaluator p2p.PeerDenialEvaluator
 }
 
 func newConnectionMonitorWrapper(
 	network network.Network,
 	connMonitor ConnectionMonitor,
-	blackList p2p.PeerBlacklistHandler,
+	peerDenialEvaluator p2p.PeerDenialEvaluator,
 ) *connectionMonitorWrapper {
 	return &connectionMonitorWrapper{
-		ConnectionMonitor: connMonitor,
-		network:           network,
-		peerBlackList:     blackList,
+		ConnectionMonitor:   connMonitor,
+		network:             network,
+		peerDenialEvaluator: peerDenialEvaluator,
 	}
 }
 
@@ -47,11 +47,11 @@ func (cmw *connectionMonitorWrapper) ListenClose(netw network.Network, ma multia
 // Connected is called when a connection opened
 func (cmw *connectionMonitorWrapper) Connected(netw network.Network, conn network.Conn) {
 	cmw.mutPeerBlackList.RLock()
-	peerBlackList := cmw.peerBlackList
+	peerBlackList := cmw.peerDenialEvaluator
 	cmw.mutPeerBlackList.RUnlock()
 
 	pid := conn.RemotePeer()
-	if peerBlackList.Has(core.PeerID(pid)) {
+	if peerBlackList.IsDenied(core.PeerID(pid)) {
 		log.Debug("dropping connection to black listed peer",
 			"pid", pid.Pretty(),
 		)
@@ -82,11 +82,11 @@ func (cmw *connectionMonitorWrapper) ClosedStream(netw network.Network, stream n
 func (cmw *connectionMonitorWrapper) CheckConnectionsBlocking() {
 	peers := cmw.network.Peers()
 	cmw.mutPeerBlackList.RLock()
-	blacklistHandler := cmw.peerBlackList
+	peerDenialEvaluator := cmw.peerDenialEvaluator
 	cmw.mutPeerBlackList.RUnlock()
 
 	for _, pid := range peers {
-		if blacklistHandler.Has(core.PeerID(pid)) {
+		if peerDenialEvaluator.IsDenied(core.PeerID(pid)) {
 			log.Debug("dropping connection to black listed peer",
 				"pid", pid.Pretty(),
 			)
@@ -95,14 +95,14 @@ func (cmw *connectionMonitorWrapper) CheckConnectionsBlocking() {
 	}
 }
 
-// SetBlackListHandler sets the black list handler
-func (cmw *connectionMonitorWrapper) SetBlackListHandler(handler p2p.PeerBlacklistHandler) error {
+// SetPeerDenialEvaluator sets the handler that is able to tell if a peer can connect to self or not (is or not blacklisted)
+func (cmw *connectionMonitorWrapper) SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error {
 	if check.IfNil(handler) {
-		return p2p.ErrNilPeerBlacklistHandler
+		return p2p.ErrNilPeerDenialEvaluator
 	}
 
 	cmw.mutPeerBlackList.Lock()
-	cmw.peerBlackList = handler
+	cmw.peerDenialEvaluator = handler
 	cmw.mutPeerBlackList.Unlock()
 
 	return nil
