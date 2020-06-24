@@ -452,3 +452,7 @@ const DefaultUnstakedEpoch = math.MaxUint32
 // InvalidMessageBlacklistDuration represents the time to keep a peer in the black list if it sends a message that
 // does not follow the protocol: example not useing the same marshaler as the other peers
 const InvalidMessageBlacklistDuration = time.Second * 3600
+
+// PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
+// rating to a minimum threshold due to improper messages
+const PublicKeyBlacklistDuration = time.Second * 7200

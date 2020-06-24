@@ -308,6 +308,11 @@
     Capacity = 30000
     Type = "LRU"
 
+[PeerHonesty]
+    Name = "PeerHonesty"
+    Capacity = 5000
+    Type = "LRU"
+
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
