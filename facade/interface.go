@@ -37,9 +37,6 @@ type NodeHandler interface {
 	//GetTransaction will return a transaction based on the hash
 	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
 
-	//GetTransactionStatus gets the transaction status
-	GetTransactionStatus(hash string) (string, error)
-
 	// GetAccount returns an accountResponse containing information
 	//  about the account corelated with provided address
 	GetAccount(address string) (state.UserAccountHandler, error)
