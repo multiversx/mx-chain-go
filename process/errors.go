@@ -805,3 +805,9 @@ var ErrInvalidUserNameLength = errors.New("invalid user name length")
 
 // ErrTxValueOutOfBounds signals that transaction value is out of bounds
 var ErrTxValueOutOfBounds = errors.New("tx value is out of bounds")
+
+// ErrNilPeerValidatorMapper signals that nil peer validator mapper has been provided
+var ErrNilPeerValidatorMapper = errors.New("nil peer validator mapper")
+
+// ErrOnlyValidatorsCanUseThisTopic signals that topic can be used by validator only
+var ErrOnlyValidatorsCanUseThisTopic = errors.New("only validators can use this topic")

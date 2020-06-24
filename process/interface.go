@@ -720,6 +720,12 @@ type P2PAntifloodHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PeerValidatorMapper can determine the peer info from a peer id
+type PeerValidatorMapper interface {
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
+	IsInterfaceNil() bool
+}
+
 // SCQueryService defines how data should be get from a SC account
 type SCQueryService interface {
 	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)

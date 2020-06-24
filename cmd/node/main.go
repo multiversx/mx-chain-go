@@ -2072,6 +2072,8 @@ func createNode(
 		return nil, err
 	}
 
+	factory.PrepareOpenTopics(network.InputAntifloodHandler, shardCoordinator)
+
 	apiTxsByHashThrottler, err := throttler.NewNumGoRoutinesThrottler(maxNumGoRoutinesTxsByHashApi)
 	if err != nil {
 		return nil, err

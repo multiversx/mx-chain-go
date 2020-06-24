@@ -19,11 +19,14 @@ var log = logger.GetOrCreate("process/throttle/antiflood")
 var _ process.P2PAntifloodHandler = (*p2pAntiflood)(nil)
 
 type p2pAntiflood struct {
-	blacklistHandler process.PeerBlackListHandler
-	floodPreventers  []process.FloodPreventer
-	topicPreventer   process.TopicFloodPreventer
-	mutDebugger      sync.RWMutex
-	debugger         process.AntifloodDebugger
+	blacklistHandler    process.PeerBlackListHandler
+	floodPreventers     []process.FloodPreventer
+	topicPreventer      process.TopicFloodPreventer
+	mutDebugger         sync.RWMutex
+	debugger            process.AntifloodDebugger
+	peerValidatorMapper process.PeerValidatorMapper
+	mapTopicsFromAll    map[string]struct{}
+	mutTopicCheck       sync.RWMutex
 }
 
 // NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
@@ -45,10 +48,12 @@ func NewP2PAntiflood(
 	}
 
 	return &p2pAntiflood{
-		blacklistHandler: blacklistHandler,
-		floodPreventers:  floodPreventers,
-		topicPreventer:   topicFloodPreventer,
-		debugger:         &disabled.AntifloodDebugger{},
+		blacklistHandler:    blacklistHandler,
+		floodPreventers:     floodPreventers,
+		topicPreventer:      topicFloodPreventer,
+		debugger:            &disabled.AntifloodDebugger{},
+		mapTopicsFromAll:    make(map[string]struct{}),
+		peerValidatorMapper: &disabled.PeerValidatorMapper{},
 	}, nil
 }
 
@@ -90,6 +95,42 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 
 // IsOriginatorEligibleForTopic returns error if pid is not allowed to send messages on topic
 func (af *p2pAntiflood) IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error {
+	af.mutTopicCheck.RLock()
+	defer af.mutTopicCheck.RUnlock()
+
+	_, ok := af.mapTopicsFromAll[topic]
+	if ok {
+		return nil
+	}
+
+	peerInfo := af.peerValidatorMapper.GetPeerInfo(pid)
+	if peerInfo.PeerType == core.ValidatorPeer {
+		return nil
+	}
+
+	return process.ErrOnlyValidatorsCanUseThisTopic
+}
+
+// SetTopicsForAll set the topics which are enabled for all
+func (af *p2pAntiflood) SetTopicsForAll(topics ...string) {
+	af.mutTopicCheck.Lock()
+	defer af.mutTopicCheck.Unlock()
+
+	for _, topic := range topics {
+		af.mapTopicsFromAll[topic] = struct{}{}
+	}
+}
+
+// SetPeerValidatorMapper sets the peer validator mapper
+func (af *p2pAntiflood) SetPeerValidatorMapper(validatorMapper process.PeerValidatorMapper) error {
+	if check.IfNil(validatorMapper) {
+		return process.ErrNilPeerValidatorMapper
+	}
+
+	af.mutTopicCheck.Lock()
+	defer af.mutTopicCheck.Unlock()
+
+	af.peerValidatorMapper = validatorMapper
 	return nil
 }
 
