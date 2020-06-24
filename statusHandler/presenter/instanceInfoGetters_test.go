@@ -160,7 +160,7 @@ func TestPresenterStatusHandler_CalculateRewardsTotal(t *testing.T) {
 	presenterStatusHandler := NewPresenterStatusHandler()
 	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
 	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
-	presenterStatusHandler.SetStringValue(core.MetricDenomination, "0.0001")
+	presenterStatusHandler.SetUInt64Value(core.MetricDenomination, 4)
 	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
 	expectedDifValue := "5" + presenterStatusHandler.GetZeros()
 
@@ -179,7 +179,7 @@ func TestPresenterStatusHandler_CalculateRewardsTotalRewards(t *testing.T) {
 	presenterStatusHandler.totalRewardsOld = big.NewFloat(0).Set(totalRewardsOld)
 	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
 	presenterStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, numSignedBlocks)
-	presenterStatusHandler.SetStringValue(core.MetricDenomination, "0.0001")
+	presenterStatusHandler.SetUInt64Value(core.MetricDenomination, 4)
 	totalRewards, diff := presenterStatusHandler.GetTotalRewardsValue()
 	expectedDiffValue := "4000" + presenterStatusHandler.GetZeros()
 
@@ -213,7 +213,7 @@ func TestPresenterStatusHandler_CalculateRewardsPerHourShouldWork(t *testing.T) 
 	presenterStatusHandler.SetStringValue(core.MetricRewardsValue, rewardsValue)
 	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRound, totalRounds)
 	presenterStatusHandler.SetUInt64Value(core.MetricRoundTime, roundTime)
-	presenterStatusHandler.SetStringValue(core.MetricDenomination, "0.0001")
+	presenterStatusHandler.SetUInt64Value(core.MetricDenomination, 4)
 	expectedValue := "300" + presenterStatusHandler.GetZeros()
 
 	result := presenterStatusHandler.CalculateRewardsPerHour()

@@ -46,16 +46,6 @@ func (psh *PresenterStatusHandler) getBigIntFromStringMetric(metric string) *big
 	return bigIntValue
 }
 
-func (psh *PresenterStatusHandler) getBigFloatFromStringMetric(metric string) *big.Float {
-	stringValue := psh.getFromCacheAsString(metric)
-	bigFloatValue, ok := big.NewFloat(0).SetString(stringValue)
-	if !ok {
-		return big.NewFloat(0)
-	}
-
-	return bigFloatValue
-}
-
 func areEqualWithZero(parameters ...uint64) bool {
 	for _, param := range parameters {
 		if param == 0 {
@@ -100,7 +90,11 @@ func (psh *PresenterStatusHandler) computeRewardsInErd() *big.Float {
 		denominationCoefficientStr += "0"
 	}
 	denominationCoefficientStr += "1"
-	denominationCoefficient := psh.getBigFloatFromStringMetric(denominationCoefficientStr)
+	denominationCoefficient, ok := big.NewFloat(0).SetString(denominationCoefficientStr)
+	if !ok {
+		return big.NewFloat(0)
+	}
+
 	if rewardsValue.Cmp(big.NewInt(0)) <= 0 {
 		return big.NewFloat(0)
 	}
