@@ -1114,7 +1114,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return 0
+			return 100
 		},
 		ProbableHighestNonceCalled: func() uint64 {
 			return 0
