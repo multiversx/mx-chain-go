@@ -50,12 +50,12 @@ func NewSubroundsFactory(
 	}
 
 	fct := factory{
-		consensusCore:    consensusDataContainer,
-		consensusState:   consensusState,
-		worker:           worker,
-		appStatusHandler: statusHandler.NewNilStatusHandler(),
-		chainID:          chainID,
-		currentPid:       currentPid,
+		consensusCore:       consensusDataContainer,
+		consensusState:      consensusState,
+		worker:              worker,
+		appStatusHandler:    statusHandler.NewNilStatusHandler(),
+		chainID:             chainID,
+		currentPid:          currentPid,
 		alarmScheduler:      alarmScheduler,
 		chanStopNodeProcess: chanStopNodeProcess,
 	}

@@ -4,14 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-
-	"github.com/ElrondNetwork/elrond-go/core/alarm"
-
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/stretchr/testify/assert"
 )
 
