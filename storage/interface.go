@@ -201,11 +201,9 @@ type SizedLRUCacheHandler interface {
 	Purge()
 }
 
-// TimeCacheHandler defines the cache that can keep a record for a bounded time
-type TimeCacheHandler interface {
-	Add(key string) error
-	AddWithSpan(key string, span time.Duration) error
-	Update(key string, span time.Duration) error
+// TimeCacher defines the cache that can keep a record for a bounded time
+type TimeCacher interface {
+	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool

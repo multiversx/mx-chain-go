@@ -19,7 +19,7 @@ var log = logger.GetOrCreate("process/throttle/antiflood")
 var _ process.P2PAntifloodHandler = (*p2pAntiflood)(nil)
 
 type p2pAntiflood struct {
-	blacklistHandler process.PeerBlackListHandler
+	blacklistHandler process.PeerBlackListCacher
 	floodPreventers  []process.FloodPreventer
 	topicPreventer   process.TopicFloodPreventer
 	mutDebugger      sync.RWMutex
@@ -29,7 +29,7 @@ type p2pAntiflood struct {
 // NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
 // It contains only the p2p anti flood logic that should be applied
 func NewP2PAntiflood(
-	blacklistHandler process.PeerBlackListHandler,
+	blacklistHandler process.PeerBlackListCacher,
 	topicFloodPreventer process.TopicFloodPreventer,
 	floodPreventers ...process.FloodPreventer,
 ) (*p2pAntiflood, error) {
@@ -41,7 +41,7 @@ func NewP2PAntiflood(
 		return nil, process.ErrNilTopicFloodPreventer
 	}
 	if check.IfNil(blacklistHandler) {
-		return nil, process.ErrNilBlackListHandler
+		return nil, process.ErrNilBlackListCacher
 	}
 
 	return &p2pAntiflood{
@@ -186,7 +186,7 @@ func (af *p2pAntiflood) SetDebugger(debugger process.AntifloodDebugger) error {
 
 // BlacklistPeer will add a peer to the black list
 func (af *p2pAntiflood) BlacklistPeer(peer core.PeerID, reason string, duration time.Duration) {
-	err := af.blacklistHandler.AddWithSpan(peer, duration)
+	err := af.blacklistHandler.Upsert(peer, duration)
 	if err != nil {
 		log.Warn("error adding in blacklist",
 			"pid", peer.Pretty(),
