@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -38,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // TODO: check underlying components if there are goroutines with infinite for loops
@@ -49,22 +49,23 @@ var timeSpanForBadHeaders = time.Minute * 2
 
 // processComponents struct holds the process components
 type processComponents struct {
-	InterceptorsContainer    process.InterceptorsContainer
-	ResolversFinder          dataRetriever.ResolversFinder
-	Rounder                  consensus.Rounder
-	EpochStartTrigger        epochStart.TriggerHandler
-	ForkDetector             process.ForkDetector
-	BlockProcessor           process.BlockProcessor
-	BlackListHandler         process.BlackListHandler
-	BootStorer               process.BootStorer
-	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier  HeaderIntegrityVerifierHandler
-	ValidatorsStatistics     process.ValidatorStatisticsProcessor
-	ValidatorsProvider       process.ValidatorsProvider
-	BlockTracker             process.BlockTracker
-	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
-	RequestHandler           process.RequestHandler
-	TxLogsProcessor          process.TransactionLogProcessorDatabase
+	InterceptorsContainer       process.InterceptorsContainer
+	ResolversFinder             dataRetriever.ResolversFinder
+	Rounder                     consensus.Rounder
+	EpochStartTrigger           epochStart.TriggerHandler
+	ForkDetector                process.ForkDetector
+	BlockProcessor              process.BlockProcessor
+	BlackListHandler            process.BlackListHandler
+	BootStorer                  process.BootStorer
+	HeaderSigVerifier           process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier     HeaderIntegrityVerifierHandler
+	ValidatorsStatistics        process.ValidatorStatisticsProcessor
+	ValidatorsProvider          process.ValidatorsProvider
+	BlockTracker                process.BlockTracker
+	PendingMiniBlocksHandler    process.PendingMiniBlocksHandler
+	RequestHandler              process.RequestHandler
+	TxLogsProcessor             process.TransactionLogProcessorDatabase
+	HeaderConstructionValidator process.HeaderConstructionValidator
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -100,9 +101,11 @@ type ProcessComponentsFactoryArgs struct {
 	MinSizeInBytes            uint32
 	MaxSizeInBytes            uint32
 	MaxRating                 uint32
-	ValidatorPubkeyConverter  state.PubkeyConverter
+	ValidatorPubkeyConverter  core.PubkeyConverter
 	SystemSCConfig            *config.SystemSmartContractsConfig
 	Version                   string
+	ImportStartHandler        update.ImportStartHandler
+	WorkingDir                string
 }
 
 type processComponentsFactory struct {
@@ -135,11 +138,13 @@ type processComponentsFactory struct {
 	minSizeInBytes            uint32
 	maxSizeInBytes            uint32
 	maxRating                 uint32
-	validatorPubkeyConverter  state.PubkeyConverter
+	validatorPubkeyConverter  core.PubkeyConverter
 	ratingsData               process.RatingsInfoHandler
 	systemSCConfig            *config.SystemSmartContractsConfig
 	txLogsProcessor           process.TransactionLogProcessor
 	version                   string
+	importStartHandler        update.ImportStartHandler
+	workingDir                string
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -183,6 +188,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		validatorPubkeyConverter:  args.ValidatorPubkeyConverter,
 		systemSCConfig:            args.SystemSCConfig,
 		version:                   args.Version,
+		importStartHandler:        args.ImportStartHandler,
+		workingDir:                args.WorkingDir,
 	}, nil
 }
 
@@ -233,16 +240,43 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	txLogsStorage := pcf.data.StorageService().GetStorer(dataRetriever.TxLogsUnit)
+	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		Storer:      txLogsStorage,
+		Marshalizer: pcf.coreData.InternalMarshalizer(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	pcf.txLogsProcessor = txLogsProcessor
+	genesisBlocks, err := pcf.generateGenesisHeadersAndApplyInitialBalances()
+	if err != nil {
+		return nil, err
+	}
+
+	err = pcf.prepareGenesisBlock(genesisBlocks)
+	if err != nil {
+		return nil, err
+	}
+
 	validatorStatisticsProcessor, err := pcf.newValidatorStatisticsProcessor()
 	if err != nil {
 		return nil, err
 	}
 
-	validatorsProvider, err := peer.NewValidatorsProvider(
-		validatorStatisticsProcessor,
-		pcf.maxRating,
-		pcf.validatorPubkeyConverter,
-	)
+	cacheRefreshDuration := time.Duration(pcf.coreFactoryArgs.Config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
+	argVSP := peer.ArgValidatorsProvider{
+		NodesCoordinator:                  pcf.nodesCoordinator,
+		StartEpoch:                        pcf.startEpochNum,
+		EpochStartEventNotifier:           pcf.epochStartNotifier,
+		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
+		ValidatorStatistics:               validatorStatisticsProcessor,
+		MaxRating:                         pcf.maxRating,
+		PubKeyConverter:                   pcf.validatorPubkeyConverter,
+	}
+
+	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
 	if err != nil {
 		return nil, err
 	}
@@ -263,28 +297,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
-
-	txLogsStorage := pcf.data.StorageService().GetStorer(dataRetriever.TxLogsUnit)
-	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      txLogsStorage,
-		Marshalizer: pcf.coreData.InternalMarshalizer(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	pcf.txLogsProcessor = txLogsProcessor
-	genesisBlocks, err := pcf.generateGenesisHeadersAndApplyInitialBalances()
-	if err != nil {
-		return nil, err
-	}
-
-	err = pcf.prepareGenesisBlock(genesisBlocks)
-	if err != nil {
-		return nil, err
-	}
 
 	bootStr := pcf.data.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(pcf.coreData.InternalMarshalizer(), bootStr)
@@ -380,6 +393,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.accountsParser,
 		pcf.economicsData.GenesisNodePrice(),
 		pcf.validatorPubkeyConverter,
+		pcf.crypto.BlockSignKeyGen(),
 	)
 	if err != nil {
 		return nil, err
@@ -391,21 +405,22 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	return &processComponents{
-		InterceptorsContainer:    interceptorsContainer,
-		ResolversFinder:          resolversFinder,
-		Rounder:                  pcf.rounder,
-		ForkDetector:             forkDetector,
-		BlockProcessor:           blockProcessor,
-		EpochStartTrigger:        epochStartTrigger,
-		BlackListHandler:         blackListHandler,
-		BootStorer:               bootStorer,
-		HeaderSigVerifier:        headerSigVerifier,
-		ValidatorsStatistics:     validatorStatisticsProcessor,
-		ValidatorsProvider:       validatorsProvider,
-		BlockTracker:             blockTracker,
-		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
-		RequestHandler:           requestHandler,
-		TxLogsProcessor:          txLogsProcessor,
+		InterceptorsContainer:       interceptorsContainer,
+		ResolversFinder:             resolversFinder,
+		Rounder:                     pcf.rounder,
+		ForkDetector:                forkDetector,
+		BlockProcessor:              blockProcessor,
+		EpochStartTrigger:           epochStartTrigger,
+		BlackListHandler:            blackListHandler,
+		BootStorer:                  bootStorer,
+		HeaderSigVerifier:           headerSigVerifier,
+		ValidatorsStatistics:        validatorStatisticsProcessor,
+		ValidatorsProvider:          validatorsProvider,
+		BlockTracker:                blockTracker,
+		PendingMiniBlocksHandler:    pendingMiniBlocksHandler,
+		RequestHandler:              requestHandler,
+		TxLogsProcessor:             txLogsProcessor,
+		HeaderConstructionValidator: headerValidator,
 	}, nil
 }
 
@@ -420,7 +435,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 
 	hardForkConfig := pcf.coreFactoryArgs.Config.Hardfork
 	ratingEnabledEpoch := uint32(0)
-	if hardForkConfig.MustImport {
+	if pcf.importStartHandler.ShouldStartImport() {
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
@@ -436,6 +451,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		RewardsHandler:      pcf.economicsData,
 		NodesSetup:          pcf.nodesConfig,
 		RatingEnableEpoch:   ratingEnabledEpoch,
+		GenesisNonce:        pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -498,6 +514,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 			GenesisTime:        time.Unix(pcf.nodesConfig.StartTime, 0),
 			Settings:           &pcf.coreFactoryArgs.Config.EpochStartConfig,
 			Epoch:              pcf.startEpochNum,
+			EpochStartRound:    pcf.data.Blockchain().GetGenesisHeader().GetRound(),
 			EpochStartNotifier: pcf.epochStartNotifier,
 			Storage:            pcf.data.StorageService(),
 			Marshalizer:        pcf.coreData.InternalMarshalizer(),
@@ -537,6 +554,9 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		HardForkConfig:       pcf.coreFactoryArgs.Config.Hardfork,
 		TrieStorageManagers:  pcf.tries.TrieStorageManagers,
 		SystemSCConfig:       *pcf.systemSCConfig,
+		ImportStartHandler:   pcf.importStartHandler,
+		WorkingDir:           pcf.workingDir,
+		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

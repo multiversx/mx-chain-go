@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
@@ -13,15 +15,15 @@ import (
 const outputReservedPercent = float32(0)
 
 // NewP2POutputAntiFlood will return an instance of an output antiflood component based on the config
-func NewP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
+func NewP2POutputAntiFlood(mainConfig config.Config, ctx context.Context) (process.P2PAntifloodHandler, error) {
 	if mainConfig.Antiflood.Enabled {
-		return initP2POutputAntiFlood(mainConfig)
+		return initP2POutputAntiFlood(mainConfig, ctx)
 	}
 
 	return &disabled.AntiFlood{}, nil
 }
 
-func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
+func initP2POutputAntiFlood(mainConfig config.Config, ctx context.Context) (process.P2PAntifloodHandler, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
 	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
 	if err != nil {
@@ -47,7 +49,7 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 	}
 
 	topicFloodPreventer := disabled.NewNilTopicFloodPreventer()
-	startResettingTopicFloodPreventer(topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0), floodPreventer)
+	startResettingTopicFloodPreventer(topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0), ctx, floodPreventer)
 
 	return antiflood.NewP2PAntiflood(&disabled.PeerBlacklistHandler{}, topicFloodPreventer, floodPreventer)
 }

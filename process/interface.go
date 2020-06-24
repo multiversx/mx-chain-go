@@ -906,7 +906,7 @@ type CoreComponentsHolder interface {
 	TxMarshalizer() marshal.Marshalizer
 	Hasher() hashing.Hasher
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
-	AddressPubKeyConverter() state.PubkeyConverter
+	AddressPubKeyConverter() core.PubkeyConverter
 	PathHandler() storage.PathManagerHandler
 	ChainID() string
 	IsInterfaceNil() bool

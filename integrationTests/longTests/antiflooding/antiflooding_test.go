@@ -1,6 +1,7 @@
 package antiflooding
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -12,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -98,34 +98,36 @@ func TestAntifloodingForLargerPeriodOfTime(t *testing.T) {
 
 func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, idxGoodPeers []int) []*messageProcessor {
 	processors := make([]*messageProcessor, 0, len(peers))
+	ctx := context.Background()
 	for i := 0; i < len(peers); i++ {
-		var antiflood process.P2PAntifloodHandler
-		var blackListHandler process.PeerBlackListHandler
+		var antifloodComponents *factory.AntiFloodComponents
 		var err error
 
 		if intInSlice(i, idxBadPeers) {
-			antiflood, blackListHandler, err = factory.NewP2PAntiFloodAndBlackList(
+			antifloodComponents, err = factory.NewP2PAntiFloodComponents(
 				createDisabledConfig(),
 				&mock.AppStatusHandlerStub{},
 				peers[i].ID(),
+				ctx,
 			)
 			log.LogIfError(err)
 		}
 
 		if intInSlice(i, idxGoodPeers) {
 			statusHandler := &mock.AppStatusHandlerStub{}
-			antiflood, blackListHandler, err = factory.NewP2PAntiFloodAndBlackList(
+			antifloodComponents, err = factory.NewP2PAntiFloodComponents(
 				createWorkableConfig(),
 				statusHandler,
 				peers[i].ID(),
+				ctx,
 			)
 			log.LogIfError(err)
 		}
 
-		err = peers[i].SetPeerBlackListHandler(blackListHandler)
+		err = peers[i].SetPeerBlackListHandler(antifloodComponents.BlacklistHandler)
 		log.LogIfError(err)
 
-		proc := NewMessageProcessor(antiflood, peers[i])
+		proc := NewMessageProcessor(antifloodComponents.AntiFloodHandler, peers[i])
 		processors = append(processors, proc)
 
 		err = proc.messenger.CreateTopic(topic, true)

@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -24,12 +23,13 @@ type statusComponents struct {
 
 type statusComponentsFactory struct {
 	shardCoordinator         sharding.Coordinator
+	softwareVersionConfig    config.SoftwareVersionConfig
 	elasticConfig            config.ElasticSearchConfig
 	coreData                 CoreComponentsHolder
 	epochStartNotifier       EpochStartNotifier
 	nodesCoordinator         sharding.NodesCoordinator
-	addressPubkeyConverter   state.PubkeyConverter
-	validatorPubkeyConverter state.PubkeyConverter
+	addressPubkeyConverter   core.PubkeyConverter
+	validatorPubkeyConverter core.PubkeyConverter
 	elasticOptions           *indexer.Options
 	roundDurationSec         int
 }
@@ -38,11 +38,12 @@ type statusComponentsFactory struct {
 type StatusComponentsFactoryArgs struct {
 	CoreData                 CoreComponentsHolder
 	ShardCoordinator         sharding.Coordinator
+	SoftwareVersionConfig    config.SoftwareVersionConfig
 	ElasticConfig            config.ElasticSearchConfig
 	EpochNotifier            EpochStartNotifier
 	NodesCoordinator         sharding.NodesCoordinator
-	AddressPubkeyConverter   state.PubkeyConverter
-	ValidatorPubkeyConverter state.PubkeyConverter
+	AddressPubkeyConverter   core.PubkeyConverter
+	ValidatorPubkeyConverter core.PubkeyConverter
 	ElasticOptions           *indexer.Options
 	RoundDurationSec         int
 }
@@ -84,12 +85,13 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		addressPubkeyConverter:   args.AddressPubkeyConverter,
 		validatorPubkeyConverter: args.ValidatorPubkeyConverter,
 		elasticOptions:           args.ElasticOptions,
+		softwareVersionConfig:    args.SoftwareVersionConfig,
 	}, nil
 }
 
 // Create will create and return the status components
 func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
-	softwareVersionCheckerFactory, err := factory.NewSoftwareVersionFactory(scf.coreData.StatusHandler())
+	softwareVersionCheckerFactory, err := factory.NewSoftwareVersionFactory(scf.coreData.StatusHandler(), scf.softwareVersionConfig)
 	if err != nil {
 		return nil, err
 	}

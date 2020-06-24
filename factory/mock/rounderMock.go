@@ -12,6 +12,11 @@ type RounderMock struct {
 	RoundTimeDuration time.Duration
 }
 
+// BeforeGenesis -
+func (rndm *RounderMock) BeforeGenesis() bool {
+	return false
+}
+
 // Index -
 func (rndm *RounderMock) Index() int64 {
 	return rndm.RoundIndex

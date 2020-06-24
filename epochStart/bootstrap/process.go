@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -86,6 +85,7 @@ type epochStartBootstrap struct {
 	nodeShuffler               sharding.NodesShuffler
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     core.PubkeyConverter
+	statusHandler              core.AppStatusHandler
 	importStartHandler         epochStart.ImportStartHandler
 
 	// created components
@@ -138,6 +138,7 @@ type ArgsEpochStartBootstrap struct {
 	Rater                      sharding.ChanceComputer
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
+	StatusHandler              core.AppStatusHandler
 	ImportStartHandler         epochStart.ImportStartHandler
 }
 
@@ -163,6 +164,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storageOpenerHandler:       args.StorageUnitOpener,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		shuffledOut:                false,
+		statusHandler:              args.StatusHandler,
 		importStartHandler:         args.ImportStartHandler,
 	}
 

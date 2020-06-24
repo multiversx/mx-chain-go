@@ -201,6 +201,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		DestinationShardAsObserver: shardID,
 		NodeShuffler:               &mock.NodeShufflerMock{},
 		Rounder:                    rounder,
+		StatusHandler:              &mock.AppStatusHandlerStub{},
 		ImportStartHandler:         &mock.ImportStartHandlerStub{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)

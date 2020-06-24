@@ -19,7 +19,7 @@ type SoftwareVersionChecker struct {
 	stableTagProvider         StableTagProviderHandler
 	mostRecentSoftwareVersion string
 	checkInterval             time.Duration
-	cancelFunc                func()
+	closeFunc                 func()
 }
 
 var log = logger.GetOrCreate("core/statistics")
@@ -42,14 +42,12 @@ func NewSoftwareVersionChecker(
 
 	checkInterval := time.Duration(pollingIntervalInMinutes) * time.Minute
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
-
 	return &SoftwareVersionChecker{
 		statusHandler:             appStatusHandler,
 		stableTagProvider:         stableTagProvider,
 		mostRecentSoftwareVersion: "",
 		checkInterval:             checkInterval,
-		cancelFunc:                cancelFunc,
+		closeFunc:                 nil,
 	}, nil
 }
 

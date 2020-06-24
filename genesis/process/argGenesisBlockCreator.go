@@ -3,6 +3,7 @@ package process
 import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -52,6 +53,9 @@ type ArgsGenesisBlockCreator struct {
 	HardForkConfig       config.HardforkConfig
 	TrieStorageManagers  map[string]data.StorageManager
 	SystemSCConfig       config.SystemSmartContractsConfig
+	ImportStartHandler   update.ImportStartHandler
+	WorkingDir           string
+	BlockSignKeyGen      crypto.KeyGenerator
 
 	// created component needed only for hardfork
 	importHandler update.ImportHandler

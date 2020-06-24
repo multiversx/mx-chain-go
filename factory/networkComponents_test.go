@@ -12,7 +12,7 @@ import (
 func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, nil)
+	ncf, err := newNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, nil)
 	require.Nil(t, ncf)
 	require.Equal(t, ErrNilStatusHandler, err)
 }
@@ -20,7 +20,7 @@ func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{})
+	ncf, err := newNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{})
 	require.NoError(t, err)
 	require.NotNil(t, ncf)
 }
@@ -31,7 +31,7 @@ func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
 		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
 	}
 
-	ncf, _ := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{})
+	ncf, _ := newNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{})
 
 	nc, err := ncf.Create()
 	require.Error(t, err)
@@ -66,7 +66,7 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 			Type:                    "NilListSharder",
 		},
 	}
-	ncf, _ := NewNetworkComponentsFactory(
+	ncf, _ := newNetworkComponentsFactory(
 		p2pConfig,
 		config.Config{
 			P2PMessageIDAdditionalCache: config.CacheConfig{

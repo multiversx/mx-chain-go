@@ -252,6 +252,17 @@ func (m *managedProcessComponents) TxLogsProcessor() process.TransactionLogProce
 	return m.processComponents.TxLogsProcessor
 }
 
+func (m *managedProcessComponents) HeaderConstructionValidator() process.HeaderConstructionValidator {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.HeaderConstructionValidator
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (m *managedProcessComponents) IsInterfaceNil() bool {
 	return m == nil

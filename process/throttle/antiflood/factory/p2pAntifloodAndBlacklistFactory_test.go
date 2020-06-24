@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -16,8 +17,9 @@ const currentPid = core.PeerID("current pid")
 func TestNewP2PAntiFloodAndBlackList_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
+	ctx := context.Background()
 	cfg := config.Config{}
-	components, err := NewP2PAntiFloodComponents(cfg, nil, currentPid)
+	components, err := NewP2PAntiFloodComponents(cfg, nil, currentPid, ctx)
 	assert.Nil(t, components)
 	assert.Equal(t, p2p.ErrNilStatusHandler, err)
 }
@@ -31,7 +33,8 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 		},
 	}
 	ash := &mock.AppStatusHandlerMock{}
-	components, err := NewP2PAntiFloodComponents(cfg, ash, currentPid)
+	ctx := context.Background()
+	components, err := NewP2PAntiFloodComponents(cfg, ash, currentPid, ctx)
 	assert.NotNil(t, components)
 	assert.Nil(t, err)
 
@@ -62,7 +65,8 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 	}
 
 	ash := &mock.AppStatusHandlerMock{}
-	components, err := NewP2PAntiFloodComponents(cfg, ash, currentPid)
+	ctx := context.Background()
+	components, err := NewP2PAntiFloodComponents(cfg, ash, currentPid, ctx)
 	assert.Nil(t, err)
 	assert.NotNil(t, components.AntiFloodHandler)
 	assert.NotNil(t, components.BlacklistHandler)

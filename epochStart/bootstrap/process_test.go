@@ -126,10 +126,11 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
-		NodeShuffler:              &mock.NodeShufflerMock{},
-		Rounder:                   &mock.RounderStub{},
-		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
-		StorageUnitOpener:         &mock.UnitOpenerStub{},
+		NodeShuffler:               &mock.NodeShufflerMock{},
+		Rounder:                    &mock.RounderStub{},
+		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
+		StorageUnitOpener:          &mock.UnitOpenerStub{},
+		StatusHandler:              &mock.AppStatusHandlerStub{},
 		ImportStartHandler:         &mock.ImportStartHandlerStub{},
 	}
 }

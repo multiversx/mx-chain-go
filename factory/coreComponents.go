@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
@@ -38,8 +37,8 @@ type coreComponents struct {
 	vmMarshalizer            marshal.Marshalizer
 	txSignMarshalizer        marshal.Marshalizer
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	addressPubKeyConverter   state.PubkeyConverter
-	validatorPubKeyConverter state.PubkeyConverter
+	addressPubKeyConverter   core.PubkeyConverter
+	validatorPubKeyConverter core.PubkeyConverter
 	statusHandler            core.AppStatusHandler
 	pathHandler              storage.PathManagerHandler
 	chainID                  string

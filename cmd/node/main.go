@@ -675,7 +675,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		chanCreateViews,
 		chanLogRewrite,
 		logFile,
-		)
+	)
 	if err != nil {
 		return err
 	}
@@ -767,7 +767,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, defaultDBPath), appVersion)
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, core.DefaultDBPath), appVersion)
 	if err != nil {
 		return err
 	}
@@ -821,6 +821,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		NodeShuffler:               nodesShuffler,
 		Rounder:                    rounder,
 		LatestStorageDataProvider:  latestStorageDataProvider,
+		StatusHandler:              statusHandlersInfo.StatusHandler,
 		ImportStartHandler:         importStartHandler,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
@@ -1016,8 +1017,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating tps benchmark components")
 	initialTpsBenchmark := statusHandlersInfo.LoadTpsBenchmarkFromStorage(
-		dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit),
-		coreComponents.InternalMarshalizer,
+		managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
+		managedCoreComponents.InternalMarshalizer(),
 	)
 	tpsBenchmark, err := statistics.NewTPSBenchmarkWithInitialData(
 		statusHandlersInfo.StatusHandler,
@@ -1118,8 +1119,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ValidatorPubkeyConverter:  managedCoreComponents.ValidatorPubKeyConverter(),
 		SystemSCConfig:            systemSCConfig,
 		Version:                   version,
-		importStartHandler,
-		workingDir,
+		ImportStartHandler:        importStartHandler,
+		WorkingDir:                workingDir,
 	}
 
 	managedProcessComponents, err := mainFactory.NewManagedProcessComponents(processArgs)
@@ -1129,16 +1130,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	hardForkTrigger, err := createHardForkTrigger(
 		generalConfig,
-		cryptoParams.KeyGenerator,
-		cryptoParams.PublicKey,
 		shardCoordinator,
 		nodesCoordinator,
-		coreComponents,
+		managedCoreComponents,
 		stateComponents,
-		dataComponents,
-		cryptoComponents,
-		processComponents,
-		networkComponents,
+		managedDataComponents,
+		managedCryptoComponents,
+		managedProcessComponents,
+		managedNetworkComponents,
 		whiteListRequest,
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
@@ -1294,7 +1293,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(log, dataComponents, triesComponents, networkComponents, chanCloseComponents)
+		closeAllComponents(log, managedDataComponents, triesComponents, managedNetworkComponents, chanCloseComponents)
 	}()
 
 	select {
@@ -1310,13 +1309,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 func closeAllComponents(
 	log logger.Logger,
-	dataComponents *mainFactory.DataComponents,
+	dataComponents mainFactory.DataComponentsHolder,
 	triesComponents *mainFactory.TriesComponents,
-	networkComponents *mainFactory.NetworkComponents,
+	networkComponents mainFactory.NetworkComponentsHolder,
 	chanCloseComponents chan struct{},
 ) {
 	log.Debug("closing all store units....")
-	err := managedDataComponents.StorageService().CloseAll()
+	err := dataComponents.StorageService().CloseAll()
 	log.LogIfError(err)
 
 	dataTries := triesComponents.TriesContainer.GetAll()
@@ -1331,7 +1330,7 @@ func closeAllComponents(
 	}
 
 	log.Debug("calling close on the network messenger instance...")
-	err = managedNetworkComponents.NetworkMessenger().Close()
+	err = networkComponents.NetworkMessenger().Close()
 	log.LogIfError(err)
 
 	chanCloseComponents <- struct{}{}
@@ -1843,16 +1842,14 @@ func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sh
 
 func createHardForkTrigger(
 	config *config.Config,
-	keyGen crypto.KeyGenerator,
-	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	coreData *mainFactory.CoreComponents,
+	coreData mainFactory.CoreComponentsHolder,
 	stateComponents *mainFactory.StateComponents,
-	data *mainFactory.DataComponents,
-	crypto *mainFactory.CryptoComponents,
-	process *factory.Process,
-	network *mainFactory.NetworkComponents,
+	data mainFactory.DataComponentsHolder,
+	crypto mainFactory.CryptoComponentsHolder,
+	process mainFactory.ProcessComponentsHolder,
+	network mainFactory.NetworkComponentsHolder,
 	whiteListRequest process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
@@ -1861,10 +1858,7 @@ func createHardForkTrigger(
 	workingDir string,
 ) (node.HardforkTrigger, error) {
 
-	selfPubKeyBytes, err := pubKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
+	selfPubKeyBytes := crypto.PublicKeyBytes()
 	triggerPubKeyBytes, err := stateComponents.ValidatorPubkeyConverter.Decode(config.Hardfork.PublicKeyToListenFrom)
 	if err != nil {
 		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
@@ -1876,37 +1870,29 @@ func createHardForkTrigger(
 	hardForkConfig := config.Hardfork
 	exportFolder := filepath.Join(workingDir, hardForkConfig.ImportFolder)
 	argsExporter := exportFactory.ArgsExporter{
-		TxSignMarshalizer:        coreData.TxSignMarshalizer,
-		Marshalizer:              coreData.InternalMarshalizer,
-		Hasher:                   coreData.Hasher,
-		HeaderValidator:          process.HeaderValidator,
-		Uint64Converter:          coreData.Uint64ByteSliceConverter,
-		DataPool:                 data.Datapool,
-		StorageService:           data.Store,
-		RequestHandler:           process.RequestHandler,
+		CoreComponents:           coreData,
+		CryptoComponents:         crypto,
+		HeaderValidator:          process.HeaderConstructionValidator(),
+		DataPool:                 data.Datapool(),
+		StorageService:           data.StorageService(),
+		RequestHandler:           process.RequestHandler(),
 		ShardCoordinator:         shardCoordinator,
-		Messenger:                network.NetMessenger,
+		Messenger:                network.NetworkMessenger(),
 		ActiveAccountsDBs:        accountsDBs,
-		ExistingResolvers:        process.ResolversFinder,
+		ExistingResolvers:        process.ResolversFinder(),
 		ExportFolder:             exportFolder,
 		ExportTriesStorageConfig: hardForkConfig.ExportTriesStorageConfig,
 		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
 		WhiteListHandler:         whiteListRequest,
 		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
-		InterceptorsContainer:    process.InterceptorsContainer,
-		MultiSigner:              crypto.MultiSigner,
+		InterceptorsContainer:    process.InterceptorsContainer(),
 		NodesCoordinator:         nodesCoordinator,
-		SingleSigner:             crypto.TxSingleSigner,
-		AddressPubkeyConverter:   stateComponents.AddressPubkeyConverter,
-		BlockKeyGen:              keyGen,
-		KeyGen:                   crypto.TxSignKeyGen,
-		BlockSigner:              crypto.SingleSigner,
-		HeaderSigVerifier:        process.HeaderSigVerifier,
-		HeaderIntegrityVerifier:  process.HeaderIntegrityVerifier,
+		HeaderSigVerifier:        process.HeaderSigVerifier(),
+		HeaderIntegrityVerifier:  process.HeaderIntegrityVerifier(),
 		MaxTrieLevelInMemory:     config.StateTriesConfig.MaxStateTrieLevelInMemory,
-		InputAntifloodHandler:    network.InputAntifloodHandler,
-		OutputAntifloodHandler:   network.OutputAntifloodHandler,
-		ValidityAttester:         process.BlockTracker,
+		InputAntifloodHandler:    network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:   network.OutputAntiFloodHandler(),
+		ValidityAttester:         process.BlockTracker(),
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -1920,7 +1906,7 @@ func createHardForkTrigger(
 		Enabled:                   config.Hardfork.EnableTrigger,
 		EnabledAuthenticated:      config.Hardfork.EnableTriggerFromP2P,
 		ArgumentParser:            atArgumentParser,
-		EpochProvider:             process.EpochStartTrigger,
+		EpochProvider:             process.EpochStartTrigger(),
 		ExportFactoryHandler:      hardForkExportFactory,
 		ChanStopNodeProcess:       chanStopNodeProcess,
 		EpochConfirmedNotifier:    epochNotifier,

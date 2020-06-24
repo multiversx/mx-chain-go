@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -17,9 +18,9 @@ func TestNewP2POutputAntiFlood_ShouldWorkAndReturnDisabledImplementations(t *tes
 			Enabled: false,
 		},
 	}
-	af, fp, err := NewP2POutputAntiFlood(cfg)
+	ctx := context.Background()
+	af, err := NewP2POutputAntiFlood(cfg, ctx)
 	assert.NotNil(t, af)
-	assert.NotNil(t, fp)
 	assert.Nil(t, err)
 
 	_, ok := af.(*disabled.AntiFlood)
@@ -44,9 +45,9 @@ func TestNewP2POutputAntiFlood_BadCacheConfigShouldErr(t *testing.T) {
 		},
 	}
 
-	af, fp, err := NewP2POutputAntiFlood(cfg)
+	ctx := context.Background()
+	af, err := NewP2POutputAntiFlood(cfg, ctx)
 	assert.NotNil(t, err)
-	assert.True(t, check.IfNil(fp))
 	assert.True(t, check.IfNil(af))
 }
 
@@ -68,10 +69,10 @@ func TestNewP2POutputAntiFlood_BadConfigShouldErr(t *testing.T) {
 		},
 	}
 
-	af, fp, err := NewP2POutputAntiFlood(cfg)
+	ctx := context.Background()
+	af, err := NewP2POutputAntiFlood(cfg, ctx)
 	assert.NotNil(t, err)
 	assert.True(t, check.IfNil(af))
-	assert.True(t, check.IfNil(fp))
 }
 
 func TestNewP2POutputAntiFlood_ShouldWorkAndReturnOkImplementations(t *testing.T) {
@@ -92,8 +93,8 @@ func TestNewP2POutputAntiFlood_ShouldWorkAndReturnOkImplementations(t *testing.T
 		},
 	}
 
-	af, fp, err := NewP2POutputAntiFlood(cfg)
+	ctx := context.Background()
+	af, err := NewP2POutputAntiFlood(cfg, ctx)
 	assert.Nil(t, err)
 	assert.NotNil(t, af)
-	assert.NotNil(t, fp)
 }

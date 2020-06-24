@@ -153,7 +153,7 @@ func createMetaGenesisAfterHardFork(
 	}
 	saveGenesisBodyToStorage(processors.txCoordinator, bodyHandler)
 
-	err = saveGenesisMetaToStorage(arg.Store, arg.Marshalizer, metaHdr)
+	err = saveGenesisMetaToStorage(arg.Data.StorageService(), arg.Core.InternalMarshalizer(), metaHdr)
 	if err != nil {
 		return nil, err
 	}

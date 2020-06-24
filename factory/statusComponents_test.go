@@ -89,5 +89,9 @@ func getStatusComponentsFactoryArgs() factory.StatusComponentsFactoryArgs {
 		ValidatorPubkeyConverter: &mock.PubkeyConverterStub{},
 		ElasticOptions:           &indexer.Options{},
 		RoundDurationSec:         4,
+		SoftwareVersionConfig: config.SoftwareVersionConfig{
+			StableTagLocation:        "tag",
+			PollingIntervalInMinutes: 1,
+		},
 	}
 }

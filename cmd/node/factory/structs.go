@@ -1,8 +1,6 @@
 package factory
 
 import (
-	"time"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -18,22 +16,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-)
-
-const (
-	// MaxTxsToRequest specifies the maximum number of txs to request
-	MaxTxsToRequest = 1000
 )
 
 //TODO remove this
 var log = logger.GetOrCreate("main")
-
-// timeSpanForBadHeaders is the expiry time for an added block header hash
-var timeSpanForBadHeaders = time.Minute * 2
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {

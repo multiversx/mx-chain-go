@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -28,10 +27,10 @@ type managedCoreComponents struct {
 
 // NewManagedCoreComponents creates a new core components handler implementation
 func NewManagedCoreComponents(args CoreComponentsHandlerArgs) (*managedCoreComponents, error) {
-	coreComponentsFactory := NewCoreComponentsFactory(CoreComponentsFactoryArgs(args))
+	ccf := NewCoreComponentsFactory(CoreComponentsFactoryArgs(args))
 	mcc := &managedCoreComponents{
 		coreComponents:        nil,
-		coreComponentsFactory: coreComponentsFactory,
+		coreComponentsFactory: ccf,
 	}
 	return mcc, nil
 }
@@ -135,7 +134,7 @@ func (mcc *managedCoreComponents) Uint64ByteSliceConverter() typeConverters.Uint
 }
 
 // AddressPubKeyConverter returns the address to public key converter
-func (mcc *managedCoreComponents) AddressPubKeyConverter() state.PubkeyConverter {
+func (mcc *managedCoreComponents) AddressPubKeyConverter() core.PubkeyConverter {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -147,7 +146,7 @@ func (mcc *managedCoreComponents) AddressPubKeyConverter() state.PubkeyConverter
 }
 
 // ValidatorPubKeyConverter returns the validator public key converter
-func (mcc *managedCoreComponents) ValidatorPubKeyConverter() state.PubkeyConverter {
+func (mcc *managedCoreComponents) ValidatorPubKeyConverter() core.PubkeyConverter {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 

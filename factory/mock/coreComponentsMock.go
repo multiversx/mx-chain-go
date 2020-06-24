@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -18,8 +17,8 @@ type CoreComponentsMock struct {
 	VmMarsh             marshal.Marshalizer
 	Hash                hashing.Hasher
 	UInt64ByteSliceConv typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv      state.PubkeyConverter
-	ValPubKeyConv       state.PubkeyConverter
+	AddrPubKeyConv      core.PubkeyConverter
+	ValPubKeyConv       core.PubkeyConverter
 	StatusHdl           core.AppStatusHandler
 	mutStatus           sync.RWMutex
 	PathHdl             storage.PathManagerHandler
@@ -65,12 +64,12 @@ func (ccm *CoreComponentsMock) Uint64ByteSliceConverter() typeConverters.Uint64B
 }
 
 // AddressPubKeyConverter -
-func (ccm *CoreComponentsMock) AddressPubKeyConverter() state.PubkeyConverter {
+func (ccm *CoreComponentsMock) AddressPubKeyConverter() core.PubkeyConverter {
 	return ccm.AddrPubKeyConv
 }
 
 // ValidatorPubKeyConverter -
-func (ccm *CoreComponentsMock) ValidatorPubKeyConverter() state.PubkeyConverter {
+func (ccm *CoreComponentsMock) ValidatorPubKeyConverter() core.PubkeyConverter {
 	return ccm.ValPubKeyConv
 }
 

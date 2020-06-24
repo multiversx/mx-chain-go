@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -19,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
@@ -28,6 +26,7 @@ type EpochStartNotifier interface {
 	UnregisterHandler(handler epochStart.ActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NotifyEpochChangeConfirmed(epoch uint32)
 	IsInterfaceNil() bool
 }
 
@@ -76,8 +75,8 @@ type CoreComponentsHolder interface {
 	VmMarshalizer() marshal.Marshalizer
 	Hasher() hashing.Hasher
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
-	AddressPubKeyConverter() state.PubkeyConverter
-	ValidatorPubKeyConverter() state.PubkeyConverter
+	AddressPubKeyConverter() core.PubkeyConverter
+	ValidatorPubKeyConverter() core.PubkeyConverter
 	StatusHandler() core.AppStatusHandler
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	PathHandler() storage.PathManagerHandler
@@ -139,7 +138,7 @@ type NetworkComponentsHolder interface {
 	NetworkMessenger() p2p.Messenger
 	InputAntiFloodHandler() P2PAntifloodHandler
 	OutputAntiFloodHandler() P2PAntifloodHandler
-	PeerBlackListHandler() process.BlackListHandler
+	PeerBlackListHandler() process.PeerBlackListHandler
 	IsInterfaceNil() bool
 }
 
@@ -167,6 +166,7 @@ type ProcessComponentsHolder interface {
 	PendingMiniBlocksHandler() process.PendingMiniBlocksHandler
 	RequestHandler() process.RequestHandler
 	TxLogsProcessor() process.TransactionLogProcessorDatabase
+	HeaderConstructionValidator() process.HeaderConstructionValidator
 	IsInterfaceNil() bool
 }
 

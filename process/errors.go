@@ -806,9 +806,6 @@ var ErrShardIsStuck = errors.New("shard is stuck")
 // ErrNilInterceptorContainer signals that nil interceptor container has been provided
 var ErrNilInterceptorContainer = errors.New("nil interceptor container")
 
-// ErrInvalidChainID signals that an invalid chain ID has been provided
-var ErrInvalidChainID = errors.New("invalid chain ID")
-
 // ErrTxValueTooBig signals that transaction value is too big
 var ErrTxValueTooBig = errors.New("tx value is too big")
 

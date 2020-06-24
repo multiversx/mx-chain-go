@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -28,10 +29,14 @@ const slowReactingIdentifier = "slow_reacting"
 const outOfSpecsIdentifier = "out_of_specs"
 const outputIdentifier = "output"
 
-// AntiFloodComponents holds the handlers returned when creating antiflood and blacklist mechanisms
+var durationSweepP2PBlacklist = time.Second * 5
+
+// AntiFloodComponents holds the handlers for the anti-flood and blacklist mechanisms
 type AntiFloodComponents struct {
-	AntiFloodHandler    process.P2PAntifloodHandler
-	BlacklistHandler    process.BlackListHandler
+	AntiFloodHandler process.P2PAntifloodHandler
+	BlacklistHandler process.PeerBlackListHandler
+	FloodPreventers  []process.FloodPreventer
+	TopicPreventer   process.TopicFloodPreventer
 }
 
 // NewP2PAntiFloodComponents will return instances of antiflood and blacklist, based on the config
@@ -39,17 +44,20 @@ func NewP2PAntiFloodComponents(
 	config config.Config,
 	statusHandler core.AppStatusHandler,
 	currentPid core.PeerID,
+	ctx context.Context,
 ) (*AntiFloodComponents, error) {
 	if check.IfNil(statusHandler) {
 		return nil, p2p.ErrNilStatusHandler
 	}
 	if config.Antiflood.Enabled {
-		return initP2PAntiFloodComponents(config, statusHandler, currentPid)
+		return initP2PAntiFloodComponents(config, statusHandler, currentPid, ctx)
 	}
 
 	return &AntiFloodComponents{
-		AntiFloodHandler:    &disabled.AntiFlood{},
-		BlacklistHandler:    &disabled.PeerBlacklistHandler{},
+		AntiFloodHandler: &disabled.AntiFlood{},
+		BlacklistHandler: &disabled.PeerBlacklistHandler{},
+		FloodPreventers:  make([]process.FloodPreventer, 0),
+		TopicPreventer:   disabled.NewNilTopicFloodPreventer(),
 	}, nil
 }
 
@@ -57,11 +65,12 @@ func initP2PAntiFloodComponents(
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
 	currentPid core.PeerID,
+	ctx context.Context,
 ) (*AntiFloodComponents, error) {
 	cache := timecache.NewTimeCache(defaultSpan)
 	p2pPeerBlackList, err := timecache.NewPeerTimeCache(cache)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	fastReactingFloodPreventer, err := createFloodPreventer(
@@ -119,12 +128,18 @@ func initP2PAntiFloodComponents(
 		return nil, err
 	}
 
-	startResettingTopicFloodPreventer(topicFloodPreventer, topicMaxMessages)
-	startSweepingP2PPeerBlackList(p2pPeerBlackList)
+	startResettingTopicFloodPreventer(topicFloodPreventer, topicMaxMessages, ctx)
+	startSweepingP2PPeerBlackList(p2pPeerBlackList, ctx)
 
 	return &AntiFloodComponents{
-		AntiFloodHandler:    p2pAntiflood,
-		BlacklistHandler:    p2pPeerBlackList,
+		AntiFloodHandler: p2pAntiflood,
+		BlacklistHandler: p2pPeerBlackList,
+		FloodPreventers: []process.FloodPreventer{
+			fastReactingFloodPreventer,
+			slowReactingFloodPreventer,
+			outOfSpecsFloodPreventer,
+		},
+		TopicPreventer: topicFloodPreventer,
 	}, nil
 }
 
@@ -137,6 +152,7 @@ func setMaxMessages(topicFloodPreventer process.TopicFloodPreventer, topicMaxMes
 func startResettingTopicFloodPreventer(
 	topicFloodPreventer process.TopicFloodPreventer,
 	topicMaxMessages []config.TopicMaxMessagesConfig,
+	ctx context.Context,
 	floodPreventers ...process.FloodPreventer,
 ) {
 	localTopicMaxMessages := make([]config.TopicMaxMessagesConfig, len(topicMaxMessages))
@@ -144,7 +160,13 @@ func startResettingTopicFloodPreventer(
 
 	go func() {
 		for {
-			time.Sleep(time.Second)
+			select {
+			case <-ctx.Done():
+				log.Debug("startResettingFloodPreventers's go routine is stopping...")
+				return
+			case <-time.After(time.Second):
+			}
+
 			for _, fp := range floodPreventers {
 				fp.Reset()
 			}
@@ -156,10 +178,16 @@ func startResettingTopicFloodPreventer(
 	}()
 }
 
-func startSweepingP2PPeerBlackList(p2pPeerBlackList process.PeerBlackListHandler) {
+func startSweepingP2PPeerBlackList(p2pPeerBlackList process.PeerBlackListHandler, ctx context.Context) {
 	go func() {
 		for {
-			time.Sleep(durationSweepP2PBlacklist)
+			select {
+			case <-ctx.Done():
+				log.Debug("startSweepingP2PPeerBlackList's go routine is stopping...")
+				return
+			case <-time.After(durationSweepP2PBlacklist):
+			}
+
 			p2pPeerBlackList.Sweep()
 		}
 	}()

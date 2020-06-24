@@ -94,7 +94,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 	vmFactory, err := shard.NewVMContainerFactory(
 		pcf.coreFactoryArgs.Config.VirtualMachineConfig,
-		pcf.economicsData.MaxGasLimitPerBlock(),
+		pcf.economicsData.MaxGasLimitPerBlock(pcf.shardCoordinator.SelfId()),
 		pcf.gasSchedule,
 		argsHook,
 	)
@@ -522,6 +522,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	genesisHdr := pcf.data.Blockchain().GetGenesisHeader()
 	argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
 		Marshalizer:       pcf.coreData.InternalMarshalizer(),
 		Hasher:            pcf.coreData.Hasher(),
@@ -531,6 +532,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ShardCoordinator:  pcf.shardCoordinator,
 		EpochStartTrigger: epochStartTrigger,
 		RequestHandler:    requestHandler,
+		GenesisEpoch:      genesisHdr.GetEpoch(),
 	}
 	epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
 	if err != nil {
@@ -538,13 +540,14 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		Hasher:              pcf.coreData.Hasher(),
-		Store:               pcf.data.StorageService(),
-		ShardCoordinator:    pcf.shardCoordinator,
-		NodesConfigProvider: pcf.nodesCoordinator,
-		RewardsHandler:      pcf.economicsData,
-		RoundTime:           pcf.rounder,
+		Marshalizer:      pcf.coreData.InternalMarshalizer(),
+		Hasher:           pcf.coreData.Hasher(),
+		Store:            pcf.data.StorageService(),
+		ShardCoordinator: pcf.shardCoordinator,
+		RewardsHandler:   pcf.economicsData,
+		RoundTime:        pcf.rounder,
+		GenesisNonce:     genesisHdr.GetNonce(),
+		GenesisEpoch:     genesisHdr.GetEpoch(),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -554,14 +557,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	rewardsStorage := pcf.data.StorageService().GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
 	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
-		ShardCoordinator: pcf.shardCoordinator,
-		PubkeyConverter:  pcf.state.AddressPubkeyConverter,
-		RewardsStorage:   rewardsStorage,
-		MiniBlockStorage: miniBlockStorage,
-		Hasher:           pcf.coreData.Hasher(),
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		DataPool:         pcf.data.Datapool(),
-		CommunityAddress: pcf.economicsData.CommunityAddress(),
+		ShardCoordinator:    pcf.shardCoordinator,
+		PubkeyConverter:     pcf.state.AddressPubkeyConverter,
+		RewardsStorage:      rewardsStorage,
+		MiniBlockStorage:    miniBlockStorage,
+		Hasher:              pcf.coreData.Hasher(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		DataPool:            pcf.data.Datapool(),
+		CommunityAddress:    pcf.economicsData.CommunityAddress(),
+		NodesConfigProvider: pcf.nodesCoordinator,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {

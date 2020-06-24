@@ -1,13 +1,14 @@
 package factory
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
@@ -26,15 +27,15 @@ type networkComponents struct {
 	netMessenger           p2p.Messenger
 	inputAntifloodHandler  P2PAntifloodHandler
 	outputAntifloodHandler P2PAntifloodHandler
-	peerBlackListHandler   process.BlackListHandler
-	floodPreventer         process.FloodPreventer
-	outFloodPreventer      process.FloodPreventer
 	topicFloodPreventer    process.TopicFloodPreventer
+	floodPreventers        []process.FloodPreventer
+	peerBlackListHandler   process.PeerBlackListHandler
 	antifloodConfig        config.AntifloodConfig
+	closeFunc              context.CancelFunc
 }
 
-// NewNetworkComponentsFactory returns a new instance of a network components factory
-func NewNetworkComponentsFactory(
+// newNetworkComponentsFactory returns a new instance of a network components factory
+func newNetworkComponentsFactory(
 	p2pConfig config.P2PConfig,
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
@@ -63,22 +64,25 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(
 		ncf.mainConfig,
 		ncf.statusHandler,
 		netMessenger.ID(),
+		ctx,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	if ncf.mainConfig.Debug.Antiflood.Enabled {
-		debugger, err := antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
+		var debugger process.AntifloodDebugger
+		debugger, err = antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
 		if err != nil {
 			return nil, err
 		}
 
-		err = inAntifloodHandler.SetDebugger(debugger)
+		err = antiFloodComponents.AntiFloodHandler.SetDebugger(debugger)
 		if err != nil {
 			return nil, err
 		}
@@ -89,7 +93,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
 	}
 
-	outAntifloodHandler, outFloodPreventer, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(ncf.mainConfig)
+	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(ncf.mainConfig, ctx)
 	if errOutputAntiflood != nil {
 		return nil, errOutputAntiflood
 	}
@@ -123,10 +127,10 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		netMessenger:           netMessenger,
 		inputAntifloodHandler:  inputAntifloodHandler,
 		outputAntifloodHandler: outputAntifloodHandler,
+		topicFloodPreventer:    antiFloodComponents.TopicPreventer,
+		floodPreventers:        antiFloodComponents.FloodPreventers,
 		peerBlackListHandler:   antiFloodComponents.BlacklistHandler,
-		floodPreventer:         antiFloodComponents.FloodPreventer,
-		outFloodPreventer:      outFloodPreventer,
-		topicFloodPreventer:    antiFloodComponents.TopicFloodPreventer,
 		antifloodConfig:        ncf.mainConfig.Antiflood,
+		closeFunc:              cancelFunc,
 	}, nil
 }
