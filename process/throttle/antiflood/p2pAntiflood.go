@@ -111,7 +111,7 @@ func (af *p2pAntiflood) IsOriginatorEligibleForTopic(pid core.PeerID, topic stri
 	return process.ErrOnlyValidatorsCanUseThisTopic
 }
 
-// SetTopicsForAll set the topics which are enabled for all
+// SetTopicsForAll sets the topics which are enabled for all
 func (af *p2pAntiflood) SetTopicsForAll(topics ...string) {
 	af.mutTopicCheck.Lock()
 	defer af.mutTopicCheck.Unlock()
