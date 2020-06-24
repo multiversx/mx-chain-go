@@ -21,7 +21,7 @@ func TestCheckConsensusMessageValidity_WrongChainID(t *testing.T) {
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{ChainID: wrongChainID}
-	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidChainID))
 }
 
@@ -363,7 +363,7 @@ func TestCheckConsensusMessageValidity_InvalidMessage(t *testing.T) {
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), SignatureShare: []byte("1")}
-	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 }
 
@@ -376,7 +376,7 @@ func TestCheckConsensusMessageValidity_InvalidHeaderHashSize(t *testing.T) {
 	headerBytes := make([]byte, 100)
 	_, _ = rand.Read(headerBytes)
 	cnsMsg := &consensus.Message{ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), Header: headerBytes}
-	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidHeaderHashSize))
 }
 
@@ -391,7 +391,7 @@ func TestCheckConsensusMessageValidity_InvalidPublicKeySize(t *testing.T) {
 	headerHash := make([]byte, workerArgs.Hasher.Size())
 	_, _ = rand.Read(headerHash)
 	cnsMsg := &consensus.Message{ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), Header: headerBytes, BlockHeaderHash: headerHash}
-	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidPublicKeySize))
 }
 
@@ -411,7 +411,7 @@ func TestCheckConsensusMessageValidity_InvalidSignatureSize(t *testing.T) {
 	cnsMsg := &consensus.Message{
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey,
 	}
-	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignatureSize))
 }
 
@@ -434,7 +434,7 @@ func TestCheckConsensusMessageValidity_NodeIsNotEligible(t *testing.T) {
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
 		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig,
 	}
-	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrNodeIsNotInEligibleList))
 }
 
@@ -456,7 +456,7 @@ func TestCheckConsensusMessageValidity_ErrMessageForFutureRound(t *testing.T) {
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
 		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
-	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrMessageForFutureRound))
 }
 
@@ -479,7 +479,7 @@ func TestCheckConsensusMessageValidity_ErrMessageForPastRound(t *testing.T) {
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
 		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
-	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrMessageForPastRound))
 }
 
@@ -509,7 +509,7 @@ func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
 		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
-	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignature))
 }
 
@@ -532,6 +532,6 @@ func TestCheckConsensusMessageValidity_Ok(t *testing.T) {
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
 		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
-	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.Nil(t, err)
 }
