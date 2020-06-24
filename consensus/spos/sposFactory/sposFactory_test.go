@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var currentPid = core.PeerID("pid")
+
 func TestGetConsensusCoreFactory_InvalidTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -48,6 +50,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		statusHandler,
 		indexer,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -72,6 +75,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		nil,
 		indexer,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -97,6 +101,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		statusHandler,
 		indexer,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -116,6 +121,7 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)

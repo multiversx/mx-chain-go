@@ -168,3 +168,6 @@ var ErrSystemBusyTxHash = errors.New("system busy. try again later")
 
 // ErrUnknownPeerID signals that the provided peer is unknown by the current node
 var ErrUnknownPeerID = errors.New("unknown peer ID")
+
+// ErrNilPeerHonestyHandler signals that a nil peer honesty handler has been provided
+var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")

@@ -21,6 +21,7 @@ type factory struct {
 	appStatusHandler core.AppStatusHandler
 	indexer          indexer.Indexer
 	chainID          []byte
+	currentPid       core.PeerID
 
 	alarmScheduler      core.TimersScheduler
 	chanStopNodeProcess chan endProcess.ArgEndProcess
@@ -32,6 +33,7 @@ func NewSubroundsFactory(
 	consensusState *spos.ConsensusState,
 	worker spos.WorkerHandler,
 	chainID []byte,
+	currentPid core.PeerID,
 	alarmScheduler core.TimersScheduler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (*factory, error) {
@@ -48,11 +50,12 @@ func NewSubroundsFactory(
 	}
 
 	fct := factory{
-		consensusCore:       consensusDataContainer,
-		consensusState:      consensusState,
-		worker:              worker,
-		appStatusHandler:    statusHandler.NewNilStatusHandler(),
-		chainID:             chainID,
+		consensusCore:    consensusDataContainer,
+		consensusState:   consensusState,
+		worker:           worker,
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		chainID:          chainID,
+		currentPid:       currentPid,
 		alarmScheduler:      alarmScheduler,
 		chanStopNodeProcess: chanStopNodeProcess,
 	}
@@ -152,6 +155,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
 		fct.chainID,
+		fct.currentPid,
 	)
 	if err != nil {
 		return err
@@ -194,6 +198,7 @@ func (fct *factory) generateBlockSubround() error {
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
 		fct.chainID,
+		fct.currentPid,
 	)
 	if err != nil {
 		return err
@@ -234,6 +239,7 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
 		fct.chainID,
+		fct.currentPid,
 	)
 	if err != nil {
 		return err
@@ -271,6 +277,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
 		fct.chainID,
+		fct.currentPid,
 	)
 	if err != nil {
 		return err

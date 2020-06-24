@@ -6,18 +6,19 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
-
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
 var chainID = []byte("chain ID")
+
+const currentPid = core.PeerID("pid")
 
 const roundTimeDuration = 100 * time.Millisecond
 
@@ -66,6 +67,7 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -114,6 +116,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -133,6 +136,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		nil,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -154,6 +158,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -175,6 +180,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -196,6 +202,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -217,6 +224,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -238,6 +246,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -259,6 +268,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -280,6 +290,7 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -301,6 +312,7 @@ func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -322,6 +334,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -343,6 +356,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -364,6 +378,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -383,6 +398,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		consensusState,
 		nil,
 		chainID,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)
@@ -411,6 +427,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		consensusState,
 		worker,
 		nil,
+		currentPid,
 		alarm.NewAlarmScheduler(),
 		make(chan endProcess.ArgEndProcess),
 	)

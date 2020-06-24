@@ -27,7 +27,8 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		NodesCoordinator:              consensusCoreMock.NodesCoordinator(),
 		SyncTimer:                     consensusCoreMock.SyncTimer(),
 		EpochStartRegistrationHandler: consensusCoreMock.EpochStartRegistrationHandler(),
-		AntifloodHandler:     		   consensusCoreMock.GetAntiFloodHandler(),
+		AntifloodHandler:              consensusCoreMock.GetAntiFloodHandler(),
+		PeerHonestyHandler:            consensusCoreMock.PeerHonestyHandler(),
 	}
 	return args
 }
@@ -238,6 +239,20 @@ func TestConsensusCore_WithNilAntifloodHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilAntifloodHandler, err)
+}
+
+func TestConsensusCore_WithNilPeerHonestyHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.PeerHonestyHandler = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilPeerHonestyHandler, err)
 }
 
 func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {

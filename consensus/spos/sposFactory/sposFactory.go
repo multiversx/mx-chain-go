@@ -24,6 +24,7 @@ func GetSubroundsFactory(
 	appStatusHandler core.AppStatusHandler,
 	indexer indexer.Indexer,
 	chainID []byte,
+	currentPid core.PeerID,
 	alarmScheduler core.TimersScheduler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (spos.SubroundsFactory, error) {
@@ -34,6 +35,7 @@ func GetSubroundsFactory(
 			consensusState,
 			worker,
 			chainID,
+			currentPid,
 			alarmScheduler,
 			chanStopNodeProcess,
 		)

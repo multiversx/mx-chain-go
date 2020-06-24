@@ -1,6 +1,8 @@
 //go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. message.proto
 package consensus
 
+import "github.com/ElrondNetwork/elrond-go/core"
+
 // MessageType specifies what type of message was received
 type MessageType int
 
@@ -18,6 +20,7 @@ func NewConsensusMessage(
 	pubKeysBitmap []byte,
 	aggregateSignature []byte,
 	leaderSignature []byte,
+	currentPid core.PeerID,
 ) *Message {
 	return &Message{
 		BlockHeaderHash:    blHeaderHash,
@@ -32,5 +35,6 @@ func NewConsensusMessage(
 		PubKeysBitmap:      pubKeysBitmap,
 		AggregateSignature: aggregateSignature,
 		LeaderSignature:    leaderSignature,
+		OriginatorPid:      currentPid.Bytes(),
 	}
 }

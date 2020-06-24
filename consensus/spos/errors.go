@@ -208,6 +208,12 @@ var ErrInvalidPublicKeyBitmapSize = errors.New("invalid public key bitmap size")
 // ErrInvalidCacheSize signals an invalid size provided for cache
 var ErrInvalidCacheSize = errors.New("invalid cache size")
 
+// ErrNilPeerHonestyHandler signals that a nil peer honesty handler has been provided
+var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")
+
+// ErrOriginatorMismatch signals that an original consensus message has been re-broadcast manually by another peer
+var ErrOriginatorMismatch = errors.New("consensus message originator mismatch")
+
 // ErrNilAlarmScheduler is raised when a valid alarm scheduler is expected but nil is used
 var ErrNilAlarmScheduler = errors.New("nil alarm scheduler")
 
