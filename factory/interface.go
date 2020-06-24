@@ -36,5 +36,6 @@ type P2PAntifloodHandler interface {
 	SetDebugger(debugger process.AntifloodDebugger) error
 	ApplyConsensusSize(size int)
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
+	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
 	IsInterfaceNil() bool
 }

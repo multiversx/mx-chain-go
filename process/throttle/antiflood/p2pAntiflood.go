@@ -88,6 +88,11 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 	return nil
 }
 
+// IsOriginatorEligibleForTopic returns error if pid is not allowed to send messages on topic
+func (af *p2pAntiflood) IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error {
+	return nil
+}
+
 func (af *p2pAntiflood) recordDebugEvent(pid core.PeerID, topics []string, numRejected uint32, sizeRejected uint64, sequence []byte, isBlacklisted bool) {
 	if len(topics) == 0 {
 		topics = []string{unidentifiedTopic}
