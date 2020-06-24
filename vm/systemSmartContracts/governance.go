@@ -81,7 +81,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	}, nil
 }
 
-// Execute calls one of the functions from the esdt smart contract and runs the code according to the input
+// Execute calls one of the functions from the governance smart contract and runs the code according to the input
 func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if CheckIfNil(args) != nil {
 		return vmcommon.UserError
@@ -108,6 +108,7 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.closeProposal(args)
 	}
 
+	g.eei.AddReturnMessage("invalid method to call")
 	return vmcommon.FunctionNotFound
 }
 
@@ -124,8 +125,7 @@ func (g *governanceContract) init(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	g.eei.SetStorage([]byte(governanceConfigKey), marshaledData)
 	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
-	g.ownerAddress = make([]byte, 0, len(args.CallerAddr))
-	g.ownerAddress = append(g.ownerAddress, args.CallerAddr...)
+	g.ownerAddress = args.CallerAddr
 	return vmcommon.Ok
 }
 
@@ -409,8 +409,8 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
 	}
-	if len(args.Arguments) != 4 {
-		g.eei.AddReturnMessage("invalid number of arguments, expected 4")
+	if len(args.Arguments) != 5 {
+		g.eei.AddReturnMessage("invalid number of arguments, expected 5")
 		return vmcommon.FunctionWrongSignature
 	}
 	if !g.isWhiteListed(args.CallerAddr) {
@@ -502,8 +502,8 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
 	}
-	if len(args.Arguments) != 4 {
-		g.eei.AddReturnMessage("invalid number of arguments, expected 4")
+	if len(args.Arguments) != 3 {
+		g.eei.AddReturnMessage("invalid number of arguments, expected 3")
 		return vmcommon.FunctionWrongSignature
 	}
 	if !g.isWhiteListed(args.CallerAddr) {
@@ -728,7 +728,7 @@ func (g *governanceContract) getOrCreateVoteData(proposal []byte, voter []byte) 
 
 func (g *governanceContract) getOrCreateValidatorData(address []byte, numNodes int32) (*ValidatorData, error) {
 	validatorData := &ValidatorData{
-		Delegators: make([]*VoterData, 0, 1),
+		Delegators: make([]*VoterData, 1),
 		NumNodes:   numNodes,
 	}
 	validatorData.Delegators[0] = &VoterData{
@@ -778,7 +778,7 @@ func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	if vmOutput.ReturnCode != vmcommon.UserError {
+	if vmOutput.ReturnCode != vmcommon.Ok {
 		return 0, vm.ErrNotEnoughQualifiedNodes
 	}
 	if len(vmOutput.ReturnData) == 0 {
