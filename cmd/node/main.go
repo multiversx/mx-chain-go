@@ -1334,7 +1334,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
 	case sig = <-chanStopNodeProcess:
-		log.Info("terminating at internal stop signal", "reason", sig.Reason)
+		log.Info("terminating at internal stop signal", "reason", sig.Reason, "description", sig.Description)
 	}
 
 	chanCloseComponents := make(chan struct{})
@@ -1347,6 +1347,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	case <-time.After(maxTimeToClose):
 		log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
 	}
+
+	log.Debug("closing node")
 
 	return nil
 }
