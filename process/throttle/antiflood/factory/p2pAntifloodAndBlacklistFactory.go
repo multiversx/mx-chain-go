@@ -202,7 +202,7 @@ func createFloodPreventer(
 	selfPid core.PeerID,
 ) (process.FloodPreventer, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(antifloodCacheConfig)
-	blackListCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
+	blackListCache, err := storageUnit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ func createFloodPreventer(
 		return nil, err
 	}
 
-	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
+	antifloodCache, err := storageUnit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}

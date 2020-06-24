@@ -1,6 +1,7 @@
 package testscommon
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -19,6 +20,7 @@ type ShardedDataStub struct {
 	RemoveSetOfDataFromPoolCalled          func(keys [][]byte, destCacheID string)
 	ImmunizeSetOfDataAgainstEvictionCalled func(keys [][]byte, cacheID string)
 	CreateShardStoreCalled                 func(destCacheID string)
+	GetCountsCalled                        func() counting.CountsWithSize
 }
 
 // NewShardedDataStub -
@@ -83,6 +85,15 @@ func (shardedData *ShardedDataStub) ImmunizeSetOfDataAgainstEviction(keys [][]by
 	if shardedData.ImmunizeSetOfDataAgainstEvictionCalled != nil {
 		shardedData.ImmunizeSetOfDataAgainstEvictionCalled(keys, cacheID)
 	}
+}
+
+// GetCounts -
+func (sd *ShardedDataStub) GetCounts() counting.CountsWithSize {
+	if sd.GetCountsCalled != nil {
+		return sd.GetCountsCalled()
+	}
+
+	return &counting.NullCounts{}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

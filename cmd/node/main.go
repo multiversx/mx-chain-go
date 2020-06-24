@@ -44,9 +44,11 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/health"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -202,6 +204,11 @@ VERSION:
 		Name: "profile-mode",
 		Usage: "Boolean option for enabling the profiling mode. If set, the /debug/pprof routes will be available " +
 			"on the node for profiling the application.",
+	}
+	// useHealthService is used to enable the health service
+	useHealthService = cli.BoolFlag{
+		Name:  "use-health-service",
+		Usage: "Boolean option for enabling the health service.",
 	}
 	// validatorKeyIndex defines a flag that specifies the 0-th based index of the private key to be used from validatorKey.pem file
 	validatorKeyIndex = cli.IntFlag{
@@ -395,6 +402,7 @@ func main() {
 		validatorKeyPemFile,
 		port,
 		profileMode,
+		useHealthService,
 		storageCleanup,
 		gopsEn,
 		nodeDisplayName,
@@ -665,6 +673,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	healthService := health.NewHealthService(generalConfig.Health, workingDir)
+	if ctx.IsSet(useHealthService.Name) {
+		healthService.Start()
+	}
+
 	chanCreateViews := make(chan struct{}, 1)
 	chanLogRewrite := make(chan struct{}, 1)
 	handlersArgs, err := factory.NewStatusHandlersFactoryArgs(
@@ -893,6 +906,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	healthService.RegisterComponent(managedDataComponents.Datapool().Transactions())
+	healthService.RegisterComponent(managedDataComponents.Datapool().UnsignedTransactions())
+	healthService.RegisterComponent(managedDataComponents.Datapool().RewardTransactions())
+
 	log.Trace("initializing metrics")
 	err = metrics.InitMetrics(
 		managedCoreComponents.StatusHandler(),
@@ -1063,12 +1080,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating time cache for requested items components")
 	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * genesisNodesConfig.RoundDuration))
 
-	whiteListCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(generalConfig.WhiteListPool.Type),
-		generalConfig.WhiteListPool.Capacity,
-		generalConfig.WhiteListPool.Shards,
-		generalConfig.WhiteListPool.SizeInBytes,
-	)
+	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListPool))
 	if err != nil {
 		return err
 	}
@@ -1155,6 +1167,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
 		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
 	}
+
+	//TODO: This should be set with a real instance which implements PeerHonestyHandler interface
+	peerHonestyHandler := &mock.PeerHonestyHandlerStub{}
+
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		generalConfig,
@@ -1182,6 +1198,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		hardForkTrigger,
+		peerHonestyHandler,
 	)
 	if err != nil {
 		return err
@@ -1293,7 +1310,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(log, managedDataComponents, triesComponents, managedNetworkComponents, chanCloseComponents)
+		closeAllComponents(log, healthService, managedDataComponents, triesComponents, managedNetworkComponents, chanCloseComponents)
 	}()
 
 	select {
@@ -1309,13 +1326,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 func closeAllComponents(
 	log logger.Logger,
+	healthService io.Closer,
 	dataComponents mainFactory.DataComponentsHolder,
 	triesComponents *mainFactory.TriesComponents,
 	networkComponents mainFactory.NetworkComponentsHolder,
 	chanCloseComponents chan struct{},
 ) {
+	log.Debug("closing health service...")
+	err := healthService.Close()
+	log.LogIfError(err)
+
 	log.Debug("closing all store units....")
-	err := dataComponents.StorageService().CloseAll()
+	err = dataComponents.StorageService().CloseAll()
 	log.LogIfError(err)
 
 	dataTries := triesComponents.TriesContainer.GetAll()
@@ -1947,6 +1969,7 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
+	peerHonestyHandler consensus.PeerHonestyHandler,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2042,6 +2065,7 @@ func createNode(
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
 		node.WithApiTransactionByHashThrottler(apiTxsByHashThrottler),
+		node.WithPeerHonestyHandler(peerHonestyHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -2259,12 +2283,7 @@ func createApiResolver(
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
-	whiteListCacheVerified, err := storageUnit.NewCache(
-		storageUnit.CacheType(generalConfig.WhiteListerVerifiedTxs.Type),
-		generalConfig.WhiteListerVerifiedTxs.Capacity,
-		generalConfig.WhiteListerVerifiedTxs.Shards,
-		generalConfig.WhiteListPool.SizeInBytes,
-	)
+	whiteListCacheVerified, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListerVerifiedTxs))
 	if err != nil {
 		return nil, err
 	}

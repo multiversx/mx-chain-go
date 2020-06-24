@@ -15,7 +15,7 @@ type CrossTxCache struct {
 
 // NewCrossTxCache creates a new transactions cache
 func NewCrossTxCache(config ConfigDestinationMe) (*CrossTxCache, error) {
-	log.Debug("NewCrossTxCache", "config", config.String())
+	log.Info("NewCrossTxCache", "config", config.String())
 
 	err := config.verify()
 	if err != nil {
@@ -52,20 +52,7 @@ func (cache *CrossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
 		"numNow", numNow,
 		"numFuture", numFuture,
 	)
-
-	cache.diagnose()
-}
-
-func (cache *CrossTxCache) diagnose() {
-	count := cache.Count()
-	countImmune := cache.CountImmune()
-	numBytes := cache.NumBytes()
-	log.Debug("CrossTxCache.diagnose()",
-		"name", cache.config.Name,
-		"count", count,
-		"countImmune", countImmune,
-		"numBytes", numBytes,
-	)
+	cache.Diagnose(false)
 }
 
 // AddTx adds a transaction in the cache

@@ -101,7 +101,8 @@ type InterceptedData interface {
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer core.PeerID) error
-	Save(data InterceptedData, fromConnectedPeer core.PeerID) error
+	Save(data InterceptedData, fromConnectedPeer core.PeerID, topic string) error
+	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	IsInterfaceNil() bool
 }
 
@@ -440,6 +441,7 @@ type BlockChainHookHandler interface {
 type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	SetInterceptedDebugHandler(handler InterceptedDebugger) error
+	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	IsInterfaceNil() bool
 }
 

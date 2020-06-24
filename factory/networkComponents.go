@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -108,12 +109,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	cache, err := storageUnit.NewCache(
-		storageUnit.CacheType(ncf.mainConfig.P2PMessageIDAdditionalCache.Type),
-		ncf.mainConfig.P2PMessageIDAdditionalCache.Capacity,
-		ncf.mainConfig.P2PMessageIDAdditionalCache.Shards,
-		ncf.mainConfig.P2PMessageIDAdditionalCache.SizeInBytes,
-	)
+	cache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(ncf.mainConfig.P2PMessageIDAdditionalCache))
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating p2p cacher", err)
 	}

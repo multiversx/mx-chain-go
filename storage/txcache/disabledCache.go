@@ -40,6 +40,11 @@ func (cache *DisabledCache) Len() int {
 	return 0
 }
 
+// NumBytes returns zero
+func (cache *DisabledCache) NumBytes() int {
+	return 0
+}
+
 // ForEachTransaction does nothing
 func (cache *DisabledCache) ForEachTransaction(_ ForEachTransaction) {
 }
@@ -101,6 +106,10 @@ func (cache *DisabledCache) NotifyAccountNonce(_ []byte, _ uint64) {
 
 // ImmunizeTxsAgainstEviction does nothing
 func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
+}
+
+// Diagnose does nothing
+func (cache *DisabledCache) Diagnose(_ bool) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

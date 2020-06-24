@@ -62,7 +62,9 @@ type BroadcastMessenger interface {
 	BroadcastMiniBlocks(map[uint32][]byte) error
 	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
-	SetDataForDelayBroadcast(headerHash []byte, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
+	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
+	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, order int) error
+	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int) error
 	IsInterfaceNil() bool
 }
 
@@ -96,5 +98,19 @@ type P2PAntifloodHandler interface {
 // HeadersPoolSubscriber can subscribe for notifications when a new block header is added to the headers pool
 type HeadersPoolSubscriber interface {
 	RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte))
+	IsInterfaceNil() bool
+}
+
+// PeerHonestyHandler defines the behaivour of a component able to handle/monitor the peer honesty of nodes which are
+// participating in consensus
+type PeerHonestyHandler interface {
+	Increase(pk string, topic string, value float64)
+	Decrease(pk string, topic string, value float64)
+	IsInterfaceNil() bool
+}
+
+// InterceptorSubscriber can subscribe for notifications when data is received by an interceptor
+type InterceptorSubscriber interface {
+	RegisterHandler(handler func(toShard uint32, data []byte))
 	IsInterfaceNil() bool
 }

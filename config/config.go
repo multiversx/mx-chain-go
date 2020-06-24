@@ -2,6 +2,7 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
+	Name                 string
 	Type                 string
 	Capacity             uint32
 	SizePerSender        uint32
@@ -159,6 +160,7 @@ type Config struct {
 
 	Hardfork HardforkConfig
 	Debug    DebugConfig
+	Health   HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
 }
@@ -326,6 +328,16 @@ type HardforkConfig struct {
 type DebugConfig struct {
 	InterceptorResolver InterceptorResolverDebugConfig
 	Antiflood           AntifloodDebugConfig
+}
+
+// HealthServiceConfig will hold health service (monitoring) configuration
+type HealthServiceConfig struct {
+	IntervalVerifyMemoryInSeconds             int
+	IntervalDiagnoseComponentsInSeconds       int
+	IntervalDiagnoseComponentsDeeplyInSeconds int
+	MemoryUsageToCreateProfiles               int
+	NumMemoryUsageRecordsToKeep               int
+	FolderPath                                string
 }
 
 // InterceptorResolverDebugConfig will hold the interceptor-resolver debug configuration

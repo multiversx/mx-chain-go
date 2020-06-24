@@ -6,8 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
-const invalidKey = "[invalid key]"
-const invalidType = "[not a string]"
+const metricNotAvailable = "N/A"
 
 func (psh *PresenterStatusHandler) getFromCacheAsUint64(metric string) uint64 {
 	val, ok := psh.presenterMetrics.Load(metric)
@@ -26,12 +25,12 @@ func (psh *PresenterStatusHandler) getFromCacheAsUint64(metric string) uint64 {
 func (psh *PresenterStatusHandler) getFromCacheAsString(metric string) string {
 	val, ok := psh.presenterMetrics.Load(metric)
 	if !ok {
-		return invalidKey
+		return metricNotAvailable
 	}
 
 	valStr, ok := val.(string)
 	if !ok {
-		return invalidType
+		return metricNotAvailable
 	}
 
 	return valStr

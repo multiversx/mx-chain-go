@@ -138,7 +138,7 @@ func createTestBlockChain() data.ChainHandler {
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1, 0)
+	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 10, Shards: 1, SizeInBytes: 0})
 
 	unit, _ := storageUnit.NewStorageUnit(cache, memorydb.New())
 	return unit
@@ -411,6 +411,8 @@ func createConsensusOnlyNode(
 		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
 		node.WithSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
+		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
+		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 

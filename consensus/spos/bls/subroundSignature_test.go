@@ -28,6 +28,7 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.S
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 
 	srSignature, _ := bls.NewSubroundSignature(
@@ -74,6 +75,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 
 	sr.ConsensusState = nil
@@ -105,6 +107,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 	container.SetHasher(nil)
 	srSignature, err := bls.NewSubroundSignature(
@@ -135,6 +138,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testi
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 	container.SetMultiSigner(nil)
 	srSignature, err := bls.NewSubroundSignature(
@@ -165,6 +169,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 	container.SetRounder(nil)
 
@@ -196,6 +201,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 	container.SetSyncTimer(nil)
 	srSignature, err := bls.NewSubroundSignature(
@@ -226,6 +232,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		executeStoredMessages,
 		container,
 		chainID,
+		currentPid,
 	)
 
 	srSignature, err := bls.NewSubroundSignature(
@@ -297,6 +304,7 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 
 	sr.Data = nil
@@ -475,6 +483,7 @@ func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqu
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 
 	assert.False(t, sr.ReceivedSignature(cnsMsg))

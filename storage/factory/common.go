@@ -13,6 +13,7 @@ const allFiles = -1
 // GetCacherFromConfig will return the cache config needed for storage unit from a config came from the toml file
 func GetCacherFromConfig(cfg config.CacheConfig) storageUnit.CacheConfig {
 	return storageUnit.CacheConfig{
+		Name:                 cfg.Name,
 		Capacity:             cfg.Capacity,
 		SizePerSender:        cfg.SizePerSender,
 		SizeInBytes:          cfg.SizeInBytes,

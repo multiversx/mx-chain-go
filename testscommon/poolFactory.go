@@ -56,15 +56,15 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig := storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Capacity, cacherConfig.Shards, cacherConfig.SizeInBytes)
+	txBlockBody, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	peerChangeBlockBody, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Capacity, cacherConfig.Shards, cacherConfig.SizeInBytes)
+	peerChangeBlockBody, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	trieNodes, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Capacity, cacherConfig.Shards, cacherConfig.SizeInBytes)
+	trieNodes, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
 	currentTx, err := dataPool.NewCurrentBlockPool()
@@ -110,15 +110,15 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	cacherConfig := storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Capacity, cacherConfig.Shards, cacherConfig.SizeInBytes)
+	txBlockBody, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	peerChangeBlockBody, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Capacity, cacherConfig.Shards, cacherConfig.SizeInBytes)
+	peerChangeBlockBody, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	cacherConfig = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	trieNodes, err := storageUnit.NewCache(cacherConfig.Type, cacherConfig.Capacity, cacherConfig.Shards, cacherConfig.SizeInBytes)
+	trieNodes, err := storageUnit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	currentTx, err := dataPool.NewCurrentBlockPool()
