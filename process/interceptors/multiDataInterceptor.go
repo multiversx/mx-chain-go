@@ -166,7 +166,10 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	if !allWhiteListed && errOriginator != nil {
-		log.Debug("got message from peer on topic only for validators", "originator", message.Peer(), "topic", mdi.topic, "err", err)
+		log.Debug("got message from peer on topic only for validators", "originator",
+			p2p.PeerIdToShortString(message.Peer()),
+			"topic", mdi.topic,
+			"err", err)
 	}
 
 	return lastErrEncountered
