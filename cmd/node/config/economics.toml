@@ -3,13 +3,13 @@
     TotalSupply = "20000000000000000000000000000" #20BILERD
     MinimumInflation = 0.0
     MaximumInflation = 0.075 #fraction of value 1 - 7.5%
+    Denomination = 18 # represents the smallest erd subdivision (10^-X ERD for a denomination of X)
 
 [RewardsSettings]
     LeaderPercentage = 0.1 #fraction of value 1 - 10%
     DeveloperPercentage = 0.3 #fraction of value 1 - 30%
     CommunityPercentage = 0.1 #fraction of value 0.1 - 10%
     CommunityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
-    DenominationCoefficientForView = "0.000000000000000001" #10^-18
 
 [FeeSettings]
     MaxGasLimitPerBlock     = "1500000000"
