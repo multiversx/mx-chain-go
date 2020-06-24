@@ -1,6 +1,7 @@
 package presenter
 
 import (
+	"math"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -85,15 +86,12 @@ func (psh *PresenterStatusHandler) computeRoundsPerHourAccordingToHitRate() floa
 func (psh *PresenterStatusHandler) computeRewardsInErd() *big.Float {
 	rewardsValue := psh.getBigIntFromStringMetric(core.MetricRewardsValue)
 	denomination := psh.getFromCacheAsUint64(core.MetricDenomination)
-	denominationCoefficientStr := "0."
-	for i := uint64(1); i < denomination; i++ {
-		denominationCoefficientStr += "0"
+	denominationCoefficientFloat := 1.0
+	if denomination > 0 {
+		denominationCoefficientFloat /= math.Pow10(int(denomination))
 	}
-	denominationCoefficientStr += "1"
-	denominationCoefficient, ok := big.NewFloat(0).SetString(denominationCoefficientStr)
-	if !ok {
-		return big.NewFloat(0)
-	}
+
+	denominationCoefficient := big.NewFloat(denominationCoefficientFloat)
 
 	if rewardsValue.Cmp(big.NewInt(0)) <= 0 {
 		return big.NewFloat(0)
