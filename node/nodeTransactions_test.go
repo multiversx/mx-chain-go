@@ -305,11 +305,6 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 			return true
 		},
 	}
-	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false, ""),
-		RewardTransactionsCalled:   getCacherHandler(false, ""),
-		UnsignedTransactionsCalled: getCacherHandler(false, ""),
-	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return getStorerStub(false)
@@ -329,7 +324,6 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithApiTransactionByHashThrottler(throttler),
-		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
 		node.WithShardCoordinator(shardCoordinator),
 	)
