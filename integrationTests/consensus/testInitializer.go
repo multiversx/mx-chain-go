@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -367,7 +365,6 @@ func createConsensusOnlyNode(
 	_ = testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
 
 	accntAdapter := createAccountsDB(testMarshalizer)
-	endNodeProcessChan := make(chan endProcess.ArgEndProcess)
 	n, err := node.NewNode(
 		node.WithInitialNodesPubKeys(inPubKeys),
 		node.WithRoundDuration(roundTime),
@@ -416,7 +413,7 @@ func createConsensusOnlyNode(
 		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithNodeStopChannel(endNodeProcessChan),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	if err != nil {

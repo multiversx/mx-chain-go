@@ -7,9 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,8 +36,7 @@ func TestChronology_NewChronologyNilRounderShouldFail(t *testing.T) {
 		genesisTime,
 		nil,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	assert.Nil(t, chr)
@@ -54,15 +51,14 @@ func TestChronology_NewChronologyNilSyncerShouldFail(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		nil,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	assert.Nil(t, chr)
 	assert.Equal(t, err, chronology.ErrNilSyncTimer)
 }
 
-func TestChronology_NewChronologyNilAlarmSchedulerShouldFail(t *testing.T) {
+func TestChronology_NewChronologyNilWatchdogShouldFail(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{}
 	genesisTime := time.Now()
@@ -71,27 +67,10 @@ func TestChronology_NewChronologyNilAlarmSchedulerShouldFail(t *testing.T) {
 		rounderMock,
 		&mock.SyncTimerMock{},
 		nil,
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, chr)
-	assert.Equal(t, err, chronology.ErrNilAlarmScheduler)
-}
-
-func TestChronology_NewChronologyNilChanShouldFail(t *testing.T) {
-	t.Parallel()
-	rounderMock := &mock.RounderMock{}
-	genesisTime := time.Now()
-	chr, err := chronology.NewChronology(
-		genesisTime,
-		rounderMock,
-		&mock.SyncTimerMock{},
-		alarm.NewAlarmScheduler(),
-		nil,
-	)
-
-	assert.Nil(t, chr)
-	assert.Equal(t, err, chronology.ErrNilEndProcessChan)
+	assert.Equal(t, err, chronology.ErrNilWatchdog)
 }
 
 func TestChronology_NewChronologyShouldWork(t *testing.T) {
@@ -103,8 +82,7 @@ func TestChronology_NewChronologyShouldWork(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	assert.Nil(t, err)
@@ -120,8 +98,7 @@ func TestChronology_AddSubroundShouldWork(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	chr.AddSubround(initSubroundHandlerMock())
@@ -140,8 +117,7 @@ func TestChronology_RemoveAllSubroundsShouldReturnEmptySubroundHandlersArray(t *
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	chr.AddSubround(initSubroundHandlerMock())
@@ -168,8 +144,7 @@ func TestChronology_StartRoundShouldReturnWhenRoundIndexIsNegative(t *testing.T)
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	srm := initSubroundHandlerMock()
@@ -189,8 +164,7 @@ func TestChronology_StartRoundShouldReturnWhenLoadSubroundHandlerReturnsNil(t *t
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	initSubroundHandlerMock()
@@ -209,8 +183,7 @@ func TestChronology_StartRoundShouldReturnWhenDoWorkReturnsFalse(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	srm := initSubroundHandlerMock()
@@ -231,8 +204,7 @@ func TestChronology_StartRoundShouldWork(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	srm := initSubroundHandlerMock()
@@ -255,8 +227,7 @@ func TestChronology_UpdateRoundShouldInitRound(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	srm := initSubroundHandlerMock()
@@ -275,8 +246,7 @@ func TestChronology_LoadSubrounderShouldReturnNilWhenSubroundHandlerNotExists(t 
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	assert.Nil(t, chr.LoadSubroundHandler(0))
@@ -291,8 +261,7 @@ func TestChronology_LoadSubrounderShouldReturnNilWhenIndexIsOutOfBound(t *testin
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	chr.AddSubround(initSubroundHandlerMock())
@@ -309,8 +278,7 @@ func TestChronology_InitRoundShouldNotSetSubroundWhenRoundIndexIsNegative(t *tes
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	chr.AddSubround(initSubroundHandlerMock())
@@ -334,8 +302,7 @@ func TestChronology_InitRoundShouldSetSubroundWhenRoundIndexIsPositive(t *testin
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	sr := initSubroundHandlerMock()
@@ -353,8 +320,7 @@ func TestChronology_StartRoundShouldNotUpdateRoundWhenCurrentRoundIsNotFinished(
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	chr.SetSubroundId(0)
@@ -372,8 +338,7 @@ func TestChronology_StartRoundShouldUpdateRoundWhenCurrentRoundIsFinished(t *tes
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	chr.SetSubroundId(-1)
@@ -391,8 +356,7 @@ func TestChronology_SetAppStatusHandlerWithNilValueShouldErr(t *testing.T) {
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 	err := chr.SetAppStatusHandler(nil)
 
@@ -408,8 +372,7 @@ func TestChronology_SetAppStatusHandlerWithOkValueShouldPass(t *testing.T) {
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	err := chr.SetAppStatusHandler(&mock.AppStatusHandlerMock{})
@@ -427,8 +390,7 @@ func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
+		&mock.WatchdogMock{},
 	)
 
 	err := chr.SetAppStatusHandler(&mock.AppStatusHandlerStub{

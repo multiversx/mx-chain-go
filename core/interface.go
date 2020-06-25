@@ -32,5 +32,15 @@ type TimersScheduler interface {
 	Add(callback func(alarmID string), duration time.Duration, alarmID string)
 	Cancel(alarmID string)
 	Close()
+	Reset(alarmID string)
+	IsInterfaceNil() bool
+}
+
+// WatchdogTimer is used to set alarms for different components
+type WatchdogTimer interface {
+	Set(callback func(alarmID string), duration time.Duration, alarmID string)
+	SetDefault(duration time.Duration, alarmID string)
+	Stop(alarmID string)
+	Reset(alarmID string)
 	IsInterfaceNil() bool
 }

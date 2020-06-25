@@ -686,3 +686,15 @@ func WithPeerHonestyHandler(peerHonestyHandler consensus.PeerHonestyHandler) Opt
 		return nil
 	}
 }
+
+// WithWatchdogTimer sets up a watchdog for the Node
+func WithWatchdogTimer(watchdog core.WatchdogTimer) Option {
+	return func(n *Node) error {
+		if check.IfNil(watchdog) {
+			return ErrNilWatchdog
+		}
+
+		n.watchdog = watchdog
+		return nil
+	}
+}

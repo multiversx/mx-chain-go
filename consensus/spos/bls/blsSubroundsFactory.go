@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -22,9 +21,6 @@ type factory struct {
 	indexer          indexer.Indexer
 	chainID          []byte
 	currentPid       core.PeerID
-
-	alarmScheduler      core.TimersScheduler
-	chanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -34,30 +30,24 @@ func NewSubroundsFactory(
 	worker spos.WorkerHandler,
 	chainID []byte,
 	currentPid core.PeerID,
-	alarmScheduler core.TimersScheduler,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
 		consensusState,
 		worker,
 		chainID,
-		alarmScheduler,
-		chanStopNodeProcess,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	fct := factory{
-		consensusCore:       consensusDataContainer,
-		consensusState:      consensusState,
-		worker:              worker,
-		appStatusHandler:    statusHandler.NewNilStatusHandler(),
-		chainID:             chainID,
-		currentPid:          currentPid,
-		alarmScheduler:      alarmScheduler,
-		chanStopNodeProcess: chanStopNodeProcess,
+		consensusCore:    consensusDataContainer,
+		consensusState:   consensusState,
+		worker:           worker,
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		chainID:          chainID,
+		currentPid:       currentPid,
 	}
 
 	return &fct, nil
@@ -68,8 +58,6 @@ func checkNewFactoryParams(
 	state *spos.ConsensusState,
 	worker spos.WorkerHandler,
 	chainID []byte,
-	alarmScheduler core.TimersScheduler,
-	endProcess chan endProcess.ArgEndProcess,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -83,12 +71,6 @@ func checkNewFactoryParams(
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID
-	}
-	if check.IfNil(alarmScheduler) {
-		return spos.ErrNilAlarmScheduler
-	}
-	if endProcess == nil {
-		return spos.ErrNilEndProcessChan
 	}
 
 	return nil
@@ -171,8 +153,6 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.Extend,
 		processingThresholdPercent,
 		fct.worker.ExecuteStoredMessages,
-		fct.alarmScheduler,
-		fct.chanStopNodeProcess,
 	)
 	if err != nil {
 		return err

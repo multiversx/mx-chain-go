@@ -2,11 +2,7 @@ package core
 
 import (
 	"crypto/rand"
-	"time"
 )
-
-// TimeToGracefullyCloseNode is used as a delay before forcefully closing the node after the gracefully close was called
-const TimeToGracefullyCloseNode = time.Second * 10
 
 // EmptyChannel empties the given channel
 func EmptyChannel(ch chan bool) int {

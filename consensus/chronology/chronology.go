@@ -1,11 +1,8 @@
 package chronology
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"os"
-	"runtime/pprof"
 	"sync"
 	"time"
 
@@ -14,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/close"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -29,6 +25,7 @@ var log = logger.GetOrCreate("consensus/chronology")
 const srBeforeStartRound = -1
 
 const numRoundsToWaitBeforeSignalingChronologyStuck = 10
+const chronologyAlarmID = "chronology"
 
 // chronology defines the data needed by the chronology
 type chronology struct {
@@ -45,8 +42,7 @@ type chronology struct {
 	appStatusHandler core.AppStatusHandler
 	cancelFunc       func()
 
-	alarmScheduler      core.TimersScheduler
-	chanStopNodeProcess chan endProcess.ArgEndProcess
+	watchdog core.WatchdogTimer
 }
 
 // NewChronology creates a new chronology object
@@ -54,27 +50,24 @@ func NewChronology(
 	genesisTime time.Time,
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
-	alarmScheduler core.TimersScheduler,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	watchdog core.WatchdogTimer,
 ) (*chronology, error) {
 
 	err := checkNewChronologyParams(
 		rounder,
 		syncTimer,
-		alarmScheduler,
-		chanStopNodeProcess,
+		watchdog,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	chr := chronology{
-		genesisTime:         genesisTime,
-		rounder:             rounder,
-		syncTimer:           syncTimer,
-		appStatusHandler:    statusHandler.NewNilStatusHandler(),
-		alarmScheduler:      alarmScheduler,
-		chanStopNodeProcess: chanStopNodeProcess,
+		genesisTime:      genesisTime,
+		rounder:          rounder,
+		syncTimer:        syncTimer,
+		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		watchdog:         watchdog,
 	}
 
 	chr.subroundId = srBeforeStartRound
@@ -88,8 +81,7 @@ func NewChronology(
 func checkNewChronologyParams(
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
-	alarmScheduler core.TimersScheduler,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	watchdog core.WatchdogTimer,
 ) error {
 
 	if check.IfNil(rounder) {
@@ -98,11 +90,8 @@ func checkNewChronologyParams(
 	if check.IfNil(syncTimer) {
 		return ErrNilSyncTimer
 	}
-	if check.IfNil(alarmScheduler) {
-		return ErrNilAlarmScheduler
-	}
-	if chanStopNodeProcess == nil {
-		return ErrNilEndProcessChan
+	if check.IfNil(watchdog) {
+		return ErrNilWatchdog
 	}
 
 	return nil
@@ -138,35 +127,11 @@ func (chr *chronology) RemoveAllSubrounds() {
 	chr.mutSubrounds.Unlock()
 }
 
-func (chr *chronology) resetChronologyStuckAlarm() {
-	duration := chr.rounder.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuck
-	alarmID := "chronologyStuck"
-
-	chr.alarmScheduler.Cancel(alarmID)
-
-	cb := func(alarmID string) {
-		buffer := new(bytes.Buffer)
-		err := pprof.Lookup("goroutine").WriteTo(buffer, 1)
-		if err != nil {
-			log.Error("could not dump goroutines")
-		}
-		log.Debug(buffer.String())
-
-		arg := endProcess.ArgEndProcess{
-			Reason:      "chronology is stuck",
-			Description: "startRound() was not called before the alarm expired",
-		}
-		chr.chanStopNodeProcess <- arg
-
-		time.Sleep(core.TimeToGracefullyCloseNode)
-		os.Exit(1)
-	}
-
-	chr.alarmScheduler.Add(cb, duration, alarmID)
-}
-
 // StartRounds actually starts the chronology and calls the DoWork() method of the subroundHandlers loaded
 func (chr *chronology) StartRounds() {
+	watchdogAlarmDuration := chr.rounder.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuck
+	chr.watchdog.SetDefault(watchdogAlarmDuration, chronologyAlarmID)
+
 	var ctx context.Context
 	ctx, chr.cancelFunc = context.WithCancel(context.Background())
 	go chr.startRounds(ctx)
@@ -200,7 +165,7 @@ func (chr *chronology) startRound() {
 		return
 	}
 
-	chr.resetChronologyStuckAlarm()
+	chr.watchdog.Reset(chronologyAlarmID)
 
 	msg := fmt.Sprintf("SUBROUND %s BEGINS", sr.Name())
 	log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))

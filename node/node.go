@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
@@ -152,6 +151,8 @@ type Node struct {
 
 	heartbeatHandler   *componentHandler.HeartbeatHandler
 	peerHonestyHandler consensus.PeerHonestyHandler
+
+	watchdog core.WatchdogTimer
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -220,12 +221,10 @@ func (n *Node) StartConsensus() error {
 		return ErrGenesisBlockNotInitialized
 	}
 
-	alarmScheduler := alarm.NewAlarmScheduler()
 	chronologyHandler, err := n.createChronologyHandler(
 		n.rounder,
 		n.appStatusHandler,
-		alarmScheduler,
-		n.chanStopNodeProcess,
+		n.watchdog,
 	)
 	if err != nil {
 		return err
@@ -357,8 +356,6 @@ func (n *Node) StartConsensus() error {
 		n.indexer,
 		n.chainID,
 		n.messenger.ID(),
-		alarmScheduler,
-		n.chanStopNodeProcess,
 	)
 	if err != nil {
 		return err
@@ -452,15 +449,13 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 func (n *Node) createChronologyHandler(
 	rounder consensus.Rounder,
 	appStatusHandler core.AppStatusHandler,
-	alarmScheduler core.TimersScheduler,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	watchdog core.WatchdogTimer,
 ) (consensus.ChronologyHandler, error) {
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
 		n.syncTimer,
-		alarmScheduler,
-		chanStopNodeProcess,
+		watchdog,
 	)
 	if err != nil {
 		return nil, err

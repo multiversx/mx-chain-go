@@ -10,9 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,8 +66,6 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	return fct
@@ -117,8 +113,6 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -137,8 +131,6 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -159,8 +151,6 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -181,8 +171,6 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -203,8 +191,6 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -225,8 +211,6 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -247,8 +231,6 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -269,8 +251,6 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -291,8 +271,6 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -313,8 +291,6 @@ func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -335,8 +311,6 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -357,8 +331,6 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -379,8 +351,6 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		worker,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -399,8 +369,6 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		nil,
 		chainID,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)
@@ -428,8 +396,6 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		worker,
 		nil,
 		currentPid,
-		alarm.NewAlarmScheduler(),
-		make(chan endProcess.ArgEndProcess),
 	)
 
 	assert.Nil(t, fct)

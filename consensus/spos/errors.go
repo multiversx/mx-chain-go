@@ -213,9 +213,3 @@ var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")
 
 // ErrOriginatorMismatch signals that an original consensus message has been re-broadcast manually by another peer
 var ErrOriginatorMismatch = errors.New("consensus message originator mismatch")
-
-// ErrNilAlarmScheduler is raised when a valid alarm scheduler is expected but nil is used
-var ErrNilAlarmScheduler = errors.New("nil alarm scheduler")
-
-// ErrNilEndProcessChan is raised when a valid end process chan is expected but nil is used
-var ErrNilEndProcessChan = errors.New("nil end process chan")

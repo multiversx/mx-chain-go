@@ -1,11 +1,8 @@
 package bls
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
-	"os"
-	"runtime/pprof"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -13,10 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 )
-
-const numRoundsToWaitBeforeSignalingConsensusStuck = 10
 
 // subroundStartRound defines the data needed by the subround StartRound
 type subroundStartRound struct {
@@ -25,9 +19,6 @@ type subroundStartRound struct {
 	executeStoredMessages         func()
 
 	indexer indexer.Indexer
-
-	alarmScheduler      core.TimersScheduler
-	chanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
@@ -36,13 +27,9 @@ func NewSubroundStartRound(
 	extend func(subroundId int),
 	processingThresholdPercentage int,
 	executeStoredMessages func(),
-	alarmScheduler core.TimersScheduler,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
-		alarmScheduler,
-		chanStopNodeProcess,
 	)
 	if err != nil {
 		return nil, err
@@ -53,8 +40,6 @@ func NewSubroundStartRound(
 		processingThresholdPercentage: processingThresholdPercentage,
 		executeStoredMessages:         executeStoredMessages,
 		indexer:                       indexer.NewNilIndexer(),
-		alarmScheduler:                alarmScheduler,
-		chanStopNodeProcess:           chanStopNodeProcess,
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -66,8 +51,6 @@ func NewSubroundStartRound(
 
 func checkNewSubroundStartRoundParams(
 	baseSubround *spos.Subround,
-	alarmScheduler core.TimersScheduler,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) error {
 	if baseSubround == nil {
 		return spos.ErrNilSubround
@@ -75,43 +58,10 @@ func checkNewSubroundStartRoundParams(
 	if baseSubround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
 	}
-	if check.IfNil(alarmScheduler) {
-		return spos.ErrNilAlarmScheduler
-	}
-	if chanStopNodeProcess == nil {
-		return spos.ErrNilEndProcessChan
-	}
 
 	err := spos.ValidateConsensusCore(baseSubround.ConsensusCoreHandler)
 
 	return err
-}
-
-func (sr *subroundStartRound) resetConsensusStuckAlarm() {
-	duration := sr.Rounder().TimeDuration() * numRoundsToWaitBeforeSignalingConsensusStuck
-	alarmID := "consensusStuck"
-
-	sr.alarmScheduler.Cancel(alarmID)
-
-	cb := func(alarmID string) {
-		buffer := new(bytes.Buffer)
-		err := pprof.Lookup("goroutine").WriteTo(buffer, 1)
-		if err != nil {
-			log.Error("could not dump goroutines")
-		}
-		log.Debug(buffer.String())
-
-		arg := endProcess.ArgEndProcess{
-			Reason:      "consensus is stuck",
-			Description: "doStartRoundJob() was not called before the alarm expired",
-		}
-		sr.chanStopNodeProcess <- arg
-
-		time.Sleep(core.TimeToGracefullyCloseNode)
-		os.Exit(1)
-	}
-
-	sr.alarmScheduler.Add(cb, duration, alarmID)
 }
 
 // SetIndexer method set indexer
@@ -121,7 +71,6 @@ func (sr *subroundStartRound) SetIndexer(indexer indexer.Indexer) {
 
 // doStartRoundJob method does the job of the subround StartRound
 func (sr *subroundStartRound) doStartRoundJob() bool {
-	sr.resetConsensusStuckAlarm()
 	sr.ResetConsensusState()
 	sr.RoundIndex = sr.Rounder().Index()
 	sr.RoundTimeStamp = sr.Rounder().TimeStamp()
