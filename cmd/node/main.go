@@ -78,7 +78,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/denisbrodbeck/machineid"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
