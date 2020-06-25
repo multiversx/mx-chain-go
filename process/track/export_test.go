@@ -105,8 +105,12 @@ func NewBaseBlockTrack() *baseBlockTrack {
 	return &baseBlockTrack{}
 }
 
-func (bbt *baseBlockTrack) DoWhitelistIfNeeded(metaBlock *block.MetaBlock) {
-	bbt.doWhitelistIfNeeded(metaBlock)
+func (bbt *baseBlockTrack) DoWhitelistWithMetaBlockIfNeeded(metaBlock *block.MetaBlock) {
+	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
+}
+
+func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader *block.Header) {
+	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
 }
 
 // blockNotifier
