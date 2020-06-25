@@ -12,3 +12,6 @@ var ErrNilSyncTimer = errors.New("sync timer is nil")
 
 // ErrNilAppStatusHandler is raised when the AppStatusHandler is nil when setting it
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrNilWatchdog signals that a nil watchdog has been provided
+var ErrNilWatchdog = errors.New("nil watchdog")

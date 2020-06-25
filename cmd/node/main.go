@@ -25,12 +25,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
+	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
+	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -2047,6 +2049,12 @@ func createNode(
 		return nil, err
 	}
 
+	alarmScheduler := alarm.NewAlarmScheduler()
+	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, chanStopNodeProcess)
+	if err != nil {
+		return nil, err
+	}
+
 	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
 		network.PeerBlackListHandler,
 		network.PkTimeCache,
@@ -2122,6 +2130,7 @@ func createNode(
 		node.WithNodeStopChannel(chanStopNodeProcess),
 		node.WithApiTransactionByHashThrottler(apiTxsByHashThrottler),
 		node.WithPeerHonestyHandler(peerHonestyHandler),
+		node.WithWatchdogTimer(watchdogTimer),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
