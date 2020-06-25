@@ -1285,7 +1285,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
-	_, _ = sc.createSCRForSender(
+	scr, _ := sc.createSCRForSender(
 		vmOutput.GasRefund,
 		vmOutput.GasRemaining,
 		vmOutput.ReturnCode,
@@ -1298,7 +1298,53 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	)
 	require.Nil(t, err)
 
+	finalValue := big.NewInt(0).Mul(refundGas, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
 	require.Equal(t, currBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
+	require.Equal(t, scr.Value.Cmp(finalValue), 0)
+}
+
+func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
+	t.Parallel()
+
+	minGasPrice := uint64(10)
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
+		return minGasPrice
+	}}
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	tx := &smartContractResult.SmartContractResult{}
+	tx.Nonce = 1
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 15
+	tx.GasLimit = 15
+	txHash := []byte("txHash")
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr)
+
+	refundGas := big.NewInt(10)
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 10, GasRefund: refundGas}
+	scr, _ := sc.createSCRForSender(
+		vmOutput.GasRefund,
+		vmOutput.GasRemaining,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		"",
+		tx,
+		txHash,
+		acntSrc,
+		vmcommon.AsynchronousCall,
+	)
+	require.Nil(t, err)
+
+	scrValue := big.NewInt(0).Mul(vmOutput.GasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
+	require.Equal(t, scr.Value.Cmp(scrValue), 0)
+	require.Equal(t, scr.GasLimit, vmOutput.GasRemaining)
+	require.Equal(t, scr.GasPrice, tx.GasPrice)
 }
 
 func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
