@@ -169,7 +169,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		log.Debug("got message from peer on topic only for validators", "originator",
 			p2p.PeerIdToShortString(message.Peer()),
 			"topic", mdi.topic,
-			"err", err)
+			"err", errOriginator)
 	}
 
 	return lastErrEncountered

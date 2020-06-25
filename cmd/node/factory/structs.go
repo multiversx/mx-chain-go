@@ -1750,10 +1750,10 @@ func PrepareNetworkShardingCollector(
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
-	epochShard uint32,
+	epochStart uint32,
 ) (*networksharding.PeerShardMapper, error) {
 
-	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochStartRegistrationHandler, epochShard)
+	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochStartRegistrationHandler, epochStart)
 	if err != nil {
 		return nil, err
 	}

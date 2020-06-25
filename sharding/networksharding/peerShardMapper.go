@@ -70,6 +70,8 @@ func NewPeerShardMapper(
 		return nil, err
 	}
 
+	log.Debug("peerShardMapper epoch", "epoch", epochStart)
+
 	return &PeerShardMapper{
 		peerIdPk:         peerIdPk,
 		pkPeerId:         pkPeerId,
@@ -295,6 +297,7 @@ func (psm *PeerShardMapper) EpochStartAction(hdr data.HeaderHandler) {
 
 	psm.mutEpoch.Lock()
 	psm.epoch = hdr.GetEpoch()
+	log.Debug("peerShardMapper epoch", "epoch", psm.epoch)
 	psm.mutEpoch.Unlock()
 }
 
