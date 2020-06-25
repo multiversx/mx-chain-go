@@ -215,7 +215,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	shuffledOutMap, newEligible := shuffleOutNodes(newEligible, numToRemove, arg.randomness)
 
-	err = moveNodesToMap(newEligible, newWaiting)
+	err = moveMaxNumNodesToMap(newEligible, newWaiting, arg.nodesMeta, arg.nodesPerShard)
 	if err != nil {
 		log.Warn("moveNodesToMap failed", "error", err)
 	}
@@ -509,28 +509,69 @@ func (rhs *randHashShuffler) mergeShards(
 }
 
 // copyValidatorMap creates a copy for the Validators map, creating copies for each of the lists for each shard
-func copyValidatorMap(validators map[uint32][]Validator) map[uint32][]Validator {
+func copyValidatorMap(validatorsMap map[uint32][]Validator) map[uint32][]Validator {
 	result := make(map[uint32][]Validator)
 
-	for k, v := range validators {
+	for shardId, validators := range validatorsMap {
 		elems := make([]Validator, 0)
-		result[k] = append(elems, v...)
+		result[shardId] = append(elems, validators...)
 	}
 
 	return result
 }
 
-// moveNodesToMap moves the validators in the waiting list to corresponding eligible list
+// moveNodesToMap moves the validators in the source list to the corresponding destination list
 func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Validator) error {
 	if destination == nil {
 		return ErrNilOrEmptyDestinationForDistribute
 	}
 
-	for k, v := range source {
-		destination[k] = append(destination[k], v...)
-		source[k] = make([]Validator, 0)
+	for shardId, validators := range source {
+		destination[shardId] = append(destination[shardId], validators...)
+		source[shardId] = make([]Validator, 0)
 	}
+
 	return nil
+}
+
+// moveMaxNumNodesToMap moves the validators in the source list to the corresponding destination list
+// but adding just enough nodes so that at most the number of nodes is kept in the destination list
+func moveMaxNumNodesToMap(
+	destination map[uint32][]Validator,
+	source map[uint32][]Validator,
+	numMeta uint32,
+	numShard uint32,
+) error {
+	if destination == nil {
+		return ErrNilOrEmptyDestinationForDistribute
+	}
+
+	for shardId, validators := range source {
+		maxNodes := numShard
+		if shardId == core.MetachainShardId {
+			maxNodes = numMeta
+		}
+
+		numNeededNodes := computeNeededNodes(destination[shardId], source[shardId], maxNodes)
+		destination[shardId] = append(destination[shardId], validators[0:numNeededNodes]...)
+		source[shardId] = validators[numNeededNodes:]
+	}
+
+	return nil
+}
+
+func computeNeededNodes(destination []Validator, source []Validator, maxNumNodes uint32) uint32 {
+	numNeededNodes := uint32(0)
+	numCurrentNodes := uint32(len(destination))
+	numSourceNodes := uint32(len(source))
+	if maxNumNodes > numCurrentNodes {
+		numNeededNodes = maxNumNodes - numCurrentNodes
+	}
+	if numSourceNodes < numNeededNodes {
+		return numSourceNodes
+	}
+
+	return numNeededNodes
 }
 
 // distributeNewNodes distributes a list of validators to the given validators map
