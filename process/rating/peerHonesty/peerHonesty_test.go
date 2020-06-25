@@ -17,12 +17,12 @@ import (
 // createMockPeerHonestyConfig creates a peer honesty config with reasonable values
 func createMockPeerHonestyConfig() config.PeerHonestyConfig {
 	return config.PeerHonestyConfig{
-		DecayCoefficient:             0.9995,
-		DecayUpdateIntervalInSeconds: 5,
+		DecayCoefficient:             0.9779,
+		DecayUpdateIntervalInSeconds: 10,
 		MaxScore:                     100,
 		MinScore:                     -100,
 		BadPeerThreshold:             -80,
-		UnitValue:                    1,
+		UnitValue:                    1.0,
 	}
 }
 
@@ -172,13 +172,13 @@ func TestP2pPeerHonesty_Close(t *testing.T) {
 		handler,
 	)
 
-	time.Sleep(time.Second*3 + time.Millisecond*100) //this will call the handler 3 times
+	time.Sleep(time.Second*2 + time.Millisecond*100) //this will call the handler 3 times
 
 	err := pph.Close()
 	assert.Nil(t, err)
 
-	time.Sleep(time.Second*3 + time.Millisecond*100)
-	assert.Equal(t, int32(3), numCalls)
+	time.Sleep(time.Second*2 + time.Millisecond*100)
+	assert.Equal(t, int32(2), numCalls)
 }
 
 func TestP2pPeerHonesty_ChangeScoreShouldWork(t *testing.T) {
@@ -198,8 +198,8 @@ func TestP2pPeerHonesty_ChangeScoreShouldWork(t *testing.T) {
 	pph.ChangeScore(pk, topic, units)
 
 	ps := pph.Get(pk)
-	assert.Equal(t, 1, len(ps.scores))
-	assert.Equal(t, float64(units)*cfg.UnitValue, ps.scores[topic])
+	assert.Equal(t, 1, len(ps.scoresByTopic))
+	assert.Equal(t, float64(units)*cfg.UnitValue, ps.scoresByTopic[topic])
 }
 
 func TestP2pPeerHonesty_DoubleChangeScoreShouldWork(t *testing.T) {
@@ -220,8 +220,8 @@ func TestP2pPeerHonesty_DoubleChangeScoreShouldWork(t *testing.T) {
 	pph.ChangeScore(pk, topic, units)
 
 	ps := pph.Get(pk)
-	assert.Equal(t, 1, len(ps.scores))
-	assert.Equal(t, float64(units+units)*cfg.UnitValue, ps.scores[topic])
+	assert.Equal(t, 1, len(ps.scoresByTopic))
+	assert.Equal(t, float64(units+units)*cfg.UnitValue, ps.scoresByTopic[topic])
 }
 
 func TestP2pPeerHonesty_CheckBlacklistNotBlacklisted(t *testing.T) {
@@ -284,8 +284,8 @@ func TestP2pPeerHonesty_CheckBlacklistMaxScoreReached(t *testing.T) {
 	pph.ChangeScore(pk, topic, units)
 
 	ps := pph.Get(pk)
-	assert.Equal(t, 1, len(ps.scores))
-	assert.Equal(t, cfg.MaxScore, ps.scores[topic])
+	assert.Equal(t, 1, len(ps.scoresByTopic))
+	assert.Equal(t, cfg.MaxScore, ps.scoresByTopic[topic])
 
 	assert.False(t, hasCalled)
 	assert.False(t, upsertCalled)
@@ -319,8 +319,8 @@ func TestP2pPeerHonesty_CheckBlacklistMinScoreReached(t *testing.T) {
 	pph.ChangeScore(pk, topic, units)
 
 	ps := pph.Get(pk)
-	assert.Equal(t, 1, len(ps.scores))
-	assert.Equal(t, cfg.MinScore, ps.scores[topic])
+	assert.Equal(t, 1, len(ps.scoresByTopic))
+	assert.Equal(t, cfg.MinScore, ps.scoresByTopic[topic])
 
 	assert.True(t, hasCalled)
 	assert.True(t, upsertCalled)
@@ -412,7 +412,32 @@ func TestP2pPeerHonesty_ApplyDecay(t *testing.T) {
 	checkScore(t, pph, pks[4], topic, initial[4]*cfg.DecayCoefficient)
 }
 
+func TestP2pPeerHonesty_ApplyDecayWillEventuallyGoTheScoreToZero(t *testing.T) {
+	t.Parallel()
+
+	cfg := createMockPeerHonestyConfig()
+	cfg.MaxScore = 100
+	cfg.UnitValue = 1
+	cfg.DecayCoefficient = 0.9779
+	pph, _ := NewP2pPeerHonesty(
+		cfg,
+		&mock.TimeCacheStub{},
+		testscommon.NewCacherMock(),
+	)
+
+	pk := "pk"
+	topic := "topic"
+	pph.Put(pk, topic, cfg.MaxScore)
+
+	expectedDecaysToBeZero := 722 //(at 10 seconds decay interval this will be ~2h)
+	for i := 0; i < expectedDecaysToBeZero; i++ {
+		pph.applyDecay()
+	}
+
+	checkScore(t, pph, pk, topic, 0)
+}
+
 func checkScore(t *testing.T, pph *p2pPeerHonesty, pk string, topic string, value float64) {
 	ps := pph.Get(pk)
-	assert.Equal(t, value, ps.scores[topic])
+	assert.Equal(t, value, ps.scoresByTopic[topic])
 }

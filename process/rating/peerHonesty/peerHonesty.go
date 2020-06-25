@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -39,7 +38,8 @@ type p2pPeerHonesty struct {
 	cancelFunc             func()
 }
 
-// NewP2pPeerHonesty creates a new peer honesty handler able to manage a provided set of public keys
+// NewP2pPeerHonesty creates a new peer honesty handler able to manage a provided set of public keys withing
+// the provided cache
 func NewP2pPeerHonesty(
 	peerHonestyConfig config.PeerHonestyConfig,
 	blackListedPkCache process.TimeCacher,
@@ -64,7 +64,7 @@ func NewP2pPeerHonesty(
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	instance.cancelFunc = cancelFunc
 
-	go instance.executeDecay(ctx, instance.applyDecay)
+	go instance.executeDecayContinuously(ctx, instance.applyDecay)
 
 	return instance, nil
 }
@@ -124,7 +124,7 @@ func checkParams(
 	return nil
 }
 
-func (pph *p2pPeerHonesty) executeDecay(ctx context.Context, handler func()) {
+func (pph *p2pPeerHonesty) executeDecayContinuously(ctx context.Context, handler func()) {
 	for {
 		select {
 		case <-time.After(pph.updateIntervalForDecay):
@@ -151,13 +151,13 @@ func (pph *p2pPeerHonesty) applyDecay() {
 			continue
 		}
 
-		for topic, score := range ps.scores {
+		for topic, score := range ps.scoresByTopic {
 			score = score * pph.decayCoefficient
 			if check.IsZeroFloat64(score, approximateZero) {
 				score = 0
 			}
 
-			ps.scores[topic] = score
+			ps.scoresByTopic[topic] = score
 		}
 	}
 }
@@ -167,9 +167,9 @@ func (pph *p2pPeerHonesty) ChangeScore(pk string, topic string, units int) {
 	pph.mut.Lock()
 	defer pph.mut.Unlock()
 
-	ps := pph.getValidPeerScore(pk)
+	ps := pph.getValidPeerScoreNoLock(pk)
 
-	oldValue := ps.scores[topic]
+	oldValue := ps.scoresByTopic[topic]
 	change := float64(units) * pph.unitValue
 
 	if change < 0 {
@@ -182,19 +182,19 @@ func (pph *p2pPeerHonesty) ChangeScore(pk string, topic string, units int) {
 	}
 
 	newValue := oldValue + change
-	ps.scores[topic] = newValue
+	ps.scoresByTopic[topic] = newValue
 	if newValue > pph.maxScore {
-		ps.scores[topic] = pph.maxScore
+		ps.scoresByTopic[topic] = pph.maxScore
 	}
 
 	if newValue < pph.minScore {
-		ps.scores[topic] = pph.minScore
+		ps.scoresByTopic[topic] = pph.minScore
 	}
 
-	pph.checkBlacklist(ps)
+	pph.checkBlacklistNoLock(ps)
 }
 
-func (pph *p2pPeerHonesty) getValidPeerScore(pk string) *peerScore {
+func (pph *p2pPeerHonesty) getValidPeerScoreNoLock(pk string) *peerScore {
 	key := []byte(pk)
 
 	var ps *peerScore
@@ -215,18 +215,15 @@ func (pph *p2pPeerHonesty) getValidPeerScore(pk string) *peerScore {
 func (pph *p2pPeerHonesty) createDefaultPeerScore(pk string) *peerScore {
 	key := []byte(pk)
 
-	ps := &peerScore{
-		scores: make(map[string]float64),
-		pk:     pk,
-	}
+	ps := newPeerScore(pk)
 	pph.cache.Put(key, ps, ps.size())
 
 	return ps
 }
 
-func (pph *p2pPeerHonesty) checkBlacklist(ps *peerScore) {
+func (pph *p2pPeerHonesty) checkBlacklistNoLock(ps *peerScore) {
 	shouldBlacklist := false
-	for _, score := range ps.scores {
+	for _, score := range ps.scoresByTopic {
 		if score < pph.badPeerThreshold {
 			shouldBlacklist = true
 		}
