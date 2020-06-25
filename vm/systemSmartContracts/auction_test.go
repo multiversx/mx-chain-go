@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -1005,7 +1006,11 @@ func TestAuctionStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) 
 func TestAuctionStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook := &mock.BlockChainHookStub{
+		GetUserAccountCalled: func(address []byte) (vmcommon.UserAccountHandler, error) {
+			return nil, state.ErrAccNotFound
+		},
+	}
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{})
 	eei.SetSCAddress([]byte("addr"))
 
