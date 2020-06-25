@@ -125,7 +125,8 @@ func (g *governanceContract) init(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	g.eei.SetStorage([]byte(governanceConfigKey), marshaledData)
 	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
-	g.ownerAddress = args.CallerAddr
+	g.ownerAddress = make([]byte, 0, len(args.CallerAddr))
+	g.ownerAddress = append(g.ownerAddress, args.CallerAddr...)
 	return vmcommon.Ok
 }
 
@@ -261,7 +262,7 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 	}
 	g.eei.SetStorage(key, marshaledData)
 
-	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
+	err = g.saveGeneralProposal(args.CallerAddr, generalProposal)
 	if err != nil {
 		g.eei.AddReturnMessage("save proposal error " + err.Error())
 		return vmcommon.UserError
@@ -669,7 +670,11 @@ func (g *governanceContract) voteForProposal(
 		return err
 	}
 	currentNonce := g.eei.BlockChainHook().CurrentNonce()
-	if generalProposal.EndVoteNonce > currentNonce {
+	if currentNonce < generalProposal.StartVoteNonce {
+		return vm.ErrVotedForAProposalThatNotBeginsYet
+	}
+
+	if currentNonce > generalProposal.EndVoteNonce {
 		return vm.ErrVotedForAnExpiredProposal
 	}
 
@@ -800,7 +805,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 	if !g.isWhiteListed(args.CallerAddr) {
-		g.eei.AddReturnMessage("called is not whitelisted")
+		g.eei.AddReturnMessage("caller is not whitelisted")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 1 {

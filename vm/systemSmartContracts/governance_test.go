@@ -10,9 +10,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,13 +23,17 @@ func createMockGovernanceArgs() ArgsNewGovernanceContract {
 		Eei:     &mock.SystemEIStub{},
 		GasCost: vm.GasCost{},
 		GovernanceConfig: config.GovernanceSystemSCConfig{
-			ProposalCost: "100",
+			NumNodes:         3,
+			MinPassThreshold: 1,
+			MinQuorum:        2,
+			MinVetoThreshold: 2,
+			ProposalCost:     "100",
 		},
 		ESDTSCAddress:       nil,
 		Marshalizer:         &mock.MarshalizerMock{},
 		Hasher:              &mock.HasherMock{},
-		GovernanceSCAddress: nil,
-		StakingSCAddress:    nil,
+		GovernanceSCAddress: []byte("governanceSC"),
+		StakingSCAddress:    []byte("stakingSC"),
 		AuctionSCAddress:    nil,
 	}
 }
@@ -444,5 +450,157 @@ func testExecuteVote(t *testing.T, vote []byte) {
 	}
 
 	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+// Test Scenario
+// A proposal is voted if it has 2 vote with yes
+// 1. Init governance smart contract
+// 2. WhiteList an address at genesis
+// 3. WhileList a new address, vote with 2 validators with yes and close white list proposal
+// 4. Create a new general proposal with new white listed address, vote with 2 validator with yes general proposal
+// and close proposal
+func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return 0
+		},
+	}
+	atArgParser := parsers.NewCallArgsParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
+
+	args := createMockGovernanceArgs()
+
+	eei.SetSCAddress([]byte("addr"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return &mock.AuctionSCMock{
+			ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+				auctionData := &AuctionData{
+					NumStaked: 1,
+				}
+
+				auctionDataBytes, _ := json.Marshal(auctionData)
+				eei.Finish(auctionDataBytes)
+				return vmcommon.Ok
+			},
+		}, nil
+	}})
+
+	args.Eei = eei
+	gsc, _ := NewGovernanceContract(args)
+
+	callerAddr := []byte("addr1")
+	recipientAddr := []byte("recipientAddress")
+	startNonce := uint64(100)
+	stopNonce := uint64(1000)
+	gitHubCommit := []byte("0123456789012345678901234567890123456789")
+
+	// init governance smart contract
+	ownerAddress := []byte("addr1")
+	callInput := createVMInput(big.NewInt(0), core.SCDeployInitFunctionName, ownerAddress, recipientAddr)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// white list address at genesis
+	genesisWLAddr := []byte("genesisAddr")
+	callInput = createVMInput(big.NewInt(0), "whiteList", genesisWLAddr, recipientAddr)
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// white list address
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 1
+	}
+
+	callInput = createVMInput(big.NewInt(100), "whiteList", callerAddr, recipientAddr)
+	callInput.Arguments = [][]byte{
+		gitHubCommit,
+		[]byte(fmt.Sprintf("%d", startNonce)),
+		[]byte(fmt.Sprintf("%d", stopNonce)),
+	}
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// vote address 1
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return startNonce + 1
+	}
+	validatorAddress1 := []byte("vala1")
+	callInput = createVMInput(big.NewInt(0), "vote", validatorAddress1, recipientAddr)
+	callInput.Arguments = [][]byte{
+		callerAddr,
+		[]byte("yes"),
+	}
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// vote address 2
+	validatorAddress2 := []byte("vala2")
+	callInput = createVMInput(big.NewInt(0), "vote", validatorAddress2, recipientAddr)
+	callInput.Arguments = [][]byte{
+		callerAddr,
+		[]byte("yes"),
+	}
+
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// close white list
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return stopNonce + 1
+	}
+	callInput = createVMInput(big.NewInt(0), "closeProposal", genesisWLAddr, recipientAddr)
+	callInput.Arguments = [][]byte{
+		callerAddr,
+	}
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// create a new proposal
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 1
+	}
+	gitHubCommit2 := []byte("1123456789012345678901234567890123456789")
+	callInput = createVMInput(big.NewInt(100), "proposal", callerAddr, recipientAddr)
+	callInput.Arguments = [][]byte{
+		gitHubCommit2,
+		[]byte(fmt.Sprintf("%d", startNonce)),
+		[]byte(fmt.Sprintf("%d", stopNonce)),
+	}
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// vote new proposal validator 1
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return startNonce + 1
+	}
+	callInput = createVMInput(big.NewInt(0), "vote", validatorAddress1, recipientAddr)
+	callInput.Arguments = [][]byte{
+		gitHubCommit2,
+		[]byte("yes"),
+	}
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// vote new proposal validator 2
+	callInput = createVMInput(big.NewInt(0), "vote", validatorAddress2, recipientAddr)
+	callInput.Arguments = [][]byte{
+		gitHubCommit2,
+		[]byte("yes"),
+	}
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	// close new proposal
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return stopNonce + 1
+	}
+	callInput = createVMInput(big.NewInt(0), "closeProposal", callerAddr, recipientAddr)
+	callInput.Arguments = [][]byte{
+		gitHubCommit2,
+	}
+	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 }
