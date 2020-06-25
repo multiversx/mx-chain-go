@@ -43,25 +43,25 @@ func (w *watchdog) Set(callback func(alarmID string), duration time.Duration, al
 
 // SetDefault sets the default alarm with the specified duration.
 // When the default alarm expires, the goroutines stack traces will be logged, and the node will gracefully close.
-func (w *watchdog) SetDefault(duration time.Duration, alarmID string) {
-	cb := func(alarmID string) {
-		buffer := new(bytes.Buffer)
-		err := pprof.Lookup("goroutine").WriteTo(buffer, 1)
-		if err != nil {
-			log.Error("could not dump goroutines")
-		}
+func (w *watchdog) SetDefault(duration time.Duration, watchdogID string) {
+	w.alarmScheduler.Add(w.defaultWatchdogExpiry, duration, watchdogID)
+}
 
-		log.Error("watchdog alarm has expired", "alarm", alarmID)
-		log.Warn(buffer.String())
-
-		arg := endProcess.ArgEndProcess{
-			Reason:      "alarm " + alarmID + " has expired",
-			Description: "the " + alarmID + " is stuck",
-		}
-		w.chanStopNodeProcess <- arg
+func (w *watchdog) defaultWatchdogExpiry(watchdogID string) {
+	buffer := new(bytes.Buffer)
+	err := pprof.Lookup("goroutine").WriteTo(buffer, 1)
+	if err != nil {
+		log.Error("could not dump goroutines")
 	}
 
-	w.alarmScheduler.Add(cb, duration, alarmID)
+	log.Error("watchdog alarm has expired", "alarm", watchdogID)
+	log.Warn(buffer.String())
+
+	arg := endProcess.ArgEndProcess{
+		Reason:      "alarm " + watchdogID + " has expired",
+		Description: "the " + watchdogID + " is stuck",
+	}
+	w.chanStopNodeProcess <- arg
 }
 
 // Stop stops the alarm with the specified ID
