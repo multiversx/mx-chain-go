@@ -46,9 +46,9 @@ func (v validatorList) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
 // Sorting of validators should be by index and public key
 func (v validatorList) Less(i, j int) bool {
 	if v[i].Index() == v[j].Index() {
-		return bytes.Compare(v[i].PubKey(), v[j].PubKey()) > 0
+		return bytes.Compare(v[i].PubKey(), v[j].PubKey()) < 0
 	}
-	return v[i].Index() > v[j].Index()
+	return v[i].Index() < v[j].Index()
 }
 
 // TODO: add a parameter for shardID  when acting as observer
