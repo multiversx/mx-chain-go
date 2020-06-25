@@ -80,6 +80,18 @@ func TestStateComponentsFactory_Create_ShouldWork(t *testing.T) {
 	require.NotNil(t, res)
 }
 
+func TestStateComponentsFactory_CreateTriesShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getStateArgs()
+
+	scf, _ := factory.NewStateComponentsFactory(args)
+
+	tc, err := scf.CreateTries()
+	require.NoError(t, err)
+	require.NotNil(t, tc)
+}
+
 func getStateArgs() factory.StateComponentsFactoryArgs {
 	return factory.StateComponentsFactoryArgs{
 		Config: config.Config{
@@ -96,7 +108,6 @@ func getStateArgs() factory.StateComponentsFactoryArgs {
 		},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
 		Core:             getCoreComponents(),
-		Tries:            getTriesComponents(),
 	}
 }
 
@@ -105,10 +116,4 @@ func getCoreComponents() factory.CoreComponentsHolder {
 	coreComponents, _ := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
 	_ = coreComponents.Create()
 	return coreComponents
-}
-
-func getTriesComponents() *factory.TriesComponents {
-	tcf, _ := factory.NewTriesComponentsFactory(getTriesArgs())
-	tc, _ := tcf.Create()
-	return tc
 }

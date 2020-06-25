@@ -51,3 +51,8 @@ func (ccf *cryptoComponentsFactory) SetKeyLoader(keyLoad func(string, int) ([]by
 func (ncf *networkComponentsFactory) SetListenAddress(address string) {
 	ncf.listenAddress = address
 }
+
+// CreateTries -
+func (scf *stateComponentsFactory) CreateTries() (*TriesComponents, error) {
+	return scf.createTries()
+}

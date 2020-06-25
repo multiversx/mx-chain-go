@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -177,6 +178,21 @@ type ProcessComponentsHandler interface {
 	ProcessComponentsHolder
 }
 
+// StateComponentsHandler
+type StateComponentsHandler interface {
+	ComponentHandler
+	StateComponentsHolder
+}
+
+// StateComponentsHolder holds the
+type StateComponentsHolder interface {
+	PeerAccounts() state.AccountsAdapter
+	AccountsAdapter() state.AccountsAdapter
+	TriesContainer() state.TriesHolder
+	TrieStorageManager(string) data.StorageManager
+	IsInterfaceNil() bool
+}
+
 // StatusComponentsHolder holds the status components
 type StatusComponentsHolder interface {
 	TpsBenchmark() statistics.TPSBenchmark
@@ -186,8 +202,8 @@ type StatusComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// StateComponentsHandler defines the status components handler actions
-type StateComponentsHandler interface {
+// StatusComponentsHandler defines the status components handler actions
+type StatusComponentsHandler interface {
 	ComponentHandler
 	StatusComponentsHolder
 }

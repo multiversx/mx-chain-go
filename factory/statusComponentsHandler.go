@@ -17,6 +17,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ ComponentHandler = (*managedStatusComponents)(nil)
+var _ StatusComponentsHolder = (*managedStatusComponents)(nil)
+var _ StatusComponentsHandler = (*managedStatusComponents)(nil)
+
 // StatusComponentsHandlerArgs redefines the arguments structure needed for the status components factory
 type StatusComponentsHandlerArgs struct {
 	FactoryArgs       StatusComponentsFactoryArgs
