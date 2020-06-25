@@ -1,5 +1,7 @@
 package spos
 
+//TODO consider moving these constants in config file
+
 // MaxThresholdPercent specifies the max allocated time percent for doing Job as a percentage of the total time of one round
 const MaxThresholdPercent = 95
 

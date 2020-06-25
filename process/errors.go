@@ -809,7 +809,7 @@ var ErrInvalidUserNameLength = errors.New("invalid user name length")
 // ErrTxValueOutOfBounds signals that transaction value is out of bounds
 var ErrTxValueOutOfBounds = errors.New("tx value is out of bounds")
 
-// ErrNilBlackListedPkCache signals that a nil black listed public key cache
+// ErrNilBlackListedPkCache signals that a nil black listed public key cache has been provided
 var ErrNilBlackListedPkCache = errors.New("nil black listed public key cache")
 
 // ErrInvalidDecayCoefficient signals that the provided decay coefficient is invalid

@@ -29,19 +29,16 @@ func NewP2pPeerHonestyWithCustomExecuteDelayFunction(
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	instance.cancelFunc = cancelFunc
 
-	go instance.executeDecay(ctx, handler)
+	go instance.executeDecayContinuously(ctx, handler)
 
 	return instance, nil
 }
 
 func (ps *peerScore) clone() *peerScore {
-	psCloned := &peerScore{
-		pk:     ps.pk,
-		scores: make(map[string]float64),
-	}
+	psCloned := newPeerScore(ps.pk)
 
-	for t, s := range ps.scores {
-		psCloned.scores[t] = s
+	for t, s := range ps.scoresByTopic {
+		psCloned.scoresByTopic[t] = s
 	}
 
 	return psCloned
@@ -68,6 +65,6 @@ func (pph *p2pPeerHonesty) Put(pk string, topic string, value float64) {
 	pph.mut.Lock()
 	defer pph.mut.Unlock()
 
-	ps := pph.getValidPeerScore(pk)
-	ps.scores[topic] = value
+	ps := pph.getValidPeerScoreNoLock(pk)
+	ps.scoresByTopic[topic] = value
 }
