@@ -11,7 +11,7 @@ import (
 const minSizeInBytes = uint32(core.MegabyteSize * 10 / 100)
 const maxSizeInBytes = uint32(core.MegabyteSize * 90 / 100)
 const testMaxSizeInBytes = maxSizeInBytes / 1000 * 900
-const testMediumSizeInBytes = maxSizeInBytes / 1000 * 800
+const testMediumSizeInBytes = maxSizeInBytes / 1000 * 650
 const testHalfSizeInBytes = maxSizeInBytes / 1000 * 450
 
 func TestNewBlockSizeThrottle_ShouldWork(t *testing.T) {

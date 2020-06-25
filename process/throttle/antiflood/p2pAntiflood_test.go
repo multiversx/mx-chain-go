@@ -25,7 +25,7 @@ func TestNewP2PAntiflood_NilBlacklistHandlerShouldErr(t *testing.T) {
 		&mock.FloodPreventerStub{},
 	)
 	assert.True(t, check.IfNil(afm))
-	assert.True(t, errors.Is(err, process.ErrNilBlackListHandler))
+	assert.True(t, errors.Is(err, process.ErrNilBlackListCacher))
 }
 
 func TestNewP2PAntiflood_EmptyFloodPreventerListShouldErr(t *testing.T) {
@@ -385,7 +385,7 @@ func TestP2pAntiflood_BlacklistPeerErrShouldDoNothing(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.PeerBlackListHandlerStub{
-			AddWithSpanCalled: func(pid core.PeerID, span time.Duration) error {
+			UpsertCalled: func(pid core.PeerID, span time.Duration) error {
 				atomic.AddInt32(&numCalls, 1)
 
 				return expectedErr
@@ -406,7 +406,7 @@ func TestP2pAntiflood_BlacklistPeerShouldWork(t *testing.T) {
 	numCalls := int32(0)
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.PeerBlackListHandlerStub{
-			AddWithSpanCalled: func(pid core.PeerID, span time.Duration) error {
+			UpsertCalled: func(pid core.PeerID, span time.Duration) error {
 				atomic.AddInt32(&numCalls, 1)
 
 				return nil

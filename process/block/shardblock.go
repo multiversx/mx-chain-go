@@ -945,6 +945,10 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
 	for _, hdr := range headers {
+		if sp.forkDetector.GetHighestFinalBlockNonce() < hdr.GetNonce() {
+			break
+		}
+
 		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(hdr.GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
 			log.Debug("could not get shard header from storage")
@@ -1526,7 +1530,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 			break
 		}
 
-		if hdrsAdded > process.MaxMetaHeadersAllowedInOneShardBlock {
+		if hdrsAdded >= process.MaxMetaHeadersAllowedInOneShardBlock {
 			log.Debug("maximum meta headers allowed to be included in one shard block has been reached",
 				"meta headers added", hdrsAdded,
 			)
