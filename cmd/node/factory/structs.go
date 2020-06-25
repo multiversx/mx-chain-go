@@ -94,7 +94,7 @@ type Process struct {
 	EpochStartTrigger        epochStart.TriggerHandler
 	ForkDetector             process.ForkDetector
 	BlockProcessor           process.BlockProcessor
-	BlackListHandler         process.BlackListHandler
+	BlackListHandler         process.TimeCacher
 	BootStorer               process.BootStorer
 	HeaderSigVerifier        HeaderSigVerifierHandler
 	HeaderIntegrityVerifier  HeaderIntegrityVerifierHandler
@@ -646,7 +646,7 @@ func newInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
-) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
+) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardInterceptorContainerFactory(
 			shardCoordinator,
@@ -741,7 +741,7 @@ func newShardInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
-) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
+) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
 		Accounts:                state.AccountsAdapter,
@@ -761,7 +761,7 @@ func newShardInterceptorContainerFactory(
 		AddressPubkeyConverter:  state.AddressPubkeyConverter,
 		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:            economics,
-		BlackList:               headerBlackList,
+		BlockBlackList:          headerBlackList,
 		HeaderSigVerifier:       headerSigVerifier,
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
 		SizeCheckDelta:          sizeCheckDelta,
@@ -796,7 +796,7 @@ func newMetaInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
-) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
+) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
 		ShardCoordinator:        shardCoordinator,
@@ -997,7 +997,7 @@ func newBlockTracker(
 func newForkDetector(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
-	headerBlackList process.BlackListHandler,
+	headerBlackList process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
 ) (process.ForkDetector, error) {
