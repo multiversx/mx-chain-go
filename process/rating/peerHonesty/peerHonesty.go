@@ -175,7 +175,7 @@ func (pph *p2pPeerHonesty) ChangeScore(pk string, topic string, units int) {
 	if change < 0 {
 		//TODO switch this to log.Trace in the future
 		log.Debug("p2pPeerHonesty.ChangeScore decrease",
-			"pk", hex.EncodeToString([]byte(pk)),
+			"pk", core.GetTrimmedPk(hex.EncodeToString([]byte(pk))),
 			"current", fmt.Sprintf("%.2f", oldValue),
 			"change", fmt.Sprintf("%.2f", change),
 		)
@@ -237,10 +237,15 @@ func (pph *p2pPeerHonesty) checkBlacklistNoLock(ps *peerScore) {
 		return
 	}
 
+	log.Debug("p2pPeerHonesty.checkBlacklist: added blacklisted pk",
+		"pk", core.GetTrimmedPk(hex.EncodeToString([]byte(ps.pk))),
+		"duration", core.PublicKeyBlacklistDuration,
+	)
+
 	err := pph.blackListedPkCache.Upsert(ps.pk, core.PublicKeyBlacklistDuration)
 	if err != nil {
 		log.Warn("p2pPeerHonesty.checkBlacklist",
-			"hex public key", hex.EncodeToString([]byte(ps.pk)),
+			"pk", core.GetTrimmedPk(hex.EncodeToString([]byte(ps.pk))),
 			"error", err)
 	}
 }
