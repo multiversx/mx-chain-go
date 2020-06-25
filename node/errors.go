@@ -174,3 +174,6 @@ var ErrUnknownPeerID = errors.New("unknown peer ID")
 
 // ErrNilPeerHonestyHandler signals that a nil peer honesty handler has been provided
 var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")
+
+// ErrNilWatchdog signals that a nil watchdog has been provided
+var ErrNilWatchdog = errors.New("nil watchdog")

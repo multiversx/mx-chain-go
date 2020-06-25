@@ -27,7 +27,13 @@ func GetSubroundsFactory(
 ) (spos.SubroundsFactory, error) {
 	switch consensusType {
 	case blsConsensusType:
-		subRoundFactoryBls, err := bls.NewSubroundsFactory(consensusDataContainer, consensusState, worker, chainID, currentPid)
+		subRoundFactoryBls, err := bls.NewSubroundsFactory(
+			consensusDataContainer,
+			consensusState,
+			worker,
+			chainID,
+			currentPid,
+		)
 		if err != nil {
 			return nil, err
 		}

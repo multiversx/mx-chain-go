@@ -365,7 +365,6 @@ func createConsensusOnlyNode(
 	_ = testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
 
 	accntAdapter := createAccountsDB(testMarshalizer)
-
 	n, err := node.NewNode(
 		node.WithInitialNodesPubKeys(inPubKeys),
 		node.WithRoundDuration(roundTime),
@@ -414,6 +413,7 @@ func createConsensusOnlyNode(
 		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	if err != nil {
