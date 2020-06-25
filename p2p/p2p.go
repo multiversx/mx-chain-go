@@ -261,6 +261,7 @@ type CommonSharder interface {
 //TODO move antiflooding inside network messenger
 type PeerDenialEvaluator interface {
 	IsDenied(pid core.PeerID) bool
+
 	IsInterfaceNil() bool
 }
 
