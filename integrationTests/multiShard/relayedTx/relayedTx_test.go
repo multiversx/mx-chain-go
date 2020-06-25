@@ -55,7 +55,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	roundToPropagateMultiShard := int64(10)
+	roundToPropagateMultiShard := int64(20)
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
