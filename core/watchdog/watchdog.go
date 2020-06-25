@@ -50,6 +50,8 @@ func (w *watchdog) SetDefault(duration time.Duration, alarmID string) {
 		if err != nil {
 			log.Error("could not dump goroutines")
 		}
+
+		log.Error("watchdog alarm has expired", "alarm", alarmID)
 		log.Warn(buffer.String())
 
 		arg := endProcess.ArgEndProcess{
