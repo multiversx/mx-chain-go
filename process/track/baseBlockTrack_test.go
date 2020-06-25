@@ -2318,7 +2318,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestBaseBlockTrack_DoWhitelistIfNeededMetaShouldReturn(t *testing.T) {
+func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededMetaShouldReturn(t *testing.T) {
 	t.Parallel()
 	cache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
@@ -2333,7 +2333,7 @@ func TestBaseBlockTrack_DoWhitelistIfNeededMetaShouldReturn(t *testing.T) {
 			mutCache.Unlock()
 		},
 	}
-	sbt, _ := track.NewMetaBlockTrack(metaArguments)
+	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
 	metaHdr := &block.MetaBlock{
 		Round: 1,
@@ -2343,13 +2343,44 @@ func TestBaseBlockTrack_DoWhitelistIfNeededMetaShouldReturn(t *testing.T) {
 		},
 	}
 
-	sbt.DoWhitelistIfNeeded(metaHdr)
+	mbt.DoWhitelistWithMetaBlockIfNeeded(metaHdr)
 
 	_, ok := cache[string(metaHdr.MiniBlockHeaders[0].Hash)]
 	assert.False(t, ok)
 }
 
-func TestBaseBlockTrack_DoWhitelistIfNeededNilMetaShouldReturnAndNotPanic(t *testing.T) {
+func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededShardShouldReturn(t *testing.T) {
+	t.Parallel()
+	cache := make(map[string]struct{})
+	mutCache := sync.Mutex{}
+
+	shardArguments := CreateShardTrackerMockArguments()
+	shardArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+		AddCalled: func(keys [][]byte) {
+			mutCache.Lock()
+			for _, key := range keys {
+				cache[string(key)] = struct{}{}
+			}
+			mutCache.Unlock()
+		},
+	}
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	shardHdr := &block.Header{
+		Round: 1,
+		Nonce: 1,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{Hash: []byte("shardHash0"), SenderShardID: 0, ReceiverShardID: core.MetachainShardId},
+		},
+	}
+
+	sbt.DoWhitelistWithShardHeaderIfNeeded(shardHdr)
+
+	_, ok := cache[string(shardHdr.MiniBlockHeaders[0].Hash)]
+	assert.False(t, ok)
+}
+
+func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededNilMetaShouldReturnAndNotPanic(t *testing.T) {
 	t.Parallel()
 
 	cache := make(map[string]struct{})
@@ -2371,12 +2402,39 @@ func TestBaseBlockTrack_DoWhitelistIfNeededNilMetaShouldReturnAndNotPanic(t *tes
 		},
 	}
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
-	sbt.DoWhitelistIfNeeded(nil)
+	sbt.DoWhitelistWithMetaBlockIfNeeded(nil)
 
 	assert.Equal(t, 0, len(cache))
 }
 
-func TestBaseBlockTrack_DoWhitelistIfNeededShardShouldWhitelistCrossMiniblocks(t *testing.T) {
+func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededNilShardShouldReturnAndNotPanic(t *testing.T) {
+	t.Parallel()
+
+	cache := make(map[string]struct{})
+	mutCache := sync.Mutex{}
+
+	defer func() {
+		r := recover()
+		assert.Nil(t, r, "should not panic")
+	}()
+
+	metaArguments := CreateMetaTrackerMockArguments()
+	metaArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+		AddCalled: func(keys [][]byte) {
+			mutCache.Lock()
+			for _, key := range keys {
+				cache[string(key)] = struct{}{}
+			}
+			mutCache.Unlock()
+		},
+	}
+	mbt, _ := track.NewMetaBlockTrack(metaArguments)
+	mbt.DoWhitelistWithShardHeaderIfNeeded(nil)
+
+	assert.Equal(t, 0, len(cache))
+}
+
+func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededShardShouldWhitelistCrossMiniblocks(t *testing.T) {
 	t.Parallel()
 
 	cache := make(map[string]struct{})
@@ -2401,8 +2459,39 @@ func TestBaseBlockTrack_DoWhitelistIfNeededShardShouldWhitelistCrossMiniblocks(t
 		},
 	}
 
-	sbt.DoWhitelistIfNeeded(metaHdr)
+	sbt.DoWhitelistWithMetaBlockIfNeeded(metaHdr)
 	_, ok := cache[string(metaHdr.MiniBlockHeaders[0].Hash)]
+
+	assert.True(t, ok)
+}
+
+func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededMetaShouldWhitelistCrossMiniblocks(t *testing.T) {
+	t.Parallel()
+
+	cache := make(map[string]struct{})
+	mutCache := sync.Mutex{}
+	metaArguments := CreateMetaTrackerMockArguments()
+	metaArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+		AddCalled: func(keys [][]byte) {
+			mutCache.Lock()
+			for _, key := range keys {
+				cache[string(key)] = struct{}{}
+			}
+			mutCache.Unlock()
+		},
+	}
+	mbt, _ := track.NewMetaBlockTrack(metaArguments)
+
+	shardHdr := &block.Header{
+		Round: 1,
+		Nonce: 1,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{Hash: []byte("shardHash0"), SenderShardID: 0, ReceiverShardID: core.MetachainShardId},
+		},
+	}
+
+	mbt.DoWhitelistWithShardHeaderIfNeeded(shardHdr)
+	_, ok := cache[string(shardHdr.MiniBlockHeaders[0].Hash)]
 
 	assert.True(t, ok)
 }

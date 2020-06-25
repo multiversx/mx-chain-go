@@ -13,8 +13,8 @@ var _ process.BlockSizeThrottler = (*blockSizeThrottle)(nil)
 var log = logger.GetOrCreate("process/throttle")
 
 const (
-	jumpAbovePercent        = 90
-	jumpBelowPercent        = 90
+	jumpAbovePercent        = 75
+	jumpBelowPercent        = 75
 	jumpAboveFactor         = 0.5
 	jumpBelowFactor         = 0.5
 	maxNumOfStatistics      = 600
@@ -59,9 +59,6 @@ func (bst *blockSizeThrottle) GetCurrentMaxSize() uint32 {
 
 // Add adds the new size for last block which has been sent in the given round
 func (bst *blockSizeThrottle) Add(round uint64, size uint32) {
-	if size < bst.minSize || size > bst.maxSize {
-		return
-	}
 	bst.mutThrottler.Lock()
 	bst.statistics = append(
 		bst.statistics,
