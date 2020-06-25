@@ -165,7 +165,7 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 		return err
 	}
 
-	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, 0)
+	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, core.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 

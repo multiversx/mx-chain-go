@@ -389,13 +389,9 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	txsPoolsCleaner.StartCleaning()
 
-	//TODO: Will be useful/used when the implementation of the cacher notifier about transactions which should be
-	// protected for eviction will be done
-	if args.shardCoordinator.SelfId() != core.MetachainShardId {
-		_, err = track.NewMiniBlockTrack(args.data.Datapool, args.shardCoordinator)
-		if err != nil {
-			return nil, err
-		}
+	_, err = track.NewMiniBlockTrack(args.data.Datapool, args.shardCoordinator)
+	if err != nil {
+		return nil, err
 	}
 
 	interceptorContainerFactory, blackListHandler, err := newInterceptorContainerFactory(
