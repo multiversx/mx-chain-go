@@ -37,6 +37,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingSameShard(t *testi
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
@@ -107,6 +108,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.MetachainShardId)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
@@ -247,6 +249,7 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingMeta(t *testin
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
