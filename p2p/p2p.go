@@ -3,6 +3,7 @@ package p2p
 import (
 	"encoding/hex"
 	"io"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 )
@@ -261,7 +262,7 @@ type CommonSharder interface {
 //TODO move antiflooding inside network messenger
 type PeerDenialEvaluator interface {
 	IsDenied(pid core.PeerID) bool
-
+	UpsertPeerID(pid core.PeerID, duration time.Duration) error
 	IsInterfaceNil() bool
 }
 
