@@ -147,9 +147,9 @@ func (ncm *NodesCoordinatorStub) GetSelectedPublicKeys(_ []byte, _ uint32, _ uin
 }
 
 // GetValidatorWithPublicKey -
-func (ncm *NodesCoordinatorStub) GetValidatorWithPublicKey(address []byte, _ uint32) (sharding.Validator, uint32, error) {
+func (ncm *NodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (sharding.Validator, uint32, error) {
 	if ncm.GetValidatorWithPublicKeyCalled != nil {
-		return ncm.GetValidatorWithPublicKeyCalled(address)
+		return ncm.GetValidatorWithPublicKeyCalled(publicKey)
 	}
 	return nil, 0, nil
 }

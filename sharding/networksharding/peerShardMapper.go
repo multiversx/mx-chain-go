@@ -134,11 +134,7 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 		}, false
 	}
 
-	psm.mutEpoch.RLock()
-	epoch := psm.epoch
-	psm.mutEpoch.RUnlock()
-
-	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff, epoch)
+	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff)
 	if err != nil {
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
