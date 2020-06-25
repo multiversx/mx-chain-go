@@ -1225,6 +1225,14 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
+	numUpserts := int32(0)
+	_ = mes.SetPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{
+		UpsertPeerIDCalled: func(pid core.PeerID, duration time.Duration) error {
+			atomic.AddInt32(&numUpserts, 1)
+			//any error thrown here should not impact the execution
+			return fmt.Errorf("expected error")
+		},
+	})
 
 	numCalled := uint32(0)
 	handler := &mock.MessageProcessorStub{
@@ -1260,6 +1268,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 
 	assert.False(t, callBackFunc(ctx, pid, msg))
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&numCalled))
+	assert.Equal(t, int32(2), atomic.LoadInt32(&numUpserts))
 
 	_ = mes.Close()
 }
