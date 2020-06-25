@@ -109,6 +109,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		message.SeqNo(),
 	)
 	if err != nil {
+		mdi.throttler.EndProcessing()
 		return err
 	}
 
