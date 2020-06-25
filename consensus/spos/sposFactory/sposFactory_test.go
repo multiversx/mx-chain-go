@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var currentPid = core.PeerID("pid")
+
 func TestGetConsensusCoreFactory_InvalidTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -46,6 +48,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		statusHandler,
 		indexer,
 		chainID,
+		currentPid,
 	)
 
 	assert.Nil(t, sf)
@@ -68,6 +71,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		nil,
 		indexer,
 		chainID,
+		currentPid,
 	)
 
 	assert.Nil(t, sf)
@@ -91,6 +95,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		statusHandler,
 		indexer,
 		chainID,
+		currentPid,
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sf))
@@ -108,6 +113,7 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 
 	assert.Nil(t, sf)
@@ -118,6 +124,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
 	messenger := &mock.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {
@@ -126,13 +133,16 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	privateKey := &mock.PrivateKeyMock{}
 	singleSigner := &mock.SingleSignerMock{}
 	headersSubscriber := &mock.HeadersCacherStub{}
+	interceptosContainer := &mock.InterceptorsContainerStub{}
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
+		hasher,
 		messenger,
 		shardCoord,
 		privateKey,
 		singleSigner,
 		headersSubscriber,
+		interceptosContainer,
 	)
 
 	assert.Nil(t, err)
@@ -143,6 +153,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
 	messenger := &mock.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {
@@ -151,13 +162,16 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	privateKey := &mock.PrivateKeyMock{}
 	singleSigner := &mock.SingleSignerMock{}
 	headersSubscriber := &mock.HeadersCacherStub{}
+	interceptosContainer := &mock.InterceptorsContainerStub{}
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
+		hasher,
 		messenger,
 		shardCoord,
 		privateKey,
 		singleSigner,
 		headersSubscriber,
+		interceptosContainer,
 	)
 
 	assert.Nil(t, err)
@@ -172,13 +186,17 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		return 37
 	}
 	headersSubscriber := &mock.HeadersCacherStub{}
+	interceptosContainer := &mock.InterceptorsContainerStub{}
+
 	bm, err := sposFactory.GetBroadcastMessenger(
+		nil,
 		nil,
 		nil,
 		shardCoord,
 		nil,
 		nil,
 		headersSubscriber,
+		interceptosContainer,
 	)
 
 	assert.Nil(t, bm)

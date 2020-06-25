@@ -109,7 +109,7 @@ func NewMetaInterceptorsContainerFactory(
 		multiSigner:            args.MultiSigner,
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
-		blackList:              args.BlackList,
+		blockBlackList:         args.BlackList,
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		accounts:               args.Accounts,
@@ -171,6 +171,31 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 	return micf.container, nil
 }
 
+// AddShardTrieNodeInterceptors will add the shard trie node interceptors into the existing container
+func (micf *metaInterceptorsContainerFactory) AddShardTrieNodeInterceptors(container process.InterceptorsContainer) error {
+	if check.IfNil(container) {
+		return process.ErrNilInterceptorContainer
+	}
+
+	shardC := micf.shardCoordinator
+
+	keys := make([]string, 0)
+	trieInterceptors := make([]process.Interceptor, 0)
+
+	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
+		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
+		interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)
+		if err != nil {
+			return err
+		}
+
+		keys = append(keys, identifierTrieNodes)
+		trieInterceptors = append(trieInterceptors, interceptor)
+	}
+
+	return container.AddMultiple(keys, trieInterceptors)
+}
+
 //------- Shard header interceptors
 
 func (micf *metaInterceptorsContainerFactory) generateShardHeaderInterceptors() error {
@@ -208,9 +233,9 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      micf.dataPool.Headers(),
-		HdrValidator: hdrValidator,
-		BlackList:    micf.blackList,
+		Headers:        micf.dataPool.Headers(),
+		HdrValidator:   hdrValidator,
+		BlockBlackList: micf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -233,21 +258,8 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 }
 
 func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() error {
-	shardC := micf.shardCoordinator
-
 	keys := make([]string, 0)
 	trieInterceptors := make([]process.Interceptor, 0)
-
-	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
-		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
-		interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)
-		if err != nil {
-			return err
-		}
-
-		keys = append(keys, identifierTrieNodes)
-		trieInterceptors = append(trieInterceptors, interceptor)
-	}
 
 	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)

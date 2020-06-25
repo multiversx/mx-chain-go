@@ -211,15 +211,17 @@ func indexRoundInfo(
 		Timestamp:        time.Duration(header.GetTimeStamp()),
 	}
 
-	go indexerHandler.SaveRoundInfo(roundInfo)
-
 	if check.IfNil(lastHeader) {
+		go indexerHandler.SaveRoundsInfos([]indexer.RoundInfo{roundInfo})
 		return
 	}
 
 	lastBlockRound := lastHeader.GetRound()
 	currentBlockRound := header.GetRound()
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
+
+	roundsInfos := make([]indexer.RoundInfo, 0)
+	roundsInfos = append(roundsInfos, roundInfo)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
 		if err != nil {
@@ -239,8 +241,10 @@ func indexRoundInfo(
 			Timestamp:        time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)),
 		}
 
-		go indexerHandler.SaveRoundInfo(roundInfo)
+		roundsInfos = append(roundsInfos, roundInfo)
 	}
+
+	go indexerHandler.SaveRoundsInfos(roundsInfos)
 }
 
 func indexValidatorsRating(

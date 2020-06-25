@@ -26,6 +26,7 @@ type epochStartData struct {
 	shardCoordinator  sharding.Coordinator
 	epochStartTrigger process.EpochStartTriggerHandler
 	requestHandler    epochStart.RequestHandler
+	genesisEpoch      uint32
 }
 
 // ArgsNewEpochStartData defines the input parameters for epoch start data creator
@@ -38,6 +39,7 @@ type ArgsNewEpochStartData struct {
 	ShardCoordinator  sharding.Coordinator
 	EpochStartTrigger process.EpochStartTriggerHandler
 	RequestHandler    epochStart.RequestHandler
+	GenesisEpoch      uint32
 }
 
 // NewEpochStartData creates a new epoch start creator
@@ -73,6 +75,7 @@ func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 		shardCoordinator:  args.ShardCoordinator,
 		epochStartTrigger: args.EpochStartTrigger,
 		requestHandler:    args.RequestHandler,
+		genesisEpoch:      args.GenesisEpoch,
 	}
 
 	return e, nil
@@ -265,8 +268,9 @@ func (e *epochStartData) getShardDataFromEpochStartData(
 	shId uint32,
 	lastMetaHash []byte,
 ) ([]byte, []byte, error) {
-	prevEpoch := uint32(0)
-	if e.epochStartTrigger.Epoch() > 0 {
+
+	prevEpoch := e.genesisEpoch
+	if e.epochStartTrigger.Epoch() > e.genesisEpoch {
 		prevEpoch = e.epochStartTrigger.Epoch() - 1
 	}
 
@@ -304,8 +308,8 @@ func (e *epochStartData) computePendingMiniBlockList(
 	allShardHdrList [][]*block.Header,
 ) ([]block.MiniBlockHeader, error) {
 
-	prevEpoch := uint32(0)
-	if e.epochStartTrigger.Epoch() > 0 {
+	prevEpoch := e.genesisEpoch
+	if e.epochStartTrigger.Epoch() > e.genesisEpoch {
 		prevEpoch = e.epochStartTrigger.Epoch() - 1
 	}
 

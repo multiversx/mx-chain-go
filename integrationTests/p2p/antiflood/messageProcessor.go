@@ -35,7 +35,7 @@ func (mp *MessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromC
 	atomic.AddUint64(&mp.sizeMessagesReceived, uint64(len(message.Data())))
 
 	if mp.FloodPreventer != nil {
-		af, _ := antiflood2.NewP2PAntiflood(&mock.PeerBlackListHandlerStub{}, &mock.TopicAntiFloodStub{}, mp.FloodPreventer)
+		af, _ := antiflood2.NewP2PAntiflood(&mock.PeerBlackListCacherStub{}, &mock.TopicAntiFloodStub{}, mp.FloodPreventer)
 		err := af.CanProcessMessage(message, fromConnectedPeer)
 		if err != nil {
 			return err

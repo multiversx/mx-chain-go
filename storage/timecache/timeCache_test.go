@@ -154,24 +154,24 @@ func TestTimeCache_HasCheckHandlingInconsistency(t *testing.T) {
 	assert.Equal(t, 0, len(tc.Keys()))
 }
 
-//------- Update
+//------- Upsert
 
-func TestTimeCache_UpdateEmptyKeyShouldErr(t *testing.T) {
+func TestTimeCache_UpsertEmptyKeyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tc := NewTimeCache(time.Second)
-	err := tc.Update("", time.Second)
+	err := tc.Upsert("", time.Second)
 
 	assert.Equal(t, storage.ErrEmptyKey, err)
 }
 
-func TestTimeCache_UpdateShouldAddIfMissing(t *testing.T) {
+func TestTimeCache_UpsertShouldAddIfMissing(t *testing.T) {
 	t.Parallel()
 
 	tc := NewTimeCache(time.Second)
 	key := "key"
 	s := time.Second * 45
-	err := tc.Update(key, s)
+	err := tc.Upsert(key, s)
 	assert.Nil(t, err)
 
 	recovered, ok := tc.Value(key)
@@ -179,17 +179,17 @@ func TestTimeCache_UpdateShouldAddIfMissing(t *testing.T) {
 	assert.Equal(t, s, recovered.span)
 }
 
-func TestTimeCache_UpdateLessSpanShouldNotUpdate(t *testing.T) {
+func TestTimeCache_UpsertLessSpanShouldNotUpdate(t *testing.T) {
 	t.Parallel()
 
 	tc := NewTimeCache(time.Second)
 	key := "key"
 	highSpan := time.Second * 45
 	lowSpan := time.Second * 44
-	err := tc.Update(key, highSpan)
+	err := tc.Upsert(key, highSpan)
 	assert.Nil(t, err)
 
-	err = tc.Update(key, lowSpan)
+	err = tc.Upsert(key, lowSpan)
 	assert.Nil(t, err)
 
 	recovered, ok := tc.Value(key)
@@ -197,17 +197,17 @@ func TestTimeCache_UpdateLessSpanShouldNotUpdate(t *testing.T) {
 	assert.Equal(t, highSpan, recovered.span)
 }
 
-func TestTimeCache_UpdatemoreSpanShouldUpdate(t *testing.T) {
+func TestTimeCache_UpsertmoreSpanShouldUpdate(t *testing.T) {
 	t.Parallel()
 
 	tc := NewTimeCache(time.Second)
 	key := "key"
 	highSpan := time.Second * 45
 	lowSpan := time.Second * 44
-	err := tc.Update(key, lowSpan)
+	err := tc.Upsert(key, lowSpan)
 	assert.Nil(t, err)
 
-	err = tc.Update(key, highSpan)
+	err = tc.Upsert(key, highSpan)
 	assert.Nil(t, err)
 
 	recovered, ok := tc.Value(key)

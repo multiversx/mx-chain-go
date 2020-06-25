@@ -310,12 +310,13 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsNewHeadersSync := sync.ArgsNewHeadersSyncHandler{
-		StorageService:  e.storageService,
-		Cache:           e.dataPool.Headers(),
-		Marshalizer:     e.marshalizer,
-		EpochHandler:    epochHandler,
-		RequestHandler:  e.requestHandler,
-		Uint64Converter: e.uint64Converter,
+		StorageService:   e.storageService,
+		Cache:            e.dataPool.Headers(),
+		Marshalizer:      e.marshalizer,
+		EpochHandler:     epochHandler,
+		RequestHandler:   e.requestHandler,
+		Uint64Converter:  e.uint64Converter,
+		ShardCoordinator: e.shardCoordinator,
 	}
 	epochStartHeadersSyncer, err := sync.NewHeadersSyncHandler(argsNewHeadersSync)
 	if err != nil {
@@ -418,7 +419,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		AddressPubkeyConverter:  e.addressPubkeyConverter,
 		MaxTxNonceDeltaAllowed:  math.MaxInt32,
 		TxFeeHandler:            &disabled.FeeHandler{},
-		BlackList:               timecache.NewTimeCache(time.Second),
+		BlockBlackList:          timecache.NewTimeCache(time.Second),
 		HeaderSigVerifier:       e.headerSigVerifier,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		SizeCheckDelta:          math.MaxUint32,

@@ -512,8 +512,11 @@ var ErrNilSCToProtocol = errors.New("nil sc to protocol")
 // ErrNilNodesSetup signals that nil nodes setup has been provided
 var ErrNilNodesSetup = errors.New("nil nodes setup")
 
-// ErrNilBlackListHandler signals that a nil black list handler was provided
-var ErrNilBlackListHandler = errors.New("nil black list handler")
+// ErrNilBlackListCacher signals that a nil black list cacher was provided
+var ErrNilBlackListCacher = errors.New("nil black list cacher")
+
+// ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
+var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
 
 // ErrNilBlockTracker signals that a nil block tracker was provided
 var ErrNilBlockTracker = errors.New("nil block tracker")
@@ -790,3 +793,18 @@ var ErrOriginatorIsBlacklisted = errors.New("originator is blacklisted")
 
 // ErrShardIsStuck signals that a shard is stuck
 var ErrShardIsStuck = errors.New("shard is stuck")
+
+// ErrNilInterceptorContainer signals that nil interceptor container has been provided
+var ErrNilInterceptorContainer = errors.New("nil interceptor container")
+
+// ErrInvalidChainID signals that an invalid chain ID has been provided
+var ErrInvalidChainID = errors.New("invalid chain ID")
+
+// ErrTxValueTooBig signals that transaction value is too big
+var ErrTxValueTooBig = errors.New("tx value is too big")
+
+// ErrInvalidUserNameLength signals that provided user name length is invalid
+var ErrInvalidUserNameLength = errors.New("invalid user name length")
+
+// ErrTxValueOutOfBounds signals that transaction value is out of bounds
+var ErrTxValueOutOfBounds = errors.New("tx value is out of bounds")

@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -97,7 +97,8 @@ type InterceptedData interface {
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer core.PeerID) error
-	Save(data InterceptedData, fromConnectedPeer core.PeerID) error
+	Save(data InterceptedData, fromConnectedPeer core.PeerID, topic string) error
+	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	IsInterfaceNil() bool
 }
 
@@ -436,6 +437,7 @@ type BlockChainHookHandler interface {
 type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	SetInterceptedDebugHandler(handler InterceptedDebugger) error
+	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	IsInterfaceNil() bool
 }
 
@@ -550,6 +552,7 @@ type TransactionWithFeeHandler interface {
 	GetGasPrice() uint64
 	GetData() []byte
 	GetRcvAddr() []byte
+	GetValue() *big.Int
 }
 
 // EconomicsAddressesHandler will return information about economics addresses
@@ -572,22 +575,26 @@ type PeerChangesHandler interface {
 	IsInterfaceNil() bool
 }
 
-// BlackListHandler can determine if a certain key is or not blacklisted
-type BlackListHandler interface {
+// TimeCacher defines the cache that can keep a record for a bounded time
+type TimeCacher interface {
 	Add(key string) error
-	AddWithSpan(key string, span time.Duration) error
+	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool
 }
 
-// PeerBlackListHandler can determine if a certain key is or not blacklisted
-type PeerBlackListHandler interface {
-	Add(pid core.PeerID) error
-	AddWithSpan(pid core.PeerID, span time.Duration) error
-	Update(pid core.PeerID, span time.Duration) error
+// PeerBlackListCacher can determine if a certain peer id is or not blacklisted
+type PeerBlackListCacher interface {
+	Upsert(pid core.PeerID, span time.Duration) error
 	Has(pid core.PeerID) bool
 	Sweep()
+	IsInterfaceNil() bool
+}
+
+// PeerShardMapper can return the public key of a provided peer ID
+type PeerShardMapper interface {
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 

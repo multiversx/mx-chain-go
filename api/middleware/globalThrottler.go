@@ -28,7 +28,7 @@ func (gt *globalThrottler) MiddlewareHandlerFunc() gin.HandlerFunc {
 		select {
 		case gt.queue <- struct{}{}:
 		default:
-			c.AbortWithStatus(http.StatusTooManyRequests)
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "too many requests to observer"})
 			return
 		}
 

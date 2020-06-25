@@ -151,10 +151,12 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	counts := sp.txCounter.getTxPoolCounts(sp.dataPool)
-	log.Debug("total txs in pool", "counts", counts.String())
+	txCounts, rewardCounts, unsignedCounts := sp.txCounter.getPoolCounts(sp.dataPool)
+	log.Debug("total txs in pool", "counts", txCounts.String())
+	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
+	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
 
-	go getMetricsFromHeader(header, uint64(counts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
+	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
 
 	sp.createBlockStarted()
 	sp.blockChainHook.SetCurrentHeader(headerHandler)
@@ -943,6 +945,10 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
 	for _, hdr := range headers {
+		if sp.forkDetector.GetHighestFinalBlockNonce() < hdr.GetNonce() {
+			break
+		}
+
 		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(hdr.GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
 			log.Debug("could not get shard header from storage")
@@ -1615,11 +1621,6 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
-	if sp.blockTracker.IsShardStuck(core.MetachainShardId) {
-		log.Warn("shardProcessor.createMiniBlocks", "error", process.ErrShardIsStuck, "shard", core.MetachainShardId)
-		return &block.Body{MiniBlocks: miniBlocks}, nil
-	}
-
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("shardProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty)
 		return &block.Body{MiniBlocks: miniBlocks}, nil
@@ -1648,6 +1649,11 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 			"num txs", numTxs,
 			"num meta headers", numMetaHeaders,
 		)
+	}
+
+	if sp.blockTracker.IsShardStuck(core.MetachainShardId) {
+		log.Warn("shardProcessor.createMiniBlocks", "error", process.ErrShardIsStuck, "shard", core.MetachainShardId)
+		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
 	startTime = time.Now()

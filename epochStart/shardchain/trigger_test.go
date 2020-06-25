@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,12 +26,12 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 			},
 		},
 		Uint64Converter: &mock.Uint64ByteSliceConverterMock{},
-		DataPool: &mock.PoolsHolderStub{
+		DataPool: &testscommon.PoolsHolderStub{
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return &mock.HeadersCacherStub{}
 			},
 			MiniBlocksCalled: func() storage.Cacher {
-				return &mock.CacherStub{}
+				return testscommon.NewCacherStub()
 			},
 		},
 		Storage: &mock.ChainStorerStub{
@@ -187,12 +188,12 @@ func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
-	args.DataPool = &mock.PoolsHolderStub{
+	args.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 	}
 	epochStartTrigger, err := NewEpochStartTrigger(args)
@@ -352,7 +353,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 	noncesToHeader[fmt.Sprint(newHeader101.Nonce)] = newHeaderHash101
 	noncesToHeader[fmt.Sprint(newHeader102.Nonce)] = newHeaderHash102
 
-	args.DataPool = &mock.PoolsHolderStub{
+	args.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, err error) {
@@ -368,7 +369,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{
+			return &testscommon.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if bytes.Equal(key, peerMiniBlockHash) {
 						return peerMiniblock, true

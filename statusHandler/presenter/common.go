@@ -1,13 +1,13 @@
 package presenter
 
 import (
+	"math"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
-const invalidKey = "[invalid key]"
-const invalidType = "[not a string]"
+const metricNotAvailable = "N/A"
 
 func (psh *PresenterStatusHandler) getFromCacheAsUint64(metric string) uint64 {
 	val, ok := psh.presenterMetrics.Load(metric)
@@ -26,12 +26,12 @@ func (psh *PresenterStatusHandler) getFromCacheAsUint64(metric string) uint64 {
 func (psh *PresenterStatusHandler) getFromCacheAsString(metric string) string {
 	val, ok := psh.presenterMetrics.Load(metric)
 	if !ok {
-		return invalidKey
+		return metricNotAvailable
 	}
 
 	valStr, ok := val.(string)
 	if !ok {
-		return invalidType
+		return metricNotAvailable
 	}
 
 	return valStr
@@ -45,16 +45,6 @@ func (psh *PresenterStatusHandler) getBigIntFromStringMetric(metric string) *big
 	}
 
 	return bigIntValue
-}
-
-func (psh *PresenterStatusHandler) getBigFloatFromStringMetric(metric string) *big.Float {
-	stringValue := psh.getFromCacheAsString(metric)
-	bigFloatValue, ok := big.NewFloat(0).SetString(stringValue)
-	if !ok {
-		return big.NewFloat(0)
-	}
-
-	return bigFloatValue
 }
 
 func areEqualWithZero(parameters ...uint64) bool {
@@ -95,7 +85,14 @@ func (psh *PresenterStatusHandler) computeRoundsPerHourAccordingToHitRate() floa
 
 func (psh *PresenterStatusHandler) computeRewardsInErd() *big.Float {
 	rewardsValue := psh.getBigIntFromStringMetric(core.MetricRewardsValue)
-	denominationCoefficient := psh.getBigFloatFromStringMetric(core.MetricDenominationCoefficient)
+	denomination := psh.getFromCacheAsUint64(core.MetricDenomination)
+	denominationCoefficientFloat := 1.0
+	if denomination > 0 {
+		denominationCoefficientFloat /= math.Pow10(int(denomination))
+	}
+
+	denominationCoefficient := big.NewFloat(denominationCoefficientFloat)
+
 	if rewardsValue.Cmp(big.NewInt(0)) <= 0 {
 		return big.NewFloat(0)
 	}

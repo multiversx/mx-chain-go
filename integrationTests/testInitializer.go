@@ -34,10 +34,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/display"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -55,6 +51,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -295,49 +292,13 @@ func ClosePeers(peers []p2p.Messenger) {
 	}
 }
 
-// CreateTestDataPool creates a test data pool for shard nodes
-func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier, selfShardID uint32) dataRetriever.PoolsHolder {
-	if txPool == nil {
-		txPool, _ = createTxPool(selfShardID)
-	}
-
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1})
-	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 300, Type: storageUnit.LRUCache, Shards: 1})
-
-	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
-
-	cacherCfg := storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	cacherCfg = storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	cacherCfg = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	currTxs, _ := dataPool.NewCurrentBlockPool()
-
-	dPool, _ := dataPool.NewDataPool(
-		txPool,
-		uTxPool,
-		rewardsTxPool,
-		hdrPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		currTxs,
-	)
-
-	return dPool
-}
-
 // CreateMemUnit returns an in-memory storer implementation (the vast majority of tests do not require effective
 // disk I/O)
 func CreateMemUnit() storage.Storer {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, capacity, shards, sizeInBytes)
+	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	persist, _ := memorydb.NewlruDB(100000)
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 
@@ -580,6 +541,7 @@ func CreateGenesisMetaBlock(
 			},
 		},
 		BlockSignKeyGen: &mock.KeyGenMock{},
+		ImportStartHandler: &mock.ImportStartHandlerStub{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -588,7 +550,7 @@ func CreateGenesisMetaBlock(
 			core.MetachainShardId,
 		)
 
-		newDataPool := CreateTestDataPool(nil, shardCoordinator.SelfId())
+		newDataPool := testscommon.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
 		newBlkc := blockchain.NewMetaChain()
 		trieStorage, _ := CreateTrieStorageManager()
@@ -1519,9 +1481,9 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 }
 
 // CreateRequesterDataPool creates a datapool with a mock txPool
-func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, selfShardID uint32) dataRetriever.PoolsHolder {
+func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, _ uint32) dataRetriever.PoolsHolder {
 	//not allowed to request data from the same shard
-	return CreateTestDataPool(&mock.ShardedDataStub{
+	return testscommon.CreatePoolsHolderWithTxPool(&testscommon.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
@@ -1542,7 +1504,7 @@ func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sy
 		},
 		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 		},
-	}, selfShardID)
+	})
 }
 
 // CreateResolversDataPool creates a datapool containing a given number of transactions
@@ -1556,7 +1518,8 @@ func CreateResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 	txsSndAddr := make([][]byte, 0)
-	txPool, _ := createTxPool(shardCoordinator.SelfId())
+	poolsHolder := testscommon.CreatePoolsHolder(1, shardCoordinator.SelfId())
+	txPool := poolsHolder.Transactions()
 
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
@@ -1566,7 +1529,7 @@ func CreateResolversDataPool(
 		txsSndAddr = append(txsSndAddr, tx.SndAddr)
 	}
 
-	return CreateTestDataPool(txPool, shardCoordinator.SelfId()), txHashes, txsSndAddr
+	return poolsHolder, txHashes, txsSndAddr
 }
 
 func generateValidTx(
@@ -1988,23 +1951,6 @@ func proposeBlocks(
 		crtNonce := atomic.LoadUint64(nonces[idx])
 		ProposeBlock(nodes, []int{proposer}, crtRound, crtNonce)
 	}
-}
-
-func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, error) {
-	return txpool.NewShardedTxPool(
-		txpool.ArgShardedTxPool{
-			Config: storageUnit.CacheConfig{
-				Capacity:             100_000,
-				SizePerSender:        1_000_000_000,
-				SizeInBytes:          1_000_000_000,
-				SizeInBytesPerSender: 33_554_432,
-				Shards:               16,
-			},
-			MinGasPrice:    200000000000,
-			NumberOfShards: 1,
-			SelfShardID:    selfShardID,
-		},
-	)
 }
 
 // WaitOperationToBeDone -

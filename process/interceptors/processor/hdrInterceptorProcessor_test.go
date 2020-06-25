@@ -14,9 +14,9 @@ import (
 
 func createMockHdrArgument() *processor.ArgHdrInterceptorProcessor {
 	arg := &processor.ArgHdrInterceptorProcessor{
-		Headers:      &mock.HeadersCacherStub{},
-		HdrValidator: &mock.HeaderValidatorStub{},
-		BlackList:    &mock.BlackListHandlerStub{},
+		Headers:        &mock.HeadersCacherStub{},
+		HdrValidator:   &mock.HeaderValidatorStub{},
+		BlockBlackList: &mock.BlackListHandlerStub{},
 	}
 
 	return arg
@@ -59,11 +59,11 @@ func TestNewHdrInterceptorProcessor_NilBlackListHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockHdrArgument()
-	arg.BlackList = nil
+	arg.BlockBlackList = nil
 	hip, err := processor.NewHdrInterceptorProcessor(arg)
 
 	assert.Nil(t, hip)
-	assert.Equal(t, process.ErrNilBlackListHandler, err)
+	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
 func TestNewHdrInterceptorProcessor_ShouldWork(t *testing.T) {
@@ -98,7 +98,7 @@ func TestHdrInterceptorProcessor_ValidateHeaderIsBlackListedShouldErr(t *testing
 			return nil
 		},
 	}
-	arg.BlackList = &mock.BlackListHandlerStub{
+	arg.BlockBlackList = &mock.BlackListHandlerStub{
 		HasCalled: func(key string) bool {
 			return true
 		},
@@ -130,7 +130,7 @@ func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
 			return expectedErr
 		},
 	}
-	arg.BlackList = &mock.BlackListHandlerStub{}
+	arg.BlockBlackList = &mock.BlackListHandlerStub{}
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
 	hdrInterceptedData := &struct {
@@ -155,7 +155,7 @@ func TestHdrInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 
 	hip, _ := processor.NewHdrInterceptorProcessor(createMockHdrArgument())
 
-	err := hip.Save(nil, "")
+	err := hip.Save(nil, "", "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -190,7 +190,7 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
-	err := hip.Save(hdrInterceptedData, "")
+	err := hip.Save(hdrInterceptedData, "", "")
 
 	assert.Nil(t, err)
 	assert.True(t, wasAddedHeaders)

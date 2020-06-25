@@ -33,7 +33,7 @@ func TestNewShardForkDetector_NilBlackListShouldErr(t *testing.T) {
 		0,
 	)
 	assert.Nil(t, sfd)
-	assert.Equal(t, process.ErrNilBlackListHandler, err)
+	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
 func TestNewShardForkDetector_NilBlockTrackerShouldErr(t *testing.T) {

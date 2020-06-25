@@ -159,29 +159,29 @@ generateProxyObserverList() {
   OBSERVER_INDEX=0
   OUTPUTFILE=$!
   # Start Shard Observers
-  let "max_shard_id=$SHARDCOUNT - 1"
-  for SHARD in `seq 0 1 $max_shard_id`; do
-    for OBSERVER_IN_SHARD in `seq $SHARD_OBSERVERCOUNT`; do
-      let "PORT = $PORT_ORIGIN_OBSERVER_REST + $OBSERVER_INDEX"
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    for _ in $(seq $SHARD_OBSERVERCOUNT); do
+      (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX))
 
       echo -n "[[Observers]]" >> config_edit.toml
       echo -n "   ShardId = $SHARD" >> config_edit.toml
       echo -n "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
       echo -n ""$'\n' >> config_edit.toml
 
-      let OBSERVER_INDEX++
+      (( OBSERVER_INDEX++ ))
     done
   done
   # Start Meta Observers
-  for META_OBSERVER in `seq $META_OBSERVERCOUNT`; do
-      let "PORT = $PORT_ORIGIN_OBSERVER_REST + $OBSERVER_INDEX"
+  for META_OBSERVER in $(seq $META_OBSERVERCOUNT); do
+    (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX ))
 
       echo -n "[[Observers]]" >> config_edit.toml
       echo -n "   ShardId = $METASHARD_ID" >> config_edit.toml
       echo -n "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
       echo -n ""$'\n' >> config_edit.toml
 
-      let OBSERVER_INDEX++
+      (( OBSERVER_INDEX++ ))
     done
 }
 
@@ -204,4 +204,24 @@ updateJSONValue() {
   escaped_value=$(printf "%q" $value)
 
   sed -i "s,\"$key\": .*\$,\"$key\": $escaped_value\,," $filename
+}
+
+changeConfigForHardfork(){
+  pushd $TESTNETDIR/node/config
+
+  export FIRST_PUBKEY=$(cat nodesSetup.json | grep pubkey -m 1 | sed -E 's/^.*"([0-9a-f]+)".*$/\1/g')
+  updateTOMLValue config_observer.toml "PublicKeyToListenFrom" "\"$FIRST_PUBKEY\""
+  updateTOMLValue config_validator.toml "PublicKeyToListenFrom" "\"$FIRST_PUBKEY\""
+
+  popd
+}
+
+copyBackConfigs(){
+  pushd $TESTNETDIR
+
+  echo "trying to copy-back the configs"
+  cp ./node/config/*.* $NODEDIR/config
+  cp $NODEDIR/config/config_validator.toml $NODEDIR/config/config.toml
+
+  popd
 }

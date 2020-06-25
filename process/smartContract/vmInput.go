@@ -105,6 +105,7 @@ func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.
 	}
 
 	vmCallInput := &vmcommon.ContractCallInput{}
+	vmCallInput.VMInput = vmcommon.VMInput{}
 	vmCallInput.CallType = callType
 	vmCallInput.RecipientAddr = tx.GetRcvAddr()
 	vmCallInput.Function, err = sc.argsParser.GetFunction()
@@ -112,7 +113,6 @@ func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.
 		return nil, err
 	}
 
-	vmCallInput.VMInput = vmcommon.VMInput{}
 	err = sc.initializeVMInputFromTx(&vmCallInput.VMInput, tx)
 	if err != nil {
 		return nil, err

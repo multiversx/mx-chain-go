@@ -4,10 +4,19 @@ import "time"
 
 // RounderMock -
 type RounderMock struct {
-	IndexField         int64
-	TimeStampField     time.Time
-	TimeDurationField  time.Duration
-	RemainingTimeField time.Duration
+	IndexField          int64
+	TimeStampField      time.Time
+	TimeDurationField   time.Duration
+	RemainingTimeField  time.Duration
+	BeforeGenesisCalled func() bool
+}
+
+// BeforeGenesis -
+func (rndm *RounderMock) BeforeGenesis() bool {
+	if rndm.BeforeGenesisCalled != nil {
+		return rndm.BeforeGenesisCalled()
+	}
+	return false
 }
 
 // Index -

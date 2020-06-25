@@ -74,7 +74,7 @@ func (sr *subroundStartRound) doStartRoundJob() bool {
 	sr.ResetConsensusState()
 	sr.RoundIndex = sr.Rounder().Index()
 	sr.RoundTimeStamp = sr.Rounder().TimeStamp()
-	topic := spos.GetConsensusTopicIDFromShardCoordinator(sr.ShardCoordinator())
+	topic := spos.GetConsensusTopicID(sr.ShardCoordinator())
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
 	return true
 }
@@ -224,7 +224,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
 	}
 
-	go sr.indexer.SaveRoundInfo(roundInfo)
+	go sr.indexer.SaveRoundsInfos([]indexer.RoundInfo{roundInfo})
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

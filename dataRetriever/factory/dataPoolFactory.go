@@ -3,10 +3,10 @@ package factory
 import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
-	txPoolFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/txpool"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -25,13 +25,22 @@ type ArgsDataPool struct {
 }
 
 // NewDataPoolFromConfig will return a new instance of a PoolsHolder
-// TODO: unit tests
 func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error) {
 	log.Debug("creatingDataPool from config")
 
+	if args.Config == nil {
+		return nil, dataRetriever.ErrNilConfig
+	}
+	if args.EconomicsData == nil {
+		return nil, dataRetriever.ErrNilEconomicsData
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, dataRetriever.ErrNilShardCoordinator
+	}
+
 	mainConfig := args.Config
 
-	txPool, err := txPoolFactory.CreateTxPool(txpool.ArgShardedTxPool{
+	txPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
 		Config:         factory.GetCacherFromConfig(mainConfig.TxDataPool),
 		MinGasPrice:    args.EconomicsData.MinGasPrice(),
 		NumberOfShards: args.ShardCoordinator.NumberOfShards(),
@@ -42,13 +51,13 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, err
 	}
 
-	uTxPool, err := shardedData.NewShardedData(factory.GetCacherFromConfig(mainConfig.UnsignedTransactionDataPool))
+	uTxPool, err := shardedData.NewShardedData(dataRetriever.UnsignedTxPoolName, factory.GetCacherFromConfig(mainConfig.UnsignedTransactionDataPool))
 	if err != nil {
 		log.Error("error creating smart contract result pool")
 		return nil, err
 	}
 
-	rewardTxPool, err := shardedData.NewShardedData(factory.GetCacherFromConfig(mainConfig.RewardTransactionDataPool))
+	rewardTxPool, err := shardedData.NewShardedData(dataRetriever.RewardTxPoolName, factory.GetCacherFromConfig(mainConfig.RewardTransactionDataPool))
 	if err != nil {
 		log.Error("error creating reward transaction pool")
 		return nil, err
@@ -61,21 +70,21 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	cacherCfg := factory.GetCacherFromConfig(mainConfig.TxBlockBodyDataPool)
-	txBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
+	txBlockBody, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
 		log.Error("error creating txBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.PeerBlockBodyDataPool)
-	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
+	peerChangeBlockBody, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
 		log.Error("error creating peerChangeBlockBody")
 		return nil, err
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieNodesDataPool)
-	trieNodes, err := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
+	trieNodes, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
 		log.Info("error creating trieNodes")
 		return nil, err

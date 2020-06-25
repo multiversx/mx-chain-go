@@ -48,6 +48,7 @@ import (
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // SendTransactionsPipe is the pipe used for sending new transactions
@@ -87,7 +88,7 @@ type Node struct {
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer         process.InterceptorsContainer
 	resolversFinder               dataRetriever.ResolversFinder
-	peerBlackListHandler          process.PeerBlackListHandler
+	peerDenialEvaluator           p2p.PeerDenialEvaluator
 	appStatusHandler              core.AppStatusHandler
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
@@ -121,7 +122,7 @@ type Node struct {
 	bootstrapRoundIndex      uint64
 
 	indexer                 indexer.Indexer
-	blocksBlackListHandler  process.BlackListHandler
+	blocksBlackListHandler  process.TimeCacher
 	bootStorer              process.BootStorer
 	requestedItemsHandler   dataRetriever.RequestedItemsHandler
 	headerSigVerifier       spos.RandSeedVerifier
@@ -148,7 +149,8 @@ type Node struct {
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
 
-	heartbeatHandler *componentHandler.HeartbeatHandler
+	heartbeatHandler   *componentHandler.HeartbeatHandler
+	peerHonestyHandler consensus.PeerHonestyHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -234,7 +236,7 @@ func (n *Node) StartConsensus() error {
 
 	bootstrapper.StartSyncingBlocks()
 
-	epoch := uint32(0)
+	epoch := n.blkc.GetGenesisHeader().GetEpoch()
 	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
 	if !check.IfNil(crtBlockHeader) {
 		epoch = crtBlockHeader.GetEpoch()
@@ -253,11 +255,13 @@ func (n *Node) StartConsensus() error {
 
 	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
 		n.internalMarshalizer,
+		n.hasher,
 		n.messenger,
 		n.shardCoordinator,
 		n.privKey,
 		n.singleSigner,
 		n.dataPool.Headers(),
+		n.interceptorsContainer,
 	)
 
 	if err != nil {
@@ -327,6 +331,7 @@ func (n *Node) StartConsensus() error {
 		SyncTimer:                     n.syncTimer,
 		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
 		AntifloodHandler:              n.inputAntifloodHandler,
+		PeerHonestyHandler:            n.peerHonestyHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -344,6 +349,7 @@ func (n *Node) StartConsensus() error {
 		n.appStatusHandler,
 		n.indexer,
 		n.chainID,
+		n.messenger.ID(),
 	)
 	if err != nil {
 		return err
@@ -355,6 +361,17 @@ func (n *Node) StartConsensus() error {
 	}
 
 	chronologyHandler.StartRounds()
+
+	return n.addCloserInstances(chronologyHandler, bootstrapper, worker, n.syncTimer)
+}
+
+func (n *Node) addCloserInstances(closers ...update.Closer) error {
+	for _, c := range closers {
+		err := n.hardforkTrigger.AddCloser(c)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -429,7 +446,6 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 		rounder,
 		n.syncTimer,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -476,6 +492,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
+		ChainID:             string(n.chainID),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -535,6 +552,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		NodesCoordinator:    n.nodesCoordinator,
 		EpochStartTrigger:   n.epochStartTrigger,
 		BlockTracker:        n.blockTracker,
+		ChainID:             string(n.chainID),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
@@ -1103,7 +1121,7 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 	result := core.QueryP2PPeerInfo{
 		Pid:           p.Pretty(),
 		Addresses:     n.messenger.PeerAddresses(p),
-		IsBlacklisted: n.peerBlackListHandler.Has(p),
+		IsBlacklisted: n.peerDenialEvaluator.IsDenied(p),
 	}
 
 	peerInfo := n.networkShardingCollector.GetPeerInfo(p)
