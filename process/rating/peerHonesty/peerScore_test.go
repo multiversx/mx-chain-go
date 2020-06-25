@@ -172,7 +172,7 @@ func TestP2pPeerHonesty_Close(t *testing.T) {
 		handler,
 	)
 
-	time.Sleep(time.Second*3 + time.Millisecond*100) //this will call three times the handler
+	time.Sleep(time.Second*3 + time.Millisecond*100) //this will call the handler 3 times
 
 	err := pph.Close()
 	assert.Nil(t, err)

@@ -26,24 +26,6 @@ const minDecayCoefficient = 0.0
 const maxDecayCoefficient = 1.0
 const minDecayIntervalInSeconds = uint32(1)
 
-type peerScore struct {
-	pk     string
-	scores map[string]float64
-}
-
-func (ps *peerScore) size() int {
-	return len(ps.pk) + len(ps.scores)*(float64Size+defaultTopicSize)
-}
-
-func (ps *peerScore) String() string {
-	scores := make([]string, 0, len(ps.scores))
-	for topic, score := range ps.scores {
-		scores = append(scores, fmt.Sprintf("%s: %.2f", topic, score))
-	}
-
-	return fmt.Sprintf("%s scoring: %s", hex.EncodeToString([]byte(ps.pk)), strings.Join(scores, ", "))
-}
-
 type p2pPeerHonesty struct {
 	decayCoefficient       float64
 	updateIntervalForDecay time.Duration
@@ -159,8 +141,8 @@ func (pph *p2pPeerHonesty) applyDecay() {
 
 	keys := pph.cache.Keys()
 	for _, key := range keys {
-		psObj, _ := pph.cache.Get(key)
-		if psObj == nil {
+		psObj, ok := pph.cache.Get(key)
+		if !ok {
 			continue
 		}
 
@@ -171,7 +153,7 @@ func (pph *p2pPeerHonesty) applyDecay() {
 
 		for topic, score := range ps.scores {
 			score = score * pph.decayCoefficient
-			if score < approximateZero && score > 0 {
+			if check.IsZeroFloat64(score, approximateZero) {
 				score = 0
 			}
 
@@ -199,7 +181,15 @@ func (pph *p2pPeerHonesty) ChangeScore(pk string, topic string, units int) {
 		)
 	}
 
-	ps.scores[topic] += change
+	newValue := oldValue + change
+	ps.scores[topic] = newValue
+	if newValue > pph.maxScore {
+		ps.scores[topic] = pph.maxScore
+	}
+
+	if newValue < pph.minScore {
+		ps.scores[topic] = pph.minScore
+	}
 
 	pph.checkBlacklist(ps)
 }
@@ -236,16 +226,7 @@ func (pph *p2pPeerHonesty) createDefaultPeerScore(pk string) *peerScore {
 
 func (pph *p2pPeerHonesty) checkBlacklist(ps *peerScore) {
 	shouldBlacklist := false
-	for topic, score := range ps.scores {
-		if score > pph.maxScore {
-			ps.scores[topic] = pph.maxScore
-			continue
-		}
-
-		if score < pph.minScore {
-			ps.scores[topic] = pph.minScore
-		}
-
+	for _, score := range ps.scores {
 		if score < pph.badPeerThreshold {
 			shouldBlacklist = true
 		}
@@ -270,7 +251,6 @@ func (pph *p2pPeerHonesty) checkBlacklist(ps *peerScore) {
 // Close closes the running go routines related to this instance
 func (pph *p2pPeerHonesty) Close() error {
 	pph.cancelFunc()
-
 	return nil
 }
 

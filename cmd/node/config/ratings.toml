@@ -47,6 +47,6 @@
     DecayCoefficient             = 0.9779
     DecayUpdateIntervalInSeconds = 10
     MaxScore                     = 100
-    MinScore                	 = -100
-    BadPeerThreshold        	 = -80
-    UnitValue               	 = 1.0
+    MinScore                     = -100
+    BadPeerThreshold             = -80
+    UnitValue                    = 1.0
