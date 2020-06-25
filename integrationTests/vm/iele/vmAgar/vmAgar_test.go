@@ -284,7 +284,8 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	assert.Nil(t, err)
 
-	balanceOfSC, _ := testContext.BlockchainHook.GetBalance(scAddressBytes)
+	scAccount, _ := testContext.BlockchainHook.GetUserAccount(scAddressBytes)
+	balanceOfSC := scAccount.GetBalance()
 	fmt.Printf("balance of SC: %v\n", balanceOfSC)
 	computedBalance := big.NewInt(0).Set(transfer)
 	computedBalance.Mul(computedBalance, big.NewInt(int64(noOfUsers)))
@@ -328,7 +329,9 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	computedBalance = big.NewInt(0).Set(transfer)
 	computedBalance.Mul(computedBalance, big.NewInt(int64(noOfUsers)))
 	computedBalance.Sub(computedBalance, transferredBack)
-	balanceOfSC, _ = testContext.BlockchainHook.GetBalance(scAddressBytes)
+
+	scAccount, _ = testContext.BlockchainHook.GetUserAccount(scAddressBytes)
+	balanceOfSC = scAccount.GetBalance()
 	fmt.Printf("balance of SC: %v\n", balanceOfSC)
 	assert.Equal(t, computedBalance.Uint64(), balanceOfSC.Uint64())
 }
