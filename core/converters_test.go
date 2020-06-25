@@ -213,7 +213,7 @@ func TestConvertToEvenHexBigInt(t *testing.T) {
 
 		assert.True(t, len(str)%2 == 0)
 		recovered, err := strconv.ParseInt(str, 16, 32)
-		assert.Nil(t, err)
+		assert.Nil(t, err, str)
 		assert.Equal(t, i, int(recovered))
 	}
 }

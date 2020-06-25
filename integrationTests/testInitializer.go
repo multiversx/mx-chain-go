@@ -553,6 +553,11 @@ func CreateFullGenesisBlocks(
 		AccountsParser:      accountsParser,
 		SmartContractParser: smartContractParser,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
+		ImportStartHandler: &mock.ImportStartHandlerStub{
+			ShouldStartImportCalled: func() bool {
+				return false
+			},
+		},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -612,7 +617,7 @@ func CreateGenesisMetaBlock(
 				MinVetoThreshold: 50,
 			},
 		},
-		BlockSignKeyGen: &mock.KeyGenMock{},
+		BlockSignKeyGen:    &mock.KeyGenMock{},
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
 	}
 

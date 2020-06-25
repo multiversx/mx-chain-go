@@ -17,9 +17,10 @@ func TestNewP2PAntiFloodAndBlackList_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Config{}
-	af, bl, err := NewP2PAntiFloodAndBlackList(cfg, nil, currentPid)
+	af, pids, pks, err := NewP2PAntiFloodAndBlackList(cfg, nil, currentPid)
 	assert.Nil(t, af)
-	assert.Nil(t, bl)
+	assert.Nil(t, pids)
+	assert.Nil(t, pks)
 	assert.Equal(t, p2p.ErrNilStatusHandler, err)
 }
 
@@ -32,15 +33,18 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 		},
 	}
 	ash := &mock.AppStatusHandlerMock{}
-	af, bl, err := NewP2PAntiFloodAndBlackList(cfg, ash, currentPid)
+	af, pids, pks, err := NewP2PAntiFloodAndBlackList(cfg, ash, currentPid)
 	assert.NotNil(t, af)
-	assert.NotNil(t, bl)
+	assert.NotNil(t, pids)
+	assert.NotNil(t, pks)
 	assert.Nil(t, err)
 
 	_, ok1 := af.(*disabled.AntiFlood)
-	_, ok2 := bl.(*disabled.PeerBlacklistHandler)
+	_, ok2 := pids.(*disabled.PeerBlacklistCacher)
+	_, ok3 := pks.(*disabled.TimeCache)
 	assert.True(t, ok1)
 	assert.True(t, ok2)
+	assert.True(t, ok3)
 }
 
 func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *testing.T) {
@@ -64,10 +68,11 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 	}
 
 	ash := &mock.AppStatusHandlerMock{}
-	af, bl, err := NewP2PAntiFloodAndBlackList(cfg, ash, currentPid)
+	af, pids, pks, err := NewP2PAntiFloodAndBlackList(cfg, ash, currentPid)
 	assert.Nil(t, err)
 	assert.NotNil(t, af)
-	assert.NotNil(t, bl)
+	assert.NotNil(t, pids)
+	assert.NotNil(t, pks)
 }
 
 func createFloodPreventerConfig() config.FloodPreventerConfig {

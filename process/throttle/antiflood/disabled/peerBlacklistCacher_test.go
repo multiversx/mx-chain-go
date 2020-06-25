@@ -2,6 +2,7 @@ package disabled
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
@@ -15,17 +16,14 @@ func TestBlacklistHandler_ShouldNotPanic(t *testing.T) {
 		assert.Nil(t, r, "this shouldn't panic")
 	}()
 
-	pdbh := &PeerBlacklistHandler{}
-	assert.False(t, check.IfNil(pdbh))
+	pbc := &PeerBlacklistCacher{}
+	assert.False(t, check.IfNil(pbc))
 
-	val := pdbh.Has("a")
+	val := pbc.Has("a")
 	assert.False(t, val)
 
-	err := pdbh.Add("")
+	err := pbc.Upsert("", time.Second)
 	assert.Nil(t, err)
 
-	err = pdbh.AddWithSpan("", 0)
-	assert.Nil(t, err)
-
-	pdbh.Sweep()
+	pbc.Sweep()
 }

@@ -110,7 +110,7 @@ func NewMetaInterceptorsContainerFactory(
 		multiSigner:            args.MultiSigner,
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
-		blackList:              args.BlackList,
+		blockBlackList:         args.BlackList,
 		argInterceptorFactory:  argInterceptorFactory,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		accounts:               args.Accounts,
@@ -234,9 +234,9 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      micf.dataPool.Headers(),
-		HdrValidator: hdrValidator,
-		BlackList:    micf.blackList,
+		Headers:        micf.dataPool.Headers(),
+		HdrValidator:   hdrValidator,
+		BlockBlackList: micf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
