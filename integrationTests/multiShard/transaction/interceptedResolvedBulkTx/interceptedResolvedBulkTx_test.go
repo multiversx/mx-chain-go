@@ -213,7 +213,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 		}
 	}()
 
-	txToSend := 10
+	txToSend := 2
 
 	shardRequester := uint32(5)
 	randomShard := uint32(2)

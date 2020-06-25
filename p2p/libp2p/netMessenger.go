@@ -764,8 +764,8 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 
 // UnjoinAllTopics call close on all topics
 func (netMes *networkMessenger) UnjoinAllTopics() error {
-	netMes.mutMessageIdCacher.Lock()
-	defer netMes.mutMessageIdCacher.Unlock()
+	netMes.mutTopics.Lock()
+	defer netMes.mutTopics.Unlock()
 
 	var errFound error
 	for topicName, t := range netMes.topics {
