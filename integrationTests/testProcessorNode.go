@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -72,7 +73,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/pkg/errors"
 )
 
@@ -186,7 +186,7 @@ type TestProcessorNode struct {
 	EconomicsData *economics.TestEconomicsData
 	RatingsData   *rating.RatingsData
 
-	BlockBlackListHandler process.BlackListHandler
+	BlockBlackListHandler process.TimeCacher
 	HeaderValidator       process.HeaderConstructionValidator
 	BlockTracker          process.BlockTracker
 	InterceptorsContainer process.InterceptorsContainer
@@ -206,6 +206,7 @@ type TestProcessorNode struct {
 	PreProcessorsContainer process.PreProcessorsContainer
 	GasHandler             process.GasHandler
 	FeeAccumulator         process.TransactionFeeHandler
+	SmartContractParser    genesis.InitialSmartContractParser
 
 	ForkDetector             process.ForkDetector
 	BlockProcessor           process.BlockProcessor
@@ -265,14 +266,12 @@ func CreatePkBytes(numShards uint32) map[uint32][]byte {
 	return pksbytes
 }
 
-// NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger
-func NewTestProcessorNode(
+func newBaseTestProcessorNode(
 	maxShards uint32,
 	nodeShardId uint32,
 	txSignPrivKeyShardId uint32,
 	initialNodeAddr string,
 ) *TestProcessorNode {
-
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
 	kg := &mock.KeyGenMock{}
@@ -337,11 +336,83 @@ func NewTestProcessorNode(
 	}
 	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
-	tpn.initDataPools()
-	tpn.initTestNode()
-
 	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
 	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
+	tpn.initDataPools()
+
+	return tpn
+}
+
+// NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger
+func NewTestProcessorNode(
+	maxShards uint32,
+	nodeShardId uint32,
+	txSignPrivKeyShardId uint32,
+	initialNodeAddr string,
+) *TestProcessorNode {
+
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn.initTestNode()
+
+	return tpn
+}
+
+// NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger and a full genesis deploy
+func NewTestProcessorNodeWithFullGenesis(
+	maxShards uint32,
+	nodeShardId uint32,
+	txSignPrivKeyShardId uint32,
+	initialNodeAddr string,
+	accountParser genesis.AccountsParser,
+	smartContractParser genesis.InitialSmartContractParser,
+) *TestProcessorNode {
+
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn.initChainHandler()
+	tpn.initHeaderValidator()
+	tpn.initRounder()
+	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
+	tpn.initStorage()
+	tpn.initAccountDBs()
+	tpn.initEconomicsData()
+	tpn.initRatingsData()
+	tpn.initRequestedItemsHandler()
+	tpn.initResolvers()
+	tpn.initValidatorStatistics()
+
+	tpn.SmartContractParser = smartContractParser
+	tpn.GenesisBlocks = CreateFullGenesisBlocks(
+		tpn.AccntState,
+		tpn.PeerState,
+		tpn.TrieStorageManagers,
+		tpn.NodesSetup,
+		tpn.ShardCoordinator,
+		tpn.Storage,
+		tpn.BlockChain,
+		tpn.DataPool,
+		tpn.EconomicsData.EconomicsData,
+		accountParser,
+		smartContractParser,
+	)
+	tpn.initBlockTracker()
+	tpn.initInterceptors()
+	tpn.initInnerProcessors()
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
+	tpn.initBlockProcessor(stateCheckpointModulus)
+	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
+		TestMarshalizer,
+		TestHasher,
+		tpn.Messenger,
+		tpn.ShardCoordinator,
+		tpn.OwnAccount.SkTxSign,
+		tpn.OwnAccount.SingleSigner,
+		tpn.DataPool.Headers(),
+		tpn.InterceptorsContainer,
+	)
+	tpn.setGenesisBlock()
+	tpn.initNode()
+	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
 
 	return tpn
 }
@@ -740,7 +811,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			AddressPubkeyConverter:  TestAddressPubkeyConverter,
 			MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
 			TxFeeHandler:            tpn.EconomicsData,
-			BlackList:               tpn.BlockBlackListHandler,
+			BlockBlackList:          tpn.BlockBlackListHandler,
 			HeaderSigVerifier:       tpn.HeaderSigVerifier,
 			HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
 			SizeCheckDelta:          sizeCheckDelta,
@@ -815,15 +886,6 @@ func (tpn *TestProcessorNode) initResolvers() {
 	}
 }
 
-func createAndAddIeleVM(
-	vmContainer process.VirtualMachinesContainer,
-	blockChainHook vmcommon.BlockchainHook,
-) {
-	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
-	_ = vmContainer.Add(factory.IELEVirtualMachine, ieleVM)
-}
-
 func (tpn *TestProcessorNode) initInnerProcessors() {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.initMetaInnerProcessors()
@@ -852,11 +914,16 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ShardCoordinator,
 	)
 
+	mapDNSAddresses := make(map[string]struct{})
+	if !check.IfNil(tpn.SmartContractParser) {
+		mapDNSAddresses, _ = tpn.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+	}
+
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
+		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     TestMarshalizer,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -889,7 +956,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	createAndAddIeleVM(tpn.VMContainer, tpn.BlockchainHook)
 
 	mockVM, _ := mock.NewOneSCExecutorMockVM(tpn.BlockchainHook, TestHasher)
 	mockVM.GasForOperation = OpGasValueForMockVm
@@ -1126,7 +1192,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return 0
+			return 100
 		},
 		ProbableHighestNonceCalled: func() uint64 {
 			return 0
@@ -1349,7 +1415,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 		node.WithBlockBlackListHandler(tpn.BlockBlackListHandler),
-		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{}),
+		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
 		node.WithDataPool(tpn.DataPool),
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),

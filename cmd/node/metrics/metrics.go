@@ -79,7 +79,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricRoundsPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNoncesPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
-	appStatusHandler.SetStringValue(core.MetricDenominationCoefficient, economicsConfig.RewardsSettings.DenominationCoefficientForView)
+	appStatusHandler.SetUInt64Value(core.MetricDenomination, uint64(economicsConfig.GlobalSettings.Denomination))
 	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, initString)
 	appStatusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, initString)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -73,12 +74,12 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 		initialValue = append(initialValue, input.Arguments[0]...)
 	}
 
-	senderNonce, err := vm.blockchainHook.GetNonce(input.CallerAddr)
+	senderACcount, err := vm.blockchainHook.GetUserAccount(input.CallerAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	newSCAddr, err := vm.blockchainHook.NewAddress(input.CallerAddr, senderNonce, factory.InternalTestingVM)
+	newSCAddr, err := vm.blockchainHook.NewAddress(input.CallerAddr, senderACcount.GetNonce(), factory.InternalTestingVM)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +99,7 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 	senderOutputAccount := &vmcommon.OutputAccount{
 		Address: input.CallerAddr,
 		//VM does not increment sender's nonce
-		Nonce: senderNonce,
+		Nonce: senderACcount.GetNonce(),
 		//tx succeed, return 0 back to the sender
 		BalanceDelta: big.NewInt(0),
 	}
@@ -128,9 +129,13 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCall(input *vmcommon.ContractCall
 	}
 
 	//make a dummy call to get the SC code, not required here, but to emulate what happens in the real VM
-	_, err := vm.blockchainHook.GetCode(input.RecipientAddr)
+	recipientAccount, err := vm.blockchainHook.GetUserAccount(input.RecipientAddr)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(recipientAccount.GetCode()) == 0 {
+		return nil, hooks.ErrEmptyCode
 	}
 
 	value := big.NewInt(0)
@@ -162,13 +167,13 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 	currentValue := big.NewInt(0).SetBytes(currentValueBuff)
 	newValue := big.NewInt(0).Add(currentValue, value)
 
-	destNonce, err := vm.blockchainHook.GetNonce(input.RecipientAddr)
+	recipientAccount, err := vm.blockchainHook.GetUserAccount(input.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	scOutputAccount := &vmcommon.OutputAccount{
-		Nonce:        destNonce,
+		Nonce:        recipientAccount.GetNonce(),
 		BalanceDelta: input.CallValue,
 		Address:      input.RecipientAddr,
 		StorageUpdates: makeStorageUpdatesMap(&vmcommon.StorageUpdate{
@@ -178,7 +183,7 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 		}),
 	}
 
-	senderNonce, err := vm.blockchainHook.GetNonce(input.CallerAddr)
+	senderAccount, err := vm.blockchainHook.GetUserAccount(input.CallerAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +191,7 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 	senderOutputAccount := &vmcommon.OutputAccount{
 		Address: input.CallerAddr,
 		//VM does not increment sender's nonce
-		Nonce: senderNonce,
+		Nonce: senderAccount.GetNonce(),
 		//tx succeed, return 0 back to the sender
 		BalanceDelta: big.NewInt(0),
 	}
@@ -205,28 +210,24 @@ func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput,
 
 func (vm *OneSCExecutorMockVM) processWithdrawFunc(input *vmcommon.ContractCallInput, value *big.Int) (*vmcommon.VMOutput, error) {
 
-	destNonce, err := vm.blockchainHook.GetNonce(input.RecipientAddr)
+	destAccount, err := vm.blockchainHook.GetUserAccount(input.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	destBalance, err := vm.blockchainHook.GetBalance(input.RecipientAddr)
-	if err != nil {
-		return nil, err
-	}
-
+	destBalance := destAccount.GetBalance()
 	if destBalance.Cmp(value) < 0 {
 		return nil, errInsuficientFunds
 	}
 
 	newSCBalance := big.NewInt(0).Sub(big.NewInt(0), value)
 	scOutputAccount := &vmcommon.OutputAccount{
-		Nonce:        destNonce,
+		Nonce:        destAccount.GetNonce(),
 		BalanceDelta: newSCBalance,
 		Address:      input.RecipientAddr,
 	}
 
-	senderNonce, err := vm.blockchainHook.GetNonce(input.CallerAddr)
+	senderAccount, err := vm.blockchainHook.GetUserAccount(input.CallerAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +235,7 @@ func (vm *OneSCExecutorMockVM) processWithdrawFunc(input *vmcommon.ContractCallI
 	senderOutputAccount := &vmcommon.OutputAccount{
 		Address: input.CallerAddr,
 		//VM does not increment sender's nonce
-		Nonce: senderNonce,
+		Nonce: senderAccount.GetNonce(),
 		//tx succeed, return 0 back to the sender
 		BalanceDelta: value,
 	}
@@ -257,13 +258,13 @@ func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput)
 		return nil, err
 	}
 
-	destNonce, err := vm.blockchainHook.GetNonce(input.RecipientAddr)
+	destAccount, err := vm.blockchainHook.GetUserAccount(input.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	scOutputAccount := &vmcommon.OutputAccount{
-		Nonce:          destNonce,
+		Nonce:          destAccount.GetNonce(),
 		BalanceDelta:   input.CallValue,
 		Address:        input.RecipientAddr,
 		StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
@@ -282,13 +283,13 @@ func (vm *OneSCExecutorMockVM) processGetFunc(input *vmcommon.ContractCallInput)
 }
 
 func (vm *OneSCExecutorMockVM) unavailableFunc(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-	destNonce, err := vm.blockchainHook.GetNonce(input.RecipientAddr)
+	destAccount, err := vm.blockchainHook.GetUserAccount(input.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}
 
 	scOutputAccount := &vmcommon.OutputAccount{
-		Nonce:          destNonce,
+		Nonce:          destAccount.GetNonce(),
 		Address:        input.RecipientAddr,
 		StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
 	}
@@ -306,7 +307,7 @@ func (vm *OneSCExecutorMockVM) unavailableFunc(input *vmcommon.ContractCallInput
 }
 
 func (vm *OneSCExecutorMockVM) outOfGasFunc(input *vmcommon.VMInput) (*vmcommon.VMOutput, error) {
-	nonce, err := vm.blockchainHook.GetNonce(input.CallerAddr)
+	callerAccount, err := vm.blockchainHook.GetUserAccount(input.CallerAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +315,7 @@ func (vm *OneSCExecutorMockVM) outOfGasFunc(input *vmcommon.VMInput) (*vmcommon.
 	vmo := &vmcommon.OutputAccount{
 		BalanceDelta: big.NewInt(0),
 		Address:      input.CallerAddr,
-		Nonce:        nonce,
+		Nonce:        callerAccount.GetNonce(),
 	}
 
 	return &vmcommon.VMOutput{

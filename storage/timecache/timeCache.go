@@ -59,10 +59,10 @@ func (tc *TimeCache) AddWithSpan(key string, duration time.Duration) error {
 	return tc.add(key, duration)
 }
 
-// Update will add the key and provided duration if not exists
+// Upsert will add the key and provided duration if not exists
 // If the record exists, will update the duration if the provided duration is larger than existing
 // Also, it will reset the contained timestamp to time.Now
-func (tc *TimeCache) Update(key string, duration time.Duration) error {
+func (tc *TimeCache) Upsert(key string, duration time.Duration) error {
 	if len(key) == 0 {
 		return storage.ErrEmptyKey
 	}

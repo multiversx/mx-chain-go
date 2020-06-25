@@ -89,7 +89,7 @@ type Node struct {
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer         process.InterceptorsContainer
 	resolversFinder               dataRetriever.ResolversFinder
-	peerBlackListHandler          process.PeerBlackListHandler
+	peerDenialEvaluator           p2p.PeerDenialEvaluator
 	appStatusHandler              core.AppStatusHandler
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
@@ -123,7 +123,7 @@ type Node struct {
 	bootstrapRoundIndex      uint64
 
 	indexer                 indexer.Indexer
-	blocksBlackListHandler  process.BlackListHandler
+	blocksBlackListHandler  process.TimeCacher
 	bootStorer              process.BootStorer
 	requestedItemsHandler   dataRetriever.RequestedItemsHandler
 	headerSigVerifier       spos.RandSeedVerifier
@@ -150,7 +150,8 @@ type Node struct {
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
 
-	heartbeatHandler *componentHandler.HeartbeatHandler
+	heartbeatHandler   *componentHandler.HeartbeatHandler
+	peerHonestyHandler consensus.PeerHonestyHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -331,6 +332,7 @@ func (n *Node) StartConsensus() error {
 		SyncTimer:                     n.syncTimer,
 		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
 		AntifloodHandler:              n.inputAntifloodHandler,
+		PeerHonestyHandler:            n.peerHonestyHandler,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -348,6 +350,7 @@ func (n *Node) StartConsensus() error {
 		n.appStatusHandler,
 		n.indexer,
 		n.chainID,
+		n.messenger.ID(),
 	)
 	if err != nil {
 		return err
@@ -1121,7 +1124,7 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 	result := core.QueryP2PPeerInfo{
 		Pid:           p.Pretty(),
 		Addresses:     n.messenger.PeerAddresses(p),
-		IsBlacklisted: n.peerBlackListHandler.Has(p),
+		IsBlacklisted: n.peerDenialEvaluator.IsDenied(p),
 	}
 
 	peerInfo := n.networkShardingCollector.GetPeerInfo(p)

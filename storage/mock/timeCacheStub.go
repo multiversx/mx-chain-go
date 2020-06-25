@@ -4,35 +4,15 @@ import "time"
 
 // TimeCacheStub -
 type TimeCacheStub struct {
-	AddCalled         func(key string) error
-	AddWithSpanCalled func(key string, span time.Duration) error
-	UpdateCalled      func(key string, span time.Duration) error
-	HasCalled         func(key string) bool
-	SweepCalled       func()
+	UpsertCalled func(key string, span time.Duration) error
+	HasCalled    func(key string) bool
+	SweepCalled  func()
 }
 
-// Add -
-func (tcs *TimeCacheStub) Add(key string) error {
-	if tcs.AddCalled != nil {
-		return tcs.AddCalled(key)
-	}
-
-	return nil
-}
-
-// AddWithSpan -
-func (tcs *TimeCacheStub) AddWithSpan(key string, span time.Duration) error {
-	if tcs.AddWithSpanCalled != nil {
-		return tcs.AddWithSpanCalled(key, span)
-	}
-
-	return nil
-}
-
-// Update -
-func (tcs *TimeCacheStub) Update(key string, span time.Duration) error {
-	if tcs.UpdateCalled != nil {
-		return tcs.UpdateCalled(key, span)
+// Upsert -
+func (tcs *TimeCacheStub) Upsert(key string, span time.Duration) error {
+	if tcs.UpsertCalled != nil {
+		return tcs.UpsertCalled(key, span)
 	}
 
 	return nil

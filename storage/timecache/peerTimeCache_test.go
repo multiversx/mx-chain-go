@@ -35,29 +35,11 @@ func TestPeerTimeCache_Methods(t *testing.T) {
 
 	pid := core.PeerID("test peer id")
 	unexpectedErr := errors.New("unexpected error")
-	addWasCalled := false
-	addWithSpanWasCalled := false
 	updateWasCalled := false
 	hasWasCalled := false
 	sweepWasCalled := false
 	ptc, _ := NewPeerTimeCache(&mock.TimeCacheStub{
-		AddCalled: func(key string) error {
-			if key != string(pid) {
-				return unexpectedErr
-			}
-
-			addWasCalled = true
-			return nil
-		},
-		AddWithSpanCalled: func(key string, span time.Duration) error {
-			if key != string(pid) {
-				return unexpectedErr
-			}
-
-			addWithSpanWasCalled = true
-			return nil
-		},
-		UpdateCalled: func(key string, span time.Duration) error {
+		UpsertCalled: func(key string, span time.Duration) error {
 			if key != string(pid) {
 				return unexpectedErr
 			}
@@ -78,14 +60,10 @@ func TestPeerTimeCache_Methods(t *testing.T) {
 		},
 	})
 
-	assert.Nil(t, ptc.Add(pid))
-	assert.Nil(t, ptc.AddWithSpan(pid, time.Second))
-	assert.Nil(t, ptc.Update(pid, time.Second))
+	assert.Nil(t, ptc.Upsert(pid, time.Second))
 	assert.True(t, ptc.Has(pid))
 	ptc.Sweep()
 
-	assert.True(t, addWasCalled)
-	assert.True(t, addWithSpanWasCalled)
 	assert.True(t, updateWasCalled)
 	assert.True(t, hasWasCalled)
 	assert.True(t, sweepWasCalled)

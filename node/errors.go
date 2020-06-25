@@ -91,8 +91,11 @@ var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 // ErrGenesisBlockNotInitialized signals that genesis block is not initialized
 var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized")
 
-// ErrNilBlackListHandler signals that a nil black list handler was provided
-var ErrNilBlackListHandler = errors.New("nil black list handler")
+// ErrNilPeerDenialEvaluator signals that a nil peer denial evaluator was provided
+var ErrNilPeerDenialEvaluator = errors.New("nil peer denial evaluator")
+
+// ErrNilTimeCache signals that a nil time cache was provided
+var ErrNilTimeCache = errors.New("nil time cache")
 
 // ErrNilRequestedItemsHandler signals that a nil requested items handler was provided
 var ErrNilRequestedItemsHandler = errors.New("nil requested items handler")
@@ -168,3 +171,6 @@ var ErrSystemBusyTxHash = errors.New("system busy. try again later")
 
 // ErrUnknownPeerID signals that the provided peer is unknown by the current node
 var ErrUnknownPeerID = errors.New("unknown peer ID")
+
+// ErrNilPeerHonestyHandler signals that a nil peer honesty handler has been provided
+var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")

@@ -413,6 +413,7 @@ func (txProc *txProcessor) processRelayedTx(
 	tx *transaction.Transaction,
 	adrSrc, adrDst []byte,
 ) (vmcommon.ReturnCode, error) {
+
 	_, args, err := txProc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {
 		return 0, err

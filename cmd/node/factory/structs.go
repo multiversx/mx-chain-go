@@ -93,7 +93,7 @@ type Process struct {
 	EpochStartTrigger        epochStart.TriggerHandler
 	ForkDetector             process.ForkDetector
 	BlockProcessor           process.BlockProcessor
-	BlackListHandler         process.BlackListHandler
+	BlackListHandler         process.TimeCacher
 	BootStorer               process.BootStorer
 	HeaderSigVerifier        HeaderSigVerifierHandler
 	HeaderIntegrityVerifier  HeaderIntegrityVerifierHandler
@@ -645,7 +645,7 @@ func newInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
-) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
+) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardInterceptorContainerFactory(
 			shardCoordinator,
@@ -740,7 +740,7 @@ func newShardInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
-) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
+) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
 		Accounts:                state.AccountsAdapter,
@@ -760,7 +760,7 @@ func newShardInterceptorContainerFactory(
 		AddressPubkeyConverter:  state.AddressPubkeyConverter,
 		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:            economics,
-		BlackList:               headerBlackList,
+		BlockBlackList:          headerBlackList,
 		HeaderSigVerifier:       headerSigVerifier,
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
 		SizeCheckDelta:          sizeCheckDelta,
@@ -770,6 +770,7 @@ func newShardInterceptorContainerFactory(
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
 		NonceConverter:          dataCore.Uint64ByteSliceConverter,
+		ArgumentsParser:         smartContract.NewArgumentParser(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -795,7 +796,7 @@ func newMetaInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
-) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
+) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
 		ShardCoordinator:        shardCoordinator,
@@ -825,6 +826,7 @@ func newMetaInterceptorContainerFactory(
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
 		NonceConverter:          dataCore.Uint64ByteSliceConverter,
+		ArgumentsParser:         smartContract.NewArgumentParser(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -996,7 +998,7 @@ func newBlockTracker(
 func newForkDetector(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
-	headerBlackList process.BlackListHandler,
+	headerBlackList process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
 ) (process.ForkDetector, error) {
@@ -1048,6 +1050,7 @@ func newBlockProcessor(
 			processArgs.maxSizeInBytes,
 			txLogsProcessor,
 			processArgs.version,
+			processArgs.smartContractParser,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1106,12 +1109,18 @@ func newShardBlockProcessor(
 	maxSizeInBytes uint32,
 	txLogsProcessor process.TransactionLogProcessor,
 	version string,
+	smartContractParser genesis.InitialSmartContractParser,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
+	mapDNSAddresses, err := smartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+	if err != nil {
+		return nil, err
+	}
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
+		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     core.InternalMarshalizer,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)

@@ -341,7 +341,7 @@ func serializeTransactions(
 		serializedData = append(serializedData, "\n"...)
 
 		buffLenWithCurrentTx := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentTx > txsBulkSizeThreshold {
+		if buffLenWithCurrentTx > txsBulkSizeThreshold && buff.Len() != 0 {
 			buffSlice = append(buffSlice, buff)
 			buff = bytes.Buffer{}
 		}

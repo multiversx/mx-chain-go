@@ -359,6 +359,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	if vmOutput.GasRefund != nil {
 		refund = vmOutput.GasRefund
 	}
+
 	scrForSender, consumedFee := sc.createSCRForSender(
 		refund,
 		vmOutput.GasRemaining,
@@ -920,6 +921,9 @@ func (sc *scProcessor) createSCRForSender(
 	acntSnd state.UserAccountHandler,
 	callType vmcommon.CallType,
 ) (*smartContractResult.SmartContractResult, *big.Int) {
+	if gasRefund == nil {
+		gasRefund = big.NewInt(0)
+	}
 	storageFreeRefund := big.NewInt(0).Mul(gasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
 
 	consumedFee := big.NewInt(0)
@@ -935,7 +939,11 @@ func (sc *scProcessor) createSCRForSender(
 	}
 
 	scTx := &smartContractResult.SmartContractResult{}
-	scTx.Value = big.NewInt(0).Add(refundErd, storageFreeRefund)
+	scTx.Value = big.NewInt(0).Set(storageFreeRefund)
+	if callType != vmcommon.AsynchronousCall {
+		scTx.Value.Add(scTx.Value, refundErd)
+	}
+
 	scTx.RcvAddr = rcvAddress
 	scTx.SndAddr = tx.GetRcvAddr()
 	scTx.Nonce = tx.GetNonce() + 1
@@ -947,7 +955,7 @@ func (sc *scProcessor) createSCRForSender(
 
 	if callType == vmcommon.AsynchronousCall {
 		scTx.CallType = vmcommon.AsynchronousCallBack
-		scTx.Data = []byte("@" + hex.EncodeToString(big.NewInt(int64(returnCode)).Bytes()))
+		scTx.Data = []byte("@" + core.ConvertToEvenHex(int(returnCode)))
 	} else {
 		scTx.Data = []byte("@" + hex.EncodeToString([]byte(returnCode.String())))
 	}
@@ -1142,6 +1150,11 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	if err != nil {
 		return returnCode, err
 	}
+	sndAcc, err := sc.getAccountFromAddress(scr.SndAddr)
+	if err != nil {
+		return returnCode, err
+	}
+
 	if check.IfNil(dstAcc) {
 		err = process.ErrNilSCDestAccount
 		return returnCode, err
@@ -1161,22 +1174,22 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	case process.MoveBalance:
 		err = sc.processSimpleSCR(scr, dstAcc)
 		if err != nil {
-			return returnCode, sc.ProcessIfError(nil, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
+			return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
 		}
 		return vmcommon.Ok, nil
 	case process.SCDeployment:
 		err = process.ErrSCDeployFromSCRIsNotPermitted
-		return returnCode, sc.ProcessIfError(nil, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
+		return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
 	case process.SCInvoking:
-		returnCode, err = sc.ExecuteSmartContractTransaction(scr, nil, dstAcc)
+		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
-		returnCode, err = sc.ExecuteSmartContractTransaction(scr, nil, dstAcc)
+		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	}
 
 	err = process.ErrWrongTransaction
-	return returnCode, sc.ProcessIfError(nil, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
+	return returnCode, sc.ProcessIfError(sndAcc, txHash, scr, err.Error(), scr.ReturnMessage, snapshot)
 }
 
 func (sc *scProcessor) processSimpleSCR(
