@@ -151,6 +151,8 @@ type Node struct {
 
 	heartbeatHandler   *componentHandler.HeartbeatHandler
 	peerHonestyHandler consensus.PeerHonestyHandler
+
+	watchdog core.WatchdogTimer
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -219,7 +221,11 @@ func (n *Node) StartConsensus() error {
 		return ErrGenesisBlockNotInitialized
 	}
 
-	chronologyHandler, err := n.createChronologyHandler(n.rounder, n.appStatusHandler)
+	chronologyHandler, err := n.createChronologyHandler(
+		n.rounder,
+		n.appStatusHandler,
+		n.watchdog,
+	)
 	if err != nil {
 		return err
 	}
@@ -440,11 +446,16 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 }
 
 // createChronologyHandler method creates a chronology object
-func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandler core.AppStatusHandler) (consensus.ChronologyHandler, error) {
+func (n *Node) createChronologyHandler(
+	rounder consensus.Rounder,
+	appStatusHandler core.AppStatusHandler,
+	watchdog core.WatchdogTimer,
+) (consensus.ChronologyHandler, error) {
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
 		n.syncTimer,
+		watchdog,
 	)
 	if err != nil {
 		return nil, err
