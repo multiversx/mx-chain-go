@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const numGoRoutines = 2000
+const numGoRoutines = 100
 
 type baseInterceptorsContainerFactory struct {
 	container              process.InterceptorsContainer

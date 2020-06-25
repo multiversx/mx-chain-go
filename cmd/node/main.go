@@ -8,7 +8,6 @@ import (
 	"math"
 	"math/big"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -1376,7 +1375,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
 	case sig = <-chanStopNodeProcess:
-		log.Info("terminating at internal stop signal", "reason", sig.Reason)
+		log.Info("terminating at internal stop signal", "reason", sig.Reason, "description", sig.Description)
 	}
 
 	chanCloseComponents := make(chan struct{})
@@ -1390,7 +1389,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
 	}
 
-	handleAppClose(log, sig)
+	log.Debug("closing node")
 
 	return nil
 }
@@ -1427,47 +1426,6 @@ func closeAllComponents(
 	log.LogIfError(err)
 
 	chanCloseComponents <- struct{}{}
-}
-
-func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
-	log.Debug("closing node")
-
-	switch endProcessArgument.Reason {
-	case core.ShuffledOut:
-		log.Debug(
-			"restarting node",
-			"reason",
-			endProcessArgument.Reason,
-			"description",
-			endProcessArgument.Description,
-		)
-
-		newStartInEpoch(log)
-	default:
-	}
-}
-
-func newStartInEpoch(log logger.Logger) {
-	wd, err := os.Getwd()
-	if err != nil {
-		log.LogIfError(err)
-	}
-	nodeApp := os.Args[0]
-	args := os.Args
-	args = append(args, "-start-in-epoch")
-
-	log.Debug("startInEpoch", "working dir", wd, "nodeApp", nodeApp, "args", args)
-
-	cmd := exec.Command(nodeApp)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	cmd.Args = args
-	cmd.Dir = wd
-	err = cmd.Start()
-	if err != nil {
-		log.LogIfError(err)
-	}
 }
 
 func createStringFromRatingsData(ratingsData *rating.RatingsData) string {
