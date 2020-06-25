@@ -8,7 +8,6 @@ import (
 	"math"
 	"math/big"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -66,6 +65,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -79,6 +79,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/denisbrodbeck/machineid"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -94,6 +95,7 @@ const (
 	secondsToWaitForP2PBootstrap = 20
 	maxNumGoRoutinesTxsByHashApi = 10
 	maxTimeToClose               = 10 * time.Second
+	maxMachineIDLen              = 10
 )
 
 var (
@@ -397,7 +399,16 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = fmt.Sprintf("%s/%s/%s-%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	machineID, err := machineid.ProtectedID(app.Name)
+	if err != nil {
+		log.Warn("error fetching machine id", "error", err)
+		machineID = "unknown"
+	}
+	if len(machineID) > maxMachineIDLen {
+		machineID = machineID[:maxMachineIDLen]
+	}
+
+	app.Version = fmt.Sprintf("%s/%s/%s-%s/%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
@@ -449,7 +460,7 @@ func main() {
 		return startNode(c, log, app.Version)
 	}
 
-	err := app.Run(os.Args)
+	err = app.Run(os.Args)
 	if err != nil {
 		log.Error(err.Error())
 		os.Exit(1)
@@ -1366,7 +1377,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
 	case sig = <-chanStopNodeProcess:
-		log.Info("terminating at internal stop signal", "reason", sig.Reason)
+		log.Info("terminating at internal stop signal", "reason", sig.Reason, "description", sig.Description)
 	}
 
 	chanCloseComponents := make(chan struct{})
@@ -1380,7 +1391,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
 	}
 
-	handleAppClose(log, sig)
+	log.Debug("closing node")
 
 	return nil
 }
@@ -1417,47 +1428,6 @@ func closeAllComponents(
 	log.LogIfError(err)
 
 	chanCloseComponents <- struct{}{}
-}
-
-func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
-	log.Debug("closing node")
-
-	switch endProcessArgument.Reason {
-	case core.ShuffledOut:
-		log.Debug(
-			"restarting node",
-			"reason",
-			endProcessArgument.Reason,
-			"description",
-			endProcessArgument.Description,
-		)
-
-		newStartInEpoch(log)
-	default:
-	}
-}
-
-func newStartInEpoch(log logger.Logger) {
-	wd, err := os.Getwd()
-	if err != nil {
-		log.LogIfError(err)
-	}
-	nodeApp := os.Args[0]
-	args := os.Args
-	args = append(args, "-start-in-epoch")
-
-	log.Debug("startInEpoch", "working dir", wd, "nodeApp", nodeApp, "args", args)
-
-	cmd := exec.Command(nodeApp)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	cmd.Args = args
-	cmd.Dir = wd
-	err = cmd.Start()
-	if err != nil {
-		log.LogIfError(err)
-	}
 }
 
 func createStringFromRatingsData(ratingsData *rating.RatingsData) string {
@@ -2085,6 +2055,20 @@ func createNode(
 		return nil, err
 	}
 
+	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
+		network.PeerBlackListHandler,
+		network.PkTimeCache,
+		networkShardingCollector,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = network.NetMessenger.SetPeerDenialEvaluator(peerDenialEvaluator)
+	if err != nil {
+		return nil, err
+	}
+
 	var nd *node.Node
 	nd, err = node.NewNode(
 		node.WithMessenger(network.NetMessenger),
@@ -2125,7 +2109,7 @@ func createNode(
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBlockBlackListHandler(process.BlackListHandler),
-		node.WithPeerBlackListHandler(network.PeerBlackListHandler),
+		node.WithPeerDenialEvaluator(peerDenialEvaluator),
 		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),

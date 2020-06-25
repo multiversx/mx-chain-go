@@ -88,7 +88,7 @@ type Node struct {
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer         process.InterceptorsContainer
 	resolversFinder               dataRetriever.ResolversFinder
-	peerBlackListHandler          process.PeerBlackListHandler
+	peerDenialEvaluator           p2p.PeerDenialEvaluator
 	appStatusHandler              core.AppStatusHandler
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
@@ -122,7 +122,7 @@ type Node struct {
 	bootstrapRoundIndex      uint64
 
 	indexer                 indexer.Indexer
-	blocksBlackListHandler  process.BlackListHandler
+	blocksBlackListHandler  process.TimeCacher
 	bootStorer              process.BootStorer
 	requestedItemsHandler   dataRetriever.RequestedItemsHandler
 	headerSigVerifier       spos.RandSeedVerifier
@@ -1132,7 +1132,7 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 	result := core.QueryP2PPeerInfo{
 		Pid:           p.Pretty(),
 		Addresses:     n.messenger.PeerAddresses(p),
-		IsBlacklisted: n.peerBlackListHandler.Has(p),
+		IsBlacklisted: n.peerDenialEvaluator.IsDenied(p),
 	}
 
 	peerInfo := n.networkShardingCollector.GetPeerInfo(p)

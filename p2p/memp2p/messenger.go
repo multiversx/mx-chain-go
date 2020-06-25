@@ -393,8 +393,8 @@ func (messenger *Messenger) SetPeerShardResolver(_ p2p.PeerShardResolver) error 
 	return nil
 }
 
-// SetPeerBlackListHandler does nothing
-func (messenger *Messenger) SetPeerBlackListHandler(_ p2p.PeerBlacklistHandler) error {
+// SetPeerDenialEvaluator does nothing
+func (messenger *Messenger) SetPeerDenialEvaluator(_ p2p.PeerDenialEvaluator) error {
 	return nil
 }
 

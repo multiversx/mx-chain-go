@@ -21,7 +21,7 @@ type shardForkDetector struct {
 // NewShardForkDetector method creates a new shardForkDetector object
 func NewShardForkDetector(
 	rounder consensus.Rounder,
-	blackListHandler process.BlackListHandler,
+	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
 ) (*shardForkDetector, error) {
@@ -30,7 +30,7 @@ func NewShardForkDetector(
 		return nil, process.ErrNilRounder
 	}
 	if check.IfNil(blackListHandler) {
-		return nil, process.ErrNilBlackListHandler
+		return nil, process.ErrNilBlackListCacher
 	}
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
