@@ -87,6 +87,7 @@ const (
 	defaultStaticDbString        = "Static"
 	defaultShardString           = "Shard"
 	metachainShardName           = "metachain"
+	notSetDestinationShardID     = "disabled"
 	secondsToWaitForP2PBootstrap = 20
 	maxNumGoRoutinesTxsByHashApi = 10
 	maxTimeToClose               = 10 * time.Second
@@ -1653,6 +1654,9 @@ func createShardCoordinator(
 		log.Info("starting as observer node")
 
 		selfShardId, err = processDestinationShardAsObserver(prefsConfig)
+		if selfShardId == core.DefaultShardIDAsObserver {
+			selfShardId = uint32(0)
+		}
 	}
 	if err != nil {
 		return nil, "", err
@@ -1692,6 +1696,9 @@ func createNodesCoordinator(
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
 		return nil, err
+	}
+	if shardIDAsObserver == core.DefaultShardIDAsObserver {
+		shardIDAsObserver = uint32(0)
 	}
 
 	nbShards := nodesConfig.NumberOfShards()
@@ -1792,6 +1799,9 @@ func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (ui
 	destShard := strings.ToLower(prefsConfig.DestinationShardAsObserver)
 	if len(destShard) == 0 {
 		return 0, errors.New("option DestinationShardAsObserver is not set in prefs.toml")
+	}
+	if destShard == notSetDestinationShardID {
+		return core.DefaultShardIDAsObserver, nil
 	}
 	if destShard == metachainShardName {
 		return core.MetachainShardId, nil

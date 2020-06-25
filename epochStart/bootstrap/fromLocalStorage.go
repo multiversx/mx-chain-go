@@ -20,18 +20,28 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 	if errNotCritical != nil {
 		e.baseData.storageExists = false
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
-	} else {
-		e.baseData.storageExists = true
-		e.baseData.lastEpoch = latestData.Epoch
-		e.baseData.shardId = latestData.ShardID
-		e.baseData.lastRound = latestData.LastRound
-		e.baseData.epochStartRound = latestData.EpochStartRound
-		log.Debug("got last data from storage",
-			"epoch", e.baseData.lastEpoch,
-			"last round", e.baseData.lastRound,
-			"last shard ID", e.baseData.shardId,
-			"epoch start Round", e.baseData.epochStartRound)
+		return
 	}
+
+	if latestData.ShardID != e.destinationShardAsObserver && e.destinationShardAsObserver != core.DefaultShardIDAsObserver {
+		e.baseData.storageExists = false
+		log.Debug("cannot use epoch db found in storage as a different shard ID than the desired one has been found",
+			"desired shard ID", e.destinationShardAsObserver,
+			"shard ID found in storage", latestData.ShardID)
+		return
+	}
+
+	e.baseData.storageExists = true
+	e.baseData.lastEpoch = latestData.Epoch
+	e.baseData.shardId = latestData.ShardID
+	e.baseData.lastRound = latestData.LastRound
+	e.baseData.epochStartRound = latestData.EpochStartRound
+	log.Debug("got last data from storage",
+		"epoch", e.baseData.lastEpoch,
+		"last round", e.baseData.lastRound,
+		"last shard ID", e.baseData.shardId,
+		"epoch start Round", e.baseData.epochStartRound)
+
 }
 
 func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
@@ -127,6 +137,11 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		if err != nil {
 			return Parameters{}, err
 		}
+	}
+
+	shardIDToReturn := e.shardCoordinator.SelfId()
+	if e.destinationShardAsObserver != core.DefaultShardIDAsObserver && e.destinationShardAsObserver != shardIDToReturn {
+		shardIDToReturn = e.destinationShardAsObserver
 	}
 
 	parameters := Parameters{

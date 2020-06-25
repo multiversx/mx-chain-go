@@ -250,9 +250,13 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 		return Parameters{}, err
 	}
 
+	shardIDToReturn := e.genesisShardCoordinator.SelfId()
+	if shardIDToReturn != e.destinationShardAsObserver && e.destinationShardAsObserver != core.DefaultShardIDAsObserver {
+		shardIDToReturn = e.destinationShardAsObserver
+	}
 	parameters := Parameters{
 		Epoch:       0,
-		SelfShardId: e.genesisShardCoordinator.SelfId(),
+		SelfShardId: shardIDToReturn,
 		NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 	}
 	return parameters, nil
@@ -593,6 +597,9 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 	}
 
 	e.nodesConfig, e.baseData.shardId, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
+	if e.destinationShardAsObserver != core.DefaultShardIDAsObserver {
+		e.baseData.shardId = e.destinationShardAsObserver
+	}
 	return err
 }
 

@@ -36,6 +36,10 @@ const CombinedPeerType = "%s (%s)"
 // the appVersion flag
 const UnVersionedAppString = "undefined"
 
+// DefaultShardIDAsObserver defines the uint32 identifier which tells that the node hasn't configured any preferred
+// shard to start in
+const DefaultShardIDAsObserver = uint32(0xFFFFFFFF) - 7
+
 // NodeType represents the node's role in the network
 type NodeType string
 
