@@ -254,7 +254,7 @@ func (sdp *standardDelegationProcessor) stake(ac genesis.InitialAccountHandler, 
 		}
 	}
 
-	stakeData := fmt.Sprintf("%s@%s", stakeFunction, dh.GetValue().Text(16))
+	stakeData := fmt.Sprintf("%s@%s", stakeFunction, core.ConvertToEvenHexBigInt(dh.GetValue()))
 	err = sdp.ExecuteTransaction(
 		nonce,
 		ac.AddressBytes(),
