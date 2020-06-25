@@ -162,3 +162,11 @@ func ConvertToEvenHexBigInt(value *big.Int) string {
 
 	return str
 }
+
+// BooleanToInt takes a bool argument and returns 0 for false, 1 for true
+func BooleanToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}

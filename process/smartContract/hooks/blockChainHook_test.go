@@ -124,12 +124,10 @@ func TestNewBlockChainHookImpl_ShouldWork(t *testing.T) {
 	assert.False(t, bh.IsInterfaceNil())
 }
 
-//------- GetAccount
-
-func TestBlockChainHookImpl_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T) {
+func TestBlTestBlockChainHookImpl_GetUserAccountGetAccFromAddressErr(t *testing.T) {
 	t.Parallel()
 
-	errExpected := errors.New("expected error")
+	errExpected := errors.New("expected err")
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
@@ -138,45 +136,11 @@ func TestBlockChainHookImpl_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T
 		},
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	accountsExists, err := bh.AccountExists(make([]byte, 0))
-
+	_, err := bh.GetUserAccount(make([]byte, 0))
 	assert.Equal(t, errExpected, err)
-	assert.False(t, accountsExists)
 }
 
-func TestBlockChainHookImpl_AccountExistsDoesNotExistsRetFalseAndNil(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
-			return nil, state.ErrAccNotFound
-		},
-	}
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	accountsExists, err := bh.AccountExists(make([]byte, 0))
-
-	assert.False(t, accountsExists)
-	assert.Nil(t, err)
-}
-
-func TestBlockChainHookImpl_AccountExistsDoesExistsRetTrueAndNil(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	accountsExists, err := bh.AccountExists(make([]byte, 0))
-
-	assert.Nil(t, err)
-	assert.True(t, accountsExists)
-}
-
-//------- GetBalance
-
-func TestBlockChainHookImpl_GetBalanceWrongAccountTypeShouldErr(t *testing.T) {
+func TestBlTestBlockChainHookImpl_GetUserAccountWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
@@ -185,97 +149,28 @@ func TestBlockChainHookImpl_GetBalanceWrongAccountTypeShouldErr(t *testing.T) {
 			return &mock.PeerAccountHandlerMock{}, nil
 		},
 	}
-
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	balance, err := bh.GetBalance(make([]byte, 0))
-
+	_, err := bh.GetUserAccount(make([]byte, 0))
 	assert.Equal(t, state.ErrWrongTypeAssertion, err)
-	assert.Nil(t, balance)
 }
 
-func TestBlockChainHookImpl_GetBalanceGetAccountErrorsShouldErr(t *testing.T) {
+func TestBlTestBlockChainHookImpl_GetUserAccount(t *testing.T) {
 	t.Parallel()
 
-	errExpected := errors.New("expected err")
+	expectedAccount, _ := state.NewUserAccount([]byte("1234"))
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
-			return nil, errExpected
+			return expectedAccount, nil
 		},
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	balance, err := bh.GetBalance(make([]byte, 0))
-
-	assert.Equal(t, errExpected, err)
-	assert.Nil(t, balance)
-}
-
-func TestBlockChainHookImpl_GetBalanceShouldWork(t *testing.T) {
-	t.Parallel()
-
-	accnt, _ := state.NewUserAccount([]byte("1234"))
-	_ = accnt.AddToBalance(big.NewInt(2))
-	accnt.IncreaseNonce(1)
-
-	args := createMockVMAccountsArguments()
-	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
-			return accnt, nil
-		},
-	}
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	balance, err := bh.GetBalance(make([]byte, 0))
+	acc, err := bh.GetUserAccount(expectedAccount.Address)
 
 	assert.Nil(t, err)
-	assert.Equal(t, accnt.Balance, balance)
+	assert.Equal(t, expectedAccount, acc)
 }
 
-//------- GetNonce
-
-func TestBlockChainHookImpl_GetNonceGetAccountErrorsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected err")
-
-	args := createMockVMAccountsArguments()
-	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
-			return nil, errExpected
-		},
-	}
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	nonce, err := bh.GetNonce(make([]byte, 0))
-
-	assert.Equal(t, errExpected, err)
-	assert.Equal(t, nonce, uint64(0))
-}
-
-func TestBlockChainHookImpl_GetNonceShouldWork(t *testing.T) {
-	t.Parallel()
-
-	accnt, _ := state.NewUserAccount([]byte("1234"))
-	_ = accnt.AddToBalance(big.NewInt(2))
-	accnt.IncreaseNonce(1)
-
-	args := createMockVMAccountsArguments()
-	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
-			return accnt, nil
-		},
-	}
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	nonce, err := bh.GetNonce(make([]byte, 0))
-
-	assert.Nil(t, err)
-	assert.Equal(t, accnt.Nonce, nonce)
-}
-
-//------- GetStorageData
 
 func TestBlockChainHookImpl_GetStorageAccountErrorsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -318,86 +213,6 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 	assert.Equal(t, variableValue, value)
 }
 
-//------- IsCodeEmpty
-
-func TestBlockChainHookImpl_IsCodeEmptyAccountErrorsShouldErrAndRetFalse(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected err")
-	args := createMockVMAccountsArguments()
-	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
-			return nil, errExpected
-		},
-	}
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	isEmpty, err := bh.IsCodeEmpty(make([]byte, 0))
-
-	assert.Equal(t, errExpected, err)
-	assert.False(t, isEmpty)
-}
-
-func TestBlockChainHookImpl_IsCodeEmptyShouldWork(t *testing.T) {
-	t.Parallel()
-
-	accnt := mock.NewAccountWrapMock(nil)
-
-	args := createMockVMAccountsArguments()
-	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
-			return accnt, nil
-		},
-	}
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	isEmpty, err := bh.IsCodeEmpty(make([]byte, 0))
-
-	assert.Nil(t, err)
-	assert.True(t, isEmpty)
-}
-
-//------- GetCode
-
-func TestBlockChainHookImpl_GetCodeAccountErrorsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected err")
-	args := createMockVMAccountsArguments()
-	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
-			return nil, errExpected
-		},
-	}
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	retrievedCode, err := bh.GetCode(make([]byte, 0))
-
-	assert.Equal(t, errExpected, err)
-	assert.Nil(t, retrievedCode)
-}
-
-func TestBlockChainHookImpl_GetCodeShouldWork(t *testing.T) {
-	t.Parallel()
-
-	code := []byte("code")
-	accnt := mock.NewAccountWrapMock(nil)
-	accnt.SetCode(code)
-
-	args := createMockVMAccountsArguments()
-	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
-			return accnt, nil
-		},
-	}
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	retrievedCode, err := bh.GetCode(make([]byte, 0))
-
-	assert.Nil(t, err)
-	assert.Equal(t, code, retrievedCode)
-}
-
 func TestBlockChainHookImpl_CleanFakeAccounts(t *testing.T) {
 	t.Parallel()
 
@@ -425,21 +240,6 @@ func TestBlockChainHookImpl_CreateAndGetFakeAccounts(t *testing.T) {
 	acc := bh.TempAccount(address)
 	assert.NotNil(t, acc)
 	assert.Equal(t, nonce, acc.GetNonce())
-}
-
-func TestBlockChainHookImpl_GetNonceFromFakeAccount(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	address := []byte("test")
-	nonce := uint64(10)
-	bh.AddTempAccount(address, big.NewInt(10), nonce)
-
-	getNonce, err := bh.GetNonce(address)
-	assert.Nil(t, err)
-	assert.Equal(t, nonce, getNonce)
 }
 
 func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {

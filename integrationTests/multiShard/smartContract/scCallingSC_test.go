@@ -344,8 +344,8 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	}
 
 	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	nodesPerShard := 1
+	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()

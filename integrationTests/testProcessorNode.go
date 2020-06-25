@@ -73,7 +73,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/pkg/errors"
 )
 
@@ -887,15 +886,6 @@ func (tpn *TestProcessorNode) initResolvers() {
 	}
 }
 
-func createAndAddIeleVM(
-	vmContainer process.VirtualMachinesContainer,
-	blockChainHook vmcommon.BlockchainHook,
-) {
-	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
-	_ = vmContainer.Add(factory.IELEVirtualMachine, ieleVM)
-}
-
 func (tpn *TestProcessorNode) initInnerProcessors() {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.initMetaInnerProcessors()
@@ -966,7 +956,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	createAndAddIeleVM(tpn.VMContainer, tpn.BlockchainHook)
 
 	mockVM, _ := mock.NewOneSCExecutorMockVM(tpn.BlockchainHook, TestHasher)
 	mockVM.GasForOperation = OpGasValueForMockVm

@@ -34,7 +34,7 @@ void divideByZero()
 void badGetOwner1()
 {
   byte *pointer = 2147483647;
-  getOwner(pointer);
+  getSCAddress(pointer);
 }
 
 void badGetBlockHash1()
