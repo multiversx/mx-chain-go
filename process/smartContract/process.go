@@ -939,7 +939,11 @@ func (sc *scProcessor) createSCRForSender(
 	}
 
 	scTx := &smartContractResult.SmartContractResult{}
-	scTx.Value = big.NewInt(0).Add(refundErd, storageFreeRefund)
+	scTx.Value = big.NewInt(0).Set(storageFreeRefund)
+	if callType != vmcommon.AsynchronousCall {
+		scTx.Value.Add(scTx.Value, refundErd)
+	}
+
 	scTx.RcvAddr = rcvAddress
 	scTx.SndAddr = tx.GetRcvAddr()
 	scTx.Nonce = tx.GetNonce() + 1
@@ -951,7 +955,7 @@ func (sc *scProcessor) createSCRForSender(
 
 	if callType == vmcommon.AsynchronousCall {
 		scTx.CallType = vmcommon.AsynchronousCallBack
-		scTx.Data = []byte("@" + hex.EncodeToString(big.NewInt(int64(returnCode)).Bytes()))
+		scTx.Data = []byte("@" + core.ConvertToEvenHex(int(returnCode)))
 	} else {
 		scTx.Data = []byte("@" + hex.EncodeToString([]byte(returnCode.String())))
 	}

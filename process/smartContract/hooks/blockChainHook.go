@@ -110,65 +110,27 @@ func checkForNil(args ArgBlockChainHook) error {
 	return nil
 }
 
-// GetAccount checks if an account exists in provided AccountAdapter
-func (bh *BlockChainHookImpl) AccountExists(address []byte) (bool, error) {
-	_, err := bh.getAccountFromAddressBytes(address)
-	if err != nil {
-		if err == state.ErrAccNotFound {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
-// GetBalance returns the balance of a shard account
-func (bh *BlockChainHookImpl) GetBalance(address []byte) (*big.Int, error) {
-	exists, err := bh.AccountExists(address)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return big.NewInt(0), nil
-	}
-
-	shardAccount, err := bh.getShardAccountFromAddressBytes(address)
+// GetUserAccount returns the balance of a shard account
+func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error) {
+	account, err := bh.getAccountFromAddressBytes(address)
 	if err != nil {
 		return nil, err
 	}
 
-	return shardAccount.GetBalance(), nil
-}
-
-// GetNonce returns the nonce of a shard account
-func (bh *BlockChainHookImpl) GetNonce(address []byte) (uint64, error) {
-	exists, err := bh.AccountExists(address)
-	if err != nil {
-		return 0, err
-	}
-	if !exists {
-		return 0, nil
+	shardAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, state.ErrWrongTypeAssertion
 	}
 
-	shardAccount, err := bh.getShardAccountFromAddressBytes(address)
-	if err != nil {
-		return 0, err
-	}
-
-	return shardAccount.GetNonce(), nil
+	return shardAccount, nil
 }
 
 // GetStorageData returns the storage value of a variable held in account's data trie
 func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
-	exists, err := bh.AccountExists(accountAddress)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
+	account, err := bh.GetUserAccount(accountAddress)
+	if err == state.ErrAccNotFound {
 		return make([]byte, 0), nil
 	}
-
-	account, err := bh.getAccountFromAddressBytes(accountAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -191,50 +153,6 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	}
 	log.Trace("GetStorageData ", messages...)
 	return value, err
-}
-
-// IsCodeEmpty returns if the code is empty
-func (bh *BlockChainHookImpl) IsCodeEmpty(address []byte) (bool, error) {
-	exists, err := bh.AccountExists(address)
-	if err != nil {
-		return false, err
-	}
-	if !exists {
-		return true, nil
-	}
-
-	account, err := bh.getAccountFromAddressBytes(address)
-	if err != nil {
-		return false, err
-	}
-
-	userAcc, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return false, process.ErrWrongTypeAssertion
-	}
-
-	isCodeEmpty := len(userAcc.GetCode()) == 0
-	return isCodeEmpty, nil
-}
-
-// GetCode retrieves the account's code
-func (bh *BlockChainHookImpl) GetCode(address []byte) ([]byte, error) {
-	account, err := bh.getAccountFromAddressBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
-	userAcc, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	code := userAcc.GetCode()
-	if len(code) == 0 {
-		return nil, ErrEmptyCode
-	}
-
-	return code, nil
 }
 
 // GetBlockhash returns the header hash for a requested nonce delta
@@ -410,6 +328,16 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	return vmOutput, nil
 }
 
+// GetShardOfAddress is the hook that returns the shard of a given address
+func (bh *BlockChainHookImpl) GetShardOfAddress(address []byte) uint32 {
+	return bh.shardCoordinator.ComputeId(address)
+}
+
+// IsSmartContract returns whether the address points to a smart contract
+func (bh *BlockChainHookImpl) IsSmartContract(address []byte) bool {
+	return core.IsSmartContractAddress(address)
+}
+
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
 ) (state.UserAccountHandler, state.UserAccountHandler, error) {
@@ -503,20 +431,6 @@ func (bh *BlockChainHookImpl) getAccountFromAddressBytes(address []byte) (state.
 	}
 
 	return bh.accounts.GetExistingAccount(address)
-}
-
-func (bh *BlockChainHookImpl) getShardAccountFromAddressBytes(address []byte) (state.UserAccountHandler, error) {
-	account, err := bh.getAccountFromAddressBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
-	shardAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, state.ErrWrongTypeAssertion
-	}
-
-	return shardAccount, nil
 }
 
 func (bh *BlockChainHookImpl) getAccountFromTemporaryAccounts(address []byte) (state.AccountHandler, bool) {

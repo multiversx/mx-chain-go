@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -30,7 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
