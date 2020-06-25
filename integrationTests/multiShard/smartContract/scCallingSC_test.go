@@ -371,7 +371,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 			_ = n.Messenger.Close()
 		}
 	}()
-	_ = logger.SetLogLevel("process/smartcontract:TRACE")
+
 	initialVal := big.NewInt(10000000000000)
 	initialVal.Mul(initialVal, initialVal)
 	fmt.Printf("Initial minted sum: %s\n", initialVal.String())
