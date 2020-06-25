@@ -141,7 +141,6 @@ type Messenger interface {
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
-	SetMessageIdsCacher(cacher Cacher) error
 	UnjoinAllTopics() error
 
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -152,11 +151,13 @@ type Messenger interface {
 type MessageP2P interface {
 	From() []byte
 	Data() []byte
+	Payload() []byte
 	SeqNo() []byte
 	Topics() []string
 	Signature() []byte
 	Key() []byte
 	Peer() core.PeerID
+	Timestamp() int64
 	IsInterfaceNil() bool
 }
 
@@ -271,6 +272,7 @@ type PeerDenialEvaluator interface {
 type ConnectionMonitorWrapper interface {
 	CheckConnectionsBlocking()
 	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
+	PeerDenialEvaluator() PeerDenialEvaluator
 	IsInterfaceNil() bool
 }
 

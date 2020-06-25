@@ -13,6 +13,8 @@ type P2PMessageStub struct {
 	SignatureField []byte
 	KeyField       []byte
 	PeerField      core.PeerID
+	PayloadField   []byte
+	TimestampField int64
 }
 
 // From -
@@ -48,6 +50,16 @@ func (msg *P2PMessageStub) Key() []byte {
 // Peer -
 func (msg *P2PMessageStub) Peer() core.PeerID {
 	return msg.PeerField
+}
+
+// Timestamp -
+func (msg *P2PMessageStub) Timestamp() int64 {
+	return msg.TimestampField
+}
+
+// Payload -
+func (msg *P2PMessageStub) Payload() []byte {
+	return msg.PayloadField
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

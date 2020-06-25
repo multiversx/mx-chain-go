@@ -154,13 +154,14 @@ func TestConnectionMonitorWrapper_SetBlackListHandlerShouldWork(t *testing.T) {
 		&mock.ConnectionMonitorStub{},
 		&mock.PeerDenialEvaluatorStub{},
 	)
-	newBlackListHandler := &mock.PeerDenialEvaluatorStub{}
+	newPeerDenialEvaluator := &mock.PeerDenialEvaluatorStub{}
 
-	err := cmw.SetPeerDenialEvaluator(newBlackListHandler)
+	err := cmw.SetPeerDenialEvaluator(newPeerDenialEvaluator)
 
 	assert.Nil(t, err)
 	//pointer testing
-	assert.True(t, newBlackListHandler == cmw.peerDenialEvaluator)
+	assert.True(t, newPeerDenialEvaluator == cmw.peerDenialEvaluator)
+	assert.True(t, newPeerDenialEvaluator == cmw.PeerDenialEvaluator())
 }
 
 //------- CheckConnectionsBlocking

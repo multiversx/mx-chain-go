@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -67,6 +68,7 @@ func getConnectableAddress(mes p2p.Messenger) string {
 
 func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 	return libp2p.ArgsNetworkMessenger{
+		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
@@ -1143,31 +1145,10 @@ func TestNetworkMessenger_DoubleCloseShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- MessageIdsCacher
-
-func TestNetworkMessenger_SetMessageIdsCacherNilCacherShouldErr(t *testing.T) {
-	mes := createMessenger()
-
-	err := mes.SetMessageIdsCacher(nil)
-
-	assert.True(t, errors.Is(err, p2p.ErrNilCacher))
-
-	_ = mes.Close()
-}
-
-func TestNetworkMessenger_SetMessageIdsCacherShouldWork(t *testing.T) {
-	mes := createMessenger()
-
-	err := mes.SetMessageIdsCacher(testscommon.NewCacherStub())
-
-	assert.Nil(t, err)
-
-	_ = mes.Close()
-}
-
-func TestNetworkMessenger_MessageIdsCacherShouldPreventReprocessing(t *testing.T) {
+func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
 				Port: "0",
@@ -1183,19 +1164,6 @@ func TestNetworkMessenger_MessageIdsCacherShouldPreventReprocessing(t *testing.T
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
 
-	mutVals := sync.Mutex{}
-	vals := make(map[string]struct{})
-	_ = mes.SetMessageIdsCacher(&testscommon.CacherStub{
-		HasOrAddCalled: func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
-			mutVals.Lock()
-			_, has = vals[string(key)]
-			vals[string(key)] = struct{}{}
-			mutVals.Unlock()
-
-			return has, !has
-		},
-	})
-
 	numCalled := uint32(0)
 	handler := &mock.MessageProcessorStub{
 		ProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -1207,10 +1175,19 @@ func TestNetworkMessenger_MessageIdsCacherShouldPreventReprocessing(t *testing.T
 	callBackFunc := mes.PubsubCallback(handler, "")
 	ctx := context.Background()
 	pid := peer.ID(mes.ID())
+	timeStamp := time.Now().Unix() - 1
+	timeStamp -= int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds())
+	timeStamp -= int64(libp2p.PubsubTimeCacheDuration.Seconds())
+
+	innerMessage := &data.TopicMessage{
+		Payload:   []byte("data"),
+		Timestamp: timeStamp,
+	}
+	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	msg := &pubsub.Message{
 		Message: &pubsub_pb.Message{
 			From:                 []byte(pid),
-			Data:                 []byte("data"),
+			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
 			TopicIDs:             nil,
 			Signature:            nil,
@@ -1223,16 +1200,16 @@ func TestNetworkMessenger_MessageIdsCacherShouldPreventReprocessing(t *testing.T
 		ValidatorData: nil,
 	}
 
-	assert.True(t, callBackFunc(ctx, pid, msg))  //this will call the handler
 	assert.False(t, callBackFunc(ctx, pid, msg)) //this will not call
 	assert.False(t, callBackFunc(ctx, pid, msg)) //this will not call
-	assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalled))
+	assert.Equal(t, uint32(0), atomic.LoadUint32(&numCalled))
 
 	_ = mes.Close()
 }
 
 func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
@@ -1260,10 +1237,15 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 	callBackFunc := mes.PubsubCallback(handler, "")
 	ctx := context.Background()
 	pid := peer.ID(mes.ID())
+	innerMessage := &data.TopicMessage{
+		Payload:   []byte("data"),
+		Timestamp: time.Now().Unix(),
+	}
+	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	msg := &pubsub.Message{
 		Message: &pubsub_pb.Message{
 			From:                 []byte("not a valid pid"),
-			Data:                 []byte("data"),
+			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
 			TopicIDs:             nil,
 			Signature:            nil,
@@ -1284,6 +1266,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 
 func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
@@ -1312,10 +1295,15 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 	callBackFunc := mes.PubsubCallback(handler, "")
 	ctx := context.Background()
 	pid := peer.ID(mes.ID())
+	innerMessage := &data.TopicMessage{
+		Payload:   []byte("data"),
+		Timestamp: time.Now().Unix(),
+	}
+	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	msg := &pubsub.Message{
 		Message: &pubsub_pb.Message{
 			From:                 []byte(mes.ID()),
-			Data:                 []byte("data"),
+			Data:                 buff,
 			Seqno:                []byte{0, 0, 0, 1},
 			TopicIDs:             nil,
 			Signature:            nil,
@@ -1336,6 +1324,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 
 func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 	args := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{
