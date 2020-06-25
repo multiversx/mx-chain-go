@@ -5,15 +5,15 @@ type GlobalSettings struct {
 	TotalSupply      string
 	MinimumInflation float64
 	MaximumInflation float64
+	Denomination     int
 }
 
 // RewardsSettings will hold economics rewards settings
 type RewardsSettings struct {
-	LeaderPercentage               float64
-	DeveloperPercentage            float64
-	CommunityPercentage            float64
-	CommunityAddress               string
-	DenominationCoefficientForView string
+	LeaderPercentage    float64
+	DeveloperPercentage float64
+	CommunityPercentage float64
+	CommunityAddress    string
 }
 
 // FeeSettings will hold economics fee settings

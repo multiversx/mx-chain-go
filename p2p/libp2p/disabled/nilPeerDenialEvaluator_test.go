@@ -1,4 +1,4 @@
-package libp2p
+package disabled
 
 import (
 	"testing"
@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNilBlacklistHandler_ShouldWork(t *testing.T) {
-	nbh := &nilBlacklistHandler{}
+func TestNilPeerDenialEvaluator_ShouldWork(t *testing.T) {
+	nbh := &NilPeerDenialEvaluator{}
 
 	assert.False(t, check.IfNil(nbh))
-	assert.False(t, nbh.Has(""))
+	assert.False(t, nbh.IsDenied(""))
 }
