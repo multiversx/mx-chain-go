@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/elastic/go-elasticsearch/v7"
@@ -158,9 +159,18 @@ func (dc *databaseClient) DoMultiGet(obj object, index string) (object, error) {
 		return nil, fmt.Errorf("do multi get %s", res.String())
 	}
 
+	var responseBody []byte
+	responseBody, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Warn("indexer:cannot read from response body", "error", err,
+			"body", string(responseBody))
+		return nil, err
+	}
+
 	var decodedBody object
-	if err := json.NewDecoder(res.Body).Decode(&decodedBody); err != nil {
-		log.Warn("indexer cannot decode body", "error", err)
+	if err := json.Unmarshal(responseBody, &decodedBody); err != nil {
+		log.Warn("indexer cannot decode body", "error", err,
+			"body", string(responseBody))
 		return nil, err
 	}
 
