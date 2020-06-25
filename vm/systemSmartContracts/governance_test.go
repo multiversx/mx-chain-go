@@ -253,7 +253,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldWork(t *testing.T) {
 			}
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			if strings.Contains(string(key), string(gitHubCommit)) {
+			if strings.Contains(string(key), string(proposalPrefix)) {
 				genProposal := &GeneralProposal{}
 				_ = json.Unmarshal(value, genProposal)
 				require.Equal(t, gitHubCommit, genProposal.GitHubCommit)
@@ -603,4 +603,12 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 	}
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+
+	// check if last proposal is voted and closed
+	key := append([]byte(proposalPrefix), gitHubCommit2...)
+	proposalBytes := gsc.eei.GetStorage(key)
+	generalProp := &GeneralProposal{}
+	_ = json.Unmarshal(proposalBytes, generalProp)
+	require.True(t, generalProp.Closed)
+	require.True(t, generalProp.Voted)
 }
