@@ -178,10 +178,11 @@ func (tpc *txsPoolsCleaner) processReceivedTx(
 	receiverShardID uint32,
 	txType int8,
 ) {
-	tpc.mutMapTxsRounds.Lock()
-	defer tpc.mutMapTxsRounds.Unlock()
+	tpc.mutMapTxsRounds.RLock()
+	_, ok := tpc.mapTxsRounds[string(key)]
+	tpc.mutMapTxsRounds.RUnlock()
 
-	if _, ok := tpc.mapTxsRounds[string(key)]; !ok {
+	if !ok {
 		transactionPool := tpc.getTransactionPool(txType)
 		if transactionPool == nil {
 			return
@@ -201,7 +202,9 @@ func (tpc *txsPoolsCleaner) processReceivedTx(
 			txStore:         txStore,
 		}
 
+		tpc.mutMapTxsRounds.Lock()
 		tpc.mapTxsRounds[string(key)] = currTxInfo
+		tpc.mutMapTxsRounds.Unlock()
 
 		log.Trace("transaction has been added",
 			"hash", key,

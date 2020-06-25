@@ -132,6 +132,8 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		return
 	}
 
+	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
+
 	bbt.addHeader(shardHeader, shardHeaderHash)
 	bbt.blockProcessor.ProcessReceivedHeader(shardHeader)
 }
@@ -156,7 +158,7 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		return
 	}
 
-	bbt.doWhitelistIfNeeded(metaBlock)
+	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
 
 	bbt.addHeader(metaBlock, metaBlockHash)
 	bbt.blockProcessor.ProcessReceivedHeader(metaBlock)
@@ -711,7 +713,7 @@ func (bbt *baseBlockTrack) initNotarizedHeaders(startHeaders map[uint32]data.Hea
 	return nil
 }
 
-func (bbt *baseBlockTrack) doWhitelistIfNeeded(metablock *block.MetaBlock) {
+func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock *block.MetaBlock) {
 	selfShardID := bbt.shardCoordinator.SelfId()
 	if selfShardID == core.MetachainShardId {
 		return
@@ -737,6 +739,26 @@ func (bbt *baseBlockTrack) doWhitelistIfNeeded(metablock *block.MetaBlock) {
 		if len(crossMbKeysShard) > 0 {
 			keys = append(keys, crossMbKeysShard...)
 		}
+	}
+
+	bbt.whitelistHandler.Add(keys)
+}
+
+func (bbt *baseBlockTrack) doWhitelistWithShardHeaderIfNeeded(shardHeader *block.Header) {
+	selfShardID := bbt.shardCoordinator.SelfId()
+	if selfShardID != core.MetachainShardId {
+		return
+	}
+	if shardHeader == nil {
+		return
+	}
+
+	miniBlockHdrs := shardHeader.GetMiniBlockHeaders()
+	keys := make([][]byte, 0)
+
+	crossMbKeysShard := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, shardHeader.ShardID)
+	if len(crossMbKeysShard) > 0 {
+		keys = append(keys, crossMbKeysShard...)
 	}
 
 	bbt.whitelistHandler.Add(keys)

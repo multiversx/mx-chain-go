@@ -148,13 +148,11 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 		return err
 	}
 
-	metaMiniBlocksData, metaTransactionsData := mcm.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
-
 	vData := &validatorHeaderBroadcastData{
 		headerHash:           headerHash,
 		header:               header,
-		metaMiniBlocksData:   metaMiniBlocksData,
-		metaTransactionsData: metaTransactionsData,
+		metaMiniBlocksData:   miniBlocks,
+		metaTransactionsData: transactions,
 		order:                uint32(idx),
 	}
 
