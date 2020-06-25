@@ -509,8 +509,11 @@ var ErrNilSCToProtocol = errors.New("nil sc to protocol")
 // ErrNilNodesSetup signals that nil nodes setup has been provided
 var ErrNilNodesSetup = errors.New("nil nodes setup")
 
-// ErrNilBlackListHandler signals that a nil black list handler was provided
-var ErrNilBlackListHandler = errors.New("nil black list handler")
+// ErrNilBlackListCacher signals that a nil black list cacher was provided
+var ErrNilBlackListCacher = errors.New("nil black list cacher")
+
+// ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
+var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
 
 // ErrNilBlockTracker signals that a nil block tracker was provided
 var ErrNilBlockTracker = errors.New("nil block tracker")

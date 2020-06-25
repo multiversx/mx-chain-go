@@ -229,3 +229,6 @@ var ErrNilImportStartHandler = errors.New("nil import start handler")
 
 // ErrEmptyVersionString signals that the provided version string is empty
 var ErrEmptyVersionString = errors.New("empty version string")
+
+// ErrNilTimeCache signals that a nil time cache was provided
+var ErrNilTimeCache = errors.New("nil time cache")

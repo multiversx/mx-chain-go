@@ -116,8 +116,8 @@ var ErrEmptySeed = errors.New("empty seed")
 // ErrEmptyBuffer signals that an empty buffer has been provided
 var ErrEmptyBuffer = errors.New("empty buffer")
 
-// ErrNilPeerBlacklistHandler signals that a nil peer black list handler was provided
-var ErrNilPeerBlacklistHandler = errors.New("nil peer black list handler")
+// ErrNilPeerDenialEvaluator signals that a nil peer denial evaluator was provided
+var ErrNilPeerDenialEvaluator = errors.New("nil peer denial evaluator")
 
 // ErrNilStatusHandler signals that a nil status handler has been provided
 var ErrNilStatusHandler = errors.New("nil status handler")

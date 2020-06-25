@@ -248,8 +248,8 @@ const MetricPeerType = "erd_peer_type"
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_leader_percentage"
 
-//MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
-const MetricDenominationCoefficient = "erd_denomination_coefficient"
+//MetricDenomination is the metric for exposing the denomination
+const MetricDenomination = "erd_denomination"
 
 // MetricRoundAtEpochStart is the metric for storing the first round of the current epoch
 const MetricRoundAtEpochStart = "erd_round_at_epoch_start"

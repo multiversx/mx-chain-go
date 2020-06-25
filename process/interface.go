@@ -589,22 +589,26 @@ type PeerChangesHandler interface {
 	IsInterfaceNil() bool
 }
 
-// BlackListHandler can determine if a certain key is or not blacklisted
-type BlackListHandler interface {
+// TimeCacher defines the cache that can keep a record for a bounded time
+type TimeCacher interface {
 	Add(key string) error
-	AddWithSpan(key string, span time.Duration) error
+	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool
 }
 
-// PeerBlackListHandler can determine if a certain key is or not blacklisted
-type PeerBlackListHandler interface {
-	Add(pid core.PeerID) error
-	AddWithSpan(pid core.PeerID, span time.Duration) error
-	Update(pid core.PeerID, span time.Duration) error
+// PeerBlackListCacher can determine if a certain peer id is or not blacklisted
+type PeerBlackListCacher interface {
+	Upsert(pid core.PeerID, span time.Duration) error
 	Has(pid core.PeerID) bool
 	Sweep()
+	IsInterfaceNil() bool
+}
+
+// PeerShardMapper can return the public key of a provided peer ID
+type PeerShardMapper interface {
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 

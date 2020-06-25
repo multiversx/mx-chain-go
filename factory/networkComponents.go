@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -50,7 +51,7 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 		return nil, err
 	}
 
-	inAntifloodHandler, p2pPeerBlackList, errNewAntiflood := antifloodFactory.NewP2PAntiFloodAndBlackList(
+	inAntifloodHandler, peerIdBlackList, pkTimeCache, errNewAntiflood := antifloodFactory.NewP2PAntiFloodAndBlackList(
 		ncf.mainConfig,
 		ncf.statusHandler,
 		netMessenger.ID(),
@@ -60,7 +61,8 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 	}
 
 	if ncf.mainConfig.Debug.Antiflood.Enabled {
-		debugger, err := antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
+		var debugger process.AntifloodDebugger
+		debugger, err = antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
 		if err != nil {
 			return nil, err
 		}
@@ -86,11 +88,6 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
 	}
 
-	err = netMessenger.SetPeerBlackListHandler(p2pPeerBlackList)
-	if err != nil {
-		return nil, err
-	}
-
 	cache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(ncf.mainConfig.P2PMessageIDAdditionalCache))
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating p2p cacher", err)
@@ -105,6 +102,7 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 		NetMessenger:           netMessenger,
 		InputAntifloodHandler:  inputAntifloodHandler,
 		OutputAntifloodHandler: outputAntifloodHandler,
-		PeerBlackListHandler:   p2pPeerBlackList,
+		PeerBlackListHandler:   peerIdBlackList,
+		PkTimeCache:            pkTimeCache,
 	}, nil
 }

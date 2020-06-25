@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -429,23 +430,23 @@ func WithIndexer(indexer indexer.Indexer) Option {
 }
 
 // WithBlockBlackListHandler sets up a block black list handler for the Node
-func WithBlockBlackListHandler(blackListHandler process.BlackListHandler) Option {
+func WithBlockBlackListHandler(blackListHandler process.TimeCacher) Option {
 	return func(n *Node) error {
 		if check.IfNil(blackListHandler) {
-			return fmt.Errorf("%w for WithBlockBlackListHandler", ErrNilBlackListHandler)
+			return fmt.Errorf("%w for WithBlockBlackListHandler", ErrNilTimeCache)
 		}
 		n.blocksBlackListHandler = blackListHandler
 		return nil
 	}
 }
 
-// WithPeerBlackListHandler sets up a block black list handler for the Node
-func WithPeerBlackListHandler(blackListHandler process.PeerBlackListHandler) Option {
+// WithPeerDenialEvaluator sets up a peer denial evaluator for the Node
+func WithPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) Option {
 	return func(n *Node) error {
-		if check.IfNil(blackListHandler) {
-			return fmt.Errorf("%w for WithPeerBlackListHandler", ErrNilBlackListHandler)
+		if check.IfNil(handler) {
+			return fmt.Errorf("%w for WithPeerDenialEvaluator", ErrNilPeerDenialEvaluator)
 		}
-		n.peerBlackListHandler = blackListHandler
+		n.peerDenialEvaluator = handler
 		return nil
 	}
 }
