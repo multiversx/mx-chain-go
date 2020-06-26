@@ -475,7 +475,7 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 
 	eei.SetSCAddress([]byte("addr"))
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
-		return &mock.AuctionSCMock{
+		return &mock.SystemSCStub{
 			ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 				auctionData := &AuctionData{
 					NumStaked: 1,
@@ -491,7 +491,7 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 	args.Eei = eei
 	gsc, _ := NewGovernanceContract(args)
 
-	callerAddr := []byte("addr1")
+	secondWLAddr := []byte("addr1")
 	recipientAddr := []byte("recipientAddress")
 	startNonce := uint64(100)
 	stopNonce := uint64(1000)
@@ -499,116 +499,104 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 
 	// init governance smart contract
 	ownerAddress := []byte("addr1")
-	callInput := createVMInput(big.NewInt(0), core.SCDeployInitFunctionName, ownerAddress, recipientAddr)
-	retCode := gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
+	initGovernanceSc(t, gsc, ownerAddress, recipientAddr)
 
 	// white list address at genesis
 	genesisWLAddr := []byte("genesisAddr")
-	callInput = createVMInput(big.NewInt(0), "whiteList", genesisWLAddr, recipientAddr)
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
+	whiteListAddrAtGenesis(t, gsc, genesisWLAddr, recipientAddr)
 
 	// white list address
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return 1
 	}
-
-	callInput = createVMInput(big.NewInt(100), "whiteList", callerAddr, recipientAddr)
-	callInput.Arguments = [][]byte{
-		gitHubCommit,
-		[]byte(fmt.Sprintf("%d", startNonce)),
-		[]byte(fmt.Sprintf("%d", stopNonce)),
-	}
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
+	openProposal(t, gsc, "whiteList", secondWLAddr, recipientAddr, gitHubCommit, startNonce, stopNonce)
 
 	// vote address 1
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return startNonce + 1
 	}
 	validatorAddress1 := []byte("vala1")
-	callInput = createVMInput(big.NewInt(0), "vote", validatorAddress1, recipientAddr)
-	callInput.Arguments = [][]byte{
-		callerAddr,
-		[]byte("yes"),
-	}
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
+	voteProposal(t, gsc, validatorAddress1, secondWLAddr, recipientAddr, "yes")
 
 	// vote address 2
 	validatorAddress2 := []byte("vala2")
-	callInput = createVMInput(big.NewInt(0), "vote", validatorAddress2, recipientAddr)
-	callInput.Arguments = [][]byte{
-		callerAddr,
-		[]byte("yes"),
-	}
-
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
+	voteProposal(t, gsc, validatorAddress2, secondWLAddr, recipientAddr, "yes")
 
 	// close white list
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return stopNonce + 1
 	}
-	callInput = createVMInput(big.NewInt(0), "closeProposal", genesisWLAddr, recipientAddr)
-	callInput.Arguments = [][]byte{
-		callerAddr,
-	}
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
+	closeProposal(t, gsc, genesisWLAddr, secondWLAddr, recipientAddr)
 
 	// create a new proposal
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return 1
 	}
-	gitHubCommit2 := []byte("1123456789012345678901234567890123456789")
-	callInput = createVMInput(big.NewInt(100), "proposal", callerAddr, recipientAddr)
-	callInput.Arguments = [][]byte{
-		gitHubCommit2,
-		[]byte(fmt.Sprintf("%d", startNonce)),
-		[]byte(fmt.Sprintf("%d", stopNonce)),
-	}
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
+	gitHubCommitSecondProp := []byte("1123456789012345678901234567890123456789")
+	openProposal(t, gsc, "proposal", secondWLAddr, recipientAddr, gitHubCommitSecondProp, startNonce, stopNonce)
 
 	// vote new proposal validator 1
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return startNonce + 1
 	}
-	callInput = createVMInput(big.NewInt(0), "vote", validatorAddress1, recipientAddr)
-	callInput.Arguments = [][]byte{
-		gitHubCommit2,
-		[]byte("yes"),
-	}
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
+	voteProposal(t, gsc, validatorAddress1, gitHubCommitSecondProp, recipientAddr, "yes")
 
 	// vote new proposal validator 2
-	callInput = createVMInput(big.NewInt(0), "vote", validatorAddress2, recipientAddr)
-	callInput.Arguments = [][]byte{
-		gitHubCommit2,
-		[]byte("yes"),
-	}
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
+	voteProposal(t, gsc, validatorAddress2, gitHubCommitSecondProp, recipientAddr, "yes")
 
 	// close new proposal
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return stopNonce + 1
 	}
-	callInput = createVMInput(big.NewInt(0), "closeProposal", callerAddr, recipientAddr)
-	callInput.Arguments = [][]byte{
-		gitHubCommit2,
-	}
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
+	closeProposal(t, gsc, secondWLAddr, gitHubCommitSecondProp, recipientAddr)
 
 	// check if last proposal is voted and closed
-	key := append([]byte(proposalPrefix), gitHubCommit2...)
+	key := append([]byte(proposalPrefix), gitHubCommitSecondProp...)
 	proposalBytes := gsc.eei.GetStorage(key)
 	generalProp := &GeneralProposal{}
 	_ = json.Unmarshal(proposalBytes, generalProp)
 	require.True(t, generalProp.Closed)
 	require.True(t, generalProp.Voted)
+}
+
+func initGovernanceSc(t *testing.T, g *governanceContract, ownerAddress, recipientAddr []byte) {
+	callInput := createVMInput(big.NewInt(0), core.SCDeployInitFunctionName, ownerAddress, recipientAddr)
+	retCode := g.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func whiteListAddrAtGenesis(t *testing.T, g *governanceContract, genesisWLAddr, recipientAddr []byte) {
+	callInput := createVMInput(big.NewInt(0), "whiteList", genesisWLAddr, recipientAddr)
+	retCode := g.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func voteProposal(t *testing.T, g *governanceContract, validatorAddr, propAddr, recipientAddr []byte, vote string) {
+	callInput := createVMInput(big.NewInt(0), "vote", validatorAddr, recipientAddr)
+	callInput.Arguments = [][]byte{
+		propAddr,
+		[]byte(vote),
+	}
+	retCode := g.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func closeProposal(t *testing.T, g *governanceContract, WLAddr, propAddr, recipientAddr []byte) {
+	callInput := createVMInput(big.NewInt(0), "closeProposal", WLAddr, recipientAddr)
+	callInput.Arguments = [][]byte{
+		propAddr,
+	}
+	retCode := g.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func openProposal(t *testing.T, g *governanceContract, propType string, WLAddr, recipientAddr, gitHubCommit []byte, startNonce, stopNonce uint64) {
+	callInput := createVMInput(big.NewInt(100), propType, WLAddr, recipientAddr)
+	callInput.Arguments = [][]byte{
+		gitHubCommit,
+		[]byte(fmt.Sprintf("%d", startNonce)),
+		[]byte(fmt.Sprintf("%d", stopNonce)),
+	}
+	retCode := g.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
 }
