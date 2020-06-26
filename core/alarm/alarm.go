@@ -173,6 +173,29 @@ func (as *alarmScheduler) Close() {
 	as.cancelFunc()
 }
 
+// Reset resets the alarm with the given id
+func (as *alarmScheduler) Reset(alarmID string) {
+	as.mutScheduledAlarms.RLock()
+	alarm, ok := as.scheduledAlarms[alarmID]
+	callback := alarm.callback
+	duration := alarm.initialDuration
+	as.mutScheduledAlarms.RUnlock()
+
+	if !ok {
+		return
+	}
+
+	evt := alarmEvent{
+		alarmID: alarmID,
+		alarm:   nil,
+		event:   cancel,
+	}
+
+	as.event <- evt
+
+	as.Add(callback, duration, alarmID)
+}
+
 // IsInterfaceNil returns true if interface is nil
 func (as *alarmScheduler) IsInterfaceNil() bool {
 	return as == nil

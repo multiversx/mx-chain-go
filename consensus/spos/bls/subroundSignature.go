@@ -133,10 +133,11 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	}
 
 	if !sr.IsNodeInConsensusGroup(node) {
-		sr.PeerHonestyHandler().Decrease(
+		sr.PeerHonestyHandler().ChangeScore(
 			node,
 			spos.GetConsensusTopicID(sr.ShardCoordinator()),
-			spos.ValidatorPeerHonestyDecreaseFactor)
+			spos.ValidatorPeerHonestyDecreaseFactor,
+		)
 
 		return false
 	}
@@ -179,10 +180,11 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	sr.PeerHonestyHandler().Increase(
+	sr.PeerHonestyHandler().ChangeScore(
 		node,
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.ValidatorPeerHonestyIncreaseFactor)
+		spos.ValidatorPeerHonestyIncreaseFactor,
+	)
 
 	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "signed")
 	return true
