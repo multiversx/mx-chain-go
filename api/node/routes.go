@@ -28,13 +28,6 @@ type FacadeHandler interface {
 	IsInterfaceNil() bool
 }
 
-// TODO remove this struct, use shared.GenericAPIResponse
-type genericApiResponse struct {
-	Data  interface{} `json:"data"`
-	Error string      `json:"error"`
-	Code  string      `json:"code"`
-}
-
 // QueryDebugRequest represents the structure on which user input for querying a debug info will validate against
 type QueryDebugRequest struct {
 	Name   string `form:"name" json:"name"`
@@ -279,10 +272,10 @@ func PeerInfo(c *gin.Context) {
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
-			genericApiResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: "invalid app context", //TODO replace with errors.ErrInvalidAppContext.Error()
-				Code:  "internal_issue",      //TODO replace with shared.ReturnCodeInternalError
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -299,10 +292,10 @@ func PeerInfo(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			genericApiResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrGetPidInfo.Error(), err.Error()),
-				Code:  "internal error", //TODO return shared.ReturnCodeInternalError
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -310,10 +303,10 @@ func PeerInfo(c *gin.Context) {
 
 	c.JSON(
 		http.StatusOK,
-		genericApiResponse{
+		shared.GenericAPIResponse{
 			Data:  gin.H{"info": info},
 			Error: "",
-			Code:  "successful", //TODO replace with shared.ReturnCodeSuccess,
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }
