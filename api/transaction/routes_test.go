@@ -40,16 +40,6 @@ type TransactionHashResponse struct {
 	TxHash string `json:"txHash,omitempty"`
 }
 
-type transactionStatusResponseData struct {
-	Status string `json:"status"`
-}
-
-type TransactionStatusResponse struct {
-	Data  transactionStatusResponseData `json:"data"`
-	Error string                        `json:"error"`
-	Code  string                        `json:"code"`
-}
-
 type transactionCostResponseData struct {
 	Cost uint64 `json:"txGasUnits"`
 }
@@ -62,40 +52,6 @@ type TransactionCostResponse struct {
 
 func init() {
 	gin.SetMode(gin.TestMode)
-}
-
-func TestGetTransactionStatus(t *testing.T) {
-	rightHash := "hash"
-	wrongHash := "wronghash"
-	facade := mock.Facade{
-		GetTransactionStatusCalled: func(hash string) (string, error) {
-			if hash == rightHash {
-				return "pending", nil
-			}
-			return "unknown", nil
-		},
-	}
-
-	req, _ := http.NewRequest("GET", "/transaction/"+wrongHash+"/status", nil)
-	ws := startNodeServer(&facade)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := TransactionStatusResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, "unknown", response.Data.Status)
-
-	req, _ = http.NewRequest("GET", "/transaction/"+rightHash+"/status", nil)
-	resp = httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response = TransactionStatusResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, "pending", response.Data.Status)
 }
 
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {

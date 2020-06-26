@@ -882,7 +882,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
-		if hdrsAdded > process.MaxShardHeadersAllowedInOneMetaBlock {
+		if hdrsAdded >= process.MaxShardHeadersAllowedInOneMetaBlock {
 			log.Debug("maximum shard headers allowed to be included in one meta block has been reached",
 				"shard headers added", hdrsAdded,
 			)
@@ -898,7 +898,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			continue
 		}
 
-		if hdrsAddedForShard[currShardHdr.GetShardID()] > maxShardHeadersFromSameShard {
+		if hdrsAddedForShard[currShardHdr.GetShardID()] >= maxShardHeadersFromSameShard {
 			log.Trace("maximum shard headers from same shard allowed to be included in one meta block has been reached",
 				"shard", currShardHdr.GetShardID(),
 				"shard headers added", hdrsAddedForShard[currShardHdr.GetShardID()],

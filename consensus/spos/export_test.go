@@ -156,8 +156,8 @@ func (wrk *Worker) AppStatusHandler() core.AppStatusHandler {
 	return wrk.appStatusHandler
 }
 
-func (wrk *Worker) CheckConsensusMessageValidity(cnsMsg *consensus.Message) error {
-	return wrk.checkConsensusMessageValidity(cnsMsg)
+func (wrk *Worker) CheckConsensusMessageValidity(cnsMsg *consensus.Message, originator core.PeerID) error {
+	return wrk.checkConsensusMessageValidity(cnsMsg, originator)
 }
 
 func (wrk *Worker) CheckMessageWithFinalInfoValidity(cnsMsg *consensus.Message) error {

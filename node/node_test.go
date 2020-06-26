@@ -953,6 +953,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithDataStore(&mock.ChainStorerMock{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1002,6 +1003,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1048,6 +1050,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1076,6 +1079,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithDataStore(&mock.ChainStorerMock{}),
 		node.WithDataPool(testscommon.NewPoolsHolderStub()),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1132,7 +1136,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
@@ -1147,7 +1151,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 			},
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
@@ -1159,6 +1163,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1215,7 +1220,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
@@ -1230,7 +1235,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 			},
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
@@ -1241,6 +1246,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1304,7 +1310,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 				return 0
 			},
 		}),
-		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
@@ -1328,7 +1334,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 			},
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
@@ -1351,8 +1357,10 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
+		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1933,8 +1941,8 @@ func TestNode_ShouldWork(t *testing.T) {
 			},
 		}),
 		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(32)),
-		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{
-			HasCalled: func(pid core.PeerID) bool {
+		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{
+			IsDeniedCalled: func(pid core.PeerID) bool {
 				return pid == core.PeerID(pid1)
 			},
 		}),

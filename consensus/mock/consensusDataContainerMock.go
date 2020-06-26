@@ -31,6 +31,7 @@ type ConsensusCoreMock struct {
 	validatorGroupSelector sharding.NodesCoordinator
 	epochStartNotifier     epochStart.RegistrationHandler
 	antifloodHandler       consensus.P2PAntifloodHandler
+	peerHonestyHandler     consensus.PeerHonestyHandler
 }
 
 // GetAntiFloodHandler -
@@ -181,6 +182,11 @@ func (ccm *ConsensusCoreMock) PrivateKey() crypto.PrivateKey {
 // SingleSigner returns the bls single signer stored in the ConsensusStore
 func (ccm *ConsensusCoreMock) SingleSigner() crypto.SingleSigner {
 	return ccm.blsSingleSigner
+}
+
+// PeerHonestyHandler -
+func (ccm *ConsensusCoreMock) PeerHonestyHandler() consensus.PeerHonestyHandler {
+	return ccm.peerHonestyHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

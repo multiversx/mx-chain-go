@@ -37,7 +37,7 @@ func TestNewBasicForkDetector_ShouldErrNilBlackListHandler(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	assert.Equal(t, process.ErrNilBlackListHandler, err)
+	assert.Equal(t, process.ErrNilBlackListCacher, err)
 	assert.Nil(t, bfd)
 }
 

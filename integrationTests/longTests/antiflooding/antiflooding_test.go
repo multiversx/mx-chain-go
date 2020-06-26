@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -52,6 +53,20 @@ func createWorkableConfig() config.Config {
 				BlackList: config.BlackListConfig{
 					ThresholdNumMessagesPerInterval: 6000,
 					ThresholdSizePerInterval:        37748736,
+					NumFloodingRounds:               2,
+					PeerBanDurationInSeconds:        3600,
+				},
+			},
+			OutOfSpecs: config.FloodPreventerConfig{
+				IntervalInSeconds: 1,
+				ReservedPercent:   0,
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: 1000,
+					TotalSizePerInterval:    8388608,
+				},
+				BlackList: config.BlackListConfig{
+					ThresholdNumMessagesPerInterval: 1500,
+					ThresholdSizePerInterval:        10485760,
 					NumFloodingRounds:               2,
 					PeerBanDurationInSeconds:        3600,
 				},
@@ -100,11 +115,12 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 	processors := make([]*messageProcessor, 0, len(peers))
 	for i := 0; i < len(peers); i++ {
 		var antiflood process.P2PAntifloodHandler
-		var blackListHandler process.PeerBlackListHandler
+		var blackListHandler process.PeerBlackListCacher
+		var pkTimeCache process.TimeCacher
 		var err error
 
 		if intInSlice(i, idxBadPeers) {
-			antiflood, blackListHandler, err = factory.NewP2PAntiFloodAndBlackList(
+			antiflood, blackListHandler, pkTimeCache, err = factory.NewP2PAntiFloodAndBlackList(
 				createDisabledConfig(),
 				&mock.AppStatusHandlerStub{},
 				peers[i].ID(),
@@ -114,7 +130,7 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 
 		if intInSlice(i, idxGoodPeers) {
 			statusHandler := &mock.AppStatusHandlerStub{}
-			antiflood, blackListHandler, err = factory.NewP2PAntiFloodAndBlackList(
+			antiflood, blackListHandler, pkTimeCache, err = factory.NewP2PAntiFloodAndBlackList(
 				createWorkableConfig(),
 				statusHandler,
 				peers[i].ID(),
@@ -122,7 +138,13 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 			log.LogIfError(err)
 		}
 
-		err = peers[i].SetPeerBlackListHandler(blackListHandler)
+		pde, _ := blackList.NewPeerDenialEvaluator(
+			blackListHandler,
+			pkTimeCache,
+			&mock.PeerShardMapperStub{},
+		)
+
+		err = peers[i].SetPeerDenialEvaluator(pde)
 		log.LogIfError(err)
 
 		proc := NewMessageProcessor(antiflood, peers[i])

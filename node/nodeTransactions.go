@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	rewardTxData "github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -46,33 +47,6 @@ func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult,
 	}
 
 	return nil, fmt.Errorf("transaction not found")
-}
-
-// GetTransactionStatus gets the transaction status
-func (n *Node) GetTransactionStatus(txHash string) (string, error) {
-	if !n.apiTransactionByHashThrottler.CanProcess() {
-		return "", ErrSystemBusyTxHash
-	}
-
-	n.apiTransactionByHashThrottler.StartProcessing()
-	defer n.apiTransactionByHashThrottler.EndProcessing()
-
-	hash, err := hex.DecodeString(txHash)
-	if err != nil {
-		return "", err
-	}
-
-	_, _, foundInDataPool := n.getTxObjFromDataPool(hash)
-	if foundInDataPool {
-		return string(core.TxStatusReceived), nil
-	}
-
-	foundInStorage := n.isTxInStorage(hash)
-	if foundInStorage {
-		return string(core.TxStatusExecuted), nil
-	}
-
-	return string(core.TxStatusUnknown), nil
 }
 
 func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transactionType, bool) {
@@ -141,15 +115,18 @@ func (n *Node) castObjToTransaction(txObj interface{}, txType transactionType) (
 	switch txType {
 	case normalTx:
 		if tx, ok := txObj.(*transaction.Transaction); ok {
-			return n.prepareNormalTx(tx)
+			status := n.computeTransactionStatus(tx, true)
+			return n.prepareNormalTx(tx, status)
 		}
 	case rewardTx:
 		if tx, ok := txObj.(*rewardTxData.RewardTx); ok {
-			return n.prepareRewardTx(tx)
+			status := n.computeTransactionStatus(tx, true)
+			return n.prepareRewardTx(tx, status)
 		}
 	case unsignedTx:
 		if tx, ok := txObj.(*smartContractResult.SmartContractResult); ok {
-			return n.prepareUnsignedTx(tx)
+			status := n.computeTransactionStatus(tx, true)
+			return n.prepareUnsignedTx(tx, status)
 		}
 	}
 
@@ -164,14 +141,16 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 		if err != nil {
 			return nil, err
 		}
-		return n.prepareNormalTx(&tx)
+		status := n.computeTransactionStatus(&tx, false)
+		return n.prepareNormalTx(&tx, status)
 	case rewardTx:
 		var tx rewardTxData.RewardTx
 		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
-		return n.prepareRewardTx(&tx)
+		status := n.computeTransactionStatus(&tx, false)
+		return n.prepareRewardTx(&tx, status)
 
 	case unsignedTx:
 		var tx smartContractResult.SmartContractResult
@@ -179,13 +158,14 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 		if err != nil {
 			return nil, err
 		}
-		return n.prepareUnsignedTx(&tx)
+		status := n.computeTransactionStatus(&tx, false)
+		return n.prepareUnsignedTx(&tx, status)
 	default:
 		return &transaction.ApiTransactionResult{Type: string(invalidTx)}, nil // this shouldn't happen
 	}
 }
 
-func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
+func (n *Node) prepareNormalTx(tx *transaction.Transaction, status core.TransactionStatus) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Type:      string(normalTx),
 		Nonce:     tx.Nonce,
@@ -196,20 +176,26 @@ func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTra
 		GasLimit:  tx.GasLimit,
 		Data:      string(tx.Data),
 		Signature: hex.EncodeToString(tx.Signature),
+		Status:    status,
 	}, nil
 }
 
-func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTransactionResult, error) {
+func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx, status core.TransactionStatus) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Type:     string(rewardTx),
 		Round:    tx.GetRound(),
 		Epoch:    tx.GetEpoch(),
 		Value:    tx.GetValue().String(),
+		Sender:   fmt.Sprintf("%d", core.MetachainShardId),
 		Receiver: n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
+		Status:   status,
 	}, nil
 }
 
-func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
+func (n *Node) prepareUnsignedTx(
+	tx *smartContractResult.SmartContractResult,
+	status core.TransactionStatus,
+) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Type:      string(unsignedTx),
 		Nonce:     tx.GetNonce(),
@@ -221,5 +207,39 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		Data:      string(tx.GetData()),
 		Code:      string(tx.GetCode()),
 		Signature: "",
+		Status:    status,
 	}, nil
+}
+
+func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool bool) core.TransactionStatus {
+	selfShardID := n.shardCoordinator.SelfId()
+	receiverShardID := n.shardCoordinator.ComputeId(tx.GetRcvAddr())
+
+	var senderShardID uint32
+	sndAddr := tx.GetSndAddr()
+	if sndAddr != nil {
+		senderShardID = n.shardCoordinator.ComputeId(tx.GetSndAddr())
+	} else {
+		// reward transaction (sender address is nil)
+		senderShardID = core.MetachainShardId
+	}
+
+	isDestinationMe := selfShardID == receiverShardID
+	if isInPool {
+
+		isCrossShard := senderShardID != receiverShardID
+		if isDestinationMe && isCrossShard {
+			return core.TxStatusPartiallyExecuted
+		}
+
+		return core.TxStatusReceived
+	}
+
+	// transaction is in storage
+	if isDestinationMe {
+		return core.TxStatusExecuted
+	}
+
+	// is in storage on source shard
+	return core.TxStatusPartiallyExecuted
 }

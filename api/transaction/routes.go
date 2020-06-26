@@ -20,7 +20,6 @@ type TxService interface {
 	ValidateTransaction(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
-	GetTransactionStatus(hash string) (string, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	IsInterfaceNil() bool
@@ -69,7 +68,6 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodPost, "/cost", ComputeTransactionGasLimit)
 	router.RegisterHandler(http.MethodPost, "/send-multiple", SendMultipleTransactions)
 	router.RegisterHandler(http.MethodGet, "/:txhash", GetTransaction)
-	router.RegisterHandler(http.MethodGet, "/:txhash/status", GetTransactionStatus)
 }
 
 // SendTransaction will receive a transaction from the client and propagate it for processing
@@ -189,11 +187,13 @@ func SendMultipleTransactions(c *gin.Context) {
 		return
 	}
 
-	var txs []*transaction.Transaction
-	var tx *transaction.Transaction
-	var txHash []byte
+	var (
+		txs    []*transaction.Transaction
+		tx     *transaction.Transaction
+		txHash []byte
+	)
 
-	txsHashes := make(map[int]string, 0)
+	txsHashes := make(map[int]string)
 	for idx, receivedTx := range gtx {
 		tx, txHash, err = ef.CreateTransaction(
 			receivedTx.Nonce,
@@ -289,57 +289,6 @@ func GetTransaction(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"transaction": tx},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
-}
-
-// GetTransactionStatus returns the status of a transaction identified by the given hash
-func GetTransactionStatus(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(TxService)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	txhash := c.Param("txhash")
-	if txhash == "" {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyTxHash.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
-		)
-		return
-	}
-
-	status, err := ef.GetTransactionStatus(txhash)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetTransaction.Error(), err.Error()),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data:  gin.H{"status": status},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

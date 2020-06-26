@@ -185,7 +185,7 @@ type TestProcessorNode struct {
 	EconomicsData *economics.TestEconomicsData
 	RatingsData   *rating.RatingsData
 
-	BlockBlackListHandler process.BlackListHandler
+	BlockBlackListHandler process.TimeCacher
 	HeaderValidator       process.HeaderConstructionValidator
 	BlockTracker          process.BlockTracker
 	InterceptorsContainer process.InterceptorsContainer
@@ -738,7 +738,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			AddressPubkeyConverter:  TestAddressPubkeyConverter,
 			MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
 			TxFeeHandler:            tpn.EconomicsData,
-			BlackList:               tpn.BlockBlackListHandler,
+			BlockBlackList:          tpn.BlockBlackListHandler,
 			HeaderSigVerifier:       tpn.HeaderSigVerifier,
 			HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
 			SizeCheckDelta:          sizeCheckDelta,
@@ -1114,7 +1114,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			return nil
 		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return 0
+			return 100
 		},
 		ProbableHighestNonceCalled: func() uint64 {
 			return 0
@@ -1338,7 +1338,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
 		node.WithBlockBlackListHandler(tpn.BlockBlackListHandler),
-		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{}),
+		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
 		node.WithDataPool(tpn.DataPool),
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
@@ -1501,6 +1501,31 @@ func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)
+}
+
+// WhiteListBody will whitelist all miniblocks from the given body for all the given nodes
+func (tpn *TestProcessorNode) WhiteListBody(nodes []*TestProcessorNode, bodyHandler data.BodyHandler) {
+	body, ok := bodyHandler.(*dataBlock.Body)
+	if !ok {
+		return
+	}
+
+	mbHashes := make([][]byte, 0)
+	for _, miniBlock := range body.MiniBlocks {
+		mbMarshalized, err := TestMarshalizer.Marshal(miniBlock)
+		if err != nil {
+			continue
+		}
+
+		mbHash := TestHasher.Compute(string(mbMarshalized))
+		mbHashes = append(mbHashes, mbHash)
+	}
+
+	if len(mbHashes) > 0 {
+		for _, n := range nodes {
+			n.WhiteListHandler.Add(mbHashes)
+		}
+	}
 }
 
 // CommitBlock commits the block and body

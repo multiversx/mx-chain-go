@@ -28,7 +28,7 @@ func TestNewConnectionMonitorWrapper_ShouldWork(t *testing.T) {
 	cmw := newConnectionMonitorWrapper(
 		&mock.NetworkStub{},
 		&mock.ConnectionMonitorStub{},
-		&mock.BlacklistHandlerStub{},
+		&mock.PeerDenialEvaluatorStub{},
 	)
 
 	assert.False(t, check.IfNil(cmw))
@@ -49,8 +49,8 @@ func TestConnectionMonitorNotifier_ConnectedBlackListedShouldCallClose(t *testin
 	cmw := newConnectionMonitorWrapper(
 		&mock.NetworkStub{},
 		&mock.ConnectionMonitorStub{},
-		&mock.BlacklistHandlerStub{
-			HasCalled: func(pid core.PeerID) bool {
+		&mock.PeerDenialEvaluatorStub{
+			IsDeniedCalled: func(pid core.PeerID) bool {
 				return true
 			},
 		},
@@ -73,8 +73,8 @@ func TestConnectionMonitorNotifier_ConnectedNotBlackListedShouldCallConnected(t 
 				peerConnectedCalled = true
 			},
 		},
-		&mock.BlacklistHandlerStub{
-			HasCalled: func(pid core.PeerID) bool {
+		&mock.PeerDenialEvaluatorStub{
+			IsDeniedCalled: func(pid core.PeerID) bool {
 				return false
 			},
 		},
@@ -114,7 +114,7 @@ func TestConnectionMonitorNotifier_FunctionsShouldCallHandler(t *testing.T) {
 				closedCalled = true
 			},
 		},
-		&mock.BlacklistHandlerStub{},
+		&mock.PeerDenialEvaluatorStub{},
 	)
 
 	cmw.Listen(nil, nil)
@@ -138,12 +138,12 @@ func TestConnectionMonitorWrapper_SetBlackListHandlerNilHandlerShouldErr(t *test
 	cmw := newConnectionMonitorWrapper(
 		&mock.NetworkStub{},
 		&mock.ConnectionMonitorStub{},
-		&mock.BlacklistHandlerStub{},
+		&mock.PeerDenialEvaluatorStub{},
 	)
 
-	err := cmw.SetBlackListHandler(nil)
+	err := cmw.SetPeerDenialEvaluator(nil)
 
-	assert.Equal(t, p2p.ErrNilPeerBlacklistHandler, err)
+	assert.Equal(t, p2p.ErrNilPeerDenialEvaluator, err)
 }
 
 func TestConnectionMonitorWrapper_SetBlackListHandlerShouldWork(t *testing.T) {
@@ -152,15 +152,15 @@ func TestConnectionMonitorWrapper_SetBlackListHandlerShouldWork(t *testing.T) {
 	cmw := newConnectionMonitorWrapper(
 		&mock.NetworkStub{},
 		&mock.ConnectionMonitorStub{},
-		&mock.BlacklistHandlerStub{},
+		&mock.PeerDenialEvaluatorStub{},
 	)
-	newBlackListHandler := &mock.BlacklistHandlerStub{}
+	newBlackListHandler := &mock.PeerDenialEvaluatorStub{}
 
-	err := cmw.SetBlackListHandler(newBlackListHandler)
+	err := cmw.SetPeerDenialEvaluator(newBlackListHandler)
 
 	assert.Nil(t, err)
 	//pointer testing
-	assert.True(t, newBlackListHandler == cmw.peerBlackList)
+	assert.True(t, newBlackListHandler == cmw.peerDenialEvaluator)
 }
 
 //------- CheckConnectionsBlocking
@@ -187,8 +187,8 @@ func TestConnectionMonitorWrapper_CheckConnectionsBlockingShouldWork(t *testing.
 			},
 		},
 		&mock.ConnectionMonitorStub{},
-		&mock.BlacklistHandlerStub{
-			HasCalled: func(pid core.PeerID) bool {
+		&mock.PeerDenialEvaluatorStub{
+			IsDeniedCalled: func(pid core.PeerID) bool {
 				return bytes.Equal(core.PeerID(blackListPeer).Bytes(), pid.Bytes())
 			},
 		},

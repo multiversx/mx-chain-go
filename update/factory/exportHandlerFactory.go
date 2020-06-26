@@ -419,7 +419,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		AddressPubkeyConverter:  e.addressPubkeyConverter,
 		MaxTxNonceDeltaAllowed:  math.MaxInt32,
 		TxFeeHandler:            &disabled.FeeHandler{},
-		BlackList:               timecache.NewTimeCache(time.Second),
+		BlockBlackList:          timecache.NewTimeCache(time.Second),
 		HeaderSigVerifier:       e.headerSigVerifier,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		SizeCheckDelta:          math.MaxUint32,

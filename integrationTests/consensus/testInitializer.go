@@ -365,7 +365,6 @@ func createConsensusOnlyNode(
 	_ = testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
 
 	accntAdapter := createAccountsDB(testMarshalizer)
-
 	n, err := node.NewNode(
 		node.WithInitialNodesPubKeys(inPubKeys),
 		node.WithRoundDuration(roundTime),
@@ -395,8 +394,8 @@ func createConsensusOnlyNode(
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
-		node.WithBlockBlackListHandler(&mock.BlackListHandlerStub{}),
-		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
+		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
 		node.WithEpochStartTrigger(epochStartTrigger),
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithNetworkShardingCollector(mock.NewNetworkShardingCollectorMock()),
@@ -411,8 +410,10 @@ func createConsensusOnlyNode(
 		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
 		node.WithSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
+		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	if err != nil {
