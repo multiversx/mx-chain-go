@@ -46,13 +46,6 @@ type QueryResponse struct {
 	Result []string `json:"result"`
 }
 
-// TODO remove this struct, use shared.GenericAPIResponse
-type genericApiResponse struct {
-	Data  interface{} `json:"data"`
-	Error string      `json:"error"`
-	Code  string      `json:"code"`
-}
-
 type StatisticsResponse struct {
 	GeneralResponse
 	Statistics struct {
@@ -345,11 +338,11 @@ func TestPeerInfo_WrongFacadeShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := &genericApiResponse{}
+	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, "invalid app context")) //TODO replace with errors.ErrInvalidAppContext.Error()
+	assert.Equal(t, response.Error, errors.ErrInvalidAppContext.Error())
 }
 
 func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
@@ -367,7 +360,7 @@ func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := &genericApiResponse{}
+	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
@@ -396,7 +389,7 @@ func TestPeerInfo_PeerInfoShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := &genericApiResponse{}
+	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
