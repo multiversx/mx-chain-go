@@ -766,7 +766,6 @@ func newShardInterceptorContainerFactory(
 		WhiteListHandler:        whiteListHandler,
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
-		NonceConverter:          dataCore.Uint64ByteSliceConverter,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -821,7 +820,6 @@ func newMetaInterceptorContainerFactory(
 		WhiteListHandler:        whiteListHandler,
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
-		NonceConverter:          dataCore.Uint64ByteSliceConverter,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {

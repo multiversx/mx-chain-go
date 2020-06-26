@@ -68,7 +68,6 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
-		NonceConverter:          mock.NewNonceHashConverterMock(),
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 	}
 }
@@ -157,17 +156,6 @@ func TestNewInterceptedMetaHeaderDataFactory_NilValidityAttesterShouldErr(t *tes
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilValidityAttester, err)
-}
-
-func TestNewInterceptedMetaHeaderDataFactory_NilNonceConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.NonceConverter = nil
-
-	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.True(t, check.IfNil(imh))
-	assert.Equal(t, process.ErrNilUint64Converter, err)
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
