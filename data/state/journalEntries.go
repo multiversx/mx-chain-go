@@ -1,34 +1,120 @@
 package state
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 type journalEntryCode struct {
-	codeHash []byte
-	updater  Updater
+	oldCodeEntry    *CodeEntry
+	oldCodeHash     []byte
+	newCodeHash     []byte
+	codeForEviction map[string]struct{}
+	newCode         map[string]struct{}
+	trie            Updater
+	marshalizer     marshal.Marshalizer
 }
 
 // NewJournalEntryCode creates a new instance of JournalEntryCode
-func NewJournalEntryCode(codeHash []byte, updater Updater) (*journalEntryCode, error) {
-	if check.IfNil(updater) {
+func NewJournalEntryCode(
+	oldCodeEntry *CodeEntry,
+	oldCodeHash []byte,
+	newCodeHash []byte,
+	codeForEviction map[string]struct{},
+	newCode map[string]struct{},
+	trie Updater,
+	marshalizer marshal.Marshalizer,
+) (*journalEntryCode, error) {
+	if check.IfNil(trie) {
 		return nil, ErrNilUpdater
 	}
-	if len(codeHash) == 0 {
-		return nil, ErrInvalidHash
+	if check.IfNil(marshalizer) {
+		return nil, ErrNilMarshalizer
+	}
+	if codeForEviction == nil {
+		return nil, ErrNilCodeForEvictionMap
+	}
+	if newCode == nil {
+		return nil, ErrNilNewCodeMap
 	}
 
 	return &journalEntryCode{
-		codeHash: codeHash,
-		updater:  updater,
+		oldCodeEntry:    oldCodeEntry,
+		oldCodeHash:     oldCodeHash,
+		newCodeHash:     newCodeHash,
+		trie:            trie,
+		marshalizer:     marshalizer,
+		codeForEviction: codeForEviction,
+		newCode:         newCode,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jea *journalEntryCode) Revert() (AccountHandler, error) {
-	return nil, jea.updater.Update(jea.codeHash, nil)
+	if bytes.Equal(jea.oldCodeHash, jea.newCodeHash) {
+		return nil, nil
+	}
+
+	err := jea.revertOldCodeEntry()
+	if err != nil {
+		return nil, err
+	}
+
+	err = jea.revertNewCodeEntry()
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (jea *journalEntryCode) revertOldCodeEntry() error {
+	if len(jea.oldCodeHash) == 0 {
+		return nil
+	}
+
+	if jea.oldCodeEntry.NumReferences <= 1 {
+		delete(jea.codeForEviction, string(jea.oldCodeHash))
+	}
+
+	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (jea *journalEntryCode) revertNewCodeEntry() error {
+	newCodeEntry, err := getCodeEntry(jea.newCodeHash, jea.trie, jea.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	if newCodeEntry == nil {
+		return nil
+	}
+
+	if newCodeEntry.NumReferences <= 1 {
+		err = jea.trie.Update(jea.newCodeHash, nil)
+		if err != nil {
+			return err
+		}
+
+		delete(jea.newCode, string(jea.newCodeHash))
+		return nil
+	}
+
+	newCodeEntry.NumReferences--
+	err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
