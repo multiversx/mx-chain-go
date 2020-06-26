@@ -21,6 +21,8 @@ var log = logger.GetOrCreate("dataretriever/requesthandlers")
 const minHashesToRequest = 10
 const timeToAccumulateTrieHashes = 100 * time.Millisecond
 
+//TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
+
 type resolverRequestHandler struct {
 	epoch                 uint32
 	shardID               uint32

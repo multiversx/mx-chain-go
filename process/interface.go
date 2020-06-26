@@ -721,6 +721,13 @@ type P2PAntifloodHandler interface {
 	ApplyConsensusSize(size int)
 	SetDebugger(debugger AntifloodDebugger) error
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
+	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
+	IsInterfaceNil() bool
+}
+
+// PeerValidatorMapper can determine the peer info from a peer id
+type PeerValidatorMapper interface {
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 
