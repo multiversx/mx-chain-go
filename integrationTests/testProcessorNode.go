@@ -688,7 +688,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListHandler:        tpn.WhiteListHandler,
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
-			NonceConverter:          TestUint64Converter,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -747,7 +746,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListHandler:        tpn.WhiteListHandler,
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
-			NonceConverter:          TestUint64Converter,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 

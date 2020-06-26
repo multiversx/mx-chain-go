@@ -34,7 +34,10 @@ type P2PAntifloodHandler interface {
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	SetDebugger(debugger process.AntifloodDebugger) error
+	SetPeerValidatorMapper(validatorMapper process.PeerValidatorMapper) error
+	SetTopicsForAll(topics ...string)
 	ApplyConsensusSize(size int)
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
+	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
 	IsInterfaceNil() bool
 }
