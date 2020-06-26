@@ -37,9 +37,6 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.ValidityAttester) {
 		return process.ErrNilValidityAttester
 	}
-	if check.IfNil(arg.NonceConverter) {
-		return process.ErrNilUint64Converter
-	}
 
 	return nil
 }

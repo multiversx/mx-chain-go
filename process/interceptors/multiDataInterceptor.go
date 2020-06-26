@@ -109,6 +109,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		message.SeqNo(),
 	)
 	if err != nil {
+		mdi.throttler.EndProcessing()
 		return err
 	}
 
@@ -121,6 +122,8 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		mdi.throttler.EndProcessing()
 	}()
 
+	errOriginator := mdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), mdi.topic)
+	allWhiteListed := true
 	for _, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
 		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
@@ -130,8 +133,15 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			continue
 		}
 
-		isForCurrentShard := interceptedData.IsForCurrentShard()
 		isWhiteListed := mdi.whiteListRequest.IsWhiteListed(interceptedData)
+		if !isWhiteListed && errOriginator != nil {
+			lastErrEncountered = errOriginator
+			allWhiteListed = false
+			wgProcess.Done()
+			continue
+		}
+
+		isForCurrentShard := interceptedData.IsForCurrentShard()
 		shouldProcess := isForCurrentShard || isWhiteListed
 		if !shouldProcess {
 			log.Trace("intercepted data should not be processed",
@@ -154,6 +164,13 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			wgProcess,
 			message,
 		)
+	}
+
+	if !allWhiteListed && errOriginator != nil {
+		log.Debug("got message from peer on topic only for validators", "originator",
+			p2p.PeerIdToShortString(message.Peer()),
+			"topic", mdi.topic,
+			"err", errOriginator)
 	}
 
 	return lastErrEncountered

@@ -458,3 +458,7 @@ const InvalidMessageBlacklistDuration = time.Second * 3600
 
 // MaxNumShards represents the maximum number of shards possible in the system
 const MaxNumShards = 256
+
+// PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
+// rating to a minimum threshold due to improper messages
+const PublicKeyBlacklistDuration = time.Second * 7200
