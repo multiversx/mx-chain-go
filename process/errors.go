@@ -808,3 +808,24 @@ var ErrInvalidUserNameLength = errors.New("invalid user name length")
 
 // ErrTxValueOutOfBounds signals that transaction value is out of bounds
 var ErrTxValueOutOfBounds = errors.New("tx value is out of bounds")
+
+// ErrNilBlackListedPkCache signals that a nil black listed public key cache has been provided
+var ErrNilBlackListedPkCache = errors.New("nil black listed public key cache")
+
+// ErrInvalidDecayCoefficient signals that the provided decay coefficient is invalid
+var ErrInvalidDecayCoefficient = errors.New("decay coefficient is invalid")
+
+// ErrInvalidDecayIntervalInSeconds signals that an invalid interval in seconds was provided
+var ErrInvalidDecayIntervalInSeconds = errors.New("invalid decay interval in seconds")
+
+// ErrInvalidMinScore signals that an invalid minimum score was provided
+var ErrInvalidMinScore = errors.New("invalid minimum score")
+
+// ErrInvalidMaxScore signals that an invalid maximum score was provided
+var ErrInvalidMaxScore = errors.New("invalid maximum score")
+
+// ErrInvalidUnitValue signals that an invalid unit value was provided
+var ErrInvalidUnitValue = errors.New("invalid unit value")
+
+// ErrInvalidBadPeerThreshold signals that an invalid bad peer threshold has been provided
+var ErrInvalidBadPeerThreshold = errors.New("invalid bad peer threshold")
