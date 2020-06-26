@@ -5,9 +5,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
@@ -247,4 +249,30 @@ func TestTxTypeHandler_ComputeTransactionTypeRelayedFunc(t *testing.T) {
 
 	txType := tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.RelayedTx, txType)
+}
+
+func TestTxTypeHandler_ComputeTransactionTypeForSCRCallBack(t *testing.T) {
+	t.Parallel()
+
+	tx := &smartContractResult.SmartContractResult{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("000")
+	tx.RcvAddr = []byte("001")
+	tx.Data = []byte("00")
+	tx.CallType = vmcommon.AsynchronousCallBack
+	tx.Value = big.NewInt(45)
+
+	arg := createMockArguments()
+	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+		LenCalled: func() int {
+			return len(tx.RcvAddr)
+		},
+	}
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.NotNil(t, tth)
+	assert.Nil(t, err)
+
+	txType := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.SCInvoking, txType)
 }

@@ -6,8 +6,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.TxTypeHandler = (*txTypeHandler)(nil)
@@ -73,6 +75,10 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) pro
 		return process.MoveBalance
 	}
 
+	if isAsynchronousCallBack(tx) {
+		return process.SCInvoking
+	}
+
 	funcName := tth.getFunctionFromArguments(tx.GetData())
 	if len(funcName) == 0 {
 		return process.MoveBalance
@@ -97,6 +103,15 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) pro
 	}
 
 	return process.MoveBalance
+}
+
+func isAsynchronousCallBack(tx data.TransactionHandler) bool {
+	scr, ok := tx.(*smartContractResult.SmartContractResult)
+	if !ok {
+		return false
+	}
+
+	return scr.CallType == vmcommon.AsynchronousCallBack
 }
 
 func (tth *txTypeHandler) getFunctionFromArguments(txData []byte) string {
