@@ -367,26 +367,6 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(wrk))
 }
 
-func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetected(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("flood detected")
-	workerArgs := createDefaultWorkerArgs()
-
-	antifloodHandler := &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-			return expectedErr
-		},
-	}
-
-	workerArgs.AntifloodHandler = antifloodHandler
-	wrk, _ := spos.NewWorker(workerArgs)
-
-	msg := &mock.P2PMessageMock{DataField: []byte("aaa")}
-	err := wrk.ProcessReceivedMessage(msg, "peer")
-	assert.Equal(t, expectedErr, err)
-}
-
 func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testing.T) {
 	t.Parallel()
 

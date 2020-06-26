@@ -94,7 +94,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		WhiteListHandler:        args.WhiteListHandler,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		AntifloodHandler:        antiFloodHandler,
-		NonceConverter:          args.NonceConverter,
 		ArgumentsParser:         args.ArgumentsParser,
 	}
 

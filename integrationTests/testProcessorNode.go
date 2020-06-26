@@ -760,7 +760,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListHandler:        tpn.WhiteListHandler,
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
-			NonceConverter:          TestUint64Converter,
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
@@ -820,7 +819,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListHandler:        tpn.WhiteListHandler,
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
-			NonceConverter:          TestUint64Converter,
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
@@ -1578,6 +1576,31 @@ func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)
+}
+
+// WhiteListBody will whitelist all miniblocks from the given body for all the given nodes
+func (tpn *TestProcessorNode) WhiteListBody(nodes []*TestProcessorNode, bodyHandler data.BodyHandler) {
+	body, ok := bodyHandler.(*dataBlock.Body)
+	if !ok {
+		return
+	}
+
+	mbHashes := make([][]byte, 0)
+	for _, miniBlock := range body.MiniBlocks {
+		mbMarshalized, err := TestMarshalizer.Marshal(miniBlock)
+		if err != nil {
+			continue
+		}
+
+		mbHash := TestHasher.Compute(string(mbMarshalized))
+		mbHashes = append(mbHashes, mbHash)
+	}
+
+	if len(mbHashes) > 0 {
+		for _, n := range nodes {
+			n.WhiteListHandler.Add(mbHashes)
+		}
+	}
 }
 
 // CommitBlock commits the block and body

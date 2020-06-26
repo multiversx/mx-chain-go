@@ -65,7 +65,7 @@ func (n *nodesCoordinator) ComputeConsensusGroup(_ []byte, _ uint64, _ uint32, _
 }
 
 // GetValidatorWithPublicKey -
-func (n *nodesCoordinator) GetValidatorWithPublicKey(_ []byte, _ uint32) (validator sharding.Validator, shardId uint32, err error) {
+func (n *nodesCoordinator) GetValidatorWithPublicKey(_ []byte) (validator sharding.Validator, shardId uint32, err error) {
 	return nil, 0, nil
 }
 

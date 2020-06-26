@@ -113,8 +113,8 @@ func TestWhiteListDataVerifier_IsWhiteListedFoundShouldRetTrue(t *testing.T) {
 	)
 
 	ids := &mock.InterceptedDataStub{
-		HashCalled: func() []byte {
-			return keyCheck
+		IdentifiersCalled: func() [][]byte {
+			return [][]byte{keyCheck}
 		},
 	}
 

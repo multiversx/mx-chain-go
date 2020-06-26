@@ -1326,10 +1326,34 @@ func TestWithPeerHonestyHandler_OkPeerHonestyHandlerShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	peerHonestyHandler := &mock.PeerHonestyHandlerStub{}
+	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
 	opt := WithPeerHonestyHandler(peerHonestyHandler)
 	err := opt(node)
 
 	assert.Equal(t, peerHonestyHandler, node.peerHonestyHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithWatchdogTimer_NilWatchdogShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithWatchdogTimer(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilWatchdog, err)
+}
+
+func TestWithWatchdogTimer_OkWatchdogShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	watchdog := &mock.WatchdogMock{}
+	opt := WithWatchdogTimer(watchdog)
+	err := opt(node)
+
+	assert.Equal(t, watchdog, node.watchdog)
 	assert.Nil(t, err)
 }

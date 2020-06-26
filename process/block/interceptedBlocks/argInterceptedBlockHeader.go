@@ -1,7 +1,6 @@
 package interceptedBlocks
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -18,5 +17,4 @@ type ArgInterceptedBlockHeader struct {
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
-	NonceConverter          typeConverters.Uint64ByteSliceConverter
 }
