@@ -138,14 +138,15 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 	idx int,
-) error {
+) {
 	if check.IfNil(header) {
-		return spos.ErrNilHeader
+		log.Error("metaChainMessenger.PrepareBroadcastHeaderValidator", "error", spos.ErrNilHeader)
 	}
 
 	headerHash, err := core.CalculateHash(mcm.marshalizer, mcm.hasher, header)
 	if err != nil {
-		return err
+		log.Error("metaChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+		return
 	}
 
 	vData := &validatorHeaderBroadcastData{
@@ -156,7 +157,10 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 		order:                uint32(idx),
 	}
 
-	return mcm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
+	err = mcm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
+	if err != nil {
+		log.Error("metaChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+	}
 }
 
 // PrepareBroadcastBlockDataValidator prepares the validator fallback broadcast in case leader broadcast fails
