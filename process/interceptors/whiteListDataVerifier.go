@@ -31,7 +31,13 @@ func (w *whiteListDataVerifier) IsWhiteListed(interceptedData process.Intercepte
 		return false
 	}
 
-	return w.cache.Has(interceptedData.Hash())
+	for _, identifier := range interceptedData.Identifiers() {
+		if w.cache.Has(identifier) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Add adds all the list to the cache

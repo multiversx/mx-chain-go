@@ -106,7 +106,6 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
 		ValidityAttester:        disabled.NewValidityAttester(),
 		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
-		NonceConverter:          args.NonceConverter,
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)

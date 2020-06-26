@@ -94,7 +94,6 @@ func NewShardInterceptorsContainerFactory(
 		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
 		ValidityAttester:        args.ValidityAttester,
 		EpochStartTrigger:       args.EpochStartTrigger,
-		NonceConverter:          args.NonceConverter,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 	}
 

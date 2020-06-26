@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -29,7 +28,6 @@ type InterceptedHeader struct {
 	isForCurrentShard bool
 	validityAttester  process.ValidityAttester
 	epochStartTrigger process.EpochStartTriggerHandler
-	nonceConverter    typeConverters.Uint64ByteSliceConverter
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -52,7 +50,6 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		shardCoordinator:  arg.ShardCoordinator,
 		validityAttester:  arg.ValidityAttester,
 		epochStartTrigger: arg.EpochStartTrigger,
-		nonceConverter:    arg.NonceConverter,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -192,9 +189,10 @@ func (inHdr *InterceptedHeader) String() string {
 
 // Identifiers returns the identifiers used in requests
 func (inHdr *InterceptedHeader) Identifiers() [][]byte {
-	nonceBytes := inHdr.nonceConverter.ToByteSlice(inHdr.hdr.Nonce)
+	keyNonce := []byte(fmt.Sprintf("%d-%d", inHdr.hdr.ShardID, inHdr.hdr.Nonce))
+	keyEpoch := []byte(core.EpochStartIdentifier(inHdr.hdr.Epoch))
 
-	return [][]byte{inHdr.hash, nonceBytes}
+	return [][]byte{inHdr.hash, keyNonce, keyEpoch}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
