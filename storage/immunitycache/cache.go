@@ -271,7 +271,13 @@ func (ic *ImmunityCache) Diagnose(_ bool) {
 
 	if hospitality <= hospitalityWarnThreshold {
 		// After emitting a Warn, we reset the hospitality indicator
-		log.Warn("ImmunityCache.Diagnose()", "cache is not hospitable", "hospitality", hospitality)
+		log.Warn("ImmunityCache.Diagnose(): cache is not hospitable",
+			"name", ic.config.Name,
+			"count", count,
+			"countImmune", countImmune,
+			"numBytes", numBytes,
+			"hospitality", hospitality,
+		)
 		ic.hospitality.Reset()
 	}
 }
