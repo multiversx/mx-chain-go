@@ -146,10 +146,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		}
 	}
 
-	shardIDToReturn := e.shardCoordinator.SelfId()
-	if e.destinationShardAsObserver != core.DisabledShardIDAsObserver && e.destinationShardAsObserver != shardIDToReturn {
-		shardIDToReturn = e.destinationShardAsObserver
-	}
+	shardIDToReturn := e.applyShardIDAsObserverIfNeeded(e.shardCoordinator.SelfId())
 	parameters := Parameters{
 		Epoch:       e.baseData.lastEpoch,
 		SelfShardId: shardIDToReturn,

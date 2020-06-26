@@ -259,10 +259,7 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	shardIDToReturn := e.genesisShardCoordinator.SelfId()
-	if shardIDToReturn != e.destinationShardAsObserver && e.destinationShardAsObserver != core.DisabledShardIDAsObserver {
-		shardIDToReturn = e.destinationShardAsObserver
-	}
+	shardIDToReturn := e.applyShardIDAsObserverIfNeeded(e.genesisShardCoordinator.SelfId())
 	parameters := Parameters{
 		Epoch:       e.startEpoch,
 		SelfShardId: shardIDToReturn,
@@ -945,6 +942,14 @@ func (e *epochStartBootstrap) setEpochStartMetrics() {
 		e.statusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, e.epochStartMeta.Nonce)
 		e.statusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, e.epochStartMeta.Round)
 	}
+}
+
+func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uint32) uint32 {
+	if e.destinationShardAsObserver != core.DisabledShardIDAsObserver && e.destinationShardAsObserver != receivedShardID {
+		receivedShardID = e.destinationShardAsObserver
+	}
+
+	return receivedShardID
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
