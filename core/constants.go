@@ -45,6 +45,10 @@ const NodeTypeObserver NodeType = "observer"
 // NodeTypeValidator signals that a node is running as validator node
 const NodeTypeValidator NodeType = "validator"
 
+// DisabledShardIDAsObserver defines the uint32 identifier which tells that the node hasn't configured any preferred
+// shard to start in as observer
+const DisabledShardIDAsObserver = uint32(0xFFFFFFFF) - 7
+
 // pkPrefixSize specifies the max numbers of chars to be displayed from one publc key
 const pkPrefixSize = 12
 
