@@ -428,7 +428,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
+	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -511,7 +511,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		userNames[i] = userName
 	}
 
-	nrRoundsToPropagateMultiShard := 5
+	nrRoundsToPropagateMultiShard := 15
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	for i, player := range players {

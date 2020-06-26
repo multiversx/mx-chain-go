@@ -36,14 +36,15 @@ func TestSaveUserName_ProcessBuiltinFunction(t *testing.T) {
 	_, err := coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Equal(t, process.ErrInvalidArguments, err)
 
+	newUserName := []byte("afafafafafafafafafafafafafafafaf")
+	vmInput.Arguments = [][]byte{newUserName}
+
 	_, err = coa.ProcessBuiltinFunction(nil, acc, nil)
 	require.Equal(t, process.ErrNilVmInput, err)
 
 	_, err = coa.ProcessBuiltinFunction(nil, nil, vmInput)
 	require.Nil(t, err)
 
-	newUserName := []byte("afafafafafafafafafafafafafafafaf")
-	vmInput.Arguments = [][]byte{newUserName}
 	_, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)
 
