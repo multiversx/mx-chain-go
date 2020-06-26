@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
@@ -13,7 +14,7 @@ import (
 
 // NewMessage returns a new instance of a Message object
 func NewMessage(msg *pubsub.Message, marshalizer p2p.Marshalizer) (*message.Message, error) {
-	if marshalizer == nil {
+	if check.IfNil(marshalizer) {
 		return nil, p2p.ErrNilMarshalizer
 	}
 
@@ -26,9 +27,8 @@ func NewMessage(msg *pubsub.Message, marshalizer p2p.Marshalizer) (*message.Mess
 		KeyField:       msg.Key,
 	}
 
-	var err error
 	topicMessage := &data.TopicMessage{}
-	err = marshalizer.Unmarshal(topicMessage, msg.Data)
+	err := marshalizer.Unmarshal(topicMessage, msg.Data)
 	if err != nil {
 		return nil, fmt.Errorf("%w error: %s", p2p.ErrMessageUnmarshalError, err.Error())
 	}

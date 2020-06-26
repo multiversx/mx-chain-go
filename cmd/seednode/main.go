@@ -78,9 +78,6 @@ VERSION:
 		Value: "./config/config.toml",
 	}
 	p2pConfigurationFile = "./config/p2p.toml"
-
-	// ErrMarshalizerCreation signals that the marshalizer cannot be created based on provided data
-	ErrMarshalizerCreation = errors.New("error creating marshalizer")
 )
 
 var log = logger.GetOrCreate("main")
@@ -127,7 +124,7 @@ func startNode(ctx *cli.Context) error {
 
 	internalMarshalizer, err := factoryMarshalizer.NewMarshalizer(generalConfig.Marshalizer.Type)
 	if err != nil {
-		return fmt.Errorf("%w (internal): %s", ErrMarshalizerCreation, err.Error())
+		return fmt.Errorf("error creating marshalizer (internal): %s", err.Error())
 	}
 
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
