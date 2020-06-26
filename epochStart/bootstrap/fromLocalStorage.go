@@ -166,12 +166,14 @@ func (e *epochStartBootstrap) checkIfShuffledOut(
 	newShardId, isWaitingForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.WaitingValidators)
 	if isWaitingForShard {
 		isShuffledOut := newShardId != e.baseData.shardId
+		e.nodeType = core.NodeTypeValidator
 		return newShardId, isShuffledOut
 	}
 
 	newShardId, isEligibleForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.EligibleValidators)
 	if isEligibleForShard {
 		isShuffledOut := newShardId != e.baseData.shardId
+		e.nodeType = core.NodeTypeValidator
 		return newShardId, isShuffledOut
 	}
 

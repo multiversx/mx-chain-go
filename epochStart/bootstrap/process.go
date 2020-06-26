@@ -126,9 +126,10 @@ type epochStartBootstrap struct {
 	userAccountTries   map[string]data.Trie
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
-	shuffledOut        bool
 	startEpoch         uint32
 	startRound         int64
+	shuffledOut        bool
+	nodeType           core.NodeType
 }
 
 type baseDataInStorage struct {
@@ -208,6 +209,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
 		statusHandler:              args.StatusHandler,
 		shuffledOut:                false,
+		nodeType:                   core.NodeTypeObserver,
 		importStartHandler:         args.ImportStartHandler,
 	}
 
@@ -307,6 +309,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			epochToStart = 0
 		}
 
+		newShardId = e.applyShardIDAsObserverIfNeeded(newShardId)
 		return Parameters{
 			Epoch:       epochToStart,
 			SelfShardId: newShardId,
@@ -627,9 +630,8 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 	}
 
 	e.nodesConfig, e.baseData.shardId, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
-	if e.destinationShardAsObserver != core.DisabledShardIDAsObserver {
-		e.baseData.shardId = e.destinationShardAsObserver
-	}
+	e.baseData.shardId = e.applyShardIDAsObserverIfNeeded(e.baseData.shardId)
+
 	return err
 }
 
@@ -945,7 +947,9 @@ func (e *epochStartBootstrap) setEpochStartMetrics() {
 }
 
 func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uint32) uint32 {
-	if e.destinationShardAsObserver != core.DisabledShardIDAsObserver && e.destinationShardAsObserver != receivedShardID {
+	if e.nodeType == core.NodeTypeObserver &&
+		e.destinationShardAsObserver != core.DisabledShardIDAsObserver &&
+		e.destinationShardAsObserver != receivedShardID {
 		receivedShardID = e.destinationShardAsObserver
 	}
 
