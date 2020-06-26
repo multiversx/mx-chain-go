@@ -16,7 +16,7 @@ func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
 
 	coa := changeOwnerAddress{}
 
-	owner := []byte("sender")
+	owner := []byte("send")
 	addr := []byte("addr")
 
 	acc, _ := state.NewUserAccount(addr)
