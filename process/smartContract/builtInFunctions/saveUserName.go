@@ -73,8 +73,9 @@ func (s *saveUserName) ProcessBuiltinFunction(
 			Address:  vmInput.RecipientAddr,
 			Data:     []byte(setUserNameTxData),
 			CallType: vmcommon.AsynchronousCall,
+			GasLimit: vmInput.GasProvided,
 		}
-		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
+		return vmOutput, nil
 	}
 
 	currentUserName := acntDst.GetUserName()
