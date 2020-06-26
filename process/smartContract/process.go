@@ -234,17 +234,16 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
 	}
 
-	err = sc.saveAccounts(acntSnd, acntDst)
-	if err != nil {
-		returnMessage = "cannot save accounts"
-		log.Debug("saveAccounts error", "error", err)
-		return 0, err
-	}
-
 	if vmOutput == nil {
 		err = process.ErrNilVMOutput
 		log.Debug("run smart contract call error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
+	}
+
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	if err != nil {
+		log.Debug("reloadLocalAccount error", "error", err.Error())
+		return 0, err
 	}
 
 	var consumedFee *big.Int
@@ -605,10 +604,10 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
-	err = sc.accounts.SaveAccount(acntSnd)
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
 	if err != nil {
-		log.Debug("Save account error", "error", err.Error())
-		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
+		log.Debug("reloadLocalAccount error", "error", err.Error())
+		return 0, err
 	}
 
 	if vmOutput == nil {
