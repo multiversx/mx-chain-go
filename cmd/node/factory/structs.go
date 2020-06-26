@@ -389,7 +389,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	txsPoolsCleaner.StartCleaning()
 
-	_, err = track.NewMiniBlockTrack(args.data.Datapool, args.shardCoordinator)
+	_, err = track.NewMiniBlockTrack(args.data.Datapool, args.shardCoordinator, args.whiteListHandler)
 	if err != nil {
 		return nil, err
 	}

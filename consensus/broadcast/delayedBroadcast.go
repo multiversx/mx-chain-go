@@ -413,13 +413,15 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 		log.Debug("delayedBroadcast.headerAlarmExpired - validator broadcasting meta miniblocks and transactions",
 			"headerHash", headerHash,
 		)
-		dbb.broadcastBlockData(vHeader.metaMiniBlocksData, vHeader.metaTransactionsData, core.ExtraDelayForBroadcastBlockInfo)
+		go dbb.broadcastBlockData(vHeader.metaMiniBlocksData, vHeader.metaTransactionsData, core.ExtraDelayForBroadcastBlockInfo)
 	}
 }
 
 func (dbb *delayedBlockBroadcaster) broadcastDelayedData(broadcastData []*delayedBroadcastData) {
 	for _, bData := range broadcastData {
-		dbb.broadcastBlockData(bData.miniBlocksData, bData.transactions, 0)
+		go func(miniBlocks map[uint32][]byte, transactions map[string][][]byte) {
+			dbb.broadcastBlockData(miniBlocks, transactions, 0)
+		}(bData.miniBlocksData, bData.transactions)
 	}
 }
 
@@ -434,6 +436,8 @@ func (dbb *delayedBlockBroadcaster) broadcastBlockData(
 	if err != nil {
 		log.Error("broadcastBlockData miniblocks", "error", err.Error())
 	}
+
+	time.Sleep(core.ExtraDelayBetweenBroadcastMbsAndTxs)
 
 	err = dbb.broadcastTxsData(transactions)
 	if err != nil {

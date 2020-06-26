@@ -1511,19 +1511,21 @@ func (tpn *TestProcessorNode) WhiteListBody(nodes []*TestProcessorNode, bodyHand
 	}
 
 	mbHashes := make([][]byte, 0)
+	txHashes := make([][]byte, 0)
 	for _, miniBlock := range body.MiniBlocks {
-		mbMarshalized, err := TestMarshalizer.Marshal(miniBlock)
+		mbHash, err := core.CalculateHash(TestMarshalizer, TestHasher, miniBlock)
 		if err != nil {
 			continue
 		}
 
-		mbHash := TestHasher.Compute(string(mbMarshalized))
 		mbHashes = append(mbHashes, mbHash)
+		txHashes = append(txHashes, miniBlock.TxHashes...)
 	}
 
 	if len(mbHashes) > 0 {
 		for _, n := range nodes {
 			n.WhiteListHandler.Add(mbHashes)
+			n.WhiteListHandler.Add(txHashes)
 		}
 	}
 }

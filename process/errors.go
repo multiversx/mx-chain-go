@@ -808,3 +808,6 @@ var ErrInvalidUserNameLength = errors.New("invalid user name length")
 
 // ErrTxValueOutOfBounds signals that transaction value is out of bounds
 var ErrTxValueOutOfBounds = errors.New("tx value is out of bounds")
+
+// ErrTransactionIsNotWhitelisted signals that a transaction is not whitelisted
+var ErrTransactionIsNotWhitelisted = errors.New("transaction is not whitelisted")
