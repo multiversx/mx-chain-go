@@ -828,6 +828,7 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 		}
 
 		body, header, _ := n.ProposeBlock(round, nonce)
+		n.WhiteListBody(nodes, body)
 		n.BroadcastBlock(body, header)
 		n.CommitBlock(body, header)
 	}
