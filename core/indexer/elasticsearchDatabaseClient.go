@@ -146,7 +146,6 @@ func (dc *databaseClient) DoMultiGet(obj object, index string) (object, error) {
 
 	res, err = dc.dbClient.Mget(
 		&body,
-		dc.dbClient.Mget.WithDocumentType("_doc"),
 		dc.dbClient.Mget.WithIndex(index),
 	)
 	if err != nil {
