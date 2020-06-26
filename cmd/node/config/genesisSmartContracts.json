@@ -3,8 +3,8 @@
     "owner": "erd17326yupjy7cq7qv94n704ttxrh4lrhl7qt7mppdu9evwmj5mwt8s794sua",
     "filename": "./config/genesisContracts/delegation.wasm",
     "vm-type": "0500",
-    "init-parameters": "0BB8@%auction_sc_address%@0A61D0",
+    "init-parameters": "%auction_sc_address%@03E8@03E8@03E8",
     "type": "delegation",
-    "version": "0.2.*"
+    "version": "0.3.*"
   }
 ]

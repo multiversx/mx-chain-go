@@ -85,10 +85,11 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 	}
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
-		sr.PeerHonestyHandler().Decrease(
+		sr.PeerHonestyHandler().ChangeScore(
 			node,
 			spos.GetConsensusTopicID(sr.ShardCoordinator()),
-			spos.LeaderPeerHonestyDecreaseFactor)
+			spos.LeaderPeerHonestyDecreaseFactor,
+		)
 
 		return false
 	}
@@ -110,10 +111,11 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 		"AggregateSignature", cnsDta.AggregateSignature,
 		"LeaderSignature", cnsDta.LeaderSignature)
 
-	sr.PeerHonestyHandler().Increase(
+	sr.PeerHonestyHandler().ChangeScore(
 		node,
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.LeaderPeerHonestyIncreaseFactor)
+		spos.LeaderPeerHonestyIncreaseFactor,
+	)
 
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }
