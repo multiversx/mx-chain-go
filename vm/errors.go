@@ -131,5 +131,8 @@ var ErrEmptyStorage = errors.New("storage is nil for given key")
 // ErrVotedForAnExpiredProposal signals that voting was done for an expired proposal
 var ErrVotedForAnExpiredProposal = errors.New("voted for an expired proposal")
 
+// ErrVotedForAProposalThatNotBeginsYet signals that voting was done for a proposal that not begins yet
+var ErrVotedForAProposalThatNotBeginsYet = errors.New("voted for a proposal that not begins yet")
+
 // ErrNilPublicKey signals that nil public key has been provided
 var ErrNilPublicKey = errors.New("nil public key")

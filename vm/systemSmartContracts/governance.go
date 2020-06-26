@@ -81,7 +81,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	}, nil
 }
 
-// Execute calls one of the functions from the esdt smart contract and runs the code according to the input
+// Execute calls one of the functions from the governance smart contract and runs the code according to the input
 func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if CheckIfNil(args) != nil {
 		return vmcommon.UserError
@@ -108,6 +108,7 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.closeProposal(args)
 	}
 
+	g.eei.AddReturnMessage("invalid method to call")
 	return vmcommon.FunctionNotFound
 }
 
@@ -261,7 +262,7 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 	}
 	g.eei.SetStorage(key, marshaledData)
 
-	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
+	err = g.saveGeneralProposal(args.CallerAddr, generalProposal)
 	if err != nil {
 		g.eei.AddReturnMessage("save proposal error " + err.Error())
 		return vmcommon.UserError
@@ -409,8 +410,8 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
 	}
-	if len(args.Arguments) != 4 {
-		g.eei.AddReturnMessage("invalid number of arguments, expected 4")
+	if len(args.Arguments) != 5 {
+		g.eei.AddReturnMessage("invalid number of arguments, expected 5")
 		return vmcommon.FunctionWrongSignature
 	}
 	if !g.isWhiteListed(args.CallerAddr) {
@@ -502,8 +503,8 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
 	}
-	if len(args.Arguments) != 4 {
-		g.eei.AddReturnMessage("invalid number of arguments, expected 4")
+	if len(args.Arguments) != 3 {
+		g.eei.AddReturnMessage("invalid number of arguments, expected 3")
 		return vmcommon.FunctionWrongSignature
 	}
 	if !g.isWhiteListed(args.CallerAddr) {
@@ -669,7 +670,11 @@ func (g *governanceContract) voteForProposal(
 		return err
 	}
 	currentNonce := g.eei.BlockChainHook().CurrentNonce()
-	if generalProposal.EndVoteNonce > currentNonce {
+	if currentNonce < generalProposal.StartVoteNonce {
+		return vm.ErrVotedForAProposalThatNotBeginsYet
+	}
+
+	if currentNonce > generalProposal.EndVoteNonce {
 		return vm.ErrVotedForAnExpiredProposal
 	}
 
@@ -728,7 +733,7 @@ func (g *governanceContract) getOrCreateVoteData(proposal []byte, voter []byte) 
 
 func (g *governanceContract) getOrCreateValidatorData(address []byte, numNodes int32) (*ValidatorData, error) {
 	validatorData := &ValidatorData{
-		Delegators: make([]*VoterData, 0, 1),
+		Delegators: make([]*VoterData, 1),
 		NumNodes:   numNodes,
 	}
 	validatorData.Delegators[0] = &VoterData{
@@ -778,7 +783,7 @@ func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	if vmOutput.ReturnCode != vmcommon.UserError {
+	if vmOutput.ReturnCode != vmcommon.Ok {
 		return 0, vm.ErrNotEnoughQualifiedNodes
 	}
 	if len(vmOutput.ReturnData) == 0 {
@@ -800,7 +805,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 	if !g.isWhiteListed(args.CallerAddr) {
-		g.eei.AddReturnMessage("called is not whitelisted")
+		g.eei.AddReturnMessage("caller is not whitelisted")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 1 {
