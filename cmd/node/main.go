@@ -2040,11 +2040,13 @@ func createNode(
 		nodesCoordinator,
 		shardCoordinator,
 		epochStartRegistrationHandler,
-		process.EpochStartTrigger.Epoch(),
+		process.EpochStartTrigger.MetaEpoch(),
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	factory.PrepareOpenTopics(network.InputAntifloodHandler, shardCoordinator)
 
 	apiTxsByHashThrottler, err := throttler.NewNumGoRoutinesThrottler(maxNumGoRoutinesTxsByHashApi)
 	if err != nil {

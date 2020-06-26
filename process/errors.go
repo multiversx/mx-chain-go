@@ -829,3 +829,9 @@ var ErrInvalidUnitValue = errors.New("invalid unit value")
 
 // ErrInvalidBadPeerThreshold signals that an invalid bad peer threshold has been provided
 var ErrInvalidBadPeerThreshold = errors.New("invalid bad peer threshold")
+
+// ErrNilPeerValidatorMapper signals that nil peer validator mapper has been provided
+var ErrNilPeerValidatorMapper = errors.New("nil peer validator mapper")
+
+// ErrOnlyValidatorsCanUseThisTopic signals that topic can be used by validator only
+var ErrOnlyValidatorsCanUseThisTopic = errors.New("only validators can use this topic")
