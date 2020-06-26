@@ -76,7 +76,7 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 		return nil
 	}
 
-	if jea.oldCodeEntry.NumReferences == 1 {
+	if jea.oldCodeEntry.NumReferences <= 1 {
 		delete(jea.codeForEviction, string(jea.oldCodeHash))
 	}
 

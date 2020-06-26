@@ -258,10 +258,10 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	trieStub := &mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
-			return marsh.Marshal(mock.AccountWrapMock{})
+			return marshalizer.Marshal(mock.AccountWrapMock{})
 		},
 		UpdateCalled: func(key, value []byte) error {
 			wasCalled = true
@@ -611,8 +611,8 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 	t.Parallel()
 
 	commitCalled := 0
-	marsh := &mock.MarshalizerMock{}
-	serializedAccount, _ := marsh.Marshal(mock.AccountWrapMock{})
+	marshalizer := &mock.MarshalizerMock{}
+	serializedAccount, _ := marshalizer.Marshal(mock.AccountWrapMock{})
 	trieStub := mock.TrieStub{
 		CommitCalled: func() error {
 			commitCalled++
@@ -811,14 +811,14 @@ func TestAccountsDB_RevertToSnapshotOutOfBounds(t *testing.T) {
 func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
 	accFactory := factory.NewAccountCreator()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
 
-	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
 
 	acc, _ := adb.LoadAccount(make([]byte, 32))
 	acc.(state.UserAccountHandler).SetCode([]byte("code"))
@@ -836,13 +836,13 @@ func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
 func TestAccountsDB_RevertToSnapshotWithoutLastRootHashSet(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
 	accFactory := factory.NewAccountCreator()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
 
 	err := adb.RevertToSnapshot(0)
 	assert.Nil(t, err)
@@ -855,13 +855,13 @@ func TestAccountsDB_RevertToSnapshotWithoutLastRootHashSet(t *testing.T) {
 func TestAccountsDB_RecreateTrieInvalidatesJournalEntries(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
 	accFactory := factory.NewAccountCreator()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
 
 	address := make([]byte, 32)
 	key := []byte("key")
@@ -946,12 +946,12 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	assert.True(t, getAllLeavesCalled)
 }
 
-func getTestAccountsDbAndTrie(marsh marshal.Marshalizer, hsh hashing.Hasher) (*state.AccountsDB, data.Trie) {
+func getTestAccountsDbAndTrie(marshalizer marshal.Marshalizer, hsh hashing.Hasher) (*state.AccountsDB, data.Trie) {
 	accFactory := factory.NewAccountCreator()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
 
 	return adb, tr
 }
@@ -960,7 +960,7 @@ func checkCodeEntry(
 	codeHash []byte,
 	expectedCode []byte,
 	expectedNumReferences uint32,
-	marsh marshal.Marshalizer,
+	marshalizer marshal.Marshalizer,
 	tr data.Trie,
 	t *testing.T,
 ) {
@@ -969,7 +969,7 @@ func checkCodeEntry(
 	assert.NotNil(t, val)
 
 	var codeEntry state.CodeEntry
-	err = marsh.Unmarshal(&codeEntry, val)
+	err = marshalizer.Unmarshal(&codeEntry, val)
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedCode, codeEntry.Code)
@@ -979,9 +979,9 @@ func checkCodeEntry(
 func TestAccountsDB_SaveAccountSavesCodeIfCodeHashIsSet(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
-	adb, tr := getTestAccountsDbAndTrie(marsh, hsh)
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -994,7 +994,7 @@ func TestAccountsDB_SaveAccountSavesCodeIfCodeHashIsSet(t *testing.T) {
 
 	_ = adb.SaveAccount(acc)
 
-	checkCodeEntry(codeHash, code, 1, marsh, tr, t)
+	checkCodeEntry(codeHash, code, 1, marshalizer, tr, t)
 }
 
 func TestAccountsDB_saveCode_OldCodeAndNewCodeAreNil(t *testing.T) {
@@ -1017,9 +1017,9 @@ func TestAccountsDB_saveCode_OldCodeAndNewCodeAreNil(t *testing.T) {
 func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
-	adb, tr := getTestAccountsDbAndTrie(marsh, hsh)
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -1033,7 +1033,7 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCodeHash, userAcc.GetCodeHash())
 
-	checkCodeEntry(userAcc.GetCodeHash(), code, 1, marsh, tr, t)
+	checkCodeEntry(userAcc.GetCodeHash(), code, 1, marshalizer, tr, t)
 
 	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
 	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
@@ -1052,9 +1052,9 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.
 func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeAlreadyExistsAndRevert(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
-	adb, tr := getTestAccountsDbAndTrie(marsh, hsh)
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -1077,7 +1077,7 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeAlreadyExistsAndRevert(t *tes
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCodeHash, userAcc.GetCodeHash())
 
-	checkCodeEntry(userAcc.GetCodeHash(), code, 2, marsh, tr, t)
+	checkCodeEntry(userAcc.GetCodeHash(), code, 2, marshalizer, tr, t)
 
 	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
 	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
@@ -1085,7 +1085,7 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeAlreadyExistsAndRevert(t *tes
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
-	checkCodeEntry(expectedCodeHash, code, 1, marsh, tr, t)
+	checkCodeEntry(expectedCodeHash, code, 1, marshalizer, tr, t)
 
 	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
 	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
@@ -1094,9 +1094,9 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeAlreadyExistsAndRevert(t *tes
 func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeIsNilAndRevert(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
-	adb, tr := getTestAccountsDbAndTrie(marsh, hsh)
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -1127,7 +1127,7 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeIsNilAndRevert(t *testing.T)
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
-	checkCodeEntry(oldCodeHash, code, 1, marsh, tr, t)
+	checkCodeEntry(oldCodeHash, code, 1, marshalizer, tr, t)
 
 	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
 	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
@@ -1136,9 +1136,9 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeIsNilAndRevert(t *testing.T)
 func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
-	adb, tr := getTestAccountsDbAndTrie(marsh, hsh)
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -1173,7 +1173,7 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 
-	checkCodeEntry(newCodeHash, newCode, 2, marsh, tr, t)
+	checkCodeEntry(newCodeHash, newCode, 2, marshalizer, tr, t)
 
 	assert.Equal(t, 1, len(adb.GetCodeForEvictionMap()))
 	assert.Equal(t, 2, len(adb.GetNewCodeMap()))
@@ -1181,8 +1181,8 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
-	checkCodeEntry(oldCodeHash, oldCode, 1, marsh, tr, t)
-	checkCodeEntry(newCodeHash, newCode, 1, marsh, tr, t)
+	checkCodeEntry(oldCodeHash, oldCode, 1, marshalizer, tr, t)
+	checkCodeEntry(newCodeHash, newCode, 1, marshalizer, tr, t)
 
 	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
 	assert.Equal(t, 2, len(adb.GetNewCodeMap()))
@@ -1191,9 +1191,9 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T
 func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndRevert(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
-	adb, tr := getTestAccountsDbAndTrie(marsh, hsh)
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -1223,7 +1223,7 @@ func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndR
 	assert.Nil(t, err)
 	assert.Nil(t, userAcc.GetCodeHash())
 
-	checkCodeEntry(oldCodeHash, code, 1, marsh, tr, t)
+	checkCodeEntry(oldCodeHash, code, 1, marshalizer, tr, t)
 
 	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
 	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
@@ -1231,7 +1231,7 @@ func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndR
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
-	checkCodeEntry(oldCodeHash, code, 2, marsh, tr, t)
+	checkCodeEntry(oldCodeHash, code, 2, marshalizer, tr, t)
 
 	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
 	assert.Equal(t, 1, len(adb.GetNewCodeMap()))

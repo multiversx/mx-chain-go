@@ -68,19 +68,27 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 		Code:          []byte("newCode"),
 		NumReferences: 1,
 	}
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 
 	updateCalled := false
 	trieStub := &mock.TrieStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return marsh.Marshal(codeEntry)
+			return marshalizer.Marshal(codeEntry)
 		},
 		UpdateCalled: func(key, value []byte) error {
 			updateCalled = true
 			return nil
 		},
 	}
-	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, []byte("newHash"), map[string]struct{}{}, map[string]struct{}{}, trieStub, marsh)
+	entry, _ := state.NewJournalEntryCode(
+		&state.CodeEntry{},
+		nil,
+		[]byte("newHash"),
+		map[string]struct{}{},
+		map[string]struct{}{},
+		trieStub,
+		marshalizer,
+	)
 
 	acc, err := entry.Revert()
 	assert.Nil(t, err)

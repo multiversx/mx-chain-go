@@ -1723,51 +1723,17 @@ func TestContinuouslyAccountCodeChanges(t *testing.T) {
 		numCodeDeletes := rand.Intn(maxCodeDeletes)
 
 		for j := 0; j < numCodeUpdates; j++ {
-			snapshot := shardNode.AccntState.JournalLen()
-			codeIndex := rand.Intn(numCodes)
-			code := codeArray[codeIndex]
-
 			accountIndex := rand.Intn(nrAccounts)
 			account, _ := shardNode.AccntState.LoadAccount(accounts[accountIndex])
-			oldCode := account.(state.UserAccountHandler).GetCode()
-			account.(state.UserAccountHandler).SetCode(code)
-			_ = shardNode.AccntState.SaveAccount(account)
 
-			if shouldRevert() && snapshot != 0 {
-				err := shardNode.AccntState.RevertToSnapshot(snapshot)
-				assert.Nil(t, err)
-				fmt.Printf("updated code %v to account %v and reverted\n", code, hex.EncodeToString(accounts[accountIndex]))
-				continue
-			}
-
-			codeMap[string(code)]++
-			if len(oldCode) != 0 {
-				codeMap[string(oldCode)]--
-			}
-
-			fmt.Printf("updated code %v to account %v \n", code, hex.EncodeToString(accounts[accountIndex]))
+			updateCode(t, shardNode.AccntState, codeArray, codeMap, account, numCodes)
 		}
 
 		for j := 0; j < numCodeDeletes; j++ {
-			snapshot := shardNode.AccntState.JournalLen()
 			accountIndex := rand.Intn(nrAccounts)
 			account, _ := shardNode.AccntState.LoadAccount(accounts[accountIndex])
-			code := account.(state.UserAccountHandler).GetCode()
-			account.(state.UserAccountHandler).SetCode(nil)
-			_ = shardNode.AccntState.SaveAccount(account)
 
-			if shouldRevert() && snapshot != 0 {
-				err := shardNode.AccntState.RevertToSnapshot(snapshot)
-				assert.Nil(t, err)
-				fmt.Printf("removed old code %v from account %v and reverted\n", code, hex.EncodeToString(accounts[accountIndex]))
-				continue
-			}
-
-			if len(code) != 0 {
-				codeMap[string(code)]--
-			}
-
-			fmt.Printf("removed old code %v from account %v \n", code, hex.EncodeToString(accounts[accountIndex]))
+			removeCode(t, shardNode.AccntState, codeMap, account)
 		}
 		_, _ = shardNode.AccntState.Commit()
 
@@ -1777,22 +1743,7 @@ func TestContinuouslyAccountCodeChanges(t *testing.T) {
 			fmt.Printf("%v - %v \n", codeArray[j], codeMap[string(codeArray[j])])
 		}
 
-		for code := range codeMap {
-			codeHash := integrationTests.TestHasher.Compute(code)
-			tr := shardNode.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-
-			if codeMap[code] != 0 {
-				val, err := tr.Get(codeHash)
-				assert.Nil(t, err)
-				assert.NotNil(t, val)
-
-				var codeEntry state.CodeEntry
-				err = integrationTests.TestMarshalizer.Unmarshal(&codeEntry, val)
-				assert.Nil(t, err)
-
-				assert.Equal(t, uint32(codeMap[code]), codeEntry.NumReferences)
-			}
-		}
+		checkCodeConsistency(t, shardNode, codeMap)
 	}
 }
 
@@ -1808,4 +1759,82 @@ func getCodeMap(numCodes int) map[string]int {
 	}
 
 	return codeMap
+}
+
+func updateCode(
+	t *testing.T,
+	AccntState state.AccountsAdapter,
+	codeArray [][]byte,
+	codeMap map[string]int,
+	account state.AccountHandler,
+	numCodes int,
+) {
+	snapshot := AccntState.JournalLen()
+	codeIndex := rand.Intn(numCodes)
+	code := codeArray[codeIndex]
+
+	oldCode := account.(state.UserAccountHandler).GetCode()
+	account.(state.UserAccountHandler).SetCode(code)
+	_ = AccntState.SaveAccount(account)
+
+	if shouldRevert() && snapshot != 0 {
+		err := AccntState.RevertToSnapshot(snapshot)
+		assert.Nil(t, err)
+		fmt.Printf("updated code %v to account %v and reverted\n", code, hex.EncodeToString(account.AddressBytes()))
+		return
+	}
+
+	codeMap[string(code)]++
+	if len(oldCode) != 0 {
+		codeMap[string(oldCode)]--
+	}
+
+	fmt.Printf("updated code %v to account %v \n", code, hex.EncodeToString(account.AddressBytes()))
+}
+
+func removeCode(
+	t *testing.T,
+	AccntState state.AccountsAdapter,
+	codeMap map[string]int,
+	account state.AccountHandler,
+) {
+	snapshot := AccntState.JournalLen()
+	code := account.(state.UserAccountHandler).GetCode()
+	account.(state.UserAccountHandler).SetCode(nil)
+	_ = AccntState.SaveAccount(account)
+
+	if shouldRevert() && snapshot != 0 {
+		err := AccntState.RevertToSnapshot(snapshot)
+		assert.Nil(t, err)
+		fmt.Printf("removed old code %v from account %v and reverted\n", code, hex.EncodeToString(account.AddressBytes()))
+		return
+	}
+
+	if len(code) != 0 {
+		codeMap[string(code)]--
+	}
+
+	fmt.Printf("removed old code %v from account %v \n", code, hex.EncodeToString(account.AddressBytes()))
+}
+func checkCodeConsistency(
+	t *testing.T,
+	shardNode *integrationTests.TestProcessorNode,
+	codeMap map[string]int,
+) {
+	for code := range codeMap {
+		codeHash := integrationTests.TestHasher.Compute(code)
+		tr := shardNode.TrieContainer.Get([]byte(factory2.UserAccountTrie))
+
+		if codeMap[code] != 0 {
+			val, err := tr.Get(codeHash)
+			assert.Nil(t, err)
+			assert.NotNil(t, val)
+
+			var codeEntry state.CodeEntry
+			err = integrationTests.TestMarshalizer.Unmarshal(&codeEntry, val)
+			assert.Nil(t, err)
+
+			assert.Equal(t, uint32(codeMap[code]), codeEntry.NumReferences)
+		}
+	}
 }

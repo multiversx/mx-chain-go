@@ -93,50 +93,46 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 		adb.journalize(entry)
 	}
 
-	baseAcc, ok := account.(baseAccountHandler)
-	if ok {
-		err = adb.saveCode(baseAcc, oldAccount)
-		if err != nil {
-			return err
-		}
-
-		err = adb.saveDataTrie(baseAcc)
-		if err != nil {
-			return err
-		}
+	err = adb.saveCodeAndDataTrie(oldAccount, account)
+	if err != nil {
+		return err
 	}
 
 	return adb.saveAccountToTrie(account)
 }
 
-func (adb *AccountsDB) getOldCodeHash(oldAcc AccountHandler) ([]byte, error) {
-	if check.IfNil(oldAcc) {
-		return nil, nil
+func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc AccountHandler) error {
+	baseNewAcc, newAccOk := newAcc.(baseAccountHandler)
+	baseOldAccount, _ := oldAcc.(baseAccountHandler)
+
+	if !newAccOk {
+		return nil
 	}
 
-	oldAccount, ok := oldAcc.(baseAccountHandler)
-	if !ok {
-		return nil, ErrWrongTypeAssertion
-	}
-
-	return oldAccount.GetCodeHash(), nil
-}
-
-func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler, oldAcc AccountHandler) error {
-	// TODO when state splitting is implemented, check how the code should be copied in different shards
-	oldCodeHash, err := adb.getOldCodeHash(oldAcc)
+	err := adb.saveDataTrie(baseNewAcc)
 	if err != nil {
 		return err
 	}
 
-	newCode := accountHandler.GetCode()
+	return adb.saveCode(baseNewAcc, baseOldAccount)
+}
+
+func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
+	// TODO when state splitting is implemented, check how the code should be copied in different shards
+
+	var oldCodeHash []byte
+	if !check.IfNil(oldAcc) {
+		oldCodeHash = oldAcc.GetCodeHash()
+	}
+
+	newCode := newAcc.GetCode()
 	var newCodeHash []byte
 	if len(newCode) != 0 {
 		newCodeHash = adb.hasher.Compute(string(newCode))
 	}
 
 	if bytes.Equal(oldCodeHash, newCodeHash) {
-		accountHandler.SetCodeHash(newCodeHash)
+		newAcc.SetCodeHash(newCodeHash)
 		return nil
 	}
 
@@ -156,7 +152,7 @@ func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler, oldAcc Accoun
 	}
 	adb.journalize(entry)
 
-	accountHandler.SetCodeHash(newCodeHash)
+	newAcc.SetCodeHash(newCodeHash)
 	return nil
 }
 
