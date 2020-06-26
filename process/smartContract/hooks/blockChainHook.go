@@ -314,15 +314,17 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	}
 
 	if !check.IfNil(sndAccount) {
-		errSave := bh.accounts.SaveAccount(sndAccount)
-		if errSave != nil {
-			return nil, errSave
+		err = bh.accounts.SaveAccount(sndAccount)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	err = bh.accounts.SaveAccount(dstAccount)
-	if err != nil {
-		return nil, err
+	if !check.IfNil(dstAccount) {
+		err = bh.accounts.SaveAccount(dstAccount)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return vmOutput, nil
