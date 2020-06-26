@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 )
 
@@ -22,4 +23,9 @@ func ForZeroUintFields(arg interface{}) error {
 	}
 
 	return nil
+}
+
+// IsZeroFloat64 returns true if the provided absolute value is less than provided absolute epsilon
+func IsZeroFloat64(value float64, epsilon float64) bool {
+	return math.Abs(value) <= math.Abs(epsilon)
 }

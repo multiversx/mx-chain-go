@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 // PeerHonestyHandlerStub -
 type PeerHonestyHandlerStub struct {
