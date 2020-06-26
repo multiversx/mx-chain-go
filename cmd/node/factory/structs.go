@@ -37,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -389,13 +390,9 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	txsPoolsCleaner.StartCleaning()
 
-	//TODO: Will be useful/used when the implementation of the cacher notifier about transactions which should be
-	// protected for eviction will be done
-	if args.shardCoordinator.SelfId() != core.MetachainShardId {
-		_, err = track.NewMiniBlockTrack(args.data.Datapool, args.shardCoordinator)
-		if err != nil {
-			return nil, err
-		}
+	_, err = track.NewMiniBlockTrack(args.data.Datapool, args.shardCoordinator)
+	if err != nil {
+		return nil, err
 	}
 
 	interceptorContainerFactory, blackListHandler, err := newInterceptorContainerFactory(
@@ -769,7 +766,6 @@ func newShardInterceptorContainerFactory(
 		WhiteListHandler:        whiteListHandler,
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
-		NonceConverter:          dataCore.Uint64ByteSliceConverter,
 		ArgumentsParser:         smartContract.NewArgumentParser(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -825,7 +821,6 @@ func newMetaInterceptorContainerFactory(
 		WhiteListHandler:        whiteListHandler,
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
-		NonceConverter:          dataCore.Uint64ByteSliceConverter,
 		ArgumentsParser:         smartContract.NewArgumentParser(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
@@ -1739,17 +1734,34 @@ func newValidatorStatisticsProcessor(
 	return validatorStatisticsProcessor, nil
 }
 
-// PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger
+// PrepareOpenTopics will set to the anti flood handler the topics for which
+// the node can receive messages from others than validators
+func PrepareOpenTopics(
+	antiflood mainFactory.P2PAntifloodHandler,
+	shardCoordinator sharding.Coordinator,
+) {
+	selfID := shardCoordinator.SelfId()
+	if selfID == core.MetachainShardId {
+		antiflood.SetTopicsForAll(core.HeartbeatTopic)
+		return
+	}
+
+	selfShardTxTopic := factory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
+	antiflood.SetTopicsForAll(core.HeartbeatTopic, selfShardTxTopic)
+}
+
+// PrepareNetworkShardingCollector will create the network sharding collector and apply it to
+// the network messenger and antiflood handler
 func PrepareNetworkShardingCollector(
 	network *mainFactory.NetworkComponents,
 	config *config.Config,
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
-	epochShard uint32,
+	epochStart uint32,
 ) (*networksharding.PeerShardMapper, error) {
 
-	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochStartRegistrationHandler, epochShard)
+	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochStartRegistrationHandler, epochStart)
 	if err != nil {
 		return nil, err
 	}
@@ -1758,6 +1770,11 @@ func PrepareNetworkShardingCollector(
 	networkShardingCollector.UpdatePeerIdShardId(localID, coordinator.SelfId())
 
 	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector)
+	if err != nil {
+		return nil, err
+	}
+
+	err = network.InputAntifloodHandler.SetPeerValidatorMapper(networkShardingCollector)
 	if err != nil {
 		return nil, err
 	}

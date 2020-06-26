@@ -22,7 +22,6 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
-		NonceConverter:          mock.NewNonceHashConverterMock(),
 	}
 
 	hdr := createMockMetaHeader()
