@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -11,11 +12,14 @@ var _ storage.Cacher = (*ImmunityCache)(nil)
 
 var log = logger.GetOrCreate("storage/immunitycache")
 
+const hospitalityWarnThreshold = -10000
+
 // ImmunityCache is a cache-like structure
 type ImmunityCache struct {
-	config CacheConfig
-	chunks []*immunityChunk
-	mutex  sync.RWMutex
+	config      CacheConfig
+	chunks      []*immunityChunk
+	hospitality atomic.Counter
+	mutex       sync.RWMutex
 }
 
 // NewImmunityCache creates a new cache
@@ -137,6 +141,14 @@ func (ic *ImmunityCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int
 	cacheItem := newCacheItem(value, string(key), sizeInBytes)
 	chunk := ic.getChunkByKeyWithLock(string(key))
 	has, added = chunk.AddItem(cacheItem)
+	if !has {
+		if added {
+			ic.hospitality.Increment()
+		} else {
+			ic.hospitality.Decrement()
+		}
+	}
+
 	return has, added
 }
 
@@ -247,12 +259,21 @@ func (ic *ImmunityCache) Diagnose(_ bool) {
 	count := ic.Count()
 	countImmune := ic.CountImmune()
 	numBytes := ic.NumBytes()
+	hospitality := ic.hospitality.Get()
+
 	log.Debug("ImmunityCache.Diagnose()",
 		"name", ic.config.Name,
 		"count", count,
 		"countImmune", countImmune,
 		"numBytes", numBytes,
+		"hospitality", hospitality,
 	)
+
+	if hospitality <= hospitalityWarnThreshold {
+		// After emitting a Warn, we reset the hospitality indicator
+		log.Warn("ImmunityCache.Diagnose()", "cache is not hospitable", "hospitality", hospitality)
+		ic.hospitality.Reset()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
