@@ -1326,7 +1326,7 @@ func TestWithPeerHonestyHandler_OkPeerHonestyHandlerShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	peerHonestyHandler := &mock.PeerHonestyHandlerStub{}
+	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
 	opt := WithPeerHonestyHandler(peerHonestyHandler)
 	err := opt(node)
 
