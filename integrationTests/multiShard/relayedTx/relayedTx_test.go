@@ -158,7 +158,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
-	t.Skip("this test is too long")
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
 	defer func() {
@@ -426,7 +428,7 @@ func createGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 	initialVal := big.NewInt(1000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	numPlayers := 10
+	numPlayers := 5
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		shardId := uint32(i) % nodes[0].ShardCoordinator.NumberOfShards()
