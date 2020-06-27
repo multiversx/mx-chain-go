@@ -262,17 +262,8 @@ func (ic *ImmunityCache) Diagnose(_ bool) {
 	numBytes := ic.NumBytes()
 	hospitality := ic.hospitality.Get()
 
-	log.Debug("ImmunityCache.Diagnose()",
-		"name", ic.config.Name,
-		"count", count,
-		"countImmune", countImmune,
-		"numBytes", numBytes,
-		"hospitality", hospitality,
-	)
-
-	if hospitality >= hospitalityUpperLimit {
-		ic.hospitality.Set(hospitalityUpperLimit)
-	} else if hospitality <= hospitalityWarnThreshold {
+	isNotHospitable := hospitality <= hospitalityWarnThreshold
+	if isNotHospitable {
 		// After emitting a Warn, we reset the hospitality indicator
 		log.Warn("ImmunityCache.Diagnose(): cache is not hospitable",
 			"name", ic.config.Name,
@@ -282,7 +273,20 @@ func (ic *ImmunityCache) Diagnose(_ bool) {
 			"hospitality", hospitality,
 		)
 		ic.hospitality.Reset()
+		return
 	}
+
+	if hospitality >= hospitalityUpperLimit {
+		ic.hospitality.Set(hospitalityUpperLimit)
+	}
+
+	log.Debug("ImmunityCache.Diagnose()",
+		"name", ic.config.Name,
+		"count", count,
+		"countImmune", countImmune,
+		"numBytes", numBytes,
+		"hospitality", hospitality,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
