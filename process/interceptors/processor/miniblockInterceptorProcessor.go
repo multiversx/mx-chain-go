@@ -78,19 +78,16 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ c
 	}
 
 	miniblock := interceptedMiniblock.Miniblock()
-	hash, err := core.CalculateHash(mip.marshalizer, mip.hasher, miniblock)
-	if err != nil {
-		return err
-	}
+	hash := interceptedMiniblock.Hash()
 
-	go mip.notify(miniblock, interceptedMiniblock.Hash(), topic)
+	go mip.notify(miniblock, hash, topic)
 
 	if !mip.whiteListHandler.IsWhiteListed(data) {
 		log.Trace(
 			"MiniblockInterceptorProcessor.Save: not whitelisted miniblocks will not be added in pool",
 			"type", miniblock.Type,
-			"sender", miniblock.SenderShardID,
-			"receiver", miniblock.ReceiverShardID,
+			"sender shard", miniblock.SenderShardID,
+			"receiver shard", miniblock.ReceiverShardID,
 			"hash", hash,
 		)
 		return nil

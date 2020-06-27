@@ -2115,3 +2115,27 @@ func AddSelfNotarizedHeaderByMetachain(nodes []*TestProcessorNode) {
 		n.BlockTracker.AddSelfNotarizedHeader(core.MetachainShardId, header, nil)
 	}
 }
+
+// WhiteListTxs -
+func WhiteListTxs(nodes []*TestProcessorNode, txs []*transaction.Transaction) {
+	txHashes := make([][]byte, 0)
+	for _, tx := range txs {
+		txHash, err := core.CalculateHash(TestMarshalizer, TestHasher, tx)
+		if err != nil {
+			return
+		}
+
+		txHashes = append(txHashes, txHash)
+	}
+
+	for _, n := range nodes {
+		for index, txHash := range txHashes {
+			senderShardID := n.ShardCoordinator.ComputeId(txs[index].SndAddr)
+			receiverShardID := n.ShardCoordinator.ComputeId(txs[index].RcvAddr)
+			if senderShardID == n.ShardCoordinator.SelfId() ||
+				receiverShardID == n.ShardCoordinator.SelfId() {
+				n.WhiteListHandler.Add([][]byte{txHash})
+			}
+		}
+	}
+}

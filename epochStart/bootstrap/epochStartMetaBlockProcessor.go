@@ -134,11 +134,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return nil
 	}
 
-	mbHash, err := core.CalculateHash(e.marshalizer, e.hasher, metaBlock)
-	if err != nil {
-		log.Warn("saving epoch start meta block error", "error", err)
-		return nil
-	}
+	mbHash := interceptedHdr.Hash()
 
 	log.Debug("received epoch start meta", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
 	e.mutReceivedMetaBlocks.Lock()

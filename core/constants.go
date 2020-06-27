@@ -439,9 +439,13 @@ const MaxSoftwareVersionLengthInBytes = 10
 // moment when its components, like mini blocks and transactions, would be broadcast too
 const ExtraDelayForBroadcastBlockInfo = 1 * time.Second
 
+// ExtraDelayBetweenBroadcastMbsAndTxs represents the number of seconds to wait since miniblocks have been broadcast
+// and the moment when theirs transactions would be broadcast too
+const ExtraDelayBetweenBroadcastMbsAndTxs = 1 * time.Second
+
 // ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
 // moment when its components, like mini blocks and transactions, would be requested too if they are still missing
-const ExtraDelayForRequestBlockInfo = 2 * time.Second
+const ExtraDelayForRequestBlockInfo = ExtraDelayForBroadcastBlockInfo + ExtraDelayBetweenBroadcastMbsAndTxs + time.Second
 
 // CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
 const CommitMaxTime = 3 * time.Second

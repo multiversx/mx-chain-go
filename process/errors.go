@@ -844,3 +844,6 @@ var ErrNilPeerValidatorMapper = errors.New("nil peer validator mapper")
 
 // ErrOnlyValidatorsCanUseThisTopic signals that topic can be used by validator only
 var ErrOnlyValidatorsCanUseThisTopic = errors.New("only validators can use this topic")
+
+// ErrTransactionIsNotWhitelisted signals that a transaction is not whitelisted
+var ErrTransactionIsNotWhitelisted = errors.New("transaction is not whitelisted")
