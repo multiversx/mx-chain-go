@@ -193,8 +193,10 @@ func (mp *metaProcessor) ProcessBlock(
 		numShardHeadersFromPool += headersPool.GetNumHeaders(shardID)
 	}
 
-	counts := mp.txCounter.getTxPoolCounts(mp.dataPool)
-	log.Debug("total txs in pool", "counts", counts.String())
+	txCounts, rewardCounts, unsignedCounts := mp.txCounter.getPoolCounts(mp.dataPool)
+	log.Debug("total txs in pool", "counts", txCounts.String())
+	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
+	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
 
 	go getMetricsFromMetaHeader(
 		header,
@@ -880,7 +882,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			break
 		}
 
-		if hdrsAdded > process.MaxShardHeadersAllowedInOneMetaBlock {
+		if hdrsAdded >= process.MaxShardHeadersAllowedInOneMetaBlock {
 			log.Debug("maximum shard headers allowed to be included in one meta block has been reached",
 				"shard headers added", hdrsAdded,
 			)
@@ -896,7 +898,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			continue
 		}
 
-		if hdrsAddedForShard[currShardHdr.GetShardID()] > maxShardHeadersFromSameShard {
+		if hdrsAddedForShard[currShardHdr.GetShardID()] >= maxShardHeadersFromSameShard {
 			log.Trace("maximum shard headers from same shard allowed to be included in one meta block has been reached",
 				"shard", currShardHdr.GetShardID(),
 				"shard headers added", hdrsAddedForShard[currShardHdr.GetShardID()],

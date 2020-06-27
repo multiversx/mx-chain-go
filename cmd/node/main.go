@@ -8,7 +8,6 @@ import (
 	"math"
 	"math/big"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -26,12 +25,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
+	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
+	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -47,6 +48,7 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/health"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -59,9 +61,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
+	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -70,10 +74,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/update"
 	exportFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/denisbrodbeck/machineid"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -89,6 +95,7 @@ const (
 	secondsToWaitForP2PBootstrap = 20
 	maxNumGoRoutinesTxsByHashApi = 10
 	maxTimeToClose               = 10 * time.Second
+	maxMachineIDLen              = 10
 )
 
 var (
@@ -213,6 +220,11 @@ VERSION:
 		Name: "profile-mode",
 		Usage: "Boolean option for enabling the profiling mode. If set, the /debug/pprof routes will be available " +
 			"on the node for profiling the application.",
+	}
+	// useHealthService is used to enable the health service
+	useHealthService = cli.BoolFlag{
+		Name:  "use-health-service",
+		Usage: "Boolean option for enabling the health service.",
 	}
 	// validatorKeyIndex defines a flag that specifies the 0-th based index of the private key to be used from validatorKey.pem file
 	validatorKeyIndex = cli.IntFlag{
@@ -387,7 +399,16 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
-	app.Version = fmt.Sprintf("%s/%s/%s-%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	machineID, err := machineid.ProtectedID(app.Name)
+	if err != nil {
+		log.Warn("error fetching machine id", "error", err)
+		machineID = "unknown"
+	}
+	if len(machineID) > maxMachineIDLen {
+		machineID = machineID[:maxMachineIDLen]
+	}
+
+	app.Version = fmt.Sprintf("%s/%s/%s-%s/%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
@@ -406,6 +427,7 @@ func main() {
 		validatorKeyPemFile,
 		port,
 		profileMode,
+		useHealthService,
 		storageCleanup,
 		gopsEn,
 		nodeDisplayName,
@@ -438,7 +460,7 @@ func main() {
 		return startNode(c, log, app.Version)
 	}
 
-	err := app.Run(os.Args)
+	err = app.Run(os.Args)
 	if err != nil {
 		log.Error(err.Error())
 		os.Exit(1)
@@ -721,6 +743,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating core components")
 
+	healthService := health.NewHealthService(generalConfig.Health, workingDir)
+	if ctx.IsSet(useHealthService.Name) {
+		healthService.Start()
+	}
+
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:  *generalConfig,
 		ShardId: shardId,
@@ -755,7 +782,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
 
 	log.Trace("creating network components")
-	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
+	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(
+		*p2pConfig,
+		*generalConfig,
+		coreComponents.StatusHandler,
+		coreComponents.InternalMarshalizer,
+	)
 	if err != nil {
 		return err
 	}
@@ -809,11 +841,22 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	startRound := int64(0)
+	if generalConfig.Hardfork.AfterHardFork {
+		startRound = int64(generalConfig.Hardfork.StartRound)
+	}
 	rounder, err := round.NewRound(
 		time.Unix(genesisNodesConfig.StartTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
-		syncer)
+		syncer,
+		startRound,
+	)
+	if err != nil {
+		return err
+	}
+
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, defaultDBPath), appVersion)
 	if err != nil {
 		return err
 	}
@@ -880,7 +923,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     addressPubkeyConverter,
 		LatestStorageDataProvider:  latestStorageDataProvider,
+		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              coreComponents.StatusHandler,
+		ImportStartHandler:         importStartHandler,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -945,6 +990,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	healthService.RegisterComponent(dataComponents.Datapool.Transactions())
+	healthService.RegisterComponent(dataComponents.Datapool.UnsignedTransactions())
+	healthService.RegisterComponent(dataComponents.Datapool.RewardTransactions())
+
 	log.Trace("initializing metrics")
 	err = metrics.InitMetrics(
 		coreComponents.StatusHandler,
@@ -997,6 +1046,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator.SelfId(),
 		chanStopNodeProcess,
 		bootstrapParameters,
+		currentEpoch,
 	)
 	if err != nil {
 		return err
@@ -1113,12 +1163,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating time cache for requested items components")
 	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * genesisNodesConfig.RoundDuration))
 
-	whiteListCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(generalConfig.WhiteListPool.Type),
-		generalConfig.WhiteListPool.Capacity,
-		generalConfig.WhiteListPool.Shards,
-		generalConfig.WhiteListPool.SizeInBytes,
-	)
+	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListPool))
 	if err != nil {
 		return err
 	}
@@ -1168,6 +1213,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ratingsData,
 		systemSCConfig,
 		version,
+		importStartHandler,
+		workingDir,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1190,6 +1237,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		epochStartNotifier,
+		importStartHandler,
+		workingDir,
 	)
 	if err != nil {
 		return err
@@ -1201,9 +1250,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
+
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		generalConfig,
+		ratingsConfig,
 		preferencesConfig,
 		genesisNodesConfig,
 		economicsData,
@@ -1329,26 +1380,39 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
 	case sig = <-chanStopNodeProcess:
-		log.Info("terminating at internal stop signal", "reason", sig.Reason)
+		log.Info("terminating at internal stop signal", "reason", sig.Reason, "description", sig.Description)
 	}
 
+	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(log, dataComponents, triesComponents, networkComponents)
+		closeAllComponents(log, healthService, dataComponents, triesComponents, networkComponents, chanCloseComponents)
 	}()
-	time.Sleep(maxTimeToClose)
-	handleAppClose(log, sig)
+
+	select {
+	case <-chanCloseComponents:
+	case <-time.After(maxTimeToClose):
+		log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
+	}
+
+	log.Debug("closing node")
 
 	return nil
 }
 
 func closeAllComponents(
 	log logger.Logger,
+	healthService io.Closer,
 	dataComponents *mainFactory.DataComponents,
 	triesComponents *mainFactory.TriesComponents,
 	networkComponents *mainFactory.NetworkComponents,
+	chanCloseComponents chan struct{},
 ) {
+	log.Debug("closing health service...")
+	err := healthService.Close()
+	log.LogIfError(err)
+
 	log.Debug("closing all store units....")
-	err := dataComponents.Store.CloseAll()
+	err = dataComponents.Store.CloseAll()
 	log.LogIfError(err)
 
 	dataTries := triesComponents.TriesContainer.GetAll()
@@ -1365,47 +1429,8 @@ func closeAllComponents(
 	log.Debug("calling close on the network messenger instance...")
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
-}
 
-func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
-	log.Debug("closing node")
-
-	switch endProcessArgument.Reason {
-	case core.ShuffledOut:
-		log.Debug(
-			"restarting node",
-			"reason",
-			endProcessArgument.Reason,
-			"description",
-			endProcessArgument.Description,
-		)
-
-		newStartInEpoch(log)
-	default:
-	}
-}
-
-func newStartInEpoch(log logger.Logger) {
-	wd, err := os.Getwd()
-	if err != nil {
-		log.LogIfError(err)
-	}
-	nodeApp := os.Args[0]
-	args := os.Args
-	args = append(args, "-start-in-epoch")
-
-	log.Debug("startInEpoch", "working dir", wd, "nodeApp", nodeApp, "args", args)
-
-	cmd := exec.Command(nodeApp)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	cmd.Args = args
-	cmd.Dir = wd
-	err = cmd.Start()
-	if err != nil {
-		log.LogIfError(err)
-	}
+	chanCloseComponents <- struct{}{}
 }
 
 func createStringFromRatingsData(ratingsData *rating.RatingsData) string {
@@ -1703,6 +1728,7 @@ func createNodesCoordinator(
 	currentShardID uint32,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	bootstrapParameters bootstrap.Parameters,
+	startEpoch uint32,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
@@ -1723,7 +1749,8 @@ func createNodesCoordinator(
 	if errWaitingValidators != nil {
 		return nil, errWaitingValidators
 	}
-	currentEpoch := uint32(0)
+
+	currentEpoch := startEpoch
 	if bootstrapParameters.NodesConfig != nil {
 		nodeRegistry := bootstrapParameters.NodesConfig
 		currentEpoch = bootstrapParameters.Epoch
@@ -1788,6 +1815,7 @@ func createNodesCoordinator(
 		ConsensusGroupCache:     consensusGroupCache,
 		ShuffledOutHandler:      shuffledOutHandler,
 		Epoch:                   currentEpoch,
+		StartEpoch:              startEpoch,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -1884,6 +1912,8 @@ func createHardForkTrigger(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	epochNotifier factory.EpochStartNotifier,
+	importStartHandler update.ImportStartHandler,
+	workingDir string,
 ) (node.HardforkTrigger, error) {
 
 	selfPubKeyBytes, err := pubKey.ToByteArray()
@@ -1899,6 +1929,7 @@ func createHardForkTrigger(
 	accountsDBs[state.UserAccountsState] = stateComponents.AccountsAdapter
 	accountsDBs[state.PeerAccountsState] = stateComponents.PeerAccounts
 	hardForkConfig := config.Hardfork
+	exportFolder := filepath.Join(workingDir, hardForkConfig.ImportFolder)
 	argsExporter := exportFactory.ArgsExporter{
 		TxSignMarshalizer:        coreData.TxSignMarshalizer,
 		Marshalizer:              coreData.InternalMarshalizer,
@@ -1912,9 +1943,9 @@ func createHardForkTrigger(
 		Messenger:                network.NetMessenger,
 		ActiveAccountsDBs:        accountsDBs,
 		ExistingResolvers:        process.ResolversFinder,
-		ExportFolder:             hardForkConfig.ImportFolder,
-		ExportTriesStorageConfig: hardForkConfig.ExportStateStorageConfig,
-		ExportStateStorageConfig: hardForkConfig.ExportTriesStorageConfig,
+		ExportFolder:             exportFolder,
+		ExportTriesStorageConfig: hardForkConfig.ExportTriesStorageConfig,
+		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
 		WhiteListHandler:         whiteListRequest,
 		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
 		InterceptorsContainer:    process.InterceptorsContainer,
@@ -1937,17 +1968,19 @@ func createHardForkTrigger(
 		return nil, err
 	}
 
-	atArgumentParser := vmcommon.NewAtArgumentParser()
+	atArgumentParser := smartContract.NewArgumentParser()
 	argTrigger := trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:     triggerPubKeyBytes,
-		SelfPubKeyBytes:        selfPubKeyBytes,
-		Enabled:                config.Hardfork.EnableTrigger,
-		EnabledAuthenticated:   config.Hardfork.EnableTriggerFromP2P,
-		ArgumentParser:         atArgumentParser,
-		EpochProvider:          process.EpochStartTrigger,
-		ExportFactoryHandler:   hardForkExportFactory,
-		ChanStopNodeProcess:    chanStopNodeProcess,
-		EpochConfirmedNotifier: epochNotifier,
+		TriggerPubKeyBytes:        triggerPubKeyBytes,
+		SelfPubKeyBytes:           selfPubKeyBytes,
+		Enabled:                   config.Hardfork.EnableTrigger,
+		EnabledAuthenticated:      config.Hardfork.EnableTriggerFromP2P,
+		ArgumentParser:            atArgumentParser,
+		EpochProvider:             process.EpochStartTrigger,
+		ExportFactoryHandler:      hardForkExportFactory,
+		ChanStopNodeProcess:       chanStopNodeProcess,
+		EpochConfirmedNotifier:    epochNotifier,
+		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
+		ImportStartHandler:        importStartHandler,
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {
@@ -1959,6 +1992,7 @@ func createHardForkTrigger(
 
 func createNode(
 	config *config.Config,
+	ratingConfig config.RatingsConfig,
 	preferencesConfig *config.Preferences,
 	nodesConfig *sharding.NodesSetup,
 	economicsData process.FeeHandler,
@@ -2007,13 +2041,40 @@ func createNode(
 		nodesCoordinator,
 		shardCoordinator,
 		epochStartRegistrationHandler,
-		process.EpochStartTrigger.Epoch(),
+		process.EpochStartTrigger.MetaEpoch(),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	factory.PrepareOpenTopics(network.InputAntifloodHandler, shardCoordinator)
+
 	apiTxsByHashThrottler, err := throttler.NewNumGoRoutinesThrottler(maxNumGoRoutinesTxsByHashApi)
+	if err != nil {
+		return nil, err
+	}
+
+	alarmScheduler := alarm.NewAlarmScheduler()
+	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, chanStopNodeProcess)
+	if err != nil {
+		return nil, err
+	}
+
+	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
+		network.PeerBlackListHandler,
+		network.PkTimeCache,
+		networkShardingCollector,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = network.NetMessenger.SetPeerDenialEvaluator(peerDenialEvaluator)
+	if err != nil {
+		return nil, err
+	}
+
+	peerHonestyHandler, err := createPeerHonestyHandler(config, ratingConfig, network.PkTimeCache)
 	if err != nil {
 		return nil, err
 	}
@@ -2058,7 +2119,7 @@ func createNode(
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBlockBlackListHandler(process.BlackListHandler),
-		node.WithPeerBlackListHandler(network.PeerBlackListHandler),
+		node.WithPeerDenialEvaluator(peerDenialEvaluator),
 		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
@@ -2078,6 +2139,8 @@ func createNode(
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
 		node.WithApiTransactionByHashThrottler(apiTxsByHashThrottler),
+		node.WithPeerHonestyHandler(peerHonestyHandler),
+		node.WithWatchdogTimer(watchdogTimer),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -2117,6 +2180,20 @@ func createNode(
 	}
 
 	return nd, nil
+}
+
+func createPeerHonestyHandler(
+	config *config.Config,
+	ratingConfig config.RatingsConfig,
+	pkTimeCache process.TimeCacher,
+) (consensus.PeerHonestyHandler, error) {
+
+	cache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(config.PeerHonesty))
+	if err != nil {
+		return nil, err
+	}
+
+	return peerHonesty.NewP2pPeerHonesty(ratingConfig.PeerHonesty, pkTimeCache, cache)
 }
 
 func initStatsFileMonitor(
@@ -2279,7 +2356,7 @@ func createApiResolver(
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -2295,12 +2372,7 @@ func createApiResolver(
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
-	whiteListCacheVerified, err := storageUnit.NewCache(
-		storageUnit.CacheType(generalConfig.WhiteListerVerifiedTxs.Type),
-		generalConfig.WhiteListerVerifiedTxs.Capacity,
-		generalConfig.WhiteListerVerifiedTxs.Shards,
-		generalConfig.WhiteListPool.SizeInBytes,
-	)
+	whiteListCacheVerified, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListerVerifiedTxs))
 	if err != nil {
 		return nil, err
 	}

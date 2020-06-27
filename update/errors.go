@@ -161,8 +161,8 @@ var ErrTimeIsOut = errors.New("time is out")
 // ErrTriggerNotEnabled signals that the trigger is not enabled
 var ErrTriggerNotEnabled = errors.New("trigger is not enabled")
 
-// ErrNilHandler signals that a nil trigger handler was provided
-var ErrNilHandler = errors.New("nil handler")
+// ErrNilCloser signals that a nil closer instance was provided
+var ErrNilCloser = errors.New("nil closer instance")
 
 // ErrInvalidValue signals that the value provided is invalid
 var ErrInvalidValue = errors.New("invalid value")
@@ -214,3 +214,21 @@ var ErrNilChanStopNodeProcess = errors.New("nil channel to stop node")
 
 // ErrNilEpochConfirmedNotifier signals that nil epoch confirmed notifier was provided
 var ErrNilEpochConfirmedNotifier = errors.New("nil epoch confirmed notifier")
+
+// ErrTriggerAlreadyInAction signals that the trigger is already in action, can not re-enter
+var ErrTriggerAlreadyInAction = errors.New("trigger already in action")
+
+// ErrInvalidTimeToWaitAfterHardfork signals that an invalid time to wait after hardfork was provided
+var ErrInvalidTimeToWaitAfterHardfork = errors.New("invalid time to wait after hard fork")
+
+// ErrInvalidEpoch signals that an invalid epoch has been provided
+var ErrInvalidEpoch = errors.New("invalid epoch")
+
+// ErrNilImportStartHandler signals that a nil import start handler has been provided
+var ErrNilImportStartHandler = errors.New("nil import start handler")
+
+// ErrEmptyVersionString signals that the provided version string is empty
+var ErrEmptyVersionString = errors.New("empty version string")
+
+// ErrNilTimeCache signals that a nil time cache was provided
+var ErrNilTimeCache = errors.New("nil time cache")

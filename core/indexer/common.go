@@ -62,7 +62,7 @@ func timestampMapping() io.Reader {
 	return strings.NewReader(
 		`{
 				"settings": {"index": {"sort.field": "timestamp", "sort.order": "desc"}},
-				"mappings": {"_doc": {"properties": {"timestamp": {"type": "date"}}}}
+				"mappings": {"properties": {"timestamp": {"type": "date"}}}
 			}`,
 	)
 }
@@ -273,7 +273,7 @@ func serializeBulkMiniBlocks(
 			}
 		} else {
 			// update miniblock
-			meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s", "_type" : "%s"  } }%s`, mb.Hash, "_doc", "\n"))
+			meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s" } }%s`, mb.Hash, "\n"))
 			if hdrShardID == mb.SenderShardID {
 				// update sender block hash
 				serializedData = []byte(fmt.Sprintf(`{ "doc" : { "senderBlockHash" : "%s" } }`, mb.SenderBlockHash))
@@ -341,7 +341,7 @@ func serializeTransactions(
 		serializedData = append(serializedData, "\n"...)
 
 		buffLenWithCurrentTx := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentTx > txsBulkSizeThreshold {
+		if buffLenWithCurrentTx > txsBulkSizeThreshold && buff.Len() != 0 {
 			buffSlice = append(buffSlice, buff)
 			buff = bytes.Buffer{}
 		}
@@ -399,7 +399,7 @@ func prepareSerializedDataForATransaction(
 		meta, serializedData = prepareTxUpdate(tx)
 	} else {
 		// insert transaction in database
-		meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
+		meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, tx.Hash, "\n"))
 		serializedData, err = json.Marshal(tx)
 		if err != nil {
 			log.Debug("indexer: marshal",

@@ -114,10 +114,7 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 	return nil
 }
 
-// Create instantiates all the system smart contracts and returns a container
-func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
-	scContainer := NewSystemSCContainer()
-
+func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, error) {
 	argsStaking := systemSmartContracts.ArgsNewStakingSmartContract{
 		MinNumNodes:              scf.nodesConfigProvider.MinNumberOfNodes(),
 		MinStakeValue:            scf.validatorSettings.GenesisNodePrice(),
@@ -129,17 +126,13 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		BleedPercentagePerRound:  scf.validatorSettings.BleedPercentagePerRound(),
 		MaximumPercentageToBleed: scf.validatorSettings.MaximumPercentageToBleed(),
 		GasCost:                  scf.gasCost,
+		Marshalizer:              scf.marshalizer,
 	}
 	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
-	if err != nil {
-		return nil, err
-	}
+	return staking, err
+}
 
-	err = scContainer.Add(StakingSCAddress, staking)
-	if err != nil {
-		return nil, err
-	}
-
+func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, error) {
 	args := systemSmartContracts.ArgsStakingAuctionSmartContract{
 		Eei:                 scf.systemEI,
 		SigVerifier:         scf.sigVerifier,
@@ -148,17 +141,13 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		StakingSCAddress:    StakingSCAddress,
 		AuctionSCAddress:    AuctionSCAddress,
 		GasCost:             scf.gasCost,
+		Marshalizer:         scf.marshalizer,
 	}
 	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
-	if err != nil {
-		return nil, err
-	}
+	return auction, err
+}
 
-	err = scContainer.Add(AuctionSCAddress, auction)
-	if err != nil {
-		return nil, err
-	}
-
+func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error) {
 	argsESDT := systemSmartContracts.ArgsNewESDTSmartContract{
 		Eei:           scf.systemEI,
 		GasCost:       scf.gasCost,
@@ -168,11 +157,65 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		ESDTSCConfig:  scf.systemSCConfig.ESDTSystemSCConfig,
 	}
 	esdt, err := systemSmartContracts.NewESDTSmartContract(argsESDT)
+	return esdt, err
+}
+
+func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, error) {
+	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{
+		Eei:                 scf.systemEI,
+		GasCost:             scf.gasCost,
+		GovernanceConfig:    scf.systemSCConfig.GovernanceSystemSCConfig,
+		ESDTSCAddress:       ESDTSCAddress,
+		Marshalizer:         scf.marshalizer,
+		Hasher:              scf.hasher,
+		GovernanceSCAddress: GovernanceSCAddress,
+		StakingSCAddress:    StakingSCAddress,
+		AuctionSCAddress:    AuctionSCAddress,
+	}
+	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
+	return governance, err
+}
+
+// Create instantiates all the system smart contracts and returns a container
+func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
+	scContainer := NewSystemSCContainer()
+
+	staking, err := scf.createStakingContract()
+	if err != nil {
+		return nil, err
+	}
+
+	err = scContainer.Add(StakingSCAddress, staking)
+	if err != nil {
+		return nil, err
+	}
+
+	auction, err := scf.createAuctionContract()
+	if err != nil {
+		return nil, err
+	}
+
+	err = scContainer.Add(AuctionSCAddress, auction)
+	if err != nil {
+		return nil, err
+	}
+
+	esdt, err := scf.createESDTContract()
 	if err != nil {
 		return nil, err
 	}
 
 	err = scContainer.Add(ESDTSCAddress, esdt)
+	if err != nil {
+		return nil, err
+	}
+
+	governance, err := scf.createGovernanceContract()
+	if err != nil {
+		return nil, err
+	}
+
+	err = scContainer.Add(GovernanceSCAddress, governance)
 	if err != nil {
 		return nil, err
 	}

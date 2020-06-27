@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,24 +49,24 @@ func createMetaStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnReg
 }
 
 func createMetaDataPools() dataRetriever.PoolsHolder {
-	pools := &mock.PoolsHolderStub{
+	pools := &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 		TrieNodesCalled: func() storage.Cacher {
-			return &mock.CacherStub{}
+			return testscommon.NewCacherStub()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{}
+			return testscommon.NewShardedDataStub()
 		},
 	}
 
@@ -267,7 +268,7 @@ func TestNewMetaInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *tes
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilBlackListHandler, err)
+	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
@@ -479,7 +480,7 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
-		NonceConverter:          mock.NewNonceHashConverterMock(),
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		ArgumentsParser:         &mock.ArgumentParserMock{},
 	}
 }

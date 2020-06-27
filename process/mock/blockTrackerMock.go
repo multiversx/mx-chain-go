@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -380,6 +381,10 @@ func (btm *BlockTrackerMock) GetSelfNotarizedHeader(shardID uint32, offset uint6
 
 	btm.mutSelfNotarizedHeaders.RLock()
 	defer btm.mutSelfNotarizedHeaders.RUnlock()
+
+	if len(btm.selfNotarizedHeaders[core.MetachainShardId]) == 0 {
+		return &block.MetaBlock{}, []byte("hash"), nil
+	}
 
 	headersInfo := btm.selfNotarizedHeaders[shardID]
 	if headersInfo == nil {

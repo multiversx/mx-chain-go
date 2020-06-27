@@ -151,7 +151,7 @@ func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(_ []byte, _ uint32, _ uin
 }
 
 // GetValidatorWithPublicKey -
-func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(_ []byte, _ uint32) (sharding.Validator, uint32, error) {
+func (ncm *NodesCoordinatorMock) GetValidatorWithPublicKey(_ []byte) (sharding.Validator, uint32, error) {
 	panic("implement me")
 }
 

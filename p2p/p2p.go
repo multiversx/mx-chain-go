@@ -3,6 +3,7 @@ package p2p
 import (
 	"encoding/hex"
 	"io"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 )
@@ -138,9 +139,8 @@ type Messenger interface {
 	ThresholdMinConnectedPeers() int
 	SetThresholdMinConnectedPeers(minConnectedPeers int) error
 	SetPeerShardResolver(peerShardResolver PeerShardResolver) error
-	SetPeerBlackListHandler(handler PeerBlacklistHandler) error
+	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
 	GetConnectedPeersInfo() *ConnectedPeersInfo
-	SetMessageIdsCacher(cacher Cacher) error
 	UnjoinAllTopics() error
 
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -151,11 +151,13 @@ type Messenger interface {
 type MessageP2P interface {
 	From() []byte
 	Data() []byte
+	Payload() []byte
 	SeqNo() []byte
 	Topics() []string
 	Signature() []byte
 	Key() []byte
 	Peer() core.PeerID
+	Timestamp() int64
 	IsInterfaceNil() bool
 }
 
@@ -256,11 +258,12 @@ type CommonSharder interface {
 	IsInterfaceNil() bool
 }
 
-// PeerBlacklistHandler defines the behavior of a component that is able to decide if a peer ID is black listed or not
+// PeerDenialEvaluator defines the behavior of a component that is able to decide if a peer ID is black listed or not
 //TODO merge this interface with the PeerShardResolver => P2PProtocolHandler ?
 //TODO move antiflooding inside network messenger
-type PeerBlacklistHandler interface {
-	Has(pid core.PeerID) bool
+type PeerDenialEvaluator interface {
+	IsDenied(pid core.PeerID) bool
+	UpsertPeerID(pid core.PeerID, duration time.Duration) error
 	IsInterfaceNil() bool
 }
 
@@ -268,12 +271,21 @@ type PeerBlacklistHandler interface {
 //TODO this should be removed after merging of the PeerShardResolver and BlacklistHandler
 type ConnectionMonitorWrapper interface {
 	CheckConnectionsBlocking()
-	SetBlackListHandler(handler PeerBlacklistHandler) error
+	SetPeerDenialEvaluator(handler PeerDenialEvaluator) error
+	PeerDenialEvaluator() PeerDenialEvaluator
 	IsInterfaceNil() bool
 }
 
 // Cacher defines the interface for a cacher used in p2p to better prevent the reprocessing of an old message
 type Cacher interface {
-	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool)
+	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool)
+	IsInterfaceNil() bool
+}
+
+// Debugger represent a p2p debugger able to print p2p statistics (messages received/sent per topic)
+type Debugger interface {
+	AddIncomingMessage(topic string, size uint64, isRejected bool)
+	AddOutgoingMessage(topic string, size uint64, isRejected bool)
+	Close() error
 	IsInterfaceNil() bool
 }

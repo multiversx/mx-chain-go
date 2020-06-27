@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,30 +41,30 @@ func createShardStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRe
 }
 
 func createShardDataPools() dataRetriever.PoolsHolder {
-	pools := &mock.PoolsHolderStub{}
+	pools := testscommon.NewPoolsHolderStub()
 	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+		return testscommon.NewCacherStub()
 	}
 	pools.PeerChangesBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+		return testscommon.NewCacherStub()
 	}
 	pools.MetaBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+		return testscommon.NewCacherStub()
 	}
 	pools.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	pools.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+		return testscommon.NewShardedDataStub()
 	}
 	pools.TrieNodesCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+		return testscommon.NewCacherStub()
 	}
 	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
 		return &mock.TxForCurrentBlockStub{}
@@ -261,11 +262,11 @@ func TestNewShardInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *te
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.BlackList = nil
+	args.BlockBlackList = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilBlackListHandler, err)
+	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
 func TestNewShardInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
@@ -521,7 +522,7 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		AddressPubkeyConverter:  mock.NewPubkeyConverterMock(32),
 		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
 		TxFeeHandler:            &mock.FeeHandlerStub{},
-		BlackList:               &mock.BlackListHandlerStub{},
+		BlockBlackList:          &mock.BlackListHandlerStub{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		SizeCheckDelta:          0,
@@ -529,7 +530,7 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
-		NonceConverter:          mock.NewNonceHashConverterMock(),
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		ArgumentsParser:         &mock.ArgumentParserMock{},
 	}
 }

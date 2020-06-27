@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 // InitChronologyHandlerMock -
@@ -130,6 +131,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	epochStartSubscriber := &EpochStartNotifierStub{}
 	antifloodHandler := &P2PAntifloodHandlerStub{}
 	headerPoolSubscriber := &HeadersCacherStub{}
+	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain:             blockChain,
@@ -149,6 +151,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		validatorGroupSelector: validatorGroupSelector,
 		epochStartNotifier:     epochStartSubscriber,
 		antifloodHandler:       antifloodHandler,
+		peerHonestyHandler:     peerHonestyHandler,
 	}
 
 	return container

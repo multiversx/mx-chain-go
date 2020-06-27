@@ -70,9 +70,6 @@ var ErrUnknownShardId = errors.New("shard id is not valid")
 //ErrBech32ConvertError signals that conversion the 5bit alphabet to 8bit failed
 var ErrBech32ConvertError = errors.New("can't convert bech32 string")
 
-// ErrNilStake signals that the provided stake is nil
-var ErrNilStake = errors.New("stake is nil")
-
 // ErrNilBLSPublicKey signals that the provided BLS public key is nil
 var ErrNilBLSPublicKey = errors.New("bls public key is nil")
 
@@ -113,5 +110,8 @@ var ErrInvalidErdAddress = errors.New("invalid ERD address")
 // ErrInvalidPubkeyConverterType signals that the provided pubkey converter type is invalid
 var ErrInvalidPubkeyConverterType = errors.New("invalid pubkey converter type")
 
-// ErrInvalidHash signals that the given hash is invalid
-var ErrInvalidHash = errors.New("invalid hash provided")
+// ErrNilNewCodeMap signals that the provided map is nil
+var ErrNilNewCodeMap = errors.New("nil newCode map")
+
+// ErrNilCodeForEvictionMap signals that the provided map is nil
+var ErrNilCodeForEvictionMap = errors.New("nil codeForEviction map")

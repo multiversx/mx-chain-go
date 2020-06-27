@@ -37,6 +37,9 @@ var ErrEmptyTopicList = errors.New("empty topicIDs")
 // ErrAlreadySeenMessage signals that the message has already been seen
 var ErrAlreadySeenMessage = errors.New("already seen this message")
 
+// ErrOldMessage signals that the message is too old
+var ErrOldMessage = errors.New("message too old")
+
 // ErrNilDirectSendMessageHandler signals that the message handler for new message has not been wired
 var ErrNilDirectSendMessageHandler = errors.New("nil direct sender message handler")
 
@@ -54,6 +57,9 @@ var ErrPeerDiscoveryProcessAlreadyStarted = errors.New("peer discovery is alread
 
 // ErrMessageTooLarge signals that the message provided is too large
 var ErrMessageTooLarge = errors.New("buffer too large")
+
+// ErrEmptyBufferToSend signals that an empty buffer was provided for sending to other peers
+var ErrEmptyBufferToSend = errors.New("empty buffer to send")
 
 // ErrNilFetchPeersOnTopicHandler signals that a nil handler was provided
 var ErrNilFetchPeersOnTopicHandler = errors.New("nil fetch peers on topic handler")
@@ -116,11 +122,12 @@ var ErrEmptySeed = errors.New("empty seed")
 // ErrEmptyBuffer signals that an empty buffer has been provided
 var ErrEmptyBuffer = errors.New("empty buffer")
 
-// ErrNilPeerBlacklistHandler signals that a nil peer black list handler was provided
-var ErrNilPeerBlacklistHandler = errors.New("nil peer black list handler")
+// ErrNilPeerDenialEvaluator signals that a nil peer denial evaluator was provided
+var ErrNilPeerDenialEvaluator = errors.New("nil peer denial evaluator")
 
 // ErrNilStatusHandler signals that a nil status handler has been provided
 var ErrNilStatusHandler = errors.New("nil status handler")
 
-// ErrNilCacher signals that a nil cacher has been provided
-var ErrNilCacher = errors.New("nil cacher")
+// ErrMessageUnmarshalError signals that an invalid message was received from a peer. There is no way to communicate
+// with such a peer as it does not respect the protocol
+var ErrMessageUnmarshalError = errors.New("message unmarshal error")

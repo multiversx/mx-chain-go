@@ -14,6 +14,8 @@ import (
 
 var MaxSendBuffSize = maxSendBuffSize
 var BroadcastGoRoutines = broadcastGoRoutines
+var PubsubTimeCacheDuration = pubsubTimeCacheDuration
+var AcceptMessagesInAdvanceDuration = acceptMessagesInAdvanceDuration
 
 func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
 	netMes.p2pHost = newHost
@@ -27,8 +29,8 @@ func (netMes *networkMessenger) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer)
 	netMes.peerDiscoverer = discoverer
 }
 
-func (netMes *networkMessenger) PubsubCallback(handler p2p.MessageProcessor) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-	return netMes.pubsubCallback(handler)
+func (netMes *networkMessenger) PubsubCallback(handler p2p.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+	return netMes.pubsubCallback(handler, topic)
 }
 
 func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message, fromConnectedPeer peer.ID) error {

@@ -4,10 +4,10 @@ import "time"
 
 // BlackListHandlerStub -
 type BlackListHandlerStub struct {
-	AddCalled         func(key string) error
-	AddWithSpanCalled func(key string, span time.Duration) error
-	HasCalled         func(key string) bool
-	SweepCalled       func()
+	AddCalled    func(key string) error
+	UpsertCalled func(key string, span time.Duration) error
+	HasCalled    func(key string) bool
+	SweepCalled  func()
 }
 
 // Add -
@@ -19,13 +19,13 @@ func (blhs *BlackListHandlerStub) Add(key string) error {
 	return blhs.AddCalled(key)
 }
 
-// AddWithSpan -
-func (blhs *BlackListHandlerStub) AddWithSpan(key string, span time.Duration) error {
-	if blhs.AddWithSpanCalled == nil {
+// Upsert -
+func (blhs *BlackListHandlerStub) Upsert(key string, span time.Duration) error {
+	if blhs.UpsertCalled == nil {
 		return nil
 	}
 
-	return blhs.AddWithSpanCalled(key, span)
+	return blhs.UpsertCalled(key, span)
 }
 
 // Has -

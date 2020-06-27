@@ -19,17 +19,20 @@ var log = logger.GetOrCreate("process/throttle/antiflood")
 var _ process.P2PAntifloodHandler = (*p2pAntiflood)(nil)
 
 type p2pAntiflood struct {
-	blacklistHandler process.PeerBlackListHandler
-	floodPreventers  []process.FloodPreventer
-	topicPreventer   process.TopicFloodPreventer
-	mutDebugger      sync.RWMutex
-	debugger         process.AntifloodDebugger
+	blacklistHandler 	process.PeerBlackListCacher
+	floodPreventers  	[]process.FloodPreventer
+	topicPreventer   	process.TopicFloodPreventer
+	mutDebugger      	sync.RWMutex
+	debugger         	process.AntifloodDebugger
+	peerValidatorMapper process.PeerValidatorMapper
+	mapTopicsFromAll    map[string]struct{}
+	mutTopicCheck       sync.RWMutex
 }
 
 // NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
 // It contains only the p2p anti flood logic that should be applied
 func NewP2PAntiflood(
-	blacklistHandler process.PeerBlackListHandler,
+	blacklistHandler process.PeerBlackListCacher,
 	topicFloodPreventer process.TopicFloodPreventer,
 	floodPreventers ...process.FloodPreventer,
 ) (*p2pAntiflood, error) {
@@ -41,14 +44,16 @@ func NewP2PAntiflood(
 		return nil, process.ErrNilTopicFloodPreventer
 	}
 	if check.IfNil(blacklistHandler) {
-		return nil, process.ErrNilBlackListHandler
+		return nil, process.ErrNilBlackListCacher
 	}
 
 	return &p2pAntiflood{
-		blacklistHandler: blacklistHandler,
-		floodPreventers:  floodPreventers,
-		topicPreventer:   topicFloodPreventer,
-		debugger:         &disabled.AntifloodDebugger{},
+		blacklistHandler:    blacklistHandler,
+		floodPreventers:     floodPreventers,
+		topicPreventer:      topicFloodPreventer,
+		debugger:            &disabled.AntifloodDebugger{},
+		mapTopicsFromAll:    make(map[string]struct{}),
+		peerValidatorMapper: &disabled.PeerValidatorMapper{},
 	}, nil
 }
 
@@ -85,6 +90,47 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 		return fmt.Errorf("%w for pid %s", process.ErrOriginatorIsBlacklisted, message.Peer().Pretty())
 	}
 
+	return nil
+}
+
+// IsOriginatorEligibleForTopic returns error if pid is not allowed to send messages on topic
+func (af *p2pAntiflood) IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error {
+	af.mutTopicCheck.RLock()
+	defer af.mutTopicCheck.RUnlock()
+
+	_, ok := af.mapTopicsFromAll[topic]
+	if ok {
+		return nil
+	}
+
+	peerInfo := af.peerValidatorMapper.GetPeerInfo(pid)
+	if peerInfo.PeerType == core.ValidatorPeer {
+		return nil
+	}
+
+	return process.ErrOnlyValidatorsCanUseThisTopic
+}
+
+// SetTopicsForAll sets the topics which are enabled for all
+func (af *p2pAntiflood) SetTopicsForAll(topics ...string) {
+	af.mutTopicCheck.Lock()
+	defer af.mutTopicCheck.Unlock()
+
+	for _, topic := range topics {
+		af.mapTopicsFromAll[topic] = struct{}{}
+	}
+}
+
+// SetPeerValidatorMapper sets the peer validator mapper
+func (af *p2pAntiflood) SetPeerValidatorMapper(validatorMapper process.PeerValidatorMapper) error {
+	if check.IfNil(validatorMapper) {
+		return process.ErrNilPeerValidatorMapper
+	}
+
+	af.mutTopicCheck.Lock()
+	defer af.mutTopicCheck.Unlock()
+
+	af.peerValidatorMapper = validatorMapper
 	return nil
 }
 
@@ -186,7 +232,7 @@ func (af *p2pAntiflood) SetDebugger(debugger process.AntifloodDebugger) error {
 
 // BlacklistPeer will add a peer to the black list
 func (af *p2pAntiflood) BlacklistPeer(peer core.PeerID, reason string, duration time.Duration) {
-	err := af.blacklistHandler.AddWithSpan(peer, duration)
+	err := af.blacklistHandler.Upsert(peer, duration)
 	if err != nil {
 		log.Warn("error adding in blacklist",
 			"pid", peer.Pretty(),

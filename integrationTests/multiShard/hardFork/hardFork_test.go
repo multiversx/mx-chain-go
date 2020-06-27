@@ -2,6 +2,7 @@ package hardFork
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"os"
@@ -19,6 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
+	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
@@ -95,7 +98,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 		}
 	}()
 
-	exportStorageConfigs := hardForkExport(t, nodes)
+	exportStorageConfigs := hardForkExport(t, nodes, epoch)
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)
 }
@@ -105,7 +108,7 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
+	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -139,11 +142,18 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		}
 	}()
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(1000000000)
 	sendValue := big.NewInt(5)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	receiverAddress1 := []byte("12345678901234567890123456789012")
 	receiverAddress2 := []byte("12345678901234567890123456789011")
+
+	numPlayers := 10
+	players := make([]*integrationTests.TestWalletAccount, numPlayers)
+	for i := 0; i < numPlayers; i++ {
+		players[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
+	}
+	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -151,16 +161,36 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	nonce++
 
 	time.Sleep(time.Second)
-
+	transferToken := big.NewInt(10)
+	ownerNode := nodes[0]
+	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
+	scCode := arwen.GetSCCode("../../vm/arwen/testdata/erc20-c-03/wrc20_arwen.wasm")
+	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	integrationTests.CreateAndSendTransactionWithGasLimit(
+		nodes[0],
+		big.NewInt(0),
+		integrationTests.MaxGasLimitPerBlock-1,
+		make([]byte, 32),
+		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply))
+	time.Sleep(time.Second)
 	/////////----- wait for epoch end period
-	epoch := uint32(1)
+	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(6)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		for _, node := range nodes {
 			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "")
 			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "")
+		}
+
+		for _, player := range players {
+			integrationTests.CreateAndSendTransactionWithGasLimit(
+				ownerNode,
+				big.NewInt(0),
+				1000000,
+				scAddress,
+				[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(transferToken.Bytes())))
 		}
 
 		time.Sleep(time.Second)
@@ -179,17 +209,17 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		}
 	}()
 
-	exportStorageConfigs := hardForkExport(t, nodes)
+	exportStorageConfigs := hardForkExport(t, nodes, epoch)
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)
 }
 
-func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode) []*config.StorageConfig {
+func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode, epoch uint32) []*config.StorageConfig {
 	exportStorageConfigs := createHardForkExporter(t, nodes)
 	for _, node := range nodes {
 		log.Warn("***********************************************************************************")
 		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
-		err := node.ExportHandler.ExportAll(1)
+		err := node.ExportHandler.ExportAll(epoch)
 		assert.Nil(t, err)
 		log.Warn("***********************************************************************************")
 	}
@@ -236,7 +266,6 @@ func hardForkImport(
 			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig:     config.VirtualMachineConfig{},
 			HardForkConfig: config.HardforkConfig{
-				MustImport:               true,
 				ImportFolder:             node.ExportFolder,
 				StartEpoch:               1000,
 				StartNonce:               1000,
@@ -250,10 +279,22 @@ func hardForkImport(
 					BaseIssuingCost: "1000",
 					OwnerAddress:    "aaaaaa",
 				},
+				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+					ProposalCost:     "500",
+					NumNodes:         100,
+					MinQuorum:        50,
+					MinPassThreshold: 50,
+					MinVetoThreshold: 50,
+				},
 			},
 			AccountsParser:      &mock.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
 			BlockSignKeyGen:     &mock.KeyGenMock{},
+			ImportStartHandler: &mock.ImportStartHandlerStub{
+				ShouldStartImportCalled: func() bool {
+					return true
+				},
+			},
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

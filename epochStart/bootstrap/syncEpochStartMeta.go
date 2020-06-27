@@ -52,6 +52,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	AddressPubkeyConv  core.PubkeyConverter
 	NonceConverter     typeConverters.Uint64ByteSliceConverter
 	StartInEpochConfig config.EpochStartConfig
+	ArgsParser         process.ArgumentsParser
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -106,7 +107,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
 		ValidityAttester:        disabled.NewValidityAttester(),
 		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
-		NonceConverter:          args.NonceConverter,
+		ArgsParser:              args.ArgsParser,
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)

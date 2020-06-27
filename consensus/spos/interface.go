@@ -48,6 +48,8 @@ type ConsensusCoreHandler interface {
 	PrivateKey() crypto.PrivateKey
 	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation
 	SingleSigner() crypto.SingleSigner
+	// PeerHonestyHandler returns the peer honesty handler which will be used in subrounds
+	PeerHonestyHandler() consensus.PeerHonestyHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

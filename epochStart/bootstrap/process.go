@@ -34,6 +34,7 @@ import (
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -102,6 +103,7 @@ type epochStartBootstrap struct {
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
+	importStartHandler         epochStart.ImportStartHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -115,6 +117,7 @@ type epochStartBootstrap struct {
 	whiteListerVerifiedTxs    update.WhiteListHandler
 	storageOpenerHandler      storage.UnitOpenerHandler
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
+	argumentsParser           process.ArgumentsParser
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -125,6 +128,8 @@ type epochStartBootstrap struct {
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
 	shuffledOut        bool
+	startEpoch         uint32
+	startRound         int64
 }
 
 type baseDataInStorage struct {
@@ -164,7 +169,9 @@ type ArgsEpochStartBootstrap struct {
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
 	AddressPubkeyConverter     core.PubkeyConverter
+	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
+	ImportStartHandler         epochStart.ImportStartHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -203,14 +210,11 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
 		statusHandler:              args.StatusHandler,
 		shuffledOut:                false,
+		importStartHandler:         args.ImportStartHandler,
+		argumentsParser:            args.ArgumentsParser,
 	}
 
-	whiteListCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(epochStartProvider.generalConfig.WhiteListPool.Type),
-		epochStartProvider.generalConfig.WhiteListPool.Capacity,
-		epochStartProvider.generalConfig.WhiteListPool.Shards,
-		epochStartProvider.generalConfig.WhiteListPool.SizeInBytes,
-	)
+	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
 	if err != nil {
 		return nil, err
 	}
@@ -228,6 +232,14 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	epochStartProvider.trieContainer = state.NewDataTriesHolder()
 	epochStartProvider.trieStorageManagers = make(map[string]data.StorageManager)
 
+	if epochStartProvider.generalConfig.Hardfork.AfterHardFork {
+		epochStartProvider.startEpoch = epochStartProvider.generalConfig.Hardfork.StartEpoch
+		epochStartProvider.baseData.lastEpoch = epochStartProvider.startEpoch
+		epochStartProvider.startRound = int64(epochStartProvider.generalConfig.Hardfork.StartRound)
+		epochStartProvider.baseData.lastRound = epochStartProvider.startRound
+		epochStartProvider.baseData.epochStartRound = uint64(epochStartProvider.startRound)
+	}
+
 	return epochStartProvider, nil
 }
 
@@ -238,7 +250,7 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 		return true
 	}
 
-	currentRound := e.rounder.Index()
+	currentRound := e.rounder.Index() - e.startRound
 	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
 	log.Debug("IsStartInEpochZero", "currentRound", currentRound, "epochEndRound", epochEndPlusGracePeriod)
 	return float64(currentRound) < epochEndPlusGracePeriod
@@ -251,7 +263,7 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 	}
 
 	parameters := Parameters{
-		Epoch:       0,
+		Epoch:       e.startEpoch,
 		SelfShardId: e.genesisShardCoordinator.SelfId(),
 		NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 	}
@@ -269,16 +281,38 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		log.Warn("fast bootstrap is disabled")
 
 		e.initializeFromLocalStorage()
+		if !e.baseData.storageExists {
+			err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
+			if err != nil {
+				return Parameters{}, err
+			}
 
-		err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
+			return Parameters{
+				Epoch:       0,
+				SelfShardId: e.genesisShardCoordinator.SelfId(),
+				NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
+			}, nil
+		}
+
+		newShardId, shuffledOut, err := e.getShardIDForLatestEpoch()
 		if err != nil {
 			return Parameters{}, err
 		}
 
+		err = e.createTriesComponentsForShardId(newShardId)
+		if err != nil {
+			return Parameters{}, err
+		}
+
+		epochToStart := e.baseData.lastEpoch
+		if shuffledOut {
+			epochToStart = 0
+		}
+
 		return Parameters{
-			Epoch:       e.baseData.lastEpoch,
-			SelfShardId: e.genesisShardCoordinator.SelfId(),
-			NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
+			Epoch:       epochToStart,
+			SelfShardId: newShardId,
+			NumOfShards: e.baseData.numberOfShards,
 		}, nil
 	}
 
@@ -308,9 +342,11 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
+	isStartInEpochZero := e.isStartInEpochZero()
 	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
-	if isCurrentEpochSaved || e.isStartInEpochZero() {
-		if e.baseData.lastEpoch == 0 {
+
+	if isStartInEpochZero || isCurrentEpochSaved {
+		if e.baseData.lastEpoch == e.startEpoch {
 			return e.prepareEpochZero()
 		}
 
@@ -427,6 +463,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		AddressPubkeyConv:      e.addressPubkeyConverter,
 		NonceConverter:         e.uint64Converter,
 		ChainID:                []byte(e.genesisNodesConfig.GetChainId()),
+		ArgumentsParser:        e.argumentsParser,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

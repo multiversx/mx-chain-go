@@ -104,16 +104,16 @@ func (ei *elasticIndexer) SaveBlock(
 	}
 
 	txsSizeInBytes := computeSizeOfTxs(ei.marshalizer, txPool)
-	go ei.database.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes, txsSizeInBytes)
+	ei.database.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes, txsSizeInBytes)
 
 	if len(body.MiniBlocks) == 0 {
 		return
 	}
 
-	go ei.database.SaveMiniblocks(headerHandler, body)
+	ei.database.SaveMiniblocks(headerHandler, body)
 
 	if ei.options.TxIndexingEnabled {
-		go ei.database.SaveTransactions(body, headerHandler, txPool, headerHandler.GetShardID())
+		ei.database.SaveTransactions(body, headerHandler, txPool, headerHandler.GetShardID())
 	}
 }
 
@@ -149,9 +149,7 @@ func (ei *elasticIndexer) SaveValidatorsRating(indexID string, validatorsRatingI
 //SaveValidatorsPubKeys will send all validators public keys to elasticsearch
 func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
 	for shardID, shardPubKeys := range validatorsPubKeys {
-		go func(id, epochNumber uint32, publicKeys [][]byte) {
-			ei.database.SaveShardValidatorsPubKeys(id, epochNumber, publicKeys)
-		}(shardID, epoch, shardPubKeys)
+		ei.database.SaveShardValidatorsPubKeys(shardID, epoch, shardPubKeys)
 	}
 }
 

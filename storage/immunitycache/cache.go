@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -11,18 +12,22 @@ var _ storage.Cacher = (*ImmunityCache)(nil)
 
 var log = logger.GetOrCreate("storage/immunitycache")
 
+const hospitalityWarnThreshold = -10000
+
 // ImmunityCache is a cache-like structure
 type ImmunityCache struct {
-	config CacheConfig
-	chunks []*immunityChunk
-	mutex  sync.RWMutex
+	config      CacheConfig
+	chunks      []*immunityChunk
+	hospitality atomic.Counter
+	mutex       sync.RWMutex
 }
 
 // NewImmunityCache creates a new cache
 func NewImmunityCache(config CacheConfig) (*ImmunityCache, error) {
 	log.Debug("NewImmunityCache", "config", config.String())
+	storage.MonitorNewCache(config.Name, uint64(config.MaxNumBytes))
 
-	err := config.verify()
+	err := config.Verify()
 	if err != nil {
 		return nil, err
 	}
@@ -95,13 +100,6 @@ func (ic *ImmunityCache) getChunkByIndexWithLock(index uint32) *immunityChunk {
 	return ic.chunks[index]
 }
 
-// Add adds an item in the cache
-func (ic *ImmunityCache) Add(item storage.CacheItem) (ok bool, added bool) {
-	key := string(item.GetKey())
-	chunk := ic.getChunkByKeyWithLock(key)
-	return chunk.AddItem(item)
-}
-
 func (ic *ImmunityCache) getChunkByKeyWithLock(key string) *immunityChunk {
 	ic.mutex.RLock()
 	defer ic.mutex.RUnlock()
@@ -112,11 +110,16 @@ func (ic *ImmunityCache) getChunkByKeyWithLock(key string) *immunityChunk {
 
 // Get gets an item (payload) by key
 func (ic *ImmunityCache) Get(key []byte) (value interface{}, ok bool) {
-	return ic.GetItem(key)
+	cacheItem, ok := ic.getItem(key)
+	if ok {
+		return cacheItem.payload, true
+	}
+
+	return nil, false
 }
 
 // GetItem gets an item by key
-func (ic *ImmunityCache) GetItem(key []byte) (storage.CacheItem, bool) {
+func (ic *ImmunityCache) getItem(key []byte) (*cacheItem, bool) {
 	chunk := ic.getChunkByKeyWithLock(string(key))
 	return chunk.GetItem(string(key))
 }
@@ -134,19 +137,24 @@ func (ic *ImmunityCache) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd adds an item in the cache
-func (ic *ImmunityCache) HasOrAdd(_ []byte, value interface{}, _ int) (ok, evicted bool) {
-	valueAsCacheItem, ok := value.(storage.CacheItem)
-	if !ok {
-		return false, false
+func (ic *ImmunityCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
+	cacheItem := newCacheItem(value, string(key), sizeInBytes)
+	chunk := ic.getChunkByKeyWithLock(string(key))
+	has, added = chunk.AddItem(cacheItem)
+	if !has {
+		if added {
+			ic.hospitality.Increment()
+		} else {
+			ic.hospitality.Decrement()
+		}
 	}
 
-	ok, _ = ic.Add(valueAsCacheItem)
-	return ok, false
+	return has, added
 }
 
 // Put adds an item in the cache
-func (ic *ImmunityCache) Put(key []byte, value interface{}, _ int) (evicted bool) {
-	ic.HasOrAdd(key, value, 0)
+func (ic *ImmunityCache) Put(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+	ic.HasOrAdd(key, value, sizeInBytes)
 	return false
 }
 
@@ -156,7 +164,7 @@ func (ic *ImmunityCache) Remove(key []byte) {
 }
 
 // RemoveWithResult removes an item
-// TODO: In the future, add this method to the "storage.Cacher" interface
+// TODO: In the future, add this method to the "storage.Cacher" interface. EN-6739.
 func (ic *ImmunityCache) RemoveWithResult(key []byte) bool {
 	chunk := ic.getChunkByKeyWithLock(string(key))
 	return chunk.RemoveItem(string(key))
@@ -243,6 +251,34 @@ func (ic *ImmunityCache) UnRegisterHandler(_ string) {
 func (ic *ImmunityCache) ForEachItem(function storage.ForEachItem) {
 	for _, chunk := range ic.getChunksWithLock() {
 		chunk.ForEachItem(function)
+	}
+}
+
+// Diagnose displays a summary of the internal state of the cache
+func (ic *ImmunityCache) Diagnose(_ bool) {
+	count := ic.Count()
+	countImmune := ic.CountImmune()
+	numBytes := ic.NumBytes()
+	hospitality := ic.hospitality.Get()
+
+	log.Debug("ImmunityCache.Diagnose()",
+		"name", ic.config.Name,
+		"count", count,
+		"countImmune", countImmune,
+		"numBytes", numBytes,
+		"hospitality", hospitality,
+	)
+
+	if hospitality <= hospitalityWarnThreshold {
+		// After emitting a Warn, we reset the hospitality indicator
+		log.Warn("ImmunityCache.Diagnose(): cache is not hospitable",
+			"name", ic.config.Name,
+			"count", count,
+			"countImmune", countImmune,
+			"numBytes", numBytes,
+			"hospitality", hospitality,
+		)
+		ic.hospitality.Reset()
 	}
 }
 

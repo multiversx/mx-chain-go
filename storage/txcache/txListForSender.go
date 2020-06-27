@@ -102,7 +102,7 @@ func (listForSender *txListForSender) isCapacityExceeded() bool {
 }
 
 func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction) {
-	listForSender.totalBytes.Add(int64(estimateTxSize(tx)))
+	listForSender.totalBytes.Add(tx.Size)
 	listForSender.totalGas.Add(int64(estimateTxGas(tx)))
 	listForSender.totalFee.Add(int64(estimateTxFee(tx)))
 }
@@ -174,7 +174,7 @@ func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
 func (listForSender *txListForSender) onRemovedListElement(element *list.Element) {
 	value := element.Value.(*WrappedTransaction)
 
-	listForSender.totalBytes.Subtract(int64(estimateTxSize(value)))
+	listForSender.totalBytes.Subtract(value.Size)
 	listForSender.totalGas.Subtract(int64(estimateTxGas(value)))
 	listForSender.totalFee.Subtract(int64(estimateTxFee(value)))
 }

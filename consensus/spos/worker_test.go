@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,7 +70,7 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 	syncTimerMock := &mock.SyncTimerMock{}
 	hasher := &mock.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
-	poolAdder := mock.NewCacherMock()
+	poolAdder := testscommon.NewCacherMock()
 
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         blsService,
@@ -366,26 +367,6 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(wrk))
 }
 
-func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetected(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("flood detected")
-	workerArgs := createDefaultWorkerArgs()
-
-	antifloodHandler := &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-			return expectedErr
-		},
-	}
-
-	workerArgs.AntifloodHandler = antifloodHandler
-	wrk, _ := spos.NewWorker(workerArgs)
-
-	msg := &mock.P2PMessageMock{DataField: []byte("aaa")}
-	err := wrk.ProcessReceivedMessage(msg, "peer")
-	assert.Equal(t, expectedErr, err)
-}
-
 func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testing.T) {
 	t.Parallel()
 
@@ -509,10 +490,15 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+		PeerField: currentPid,
+	}
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
 
 	assert.Nil(t, err)
 }
@@ -555,6 +541,7 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
@@ -608,6 +595,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	receivedValue := uint64(0)
 	_ = wrk.SetAppStatusHandler(&mock.AppStatusHandlerStub{
@@ -619,7 +607,11 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 	time.Sleep(delay)
 
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	_ = wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, "")
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+		PeerField: currentPid,
+	}
+	_ = wrk.ProcessReceivedMessage(msg, "")
 
 	minimumExpectedValue := uint64(delay * 100 / roundDuration)
 	assert.True(t,
@@ -647,6 +639,7 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
@@ -672,6 +665,7 @@ func TestWorker_ProcessReceivedMessageTypeInvalidShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
@@ -699,6 +693,7 @@ func TestWorker_ProcessReceivedHeaderHashSizeInvalidShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
@@ -726,6 +721,7 @@ func TestWorker_ProcessReceivedMessageForFutureRoundShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
@@ -753,6 +749,7 @@ func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
@@ -780,6 +777,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
@@ -807,9 +805,14 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+		PeerField: currentPid,
+	}
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
@@ -835,9 +838,14 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+		PeerField: currentPid,
+	}
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
@@ -879,12 +887,66 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
 	time.Sleep(time.Second)
 
 	assert.True(t, errors.Is(err, spos.ErrInvalidChainID))
+}
+
+func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker()
+	wrk.SetBlockProcessor(
+		&mock.BlockProcessorMock{
+			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
+				return &mock.HeaderHandlerStub{
+					CheckChainIDCalled: func(reference []byte) error {
+						return nil
+					},
+					GetPrevHashCalled: func() []byte {
+						return make([]byte, 0)
+					},
+				}
+			},
+			RevertAccountStateCalled: func(header data.HeaderHandler) {
+			},
+			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
+				return nil
+			},
+		},
+	)
+
+	hdr := &block.Header{ChainID: chainID}
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
+	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	cnsMsg := consensus.NewConsensusMessage(
+		hdrHash,
+		nil,
+		nil,
+		hdrStr,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		signature,
+		int(bls.MtBlockHeader),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+		PeerField: "other originator",
+	}
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	time.Sleep(time.Second)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockHeader]))
+	assert.True(t, errors.Is(err, spos.ErrOriginatorMismatch))
 }
 
 func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
@@ -926,9 +988,14 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+		PeerField: currentPid,
+	}
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockHeader]))
@@ -951,6 +1018,7 @@ func TestWorker_CheckSelfStateShouldErrMessageFromItself(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	err := wrk.CheckSelfState(cnsMsg)
 	assert.Equal(t, spos.ErrMessageFromItself, err)
@@ -973,6 +1041,7 @@ func TestWorker_CheckSelfStateShouldErrRoundCanceled(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	err := wrk.CheckSelfState(cnsMsg)
 	assert.Equal(t, spos.ErrRoundCanceled, err)
@@ -994,6 +1063,7 @@ func TestWorker_CheckSelfStateShouldNotErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	err := wrk.CheckSelfState(cnsMsg)
 	assert.Nil(t, err)
@@ -1025,6 +1095,7 @@ func TestWorker_CheckSignatureShouldReturnErrNilPublicKey(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	err := wrk.CheckSignature(cnsMsg)
 
@@ -1049,6 +1120,7 @@ func TestWorker_CheckSignatureShouldReturnErrNilSignature(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	err := wrk.CheckSignature(cnsMsg)
 
@@ -1079,6 +1151,7 @@ func TestWorker_CheckSignatureShouldReturnPublicKeyFromByteArrayErr(t *testing.T
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	err2 := wrk.CheckSignature(cnsMsg)
 
@@ -1106,6 +1179,7 @@ func TestWorker_CheckSignatureShouldReturnMarshalizerErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	err := wrk.CheckSignature(cnsMsg)
 
@@ -1130,6 +1204,7 @@ func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	err := wrk.CheckSignature(cnsMsg)
 
@@ -1155,6 +1230,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
@@ -1184,6 +1260,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *tes
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
@@ -1213,6 +1290,7 @@ func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinis
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
@@ -1242,6 +1320,7 @@ func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFin
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
@@ -1271,6 +1350,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
@@ -1301,6 +1381,7 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
@@ -1343,6 +1424,7 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	wrk.ExecuteMessageChannel() <- cnsMsg
 	time.Sleep(1000 * time.Millisecond)
@@ -1475,6 +1557,7 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
@@ -1543,9 +1626,14 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		currentPid,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, "")
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+		PeerField: currentPid,
+	}
+	err := wrk.ProcessReceivedMessage(msg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidHeader))
 }
