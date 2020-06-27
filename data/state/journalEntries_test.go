@@ -10,61 +10,85 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewJournalEntryCode_InvalidCodeHashShouldErr(t *testing.T) {
-	t.Parallel()
-
-	entry, err := state.NewJournalEntryCode([]byte{}, &mock.TrieStub{})
-	assert.True(t, check.IfNil(entry))
-	assert.Equal(t, state.ErrInvalidHash, err)
-}
-
 func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode([]byte("code hash"), nil)
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), map[string]struct{}{}, map[string]struct{}{}, nil, &mock.MarshalizerMock{})
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilUpdater, err)
+}
+
+func TestNewJournalEntryCode_NilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), map[string]struct{}{}, map[string]struct{}{}, &mock.TrieStub{}, nil)
+	assert.True(t, check.IfNil(entry))
+	assert.Equal(t, state.ErrNilMarshalizer, err)
+}
+
+func TestNewJournalEntryCode_NilCodeForEvictionMapShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), nil, map[string]struct{}{}, &mock.TrieStub{}, &mock.MarshalizerMock{})
+	assert.True(t, check.IfNil(entry))
+	assert.Equal(t, state.ErrNilCodeForEvictionMap, err)
+}
+
+func TestNewJournalEntryCode_NilNewCodeMapShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), map[string]struct{}{}, nil, &mock.TrieStub{}, &mock.MarshalizerMock{})
+	assert.True(t, check.IfNil(entry))
+	assert.Equal(t, state.ErrNilNewCodeMap, err)
 }
 
 func TestNewJournalEntryCode_OkParams(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode([]byte("code hash"), &mock.TrieStub{})
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), map[string]struct{}{}, map[string]struct{}{}, &mock.TrieStub{}, &mock.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
 
-func TestJournalEntryCode_RevertErr(t *testing.T) {
+func TestJournalEntryCode_OldHashAndNewHashAreNil(t *testing.T) {
 	t.Parallel()
 
-	updateErr := errors.New("update error")
-	codeHash := []byte("code hash")
-	ts := &mock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
-			return updateErr
-		},
-	}
-	entry, _ := state.NewJournalEntryCode(codeHash, ts)
+	trieStub := &mock.TrieStub{}
+	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, nil, map[string]struct{}{}, map[string]struct{}{}, trieStub, &mock.MarshalizerMock{})
 
 	acc, err := entry.Revert()
-	assert.Equal(t, updateErr, err)
+	assert.Nil(t, err)
 	assert.Nil(t, acc)
 }
 
-func TestJournalEntryCode_RevertUpdatesTheTrie(t *testing.T) {
+func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 	t.Parallel()
 
+	codeEntry := &state.CodeEntry{
+		Code:          []byte("newCode"),
+		NumReferences: 1,
+	}
+	marshalizer := &mock.MarshalizerMock{}
+
 	updateCalled := false
-	codeHash := []byte("code hash")
-	ts := &mock.TrieStub{
+	trieStub := &mock.TrieStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			return marshalizer.Marshal(codeEntry)
+		},
 		UpdateCalled: func(key, value []byte) error {
-			assert.Equal(t, codeHash, key)
-			assert.Nil(t, value)
 			updateCalled = true
 			return nil
 		},
 	}
-	entry, _ := state.NewJournalEntryCode(codeHash, ts)
+	entry, _ := state.NewJournalEntryCode(
+		&state.CodeEntry{},
+		nil,
+		[]byte("newHash"),
+		map[string]struct{}{},
+		map[string]struct{}{},
+		trieStub,
+		marshalizer,
+	)
 
 	acc, err := entry.Revert()
 	assert.Nil(t, err)

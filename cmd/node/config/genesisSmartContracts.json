@@ -6,5 +6,13 @@
     "init-parameters": "%auction_sc_address%@03E8@03E8@03E8",
     "type": "delegation",
     "version": "0.3.*"
+  },
+  {
+    "owner": "erd16grmckn46ry7fwyvass8e8pz88klazzpc0c5f0pnrv643td4797sgnvjkm",
+    "filename": "./config/genesisContracts/dns.wasm",
+    "vm-type": "0500",
+    "init-parameters": "056bc75e2d63100000",
+    "type": "dns",
+    "version": "0.2.*"
   }
 ]

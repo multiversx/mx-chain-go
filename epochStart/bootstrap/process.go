@@ -117,6 +117,7 @@ type epochStartBootstrap struct {
 	whiteListerVerifiedTxs    update.WhiteListHandler
 	storageOpenerHandler      storage.UnitOpenerHandler
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
+	argumentsParser           process.ArgumentsParser
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -168,6 +169,7 @@ type ArgsEpochStartBootstrap struct {
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
 	AddressPubkeyConverter     core.PubkeyConverter
+	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
 	ImportStartHandler         epochStart.ImportStartHandler
 }
@@ -209,6 +211,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		statusHandler:              args.StatusHandler,
 		shuffledOut:                false,
 		importStartHandler:         args.ImportStartHandler,
+		argumentsParser:            args.ArgumentsParser,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -460,6 +463,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		AddressPubkeyConv:      e.addressPubkeyConverter,
 		NonceConverter:         e.uint64Converter,
 		ChainID:                []byte(e.genesisNodesConfig.GetChainId()),
+		ArgumentsParser:        e.argumentsParser,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
