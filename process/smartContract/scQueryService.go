@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
 )
 
@@ -103,19 +104,9 @@ func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error 
 
 // ComputeScCallGasLimit will estimate how many gas a transaction will consume
 func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error) {
-	argumentParser := vmcommon.NewAtArgumentParser()
+	argumentParser := parsers.NewCallArgsParser()
 
-	err := argumentParser.ParseData(string(tx.Data))
-	if err != nil {
-		return 0, err
-	}
-
-	function, err := argumentParser.GetFunction()
-	if err != nil {
-		return 0, err
-	}
-
-	arguments, err := argumentParser.GetFunctionArguments()
+	function, arguments, err := argumentParser.ParseData(string(tx.Data))
 	if err != nil {
 		return 0, err
 	}

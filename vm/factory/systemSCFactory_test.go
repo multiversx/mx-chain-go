@@ -28,6 +28,13 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				BaseIssuingCost: "100000000",
 				OwnerAddress:    "aaaaaa",
 			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				ProposalCost:     "500",
+				NumNodes:         100,
+				MinQuorum:        50,
+				MinPassThreshold: 50,
+				MinVetoThreshold: 50,
+			},
 		},
 	}
 }
@@ -72,7 +79,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
-	assert.Equal(t, 3, container.Len())
+	assert.Equal(t, 4, container.Len())
 }
 
 func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {

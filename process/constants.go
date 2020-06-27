@@ -28,6 +28,8 @@ const (
 	SCInvoking
 	// BuiltInFunctionCall defines ID of a builtin function call
 	BuiltInFunctionCall
+	// RelayedTx defines ID of a transaction of type relayed
+	RelayedTx
 	// RewardTx defines ID of a reward transaction
 	RewardTx
 	// InvalidTransaction defines unknown transaction type
