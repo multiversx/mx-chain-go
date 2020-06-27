@@ -226,6 +226,19 @@ func TestImmunityCache_Fnv32Hash(t *testing.T) {
 	require.Equal(t, 3, int(fnv32Hash("d")%4))
 }
 
+func TestImmunityCache_DiagnoseAppliesLimitToHospitality(t *testing.T) {
+	cache := newCacheToTest(1, hospitalityUpperLimit*42, 1000)
+
+	for i := 0; i < hospitalityUpperLimit*2; i++ {
+		cache.addTestItems(fmt.Sprintf("%d", i))
+		require.Equal(t, i+1, int(cache.hospitality.Get()))
+	}
+
+	require.Equal(t, hospitalityUpperLimit*2, int(cache.hospitality.Get()))
+	cache.Diagnose(false)
+	require.Equal(t, hospitalityUpperLimit, int(cache.hospitality.Get()))
+}
+
 func TestImmunityCache_DiagnoseResetsHospitalityAfterWarn(t *testing.T) {
 	cache := newCacheToTest(1, 4, 1000)
 	cache.addTestItems("a", "b", "c", "d")

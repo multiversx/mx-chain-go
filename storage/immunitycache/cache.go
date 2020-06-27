@@ -13,6 +13,7 @@ var _ storage.Cacher = (*ImmunityCache)(nil)
 var log = logger.GetOrCreate("storage/immunitycache")
 
 const hospitalityWarnThreshold = -10000
+const hospitalityUpperLimit = 10000
 
 // ImmunityCache is a cache-like structure
 type ImmunityCache struct {
@@ -269,7 +270,9 @@ func (ic *ImmunityCache) Diagnose(_ bool) {
 		"hospitality", hospitality,
 	)
 
-	if hospitality <= hospitalityWarnThreshold {
+	if hospitality >= hospitalityUpperLimit {
+		ic.hospitality.Set(hospitalityUpperLimit)
+	} else if hospitality <= hospitalityWarnThreshold {
 		// After emitting a Warn, we reset the hospitality indicator
 		log.Warn("ImmunityCache.Diagnose(): cache is not hospitable",
 			"name", ic.config.Name,
