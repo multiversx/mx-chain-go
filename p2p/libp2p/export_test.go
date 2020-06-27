@@ -14,6 +14,8 @@ import (
 
 var MaxSendBuffSize = maxSendBuffSize
 var BroadcastGoRoutines = broadcastGoRoutines
+var PubsubTimeCacheDuration = pubsubTimeCacheDuration
+var AcceptMessagesInAdvanceDuration = acceptMessagesInAdvanceDuration
 
 func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
 	netMes.p2pHost = newHost

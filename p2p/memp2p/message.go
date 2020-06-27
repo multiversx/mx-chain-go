@@ -12,26 +12,15 @@ var _ p2p.MessageP2P = (*message)(nil)
 // Message represents a message to be sent through the in-memory network
 // simulated by the Network struct.
 type message struct {
-	// sending PeerID, converted to []byte
-	from []byte
-
-	// the payload
-	data []byte
-
-	// leave empty
-	seqNo []byte
-
-	// topics set by the sender
-	topics []string
-
-	// leave empty
-	signature []byte
-
-	// sending PeerID, converted to []byte
-	key []byte
-
-	// sending PeerID
-	peer core.PeerID
+	from           []byte
+	data           []byte
+	seqNo          []byte
+	topics         []string
+	signature      []byte
+	key            []byte
+	peer           core.PeerID
+	payloadField   []byte
+	timestampField int64
 }
 
 // NewMessage constructs a new Message instance from arguments
@@ -41,12 +30,12 @@ func newMessage(topic string, data []byte, peerID core.PeerID, seqNo uint64) *me
 	binary.BigEndian.PutUint64(seqNoBytes, seqNo)
 
 	return &message{
-		from:      []byte(string(peerID)),
+		from:      []byte(peerID),
 		data:      data,
 		seqNo:     seqNoBytes,
 		topics:    []string{topic},
 		signature: empty,
-		key:       []byte(string(peerID)),
+		key:       []byte(peerID),
 		peer:      peerID,
 	}
 }
@@ -84,6 +73,16 @@ func (msg *message) Key() []byte {
 // Peer returns the peer that originated the message
 func (msg *message) Peer() core.PeerID {
 	return msg.peer
+}
+
+// Payload returns the encapsulated message along with meta data such as timestamp
+func (msg *message) Payload() []byte {
+	return msg.payloadField
+}
+
+// Timestamp returns the message timestamp to prevent endless re-processing of the same message
+func (msg *message) Timestamp() int64 {
+	return msg.timestampField
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

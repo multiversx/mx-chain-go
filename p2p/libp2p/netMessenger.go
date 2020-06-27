@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	p2pDebug "github.com/ElrondNetwork/elrond-go/debug/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	connMonitorFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/connectionMonitor/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/disabled"
 	discoveryFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery/factory"
@@ -47,6 +48,7 @@ const durationCheckConnections = time.Second
 const refreshPeersOnTopic = time.Second * 3
 const ttlPeersOnTopic = time.Second * 10
 const pubsubTimeCacheDuration = 10 * time.Minute
+const acceptMessagesInAdvanceDuration = 5 * time.Second //we are accepting the messages with timestamp in the future only fot this delta
 const broadcastGoRoutines = 1000
 const timeBetweenPeerPrints = time.Second * 20
 const timeBetweenExternalLoggersCheck = time.Second * 20
@@ -91,19 +93,23 @@ type networkMessenger struct {
 	goRoutinesThrottler *throttler.NumGoRoutinesThrottler
 	ip                  *identityProvider
 	connectionsMetric   *metrics.Connections
-	mutMessageIdCacher  sync.RWMutex
-	messageIdCacher     p2p.Cacher
 	debugger            p2p.Debugger
+	marshalizer         p2p.Marshalizer
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
 type ArgsNetworkMessenger struct {
 	ListenAddress string
+	Marshalizer   p2p.Marshalizer
 	P2pConfig     config.P2PConfig
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
 func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
+	if check.IfNil(args.Marshalizer) {
+		return nil, fmt.Errorf("%w when creating a new network messenger", p2p.ErrNilMarshalizer)
+	}
+
 	p2pPrivKey, err := createP2PPrivKey(args.P2pConfig.Node.Seed)
 	if err != nil {
 		return nil, err
@@ -182,7 +188,7 @@ func createMessenger(
 		subscriptions:     make(map[string]*pubsub.Subscription),
 		outgoingPLB:       loadBalancer.NewOutgoingChannelLoadBalancer(),
 		peerShardResolver: &unknownPeerShardResolver{},
-		messageIdCacher:   &disabled.Cacher{},
+		marshalizer:       args.Marshalizer,
 	}
 	netMes.debugger = p2pDebug.NewP2PDebugger(core.PeerID(p2pHost.ID()))
 
@@ -269,7 +275,12 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 				continue
 			}
 
-			errPublish := topic.Publish(netMes.ctx, sendableData.Buff)
+			buffToSend := netMes.createMessageBytes(sendableData.Buff)
+			if len(buffToSend) == 0 {
+				continue
+			}
+
+			errPublish := topic.Publish(netMes.ctx, buffToSend)
 			if errPublish != nil {
 				log.Trace("error sending data", "error", errPublish)
 			}
@@ -277,6 +288,21 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 	}(netMes.outgoingPLB)
 
 	return nil
+}
+
+func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
+	message := &data.TopicMessage{
+		Payload:   buff,
+		Timestamp: time.Now().Unix(),
+	}
+
+	buffToSend, errMarshal := netMes.marshalizer.Marshal(message)
+	if errMarshal != nil {
+		log.Warn("error sending data", "error", errMarshal)
+		return nil
+	}
+
+	return buffToSend
 }
 
 func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error {
@@ -633,8 +659,9 @@ func (netMes *networkMessenger) HasTopicValidator(name string) bool {
 // BroadcastOnChannelBlocking tries to send a byte buffer onto a topic using provided channel
 // It is a blocking method. It needs to be launched on a go routine
 func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
-	if len(buff) > maxSendBuffSize {
-		return p2p.ErrMessageTooLarge
+	err := netMes.checkSendableData(buff)
+	if err != nil {
+		return err
 	}
 
 	if !netMes.goRoutinesThrottler.CanProcess() {
@@ -649,6 +676,17 @@ func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic
 	}
 	netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
 	netMes.goRoutinesThrottler.EndProcessing()
+	return nil
+}
+
+func (netMes *networkMessenger) checkSendableData(buff []byte) error {
+	if len(buff) > maxSendBuffSize {
+		return p2p.ErrMessageTooLarge
+	}
+	if len(buff) == 0 {
+		return p2p.ErrEmptyBufferToSend
+	}
+
 	return nil
 }
 
@@ -694,36 +732,21 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 
 func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 	return func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		wrappedMsg, err := NewMessage(message)
+		fromConnectedPeer := core.PeerID(pid)
+		msg, err := netMes.transformAndCheckMessage(message, fromConnectedPeer, topic)
 		if err != nil {
 			log.Trace("p2p validator - new message", "error", err.Error(), "topics", message.TopicIDs)
 			return false
 		}
 
-		identifier := append(message.From, message.Seqno...)
-		fromConnectedPeer := core.PeerID(pid)
-		netMes.mutMessageIdCacher.RLock()
-		has, _ := netMes.messageIdCacher.HasOrAdd(identifier, struct{}{}, len(identifier))
-		netMes.mutMessageIdCacher.RUnlock()
-		if has {
-			//not reprocessing nor rebrodcasting the same message over and over again
-			log.Trace("received an old message",
-				"originator pid", p2p.MessageOriginatorPid(wrappedMsg),
-				"from connected pid", p2p.PeerIdToShortString(core.PeerID(pid)),
-				"sequence", hex.EncodeToString(wrappedMsg.SeqNo()),
-			)
-			netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), true)
-			return false
-		}
-
-		err = handler.ProcessReceivedMessage(wrappedMsg, fromConnectedPeer)
+		err = handler.ProcessReceivedMessage(msg, fromConnectedPeer)
 		if err != nil {
 			log.Trace("p2p validator",
 				"error", err.Error(),
 				"topics", message.TopicIDs,
-				"originator", p2p.MessageOriginatorPid(wrappedMsg),
+				"originator", p2p.MessageOriginatorPid(msg),
 				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
-				"seq no", p2p.MessageOriginatorSeq(wrappedMsg),
+				"seq no", p2p.MessageOriginatorSeq(msg),
 			)
 			netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), true)
 			return false
@@ -732,6 +755,63 @@ func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor, top
 		netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), false)
 		return true
 	}
+}
+
+func (netMes *networkMessenger) transformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (p2p.MessageP2P, error) {
+	msg, errUnmarshal := NewMessage(pbMsg, netMes.marshalizer)
+	if errUnmarshal != nil {
+		log.Debug("blacklisted due to incompatible p2p message",
+			"pid", pbMsg.ReceivedFrom.Pretty(),
+			"time", core.WrongP2PMessageBlacklistDuration,
+		)
+
+		//this error is so severe that will need to blacklist both the originator and the connected peer as there is
+		// no way this node can communicate with them
+		err := netMes.connMonitorWrapper.PeerDenialEvaluator().UpsertPeerID(pid, core.WrongP2PMessageBlacklistDuration)
+		if err != nil {
+			log.Warn("error blacklisting peer ID in pubsubCallback",
+				"pid", pbMsg.ReceivedFrom.Pretty(),
+				"error", err.Error(),
+			)
+		}
+		err = netMes.connMonitorWrapper.PeerDenialEvaluator().UpsertPeerID(core.PeerID(pbMsg.From), core.WrongP2PMessageBlacklistDuration)
+		if err != nil {
+			log.Warn("error blacklisting peer ID in pubsubCallback",
+				"pid", core.PeerID(pbMsg.From).Pretty(),
+				"error", err.Error(),
+			)
+		}
+		return nil, errUnmarshal
+	}
+
+	if !netMes.validMessageByTimestamp(msg) {
+		//not reprocessing nor rebrodcasting the same message over and over again
+		log.Trace("received an old message",
+			"originator pid", p2p.MessageOriginatorPid(msg),
+			"from connected pid", p2p.PeerIdToShortString(pid),
+			"sequence", hex.EncodeToString(msg.SeqNo()),
+			"timestamp", msg.Timestamp(),
+		)
+		netMes.processDebugMessage(topic, pid, uint64(len(msg.Data())), true)
+
+		return nil, p2p.ErrOldMessage
+	}
+
+	return msg, nil
+}
+
+// invalidMessageByTimestamp will check that the message time stamp should be in the interval
+// (now-pubsubTimeCacheDuration+acceptMessagesInAdvanceDuration, now+acceptMessagesInAdvanceDuration)
+func (netMes *networkMessenger) validMessageByTimestamp(msg p2p.MessageP2P) bool {
+	now := time.Now()
+	isInFuture := now.Add(acceptMessagesInAdvanceDuration).Unix() < msg.Timestamp()
+	if isInFuture {
+		return false
+	}
+
+	past := now.Unix() - int64(pubsubTimeCacheDuration.Seconds()) + int64(acceptMessagesInAdvanceDuration.Seconds())
+
+	return msg.Timestamp() > past
 }
 
 func (netMes *networkMessenger) processDebugMessage(topic string, fromConnectedPeer core.PeerID, size uint64, isRejected bool) {
@@ -810,17 +890,32 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 
 // SendToConnectedPeer sends a direct message to a connected peer
 func (netMes *networkMessenger) SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error {
-	err := netMes.ds.Send(topic, buff, peerID)
-	netMes.debugger.AddOutgoingMessage(topic, uint64(len(buff)), err != nil)
+	err := netMes.checkSendableData(buff)
+	if err != nil {
+		return err
+	}
+
+	buffToSend := netMes.createMessageBytes(buff)
+	if len(buffToSend) == 0 {
+		return nil
+	}
+
+	err = netMes.ds.Send(topic, buffToSend, peerID)
+	netMes.debugger.AddOutgoingMessage(topic, uint64(len(buffToSend)), err != nil)
 
 	return err
 }
 
-func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fromConnectedPeer core.PeerID) error {
 	var processor p2p.MessageProcessor
 
+	topic := message.TopicIDs[0]
+	msg, err := netMes.transformAndCheckMessage(message, fromConnectedPeer, topic)
+	if err != nil {
+		return err
+	}
+
 	netMes.mutTopics.RLock()
-	topic := message.Topics()[0]
 	processor = netMes.processors[topic]
 	netMes.mutTopics.RUnlock()
 
@@ -835,18 +930,18 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 
 		//we won't recheck the message id against the cacher here as there might be collisions since we are using
 		// a separate sequence counter for direct sender
-		err := processor.ProcessReceivedMessage(msg, fromConnectedPeer)
-		if err != nil {
+		errProcess := processor.ProcessReceivedMessage(msg, fromConnectedPeer)
+		if errProcess != nil {
 			log.Trace("p2p validator",
-				"error", err.Error(),
+				"error", errProcess.Error(),
 				"topics", msg.Topics(),
 				"originator", p2p.MessageOriginatorPid(msg),
 				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
 				"seq no", p2p.MessageOriginatorSeq(msg),
 			)
 		}
-		netMes.debugger.AddIncomingMessage(topic, uint64(len(msg.Data())), err != nil)
-	}(message)
+		netMes.debugger.AddIncomingMessage(topic, uint64(len(msg.Data())), errProcess != nil)
+	}(msg)
 
 	return nil
 }
@@ -895,21 +990,6 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 //TODO decide if we continue on using setters or switch to options. Refactor if necessary
 func (netMes *networkMessenger) SetPeerDenialEvaluator(handler p2p.PeerDenialEvaluator) error {
 	return netMes.connMonitorWrapper.SetPeerDenialEvaluator(handler)
-}
-
-// SetMessageIdsCacher sets the message id cacher
-func (netMes *networkMessenger) SetMessageIdsCacher(cacher p2p.Cacher) error {
-	if check.IfNil(cacher) {
-		return fmt.Errorf("%w in networkMessenger.SetMessageIdsCacher", p2p.ErrNilCacher)
-	}
-
-	netMes.mutMessageIdCacher.Lock()
-	netMes.messageIdCacher = cacher
-	netMes.mutMessageIdCacher.Unlock()
-
-	log.Debug("added message ids cacher for the p2p network messenger")
-
-	return nil
 }
 
 // GetConnectedPeersInfo gets the current connected peers information
