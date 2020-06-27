@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,7 +70,7 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 	syncTimerMock := &mock.SyncTimerMock{}
 	hasher := &mock.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
-	poolAdder := mock.NewCacherMock()
+	poolAdder := testscommon.NewCacherMock()
 
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         blsService,
@@ -364,26 +365,6 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(wrk))
-}
-
-func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetected(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("flood detected")
-	workerArgs := createDefaultWorkerArgs()
-
-	antifloodHandler := &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-			return expectedErr
-		},
-	}
-
-	workerArgs.AntifloodHandler = antifloodHandler
-	wrk, _ := spos.NewWorker(workerArgs)
-
-	msg := &mock.P2PMessageMock{DataField: []byte("aaa")}
-	err := wrk.ProcessReceivedMessage(msg, "peer")
-	assert.Equal(t, expectedErr, err)
 }
 
 func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testing.T) {

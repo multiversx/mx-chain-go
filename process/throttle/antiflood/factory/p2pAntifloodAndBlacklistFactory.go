@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -34,27 +34,29 @@ func NewP2PAntiFloodAndBlackList(
 	config config.Config,
 	statusHandler core.AppStatusHandler,
 	currentPid core.PeerID,
-) (process.P2PAntifloodHandler, process.PeerBlackListHandler, error) {
+) (process.P2PAntifloodHandler, process.PeerBlackListCacher, process.TimeCacher, error) {
 	if check.IfNil(statusHandler) {
-		return nil, nil, p2p.ErrNilStatusHandler
+		return nil, nil, nil, p2p.ErrNilStatusHandler
 	}
 	if config.Antiflood.Enabled {
 		return initP2PAntiFloodAndBlackList(config, statusHandler, currentPid)
 	}
 
-	return &disabled.AntiFlood{}, &disabled.PeerBlacklistHandler{}, nil
+	return &disabled.AntiFlood{}, &disabled.PeerBlacklistCacher{}, &disabled.TimeCache{}, nil
 }
 
 func initP2PAntiFloodAndBlackList(
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
 	currentPid core.PeerID,
-) (process.P2PAntifloodHandler, process.PeerBlackListHandler, error) {
+) (process.P2PAntifloodHandler, process.PeerBlackListCacher, process.TimeCacher, error) {
 	cache := timecache.NewTimeCache(defaultSpan)
 	p2pPeerBlackList, err := timecache.NewPeerTimeCache(cache)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+
+	publicKeysCache := timecache.NewTimeCache(defaultSpan)
 
 	fastReactingFloodPreventer, err := createFloodPreventer(
 		mainConfig.Antiflood.FastReacting,
@@ -65,7 +67,7 @@ func initP2PAntiFloodAndBlackList(
 		currentPid,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w when creating fast reacting flood preventer", err)
+		return nil, nil, nil, fmt.Errorf("%w when creating fast reacting flood preventer", err)
 	}
 
 	slowReactingFloodPreventer, err := createFloodPreventer(
@@ -77,7 +79,7 @@ func initP2PAntiFloodAndBlackList(
 		currentPid,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w when creating fast reacting flood preventer", err)
+		return nil, nil, nil, fmt.Errorf("%w when creating fast reacting flood preventer", err)
 	}
 
 	outOfSpecsFloodPreventer, err := createFloodPreventer(
@@ -89,12 +91,12 @@ func initP2PAntiFloodAndBlackList(
 		currentPid,
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w when creating out of specs flood preventer", err)
+		return nil, nil, nil, fmt.Errorf("%w when creating out of specs flood preventer", err)
 	}
 
 	topicFloodPreventer, err := floodPreventers.NewTopicFloodPreventer(mainConfig.Antiflood.Topic.DefaultMaxMessagesPerSec)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	topicMaxMessages := mainConfig.Antiflood.Topic.MaxMessages
@@ -108,13 +110,13 @@ func initP2PAntiFloodAndBlackList(
 		outOfSpecsFloodPreventer,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	startResettingTopicFloodPreventer(topicFloodPreventer, topicMaxMessages)
-	startSweepingP2PPeerBlackList(p2pPeerBlackList)
+	startSweepingTimeCaches(p2pPeerBlackList, publicKeysCache)
 
-	return p2pAntiflood, p2pPeerBlackList, nil
+	return p2pAntiflood, p2pPeerBlackList, publicKeysCache, nil
 }
 
 func setMaxMessages(topicFloodPreventer process.TopicFloodPreventer, topicMaxMessages []config.TopicMaxMessagesConfig) {
@@ -145,11 +147,12 @@ func startResettingTopicFloodPreventer(
 	}()
 }
 
-func startSweepingP2PPeerBlackList(p2pPeerBlackList process.PeerBlackListHandler) {
+func startSweepingTimeCaches(p2pPeerBlackList process.PeerBlackListCacher, publicKeysCache process.TimeCacher) {
 	go func() {
 		for {
 			time.Sleep(durationSweepP2PBlacklist)
 			p2pPeerBlackList.Sweep()
+			publicKeysCache.Sweep()
 		}
 	}()
 }
@@ -159,11 +162,11 @@ func createFloodPreventer(
 	antifloodCacheConfig config.CacheConfig,
 	statusHandler core.AppStatusHandler,
 	quotaIdentifier string,
-	blackListHandler process.PeerBlackListHandler,
+	blackListHandler process.PeerBlackListCacher,
 	selfPid core.PeerID,
 ) (process.FloodPreventer, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(antifloodCacheConfig)
-	blackListCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
+	blackListCache, err := storageUnit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +185,7 @@ func createFloodPreventer(
 		return nil, err
 	}
 
-	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
+	antifloodCache, err := storageUnit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}

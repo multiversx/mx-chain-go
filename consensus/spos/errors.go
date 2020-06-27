@@ -91,6 +91,12 @@ var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 // ErrNilNodesCoordinator is raised when a valid validator group selector is expected but nil used
 var ErrNilNodesCoordinator = errors.New("validator group selector is nil")
 
+// ErrNilInterceptorsContainer is raised when a nil interceptor container is provided
+var ErrNilInterceptorsContainer = errors.New("interceptor container is nil")
+
+// ErrNilParameter is raised when a nil parameter is provided
+var ErrNilParameter = errors.New("parameter is nil")
+
 // ErrNilChronologyHandler is raised when a valid chronology handler is expected but nil used
 var ErrNilChronologyHandler = errors.New("chronology handler is nil")
 

@@ -70,6 +70,8 @@ func NewPeerShardMapper(
 		return nil, err
 	}
 
+	log.Debug("peerShardMapper epoch", "epoch", epochStart)
+
 	return &PeerShardMapper{
 		peerIdPk:         peerIdPk,
 		pkPeerId:         pkPeerId,
@@ -132,11 +134,7 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 		}, false
 	}
 
-	psm.mutEpoch.RLock()
-	epoch := psm.epoch
-	psm.mutEpoch.RUnlock()
-
-	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff, epoch)
+	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff)
 	if err != nil {
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
@@ -295,6 +293,7 @@ func (psm *PeerShardMapper) EpochStartAction(hdr data.HeaderHandler) {
 
 	psm.mutEpoch.Lock()
 	psm.epoch = hdr.GetEpoch()
+	log.Debug("peerShardMapper epoch", "epoch", psm.epoch)
 	psm.mutEpoch.Unlock()
 }
 

@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +30,7 @@ var timeoutWait = time.Second
 func TestGenerateAndSendBulkTransactions_ZeroTxShouldErr(t *testing.T) {
 	n, _ := node.NewNode()
 
-	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 0, &mock.PrivateKeyStub{})
+	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 0, &mock.PrivateKeyStub{}, nil)
 	assert.NotNil(t, err)
 	assert.Equal(t, "can not generate and broadcast 0 transactions", err.Error())
 }
@@ -49,7 +50,7 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1, sk)
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1, sk, nil)
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
 }
 
@@ -68,7 +69,7 @@ func TestGenerateAndSendBulkTransactions_NilSingleSignerShouldErr(t *testing.T) 
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1, sk)
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1, sk, nil)
 	assert.Equal(t, node.ErrNilSingleSig, err)
 }
 
@@ -88,7 +89,7 @@ func TestGenerateAndSendBulkTransactions_NilShardCoordinatorShouldErr(t *testing
 		node.WithTxSingleSigner(singleSigner),
 	)
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1, sk)
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1, sk, nil)
 	assert.Equal(t, node.ErrNilShardCoordinator, err)
 }
 
@@ -106,16 +107,16 @@ func TestGenerateAndSendBulkTransactions_NilPubkeyConverterShouldErr(t *testing.
 		node.WithTxSingleSigner(singleSigner),
 	)
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1, sk)
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1, sk, nil)
 	assert.Equal(t, node.ErrNilPubkeyConverter, err)
 }
 
 func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 					return nil
 				},
@@ -131,7 +132,7 @@ func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 		node.WithDataPool(dataPool),
 	)
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1, nil)
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1, nil, nil)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "trying to set nil private key"))
 }
@@ -147,9 +148,9 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 		}
 	}}
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 					return nil
 				},
@@ -173,7 +174,7 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 		node.WithDataPool(dataPool),
 	)
 
-	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1, sk)
+	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1, sk, nil)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "could not create receiver address from provided param")
 }
@@ -190,9 +191,9 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 		}
 	}}
 	singleSigner := &mock.SinglesignMock{}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 					return nil
 				},
@@ -209,7 +210,7 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 		node.WithDataPool(dataPool),
 	)
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), 1, sk)
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), 1, sk, nil)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "could not marshal transaction"))
 }
@@ -259,9 +260,9 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		},
 	}
 
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 					return nil
 				},
@@ -288,7 +289,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		node.WithDataPool(dataPool),
 	)
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), uint64(noOfTx), sk)
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), uint64(noOfTx), sk, nil)
 	assert.Nil(t, err)
 
 	select {

@@ -104,17 +104,20 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 		return actualBalance
 	}
 
-	balance, err := host.blockChainHook.GetBalance(addr)
+	account, err := host.blockChainHook.GetUserAccount(addr)
+	if err == state.ErrAccNotFound {
+		return big.NewInt(0)
+	}
 	if err != nil {
 		return nil
 	}
 
 	host.outputAccounts[strAdr] = &vmcommon.OutputAccount{
-		Balance:      big.NewInt(0).Set(balance),
+		Balance:      big.NewInt(0).Set(account.GetBalance()),
 		BalanceDelta: big.NewInt(0),
 		Address:      addr}
 
-	return balance
+	return account.GetBalance()
 }
 
 // Transfer handles any necessary value transfer required and takes
@@ -180,17 +183,7 @@ func (host *vmContext) copyFromContext(currContext *vmContext) {
 }
 
 func (host *vmContext) createContractCallInput(destination []byte, sender []byte, value *big.Int, data []byte) (*vmcommon.ContractCallInput, error) {
-	err := host.inputParser.ParseData(string(data))
-	if err != nil {
-		return nil, err
-	}
-
-	arguments, err := host.inputParser.GetFunctionArguments()
-	if err != nil {
-		return nil, err
-	}
-
-	function, err := host.inputParser.GetFunction()
+	function, arguments, err := host.inputParser.ParseData(string(data))
 	if err != nil {
 		return nil, err
 	}

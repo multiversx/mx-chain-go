@@ -21,6 +21,10 @@ func (is *InterceptorStub) SetInterceptedDebugHandler(_ process.InterceptedDebug
 	return nil
 }
 
+// RegisterHandler -
+func (is *InterceptorStub) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (is *InterceptorStub) IsInterfaceNil() bool {
 	return is == nil

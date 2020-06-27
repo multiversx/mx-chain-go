@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -19,7 +20,7 @@ type metaForkDetector struct {
 // NewMetaForkDetector method creates a new metaForkDetector object
 func NewMetaForkDetector(
 	rounder consensus.Rounder,
-	blackListHandler process.BlackListHandler,
+	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
 ) (*metaForkDetector, error) {
@@ -28,10 +29,15 @@ func NewMetaForkDetector(
 		return nil, process.ErrNilRounder
 	}
 	if check.IfNil(blackListHandler) {
-		return nil, process.ErrNilBlackListHandler
+		return nil, process.ErrNilBlackListCacher
 	}
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
+	}
+
+	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
+	if err != nil {
+		return nil, err
 	}
 
 	bfd := &baseForkDetector{
@@ -39,14 +45,22 @@ func NewMetaForkDetector(
 		blackListHandler: blackListHandler,
 		genesisTime:      genesisTime,
 		blockTracker:     blockTracker,
+		genesisNonce:     genesisHdr.GetNonce(),
+		genesisRound:     genesisHdr.GetRound(),
+		genesisEpoch:     genesisHdr.GetEpoch(),
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
 	bfd.fork.checkpoint = make([]*checkpointInfo, 0)
-	checkpoint := &checkpointInfo{}
+	checkpoint := &checkpointInfo{
+		nonce: bfd.genesisNonce,
+		round: bfd.genesisRound,
+	}
 	bfd.setFinalCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
 	bfd.fork.rollBackNonce = math.MaxUint64
+	bfd.fork.probableHighestNonce = bfd.genesisNonce
+	bfd.fork.highestNonceReceived = bfd.genesisNonce
 
 	mfd := metaForkDetector{
 		baseForkDetector: bfd,

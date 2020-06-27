@@ -277,7 +277,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
 
-	_, _, err := ihgs.GetValidatorWithPublicKey(nil, 0)
+	_, _, err := ihgs.GetValidatorWithPublicKey(nil)
 	assert.Equal(t, ErrNilPubKey, err)
 }
 
@@ -314,7 +314,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
 
-	_, _, err := ihgs.GetValidatorWithPublicKey([]byte("pk1"), 0)
+	_, _, err := ihgs.GetValidatorWithPublicKey([]byte("pk1"))
 	assert.Equal(t, ErrValidatorNotFound, err)
 }
 
@@ -365,15 +365,15 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihgs, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
 
-	_, shardId, err := ihgs.GetValidatorWithPublicKey([]byte("pk0_meta"), 0)
+	_, shardId, err := ihgs.GetValidatorWithPublicKey([]byte("pk0_meta"))
 	assert.Nil(t, err)
 	assert.Equal(t, core.MetachainShardId, shardId)
 
-	_, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk1_shard0"), 0)
+	_, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk1_shard0"))
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), shardId)
 
-	_, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk2_shard1"), 0)
+	_, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk2_shard1"))
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), shardId)
 }

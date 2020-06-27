@@ -36,6 +36,7 @@ func TestChronology_NewChronologyNilRounderShouldFail(t *testing.T) {
 		genesisTime,
 		nil,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	assert.Nil(t, chr)
@@ -50,10 +51,26 @@ func TestChronology_NewChronologyNilSyncerShouldFail(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		nil,
+		&mock.WatchdogMock{},
 	)
 
 	assert.Nil(t, chr)
 	assert.Equal(t, err, chronology.ErrNilSyncTimer)
+}
+
+func TestChronology_NewChronologyNilWatchdogShouldFail(t *testing.T) {
+	t.Parallel()
+	rounderMock := &mock.RounderMock{}
+	genesisTime := time.Now()
+	chr, err := chronology.NewChronology(
+		genesisTime,
+		rounderMock,
+		&mock.SyncTimerMock{},
+		nil,
+	)
+
+	assert.Nil(t, chr)
+	assert.Equal(t, err, chronology.ErrNilWatchdog)
 }
 
 func TestChronology_NewChronologyShouldWork(t *testing.T) {
@@ -65,6 +82,7 @@ func TestChronology_NewChronologyShouldWork(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	assert.Nil(t, err)
@@ -80,6 +98,7 @@ func TestChronology_AddSubroundShouldWork(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	chr.AddSubround(initSubroundHandlerMock())
@@ -98,6 +117,7 @@ func TestChronology_RemoveAllSubroundsShouldReturnEmptySubroundHandlersArray(t *
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	chr.AddSubround(initSubroundHandlerMock())
@@ -115,12 +135,16 @@ func TestChronology_StartRoundShouldReturnWhenRoundIndexIsNegative(t *testing.T)
 	rounderMock.IndexCalled = func() int64 {
 		return -1
 	}
+	rounderMock.BeforeGenesisCalled = func() bool {
+		return true
+	}
 	syncTimerMock := &mock.SyncTimerMock{}
 	genesisTime := time.Now()
 	chr, _ := chronology.NewChronology(
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	srm := initSubroundHandlerMock()
@@ -140,6 +164,7 @@ func TestChronology_StartRoundShouldReturnWhenLoadSubroundHandlerReturnsNil(t *t
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	initSubroundHandlerMock()
@@ -158,6 +183,7 @@ func TestChronology_StartRoundShouldReturnWhenDoWorkReturnsFalse(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	srm := initSubroundHandlerMock()
@@ -178,6 +204,7 @@ func TestChronology_StartRoundShouldWork(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	srm := initSubroundHandlerMock()
@@ -200,6 +227,7 @@ func TestChronology_UpdateRoundShouldInitRound(t *testing.T) {
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	srm := initSubroundHandlerMock()
@@ -218,6 +246,7 @@ func TestChronology_LoadSubrounderShouldReturnNilWhenSubroundHandlerNotExists(t 
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	assert.Nil(t, chr.LoadSubroundHandler(0))
@@ -232,6 +261,7 @@ func TestChronology_LoadSubrounderShouldReturnNilWhenIndexIsOutOfBound(t *testin
 		genesisTime,
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	chr.AddSubround(initSubroundHandlerMock())
@@ -248,11 +278,15 @@ func TestChronology_InitRoundShouldNotSetSubroundWhenRoundIndexIsNegative(t *tes
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	chr.AddSubround(initSubroundHandlerMock())
 	rounderMock.IndexCalled = func() int64 {
 		return -1
+	}
+	rounderMock.BeforeGenesisCalled = func() bool {
+		return true
 	}
 	chr.InitRound()
 
@@ -268,6 +302,7 @@ func TestChronology_InitRoundShouldSetSubroundWhenRoundIndexIsPositive(t *testin
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	sr := initSubroundHandlerMock()
@@ -285,6 +320,7 @@ func TestChronology_StartRoundShouldNotUpdateRoundWhenCurrentRoundIsNotFinished(
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	chr.SetSubroundId(0)
@@ -302,6 +338,7 @@ func TestChronology_StartRoundShouldUpdateRoundWhenCurrentRoundIsFinished(t *tes
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	chr.SetSubroundId(-1)
@@ -319,6 +356,7 @@ func TestChronology_SetAppStatusHandlerWithNilValueShouldErr(t *testing.T) {
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 	err := chr.SetAppStatusHandler(nil)
 
@@ -334,6 +372,7 @@ func TestChronology_SetAppStatusHandlerWithOkValueShouldPass(t *testing.T) {
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	err := chr.SetAppStatusHandler(&mock.AppStatusHandlerMock{})
@@ -351,6 +390,7 @@ func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 		syncTimerMock.CurrentTime(),
 		rounderMock,
 		syncTimerMock,
+		&mock.WatchdogMock{},
 	)
 
 	err := chr.SetAppStatusHandler(&mock.AppStatusHandlerStub{

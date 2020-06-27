@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -22,7 +23,7 @@ type p2pBlackListProcessor struct {
 	numFloodingRounds          uint32
 	thresholdSizeReceivedFlood uint64
 	cacher                     storage.Cacher
-	peerBlacklistHandler       process.PeerBlackListHandler
+	peerBlacklistCacher        process.PeerBlackListCacher
 	banDuration                time.Duration
 	selfPid                    core.PeerID
 	name                       string
@@ -33,7 +34,7 @@ type p2pBlackListProcessor struct {
 // TODO use argument on constructor
 func NewP2PBlackListProcessor(
 	cacher storage.Cacher,
-	peerBlacklistHandler process.PeerBlackListHandler,
+	peerBlacklistCacher process.PeerBlackListCacher,
 	thresholdNumReceivedFlood uint32,
 	thresholdSizeReceivedFlood uint64,
 	numFloodingRounds uint32,
@@ -45,8 +46,8 @@ func NewP2PBlackListProcessor(
 	if check.IfNil(cacher) {
 		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilCacher)
 	}
-	if check.IfNil(peerBlacklistHandler) {
-		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilBlackListHandler)
+	if check.IfNil(peerBlacklistCacher) {
+		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilBlackListCacher)
 	}
 	if thresholdNumReceivedFlood == 0 {
 		return nil, fmt.Errorf("%w, thresholdNumReceivedFlood == 0", process.ErrInvalidValue)
@@ -63,7 +64,7 @@ func NewP2PBlackListProcessor(
 
 	return &p2pBlackListProcessor{
 		cacher:                     cacher,
-		peerBlacklistHandler:       peerBlacklistHandler,
+		peerBlacklistCacher:        peerBlacklistCacher,
 		thresholdNumReceivedFlood:  thresholdNumReceivedFlood,
 		thresholdSizeReceivedFlood: thresholdSizeReceivedFlood,
 		numFloodingRounds:          numFloodingRounds,
@@ -91,7 +92,13 @@ func (pbp *p2pBlackListProcessor) ResetStatistics() {
 				"peer ID", pid.Pretty(),
 				"ban period", pbp.banDuration,
 			)
-			_ = pbp.peerBlacklistHandler.Update(pid, pbp.banDuration)
+			err := pbp.peerBlacklistCacher.Upsert(pid, pbp.banDuration)
+			if err != nil {
+				log.Warn("error adding peer id in peer ids cache", ""+
+					"pid", p2p.PeerIdToShortString(pid),
+					"error", err,
+				)
+			}
 		}
 	}
 }

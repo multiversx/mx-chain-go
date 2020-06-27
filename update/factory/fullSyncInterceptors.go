@@ -17,6 +17,7 @@ import (
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -37,7 +38,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	messenger              process.TopicHandler
 	multiSigner            crypto.MultiSigner
 	nodesCoordinator       sharding.NodesCoordinator
-	blackList              process.BlackListHandler
+	blockBlackList         process.TimeCacher
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
@@ -68,7 +69,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	AddressPubkeyConverter  core.PubkeyConverter
 	MaxTxNonceDeltaAllowed  int
 	TxFeeHandler            process.FeeHandler
-	BlackList               process.BlackListHandler
+	BlockBlackList          process.TimeCacher
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	SizeCheckDelta          uint32
@@ -98,7 +99,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		args.Messenger,
 		args.MultiSigner,
 		args.NodesCoordinator,
-		args.BlackList,
+		args.BlockBlackList,
 		args.NonceConverter,
 		args.WhiteListerVerifiedTxs,
 	)
@@ -163,8 +164,8 @@ func NewFullSyncInterceptorsContainerFactory(
 		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
 		ValidityAttester:        args.ValidityAttester,
 		EpochStartTrigger:       args.EpochStartTrigger,
-		NonceConverter:          args.NonceConverter,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		ArgsParser:              smartContract.NewArgumentParser(),
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
@@ -179,7 +180,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
 		argInterceptorFactory:  argInterceptorFactory,
-		blackList:              args.BlackList,
+		blockBlackList:         args.BlockBlackList,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		keyGen:                 args.KeyGen,
 		singleSigner:           args.SingleSigner,
@@ -247,7 +248,7 @@ func checkBaseParams(
 	messenger process.TopicHandler,
 	multiSigner crypto.MultiSigner,
 	nodesCoordinator sharding.NodesCoordinator,
-	blackList process.BlackListHandler,
+	blockBlackList process.TimeCacher,
 	nonceConverter typeConverters.Uint64ByteSliceConverter,
 	whiteListerVerifiedTxs update.WhiteListHandler,
 ) error {
@@ -278,8 +279,8 @@ func checkBaseParams(
 	if check.IfNil(accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(blackList) {
-		return process.ErrNilBlackListHandler
+	if check.IfNil(blockBlackList) {
+		return update.ErrNilTimeCache
 	}
 	if check.IfNil(nonceConverter) {
 		return process.ErrNilUint64Converter
@@ -337,9 +338,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      ficf.dataPool.Headers(),
-		HdrValidator: hdrValidator,
-		BlackList:    ficf.blackList,
+		Headers:        ficf.dataPool.Headers(),
+		HdrValidator:   hdrValidator,
+		BlockBlackList: ficf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -695,9 +696,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      ficf.dataPool.Headers(),
-		HdrValidator: hdrValidator,
-		BlackList:    ficf.blackList,
+		Headers:        ficf.dataPool.Headers(),
+		HdrValidator:   hdrValidator,
+		BlockBlackList: ficf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

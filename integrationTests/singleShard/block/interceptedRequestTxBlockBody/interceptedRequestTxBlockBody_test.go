@@ -86,6 +86,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	txBlockBodyRequester, _ := nRequester.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	miniBlockRequester := txBlockBodyRequester.(dataRetriever.MiniBlocksResolver)
 	miniBlockHashes[0] = txBlockBodyHash
+	nRequester.WhiteListHandler.Add(miniBlockHashes)
 	_ = miniBlockRequester.RequestDataFromHashArray(miniBlockHashes, 0)
 
 	select {

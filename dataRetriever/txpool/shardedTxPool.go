@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -13,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
-var _ counting.Countable = (*shardedTxPool)(nil)
 var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
 
 var log = logger.GetOrCreate("txpool")
@@ -36,7 +36,7 @@ type txPoolShard struct {
 
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
-func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNotifier, error) {
+func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 	log.Info("NewShardedTxPool", "args", args.String())
 
 	err := args.verify()
@@ -60,8 +60,9 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		MinGasPriceNanoErd:            uint32(args.MinGasPrice / oneBillion),
 	}
 
-	//  NumberOfShards - 1 (for self shard) + 1 (for metachain)
-	numCrossTxCaches := args.NumberOfShards
+	// We do not reserve cross tx cache capacity for [metachain] -> [me] (no transactions), [me] -> me (already reserved above).
+	// Note: in the case of a 1-shard network, a reservation is made - though not actually needed.
+	numCrossTxCaches := core.MaxUint32(1, args.NumberOfShards-1)
 
 	configPrototypeDestinationMe := txcache.ConfigDestinationMe{
 		NumChunks:                   args.Config.Shards,
@@ -161,7 +162,7 @@ func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cac
 }
 
 // AddData adds the transaction to the cache
-func (txPool *shardedTxPool) AddData(key []byte, value interface{}, _ int, cacheID string) {
+func (txPool *shardedTxPool) AddData(key []byte, value interface{}, sizeInBytes int, cacheID string) {
 	valueAsTransaction, ok := value.(data.TransactionHandler)
 	if !ok {
 		return
@@ -178,6 +179,7 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, _ int, cache
 		TxHash:          key,
 		SenderShardID:   sourceShardID,
 		ReceiverShardID: destinationShardID,
+		Size:            int64(sizeInBytes),
 	}
 
 	txPool.addTx(wrapper, cacheID)
@@ -299,10 +301,6 @@ func (txPool *shardedTxPool) ClearShardStore(cacheID string) {
 	shard.Cache.Clear()
 }
 
-// CreateShardStore is not implemented for this pool, since shard creations is managed internally
-func (txPool *shardedTxPool) CreateShardStore(_ string) {
-}
-
 // RegisterHandler registers a new handler to be called when a new transaction is added
 func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte, value interface{})) {
 	if handler == nil {
@@ -316,18 +314,30 @@ func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte, value inte
 }
 
 // GetCounts returns the total number of transactions in the pool
-func (txPool *shardedTxPool) GetCounts() counting.Counts {
+func (txPool *shardedTxPool) GetCounts() counting.CountsWithSize {
 	txPool.mutexBackingMap.RLock()
 	defer txPool.mutexBackingMap.RUnlock()
 
-	counts := counting.NewShardedCounts()
+	counts := counting.NewConcurrentShardedCountsWithSize()
 
 	for cacheID, shard := range txPool.backingMap {
 		cache := shard.Cache
-		counts.PutCounts(cacheID, int64(cache.Len()))
+		counts.PutCounts(cacheID, int64(cache.Len()), int64(cache.NumBytes()))
 	}
 
 	return counts
+}
+
+// Diagnose diagnoses the internal caches
+func (txPool *shardedTxPool) Diagnose(deep bool) {
+	log.Debug("shardedTxPool.Diagnose()", "counts", txPool.GetCounts().String())
+
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
+
+	for _, shard := range txPool.backingMap {
+		shard.Cache.Diagnose(deep)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

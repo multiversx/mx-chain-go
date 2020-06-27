@@ -109,6 +109,36 @@ func PlayerJoinsGame(
 	_, _ = txDispatcherNode.SendTransaction(txScCall)
 }
 
+// PlayerSendsTransaction creates and sends a transaction to the SC
+func PlayerSendsTransaction(
+	nodes []*TestProcessorNode,
+	player *TestWalletAccount,
+	scAddress []byte,
+	value *big.Int,
+	txData string,
+	gasLimit uint64,
+) {
+	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address)
+	txScCall := generateTx(
+		player.SkTxSign,
+		player.SingleSigner,
+		&txArgs{
+			nonce:    player.Nonce,
+			value:    value,
+			rcvAddr:  scAddress,
+			sndAddr:  player.Address,
+			data:     txData,
+			gasLimit: gasLimit,
+			gasPrice: MinTxGasPrice,
+		})
+	player.Nonce++
+	newBalance := big.NewInt(0)
+	newBalance = newBalance.Sub(player.Balance, value)
+	player.Balance = player.Balance.Set(newBalance)
+
+	_, _ = txDispatcherNode.SendTransaction(txScCall)
+}
+
 // NodeCallsRewardAndSend - smart contract owner sends reward transaction
 func NodeCallsRewardAndSend(
 	nodes []*TestProcessorNode,

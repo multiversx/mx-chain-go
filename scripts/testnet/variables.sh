@@ -1,5 +1,8 @@
 # These paths must be absolute
 
+# METASHARD_ID will be used to identify a shard ID as metachain
+export METASHARD_ID=4294967295
+
 # Path to elrond-go. Determined automatically. Do not change.
 export ELRONDDIR=$(dirname $(dirname $ELRONDTESTNETSCRIPTSDIR))
 
@@ -35,6 +38,7 @@ export NODE_NICENESS=10
 # Delays after running executables.
 export SEEDNODE_DELAY=5
 export GENESIS_DELAY=30
+export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
 export NODE_DELAY=10
 
 # Types of keys to generate
@@ -60,8 +64,11 @@ export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
 
+# ALWAYS_NEW_APP_VERSION will set a new version each time the node will be compiled
+export ALWAYS_NEW_APP_VERSION=0
+
 # ALWAYS_UPDATE_CONFIGS will re-generate configs (toml + json) each time ./start.sh
-# Set this variable to 0 when testing bootstram from storage or other edge cases where you do not want a fresh new config
+# Set this variable to 0 when testing bootstrap from storage or other edge cases where you do not want a fresh new config
 # each time.
 export ALWAYS_UPDATE_CONFIGS=1
 
@@ -134,6 +141,18 @@ export NUMACCOUNTS="250"
 export TXGEN_REGENERATE_ACCOUNTS=0
 export TXGEN_ERC20_MODE=0
 
+# COPY_BACK_CONFIGS when set to 1 will copy back the configs and keys to the ./cmd/node/config directory
+# in order to have a node in the IDE that can run a node in debug mode but in the same network with the rest of the nodes
+# this option greatly helps the debugging process when running a small system test
+export COPY_BACK_CONFIGS=0
+# SKIP_VALIDATOR_IDX when setting a value greater than -1 will not launch the validator with the provided index
+export SKIP_VALIDATOR_IDX=-1
+# SKIP_OBSERVER_IDX when setting a value greater than -1 will not launch the observer with the provided index
+export SKIP_OBSERVER_IDX=-1
+
+# USE_HARDFORK will prepare the nodes to run the hardfork process, if needed
+export USE_HARDFORK=1
+
 # Load local overrides, .gitignored
 LOCAL_OVERRIDES="$ELRONDTESTNETSCRIPTSDIR/local.sh"
 if [ -f "$LOCAL_OVERRIDES" ]; then
@@ -148,6 +167,4 @@ export TOTAL_OBSERVERCOUNT=$total_observer_count
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
 export TOTAL_NODECOUNT=$total_node_count
 
-# METASHARD_ID will be used to identify a shard ID as metachain
-export METASHARD_ID=4294967295
 

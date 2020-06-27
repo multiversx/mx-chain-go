@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -12,15 +13,23 @@ import (
 func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, nil)
+	ncf, err := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, nil, &mock.MarshalizerMock{})
 	require.Nil(t, ncf)
 	require.Equal(t, ErrNilStatusHandler, err)
+}
+
+func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ncf, err := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{}, nil)
+	require.Nil(t, ncf)
+	require.True(t, errors.Is(err, ErrNilMarshalizer))
 }
 
 func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{})
+	ncf, err := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{}, &mock.MarshalizerMock{})
 	require.NoError(t, err)
 	require.NotNil(t, ncf)
 }
@@ -31,7 +40,7 @@ func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
 		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
 	}
 
-	ncf, _ := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{})
+	ncf, _ := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{}, &mock.MarshalizerMock{})
 
 	nc, err := ncf.Create()
 	require.Error(t, err)
@@ -69,11 +78,6 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 	ncf, _ := NewNetworkComponentsFactory(
 		p2pConfig,
 		config.Config{
-			P2PMessageIDAdditionalCache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 100,
-				Shards:   16,
-			},
 			Debug: config.DebugConfig{
 				Antiflood: config.AntifloodDebugConfig{
 					Enabled:                    true,
@@ -83,6 +87,7 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 			},
 		},
 		&mock.AppStatusHandlerMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)

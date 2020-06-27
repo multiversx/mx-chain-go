@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -116,55 +117,16 @@ func TestDataComponentsFactory_CreateForMetaShouldWork(t *testing.T) {
 }
 
 func getDataArgs() factory.DataComponentsFactoryArgs {
+	testEconomics := &economics.TestEconomicsData{EconomicsData: &economics.EconomicsData{}}
+	testEconomics.SetMinGasPrice(200000000000)
+
 	return factory.DataComponentsFactoryArgs{
-		Config:             getGeneralConfig(),
-		EconomicsData:      &economics.EconomicsData{},
+		Config:             testscommon.GetGeneralConfig(),
+		EconomicsData:      testEconomics.EconomicsData,
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
 		Core:               getCoreComponents(),
 		PathManager:        &mock.PathManagerStub{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		CurrentEpoch:       0,
-	}
-}
-
-func getGeneralConfig() config.Config {
-	storageCfg := config.StorageConfig{
-		Cache: getCacheCfg(),
-		DB:    getDBCfg(),
-		Bloom: config.BloomFilterConfig{},
-	}
-	cacheCfg := getCacheCfg()
-	return config.Config{
-		StoragePruning: config.StoragePruningConfig{
-			Enabled:             false,
-			FullArchive:         true,
-			NumEpochsToKeep:     3,
-			NumActivePersisters: 3,
-		},
-		TxDataPool:                  cacheCfg,
-		UnsignedTransactionDataPool: cacheCfg,
-		RewardTransactionDataPool:   cacheCfg,
-		HeadersPoolConfig: config.HeadersPoolConfig{
-			MaxHeadersPerShard:            100,
-			NumElementsToRemoveOnEviction: 1,
-		},
-		TxBlockBodyDataPool:        cacheCfg,
-		PeerBlockBodyDataPool:      cacheCfg,
-		TrieNodesDataPool:          cacheCfg,
-		TxStorage:                  storageCfg,
-		MiniBlocksStorage:          storageCfg,
-		ShardHdrNonceHashStorage:   storageCfg,
-		MetaBlockStorage:           storageCfg,
-		MetaHdrNonceHashStorage:    storageCfg,
-		UnsignedTransactionStorage: storageCfg,
-		RewardTxStorage:            storageCfg,
-		BlockHeaderStorage:         storageCfg,
-		Heartbeat: config.HeartbeatConfig{
-			HeartbeatStorage: storageCfg,
-		},
-		StatusMetricsStorage: storageCfg,
-		PeerBlockBodyStorage: storageCfg,
-		BootstrapStorage:     storageCfg,
-		TxLogsStorage:        storageCfg,
 	}
 }

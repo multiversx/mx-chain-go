@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,7 +56,7 @@ func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
 			return true
 		},
 	}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: getCacherHandler(true, ""),
 	}
 	n, _ := node.NewNode(
@@ -79,7 +80,7 @@ func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
 			return true
 		},
 	}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:       getCacherHandler(false, ""),
 		RewardTransactionsCalled: getCacherHandler(true, "reward"),
 	}
@@ -104,7 +105,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) 
 			return true
 		},
 	}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
 		UnsignedTransactionsCalled: getCacherHandler(true, "unsigned"),
@@ -130,7 +131,7 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 			return true
 		},
 	}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
 		UnsignedTransactionsCalled: getCacherHandler(false, ""),
@@ -162,7 +163,7 @@ func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 			return true
 		},
 	}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
 		UnsignedTransactionsCalled: getCacherHandler(false, ""),
@@ -198,7 +199,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T
 			return true
 		},
 	}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
 		UnsignedTransactionsCalled: getCacherHandler(false, ""),
@@ -237,7 +238,7 @@ func TestNode_GetTransaction_ShouldFindInStorageButErrorUnmarshaling(t *testing.
 			return true
 		},
 	}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
 		UnsignedTransactionsCalled: getCacherHandler(false, ""),
@@ -276,7 +277,7 @@ func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
 			return true
 		},
 	}
-	dataPool := &mock.PoolsHolderStub{
+	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
 		UnsignedTransactionsCalled: getCacherHandler(false, ""),
@@ -304,11 +305,6 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 			return true
 		},
 	}
-	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false, ""),
-		RewardTransactionsCalled:   getCacherHandler(false, ""),
-		UnsignedTransactionsCalled: getCacherHandler(false, ""),
-	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return getStorerStub(false)
@@ -328,7 +324,6 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithApiTransactionByHashThrottler(throttler),
-		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
 		node.WithShardCoordinator(shardCoordinator),
 	)
@@ -404,7 +399,7 @@ func getCacherHandler(find bool, cacherType string) func() dataRetriever.Sharded
 	return func() dataRetriever.ShardedDataCacherNotifier {
 		switch cacherType {
 		case "reward":
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				SearchFirstDataCalled: func(_ []byte) (interface{}, bool) {
 					if find {
 						tx, _ := getDummyRewardTx()
@@ -415,7 +410,7 @@ func getCacherHandler(find bool, cacherType string) func() dataRetriever.Sharded
 				},
 			}
 		case "unsigned":
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				SearchFirstDataCalled: func(_ []byte) (interface{}, bool) {
 					if find {
 						tx, _ := getUnsignedTx()
@@ -426,7 +421,7 @@ func getCacherHandler(find bool, cacherType string) func() dataRetriever.Sharded
 				},
 			}
 		default:
-			return &mock.ShardedDataStub{
+			return &testscommon.ShardedDataStub{
 				SearchFirstDataCalled: func(_ []byte) (interface{}, bool) {
 					if find {
 						tx, _ := getDummyNormalTx()

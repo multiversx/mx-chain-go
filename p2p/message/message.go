@@ -11,11 +11,13 @@ var _ p2p.MessageP2P = (*Message)(nil)
 type Message struct {
 	FromField      []byte
 	DataField      []byte
+	PayloadField   []byte
 	SeqNoField     []byte
 	TopicsField    []string
 	SignatureField []byte
 	KeyField       []byte
 	PeerField      core.PeerID
+	TimestampField int64
 }
 
 // From returns the message originator's peer ID
@@ -23,9 +25,14 @@ func (m *Message) From() []byte {
 	return m.FromField
 }
 
-// Data returns the message payload
+// Data returns the useful message that was actually sent
 func (m *Message) Data() []byte {
 	return m.DataField
+}
+
+// Payload returns the encapsulated message along with meta data such as timestamp
+func (m *Message) Payload() []byte {
+	return m.PayloadField
 }
 
 // SeqNo returns the message sequence number
@@ -51,6 +58,11 @@ func (m *Message) Key() []byte {
 // Peer returns the peer that originated the message
 func (m *Message) Peer() core.PeerID {
 	return m.PeerField
+}
+
+// Timestamp returns the message timestamp to prevent endless re-processing of the same message
+func (m *Message) Timestamp() int64 {
+	return m.TimestampField
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

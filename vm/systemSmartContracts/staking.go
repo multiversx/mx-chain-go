@@ -4,7 +4,6 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math"
 	"math/big"
@@ -12,6 +11,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -32,6 +32,7 @@ type stakingSC struct {
 	maximumPercentageToBleed float64
 	gasCost                  vm.GasCost
 	minNumNodes              int64
+	marshalizer              marshal.Marshalizer
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
@@ -46,6 +47,7 @@ type ArgsNewStakingSmartContract struct {
 	BleedPercentagePerRound  float64
 	MaximumPercentageToBleed float64
 	GasCost                  vm.GasCost
+	Marshalizer              marshal.Marshalizer
 }
 
 // NewStakingSmartContract creates a staking smart contract
@@ -67,6 +69,9 @@ func NewStakingSmartContract(
 	if len(args.JailAccessAddr) < 1 {
 		return nil, vm.ErrInvalidJailAccessAddress
 	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, vm.ErrNilMarshalizer
+	}
 
 	reg := &stakingSC{
 		minStakeValue:            big.NewInt(0).Set(args.MinStakeValue),
@@ -79,6 +84,7 @@ func NewStakingSmartContract(
 		maximumPercentageToBleed: args.MaximumPercentageToBleed,
 		gasCost:                  args.GasCost,
 		minNumNodes:              int64(args.MinNumNodes),
+		marshalizer:              args.Marshalizer,
 	}
 	return reg, nil
 }
@@ -142,7 +148,7 @@ func (r *stakingSC) getConfig() *StakingNodesConfig {
 		return config
 	}
 
-	err := json.Unmarshal(configData, config)
+	err := r.marshalizer.Unmarshal(config, configData)
 	if err != nil {
 		log.Warn("unmarshal error on getConfig function, returning baseConfig",
 			"error", err.Error(),
@@ -156,7 +162,7 @@ func (r *stakingSC) getConfig() *StakingNodesConfig {
 }
 
 func (r *stakingSC) setConfig(config *StakingNodesConfig) {
-	configData, err := json.Marshal(config)
+	configData, err := r.marshalizer.Marshal(config)
 	if err != nil {
 		log.Warn("marshal error on setConfig function",
 			"error", err.Error(),
@@ -344,7 +350,7 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 }
 
 func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
-	registrationData := StakedData{
+	registrationData := &StakedData{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
@@ -359,7 +365,7 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
 
 	data := r.eei.GetStorage(key)
 	if len(data) > 0 {
-		err := json.Unmarshal(data, &registrationData)
+		err := r.marshalizer.Unmarshal(registrationData, data)
 		if err != nil {
 			log.Debug("unmarshal error on staking SC stake function",
 				"error", err.Error(),
@@ -368,11 +374,11 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
 		}
 	}
 
-	return &registrationData, nil
+	return registrationData, nil
 }
 
 func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedData) error {
-	data, err := json.Marshal(*stakedData)
+	data, err := r.marshalizer.Marshal(stakedData)
 	if err != nil {
 		log.Debug("marshal error on staking SC stake function ",
 			"error", err.Error(),

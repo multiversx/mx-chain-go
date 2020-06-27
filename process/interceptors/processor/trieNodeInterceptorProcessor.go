@@ -32,7 +32,7 @@ func (tnip *TrieNodeInterceptorProcessor) Validate(_ process.InterceptedData, _ 
 }
 
 // Save saves the intercepted trie node in the intercepted nodes cacher
-func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID) error {
+func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
 	nodeData, ok := data.(*trie.InterceptedTrieNode)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -40,6 +40,11 @@ func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ c
 
 	tnip.interceptedNodes.Put(nodeData.Hash(), nodeData, len(nodeData.EncodedNode()))
 	return nil
+}
+
+// RegisterHandler registers a callback function to be notified of incoming trie nodes
+func (tnip *TrieNodeInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
+	log.Error("trieNodeInterceptorProcessor.RegisterHandler", "error", "not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
