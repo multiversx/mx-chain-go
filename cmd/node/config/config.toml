@@ -563,8 +563,8 @@
 
 [Health]
     IntervalVerifyMemoryInSeconds = 1
-    IntervalDiagnoseComponentsInSeconds = 10
-    IntervalDiagnoseComponentsDeeplyInSeconds = 30
+    IntervalDiagnoseComponentsInSeconds = 30
+    IntervalDiagnoseComponentsDeeplyInSeconds = 120
     MemoryUsageToCreateProfiles = 2147483648 # 2GB
     NumMemoryUsageRecordsToKeep = 100
     FolderPath = "health-records"

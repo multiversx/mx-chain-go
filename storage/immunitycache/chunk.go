@@ -154,15 +154,8 @@ func (chunk *immunityChunk) removeNoLock(element *list.Element) {
 }
 
 func (chunk *immunityChunk) monitorEvictionNoLock(numRemoved int, err error) {
-	cacheName := chunk.config.cacheName
-
 	if err != nil {
-		log.Debug("immunityChunk.monitorEviction()", "name", cacheName, "numRemoved", numRemoved, "err", err)
-		return
-	}
-
-	if numRemoved > 0 {
-		log.Trace("immunityChunk.monitorEviction()", "name", cacheName, "numRemoved", numRemoved)
+		log.Trace("immunityChunk.monitorEviction()", "name", chunk.config.cacheName, "numRemoved", numRemoved, "err", err)
 	}
 }
 
