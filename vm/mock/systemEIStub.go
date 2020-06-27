@@ -13,7 +13,7 @@ type SystemEIStub struct {
 	TransferCalled                  func(destination []byte, sender []byte, value *big.Int, input []byte) error
 	GetBalanceCalled                func(addr []byte) *big.Int
 	SetStorageCalled                func(key []byte, value []byte)
-	SetReturnMessageCalled          func(msg string)
+	AddReturnMessageCalled          func(msg string)
 	GetStorageCalled                func(key []byte) []byte
 	SelfDestructCalled              func(beneficiary []byte)
 	CreateVMOutputCalled            func() *vmcommon.VMOutput
@@ -25,6 +25,7 @@ type SystemEIStub struct {
 	CryptoHookCalled                func() vmcommon.CryptoHook
 	UseGasCalled                    func(gas uint64) error
 	IsValidatorCalled               func(blsKey []byte) bool
+	ExecuteOnDestContextCalled      func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
 }
 
 // IsValidator -
@@ -48,7 +49,16 @@ func (s *SystemEIStub) SetGasProvided(_ uint64) {
 }
 
 // ExecuteOnDestContext -
-func (s *SystemEIStub) ExecuteOnDestContext(_ []byte, _ []byte, _ *big.Int, _ []byte) (*vmcommon.VMOutput, error) {
+func (s *SystemEIStub) ExecuteOnDestContext(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
+) (*vmcommon.VMOutput, error) {
+	if s.ExecuteOnDestContextCalled != nil {
+		return s.ExecuteOnDestContextCalled(destination, sender, value, input)
+	}
+
 	return &vmcommon.VMOutput{}, nil
 }
 
@@ -123,8 +133,8 @@ func (s *SystemEIStub) SetStorage(key []byte, value []byte) {
 
 // AddReturnMessage -
 func (s *SystemEIStub) AddReturnMessage(msg string) {
-	if s.SetReturnMessageCalled != nil {
-		s.SetReturnMessageCalled(msg)
+	if s.AddReturnMessageCalled != nil {
+		s.AddReturnMessageCalled(msg)
 	}
 }
 

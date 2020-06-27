@@ -7,9 +7,18 @@ import (
 
 // RounderMock -
 type RounderMock struct {
-	RoundIndex        int64
-	RoundTimeStamp    time.Time
-	RoundTimeDuration time.Duration
+	RoundIndex          int64
+	RoundTimeStamp      time.Time
+	RoundTimeDuration   time.Duration
+	BeforeGenesisCalled func() bool
+}
+
+// BeforeGenesis -
+func (rndm *RounderMock) BeforeGenesis() bool {
+	if rndm.BeforeGenesisCalled != nil {
+		return rndm.BeforeGenesisCalled()
+	}
+	return false
 }
 
 // Index -

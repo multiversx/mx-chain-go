@@ -11,7 +11,7 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 message Message {
 	bytes    BlockHeaderHash    = 1;
 	bytes    SignatureShare     = 2;
-	bytes    Body				= 3;
+	bytes    Body               = 3;
 	bytes    Header             = 4;
 	bytes    PubKey             = 5;
 	bytes    Signature          = 6;
@@ -21,4 +21,5 @@ message Message {
 	bytes    PubKeysBitmap      = 10;
 	bytes    AggregateSignature = 11;
 	bytes    LeaderSignature    = 12;
+	bytes    OriginatorPid      = 13;
 }

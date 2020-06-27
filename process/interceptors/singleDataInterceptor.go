@@ -96,8 +96,17 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return err
 	}
 
-	isForCurrentShard := interceptedData.IsForCurrentShard()
+	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
 	isWhiteListed := sdi.whiteListRequested.IsWhiteListed(interceptedData)
+	if !isWhiteListed && errOriginator != nil {
+		log.Debug("got message from peer on topic only for validators",
+			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",
+			sdi.topic, "err", errOriginator)
+		sdi.throttler.EndProcessing()
+		return errOriginator
+	}
+
+	isForCurrentShard := interceptedData.IsForCurrentShard()
 	shouldProcess := isForCurrentShard || isWhiteListed
 	if !shouldProcess {
 		sdi.throttler.EndProcessing()
@@ -143,6 +152,11 @@ func (sdi *SingleDataInterceptor) SetInterceptedDebugHandler(handler process.Int
 	sdi.mutInterceptedDebugHandler.Unlock()
 
 	return nil
+}
+
+// RegisterHandler registers a callback function to be notified on received data
+func (sdi *SingleDataInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
+	sdi.processor.RegisterHandler(handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

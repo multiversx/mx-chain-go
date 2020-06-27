@@ -55,21 +55,6 @@ func TestCrossTxCache_Get(t *testing.T) {
 	require.Nil(t, xTx)
 }
 
-func newUnconstrainedCrossTxCacheToTest(numChunks uint32) *CrossTxCache {
-	cache, err := NewCrossTxCache(ConfigDestinationMe{
-		Name:                        "test",
-		NumChunks:                   numChunks,
-		MaxNumItems:                 math.MaxUint32,
-		MaxNumBytes:                 math.MaxUint16,
-		NumItemsToPreemptivelyEvict: math.MaxUint32,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("newUnconstrainedCrossTxCacheToTest(): %s", err))
-	}
-
-	return cache
-}
-
 func newCrossTxCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uint32) *CrossTxCache {
 	cache, err := NewCrossTxCache(ConfigDestinationMe{
 		Name:                        "test",

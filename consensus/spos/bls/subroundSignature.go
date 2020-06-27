@@ -95,6 +95,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 			nil,
 			nil,
 			nil,
+			sr.CurrentPid(),
 		)
 
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
@@ -125,13 +126,23 @@ func (sr *subroundSignature) doSignatureJob() bool {
 // If the signature is valid, than the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Signature
 func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
-	if !sr.IsSelfLeaderInCurrentRound() {
-		return false
-	}
-
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {
+		return false
+	}
+
+	if !sr.IsNodeInConsensusGroup(node) {
+		sr.PeerHonestyHandler().ChangeScore(
+			node,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.ValidatorPeerHonestyDecreaseFactor,
+		)
+
+		return false
+	}
+
+	if !sr.IsSelfLeaderInCurrentRound() {
 		return false
 	}
 
@@ -168,6 +179,12 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 			"error", err.Error())
 		return false
 	}
+
+	sr.PeerHonestyHandler().ChangeScore(
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.ValidatorPeerHonestyIncreaseFactor,
+	)
 
 	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "signed")
 	return true

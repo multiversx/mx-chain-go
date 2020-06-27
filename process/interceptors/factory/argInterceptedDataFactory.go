@@ -3,7 +3,6 @@ package factory
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -30,5 +29,5 @@ type ArgInterceptedDataFactory struct {
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
-	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	ArgsParser              process.ArgumentsParser
 }

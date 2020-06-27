@@ -16,12 +16,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/marshal"
+	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/urfave/cli"
 )
 
 const defaultLogsPath = "logs"
+const filePathPlaceholder = "[path]"
 
 var (
 	seedNodeHelpTemplate = `NAME:
@@ -66,7 +69,13 @@ VERSION:
 		Name:  "log-save",
 		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
 	}
-
+	// configurationFile defines a flag for the path to the main toml configuration file
+	configurationFile = cli.StringFlag{
+		Name: "config",
+		Usage: "The `" + filePathPlaceholder + "` for the main configuration file. This TOML file contain the main " +
+			"configurations such as the marshalizer type",
+		Value: "./config/config.toml",
+	}
 	p2pConfigurationFile = "./config/p2p.toml"
 )
 
@@ -77,7 +86,13 @@ func main() {
 	cli.AppHelpTemplate = seedNodeHelpTemplate
 	app.Name = "SeedNode CLI App"
 	app.Usage = "This is the entry point for starting a new seed node - the app will help bootnodes connect to the network"
-	app.Flags = []cli.Flag{port, p2pSeed, logLevel, logSaveFile}
+	app.Flags = []cli.Flag{
+		port,
+		p2pSeed,
+		logLevel,
+		logSaveFile,
+		configurationFile,
+	}
 	app.Version = "v0.0.1"
 	app.Authors = []cli.Author{
 		{
@@ -99,6 +114,18 @@ func main() {
 
 func startNode(ctx *cli.Context) error {
 	var err error
+
+	configurationFileName := ctx.GlobalString(configurationFile.Name)
+	generalConfig, err := loadMainConfig(configurationFileName)
+	if err != nil {
+		return err
+	}
+
+	internalMarshalizer, err := factoryMarshalizer.NewMarshalizer(generalConfig.Marshalizer.Type)
+	if err != nil {
+		return fmt.Errorf("error creating marshalizer (internal): %s", err.Error())
+	}
+
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
 		var fileForLogs *os.File
@@ -144,7 +171,7 @@ func startNode(ctx *cli.Context) error {
 		return err
 	}
 
-	messenger, err := createNode(*p2pConfig)
+	messenger, err := createNode(*p2pConfig, internalMarshalizer)
 	if err != nil {
 		return err
 	}
@@ -172,8 +199,19 @@ func startNode(ctx *cli.Context) error {
 	}
 }
 
-func createNode(p2pConfig config.P2PConfig) (p2p.Messenger, error) {
+func loadMainConfig(filepath string) (*config.Config, error) {
+	cfg := &config.Config{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2p.Messenger, error) {
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   marshalizer,
 		ListenAddress: libp2p.ListenAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}

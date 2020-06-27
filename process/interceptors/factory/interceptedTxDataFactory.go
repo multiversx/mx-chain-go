@@ -23,6 +23,7 @@ type interceptedTxDataFactory struct {
 	shardCoordinator       sharding.Coordinator
 	feeHandler             process.FeeHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
+	argsParser             process.ArgumentsParser
 }
 
 // NewInterceptedTxDataFactory creates an instance of interceptedTxDataFactory
@@ -57,6 +58,9 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if check.IfNil(argument.WhiteListerVerifiedTxs) {
 		return nil, process.ErrNilWhiteListHandler
 	}
+	if check.IfNil(argument.ArgsParser) {
+		return nil, process.ErrNilArgumentParser
+	}
 
 	return &interceptedTxDataFactory{
 		protoMarshalizer:       argument.ProtoMarshalizer,
@@ -68,6 +72,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		shardCoordinator:       argument.ShardCoordinator,
 		feeHandler:             argument.FeeHandler,
 		whiteListerVerifiedTxs: argument.WhiteListerVerifiedTxs,
+		argsParser:             argument.ArgsParser,
 	}, nil
 }
 
@@ -84,6 +89,7 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 		itdf.shardCoordinator,
 		itdf.feeHandler,
 		itdf.whiteListerVerifiedTxs,
+		itdf.argsParser,
 	)
 }
 

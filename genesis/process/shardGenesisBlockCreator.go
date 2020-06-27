@@ -25,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 var log = logger.GetOrCreate("genesis/process")
@@ -96,8 +96,11 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		"cross shard delegation calls", numCrossShardDelegations,
 	)
 
+	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
 	header := &block.Header{
-		Nonce:           0,
+		Epoch:           epoch,
+		Round:           round,
+		Nonce:           nonce,
 		ShardID:         arg.ShardCoordinator.SelfId(),
 		BlockBodyType:   block.StateBlock,
 		PubKeysBitmap:   []byte{1},
@@ -110,6 +113,11 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		DeveloperFees:   big.NewInt(0),
 		ChainID:         []byte(arg.ChainID),
 		SoftwareVersion: []byte(""),
+	}
+
+	err = processors.vmContainer.Close()
+	if err != nil {
+		return nil, err
 	}
 
 	return header, nil
@@ -158,6 +166,7 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 	if err != nil {
 		return nil, err
 	}
+	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
@@ -208,7 +217,6 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 }
 
 func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, error) {
-	argsParser := vmcommon.NewAtArgumentParser()
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:               arg.GasMap,
 		MapDNSAddresses:      make(map[string]struct{}),
@@ -281,7 +289,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		PubkeyConverter:  arg.PubkeyConv,
 		ShardCoordinator: arg.ShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -296,7 +304,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
-		ArgsParser:       argsParser,
+		ArgsParser:       smartContract.NewArgumentParser(),
 		Hasher:           arg.Hasher,
 		Marshalizer:      arg.Marshalizer,
 		AccountsDB:       arg.Accounts,
@@ -337,6 +345,8 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		genesisFeeHandler,
 		receiptTxInterim,
 		badTxInterim,
+		smartContract.NewArgumentParser(),
+		scForwarder,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
@@ -407,6 +417,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		rwdProcessor:   rewardsTxProcessor,
 		blockchainHook: vmFactoryImpl.BlockChainHookImpl(),
 		queryService:   queryService,
+		vmContainer:    vmContainer,
 	}, nil
 }
 
@@ -444,22 +455,35 @@ func deployInitialSmartContract(
 		return err
 	}
 
-	argDeploy := intermediate.ArgDeployProcessor{
-		Executor:       txExecutor,
-		PubkeyConv:     arg.PubkeyConv,
-		BlockchainHook: processors.blockchainHook,
-		QueryService:   processors.queryService,
-	}
-	deployProc, err := intermediate.NewDeployProcessor(argDeploy)
-	if err != nil {
-		return err
-	}
+	var deployProc genesis.DeployProcessor
 
 	switch sc.GetType() {
+	case genesis.DNSType:
+		deployMetrics.numOtherTypes++
+		argDeployLibrary := intermediate.ArgDeployLibrarySC{
+			Executor:         txExecutor,
+			PubkeyConv:       arg.PubkeyConv,
+			BlockchainHook:   processors.blockchainHook,
+			ShardCoordinator: arg.ShardCoordinator,
+		}
+		deployProc, err = intermediate.NewDeployLibrarySC(argDeployLibrary)
+		if err != nil {
+			return err
+		}
 	case genesis.DelegationType:
 		deployMetrics.numDelegation++
+		fallthrough
 	default:
-		deployMetrics.numOtherTypes++
+		argDeploy := intermediate.ArgDeployProcessor{
+			Executor:       txExecutor,
+			PubkeyConv:     arg.PubkeyConv,
+			BlockchainHook: processors.blockchainHook,
+			QueryService:   processors.queryService,
+		}
+		deployProc, err = intermediate.NewDeployProcessor(argDeploy)
+		if err != nil {
+			return err
+		}
 	}
 
 	return deployProc.Deploy(sc)

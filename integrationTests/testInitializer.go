@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -34,11 +35,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -50,11 +49,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -128,6 +129,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		initialAddresses = append(initialAddresses, initialAddr)
 	}
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     createP2PConfig(initialAddresses),
 	}
@@ -149,6 +151,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, randezVous strin
 	p2pConfig := createP2PConfig(initialAddresses)
 	p2pConfig.KadDhtPeerDiscovery.RandezVous = randezVous
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -164,6 +167,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, randezVous strin
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -192,6 +196,7 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	}
 
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -295,49 +300,13 @@ func ClosePeers(peers []p2p.Messenger) {
 	}
 }
 
-// CreateTestDataPool creates a test data pool for shard nodes
-func CreateTestDataPool(txPool dataRetriever.ShardedDataCacherNotifier, selfShardID uint32) dataRetriever.PoolsHolder {
-	if txPool == nil {
-		txPool, _ = createTxPool(selfShardID)
-	}
-
-	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1})
-	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Capacity: 300, Type: storageUnit.LRUCache, Shards: 1})
-
-	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
-
-	cacherCfg := storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	cacherCfg = storageUnit.CacheConfig{Capacity: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	cacherCfg = storageUnit.CacheConfig{Capacity: 50000, Type: storageUnit.LRUCache}
-	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
-
-	currTxs, _ := dataPool.NewCurrentBlockPool()
-
-	dPool, _ := dataPool.NewDataPool(
-		txPool,
-		uTxPool,
-		rewardsTxPool,
-		hdrPool,
-		txBlockBody,
-		peerChangeBlockBody,
-		trieNodes,
-		currTxs,
-	)
-
-	return dPool
-}
-
 // CreateMemUnit returns an in-memory storer implementation (the vast majority of tests do not require effective
 // disk I/O)
 func CreateMemUnit() storage.Storer {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, capacity, shards, sizeInBytes)
+	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	persist, _ := memorydb.NewlruDB(100000)
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 
@@ -535,6 +504,72 @@ func CreateGenesisBlocks(
 	return genesisBlocks
 }
 
+// CreateFullGenesisBlocks does the full genesis process, deploys smart contract at genesis
+func CreateFullGenesisBlocks(
+	accounts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
+	trieStorageManagers map[string]data.StorageManager,
+	nodesSetup sharding.GenesisNodesSetupHandler,
+	shardCoordinator sharding.Coordinator,
+	store dataRetriever.StorageService,
+	blkc data.ChainHandler,
+	dataPool dataRetriever.PoolsHolder,
+	economics *economics.EconomicsData,
+	accountsParser genesis.AccountsParser,
+	smartContractParser genesis.InitialSmartContractParser,
+) map[uint32]data.HeaderHandler {
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule = arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasSchedule, 1)
+
+	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
+		GenesisTime:              0,
+		StartEpochNum:            0,
+		Accounts:                 accounts,
+		PubkeyConv:               TestAddressPubkeyConverter,
+		InitialNodesSetup:        nodesSetup,
+		Economics:                economics,
+		ShardCoordinator:         shardCoordinator,
+		Store:                    store,
+		Blkc:                     blkc,
+		Marshalizer:              TestMarshalizer,
+		Hasher:                   TestHasher,
+		Uint64ByteSliceConverter: TestUint64Converter,
+		DataPool:                 dataPool,
+		ValidatorAccounts:        validatorAccounts,
+		GasMap:                   gasSchedule,
+		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig:     config.VirtualMachineConfig{},
+		TrieStorageManagers:      trieStorageManagers,
+		SystemSCConfig: config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "aaaaaa",
+			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				ProposalCost:     "500",
+				NumNodes:         100,
+				MinQuorum:        50,
+				MinPassThreshold: 50,
+				MinVetoThreshold: 50,
+			},
+		},
+		AccountsParser:      accountsParser,
+		SmartContractParser: smartContractParser,
+		BlockSignKeyGen:     &mock.KeyGenMock{},
+		ImportStartHandler: &mock.ImportStartHandlerStub{
+			ShouldStartImportCalled: func() bool {
+				return false
+			},
+		},
+	}
+
+	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
+	genesisBlocks, _ := genesisProcessor.CreateGenesisBlocks()
+
+	return genesisBlocks
+}
+
 // CreateGenesisMetaBlock creates a new mock meta genesis block
 func CreateGenesisMetaBlock(
 	accounts state.AccountsAdapter,
@@ -578,8 +613,16 @@ func CreateGenesisMetaBlock(
 				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",
 			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				ProposalCost:     "500",
+				NumNodes:         100,
+				MinQuorum:        50,
+				MinPassThreshold: 50,
+				MinVetoThreshold: 50,
+			},
 		},
-		BlockSignKeyGen: &mock.KeyGenMock{},
+		BlockSignKeyGen:    &mock.KeyGenMock{},
+		ImportStartHandler: &mock.ImportStartHandlerStub{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -588,7 +631,7 @@ func CreateGenesisMetaBlock(
 			core.MetachainShardId,
 		)
 
-		newDataPool := CreateTestDataPool(nil, shardCoordinator.SelfId())
+		newDataPool := testscommon.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
 		newBlkc := blockchain.NewMetaChain()
 		trieStorage, _ := CreateTrieStorageManager()
@@ -772,6 +815,8 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		},
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
+		smartContract.NewArgumentParser(),
+		&mock.IntermediateTransactionHandlerMock{},
 	)
 
 	return txProcessor
@@ -862,6 +907,7 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 		}
 
 		body, header, _ := n.ProposeBlock(round, nonce)
+		n.WhiteListBody(nodes, body)
 		n.BroadcastBlock(body, header)
 		n.CommitBlock(body, header)
 	}
@@ -1030,6 +1076,60 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), core.MetachainShardId, 0, serviceID)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+	}
+
+	return nodes
+}
+
+// CreateNodes creates multiple nodes in different shards
+func CreateNodesWithFullGenesis(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	serviceID string,
+	genesisFile string,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			accountParser := &mock.AccountsParserStub{}
+			smartContractParser, _ := parsing.NewSmartContractsParser(
+				genesisFile,
+				TestAddressPubkeyConverter,
+				&mock.KeyGenMock{},
+			)
+			n := NewTestProcessorNodeWithFullGenesis(
+				uint32(numOfShards),
+				shardId,
+				shardId,
+				serviceID,
+				accountParser,
+				smartContractParser,
+			)
+			nodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		accountParser := &mock.AccountsParserStub{}
+		smartContractParser, _ := parsing.NewSmartContractsParser(
+			genesisFile,
+			TestAddressPubkeyConverter,
+			&mock.KeyGenMock{},
+		)
+		metaNode := NewTestProcessorNodeWithFullGenesis(
+			uint32(numOfShards),
+			core.MetachainShardId,
+			0,
+			serviceID,
+			accountParser,
+			smartContractParser,
+		)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}
@@ -1519,9 +1619,9 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 }
 
 // CreateRequesterDataPool creates a datapool with a mock txPool
-func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, selfShardID uint32) dataRetriever.PoolsHolder {
+func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, _ uint32) dataRetriever.PoolsHolder {
 	//not allowed to request data from the same shard
-	return CreateTestDataPool(&mock.ShardedDataStub{
+	return testscommon.CreatePoolsHolderWithTxPool(&testscommon.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
@@ -1542,7 +1642,7 @@ func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sy
 		},
 		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 		},
-	}, selfShardID)
+	})
 }
 
 // CreateResolversDataPool creates a datapool containing a given number of transactions
@@ -1556,7 +1656,8 @@ func CreateResolversDataPool(
 
 	txHashes := make([][]byte, maxTxs)
 	txsSndAddr := make([][]byte, 0)
-	txPool, _ := createTxPool(shardCoordinator.SelfId())
+	poolsHolder := testscommon.CreatePoolsHolder(1, shardCoordinator.SelfId())
+	txPool := poolsHolder.Transactions()
 
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
@@ -1566,7 +1667,7 @@ func CreateResolversDataPool(
 		txsSndAddr = append(txsSndAddr, tx.SndAddr)
 	}
 
-	return CreateTestDataPool(txPool, shardCoordinator.SelfId()), txHashes, txsSndAddr
+	return poolsHolder, txHashes, txsSndAddr
 }
 
 func generateValidTx(
@@ -1990,23 +2091,6 @@ func proposeBlocks(
 	}
 }
 
-func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, error) {
-	return txpool.NewShardedTxPool(
-		txpool.ArgShardedTxPool{
-			Config: storageUnit.CacheConfig{
-				Capacity:             100_000,
-				SizePerSender:        1_000_000_000,
-				SizeInBytes:          1_000_000_000,
-				SizeInBytesPerSender: 33_554_432,
-				Shards:               16,
-			},
-			MinGasPrice:    200000000000,
-			NumberOfShards: 1,
-			SelfShardID:    selfShardID,
-		},
-	)
-}
-
 // WaitOperationToBeDone -
 func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
 	for i := 0; i < nrOfRounds; i++ {
@@ -2029,5 +2113,29 @@ func AddSelfNotarizedHeaderByMetachain(nodes []*TestProcessorNode) {
 		}
 
 		n.BlockTracker.AddSelfNotarizedHeader(core.MetachainShardId, header, nil)
+	}
+}
+
+// WhiteListTxs -
+func WhiteListTxs(nodes []*TestProcessorNode, txs []*transaction.Transaction) {
+	txHashes := make([][]byte, 0)
+	for _, tx := range txs {
+		txHash, err := core.CalculateHash(TestMarshalizer, TestHasher, tx)
+		if err != nil {
+			return
+		}
+
+		txHashes = append(txHashes, txHash)
+	}
+
+	for _, n := range nodes {
+		for index, txHash := range txHashes {
+			senderShardID := n.ShardCoordinator.ComputeId(txs[index].SndAddr)
+			receiverShardID := n.ShardCoordinator.ComputeId(txs[index].RcvAddr)
+			if senderShardID == n.ShardCoordinator.SelfId() ||
+				receiverShardID == n.ShardCoordinator.SelfId() {
+				n.WhiteListHandler.Add([][]byte{txHash})
+			}
+		}
 	}
 }

@@ -11,13 +11,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultArgument() ArgQuotaFloodPreventer {
 	return ArgQuotaFloodPreventer{
 		Name:                      "test",
-		Cacher:                    &mock.CacherStub{},
+		Cacher:                    testscommon.NewCacherStub(),
 		StatusHandlers:            []QuotaStatusHandler{&mock.QuotaStatusHandlerStub{}},
 		BaseMaxNumMessagesPerPeer: minMessages,
 		MaxTotalSizePerPeer:       minTotalSize,
@@ -135,7 +136,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadIdentifierNotPresentPutQuotaAndRetur
 	putWasCalled := false
 	size := uint64(minTotalSize * 5)
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
@@ -167,7 +168,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadNotQuotaSavedInCacheShouldPutQuotaAn
 	putWasCalled := false
 	size := uint64(minTotalSize * 5)
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return "bad value", true
 		},
@@ -204,7 +205,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadUnderMaxValuesShouldIncrementAndRetu
 	}
 	size := uint64(minTotalSize * 2)
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return existingQuota, true
 		},
@@ -230,7 +231,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerNumMessagesShouldNotPutAn
 		sizeReceivedMessages: existingSize,
 	}
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return existingQuota, true
 		},
@@ -259,7 +260,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerSizeShouldNotPutAndReturn
 		sizeReceivedMessages: existingSize,
 	}
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {
 			return existingQuota, true
 		},
@@ -283,7 +284,7 @@ func TestCountersMap_IncreaseLoadShouldWorkConcurrently(t *testing.T) {
 
 	numIterations := 1000
 	arg := createDefaultArgument()
-	arg.Cacher = mock.NewCacherMock()
+	arg.Cacher = testscommon.NewCacherMock()
 	qfp, _ := NewQuotaFloodPreventer(arg)
 	wg := sync.WaitGroup{}
 	wg.Add(numIterations)
@@ -305,7 +306,7 @@ func TestCountersMap_ResetShouldCallCacherClear(t *testing.T) {
 
 	clearCalled := false
 	arg := createDefaultArgument()
-	arg.Cacher = &mock.CacherStub{
+	arg.Cacher = &testscommon.CacherStub{
 		ClearCalled: func() {
 			clearCalled = true
 		},
@@ -323,7 +324,7 @@ func TestCountersMap_ResetShouldCallCacherClear(t *testing.T) {
 func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 	t.Parallel()
 
-	cacher := mock.NewCacherMock()
+	cacher := testscommon.NewCacherMock()
 	key1 := core.PeerID("key1")
 	quota1 := &quota{
 		numReceivedMessages:   1,
@@ -390,7 +391,7 @@ func TestCountersMap_IncrementAndResetShouldWorkConcurrently(t *testing.T) {
 
 	numIterations := 1000
 	arg := createDefaultArgument()
-	arg.Cacher = mock.NewCacherMock()
+	arg.Cacher = testscommon.NewCacherMock()
 	qfp, _ := NewQuotaFloodPreventer(arg)
 	wg := sync.WaitGroup{}
 	wg.Add(numIterations + numIterations/10)
@@ -417,7 +418,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadWithMockCacherShouldWork(t *testing.
 
 	numMessages := uint32(100)
 	arg := createDefaultArgument()
-	arg.Cacher = mock.NewCacherMock()
+	arg.Cacher = testscommon.NewCacherMock()
 	arg.BaseMaxNumMessagesPerPeer = numMessages
 	arg.MaxTotalSizePerPeer = math.MaxUint64
 	arg.PercentReserved = float32(17)
@@ -467,7 +468,7 @@ func TestQuotaFloodPreventer_ApplyConsensusShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultArgument()
-	arg.Cacher = mock.NewCacherMock()
+	arg.Cacher = testscommon.NewCacherMock()
 	arg.BaseMaxNumMessagesPerPeer = 2000
 	arg.IncreaseThreshold = 1000
 	arg.IncreaseFactor = 0.25

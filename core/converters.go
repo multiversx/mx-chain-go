@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -140,4 +141,32 @@ func ShardIdToString(shardId uint32) string {
 		return "_ALL"
 	}
 	return fmt.Sprintf("_%d", shardId)
+}
+
+// ConvertToEvenHex converts the provided value in a hex string, even number of characters
+func ConvertToEvenHex(value int) string {
+	str := fmt.Sprintf("%x", value)
+	if len(str)%2 != 0 {
+		str = "0" + str
+	}
+
+	return str
+}
+
+// ConvertToEvenHexBigInt converts the provided value in a hex string, even number of characters
+func ConvertToEvenHexBigInt(value *big.Int) string {
+	str := value.Text(16)
+	if len(str)%2 != 0 {
+		str = "0" + str
+	}
+
+	return str
+}
+
+// BooleanToInt takes a bool argument and returns 0 for false, 1 for true
+func BooleanToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }

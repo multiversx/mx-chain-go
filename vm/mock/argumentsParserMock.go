@@ -1,67 +1,40 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // ArgumentParserMock -
 type ArgumentParserMock struct {
-	ParseDataCalled                   func(data string) error
-	GetConstructorArgumentsCalled     func() ([][]byte, error)
-	GetFunctionArgumentsCalled        func() ([][]byte, error)
-	GetCodeCalled                     func() ([]byte, error)
-	GetFunctionCalled                 func() (string, error)
-	GetSeparatorCalled                func() string
+	ParseCallDataCalled               func(data string) (string, [][]byte, error)
+	ParseDeployDataCalled             func(data string) (*parsers.DeployArgs, error)
 	CreateDataFromStorageUpdateCalled func(storageUpdates []*vmcommon.StorageUpdate) string
 	GetStorageUpdatesCalled           func(data string) ([]*vmcommon.StorageUpdate, error)
 }
 
+// ParseCallData -
+func (ap *ArgumentParserMock) ParseCallData(data string) (string, [][]byte, error) {
+	if ap.ParseCallDataCalled == nil {
+		return "", nil, nil
+	}
+	return ap.ParseCallDataCalled(data)
+}
+
 // ParseData -
-func (ap *ArgumentParserMock) ParseData(data string) error {
-	if ap.ParseDataCalled == nil {
-		return nil
+func (ap *ArgumentParserMock) ParseData(data string) (string, [][]byte, error) {
+	if ap.ParseCallDataCalled == nil {
+		return "", nil, nil
 	}
-	return ap.ParseDataCalled(data)
+	return ap.ParseCallDataCalled(data)
 }
 
-// GetConstructorArguments -
-func (ap *ArgumentParserMock) GetConstructorArguments() ([][]byte, error) {
-	if ap.GetConstructorArgumentsCalled == nil {
-		return make([][]byte, 0), nil
+// ParseDeployData -
+func (ap *ArgumentParserMock) ParseDeployData(data string) (*parsers.DeployArgs, error) {
+	if ap.ParseDeployDataCalled == nil {
+		return nil, nil
 	}
-	return ap.GetConstructorArgumentsCalled()
-}
-
-// GetFunctionArguments -
-func (ap *ArgumentParserMock) GetFunctionArguments() ([][]byte, error) {
-	if ap.GetFunctionArgumentsCalled == nil {
-		return make([][]byte, 0), nil
-	}
-	return ap.GetFunctionArgumentsCalled()
-}
-
-// GetCode -
-func (ap *ArgumentParserMock) GetCode() ([]byte, error) {
-	if ap.GetCodeCalled == nil {
-		return []byte(""), nil
-	}
-	return ap.GetCodeCalled()
-}
-
-// GetFunction -
-func (ap *ArgumentParserMock) GetFunction() (string, error) {
-	if ap.GetFunctionCalled == nil {
-		return "", nil
-	}
-	return ap.GetFunctionCalled()
-}
-
-// GetSeparator -
-func (ap *ArgumentParserMock) GetSeparator() string {
-	if ap.GetSeparatorCalled == nil {
-		return "@"
-	}
-	return ap.GetSeparatorCalled()
+	return ap.ParseDeployDataCalled(data)
 }
 
 // CreateDataFromStorageUpdate -

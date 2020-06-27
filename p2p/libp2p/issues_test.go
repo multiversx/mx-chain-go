@@ -12,11 +12,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMessenger() p2p.Messenger {
 	args := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{

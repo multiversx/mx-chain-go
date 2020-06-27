@@ -8,7 +8,7 @@ import (
 // NodesCoordinatorStub can not be moved inside mock package as it generates cyclic imports.
 //TODO refactor mock package & sharding package & remove this file. Put tests in sharding_test package
 type nodesCoordinatorStub struct {
-	GetValidatorWithPublicKeyCalled func(publicKey []byte, epoch uint32) (validator sharding.Validator, shardId uint32, err error)
+	GetValidatorWithPublicKeyCalled func(publicKey []byte) (validator sharding.Validator, shardId uint32, err error)
 }
 
 // GetChance -
@@ -102,9 +102,9 @@ func (ncs *nodesCoordinatorStub) ConsensusGroupSize(uint32) int {
 }
 
 // GetValidatorWithPublicKey -
-func (ncs *nodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (sharding.Validator, uint32, error) {
+func (ncs *nodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (sharding.Validator, uint32, error) {
 	if ncs.GetValidatorWithPublicKeyCalled != nil {
-		return ncs.GetValidatorWithPublicKeyCalled(publicKey, epoch)
+		return ncs.GetValidatorWithPublicKeyCalled(publicKey)
 	}
 
 	return nil, 0, sharding.ErrValidatorNotFound

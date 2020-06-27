@@ -220,13 +220,11 @@ func TestDeployProcessor_DeployShouldWork(t *testing.T) {
 func TestDeployProcessor_GetSCCodeAsHexShouldWork(t *testing.T) {
 	t.Parallel()
 
-	dp := &deployProcessor{}
-
-	value, err := dp.getSCCodeAsHex("inexistent file")
+	value, err := getSCCodeAsHex("inexistent file")
 	assert.Equal(t, "", value)
 	assert.NotNil(t, err)
 
-	value, err = dp.getSCCodeAsHex("./testdata/dummy.txt")
+	value, err = getSCCodeAsHex("./testdata/dummy.txt")
 	assert.Nil(t, err)
 	assert.Equal(t, hex.EncodeToString([]byte("test string")), value)
 }

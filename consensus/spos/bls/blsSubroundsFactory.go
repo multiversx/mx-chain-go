@@ -20,6 +20,7 @@ type factory struct {
 	appStatusHandler core.AppStatusHandler
 	indexer          indexer.Indexer
 	chainID          []byte
+	currentPid       core.PeerID
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -28,6 +29,7 @@ func NewSubroundsFactory(
 	consensusState *spos.ConsensusState,
 	worker spos.WorkerHandler,
 	chainID []byte,
+	currentPid core.PeerID,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
@@ -45,6 +47,7 @@ func NewSubroundsFactory(
 		worker:           worker,
 		appStatusHandler: statusHandler.NewNilStatusHandler(),
 		chainID:          chainID,
+		currentPid:       currentPid,
 	}
 
 	return &fct, nil
@@ -134,6 +137,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
 		fct.chainID,
+		fct.currentPid,
 	)
 	if err != nil {
 		return err
@@ -174,6 +178,7 @@ func (fct *factory) generateBlockSubround() error {
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
 		fct.chainID,
+		fct.currentPid,
 	)
 	if err != nil {
 		return err
@@ -214,6 +219,7 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
 		fct.chainID,
+		fct.currentPid,
 	)
 	if err != nil {
 		return err
@@ -251,6 +257,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.worker.ExecuteStoredMessages,
 		fct.consensusCore,
 		fct.chainID,
+		fct.currentPid,
 	)
 	if err != nil {
 		return err

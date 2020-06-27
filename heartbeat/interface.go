@@ -86,6 +86,7 @@ type PeerTypeProviderHandler interface {
 type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
+	NotifyTriggerReceived() <-chan struct{}
 	CreateData() []byte
 	IsInterfaceNil() bool
 }

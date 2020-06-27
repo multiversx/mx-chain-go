@@ -10,11 +10,12 @@ import (
 
 // P2PAntifloodHandlerStub -
 type P2PAntifloodHandlerStub struct {
-	CanProcessMessageCalled         func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	CanProcessMessagesOnTopicCalled func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
-	ApplyConsensusSizeCalled        func(size int)
-	SetDebuggerCalled               func(debugger process.AntifloodDebugger) error
-	BlacklistPeerCalled             func(peer core.PeerID, reason string, duration time.Duration)
+	CanProcessMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	CanProcessMessagesOnTopicCalled    func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
+	ApplyConsensusSizeCalled           func(size int)
+	SetDebuggerCalled                  func(debugger process.AntifloodDebugger) error
+	BlacklistPeerCalled                func(peer core.PeerID, reason string, duration time.Duration)
+	IsOriginatorEligibleForTopicCalled func(pid core.PeerID, topic string) error
 }
 
 // CanProcessMessage -
@@ -23,6 +24,14 @@ func (p2pahs *P2PAntifloodHandlerStub) CanProcessMessage(message p2p.MessageP2P,
 		return nil
 	}
 	return p2pahs.CanProcessMessageCalled(message, fromConnectedPeer)
+}
+
+// IsOriginatorEligibleForTopic -
+func (p2pahs *P2PAntifloodHandlerStub) IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error {
+	if p2pahs.IsOriginatorEligibleForTopicCalled != nil {
+		return p2pahs.IsOriginatorEligibleForTopicCalled(pid, topic)
+	}
+	return nil
 }
 
 // CanProcessMessagesOnTopic -

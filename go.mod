@@ -3,18 +3,18 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v0.3.19
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.26
 	github.com/ElrondNetwork/concurrent-map v0.1.2
-	github.com/ElrondNetwork/elrond-go-logger v1.0.3
-	github.com/ElrondNetwork/elrond-vm v0.0.25
-	github.com/ElrondNetwork/elrond-vm-common v0.1.19
+	github.com/ElrondNetwork/elrond-go-logger v1.0.4
+	github.com/ElrondNetwork/elrond-vm-common v0.1.21
 	github.com/beevik/ntp v0.2.0
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
+	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/elastic/go-elasticsearch/v7 v7.1.0
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
 	github.com/gin-contrib/pprof v1.2.0
-	github.com/gin-gonic/gin v1.3.0
+	github.com/gin-gonic/gin v1.6.3
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.5
@@ -36,11 +36,10 @@ require (
 	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/pelletier/go-toml v1.6.0
 	github.com/pkg/errors v0.9.1
-	github.com/pkg/profile v1.3.0
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
-	github.com/urfave/cli v1.20.0
+	github.com/urfave/cli v1.22.4
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/net v0.0.0-20200519113804-d87ec0cfa476

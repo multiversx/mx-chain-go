@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -82,7 +83,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer: &mock.MarshalizerMock{},
-		DataPool: &mock.PoolsHolderStub{
+		DataPool: &testscommon.PoolsHolderStub{
 			HeadersCalled: func() dataRetriever.HeadersPool {
 				return nil
 			},
@@ -484,7 +485,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = marshalizer
-	arguments.DataPool = &mock.PoolsHolderStub{
+	arguments.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -540,7 +541,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = marshalizer
-	arguments.DataPool = &mock.PoolsHolderStub{
+	arguments.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -1165,7 +1166,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
 
 	arguments := createMockArguments()
-	arguments.DataPool = &mock.PoolsHolderStub{
+	arguments.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{}
 		},
@@ -1242,7 +1243,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksNoMissedBlocks(t *test
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
-	arguments.DataPool = &mock.PoolsHolderStub{}
+	arguments.DataPool = testscommon.NewPoolsHolderStub()
 	arguments.StorageService = &mock.ChainStorerMock{}
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
@@ -1275,7 +1276,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksErrOnComputeValidatorL
 
 	arguments := createMockArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{}
-	arguments.DataPool = &mock.PoolsHolderStub{}
+	arguments.DataPool = testscommon.NewPoolsHolderStub()
 	arguments.StorageService = &mock.ChainStorerMock{}
 	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
@@ -1399,7 +1400,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
 			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
@@ -1458,7 +1459,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
 			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
@@ -1660,7 +1661,7 @@ func DoComputeMissingBlocks(
 		ConsensusGroupSizeCalled: func(uint32) int {
 			return consensusGroupSize
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
 			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
@@ -1728,7 +1729,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 			}, &mock.ValidatorMock{}}, nil
 		},
 	}
-	arguments.DataPool = &mock.PoolsHolderStub{
+	arguments.DataPool = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {

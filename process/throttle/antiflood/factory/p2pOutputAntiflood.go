@@ -23,7 +23,7 @@ func NewP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandle
 
 func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
-	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
+	antifloodCache, err := storageUnit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -49,5 +49,5 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 	topicFloodPreventer := disabled.NewNilTopicFloodPreventer()
 	startResettingTopicFloodPreventer(topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0), floodPreventer)
 
-	return antiflood.NewP2PAntiflood(&disabled.PeerBlacklistHandler{}, topicFloodPreventer, floodPreventer)
+	return antiflood.NewP2PAntiflood(&disabled.PeerBlacklistCacher{}, topicFloodPreventer, floodPreventer)
 }

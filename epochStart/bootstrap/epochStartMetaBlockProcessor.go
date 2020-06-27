@@ -115,7 +115,7 @@ func (e *epochStartMetaBlockProcessor) waitForEnoughNumConnectedPeers(messenger 
 // Save will handle the consensus mechanism for the fetched metablocks
 // All errors are just logged because if this function returns an error, the processing is finished. This way, we ignore
 // wrong received data and wait for relevant intercepted data
-func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID) error {
+func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, topic string) error {
 	if check.IfNil(data) {
 		log.Debug("epoch bootstrapper: nil intercepted data")
 		return nil
@@ -134,11 +134,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return nil
 	}
 
-	mbHash, err := core.CalculateHash(e.marshalizer, e.hasher, metaBlock)
-	if err != nil {
-		log.Warn("saving epoch start meta block error", "error", err)
-		return nil
-	}
+	mbHash := interceptedHdr.Hash()
 
 	log.Debug("received epoch start meta", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
 	e.mutReceivedMetaBlocks.Lock()
@@ -260,6 +256,11 @@ func (e *epochStartMetaBlockProcessor) processEntry(
 	}
 
 	return false
+}
+
+// RegisterHandler registers a callback function to be notified of incoming epoch start metablocks
+func (e *epochStartMetaBlockProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
+	panic("not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

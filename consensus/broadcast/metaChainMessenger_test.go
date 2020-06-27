@@ -1,14 +1,17 @@
 package broadcast_test
 
 import (
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
@@ -17,14 +20,22 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
+	hasher := mock.HasherMock{}
+	headersSubscriber := &mock.HeadersCacherStub{}
+	interceptorsContainer := createInterceptorContainer()
 
 	return broadcast.MetaChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
-			Marshalizer:      marshalizerMock,
-			Messenger:        messengerMock,
-			PrivateKey:       privateKeyMock,
-			ShardCoordinator: shardCoordinatorMock,
-			SingleSigner:     singleSignerMock,
+			Marshalizer:                marshalizerMock,
+			Hasher:                     hasher,
+			Messenger:                  messengerMock,
+			PrivateKey:                 privateKeyMock,
+			ShardCoordinator:           shardCoordinatorMock,
+			SingleSigner:               singleSignerMock,
+			HeadersSubscriber:          headersSubscriber,
+			InterceptorsContainer:      interceptorsContainer,
+			MaxValidatorDelayCacheSize: 2,
+			MaxDelayCacheSize:          2,
 		},
 	}
 }
@@ -168,4 +179,37 @@ func TestMetaChainMessenger_BroadcastHeaderOkHeaderShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
+}
+
+func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
+	countersBroadcast := make(map[string]int)
+	mutCounters := &sync.Mutex{}
+
+	messengerMock := &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+			mutCounters.Lock()
+			countersBroadcast[topic]++
+			mutCounters.Unlock()
+		},
+	}
+
+	args := createDefaultMetaChainArgs()
+	args.Messenger = messengerMock
+	mcm, _ := broadcast.NewMetaChainMessenger(args)
+
+	miniBlocks := map[uint32][]byte{0: []byte("mbs data1"), 1: []byte("mbs data2")}
+	transactions := map[string][][]byte{"topic1": {[]byte("txdata1"), []byte("txdata2")}, "topic2": {[]byte("txdata3")}}
+
+	err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions)
+	require.Nil(t, err)
+	sleepTime := core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		core.ExtraDelayForBroadcastBlockInfo +
+		time.Millisecond*100
+	time.Sleep(sleepTime)
+
+	mutCounters.Lock()
+	defer mutCounters.Unlock()
+
+	assert.Equal(t, len(miniBlocks), countersBroadcast["txBlockBodies_0"]+countersBroadcast["txBlockBodies_0_1"])
+	assert.Equal(t, len(transactions), countersBroadcast["topic1"]+countersBroadcast["topic2"])
 }

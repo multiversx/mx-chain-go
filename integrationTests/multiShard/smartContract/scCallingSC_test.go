@@ -2,11 +2,13 @@ package smartContract
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -340,8 +344,8 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	}
 
 	numOfShards := 2
-	nodesPerShard := 3
-	numMetachainNodes := 3
+	nodesPerShard := 1
+	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
@@ -417,6 +421,124 @@ func TestSCCallingInCrossShard(t *testing.T) {
 			assert.Equal(t, uint64(len(nodes)), numCalled.Uint64(), fmt.Sprintf("Node %d, Shard %d", index, shId))
 		}
 	}
+}
+
+func TestSCCallingDNSUserNames(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	genesisFile := "testdata/smartcontracts.json"
+	nodes := integrationTests.CreateNodesWithFullGenesis(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+		genesisFile,
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	numPlayers := 10
+	players := make([]*integrationTests.TestWalletAccount, numPlayers)
+	for i := 0; i < numPlayers; i++ {
+		players[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
+	}
+
+	initialVal := big.NewInt(10000000000000)
+	initialVal.Mul(initialVal, initialVal)
+	fmt.Printf("Initial minted sum: %s\n", initialVal.String())
+	integrationTests.MintAllNodes(nodes, initialVal)
+	integrationTests.MintAllPlayers(nodes, players, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	dnsRegisterValue := big.NewInt(100)
+	genesisSCs := nodes[0].SmartContractParser.InitialSmartContracts()
+	for _, genesisSC := range genesisSCs {
+		if genesisSC.GetType() == genesis.DNSType {
+			decodedValue, _ := hex.DecodeString(genesisSC.GetInitParameters())
+			dnsRegisterValue.SetBytes(decodedValue)
+		}
+	}
+
+	mapDNSAddresses, _ := nodes[0].SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+	sortedDNSAddresses := make([]string, 0, len(mapDNSAddresses))
+	for address := range mapDNSAddresses {
+		sortedDNSAddresses = append(sortedDNSAddresses, address)
+	}
+	sort.Slice(sortedDNSAddresses, func(i, j int) bool {
+		return sortedDNSAddresses[i][31] < sortedDNSAddresses[j][31]
+	})
+
+	gasLimit := uint64(1000000)
+
+	userNames := make([]string, len(players))
+	for i, player := range players {
+		userName := generateNewUserName()
+		scAddress := selectDNSAddressFromUserName(sortedDNSAddresses, userName)
+		integrationTests.PlayerSendsTransaction(
+			nodes,
+			player,
+			[]byte(scAddress),
+			dnsRegisterValue,
+			"register@"+hex.EncodeToString([]byte(userName)),
+			gasLimit,
+		)
+		userNames[i] = userName
+	}
+
+	nrRoundsToPropagateMultiShard := 15
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+
+	for i, player := range players {
+		playerShID := nodes[0].ShardCoordinator.ComputeId(player.Address)
+		for _, node := range nodes {
+			if node.ShardCoordinator.SelfId() != playerShID {
+				continue
+			}
+
+			acnt, _ := node.AccntState.GetExistingAccount(player.Address)
+			userAcc, _ := acnt.(state.UserAccountHandler)
+
+			hashedUserName := keccak.Keccak{}.Compute(userNames[i])
+			assert.Equal(t, hashedUserName, userAcc.GetUserName())
+		}
+	}
+}
+
+func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) string {
+	hashedAddr := keccak.Keccak{}.Compute(userName)
+	return sortedDNSAddresses[hashedAddr[31]]
+}
+
+func generateNewUserName() string {
+	buff := make([]byte, 10)
+	_, _ = rand.Read(buff)
+	return hex.EncodeToString(buff)
 }
 
 func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
@@ -573,15 +695,15 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	delegateSCOwner := shardNode.OwnAccount.Address
 	stakePerNode := shardNode.EconomicsData.GenesisNodePrice()
 	totalStake := stakePerNode // 1 node only in this test
-	nodeSharePer10000 := 3000
-	timeBeforeForceUnstake := 680400
+	serviceFeePer10000 := 3000
+	blocksBeforeForceUnstake := 50
+	blocksBeforeUnBond := 60
 	stakerBLSKey, _ := hex.DecodeString(strings.Repeat("a", 96*2))
 	stakerBLSSignature, _ := hex.DecodeString(strings.Repeat("c", 32*2))
 
-	// deploy the delegation smart contract
 	delegateSCAddress := putDeploySCToDataPool(
 		"./testdata/delegate/delegation.wasm", delegateSCOwner, 0, big.NewInt(0),
-		fmt.Sprintf("@%x@%s@%x", nodeSharePer10000, hex.EncodeToString(factory2.AuctionSCAddress), timeBeforeForceUnstake),
+		"@"+hex.EncodeToString(factory2.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeForceUnstake)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond),
 		nodes)
 	shardNode.OwnAccount.Nonce++
 
@@ -596,24 +718,22 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	vmOutputVersion, _ := shardNode.SCQueryService.ExecuteQuery(scQueryVersion)
 	assert.NotNil(t, vmOutputVersion)
 	assert.Equal(t, len(vmOutputVersion.ReturnData), 1)
-	require.True(t, bytes.Contains(vmOutputVersion.ReturnData[0], []byte("0.2.")))
+	require.True(t, bytes.Contains(vmOutputVersion.ReturnData[0], []byte("0.3.")))
 	log.Info("SC deployed", "version", string(vmOutputVersion.ReturnData[0]))
-
-	// set number of nodes
-	setNumNodesTxData := "setNumNodes@1"
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setNumNodesTxData)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// set stake per node
-	setStakePerNodeTxData := fmt.Sprintf("setStakePerNode@%x", stakePerNode)
+	setStakePerNodeTxData := "setStakePerNode@" + core.ConvertToEvenHexBigInt(stakePerNode)
 	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setStakePerNodeTxData)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
-	// set BLS keys in the contract
-	setBlsTxData := "setBlsKeys@" + hex.EncodeToString(stakerBLSKey)
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setBlsTxData)
+	// add node
+	addNodesTxData := fmt.Sprintf("addNodes@%s@%s",
+		hex.EncodeToString(stakerBLSKey),
+		hex.EncodeToString(stakerBLSSignature))
+	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, addNodesTxData)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
@@ -624,9 +744,9 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
-	// activate the delegation, this involves a call async to auction
-	activateTxData := "activate@" + hex.EncodeToString(stakerBLSSignature)
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, activateTxData)
+	// activate the delegation, this involves an async call to auction
+	stakeAllAvailableTxData := "stakeAllAvailable"
+	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
@@ -637,38 +757,49 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	// check that delegation contract was correctly initialized by querying for total stake
+	// check that delegation contract was correctly initialized by checking number of nodes added
 	scQuery1 := &process.SCQuery{
 		ScAddress: delegateSCAddress,
-		FuncName:  "getExpectedStake",
+		FuncName:  "getNumNodes",
 		Arguments: [][]byte{},
 	}
 	vmOutput1, _ := shardNode.SCQueryService.ExecuteQuery(scQuery1)
 	assert.NotNil(t, vmOutput1)
 	assert.Equal(t, len(vmOutput1.ReturnData), 1)
-	assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput1.ReturnData[0])) == 0)
+	assert.True(t, bytes.Equal(vmOutput1.ReturnData[0], []byte{1}))
 
-	// check that BLS keys were correctly set to contract
+	// check that node/signature are correctly set
 	scQuery2 := &process.SCQuery{
 		ScAddress: delegateSCAddress,
-		FuncName:  "getBlsKeys",
-		Arguments: [][]byte{},
+		FuncName:  "getNodeSignature",
+		Arguments: [][]byte{stakerBLSKey},
 	}
 	vmOutput2, _ := shardNode.SCQueryService.ExecuteQuery(scQuery2)
 	assert.NotNil(t, vmOutput2)
 	assert.Equal(t, len(vmOutput2.ReturnData), 1)
-	assert.True(t, bytes.Equal(stakerBLSKey, vmOutput2.ReturnData[0]))
+	assert.True(t, bytes.Equal(stakerBLSSignature, vmOutput2.ReturnData[0]))
 
-	// check that the staking transaction worked
+	// check that the stake got registered in delegation
 	scQuery3 := &process.SCQuery{
 		ScAddress: delegateSCAddress,
-		FuncName:  "getFilledStake",
-		Arguments: [][]byte{},
+		FuncName:  "getUserStake",
+		Arguments: [][]byte{delegateSCOwner},
 	}
 	vmOutput3, _ := shardNode.SCQueryService.ExecuteQuery(scQuery3)
 	assert.NotNil(t, vmOutput3)
 	assert.Equal(t, len(vmOutput3.ReturnData), 1)
-	assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput3.ReturnData[0])) == 0) // filled stake == total stake
+	assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput3.ReturnData[0])) == 0)
+
+	// check that the stake got activated
+	scQuery4 := &process.SCQuery{
+		ScAddress: delegateSCAddress,
+		FuncName:  "getUserActiveStake",
+		Arguments: [][]byte{delegateSCOwner},
+	}
+	vmOutput4, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
+	assert.NotNil(t, vmOutput4)
+	assert.Equal(t, len(vmOutput4.ReturnData), 1)
+	assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput4.ReturnData[0])) == 0)
 
 	// check that the staking system smart contract has the value
 	for _, node := range nodes {
