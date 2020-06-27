@@ -5,9 +5,6 @@ import "errors"
 // ErrNilEconomicsData signals that a nil economics data handler has been provided
 var ErrNilEconomicsData = errors.New("nil economics data provided")
 
-// ErrNilGenesisConfiguration signals that a nil genesis configuration has been provided
-var ErrNilGenesisConfiguration = errors.New("nil genesis configuration provided")
-
 // ErrNilCoreComponents signals that nil core components have been provided
 var ErrNilCoreComponents = errors.New("nil core components provided")
 
@@ -49,9 +46,6 @@ var ErrPubKeyConverterCreation = errors.New("error creating public key converter
 
 // ErrAccountsAdapterCreation signals that the accounts adapter cannot be created based on provided data
 var ErrAccountsAdapterCreation = errors.New("error creating accounts adapter")
-
-// ErrInitialBalancesCreation signals that the initial balances cannot be created based on provided data
-var ErrInitialBalancesCreation = errors.New("error creating initial balances")
 
 // ErrNilPubKeyConverter signals that a nil public key converter has been provided
 var ErrNilPubKeyConverter = errors.New("nil public key converter provided")

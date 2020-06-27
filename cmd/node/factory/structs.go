@@ -61,7 +61,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 const (
@@ -766,6 +766,7 @@ func newShardInterceptorContainerFactory(
 		WhiteListHandler:        whiteListHandler,
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
+		ArgumentsParser:         smartContract.NewArgumentParser(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -820,6 +821,7 @@ func newMetaInterceptorContainerFactory(
 		WhiteListHandler:        whiteListHandler,
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
+		ArgumentsParser:         smartContract.NewArgumentParser(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1043,6 +1045,7 @@ func newBlockProcessor(
 			processArgs.maxSizeInBytes,
 			txLogsProcessor,
 			processArgs.version,
+			processArgs.smartContractParser,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1101,12 +1104,18 @@ func newShardBlockProcessor(
 	maxSizeInBytes uint32,
 	txLogsProcessor process.TransactionLogProcessor,
 	version string,
+	smartContractParser genesis.InitialSmartContractParser,
 ) (process.BlockProcessor, error) {
-	argsParser := vmcommon.NewAtArgumentParser()
+	argsParser := smartContract.NewArgumentParser()
+
+	mapDNSAddresses, err := smartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+	if err != nil {
+		return nil, err
+	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
+		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     core.InternalMarshalizer,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -1174,7 +1183,7 @@ func newShardBlockProcessor(
 		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -1234,6 +1243,8 @@ func newShardBlockProcessor(
 		economics,
 		receiptTxInterim,
 		badTxInterim,
+		argsParser,
+		scForwarder,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
@@ -1400,7 +1411,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsParser := vmcommon.NewAtArgumentParser()
+	argsParser := smartContract.NewArgumentParser()
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
@@ -1433,7 +1444,7 @@ func newMetaBlockProcessor(
 		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -1551,16 +1562,15 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:       stateComponents.ValidatorPubkeyConverter,
-		Hasher:           core.Hasher,
-		ProtoMarshalizer: core.InternalMarshalizer,
-		VmMarshalizer:    core.VmMarshalizer,
-		PeerState:        stateComponents.PeerAccounts,
-		BaseState:        stateComponents.AccountsAdapter,
-		ArgParser:        argsParser,
-		CurrTxs:          data.Datapool.CurrentBlockTxs(),
-		ScQuery:          scDataGetter,
-		RatingsData:      ratingsData,
+		PubkeyConv:  stateComponents.ValidatorPubkeyConverter,
+		Hasher:      core.Hasher,
+		Marshalizer: core.InternalMarshalizer,
+		PeerState:   stateComponents.PeerAccounts,
+		BaseState:   stateComponents.AccountsAdapter,
+		ArgParser:   argsParser,
+		CurrTxs:     data.Datapool.CurrentBlockTxs(),
+		ScQuery:     scDataGetter,
+		RatingsData: ratingsData,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {

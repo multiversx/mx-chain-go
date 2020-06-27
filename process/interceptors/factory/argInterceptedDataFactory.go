@@ -29,4 +29,5 @@ type ArgInterceptedDataFactory struct {
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
+	ArgsParser              process.ArgumentsParser
 }

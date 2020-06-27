@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -35,6 +36,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -46,6 +49,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -125,6 +129,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		initialAddresses = append(initialAddresses, initialAddr)
 	}
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     createP2PConfig(initialAddresses),
 	}
@@ -146,6 +151,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, randezVous strin
 	p2pConfig := createP2PConfig(initialAddresses)
 	p2pConfig.KadDhtPeerDiscovery.RandezVous = randezVous
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -161,6 +167,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, randezVous strin
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -189,6 +196,7 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	}
 
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -496,6 +504,72 @@ func CreateGenesisBlocks(
 	return genesisBlocks
 }
 
+// CreateFullGenesisBlocks does the full genesis process, deploys smart contract at genesis
+func CreateFullGenesisBlocks(
+	accounts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
+	trieStorageManagers map[string]data.StorageManager,
+	nodesSetup sharding.GenesisNodesSetupHandler,
+	shardCoordinator sharding.Coordinator,
+	store dataRetriever.StorageService,
+	blkc data.ChainHandler,
+	dataPool dataRetriever.PoolsHolder,
+	economics *economics.EconomicsData,
+	accountsParser genesis.AccountsParser,
+	smartContractParser genesis.InitialSmartContractParser,
+) map[uint32]data.HeaderHandler {
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule = arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasSchedule, 1)
+
+	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
+		GenesisTime:              0,
+		StartEpochNum:            0,
+		Accounts:                 accounts,
+		PubkeyConv:               TestAddressPubkeyConverter,
+		InitialNodesSetup:        nodesSetup,
+		Economics:                economics,
+		ShardCoordinator:         shardCoordinator,
+		Store:                    store,
+		Blkc:                     blkc,
+		Marshalizer:              TestMarshalizer,
+		Hasher:                   TestHasher,
+		Uint64ByteSliceConverter: TestUint64Converter,
+		DataPool:                 dataPool,
+		ValidatorAccounts:        validatorAccounts,
+		GasMap:                   gasSchedule,
+		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig:     config.VirtualMachineConfig{},
+		TrieStorageManagers:      trieStorageManagers,
+		SystemSCConfig: config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "aaaaaa",
+			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				ProposalCost:     "500",
+				NumNodes:         100,
+				MinQuorum:        50,
+				MinPassThreshold: 50,
+				MinVetoThreshold: 50,
+			},
+		},
+		AccountsParser:      accountsParser,
+		SmartContractParser: smartContractParser,
+		BlockSignKeyGen:     &mock.KeyGenMock{},
+		ImportStartHandler: &mock.ImportStartHandlerStub{
+			ShouldStartImportCalled: func() bool {
+				return false
+			},
+		},
+	}
+
+	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
+	genesisBlocks, _ := genesisProcessor.CreateGenesisBlocks()
+
+	return genesisBlocks
+}
+
 // CreateGenesisMetaBlock creates a new mock meta genesis block
 func CreateGenesisMetaBlock(
 	accounts state.AccountsAdapter,
@@ -538,6 +612,13 @@ func CreateGenesisMetaBlock(
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",
+			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				ProposalCost:     "500",
+				NumNodes:         100,
+				MinQuorum:        50,
+				MinPassThreshold: 50,
+				MinVetoThreshold: 50,
 			},
 		},
 		BlockSignKeyGen:    &mock.KeyGenMock{},
@@ -733,6 +814,8 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 			},
 		},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		smartContract.NewArgumentParser(),
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -993,6 +1076,60 @@ func CreateNodes(
 
 	for i := 0; i < numMetaChainNodes; i++ {
 		metaNode := NewTestProcessorNode(uint32(numOfShards), core.MetachainShardId, 0, serviceID)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+	}
+
+	return nodes
+}
+
+// CreateNodes creates multiple nodes in different shards
+func CreateNodesWithFullGenesis(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	serviceID string,
+	genesisFile string,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			accountParser := &mock.AccountsParserStub{}
+			smartContractParser, _ := parsing.NewSmartContractsParser(
+				genesisFile,
+				TestAddressPubkeyConverter,
+				&mock.KeyGenMock{},
+			)
+			n := NewTestProcessorNodeWithFullGenesis(
+				uint32(numOfShards),
+				shardId,
+				shardId,
+				serviceID,
+				accountParser,
+				smartContractParser,
+			)
+			nodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		accountParser := &mock.AccountsParserStub{}
+		smartContractParser, _ := parsing.NewSmartContractsParser(
+			genesisFile,
+			TestAddressPubkeyConverter,
+			&mock.KeyGenMock{},
+		)
+		metaNode := NewTestProcessorNodeWithFullGenesis(
+			uint32(numOfShards),
+			core.MetachainShardId,
+			0,
+			serviceID,
+			accountParser,
+			smartContractParser,
+		)
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
 	}

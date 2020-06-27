@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -524,8 +525,8 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -572,8 +573,8 @@ func createPreProcessorContainerWithDataPool(
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -931,8 +932,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -1140,8 +1141,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -1786,8 +1787,8 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return process.ErrHigherNonceInTransaction
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, process.ErrHigherNonceInTransaction
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -1930,8 +1931,8 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		accounts,
 		requestHandler,
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -2047,7 +2048,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 				if bytes.Equal(transaction.Data, txHash1) {
 					tx1ExecutionResult = transaction.Nonce
@@ -2059,7 +2060,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 					tx3ExecutionResult = transaction.Nonce
 				}
 
-				return nil
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -2189,11 +2190,11 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				if bytes.Equal(transaction.Data, txHash2) {
-					return process.ErrHigherNonceInTransaction
+					return 0, process.ErrHigherNonceInTransaction
 				}
-				return nil
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
