@@ -42,7 +42,7 @@ var ErrLowerNonceInTransaction = errors.New("lower nonce in transaction")
 var ErrInsufficientFunds = errors.New("insufficient funds")
 
 // ErrInsufficientFee signals that the current balance doesn't have the required transaction fee
-var ErrInsufficientFee = errors.New("insufficient fees")
+var ErrInsufficientFee = errors.New("insufficient balance for fees")
 
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
@@ -431,9 +431,6 @@ var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshInterv
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
-// ErrVMTypeLengthInvalid signals that vm type length is too long
-var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
-
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
 
@@ -793,6 +790,18 @@ var ErrOriginatorIsBlacklisted = errors.New("originator is blacklisted")
 
 // ErrShardIsStuck signals that a shard is stuck
 var ErrShardIsStuck = errors.New("shard is stuck")
+
+// ErrRelayedTxBeneficiaryDoesNotMatchReceiver signals that an invalid address was provided in the relayed tx
+var ErrRelayedTxBeneficiaryDoesNotMatchReceiver = errors.New("invalid address in relayed tx")
+
+// ErrInvalidVMType signals that invalid vm type was provided
+var ErrInvalidVMType = errors.New("invalid VM type")
+
+// ErrRecursiveRelayedTxIsNotAllowed signals that recursive relayed tx is not allowed
+var ErrRecursiveRelayedTxIsNotAllowed = errors.New("recursive relayed tx is not allowed")
+
+// ErrRelayedTxValueHigherThenUserTxValue signals that relayed tx value is higher then user tx value
+var ErrRelayedTxValueHigherThenUserTxValue = errors.New("relayed tx value is higher than user tx value")
 
 // ErrNilInterceptorContainer signals that nil interceptor container has been provided
 var ErrNilInterceptorContainer = errors.New("nil interceptor container")

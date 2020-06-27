@@ -256,12 +256,7 @@ func (t *trigger) exportAll() {
 
 // TriggerReceived is called whenever a trigger is received from the p2p side
 func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes []byte) (bool, error) {
-	err := t.argumentParser.ParseData(string(data))
-	if err != nil {
-		return false, nil
-	}
-
-	receivedFunction, err := t.argumentParser.GetFunction()
+	receivedFunction, arguments, err := t.argumentParser.ParseCallData(string(data))
 	if err != nil {
 		return false, nil
 	}
@@ -278,11 +273,6 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 
 	if !bytes.Equal(pkBytes, t.triggerPubKey) {
 		return true, update.ErrTriggerPubKeyMismatch
-	}
-
-	arguments, err := t.argumentParser.GetFunctionArguments()
-	if err != nil {
-		return true, err
 	}
 
 	if len(arguments) != 2 {

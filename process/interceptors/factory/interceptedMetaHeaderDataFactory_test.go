@@ -69,6 +69,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		ArgsParser:              &mock.ArgumentParserMock{},
 	}
 }
 
