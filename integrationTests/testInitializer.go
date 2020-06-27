@@ -129,6 +129,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		initialAddresses = append(initialAddresses, initialAddr)
 	}
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     createP2PConfig(initialAddresses),
 	}
@@ -150,6 +151,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, randezVous strin
 	p2pConfig := createP2PConfig(initialAddresses)
 	p2pConfig.KadDhtPeerDiscovery.RandezVous = randezVous
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -165,6 +167,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, randezVous strin
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -193,6 +196,7 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	}
 
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}

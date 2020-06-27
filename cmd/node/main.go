@@ -782,7 +782,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
 
 	log.Trace("creating network components")
-	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
+	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(
+		*p2pConfig,
+		*generalConfig,
+		coreComponents.StatusHandler,
+		coreComponents.InternalMarshalizer,
+	)
 	if err != nil {
 		return err
 	}

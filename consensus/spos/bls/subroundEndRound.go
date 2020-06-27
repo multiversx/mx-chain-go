@@ -416,7 +416,9 @@ func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) err
 		return err
 	}
 
-	return sr.BroadcastMessenger().PrepareBroadcastHeaderValidator(header, miniBlocks, transactions, idx)
+	go sr.BroadcastMessenger().PrepareBroadcastHeaderValidator(header, miniBlocks, transactions, idx)
+
+	return nil
 }
 
 func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {

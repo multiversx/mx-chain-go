@@ -3,6 +3,7 @@ package blackList
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -138,4 +139,24 @@ func TestPeerDenialEvaluator_IsDeniedShouldWorkIfFoundInPk(t *testing.T) {
 	)
 
 	assert.True(t, pdc.IsDenied(""))
+}
+
+func TestPeerDenialEvaluator_UpsertPeerID(t *testing.T) {
+	t.Parallel()
+
+	upsertCalled := false
+	pdc, _ := NewPeerDenialEvaluator(
+		&mock.PeerBlackListHandlerStub{
+			UpsertCalled: func(pid core.PeerID, span time.Duration) error {
+				upsertCalled = true
+				return nil
+			},
+		},
+		&mock.TimeCacheStub{},
+		&mock.PeerShardMapperStub{},
+	)
+
+	err := pdc.UpsertPeerID("", time.Second)
+	assert.Nil(t, err)
+	assert.True(t, upsertCalled)
 }
