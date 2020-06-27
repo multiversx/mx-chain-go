@@ -1,0 +1,8 @@
+# The main marshalizer, used in internodes communication
+# Type identifies the marshalizer
+# SizeCheckDelta the maximum allow drift between the input data buffer and
+#     the reencoded version (in percents).
+#     0 disables the feature.
+[Marshalizer]
+   Type = "gogo protobuf"
+   SizeCheckDelta = 10

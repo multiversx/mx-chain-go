@@ -502,11 +502,6 @@
         MessagesMarshalizer = "json"
         MaxLoopTime = 1000
 
-[P2PMessageIDAdditionalCache]
-    Capacity = 100000
-    Type = "FIFOSharded"
-    Shards = 100
-
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true

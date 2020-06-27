@@ -175,14 +175,16 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 	_ map[uint32][]byte,
 	_ map[string][][]byte,
 	idx int,
-) error {
+) {
 	if check.IfNil(header) {
-		return spos.ErrNilHeader
+		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", spos.ErrNilHeader)
+		return
 	}
 
 	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
 	if err != nil {
-		return err
+		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+		return
 	}
 
 	vData := &validatorHeaderBroadcastData{
@@ -191,7 +193,10 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 		order:      uint32(idx),
 	}
 
-	return scm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
+	err = scm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
+	if err != nil {
+		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+	}
 }
 
 // PrepareBroadcastBlockDataValidator prepares the validator block data broadcast in case leader broadcast fails
