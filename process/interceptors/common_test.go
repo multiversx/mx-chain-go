@@ -2,9 +2,7 @@ package interceptors
 
 import (
 	"errors"
-	"sync"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -132,29 +130,15 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 		},
 	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	chDone := make(chan struct{})
-	go func() {
-		wg.Wait()
-		chDone <- struct{}{}
-	}()
-
 	processInterceptedData(
 		processor,
 		&mock.InterceptedDebugHandlerStub{},
 		&mock.InterceptedDataStub{},
 		"topic",
-		wg,
 		&mock.P2PMessageMock{},
 	)
 
-	select {
-	case <-chDone:
-		assert.False(t, processCalled)
-	case <-time.After(time.Second):
-		assert.Fail(t, "timeout while waiting for wait group object to be finished")
-	}
+	assert.False(t, processCalled)
 }
 
 func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T) {
@@ -171,29 +155,15 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 		},
 	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	chDone := make(chan struct{})
-	go func() {
-		wg.Wait()
-		chDone <- struct{}{}
-	}()
-
 	processInterceptedData(
 		processor,
 		&mock.InterceptedDebugHandlerStub{},
 		&mock.InterceptedDataStub{},
 		"topic",
-		wg,
 		&mock.P2PMessageMock{},
 	)
 
-	select {
-	case <-chDone:
-		assert.True(t, processCalled)
-	case <-time.After(time.Second):
-		assert.Fail(t, "timeout while waiting for wait group object to be finished")
-	}
+	assert.True(t, processCalled)
 }
 
 func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
@@ -210,29 +180,15 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 		},
 	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	chDone := make(chan struct{})
-	go func() {
-		wg.Wait()
-		chDone <- struct{}{}
-	}()
-
 	processInterceptedData(
 		processor,
 		&mock.InterceptedDebugHandlerStub{},
 		&mock.InterceptedDataStub{},
 		"topic",
-		wg,
 		&mock.P2PMessageMock{},
 	)
 
-	select {
-	case <-chDone:
-		assert.True(t, processCalled)
-	case <-time.After(time.Second):
-		assert.Fail(t, "timeout while waiting for wait group object to be finished")
-	}
+	assert.True(t, processCalled)
 }
 
 //------- debug
