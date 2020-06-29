@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
+
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -275,7 +277,7 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 	err := adb.RemoveAccount(adr)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
-	assert.Equal(t, 1, adb.JournalLen())
+	assert.Equal(t, 2, adb.JournalLen())
 }
 
 //------- LoadAccount
@@ -1009,9 +1011,6 @@ func TestAccountsDB_saveCode_OldCodeAndNewCodeAreNil(t *testing.T) {
 	err := adb.SaveAccount(userAcc)
 	assert.Nil(t, err)
 	assert.Nil(t, userAcc.GetCodeHash())
-
-	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 0, len(adb.GetNewCodeMap()))
 }
 
 func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.T) {
@@ -1035,18 +1034,12 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.
 
 	checkCodeEntry(userAcc.GetCodeHash(), code, 1, marshalizer, tr, t)
 
-	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
-
 	err = adb.RevertToSnapshot(1)
 	assert.Nil(t, err)
 
 	val, err := tr.Get(expectedCodeHash)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
-
-	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 0, len(adb.GetNewCodeMap()))
 }
 
 func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeAlreadyExistsAndRevert(t *testing.T) {
@@ -1079,16 +1072,10 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeAlreadyExistsAndRevert(t *tes
 
 	checkCodeEntry(userAcc.GetCodeHash(), code, 2, marshalizer, tr, t)
 
-	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
-
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
 	checkCodeEntry(expectedCodeHash, code, 1, marshalizer, tr, t)
-
-	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
 }
 
 func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeIsNilAndRevert(t *testing.T) {
@@ -1121,16 +1108,10 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeIsNilAndRevert(t *testing.T)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 
-	assert.Equal(t, 1, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
-
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
 	checkCodeEntry(oldCodeHash, code, 1, marshalizer, tr, t)
-
-	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
 }
 
 func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T) {
@@ -1157,9 +1138,6 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T
 	newCodeHash := hsh.Compute(string(newCode))
 	_ = adb.SaveAccount(userAcc)
 
-	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 2, len(adb.GetNewCodeMap()))
-
 	journalLen := adb.JournalLen()
 
 	acc, _ = adb.LoadAccount(addr)
@@ -1175,17 +1153,11 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T
 
 	checkCodeEntry(newCodeHash, newCode, 2, marshalizer, tr, t)
 
-	assert.Equal(t, 1, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 2, len(adb.GetNewCodeMap()))
-
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
 	checkCodeEntry(oldCodeHash, oldCode, 1, marshalizer, tr, t)
 	checkCodeEntry(newCodeHash, newCode, 1, marshalizer, tr, t)
-
-	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 2, len(adb.GetNewCodeMap()))
 }
 
 func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndRevert(t *testing.T) {
@@ -1211,9 +1183,6 @@ func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndR
 	userAcc.SetCode(code)
 	_ = adb.SaveAccount(userAcc)
 
-	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
-
 	journalLen := adb.JournalLen()
 
 	acc, _ = adb.LoadAccount(addr1)
@@ -1225,16 +1194,10 @@ func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndR
 
 	checkCodeEntry(oldCodeHash, code, 1, marshalizer, tr, t)
 
-	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
-
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
 
 	checkCodeEntry(oldCodeHash, code, 2, marshalizer, tr, t)
-
-	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
-	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
 }
 
 func TestAccountsDB_RemoveAccountAlsoRemovesCodeAndRevertsCorrectly(t *testing.T) {
@@ -1271,4 +1234,40 @@ func TestAccountsDB_RemoveAccountAlsoRemovesCodeAndRevertsCorrectly(t *testing.T
 	val, err = tr.Get(oldCodeHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
+}
+
+func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	db := mock.NewMemDbMock()
+	ewl, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hsh, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator())
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+
+	code := []byte("code")
+	userAcc.SetCode(code)
+	_ = adb.SaveAccount(userAcc)
+	rootHash, _ := adb.Commit()
+
+	rootHash1 := append(rootHash, byte(data.NewRoot))
+	hashesForEviction := ewl.Cache[string(rootHash1)]
+	assert.Equal(t, 3, len(hashesForEviction))
+
+	acc, _ = adb.LoadAccount(addr)
+	userAcc = acc.(state.UserAccountHandler)
+	userAcc.SetCode(nil)
+	_ = adb.SaveAccount(userAcc)
+	_, _ = adb.Commit()
+
+	rootHash2 := append(rootHash, byte(data.OldRoot))
+	hashesForEviction = ewl.Cache[string(rootHash2)]
+	assert.Equal(t, 3, len(hashesForEviction))
 }

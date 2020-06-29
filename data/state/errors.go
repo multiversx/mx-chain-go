@@ -109,9 +109,3 @@ var ErrInvalidErdAddress = errors.New("invalid ERD address")
 
 // ErrInvalidPubkeyConverterType signals that the provided pubkey converter type is invalid
 var ErrInvalidPubkeyConverterType = errors.New("invalid pubkey converter type")
-
-// ErrNilNewCodeMap signals that the provided map is nil
-var ErrNilNewCodeMap = errors.New("nil newCode map")
-
-// ErrNilCodeForEvictionMap signals that the provided map is nil
-var ErrNilCodeForEvictionMap = errors.New("nil codeForEviction map")
