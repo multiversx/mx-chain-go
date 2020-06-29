@@ -379,11 +379,37 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 	}
 	adb.journalize(entry)
 
+	err = adb.removeCode(acnt)
+	if err != nil {
+		return err
+	}
+
 	log.Trace("accountsDB.RemoveAccount",
 		"address", hex.EncodeToString(address),
 	)
 
 	return adb.mainTrie.Update(address, make([]byte, 0))
+}
+
+func (adb *AccountsDB) removeCode(acnt AccountHandler) error {
+	baseAcc, ok := acnt.(baseAccountHandler)
+	if !ok {
+		return nil
+	}
+
+	oldCodeHash := baseAcc.GetCodeHash()
+	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
+	if err != nil {
+		return err
+	}
+
+	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.codeForEviction, adb.newCode, adb.mainTrie, adb.marshalizer)
+	if err != nil {
+		return err
+	}
+	adb.journalize(codeChangeEntry)
+
+	return nil
 }
 
 // LoadAccount fetches the account based on the address. Creates an empty account if the account is missing.

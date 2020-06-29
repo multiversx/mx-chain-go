@@ -1236,3 +1236,39 @@ func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndR
 	assert.Equal(t, 0, len(adb.GetCodeForEvictionMap()))
 	assert.Equal(t, 1, len(adb.GetNewCodeMap()))
 }
+
+func TestAccountsDB_RemoveAccountAlsoRemovesCodeAndRevertsCorrectly(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+
+	code := []byte("code")
+	userAcc.SetCode(code)
+	oldCodeHash := hsh.Compute(string(code))
+	_ = adb.SaveAccount(userAcc)
+
+	snapshot := adb.JournalLen()
+
+	val, err := tr.Get(oldCodeHash)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+
+	err = adb.RemoveAccount(addr)
+	assert.Nil(t, err)
+
+	val, err = tr.Get(oldCodeHash)
+	assert.Nil(t, err)
+	assert.Nil(t, val)
+
+	_ = adb.RevertToSnapshot(snapshot)
+
+	val, err = tr.Get(oldCodeHash)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+}
