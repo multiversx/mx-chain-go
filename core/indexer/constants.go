@@ -2,7 +2,7 @@ package indexer
 
 const txsBulkSizeThreshold = 900000 // 0.9MB
 
-const maxNumberOfDocumentsGet = 1000
+const maxNumberOfDocumentsGet = 5000
 const txIndex = "transactions"
 const blockIndex = "blocks"
 const miniblocksIndex = "miniblocks"
