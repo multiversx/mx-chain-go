@@ -27,7 +27,6 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
 
-const executeDurationDebugThreshold = float64(0.030)
 const executeDurationWarnThreshold = float64(0.100)
 
 var zero = big.NewInt(0)
@@ -167,31 +166,19 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return 0, process.ErrNilTransaction
 	}
 
-	sw := sc.monitorBeginExecuteSmartContractTransaction()
-	returnCode, err := sc.doExecuteSmartContractTransaction(tx, acntSnd, acntDst)
-	sc.monitorEndExecuteSmartContractTransaction(sw, tx, returnCode, err)
-	return returnCode, err
-}
-
-func (sc *scProcessor) monitorBeginExecuteSmartContractTransaction() *core.StopWatch {
 	sw := core.NewStopWatch()
 	sw.Start("execute")
-	return sw
-}
-
-func (sc *scProcessor) monitorEndExecuteSmartContractTransaction(sw *core.StopWatch, tx data.TransactionHandler, returnCode vmcommon.ReturnCode, err error) {
+	returnCode, err := sc.doExecuteSmartContractTransaction(tx, acntSnd, acntDst)
 	sw.Stop("execute")
 	duration := sw.GetMeasurement("execute")
 
 	logFunc := log.Trace
-	if duration > executeDurationDebugThreshold {
-		logFunc = log.Debug
-	}
 	if duration > executeDurationWarnThreshold {
 		logFunc = log.Warn
 	}
 
 	logFunc("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()), "duration", duration, "returnCode", returnCode, "err", err)
+	return returnCode, err
 }
 
 func (sc *scProcessor) doExecuteSmartContractTransaction(
