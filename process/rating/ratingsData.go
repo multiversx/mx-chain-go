@@ -68,7 +68,7 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		roundTimeMilis:                  args.RoundDurationMiliseconds,
 		startRating:                     ratingsConfig.General.StartRating,
 		maxRating:                       ratingsConfig.General.MaxRating,
-		hoursToMaxRatingFromStartRating: ratingsConfig.General.HoursToMaxRatingFromStartRating,
+		hoursToMaxRatingFromStartRating: ratingsConfig.ShardChain.HoursToMaxRatingFromStartRating,
 		proposerDecreaseFactor:          ratingsConfig.ShardChain.ProposerDecreaseFactor,
 		validatorDecreaseFactor:         ratingsConfig.ShardChain.ValidatorDecreaseFactor,
 		consecutiveMissedBlocksPenalty:  ratingsConfig.ShardChain.ConsecutiveMissedBlocksPenalty,
@@ -85,7 +85,7 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		roundTimeMilis:                  args.RoundDurationMiliseconds,
 		startRating:                     ratingsConfig.General.StartRating,
 		maxRating:                       ratingsConfig.General.MaxRating,
-		hoursToMaxRatingFromStartRating: ratingsConfig.General.HoursToMaxRatingFromStartRating,
+		hoursToMaxRatingFromStartRating: ratingsConfig.MetaChain.HoursToMaxRatingFromStartRating,
 		proposerDecreaseFactor:          ratingsConfig.MetaChain.ProposerDecreaseFactor,
 		validatorDecreaseFactor:         ratingsConfig.MetaChain.ValidatorDecreaseFactor,
 		consecutiveMissedBlocksPenalty:  ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty,
@@ -129,8 +129,13 @@ func verifyRatingsConfig(settings config.RatingsConfig) error {
 			process.ErrSignedBlocksThresholdNotBetweenZeroAndOne,
 			settings.General.SignedBlocksThreshold)
 	}
-	if settings.General.HoursToMaxRatingFromStartRating == 0 {
-		return process.ErrHoursToMaxRatingFromStartRatingZero
+	if settings.ShardChain.HoursToMaxRatingFromStartRating == 0 {
+		return fmt.Errorf("%w hoursToMaxRatingFromStartRating: shardChain",
+			process.ErrHoursToMaxRatingFromStartRatingZero)
+	}
+	if settings.MetaChain.HoursToMaxRatingFromStartRating == 0 {
+		return fmt.Errorf("%w hoursToMaxRatingFromStartRating: metachain",
+			process.ErrHoursToMaxRatingFromStartRatingZero)
 	}
 	if settings.MetaChain.ConsecutiveMissedBlocksPenalty < 1 {
 		return fmt.Errorf("%w: metaChain consecutiveMissedBlocksPenalty: %v",
