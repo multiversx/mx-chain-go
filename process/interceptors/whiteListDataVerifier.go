@@ -2,7 +2,6 @@ package interceptors
 
 import (
 	"fmt"
-	"runtime/debug"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -50,7 +49,6 @@ func (w *whiteListDataVerifier) Add(keys [][]byte) {
 			log.Warn("whitelist add", "error", "key too large",
 				"len", len(key),
 			)
-			debug.PrintStack()
 		}
 
 		_ = w.cache.Put(key, struct{}{}, 0)

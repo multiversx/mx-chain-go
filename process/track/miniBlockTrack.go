@@ -73,8 +73,7 @@ func (mbt *miniBlockTrack) receivedMiniBlock(key []byte, value interface{}) {
 		return
 	}
 
-	//TODO - revert here to Trace
-	log.Debug("miniBlockTrack.receivedMiniBlock",
+	log.Trace("miniBlockTrack.receivedMiniBlock",
 		"hash", key,
 		"sender", miniBlock.SenderShardID,
 		"receiver", miniBlock.ReceiverShardID,
@@ -85,12 +84,13 @@ func (mbt *miniBlockTrack) receivedMiniBlock(key []byte, value interface{}) {
 		return
 	}
 
-	mbt.whitelistHandler.Add(miniBlock.TxHashes)
-
+	// TODO - stop reusing miniBlock.TxHashes for peer changes, add new fields
 	transactionPool := mbt.getTransactionPool(miniBlock.Type)
-	if transactionPool == nil {
+	if check.IfNil(transactionPool) {
 		return
 	}
+
+	mbt.whitelistHandler.Add(miniBlock.TxHashes)
 
 	strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 	transactionPool.ImmunizeSetOfDataAgainstEviction(miniBlock.TxHashes, strCache)
