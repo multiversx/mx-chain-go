@@ -307,9 +307,11 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
-	err = sr.setHeaderForValidator(header)
-	if err != nil {
-		log.Warn("doEndRoundJobByParticipant", "error", err.Error())
+	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+		err = sr.setHeaderForValidator(header)
+		if err != nil {
+			log.Warn("doEndRoundJobByParticipant", "error", err.Error())
+		}
 	}
 
 	sr.displayStatistics()
@@ -407,8 +409,7 @@ func (sr *subroundEndRound) broadcastBlockDataLeader() error {
 func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) error {
 	idx, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Trace("setHeaderForValidator", "error", err.Error())
-		return nil
+		return err
 	}
 
 	// todo: avoid calling MarshalizeDataToBroadcast twice for validators
@@ -433,7 +434,9 @@ func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {
 		return err
 	}
 
-	return sr.BroadcastMessenger().PrepareBroadcastBlockDataValidator(sr.Header, miniBlocks, transactions, idx)
+	go sr.BroadcastMessenger().PrepareBroadcastBlockDataValidator(sr.Header, miniBlocks, transactions, idx)
+
+	return nil
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved

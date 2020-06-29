@@ -1828,17 +1828,39 @@ func (sp *shardProcessor) getBootstrapHeadersInfo(
 	selfNotarizedHeadersHashes [][]byte,
 ) []bootstrapStorage.BootstrapHeaderInfo {
 
-	if len(selfNotarizedHeaders) == 0 {
+	numSelfNotarizedHeaders := len(selfNotarizedHeaders)
+
+	highestNonceInSelfNotarizedHeaders := uint64(0)
+	if numSelfNotarizedHeaders > 0 {
+		highestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[numSelfNotarizedHeaders-1].GetNonce()
+	}
+
+	isFinalNonceHigherThanSelfNotarized := sp.forkDetector.GetHighestFinalBlockNonce() > highestNonceInSelfNotarizedHeaders
+	if isFinalNonceHigherThanSelfNotarized {
+		numSelfNotarizedHeaders++
+	}
+
+	if numSelfNotarizedHeaders == 0 {
 		return nil
 	}
 
-	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
+	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, numSelfNotarizedHeaders)
 
 	for index := range selfNotarizedHeaders {
 		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
 			ShardId: selfNotarizedHeaders[index].GetShardID(),
 			Nonce:   selfNotarizedHeaders[index].GetNonce(),
 			Hash:    selfNotarizedHeadersHashes[index],
+		}
+
+		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
+	}
+
+	if isFinalNonceHigherThanSelfNotarized {
+		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: sp.shardCoordinator.SelfId(),
+			Nonce:   sp.forkDetector.GetHighestFinalBlockNonce(),
+			Hash:    sp.forkDetector.GetHighestFinalBlockHash(),
 		}
 
 		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
