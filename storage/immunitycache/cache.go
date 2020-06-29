@@ -13,6 +13,7 @@ var _ storage.Cacher = (*ImmunityCache)(nil)
 var log = logger.GetOrCreate("storage/immunitycache")
 
 const hospitalityWarnThreshold = -10000
+const hospitalityUpperLimit = 10000
 
 // ImmunityCache is a cache-like structure
 type ImmunityCache struct {
@@ -55,6 +56,12 @@ func (ic *ImmunityCache) initializeChunksWithLock() {
 
 // ImmunizeKeys marks items as immune to eviction
 func (ic *ImmunityCache) ImmunizeKeys(keys [][]byte) (numNowTotal, numFutureTotal int) {
+	immuneItemsCapacityReached := ic.CountImmune()+len(keys) > int(ic.config.MaxNumItems)
+	if immuneItemsCapacityReached {
+		log.Warn("ImmunityCache.ImmunizeKeys(): will not immunize", "err", storage.ErrImmuneItemsCapacityReached)
+		return
+	}
+
 	groups := ic.groupKeysByChunk(keys)
 
 	for chunkIndex, chunkKeys := range groups {
@@ -261,15 +268,8 @@ func (ic *ImmunityCache) Diagnose(_ bool) {
 	numBytes := ic.NumBytes()
 	hospitality := ic.hospitality.Get()
 
-	log.Debug("ImmunityCache.Diagnose()",
-		"name", ic.config.Name,
-		"count", count,
-		"countImmune", countImmune,
-		"numBytes", numBytes,
-		"hospitality", hospitality,
-	)
-
-	if hospitality <= hospitalityWarnThreshold {
+	isNotHospitable := hospitality <= hospitalityWarnThreshold
+	if isNotHospitable {
 		// After emitting a Warn, we reset the hospitality indicator
 		log.Warn("ImmunityCache.Diagnose(): cache is not hospitable",
 			"name", ic.config.Name,
@@ -279,7 +279,20 @@ func (ic *ImmunityCache) Diagnose(_ bool) {
 			"hospitality", hospitality,
 		)
 		ic.hospitality.Reset()
+		return
 	}
+
+	if hospitality >= hospitalityUpperLimit {
+		ic.hospitality.Set(hospitalityUpperLimit)
+	}
+
+	log.Debug("ImmunityCache.Diagnose()",
+		"name", ic.config.Name,
+		"count", count,
+		"countImmune", countImmune,
+		"numBytes", numBytes,
+		"hospitality", hospitality,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
