@@ -49,6 +49,7 @@ func (w *whiteListDataVerifier) Add(keys [][]byte) {
 			log.Warn("whitelist add", "error", "key too large",
 				"len", len(key),
 			)
+			continue
 		}
 
 		_ = w.cache.Put(key, struct{}{}, 0)
