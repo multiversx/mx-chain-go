@@ -826,6 +826,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.shardCoordinator,
 		n.feeHandler,
 		n.whiteListerVerifiedTxs,
+		n.chainID,
 	)
 	if err != nil {
 		return err
@@ -892,8 +893,11 @@ func (n *Node) CreateTransaction(
 	gasLimit uint64,
 	dataField string,
 	signatureHex string,
+	chainID string,
 ) (*transaction.Transaction, []byte, error) {
-
+	if chainID == "" {
+		return nil, nil, ErrInvalidChainID
+	}
 	if check.IfNil(n.addressPubkeyConverter) {
 		return nil, nil, ErrNilPubkeyConverter
 	}
@@ -930,6 +934,7 @@ func (n *Node) CreateTransaction(
 		GasLimit:  gasLimit,
 		Data:      []byte(dataField),
 		Signature: signatureBytes,
+		ChainID:   []byte(chainID),
 	}
 
 	var txHash []byte

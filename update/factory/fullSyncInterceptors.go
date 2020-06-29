@@ -79,6 +79,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	InterceptorsContainer   process.InterceptorsContainer
 	AntifloodHandler        process.P2PAntifloodHandler
 	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	ChainID                 []byte
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -165,6 +166,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		EpochStartTrigger:       args.EpochStartTrigger,
 		NonceConverter:          args.NonceConverter,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		ChainID:                 args.ChainID,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{

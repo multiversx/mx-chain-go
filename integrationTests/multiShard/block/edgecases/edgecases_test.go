@@ -240,6 +240,7 @@ func generateAndSendTxs(
 			big.NewInt(0).SetUint64(transferValue),
 			integrationTests.MinTxGasPrice,
 			integrationTests.MinTxGasLimit,
+			integrationTests.ChainID,
 		)
 
 		txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)

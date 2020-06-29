@@ -86,6 +86,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		valToTransferPerTx,
 		integrationTests.MinTxGasPrice,
 		integrationTests.MinTxGasLimit,
+		integrationTests.ChainID,
 	)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
@@ -200,7 +201,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 		nonce++
 
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransactionWithGasLimit(node, sendValue, gasLimit, receiverAddress, []byte(""))
+			integrationTests.CreateAndSendTransactionWithGasLimit(node, sendValue, gasLimit, receiverAddress, []byte(""), integrationTests.ChainID)
 		}
 
 		time.Sleep(2 * time.Second)
@@ -280,7 +281,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 
 	for _, node := range nodes {
 		for j := uint64(0); j < nrTxsToSend; j++ {
-			integrationTests.CreateAndSendTransactionWithGasLimit(node, halfInitVal, minGasLimit, receiverAddress, []byte(""))
+			integrationTests.CreateAndSendTransactionWithGasLimit(node, halfInitVal, minGasLimit, receiverAddress, []byte(""), integrationTests.ChainID)
 		}
 	}
 

@@ -1959,6 +1959,7 @@ func createHardForkTrigger(
 		InputAntifloodHandler:    network.InputAntifloodHandler,
 		OutputAntifloodHandler:   network.OutputAntifloodHandler,
 		ValidityAttester:         process.BlockTracker,
+		ChainID:                  coreData.ChainID,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {

@@ -146,6 +146,7 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey, nonce uint6
 		GasPrice:  integrationTests.MinTxGasPrice,
 		GasLimit:  integrationTests.MinTxGasLimit,
 		Data:      []byte(""),
+		ChainID:   integrationTests.ChainID,
 		Signature: nil,
 	}
 	marshalizedTxBeforeSigning, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)

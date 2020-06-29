@@ -1068,6 +1068,7 @@ func GenerateAndDisseminateTxs(
 	valToTransfer *big.Int,
 	gasPrice uint64,
 	gasLimit uint64,
+	chainID []byte,
 ) {
 
 	for i := 0; i < len(senders); i++ {
@@ -1075,7 +1076,7 @@ func GenerateAndDisseminateTxs(
 		incrementalNonce := make([]uint64, len(senders))
 		for _, shardReceiversPublicKeys := range receiversPublicKeysMap {
 			receiverPubKey := shardReceiversPublicKeys[i]
-			tx := GenerateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit)
+			tx := GenerateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit, chainID)
 			_, _ = n.SendTransaction(tx)
 			incrementalNonce[i]++
 		}
@@ -1127,6 +1128,7 @@ func CreateAndSendTransaction(
 		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
 		GasLimit: MinTxGasLimit*1000 + uint64(len(txData)),
+		ChainID:  ChainID,
 	}
 
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
@@ -1146,6 +1148,7 @@ func CreateAndSendTransactionWithGasLimit(
 	gasLimit uint64,
 	rcvAddress []byte,
 	txData []byte,
+	chainID []byte,
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
@@ -1155,6 +1158,7 @@ func CreateAndSendTransactionWithGasLimit(
 		Data:     txData,
 		GasPrice: MinTxGasPrice,
 		GasLimit: gasLimit,
+		ChainID:  chainID,
 	}
 
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
@@ -1182,6 +1186,7 @@ func GenerateTransferTx(
 	valToTransfer *big.Int,
 	gasPrice uint64,
 	gasLimit uint64,
+	chainID []byte,
 ) *transaction.Transaction {
 
 	receiverPubKeyBytes, _ := receiverPublicKey.ToByteArray()
@@ -1193,6 +1198,7 @@ func GenerateTransferTx(
 		Data:     []byte(""),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
+		ChainID:  chainID,
 	}
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	signer := &ed25519SingleSig.Ed25519Signer{}
@@ -1214,6 +1220,7 @@ func generateTx(
 		GasPrice: args.gasPrice,
 		GasLimit: args.gasLimit,
 		Data:     []byte(args.data),
+		ChainID:  ChainID,
 	}
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
@@ -1365,6 +1372,7 @@ func CreateAndSendTransactions(
 			valueToTransfer,
 			gasPricePerTx,
 			gasLimitPerTx,
+			ChainID,
 		)
 	}
 
@@ -1572,6 +1580,7 @@ func generateValidTx(
 		big.NewInt(1),
 		"",
 		skSender,
+		ChainID,
 	)
 	assert.Nil(t, err)
 

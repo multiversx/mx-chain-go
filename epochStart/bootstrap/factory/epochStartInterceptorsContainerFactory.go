@@ -94,6 +94,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		AntifloodHandler:        antiFloodHandler,
 		NonceConverter:          args.NonceConverter,
+		ChainID:                 args.ChainID,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

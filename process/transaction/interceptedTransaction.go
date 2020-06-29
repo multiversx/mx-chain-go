@@ -36,6 +36,7 @@ type InterceptedTransaction struct {
 	isForCurrentShard      bool
 	feeHandler             process.FeeHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
+	chainID                []byte
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -50,6 +51,7 @@ func NewInterceptedTransaction(
 	coordinator sharding.Coordinator,
 	feeHandler process.FeeHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
+	chainID []byte,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -82,6 +84,9 @@ func NewInterceptedTransaction(
 	if check.IfNil(whiteListerVerifiedTxs) {
 		return nil, process.ErrNilWhiteListHandler
 	}
+	if len(chainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
 
 	tx, err := createTx(protoMarshalizer, txBuff)
 	if err != nil {
@@ -99,6 +104,7 @@ func NewInterceptedTransaction(
 		coordinator:            coordinator,
 		feeHandler:             feeHandler,
 		whiteListerVerifiedTxs: whiteListerVerifiedTxs,
+		chainID:                chainID,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -156,6 +162,9 @@ func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 
 // integrity checks for not nil fields and negative value
 func (inTx *InterceptedTransaction) integrity() error {
+	if inTx.tx.ChainID == nil || !bytes.Equal(inTx.tx.ChainID, inTx.chainID) {
+		return process.ErrInvalidChainID
+	}
 	if inTx.tx.Signature == nil {
 		return process.ErrNilSignature
 	}

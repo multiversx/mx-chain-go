@@ -76,6 +76,9 @@ func NewShardInterceptorsContainerFactory(
 	if check.IfNil(args.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
+	if len(args.ChainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		ProtoMarshalizer:        args.ProtoMarshalizer,
@@ -96,6 +99,7 @@ func NewShardInterceptorsContainerFactory(
 		EpochStartTrigger:       args.EpochStartTrigger,
 		NonceConverter:          args.NonceConverter,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		ChainID:                 args.ChainID,
 	}
 
 	container := containers.NewInterceptorsContainer()

@@ -64,7 +64,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, balanceValue)
 
-	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, transactionValue, uint64(txToSend), nodes[idxSender].OwnAccount.SkTxSign)
+	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, transactionValue, uint64(txToSend), nodes[idxSender].OwnAccount.SkTxSign, integrationTests.ChainID)
 
 	time.Sleep(time.Second * 10)
 
@@ -142,7 +142,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
 
-	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend), nodes[idxSender].OwnAccount.SkTxSign)
+	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend), nodes[idxSender].OwnAccount.SkTxSign, integrationTests.ChainID)
 
 	//display, can be removed
 	for i := 0; i < 10; i++ {
@@ -244,7 +244,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
 
-	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend), nodes[0].OwnAccount.SkTxSign)
+	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend), nodes[0].OwnAccount.SkTxSign, integrationTests.ChainID)
 
 	fmt.Println("Waiting for senders to fetch generated transactions...")
 	time.Sleep(time.Second * 10)

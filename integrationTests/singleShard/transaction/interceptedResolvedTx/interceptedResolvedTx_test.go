@@ -61,6 +61,7 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 		Data:     []byte(txData),
 		GasLimit: integrationTests.MinTxGasLimit + txDataCost,
 		GasPrice: integrationTests.MinTxGasPrice,
+		ChainID:  integrationTests.ChainID,
 	}
 
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)

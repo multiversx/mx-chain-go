@@ -689,6 +689,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			NonceConverter:          TestUint64Converter,
+			ChainID:                 tpn.ChainID,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -748,6 +749,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			NonceConverter:          TestUint64Converter,
+			ChainID:                 tpn.ChainID,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1343,6 +1345,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithChainID(tpn.ChainID),
 	)
 	log.LogIfError(err)
 
@@ -1374,6 +1377,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		tx.GasLimit,
 		string(tx.Data),
 		hex.EncodeToString(tx.Signature),
+		string(tx.ChainID),
 	)
 	if err != nil {
 		return "", err

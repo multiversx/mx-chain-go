@@ -183,7 +183,8 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	errorString := "send transaction error"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string) (t *tr.Transaction, i []byte, err error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string,
+		) (*tr.Transaction, []byte, error) {
 			return nil, nil, nil
 		},
 		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, err error) {
@@ -227,8 +228,8 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	hexTxHash := "deadbeef"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-			gasLimit uint64, data string, signatureHex string) (t *tr.Transaction, i []byte, err error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string,
+		) (*tr.Transaction, []byte, error) {
 			txHash, _ := hex.DecodeString(hexTxHash)
 			return nil, txHash, nil
 		},
@@ -306,8 +307,8 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	sendBulkTxsWasCalled := false
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-			gasLimit uint64, data string, signatureHex string) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string,
+		) (*tr.Transaction, []byte, error) {
 			createTxWasCalled = true
 			return &tr.Transaction{}, make([]byte, 0), nil
 		},
@@ -356,7 +357,8 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 	expectedGasLimit := uint64(37)
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string,
+		) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, nil, nil
 		},
 		ComputeTransactionGasLimitHandler: func(tx *tr.Transaction) (uint64, error) {

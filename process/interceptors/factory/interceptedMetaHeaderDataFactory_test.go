@@ -70,6 +70,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		NonceConverter:          mock.NewNonceHashConverterMock(),
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		ChainID:                 []byte("chainID"),
 	}
 }
 

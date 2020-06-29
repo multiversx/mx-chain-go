@@ -1324,7 +1324,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	fmt.Println("Generating transactions...")
-	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 1000, 1000)
+	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 1000, 1000, integrationTests.ChainID)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
 
@@ -1484,7 +1484,7 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
 
 	fmt.Println("Generating transactions...")
-	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 1000, 1000)
+	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 1000, 1000, integrationTests.ChainID)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
 

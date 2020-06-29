@@ -465,8 +465,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 
 	nodeCreateTxWasCalled := false
 	node := &mock.NodeStub{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string,
-			gasPrice uint64, gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error) {
+		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string, chainID string) (*transaction.Transaction, []byte, error) {
 			nodeCreateTxWasCalled = true
 			return nil, nil, nil
 		},
@@ -475,7 +474,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	_, _, _ = nf.CreateTransaction(0, "0", "0", "0", 0, 0, "0", "0")
+	_, _, _ = nf.CreateTransaction(0, "0", "0", "0", 0, 0, "0", "0", "chainID")
 
 	assert.True(t, nodeCreateTxWasCalled)
 }
