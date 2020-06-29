@@ -56,6 +56,12 @@ func (ic *ImmunityCache) initializeChunksWithLock() {
 
 // ImmunizeKeys marks items as immune to eviction
 func (ic *ImmunityCache) ImmunizeKeys(keys [][]byte) (numNowTotal, numFutureTotal int) {
+	immuneItemsCapacityReached := ic.CountImmune()+len(keys) > int(ic.config.MaxNumItems)
+	if immuneItemsCapacityReached {
+		log.Warn("ImmunityCache.ImmunizeKeys(): will not immunize", "err", storage.ErrImmuneItemsCapacityReached)
+		return
+	}
+
 	groups := ic.groupKeysByChunk(keys)
 
 	for chunkIndex, chunkKeys := range groups {

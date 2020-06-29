@@ -76,6 +76,20 @@ func TestImmunityCache_ImmunizeAgainstEviction(t *testing.T) {
 	require.Equal(t, 2, cache.CountImmune())
 }
 
+func TestImmunityCache_ImmunizeDoesNothingIfCapacityReached(t *testing.T) {
+	cache := newCacheToTest(1, 4, maxNumBytesUpperBound)
+
+	numNow, numFuture := cache.ImmunizeKeys(keysAsBytes([]string{"a", "b", "c", "d"}))
+	require.Equal(t, 0, numNow)
+	require.Equal(t, 4, numFuture)
+	require.Equal(t, 4, cache.CountImmune())
+
+	numNow, numFuture = cache.ImmunizeKeys(keysAsBytes([]string{"e", "f", "g", "h"}))
+	require.Equal(t, 0, numNow)
+	require.Equal(t, 0, numFuture)
+	require.Equal(t, 4, cache.CountImmune())
+}
+
 func TestImmunityCache_AddThenRemove(t *testing.T) {
 	cache := newCacheToTest(1, 8, maxNumBytesUpperBound)
 
