@@ -18,6 +18,11 @@ func (ntv *nilTxValidator) CheckTxValidity(_ process.TxValidatorHandler) error {
 	return nil
 }
 
+// CheckTxWhiteList is a nil implementation that will return nil
+func (ntv *nilTxValidator) CheckTxWhiteList(_ process.InterceptedData) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ntv *nilTxValidator) IsInterfaceNil() bool {
 	return ntv == nil

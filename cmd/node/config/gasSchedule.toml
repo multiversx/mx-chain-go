@@ -16,6 +16,11 @@
     UnJail              = 5000000
     ESDTIssue           = 50000000
     ESDTOperations      = 50000000
+    Proposal            = 5000000
+    Vote                = 500000
+    DelegateVote        = 1000000
+    RevokeVote          = 500000
+    CloseProposal       = 1000000
 
 [BaseOperationCost]
     StorePerByte      = 50000
@@ -25,7 +30,10 @@
     CompilePerByte    = 300
 
 [ElrondAPICost]
-    GetOwner           = 100
+    GetSCAddress       = 100
+    GetOwnerAddress    = 100
+    IsSmartContract    = 100
+    GetShardOfAddress  = 100
     GetExternalBalance = 7000
     GetBlockHash       = 1000
     TransferValue      = 150000

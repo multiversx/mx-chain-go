@@ -506,6 +506,75 @@ func TestMultiDataInterceptor_SetInterceptedDebugHandlerShouldWork(t *testing.T)
 	assert.True(t, debugger == mdi.InterceptedDebugHandler()) //pointer testing
 }
 
+func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteListed(t *testing.T) {
+	t.Parallel()
+
+	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
+
+	marshalizer := &mock.MarshalizerMock{}
+	checkCalledNum := int32(0)
+	processCalledNum := int32(0)
+	throttler := createMockThrottler()
+	interceptedData := &mock.InterceptedDataStub{
+		CheckValidityCalled: func() error {
+			return nil
+		},
+		IsForCurrentShardCalled: func() bool {
+			return false
+		},
+	}
+
+	whiteListHandler := &mock.WhiteListHandlerStub{
+		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+			return true
+		},
+	}
+	errOriginator := process.ErrOnlyValidatorsCanUseThisTopic
+	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
+		marshalizer,
+		&mock.InterceptedDataFactoryStub{
+			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
+				return interceptedData, nil
+			},
+		},
+		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
+		throttler,
+		&mock.P2PAntifloodHandlerStub{
+			IsOriginatorEligibleForTopicCalled: func(pid core.PeerID, topic string) error {
+				return errOriginator
+			},
+		},
+		whiteListHandler,
+	)
+
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
+	msg := &mock.P2PMessageMock{
+		DataField: dataField,
+	}
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+
+	time.Sleep(time.Second)
+
+	assert.Nil(t, err)
+	assert.Equal(t, int32(2), atomic.LoadInt32(&checkCalledNum))
+	assert.Equal(t, int32(2), atomic.LoadInt32(&processCalledNum))
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+
+	whiteListHandler.IsWhiteListedCalled = func(interceptedData process.InterceptedData) bool {
+		return false
+	}
+	err = mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	time.Sleep(time.Second)
+
+	assert.Equal(t, err, errOriginator)
+	assert.Equal(t, int32(2), atomic.LoadInt32(&checkCalledNum))
+	assert.Equal(t, int32(2), atomic.LoadInt32(&processCalledNum))
+	assert.Equal(t, int32(2), throttler.StartProcessingCount())
+	assert.Equal(t, int32(2), throttler.EndProcessingCount())
+}
+
 //------- IsInterfaceNil
 
 func TestMultiDataInterceptor_IsInterfaceNil(t *testing.T) {

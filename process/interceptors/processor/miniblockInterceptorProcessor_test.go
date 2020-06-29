@@ -1,7 +1,6 @@
 package processor_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -219,36 +218,6 @@ func TestMiniblockInterceptorProcessor_SaveMiniblocksWithReceiverInSameShardShou
 	err := mip.Save(inTxBlkBdy, "", "")
 
 	assert.Nil(t, err)
-}
-
-func TestMiniblockInterceptorProcessor_SaveMiniblocksMarshalizerFailShouldNotAdd(t *testing.T) {
-	t.Parallel()
-
-	currentShard := uint32(0)
-	miniblock := &block.MiniBlock{
-		TxHashes:        make([][]byte, 0),
-		ReceiverShardID: currentShard,
-		SenderShardID:   currentShard,
-		Type:            0,
-	}
-
-	errExpected := errors.New("expected error")
-	arg := createMockMiniblockArgument()
-	arg.Marshalizer = &mock.MarshalizerStub{
-		MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
-			return nil, errExpected
-		},
-	}
-	cacher := arg.MiniblockCache.(*testscommon.CacherStub)
-	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
-		assert.Fail(t, "hasOrAdd should have not been called")
-		return
-	}
-	tbip, _ := processor.NewMiniblockInterceptorProcessor(arg)
-	inTxBlkBdy := createInteceptedMiniblock(miniblock)
-
-	err := tbip.Save(inTxBlkBdy, "", "")
-	assert.Equal(t, errExpected, err)
 }
 
 func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeNotWhiteListedShouldNotAdd(t *testing.T) {

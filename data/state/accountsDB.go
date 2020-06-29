@@ -20,6 +20,9 @@ type AccountsDB struct {
 	marshalizer    marshal.Marshalizer
 	accountFactory AccountFactory
 
+	codeForEviction map[string]struct{}
+	newCode         map[string]struct{}
+
 	lastRootHash []byte
 	dataTries    TriesHolder
 	entries      []JournalEntry
@@ -49,13 +52,15 @@ func NewAccountsDB(
 	}
 
 	return &AccountsDB{
-		mainTrie:       trie,
-		hasher:         hasher,
-		marshalizer:    marshalizer,
-		accountFactory: accountFactory,
-		entries:        make([]JournalEntry, 0),
-		mutOp:          sync.RWMutex{},
-		dataTries:      NewDataTriesHolder(),
+		mainTrie:        trie,
+		hasher:          hasher,
+		marshalizer:     marshalizer,
+		accountFactory:  accountFactory,
+		entries:         make([]JournalEntry, 0),
+		mutOp:           sync.RWMutex{},
+		dataTries:       NewDataTriesHolder(),
+		codeForEviction: make(map[string]struct{}),
+		newCode:         make(map[string]struct{}),
 	}, nil
 }
 
@@ -88,62 +93,162 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 		adb.journalize(entry)
 	}
 
-	baseAcc, ok := account.(baseAccountHandler)
-	if ok {
-		err = adb.saveCode(baseAcc)
-		if err != nil {
-			return err
-		}
-
-		err = adb.saveDataTrie(baseAcc)
-		if err != nil {
-			return err
-		}
+	err = adb.saveCodeAndDataTrie(oldAccount, account)
+	if err != nil {
+		return err
 	}
 
 	return adb.saveAccountToTrie(account)
 }
 
-func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler) error {
-	// TODO: enable code pruning
+func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc AccountHandler) error {
+	baseNewAcc, newAccOk := newAcc.(baseAccountHandler)
+	baseOldAccount, _ := oldAcc.(baseAccountHandler)
 
-	code := accountHandler.GetCode()
-	if len(code) == 0 {
+	if !newAccOk {
 		return nil
 	}
 
-	codeHash := adb.hasher.Compute(string(code))
-	currentCodeHash := accountHandler.GetCodeHash()
-	noUpdateNeeded := bytes.Equal(codeHash, currentCodeHash)
-	if noUpdateNeeded {
-		return nil
-	}
-
-	codeFromTrie, err := adb.mainTrie.Get(codeHash)
+	err := adb.saveDataTrie(baseNewAcc)
 	if err != nil {
 		return err
 	}
 
-	isCodeInTrie := len(codeFromTrie) > 0
-	if isCodeInTrie {
-		accountHandler.SetCodeHash(codeHash)
+	return adb.saveCode(baseNewAcc, baseOldAccount)
+}
+
+func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
+	// TODO when state splitting is implemented, check how the code should be copied in different shards
+
+	var oldCodeHash []byte
+	if !check.IfNil(oldAcc) {
+		oldCodeHash = oldAcc.GetCodeHash()
+	}
+
+	newCode := newAcc.GetCode()
+	var newCodeHash []byte
+	if len(newCode) != 0 {
+		newCodeHash = adb.hasher.Compute(string(newCode))
+	}
+
+	if bytes.Equal(oldCodeHash, newCodeHash) {
+		newAcc.SetCodeHash(newCodeHash)
 		return nil
 	}
 
-	entry, err := NewJournalEntryCode(codeHash, adb.mainTrie)
+	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
 	if err != nil {
 		return err
 	}
 
+	err = adb.updateNewCodeEntry(newCodeHash, newCode)
+	if err != nil {
+		return err
+	}
+
+	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.codeForEviction, adb.newCode, adb.mainTrie, adb.marshalizer)
+	if err != nil {
+		return err
+	}
 	adb.journalize(entry)
 
-	log.Trace("accountsDB.saveCode(): mainTrie.Update()", "codeHash", codeHash, "codeLength", len(code))
-	err = adb.mainTrie.Update(codeHash, code)
+	newAcc.SetCodeHash(newCodeHash)
+	return nil
+}
+
+func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
+	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	if oldCodeEntry == nil {
+		return nil, nil
+	}
+
+	unmodifiedOldCodeEntry := &CodeEntry{
+		Code:          oldCodeEntry.Code,
+		NumReferences: oldCodeEntry.NumReferences,
+	}
+
+	if oldCodeEntry.NumReferences <= 1 {
+		err = adb.mainTrie.Update(oldCodeHash, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		adb.codeForEviction[string(oldCodeHash)] = struct{}{}
+		return unmodifiedOldCodeEntry, nil
+	}
+
+	oldCodeEntry.NumReferences--
+	err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	return unmodifiedOldCodeEntry, nil
+}
+
+func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) error {
+	if len(newCode) == 0 {
+		return nil
+	}
+
+	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshalizer)
 	if err != nil {
 		return err
 	}
 
-	accountHandler.SetCodeHash(codeHash)
+	if newCodeEntry == nil {
+		newCodeEntry = &CodeEntry{
+			Code: newCode,
+		}
+	}
+	newCodeEntry.NumReferences++
+
+	if newCodeEntry.NumReferences == 1 {
+		adb.newCode[string(newCodeHash)] = struct{}{}
+	}
+
+	err = saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
+	val, err := trie.Get(codeHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(val) == 0 {
+		return nil, nil
+	}
+
+	var codeEntry CodeEntry
+	err = marshalizer.Unmarshal(&codeEntry, val)
+	if err != nil {
+		return nil, err
+	}
+
+	return &codeEntry, nil
+}
+
+func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer marshal.Marshalizer) error {
+	codeEntry, err := marshalizer.Marshal(entry)
+	if err != nil {
+		return err
+	}
+
+	err = trie.Update(codeHash, codeEntry)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -388,7 +493,13 @@ func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 		return err
 	}
 
-	accountHandler.SetCode(val)
+	var codeEntry CodeEntry
+	err = adb.marshalizer.Unmarshal(&codeEntry, val)
+	if err != nil {
+		return err
+	}
+
+	accountHandler.SetCode(codeEntry.Code)
 	return nil
 }
 
@@ -486,6 +597,14 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		newHashes[hash] = struct{}{}
 	}
 
+	for hash := range adb.codeForEviction {
+		oldHashes = append(oldHashes, []byte(hash))
+	}
+
+	for hash := range adb.newCode {
+		newHashes[hash] = struct{}{}
+	}
+
 	//Step 2. commit main trie
 	adb.mainTrie.SetNewHashes(newHashes)
 	adb.mainTrie.AppendToOldHashes(oldHashes)
@@ -500,6 +619,8 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		return nil, err
 	}
 	adb.lastRootHash = root
+	adb.newCode = make(map[string]struct{})
+	adb.codeForEviction = make(map[string]struct{})
 
 	log.Trace("accountsDB.Commit ended", "root hash", root)
 
@@ -540,6 +661,8 @@ func (adb *AccountsDB) recreateTrie(rootHash []byte) error {
 		log.Trace("accountsDB.RecreateTrie ended")
 	}()
 
+	adb.newCode = make(map[string]struct{})
+	adb.codeForEviction = make(map[string]struct{})
 	adb.dataTries.Reset()
 	adb.entries = make([]JournalEntry, 0)
 	newTrie, err := adb.mainTrie.Recreate(rootHash)

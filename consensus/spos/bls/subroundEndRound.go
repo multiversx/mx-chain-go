@@ -407,7 +407,8 @@ func (sr *subroundEndRound) broadcastBlockDataLeader() error {
 func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) error {
 	idx, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		return err
+		log.Trace("setHeaderForValidator", "error", err.Error())
+		return nil
 	}
 
 	// todo: avoid calling MarshalizeDataToBroadcast twice for validators
@@ -416,7 +417,9 @@ func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) err
 		return err
 	}
 
-	return sr.BroadcastMessenger().PrepareBroadcastHeaderValidator(header, miniBlocks, transactions, idx)
+	go sr.BroadcastMessenger().PrepareBroadcastHeaderValidator(header, miniBlocks, transactions, idx)
+
+	return nil
 }
 
 func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {

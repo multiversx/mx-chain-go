@@ -418,6 +418,9 @@ const BuiltInFunctionSaveKeyValue = "SaveKeyValue"
 // BuiltInFunctionESDTTransfer is the key for the elrond standard digital token transfer built-in function
 const BuiltInFunctionESDTTransfer = "ESDTTransfer"
 
+// RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
+const RelayedTransaction = "relayedTx"
+
 // SCDeployInitFunctionName is the key for the function which is called at smart contract deploy time
 const SCDeployInitFunctionName = "_init"
 
@@ -440,9 +443,13 @@ const MaxSoftwareVersionLengthInBytes = 10
 // moment when its components, like mini blocks and transactions, would be broadcast too
 const ExtraDelayForBroadcastBlockInfo = 1 * time.Second
 
+// ExtraDelayBetweenBroadcastMbsAndTxs represents the number of seconds to wait since miniblocks have been broadcast
+// and the moment when theirs transactions would be broadcast too
+const ExtraDelayBetweenBroadcastMbsAndTxs = 1 * time.Second
+
 // ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
 // moment when its components, like mini blocks and transactions, would be requested too if they are still missing
-const ExtraDelayForRequestBlockInfo = 2 * time.Second
+const ExtraDelayForRequestBlockInfo = ExtraDelayForBroadcastBlockInfo + ExtraDelayBetweenBroadcastMbsAndTxs + time.Second
 
 // CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
 const CommitMaxTime = 3 * time.Second
@@ -457,6 +464,13 @@ const DefaultUnstakedEpoch = math.MaxUint32
 // does not follow the protocol: example not useing the same marshaler as the other peers
 const InvalidMessageBlacklistDuration = time.Second * 3600
 
+// MaxNumShards represents the maximum number of shards possible in the system
+const MaxNumShards = 256
+
 // PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
 // rating to a minimum threshold due to improper messages
 const PublicKeyBlacklistDuration = time.Second * 7200
+
+// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
+// do not follow this protocol
+const WrongP2PMessageBlacklistDuration = time.Second * 7200

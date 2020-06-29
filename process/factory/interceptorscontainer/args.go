@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -40,7 +39,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	WhiteListHandler        process.WhiteListHandler
 	WhiteListerVerifiedTxs  process.WhiteListHandler
 	AntifloodHandler        process.P2PAntifloodHandler
-	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	ArgumentsParser         process.ArgumentsParser
 }
 
 // MetaInterceptorsContainerFactoryArgs holds the arguments needed for MetaInterceptorsContainerFactory
@@ -71,5 +70,5 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	WhiteListHandler        process.WhiteListHandler
 	WhiteListerVerifiedTxs  process.WhiteListHandler
 	AntifloodHandler        process.P2PAntifloodHandler
-	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	ArgumentsParser         process.ArgumentsParser
 }

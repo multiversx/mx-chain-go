@@ -212,6 +212,9 @@ var ErrNotEnoughNumConnectedPeers = errors.New("not enough min num of connected 
 // ErrNotEnoughNumOfPeersToConsiderBlockValid signals that config is invalid for num of peer to consider block valid
 var ErrNotEnoughNumOfPeersToConsiderBlockValid = errors.New("not enough num of peers to consider block valid from config")
 
+// ErrNilArgumentsParser signals that nil arguments parser was provided
+var ErrNilArgumentsParser = errors.New("nil arguments parsers")
+
 // ErrNilImportStartHandler signals that a nil import start handler has been provided
 var ErrNilImportStartHandler = errors.New("nil import start handler")
 
