@@ -345,8 +345,8 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *te
 	time.Sleep(time.Second)
 
 	assert.Equal(t, errExpected, err)
-	assert.Equal(t, int32(1), atomic.LoadInt32(&checkCalledNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
+	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
+	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
@@ -361,7 +361,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShouldRetNilAndNotProcess(t *testing.T) {
 	t.Parallel()
 
-	testProcessReceiveMessageMultiData(t, false, nil, 0)
+	testProcessReceiveMessageMultiData(t, false, process.ErrInterceptedDataNotForCurrentShard, 0)
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *testing.T) {
