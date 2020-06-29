@@ -253,58 +253,52 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body *block.Body) error
 	}
 
 	separatedBodies := tc.separateBodyByType(body)
-
-	var errFound error
-	errMutex := sync.Mutex{}
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(separatedBodies) + len(tc.keysInterimProcs))
-
 	for key, value := range separatedBodies {
-		go func(blockType block.Type, blockBody *block.Body) {
-			preproc := tc.getPreProcessor(blockType)
-			if check.IfNil(preproc) {
-				wg.Done()
-				return
-			}
-
-			err := preproc.SaveTxBlockToStorage(blockBody)
-			if err != nil {
-				log.Trace("SaveTxBlockToStorage", "error", err.Error())
-
-				errMutex.Lock()
-				errFound = err
-				errMutex.Unlock()
-			}
-
-			wg.Done()
-		}(key, value)
+		err := tc.saveTxBlockToStorage(key, value)
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, blockType := range tc.keysInterimProcs {
-		go func(blockType block.Type) {
-			intermediateProc := tc.getInterimProcessor(blockType)
-			if check.IfNil(intermediateProc) {
-				wg.Done()
-				return
-			}
-
-			err := intermediateProc.SaveCurrentIntermediateTxToStorage()
-			if err != nil {
-				log.Trace("SaveCurrentIntermediateTxToStorage", "error", err.Error())
-
-				errMutex.Lock()
-				errFound = err
-				errMutex.Unlock()
-			}
-
-			wg.Done()
-		}(blockType)
+		err := tc.saveCurrentIntermediateTxToStorage(blockType)
+		if err != nil {
+			return err
+		}
 	}
 
-	wg.Wait()
+	return nil
+}
 
-	return errFound
+func (tc *transactionCoordinator) saveTxBlockToStorage(blockType block.Type, blockBody *block.Body) error {
+	preproc := tc.getPreProcessor(blockType)
+	if check.IfNil(preproc) {
+		return nil
+	}
+
+	err := preproc.SaveTxBlockToStorage(blockBody)
+	if err != nil {
+		log.Trace("SaveTxBlockToStorage", "error", err.Error())
+
+		return err
+	}
+
+	return nil
+}
+
+func (tc *transactionCoordinator) saveCurrentIntermediateTxToStorage(blockType block.Type) error {
+	intermediateProc := tc.getInterimProcessor(blockType)
+	if check.IfNil(intermediateProc) {
+		return nil
+	}
+
+	err := intermediateProc.SaveCurrentIntermediateTxToStorage()
+	if err != nil {
+		log.Trace("SaveCurrentIntermediateTxToStorage", "error", err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // RestoreBlockDataFromStorage restores block data from storage to pool
