@@ -1232,6 +1232,9 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 			//any error thrown here should not impact the execution
 			return fmt.Errorf("expected error")
 		},
+		IsDeniedCalled: func(pid core.PeerID) bool {
+			return false
+		},
 	})
 
 	numCalled := uint32(0)
