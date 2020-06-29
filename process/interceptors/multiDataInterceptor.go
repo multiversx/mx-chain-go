@@ -128,7 +128,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		isWhiteListed := mdi.whiteListRequest.IsWhiteListed(interceptedData)
 		if !isWhiteListed && errOriginator != nil {
 			mdi.throttler.EndProcessing()
-			log.Debug("got message from peer on topic only for validators", "originator",
+			log.Trace("got message from peer on topic only for validators", "originator",
 				p2p.PeerIdToShortString(message.Peer()),
 				"topic", mdi.topic,
 				"err", errOriginator)
@@ -147,7 +147,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 				"is white listed", isWhiteListed,
 			)
 			mdi.throttler.EndProcessing()
-			return nil
+			return process.ErrInterceptedDataNotForCurrentShard
 		}
 	}
 

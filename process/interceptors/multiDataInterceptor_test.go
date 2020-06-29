@@ -361,7 +361,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProce
 func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShouldRetNilAndNotProcess(t *testing.T) {
 	t.Parallel()
 
-	testProcessReceiveMessageMultiData(t, false, nil, 0)
+	testProcessReceiveMessageMultiData(t, false, process.ErrInterceptedDataNotForCurrentShard, 0)
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *testing.T) {
