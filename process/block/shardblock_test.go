@@ -4377,3 +4377,73 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
 	assert.Equal(t, nonceCalled, prevHeader.Nonce)
 }
+
+func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnNilWhenNoSelfNotarizedHeadersExists(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	bootstrapHeaderInfos := sp.GetBootstrapHeadersInfo(nil, nil)
+
+	assert.Nil(t, bootstrapHeaderInfos)
+}
+
+func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenFinalNonceIsNotHigherThanSelfNotarizedNonce(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 0
+		},
+	}
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	hash := []byte("hash1")
+	header := &block.Header{}
+
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
+	selfNotarizedHeadersHashes := make([][]byte, 0)
+
+	selfNotarizedHeaders = append(selfNotarizedHeaders, header)
+	selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, hash)
+
+	bootstrapHeaderInfos := sp.GetBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes)
+
+	require.Equal(t, 1, len(bootstrapHeaderInfos))
+	assert.Equal(t, hash, bootstrapHeaderInfos[0].Hash)
+}
+
+func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnTwoItemsWhenFinalNonceIsHigherThanSelfNotarizedNonce(t *testing.T) {
+	t.Parallel()
+
+	finalNonce := uint64(2)
+	finalHash := []byte("hash2")
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return finalNonce
+		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return finalHash
+		},
+	}
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	hash := []byte("hash1")
+	header := &block.Header{Nonce: 1}
+
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
+	selfNotarizedHeadersHashes := make([][]byte, 0)
+
+	selfNotarizedHeaders = append(selfNotarizedHeaders, header)
+	selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, hash)
+
+	bootstrapHeaderInfos := sp.GetBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes)
+
+	require.Equal(t, 2, len(bootstrapHeaderInfos))
+	assert.Equal(t, hash, bootstrapHeaderInfos[0].Hash)
+	assert.Equal(t, finalHash, bootstrapHeaderInfos[1].Hash)
+}
