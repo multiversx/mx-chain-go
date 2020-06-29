@@ -133,7 +133,7 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		createFreeTxFeeHandler(),
 		&mock.WhiteListHandlerStub{},
 		smartContract.NewArgumentParser(),
-		[]byte("chainID"),
+		tx.ChainID,
 	)
 }
 
@@ -976,7 +976,6 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 		SndAddr:   senderAddress,
 		Signature: sigOk,
 		ChainID:   chainID,
-
 	}
 	txi, _ := createInterceptedTxFromPlainTxWithArgParser(tx)
 	err := txi.CheckValidity()
@@ -999,13 +998,14 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 		GasLimit:  3,
 		GasPrice:  4,
 		Signature: sigOk,
+		ChainID:   chainID,
 	}
 	marshalizer := &mock.MarshalizerMock{}
 	userTxData, _ := marshalizer.Marshal(userTx)
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
-	assert.Equal(t, err, process.ErrNilValue)
+	assert.Equal(t, process.ErrNilValue, err)
 
 	userTx.Value = big.NewInt(0)
 	userTxData, _ = marshalizer.Marshal(userTx)
@@ -1019,7 +1019,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
-	assert.Equal(t, err, errSignerMockVerifySigFails)
+	assert.Equal(t, errSignerMockVerifySigFails, err)
 
 	userTx.Signature = sigOk
 	userTx.SndAddr = []byte("otherAddress")
@@ -1035,7 +1035,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
-	assert.Equal(t, err, process.ErrRecursiveRelayedTxIsNotAllowed)
+	assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
 }
 
 //------- IsInterfaceNil
