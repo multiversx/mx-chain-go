@@ -44,6 +44,11 @@ func (nah *NilAntifloodHandler) ApplyConsensusSize(_ int) {
 func (nah *NilAntifloodHandler) BlacklistPeer(_ core.PeerID, _ string, _ time.Duration) {
 }
 
+// IsOriginatorEligibleForTopic returns nil
+func (nah *NilAntifloodHandler) IsOriginatorEligibleForTopic(_ core.PeerID, _ string) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nah *NilAntifloodHandler) IsInterfaceNil() bool {
 	return nah == nil

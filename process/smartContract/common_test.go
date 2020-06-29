@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,6 +19,6 @@ func Test_parseVMTypeFromContractAddress(t *testing.T) {
 func Test_parseVMTypeFromContractAddress_WhenAddressTooShort(t *testing.T) {
 	scAddress, _ := hex.DecodeString("0003a1")
 	vmType, err := parseVMTypeFromContractAddress(scAddress)
-	require.Error(t, err, vmcommon.ErrInvalidVMType)
+	require.Error(t, err, process.ErrInvalidVMType)
 	require.Nil(t, vmType)
 }

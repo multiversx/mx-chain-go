@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,13 +57,13 @@ func TestTxExecutionProcessor_ExecuteTransaction(t *testing.T) {
 
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&mock.TxProcessorStub{
-			ProcessTransactionCalled: func(tx *transaction.Transaction) error {
+			ProcessTransactionCalled: func(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				if tx.Nonce == nonce && bytes.Equal(tx.SndAddr, sndAddr) && bytes.Equal(tx.RcvAddr, recvAddr) &&
 					value.Cmp(tx.Value) == 0 && bytes.Equal(tx.Data, data) {
-					return nil
+					return 0, nil
 				}
 
-				return errors.New("should not happened")
+				return 0, errors.New("should not happened")
 			},
 		},
 		&mock.AccountsStub{},

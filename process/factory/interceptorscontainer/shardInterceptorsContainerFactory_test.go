@@ -541,8 +541,8 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
-		NonceConverter:          mock.NewNonceHashConverterMock(),
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		ArgumentsParser:         &mock.ArgumentParserMock{},
 		ChainID:                 []byte("chainID"),
 	}
 }

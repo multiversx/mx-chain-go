@@ -52,7 +52,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -62,6 +61,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
+	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -78,7 +78,7 @@ import (
 	exportFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/denisbrodbeck/machineid"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
@@ -782,7 +782,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
 
 	log.Trace("creating network components")
-	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
+	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(
+		*p2pConfig,
+		*generalConfig,
+		coreComponents.StatusHandler,
+		coreComponents.InternalMarshalizer,
+	)
 	if err != nil {
 		return err
 	}
@@ -918,6 +923,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     addressPubkeyConverter,
 		LatestStorageDataProvider:  latestStorageDataProvider,
+		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              coreComponents.StatusHandler,
 		ImportStartHandler:         importStartHandler,
 	}
@@ -1245,12 +1251,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 
-	//TODO: This should be set with a real instance which implements PeerHonestyHandler interface
-	peerHonestyHandler := &mock.PeerHonestyHandlerStub{}
-
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		generalConfig,
+		ratingsConfig,
 		preferencesConfig,
 		genesisNodesConfig,
 		economicsData,
@@ -1275,7 +1279,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		hardForkTrigger,
-		peerHonestyHandler,
 	)
 	if err != nil {
 		return err
@@ -1966,7 +1969,7 @@ func createHardForkTrigger(
 		return nil, err
 	}
 
-	atArgumentParser := vmcommon.NewAtArgumentParser()
+	atArgumentParser := smartContract.NewArgumentParser()
 	argTrigger := trigger.ArgHardforkTrigger{
 		TriggerPubKeyBytes:        triggerPubKeyBytes,
 		SelfPubKeyBytes:           selfPubKeyBytes,
@@ -1990,6 +1993,7 @@ func createHardForkTrigger(
 
 func createNode(
 	config *config.Config,
+	ratingConfig config.RatingsConfig,
 	preferencesConfig *config.Preferences,
 	nodesConfig *sharding.NodesSetup,
 	economicsData process.FeeHandler,
@@ -2014,7 +2018,6 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
-	peerHonestyHandler consensus.PeerHonestyHandler,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2039,11 +2042,13 @@ func createNode(
 		nodesCoordinator,
 		shardCoordinator,
 		epochStartRegistrationHandler,
-		process.EpochStartTrigger.Epoch(),
+		process.EpochStartTrigger.MetaEpoch(),
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	factory.PrepareOpenTopics(network.InputAntifloodHandler, shardCoordinator)
 
 	apiTxsByHashThrottler, err := throttler.NewNumGoRoutinesThrottler(maxNumGoRoutinesTxsByHashApi)
 	if err != nil {
@@ -2066,6 +2071,11 @@ func createNode(
 	}
 
 	err = network.NetMessenger.SetPeerDenialEvaluator(peerDenialEvaluator)
+	if err != nil {
+		return nil, err
+	}
+
+	peerHonestyHandler, err := createPeerHonestyHandler(config, ratingConfig, network.PkTimeCache)
 	if err != nil {
 		return nil, err
 	}
@@ -2171,6 +2181,20 @@ func createNode(
 	}
 
 	return nd, nil
+}
+
+func createPeerHonestyHandler(
+	config *config.Config,
+	ratingConfig config.RatingsConfig,
+	pkTimeCache process.TimeCacher,
+) (consensus.PeerHonestyHandler, error) {
+
+	cache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(config.PeerHonesty))
+	if err != nil {
+		return nil, err
+	}
+
+	return peerHonesty.NewP2pPeerHonesty(ratingConfig.PeerHonesty, pkTimeCache, cache)
 }
 
 func initStatsFileMonitor(
@@ -2333,7 +2357,7 @@ func createApiResolver(
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {

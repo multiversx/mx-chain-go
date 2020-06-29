@@ -97,8 +97,8 @@ func NewMetaInterceptorsContainerFactory(
 		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
 		ValidityAttester:        args.ValidityAttester,
 		EpochStartTrigger:       args.EpochStartTrigger,
-		NonceConverter:          args.NonceConverter,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		ArgsParser:              args.ArgumentsParser,
 		ChainID:                 args.ChainID,
 	}
 

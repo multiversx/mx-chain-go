@@ -1,6 +1,8 @@
 package disabled
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
@@ -12,6 +14,11 @@ type NilPeerDenialEvaluator struct {
 // IsDenied outputs false (all peers are white listed)
 func (npde *NilPeerDenialEvaluator) IsDenied(_ core.PeerID) bool {
 	return false
+}
+
+// UpsertPeerID returns nil and does nothing
+func (npde *NilPeerDenialEvaluator) UpsertPeerID(_ core.PeerID, _ time.Duration) error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

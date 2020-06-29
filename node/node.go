@@ -43,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -815,6 +816,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
+	argumentParser := smartContract.NewArgumentParser()
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
 		n.internalMarshalizer,
@@ -826,6 +828,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.shardCoordinator,
 		n.feeHandler,
 		n.whiteListerVerifiedTxs,
+		argumentParser,
 		n.chainID,
 	)
 	if err != nil {

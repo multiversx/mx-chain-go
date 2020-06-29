@@ -37,6 +37,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -60,7 +61,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 const (
@@ -389,7 +390,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	txsPoolsCleaner.StartCleaning()
 
-	_, err = track.NewMiniBlockTrack(args.data.Datapool, args.shardCoordinator)
+	_, err = track.NewMiniBlockTrack(args.data.Datapool, args.shardCoordinator, args.whiteListHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -765,7 +766,7 @@ func newShardInterceptorContainerFactory(
 		WhiteListHandler:        whiteListHandler,
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
-		NonceConverter:          dataCore.Uint64ByteSliceConverter,
+		ArgumentsParser:         smartContract.NewArgumentParser(),
 		ChainID:                 dataCore.ChainID,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -821,7 +822,7 @@ func newMetaInterceptorContainerFactory(
 		WhiteListHandler:        whiteListHandler,
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
-		NonceConverter:          dataCore.Uint64ByteSliceConverter,
+		ArgumentsParser:         smartContract.NewArgumentParser(),
 		ChainID:                 dataCore.ChainID,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
@@ -1046,6 +1047,7 @@ func newBlockProcessor(
 			processArgs.maxSizeInBytes,
 			txLogsProcessor,
 			processArgs.version,
+			processArgs.smartContractParser,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1104,12 +1106,18 @@ func newShardBlockProcessor(
 	maxSizeInBytes uint32,
 	txLogsProcessor process.TransactionLogProcessor,
 	version string,
+	smartContractParser genesis.InitialSmartContractParser,
 ) (process.BlockProcessor, error) {
-	argsParser := vmcommon.NewAtArgumentParser()
+	argsParser := smartContract.NewArgumentParser()
+
+	mapDNSAddresses, err := smartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+	if err != nil {
+		return nil, err
+	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
+		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     core.InternalMarshalizer,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -1177,7 +1185,7 @@ func newShardBlockProcessor(
 		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -1237,6 +1245,8 @@ func newShardBlockProcessor(
 		economics,
 		receiptTxInterim,
 		badTxInterim,
+		argsParser,
+		scForwarder,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
@@ -1403,7 +1413,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsParser := vmcommon.NewAtArgumentParser()
+	argsParser := smartContract.NewArgumentParser()
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
@@ -1436,7 +1446,7 @@ func newMetaBlockProcessor(
 		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -1554,16 +1564,15 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:       stateComponents.ValidatorPubkeyConverter,
-		Hasher:           core.Hasher,
-		ProtoMarshalizer: core.InternalMarshalizer,
-		VmMarshalizer:    core.VmMarshalizer,
-		PeerState:        stateComponents.PeerAccounts,
-		BaseState:        stateComponents.AccountsAdapter,
-		ArgParser:        argsParser,
-		CurrTxs:          data.Datapool.CurrentBlockTxs(),
-		ScQuery:          scDataGetter,
-		RatingsData:      ratingsData,
+		PubkeyConv:  stateComponents.ValidatorPubkeyConverter,
+		Hasher:      core.Hasher,
+		Marshalizer: core.InternalMarshalizer,
+		PeerState:   stateComponents.PeerAccounts,
+		BaseState:   stateComponents.AccountsAdapter,
+		ArgParser:   argsParser,
+		CurrTxs:     data.Datapool.CurrentBlockTxs(),
+		ScQuery:     scDataGetter,
+		RatingsData: ratingsData,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
@@ -1727,17 +1736,34 @@ func newValidatorStatisticsProcessor(
 	return validatorStatisticsProcessor, nil
 }
 
-// PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger
+// PrepareOpenTopics will set to the anti flood handler the topics for which
+// the node can receive messages from others than validators
+func PrepareOpenTopics(
+	antiflood mainFactory.P2PAntifloodHandler,
+	shardCoordinator sharding.Coordinator,
+) {
+	selfID := shardCoordinator.SelfId()
+	if selfID == core.MetachainShardId {
+		antiflood.SetTopicsForAll(core.HeartbeatTopic)
+		return
+	}
+
+	selfShardTxTopic := factory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
+	antiflood.SetTopicsForAll(core.HeartbeatTopic, selfShardTxTopic)
+}
+
+// PrepareNetworkShardingCollector will create the network sharding collector and apply it to
+// the network messenger and antiflood handler
 func PrepareNetworkShardingCollector(
 	network *mainFactory.NetworkComponents,
 	config *config.Config,
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
-	epochShard uint32,
+	epochStart uint32,
 ) (*networksharding.PeerShardMapper, error) {
 
-	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochStartRegistrationHandler, epochShard)
+	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochStartRegistrationHandler, epochStart)
 	if err != nil {
 		return nil, err
 	}
@@ -1746,6 +1772,11 @@ func PrepareNetworkShardingCollector(
 	networkShardingCollector.UpdatePeerIdShardId(localID, coordinator.SelfId())
 
 	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector)
+	if err != nil {
+		return nil, err
+	}
+
+	err = network.InputAntifloodHandler.SetPeerValidatorMapper(networkShardingCollector)
 	if err != nil {
 		return nil, err
 	}

@@ -10,10 +10,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +23,7 @@ func createMockArgHardforkTrigger() trigger.ArgHardforkTrigger {
 		SelfPubKeyBytes:      []byte("self"),
 		Enabled:              true,
 		EnabledAuthenticated: true,
-		ArgumentParser:       vmcommon.NewAtArgumentParser(),
+		ArgumentParser:       smartContract.NewArgumentParser(),
 		EpochProvider: &mock.EpochHandlerStub{
 			MetaEpochCalled: func() uint32 {
 				return trigger.MinimumEpochForHarfork
@@ -198,7 +198,7 @@ func TestTrigger_TriggerReceivedNotEnabledShouldRetNilButNotCall(t *testing.T) {
 	arg := createMockArgHardforkTrigger()
 	arg.Enabled = false
 	trig, _ := trigger.NewTrigger(arg)
-	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + fmt.Sprintf("%d", 0))
+	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + fmt.Sprintf("0%d", 0))
 
 	isHardfork, err := trig.TriggerReceived(nil, data, nil)
 	assert.Nil(t, err)
@@ -214,7 +214,7 @@ func TestTrigger_TriggerReceivedNotEnabledAuthenticatedShouldRetNilButNotCall(t 
 	arg := createMockArgHardforkTrigger()
 	arg.EnabledAuthenticated = false
 	trig, _ := trigger.NewTrigger(arg)
-	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + fmt.Sprintf("%d", 0))
+	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + fmt.Sprintf("0%d", 0))
 
 	isHardfork, err := trig.TriggerReceived(nil, data, nil)
 	assert.Nil(t, err)
@@ -229,7 +229,7 @@ func TestTrigger_TriggerReceivedPubkeysMismatchShouldErr(t *testing.T) {
 
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
-	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + fmt.Sprintf("%d", 0))
+	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + fmt.Sprintf("0%d", 0))
 
 	pubkey := []byte("invalid pubkey")
 	isHardfork, err := trig.TriggerReceived(nil, data, pubkey)

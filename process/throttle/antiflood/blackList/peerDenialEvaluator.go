@@ -2,6 +2,7 @@ package blackList
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger/check"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -52,6 +53,11 @@ func (pde *peerDenialEvaluator) IsDenied(pid core.PeerID) bool {
 	}
 
 	return pde.blackListedPublicKeysCache.Has(string(pkBytes))
+}
+
+// UpsertPeerID will update or insert the provided peer id in the corresponding time cache
+func (pde *peerDenialEvaluator) UpsertPeerID(pid core.PeerID, duration time.Duration) error {
+	return pde.blackListIDsCache.Upsert(pid, duration)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

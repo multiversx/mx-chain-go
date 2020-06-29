@@ -308,6 +308,11 @@
     Capacity = 30000
     Type = "LRU"
 
+[PeerHonesty]
+    Name = "PeerHonesty"
+    Capacity = 5000
+    Type = "LRU"
+
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
@@ -497,11 +502,6 @@
         MessagesMarshalizer = "json"
         MaxLoopTime = 1000
 
-[P2PMessageIDAdditionalCache]
-    Capacity = 100000
-    Type = "FIFOSharded"
-    Shards = 100
-
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true
@@ -563,8 +563,8 @@
 
 [Health]
     IntervalVerifyMemoryInSeconds = 1
-    IntervalDiagnoseComponentsInSeconds = 10
-    IntervalDiagnoseComponentsDeeplyInSeconds = 30
+    IntervalDiagnoseComponentsInSeconds = 30
+    IntervalDiagnoseComponentsDeeplyInSeconds = 120
     MemoryUsageToCreateProfiles = 2147483648 # 2GB
     NumMemoryUsageRecordsToKeep = 100
     FolderPath = "health-records"

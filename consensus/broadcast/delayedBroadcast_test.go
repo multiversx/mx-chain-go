@@ -217,7 +217,10 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataShouldBro
 	assert.False(t, txBroadcastCalled.IsSet())
 
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
-	time.Sleep(core.ExtraDelayForBroadcastBlockInfo + 10*time.Millisecond)
+	sleepTime := core.ExtraDelayForBroadcastBlockInfo +
+		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		10*time.Millisecond
+	time.Sleep(sleepTime)
 	assert.True(t, mbBroadcastCalled.IsSet())
 	assert.True(t, txBroadcastCalled.IsSet())
 }
@@ -313,7 +316,10 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNextRegisteredDelayedDataShoul
 	metaBlock.ShardInfo[0].HeaderHash = headerHash2
 
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
-	time.Sleep(core.ExtraDelayForBroadcastBlockInfo + 10*time.Millisecond)
+	sleepTime := core.ExtraDelayForBroadcastBlockInfo +
+		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		10*time.Millisecond
+	time.Sleep(sleepTime)
 	assert.Equal(t, int64(2), mbBroadcastCalled.Get())
 	assert.Equal(t, int64(2), txBroadcastCalled.Get())
 
@@ -430,7 +436,8 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcast
 	require.Equal(t, int64(0), mbBroadcastCalled.Get())
 	require.Equal(t, int64(0), txBroadcastCalled.Get())
 
-	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) + time.Millisecond*100
+	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
+		time.Millisecond*100
 	time.Sleep(sleepTime)
 
 	// alarm expired and sent header
@@ -493,6 +500,7 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 
 	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
 		core.ExtraDelayForBroadcastBlockInfo +
+		core.ExtraDelayBetweenBroadcastMbsAndTxs +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 
@@ -555,7 +563,8 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 	require.Equal(t, int64(0), mbBroadcastCalled.Get())
 	require.Equal(t, int64(0), txBroadcastCalled.Get())
 
-	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) + time.Second
+	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
+		time.Second
 	// should cancel alarm
 	dbb.InterceptedHeaderData("headerTopic", vArgs.headerHash, vArgs.header)
 	time.Sleep(sleepTime)
@@ -632,6 +641,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 	dbb.InterceptedMiniBlockData("headerTopic", headerHash, invalidHeader)
 	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
 		core.ExtraDelayForBroadcastBlockInfo +
+		core.ExtraDelayBetweenBroadcastMbsAndTxs +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 
@@ -724,8 +734,9 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentHeaderRoundS
 	}
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
-	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
-	time.Sleep(timeToWait + 100*time.Millisecond)
+	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+		100*time.Millisecond
+	time.Sleep(sleepTime)
 
 	// check there was no broadcast and validator delay data still present
 	require.Equal(t, int64(0), mbBroadcastCalled.Get())
@@ -783,8 +794,9 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentPrevRandShou
 	}
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
-	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
-	time.Sleep(timeToWait + 100*time.Millisecond)
+	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+		100*time.Millisecond
+	time.Sleep(sleepTime)
 
 	// check there was no broadcast and validator delay data still present
 	require.Equal(t, int64(0), mbBroadcastCalled.Get())
@@ -839,8 +851,11 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastSameRoundAndPrevRandS
 	}
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
-	timeToWait := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() + core.ExtraDelayForBroadcastBlockInfo
-	time.Sleep(timeToWait + 100*time.Millisecond)
+	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+		core.ExtraDelayForBroadcastBlockInfo +
+		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		100*time.Millisecond
+	time.Sleep(sleepTime)
 
 	// check there was a broadcast and validator delay data empty
 	require.Equal(t, int64(1), mbBroadcastCalled.Get())
@@ -891,7 +906,9 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldBroadcastTheDataForRegistered
 	require.Equal(t, 1, len(vbd))
 
 	dbb.AlarmExpired(hex.EncodeToString(vArgs.headerHash))
-	time.Sleep(time.Millisecond * 100)
+	sleepTime := core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		time.Millisecond*100
+	time.Sleep(sleepTime)
 
 	// check there was a broadcast and validator delay data empty
 	require.Equal(t, int64(1), mbBroadcastCalled.Get())
@@ -1097,8 +1114,11 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 	require.Equal(t, 1, len(vbd))
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
-	timeToWait := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() + core.ExtraDelayForBroadcastBlockInfo
-	time.Sleep(timeToWait + 100*time.Millisecond)
+	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+		core.ExtraDelayForBroadcastBlockInfo +
+		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		100*time.Millisecond
+	time.Sleep(sleepTime)
 
 	// check there was a broadcast and validator delay data empty
 	require.Equal(t, int64(1), mbBroadcastCalled.Get())
@@ -1158,8 +1178,11 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
 	dbb.InterceptedMiniBlockData("txBlockBodies_0_"+strconv.Itoa(destShardID), miniBlockHashToNotify, &block.MiniBlock{})
-	timeToWait := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() + core.ExtraDelayForBroadcastBlockInfo
-	time.Sleep(timeToWait + 100*time.Millisecond)
+	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+		core.ExtraDelayForBroadcastBlockInfo +
+		core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		100*time.Millisecond
+	time.Sleep(sleepTime)
 
 	// check there was a broadcast and validator delay data empty
 	require.Equal(t, int64(1), mbBroadcastCalled.Get())
@@ -1221,8 +1244,9 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockFinalForSetValDataShouldNot
 			dbb.InterceptedMiniBlockData(destShardID, hash, &block.MiniBlock{})
 		}
 	}
-	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
-	time.Sleep(timeToWait + 100*time.Millisecond)
+	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+		100*time.Millisecond
+	time.Sleep(sleepTime)
 
 	// check there was no broadcast and validator delay data empty
 	require.Equal(t, int64(0), mbBroadcastCalled.Get())
@@ -1280,8 +1304,9 @@ func TestDelayedBlockBroadcaster_Close(t *testing.T) {
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
 	dbb.Close()
 
-	timeToWait := time.Duration(vArgs.order) * broadcast.ValidatorDelayPerOrder()
-	time.Sleep(timeToWait + 100*time.Millisecond)
+	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
+		100*time.Millisecond
+	time.Sleep(sleepTime)
 
 	// check there was no broadcast
 	require.Equal(t, int64(0), mbBroadcastCalled.Get())

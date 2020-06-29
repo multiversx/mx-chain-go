@@ -155,7 +155,7 @@ func (as *alarmScheduler) updateAlarms(elapsed time.Duration) time.Duration {
 
 	for alarmID, alarm := range as.scheduledAlarms {
 		if alarm.remainingDuration <= elapsed+toleranceExpiry {
-			alarm.callback(alarmID)
+			go alarm.callback(alarmID)
 			delete(as.scheduledAlarms, alarmID)
 		} else {
 			alarm.remainingDuration -= elapsed

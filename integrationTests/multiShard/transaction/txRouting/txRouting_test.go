@@ -49,6 +49,8 @@ func TestRoutingOfTransactionsInShards(t *testing.T) {
 		txs := generateTransactionsInAllConfigurations(nodes, uint32(numOfShards))
 		require.Equal(t, numOfShards*numOfShards, len(txs))
 
+		integrationTests.WhiteListTxs(nodes, txs)
+
 		dispatchNode := getNodeOnShard(uint32(i), nodes)
 
 		_, err := dispatchNode.Node.SendBulkTransactions(txs)
