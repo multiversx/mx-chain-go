@@ -174,7 +174,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	logFunc := log.Trace
 	if duration > executeDurationWarnThreshold {
-		logFunc = log.Warn
+		logFunc = log.Debug
 	}
 
 	logFunc("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()), "duration", duration, "returnCode", returnCode, "err", err)
