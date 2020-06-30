@@ -28,7 +28,7 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
 
-const executeDurationWarnThreshold = time.Duration(500) * time.Millisecond
+const executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
 
 var zero = big.NewInt(0)
 
@@ -173,8 +173,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	sw.Stop("execute")
 	duration := sw.GetMeasurement("execute")
 
-	if duration > executeDurationWarnThreshold {
-		log.Warn(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", duration), "sc", tx.GetRcvAddr(), "data", string(tx.GetData()), "duration", duration, "returnCode", returnCode, "err", err)
+	if duration > executeDurationAlarmThreshold {
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", duration), "sc", tx.GetRcvAddr(), "data", string(tx.GetData()), "duration", duration, "returnCode", returnCode, "err", err)
 	} else {
 		log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()), "duration", duration, "returnCode", returnCode, "err", err)
 	}
