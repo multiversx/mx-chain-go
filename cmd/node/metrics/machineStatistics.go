@@ -42,18 +42,15 @@ func StartMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval ti
 }
 
 func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
-	memStats := &machine.MemStatistics{}
-	go func() {
-		for {
-			memStats.ComputeStatistics()
-		}
-	}()
-
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
-		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, memStats.MemPercentUsage())
-		appStatusHandler.SetUInt64Value(core.MetricMemTotal, memStats.TotalMemory())
-		appStatusHandler.SetUInt64Value(core.MetricMemUsedGolang, memStats.MemoryUsedByGolang())
-		appStatusHandler.SetUInt64Value(core.MetricMemUsedSystem, memStats.MemoryUsedBySystem())
+		mem := machine.AcquireMemStatistics()
+
+		appStatusHandler.SetUInt64Value(core.MetricMemLoadPercent, mem.PercentUsed)
+		appStatusHandler.SetUInt64Value(core.MetricMemTotal, mem.Total)
+		appStatusHandler.SetUInt64Value(core.MetricMemUsedGolang, mem.UsedByGolang)
+		appStatusHandler.SetUInt64Value(core.MetricMemUsedSystem, mem.UsedBySystem)
+		appStatusHandler.SetUInt64Value(core.MetricMemHeapInUse, mem.HeapInUse)
+		appStatusHandler.SetUInt64Value(core.MetricMemStackInUse, mem.StackInUse)
 	})
 }
 
