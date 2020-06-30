@@ -57,16 +57,15 @@ func (bmm *BroadcastMessengerMock) PrepareBroadcastBlockDataValidator(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 	idx int,
-) error {
+) {
 	if bmm.PrepareBroadcastBlockDataValidatorCalled != nil {
-		return bmm.PrepareBroadcastBlockDataValidatorCalled(
+		bmm.PrepareBroadcastBlockDataValidatorCalled(
 			header,
 			miniBlocks,
 			transactions,
 			idx,
 		)
 	}
-	return nil
 }
 
 // PrepareBroadcastHeaderValidator -
