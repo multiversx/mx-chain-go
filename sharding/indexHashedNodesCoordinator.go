@@ -310,7 +310,9 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		"randomness", randomness,
 		"consensus size", consensusSize,
 		"eligible list length", len(eligibleList),
-		"epoch", epoch)
+		"epoch", epoch,
+		"round", round,
+		"shardID", shardID)
 
 	tempList, err := selectValidators(selector, randomness, uint32(consensusSize), eligibleList)
 	if err != nil {
