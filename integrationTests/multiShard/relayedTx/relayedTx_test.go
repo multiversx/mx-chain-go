@@ -21,8 +21,9 @@ import (
 )
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
-	// TODO: fix these tests on TC - it works on local machines always
-	//t.Skip("this is not a short test")
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
 	defer func() {
@@ -74,8 +75,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing.T) {
-	// TODO: fix these tests on TC - it works on local machines always
-	//t.Skip("this is not a short test")
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
 	defer func() {
@@ -156,8 +158,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
-	// TODO: fix these tests on TC - it works on local machines always
-	//t.Skip("this is not a short test")
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
 	defer func() {
