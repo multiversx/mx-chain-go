@@ -109,4 +109,9 @@ func TestSaveKeyValue_ProcessBuiltinFunctionMultipleKeys(t *testing.T) {
 	require.True(t, bytes.Equal(retrievedValue, value))
 	retrievedValue, _ = acc.DataTrieTracker().RetrieveValue(key2)
 	require.True(t, bytes.Equal(retrievedValue, value2))
+
+	vmInput.GasProvided = 1
+	vmInput.Arguments = [][]byte{[]byte("key3"), []byte("value")}
+	_, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
+	require.Equal(t, err, process.ErrNotEnoughGas)
 }

@@ -44,6 +44,7 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 
 	vmOutput := &vmcommon.VMOutput{
 		GasRemaining: input.GasProvided,
+		GasRefund:    big.NewInt(0),
 	}
 
 	useGas := k.funcGasCost
@@ -68,7 +69,8 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 			lengthChange = length - lengthOldValue
 		} else {
 			releaseLength := lengthOldValue - length
-			vmOutput.GasRefund = big.NewInt(0).Mul(big.NewInt(0).SetUint64(releaseLength), big.NewInt(0).SetUint64(k.gasConfig.ReleasePerByte))
+			refundValue := big.NewInt(0).Mul(big.NewInt(0).SetUint64(releaseLength), big.NewInt(0).SetUint64(k.gasConfig.ReleasePerByte))
+			vmOutput.GasRefund.Add(vmOutput.GasRefund, refundValue)
 		}
 
 		useGas += k.gasConfig.StorePerByte * lengthChange
@@ -91,6 +93,9 @@ func checkArgumentsForSaveKeyValue(acntDst state.UserAccountHandler, input *vmco
 	if len(input.Arguments) < 2 {
 		return process.ErrInvalidArguments
 	}
+	if len(input.Arguments)%2 != 0 {
+		return process.ErrInvalidArguments
+	}
 	if input.CallValue.Cmp(zero) != 0 {
 		return process.ErrBuiltInFunctionCalledWithValue
 	}
@@ -103,9 +108,7 @@ func checkArgumentsForSaveKeyValue(acntDst state.UserAccountHandler, input *vmco
 	if core.IsSmartContractAddress(input.CallerAddr) {
 		return fmt.Errorf("%w key-value builtin function not allowed for smart contracts", process.ErrOperationNotPermitted)
 	}
-	if len(input.Arguments)%2 != 0 {
-		return process.ErrInvalidArguments
-	}
+
 	return nil
 }
 
