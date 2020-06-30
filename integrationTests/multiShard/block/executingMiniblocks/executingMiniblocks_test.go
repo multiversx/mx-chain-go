@@ -213,7 +213,6 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 				sendValue,
 				"",
 				gasLimit,
-				integrationTests.ChainID,
 			)
 		}
 
@@ -301,7 +300,6 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 				halfInitVal,
 				"",
 				minGasLimit,
-				integrationTests.ChainID,
 			)
 		}
 	}
