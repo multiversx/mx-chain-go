@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, map[string][][]byte) {
@@ -366,52 +365,4 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 	time.Sleep(10 * time.Millisecond)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled.IsSet())
-}
-
-func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorNilHeaderShouldErr(t *testing.T) {
-	args := createDefaultShardChainArgs()
-	scm, _ := broadcast.NewShardChainMessenger(args)
-	vArgs := createValidatorDelayArgs(0)
-	vArgs.header = nil
-
-	err := scm.PrepareBroadcastBlockDataValidator(
-		vArgs.header,
-		vArgs.miniBlocks,
-		vArgs.transactions,
-		int(vArgs.order),
-	)
-
-	require.Equal(t, spos.ErrNilHeader, err)
-}
-
-func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorNoMiniBlocksShouldReturn(t *testing.T) {
-	args := createDefaultShardChainArgs()
-	scm, _ := broadcast.NewShardChainMessenger(args)
-	vArgs := createValidatorDelayArgs(0)
-	vArgs.miniBlocks = nil
-	vArgs.transactions = nil
-
-	err := scm.PrepareBroadcastBlockDataValidator(
-		vArgs.header,
-		vArgs.miniBlocks,
-		vArgs.transactions,
-		int(vArgs.order),
-	)
-
-	require.Nil(t, err)
-}
-
-func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorOK(t *testing.T) {
-	args := createDefaultShardChainArgs()
-	scm, _ := broadcast.NewShardChainMessenger(args)
-	vArgs := createValidatorDelayArgs(0)
-
-	err := scm.PrepareBroadcastBlockDataValidator(
-		vArgs.header,
-		vArgs.miniBlocks,
-		vArgs.transactions,
-		int(vArgs.order),
-	)
-
-	require.Nil(t, err)
 }
