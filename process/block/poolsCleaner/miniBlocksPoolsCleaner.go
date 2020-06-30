@@ -82,8 +82,13 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPools(ctx context.Context) {
 		case <-time.After(sleepTime):
 		}
 
+		startTime := time.Now()
 		numMiniblocksInMap := mbpc.cleanMiniblocksPoolsIfNeeded()
-		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPools", "num miniblocks in map", numMiniblocksInMap)
+		elapsedTime := time.Since(startTime)
+
+		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPools",
+			"num miniblocks in map", numMiniblocksInMap,
+			"elapsed time", elapsedTime)
 	}
 }
 
@@ -123,11 +128,10 @@ func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte, value interfac
 }
 
 func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
-	mbpc.mutMapMiniBlocksRounds.Lock()
-	defer mbpc.mutMapMiniBlocksRounds.Unlock()
-
 	numMbsCleaned := 0
+	hashesToRemove := make(map[string]struct{})
 
+	mbpc.mutMapMiniBlocksRounds.Lock()
 	for hash, mbi := range mbpc.mapMiniBlocksRounds {
 		_, ok := mbpc.miniblocksPool.Get([]byte(hash))
 		if !ok {
@@ -154,7 +158,7 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 			continue
 		}
 
-		mbpc.miniblocksPool.Remove([]byte(hash))
+		hashesToRemove[hash] = struct{}{}
 		delete(mbpc.mapMiniBlocksRounds, hash)
 		numMbsCleaned++
 
@@ -166,12 +170,22 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 			"type", mbi.mbType)
 	}
 
+	numMiniBlocksRounds := len(mbpc.mapMiniBlocksRounds)
+	mbpc.mutMapMiniBlocksRounds.Unlock()
+
+	startTime := time.Now()
+	for hash := range hashesToRemove {
+		mbpc.miniblocksPool.Remove([]byte(hash))
+	}
+	elapsedTime := time.Since(startTime)
+
 	if numMbsCleaned > 0 {
 		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPoolsIfNeeded",
-			"num mbs cleaned", numMbsCleaned)
+			"num mbs cleaned", numMbsCleaned,
+			"elapsed time to remove mbs from cacher", elapsedTime)
 	}
 
-	return len(mbpc.mapMiniBlocksRounds)
+	return numMiniBlocksRounds
 }
 
 // Close will close the endless running go routine
