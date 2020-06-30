@@ -63,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	sync2 "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -1186,19 +1187,10 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
 
-	tpn.ForkDetector = &mock.ForkDetectorStub{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-			return nil
-		},
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return 100
-		},
-		ProbableHighestNonceCalled: func() uint64 {
-			return 0
-		},
-		GetHighestFinalBlockHashCalled: func() []byte {
-			return nil
-		},
+	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
+		tpn.ForkDetector, _ = sync2.NewShardForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
+	} else {
+		tpn.ForkDetector, _ = sync2.NewMetaForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
 	}
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
