@@ -954,6 +954,7 @@ func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uin
 	if e.nodeType == core.NodeTypeObserver &&
 		e.destinationShardAsObserver != core.DisabledShardIDAsObserver &&
 		e.destinationShardAsObserver != receivedShardID {
+		log.Debug("shard id as observer applied", "destination shard ID", e.destinationShardAsObserver, "computed", receivedShardID)
 		receivedShardID = e.destinationShardAsObserver
 	}
 

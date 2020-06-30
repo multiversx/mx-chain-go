@@ -22,13 +22,6 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
 		return
 	}
-	if latestData.ShardID != e.destinationShardAsObserver && e.destinationShardAsObserver != core.DisabledShardIDAsObserver {
-		e.baseData.storageExists = false
-		log.Debug("cannot use epoch db found in storage as a different shard ID than the desired one has been found",
-			"desired shard ID", e.destinationShardAsObserver,
-			"shard ID found in storage", latestData.ShardID)
-		return
-	}
 
 	e.baseData.storageExists = true
 	e.baseData.lastEpoch = latestData.Epoch
