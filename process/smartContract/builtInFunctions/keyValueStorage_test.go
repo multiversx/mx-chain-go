@@ -67,3 +67,46 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 	_, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.True(t, errors.Is(err, process.ErrOperationNotPermitted))
 }
+
+func TestSaveKeyValue_ProcessBuiltinFunctionMultipleKeys(t *testing.T) {
+	t.Parallel()
+
+	funcGasCost := uint64(1)
+	gasConfig := BaseOperationCost{
+		StorePerByte:    1,
+		ReleasePerByte:  1,
+		DataCopyPerByte: 1,
+		PersistPerByte:  1,
+		CompilePerByte:  1,
+	}
+	skv, _ := NewSaveKeyValueStorageFunc(gasConfig, funcGasCost)
+
+	addr := []byte("addr")
+	acc, _ := state.NewUserAccount(addr)
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  addr,
+			GasProvided: 50,
+			CallValue:   big.NewInt(0),
+		},
+		RecipientAddr: addr,
+	}
+
+	key := []byte("key")
+	value := []byte("value")
+	vmInput.Arguments = [][]byte{key, value, key, value, key}
+
+	_, err := skv.ProcessBuiltinFunction(nil, acc, vmInput)
+	require.Equal(t, err, process.ErrInvalidArguments)
+
+	key2 := []byte("key2")
+	value2 := []byte("value2")
+	vmInput.Arguments = [][]byte{key, value, key2, value2}
+
+	_, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
+	require.Nil(t, err)
+	retrievedValue, _ := acc.DataTrieTracker().RetrieveValue(key)
+	require.True(t, bytes.Equal(retrievedValue, value))
+	retrievedValue, _ = acc.DataTrieTracker().RetrieveValue(key2)
+	require.True(t, bytes.Equal(retrievedValue, value2))
+}
