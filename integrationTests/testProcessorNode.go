@@ -996,6 +996,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestHasher,
 		TestAddressPubkeyConverter,
 		TestMarshalizer,
+		TestTxSignMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.ScProcessor,
 		tpn.FeeAccumulator,
