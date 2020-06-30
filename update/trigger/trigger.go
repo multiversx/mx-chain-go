@@ -164,6 +164,9 @@ func (t *trigger) Trigger(epoch uint32) error {
 	if !t.enabled {
 		return update.ErrTriggerNotEnabled
 	}
+
+	log.Debug("hardfork trigger", "epoch", epoch)
+
 	if epoch < minimumEpochForHarfork {
 		return fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
@@ -173,6 +176,8 @@ func (t *trigger) Trigger(epoch uint32) error {
 		return err
 	}
 	if !shouldTrigger {
+		log.Debug("hardfork won't trigger now, will wait for epoch change")
+
 		return nil
 	}
 
@@ -219,6 +224,8 @@ func (t *trigger) doTrigger() {
 func (t *trigger) exportAll() {
 	t.mutTriggered.Lock()
 	defer t.mutTriggered.Unlock()
+
+	log.Debug("hardfork trigger exportAll called")
 
 	epoch := t.epoch
 
