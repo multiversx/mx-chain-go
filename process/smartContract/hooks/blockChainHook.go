@@ -25,7 +25,7 @@ import (
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
 var _ process.TemporaryAccountsHandler = (*BlockChainHookImpl)(nil)
 
-var log = logger.GetOrCreate("process/smartContract/blockChainHook")
+var log = logger.GetOrCreate("process/smartcontract/blockchainhook")
 
 const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
