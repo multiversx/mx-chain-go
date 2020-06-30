@@ -22,7 +22,7 @@ import (
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 	// TODO: fix these tests on TC - it works on local machines always
-	t.Skip("this is not a short test")
+	//t.Skip("this is not a short test")
 
 	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
 	defer func() {
@@ -75,7 +75,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 
 func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing.T) {
 	// TODO: fix these tests on TC - it works on local machines always
-	t.Skip("this is not a short test")
+	//t.Skip("this is not a short test")
 
 	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
 	defer func() {
@@ -157,7 +157,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	// TODO: fix these tests on TC - it works on local machines always
-	t.Skip("this is not a short test")
+	//t.Skip("this is not a short test")
 
 	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
 	defer func() {
@@ -309,7 +309,7 @@ func createRelayedTx(
 	userTx *transaction.Transaction,
 ) *transaction.Transaction {
 
-	userTxMarshaled, _ := integrationTests.TestMarshalizer.Marshal(userTx)
+	userTxMarshaled, _ := integrationTests.TestTxSignMarshalizer.Marshal(userTx)
 	txData := core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshaled)
 	tx := &transaction.Transaction{
 		Nonce:    relayer.Nonce,
