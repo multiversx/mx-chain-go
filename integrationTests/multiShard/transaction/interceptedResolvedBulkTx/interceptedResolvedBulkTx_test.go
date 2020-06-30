@@ -150,7 +150,16 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
 
-	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(
+	dispatcherNodeID := nodes[0].ShardCoordinator.ComputeId(nodes[idxSender].OwnAccount.Address)
+	dispatcherNode := nodes[0]
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() == dispatcherNodeID {
+			dispatcherNode = node
+			break
+		}
+	}
+
+	_ = dispatcherNode.Node.GenerateAndSendBulkTransactions(
 		addrInShardFive,
 		txValue,
 		uint64(txToSend),
@@ -263,7 +272,15 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 		integrationTests.WhiteListTxs(nodes, txs)
 	}
 
-	_ = nodes[0].Node.GenerateAndSendBulkTransactions(
+	dispatcherNodeID := nodes[0].ShardCoordinator.ComputeId(nodes[idxSender].OwnAccount.Address)
+	dispatcherNode := nodes[0]
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() == dispatcherNodeID {
+			dispatcherNode = node
+			break
+		}
+	}
+	_ = dispatcherNode.Node.GenerateAndSendBulkTransactions(
 		addrInShardFive,
 		txValue,
 		uint64(txToSend),

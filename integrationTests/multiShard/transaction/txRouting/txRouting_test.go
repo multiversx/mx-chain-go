@@ -47,14 +47,14 @@ func TestRoutingOfTransactionsInShards(t *testing.T) {
 
 	for i := 0; i < numOfShards; i++ {
 		txs := generateTransactionsInAllConfigurations(nodes, uint32(numOfShards))
-		require.Equal(t, numOfShards*numOfShards, len(txs))
+		require.Equal(t, numOfShards, len(txs))
 
-		integrationTests.WhiteListTxs(nodes, txs)
-
-		dispatchNode := getNodeOnShard(uint32(i), nodes)
-
-		_, err := dispatchNode.Node.SendBulkTransactions(txs)
-		require.Nil(t, err)
+		for shardID, listTxs := range txs {
+			integrationTests.WhiteListTxs(nodes, listTxs)
+			dispatchNode := getNodeOnShard(shardID, nodes)
+			_, err := dispatchNode.Node.SendBulkTransactions(listTxs)
+			require.Nil(t, err)
+		}
 	}
 
 	fmt.Println("waiting for txs to be disseminated")
@@ -66,21 +66,22 @@ func TestRoutingOfTransactionsInShards(t *testing.T) {
 	//- if the node will have to receive all those generated txs, it will receive only those txs
 	//  where the node is the sender, so numOfShards in total
 	//- since all shards emmit numOfShards*numOfShards, expectedNumTxs is computed as:
-	expectedNumTxs := (numOfShards + numOfShards - 1) + numOfShards*(numOfShards-1)
+	expectedNumTxs := numOfShards * numOfShards
 	checkTransactionsInPool(t, nodes, expectedNumTxs)
 }
 
-func generateTransactionsInAllConfigurations(nodes []*integrationTests.TestProcessorNode, numOfShards uint32) []*transaction.Transaction {
-	txs := make([]*transaction.Transaction, 0, numOfShards*numOfShards)
+func generateTransactionsInAllConfigurations(nodes []*integrationTests.TestProcessorNode, numOfShards uint32) map[uint32][]*transaction.Transaction {
+	txs := make(map[uint32][]*transaction.Transaction)
 
 	for i := uint32(0); i < numOfShards; i++ {
+		senderNode := getNodeOnShard(i, nodes)
+
 		for j := uint32(0); j < numOfShards; j++ {
-			senderNode := getNodeOnShard(i, nodes)
 			destNode := getNodeOnShard(j, nodes)
 
 			tx := generateTx(senderNode.OwnAccount.SkTxSign, destNode.OwnAccount.PkTxSign, senderNode.OwnAccount.Nonce)
 			senderNode.OwnAccount.Nonce++
-			txs = append(txs, tx)
+			txs[i] = append(txs[i], tx)
 		}
 	}
 

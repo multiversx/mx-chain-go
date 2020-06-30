@@ -760,27 +760,12 @@ func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor, top
 func (netMes *networkMessenger) transformAndCheckMessage(pbMsg *pubsub.Message, pid core.PeerID, topic string) (p2p.MessageP2P, error) {
 	msg, errUnmarshal := NewMessage(pbMsg, netMes.marshalizer)
 	if errUnmarshal != nil {
-		log.Debug("blacklisted due to incompatible p2p message",
-			"pid", pbMsg.ReceivedFrom.Pretty(),
-			"time", core.WrongP2PMessageBlacklistDuration,
-		)
-
 		//this error is so severe that will need to blacklist both the originator and the connected peer as there is
 		// no way this node can communicate with them
-		err := netMes.connMonitorWrapper.PeerDenialEvaluator().UpsertPeerID(pid, core.WrongP2PMessageBlacklistDuration)
-		if err != nil {
-			log.Warn("error blacklisting peer ID in pubsubCallback",
-				"pid", pbMsg.ReceivedFrom.Pretty(),
-				"error", err.Error(),
-			)
-		}
-		err = netMes.connMonitorWrapper.PeerDenialEvaluator().UpsertPeerID(core.PeerID(pbMsg.From), core.WrongP2PMessageBlacklistDuration)
-		if err != nil {
-			log.Warn("error blacklisting peer ID in pubsubCallback",
-				"pid", core.PeerID(pbMsg.From).Pretty(),
-				"error", err.Error(),
-			)
-		}
+		pidFrom := core.PeerID(pbMsg.From)
+		netMes.blacklistPid(pid, core.WrongP2PMessageBlacklistDuration)
+		netMes.blacklistPid(pidFrom, core.WrongP2PMessageBlacklistDuration)
+
 		return nil, errUnmarshal
 	}
 
@@ -798,6 +783,28 @@ func (netMes *networkMessenger) transformAndCheckMessage(pbMsg *pubsub.Message, 
 	}
 
 	return msg, nil
+}
+
+func (netMes *networkMessenger) blacklistPid(pid core.PeerID, banDuration time.Duration) {
+	if netMes.connMonitorWrapper.PeerDenialEvaluator().IsDenied(pid) {
+		return
+	}
+	if len(pid) == 0 {
+		return
+	}
+
+	log.Debug("blacklisted due to incompatible p2p message",
+		"pid", pid.Pretty(),
+		"time", banDuration,
+	)
+
+	err := netMes.connMonitorWrapper.PeerDenialEvaluator().UpsertPeerID(pid, banDuration)
+	if err != nil {
+		log.Warn("error blacklisting peer ID in network messnger",
+			"pid", pid.Pretty(),
+			"error", err.Error(),
+		)
+	}
 }
 
 // invalidMessageByTimestamp will check that the message time stamp should be in the interval

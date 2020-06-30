@@ -206,7 +206,15 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 		nonce++
 
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransactionWithGasLimit(node, sendValue, gasLimit, receiverAddress, []byte(""), integrationTests.ChainID)
+			integrationTests.PlayerSendsTransaction(
+				nodes,
+				node.OwnAccount,
+				receiverAddress,
+				sendValue,
+				"",
+				gasLimit,
+				integrationTests.ChainID,
+			)
 		}
 
 		time.Sleep(2 * time.Second)
@@ -286,7 +294,15 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 
 	for _, node := range nodes {
 		for j := uint64(0); j < nrTxsToSend; j++ {
-			integrationTests.CreateAndSendTransactionWithGasLimit(node, halfInitVal, minGasLimit, receiverAddress, []byte(""), integrationTests.ChainID)
+			integrationTests.PlayerSendsTransaction(
+				nodes,
+				node.OwnAccount,
+				receiverAddress,
+				halfInitVal,
+				"",
+				minGasLimit,
+				integrationTests.ChainID,
+			)
 		}
 	}
 
