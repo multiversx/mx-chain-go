@@ -97,6 +97,9 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 // ErrFailedCacheEviction signals a failed eviction within a cache
 var ErrFailedCacheEviction = errors.New("failed eviction within cache")
 
+// ErrImmuneItemsCapacityReached signals that capacity for immune items is reached
+var ErrImmuneItemsCapacityReached = errors.New("capacity reached for immune items")
+
 // ErrItemAlreadyInCache signals that an item is already in cache
 var ErrItemAlreadyInCache = errors.New("item already in cache")
 

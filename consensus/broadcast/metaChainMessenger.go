@@ -169,8 +169,7 @@ func (mcm *metaChainMessenger) PrepareBroadcastBlockDataValidator(
 	_ map[uint32][]byte,
 	_ map[string][][]byte,
 	_ int,
-) error {
-	return nil
+) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -27,6 +27,8 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
 
+const executeDurationWarnThreshold = float64(0.100)
+
 var zero = big.NewInt(0)
 
 type scProcessor struct {
@@ -160,12 +162,30 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx data.TransactionHandler,
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
-	defer sc.tempAccounts.CleanTempAccounts()
-
 	if check.IfNil(tx) {
 		return 0, process.ErrNilTransaction
 	}
-	log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()))
+
+	sw := core.NewStopWatch()
+	sw.Start("execute")
+	returnCode, err := sc.doExecuteSmartContractTransaction(tx, acntSnd, acntDst)
+	sw.Stop("execute")
+	duration := sw.GetMeasurement("execute")
+
+	logFunc := log.Trace
+	if duration > executeDurationWarnThreshold {
+		logFunc = log.Debug
+	}
+
+	logFunc("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()), "duration", duration, "returnCode", returnCode, "err", err)
+	return returnCode, err
+}
+
+func (sc *scProcessor) doExecuteSmartContractTransaction(
+	tx data.TransactionHandler,
+	acntSnd, acntDst state.UserAccountHandler,
+) (vmcommon.ReturnCode, error) {
+	defer sc.tempAccounts.CleanTempAccounts()
 
 	err := sc.processSCPayment(tx, acntSnd)
 	if err != nil {
