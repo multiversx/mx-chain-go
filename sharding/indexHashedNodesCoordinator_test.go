@@ -691,7 +691,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldReturnErrNil
 	arguments := createArguments()
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	_, _, err := ihgs.GetValidatorWithPublicKey(nil, 0)
+	_, _, err := ihgs.GetValidatorWithPublicKey(nil)
 	require.Equal(t, ErrNilPubKey, err)
 }
 
@@ -701,7 +701,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldReturnErrVal
 	arguments := createArguments()
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	_, _, err := ihgs.GetValidatorWithPublicKey([]byte("pk1"), 0)
+	_, _, err := ihgs.GetValidatorWithPublicKey([]byte("pk1"))
 	require.Equal(t, ErrValidatorNotFound, err)
 }
 
@@ -749,30 +749,20 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	v, shardId, err := ihgs.GetValidatorWithPublicKey([]byte("pk0_meta"), 0)
+	v, shardId, err := ihgs.GetValidatorWithPublicKey([]byte("pk0_meta"))
 	require.Nil(t, err)
 	require.Equal(t, core.MetachainShardId, shardId)
 	require.Equal(t, []byte("pk0_meta"), v.PubKey())
 
-	v, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk1_shard0"), 0)
+	v, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk1_shard0"))
 	require.Nil(t, err)
 	require.Equal(t, uint32(0), shardId)
 	require.Equal(t, []byte("pk1_shard0"), v.PubKey())
 
-	v, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk2_shard1"), 0)
+	v, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk2_shard1"))
 	require.Nil(t, err)
 	require.Equal(t, uint32(1), shardId)
 	require.Equal(t, []byte("pk2_shard1"), v.PubKey())
-}
-
-func TestNewIndexHashedNodesCoordinator_GetValidatorWithPublicKeyNotExistingEpoch(t *testing.T) {
-	t.Parallel()
-
-	arguments := createArguments()
-	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
-
-	_, _, err := ihgs.GetValidatorWithPublicKey(arguments.EligibleNodes[0][0].PubKey(), 1)
-	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
 }
 
 func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.T) {

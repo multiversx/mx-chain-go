@@ -85,10 +85,11 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 	}
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
-		sr.PeerHonestyHandler().Decrease(
+		sr.PeerHonestyHandler().ChangeScore(
 			node,
 			spos.GetConsensusTopicID(sr.ShardCoordinator()),
-			spos.LeaderPeerHonestyDecreaseFactor)
+			spos.LeaderPeerHonestyDecreaseFactor,
+		)
 
 		return false
 	}
@@ -110,10 +111,11 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 		"AggregateSignature", cnsDta.AggregateSignature,
 		"LeaderSignature", cnsDta.LeaderSignature)
 
-	sr.PeerHonestyHandler().Increase(
+	sr.PeerHonestyHandler().ChangeScore(
 		node,
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.LeaderPeerHonestyIncreaseFactor)
+		spos.LeaderPeerHonestyIncreaseFactor,
+	)
 
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }
@@ -405,7 +407,8 @@ func (sr *subroundEndRound) broadcastBlockDataLeader() error {
 func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) error {
 	idx, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		return err
+		log.Trace("setHeaderForValidator", "error", err.Error())
+		return nil
 	}
 
 	// todo: avoid calling MarshalizeDataToBroadcast twice for validators
@@ -414,7 +417,9 @@ func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) err
 		return err
 	}
 
-	return sr.BroadcastMessenger().PrepareBroadcastHeaderValidator(header, miniBlocks, transactions, idx)
+	go sr.BroadcastMessenger().PrepareBroadcastHeaderValidator(header, miniBlocks, transactions, idx)
+
+	return nil
 }
 
 func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {

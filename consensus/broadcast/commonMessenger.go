@@ -192,6 +192,8 @@ func (cm *commonMessenger) BroadcastBlockData(
 		}
 	}
 
+	time.Sleep(core.ExtraDelayBetweenBroadcastMbsAndTxs)
+
 	if len(transactions) > 0 {
 		err := cm.BroadcastTransactions(transactions)
 		if err != nil {

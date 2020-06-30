@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -64,7 +65,13 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, balanceValue)
 
-	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, transactionValue, uint64(txToSend), nodes[idxSender].OwnAccount.SkTxSign)
+	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(
+		addrInShardFive,
+		transactionValue,
+		uint64(txToSend),
+		nodes[idxSender].OwnAccount.SkTxSign,
+		nil,
+	)
 
 	time.Sleep(time.Second * 10)
 
@@ -142,7 +149,22 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
 
-	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend), nodes[idxSender].OwnAccount.SkTxSign)
+	dispatcherNodeID := nodes[0].ShardCoordinator.ComputeId(nodes[idxSender].OwnAccount.Address)
+	dispatcherNode := nodes[0]
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() == dispatcherNodeID {
+			dispatcherNode = node
+			break
+		}
+	}
+
+	_ = dispatcherNode.Node.GenerateAndSendBulkTransactions(
+		addrInShardFive,
+		txValue,
+		uint64(txToSend),
+		nodes[idxSender].OwnAccount.SkTxSign,
+		nil,
+	)
 
 	//display, can be removed
 	for i := 0; i < 10; i++ {
@@ -244,7 +266,25 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, mintingValue)
 
-	_ = nodes[0].Node.GenerateAndSendBulkTransactions(addrInShardFive, txValue, uint64(txToSend), nodes[0].OwnAccount.SkTxSign)
+	whiteListTxs := func(txs []*transaction.Transaction) {
+		integrationTests.WhiteListTxs(nodes, txs)
+	}
+
+	dispatcherNodeID := nodes[0].ShardCoordinator.ComputeId(nodes[idxSender].OwnAccount.Address)
+	dispatcherNode := nodes[0]
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() == dispatcherNodeID {
+			dispatcherNode = node
+			break
+		}
+	}
+	_ = dispatcherNode.Node.GenerateAndSendBulkTransactions(
+		addrInShardFive,
+		txValue,
+		uint64(txToSend),
+		nodes[0].OwnAccount.SkTxSign,
+		whiteListTxs,
+	)
 
 	fmt.Println("Waiting for senders to fetch generated transactions...")
 	time.Sleep(time.Second * 10)

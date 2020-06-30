@@ -27,6 +27,7 @@ type AccountFactory interface {
 
 // Updater set a new value for a key, implemented by trie
 type Updater interface {
+	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
 	IsInterfaceNil() bool
 }

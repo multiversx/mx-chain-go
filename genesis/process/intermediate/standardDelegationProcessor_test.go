@@ -239,7 +239,7 @@ func TestStandardDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing
 			sc := &data.InitialSmartContract{
 				Type: genesis.DelegationType,
 			}
-			sc.SetAddressBytes(delegationSc)
+			sc.AddAddressBytes(delegationSc)
 
 			return map[uint32][]genesis.InitialSmartContractHandler{
 				0: {sc},

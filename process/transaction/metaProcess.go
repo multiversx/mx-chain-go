@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
@@ -69,19 +70,19 @@ func NewMetaTxProcessor(
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) error {
+func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
 	if check.IfNil(tx) {
-		return process.ErrNilTransaction
+		return 0, process.ErrNilTransaction
 	}
 
 	acntSnd, acntDst, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	process.DisplayProcessTxDetails(
@@ -96,12 +97,12 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
 			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
 			if errProcessIfErr != nil {
-				return errProcessIfErr
+				return 0, errProcessIfErr
 			}
-			return nil
+			return vmcommon.UserError, nil
 		}
 
-		return err
+		return 0, err
 	}
 
 	txType := txProc.txTypeHandler.ComputeTransactionType(tx)
@@ -116,40 +117,38 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 	snapshot := txProc.accounts.JournalLen()
 	err = txProc.scProcessor.ProcessIfError(acntSnd, txHash, tx, process.ErrWrongTransaction.Error(), nil, snapshot)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return vmcommon.UserError, nil
 }
 
 func (txProc *metaTxProcessor) processSCDeployment(
 	tx *transaction.Transaction,
 	adrSrc []byte,
-) error {
+) (vmcommon.ReturnCode, error) {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, err := txProc.getAccountFromAddress(adrSrc)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	err = txProc.scProcessor.DeploySmartContract(tx, acntSrc)
-	return err
+	return txProc.scProcessor.DeploySmartContract(tx, acntSrc)
 }
 
 func (txProc *metaTxProcessor) processSCInvoking(
 	tx *transaction.Transaction,
 	adrSrc, adrDst []byte,
-) error {
+) (vmcommon.ReturnCode, error) {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
-	return err
+	return txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

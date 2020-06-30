@@ -184,13 +184,13 @@ func (tpc *txsPoolsCleaner) processReceivedTx(
 
 	if !ok {
 		transactionPool := tpc.getTransactionPool(txType)
-		if transactionPool == nil {
+		if check.IfNil(transactionPool) {
 			return
 		}
 
 		strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
 		txStore := transactionPool.ShardDataStore(strCache)
-		if txStore == nil {
+		if check.IfNil(txStore) {
 			return
 		}
 
