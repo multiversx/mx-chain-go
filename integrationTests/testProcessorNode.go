@@ -634,26 +634,27 @@ func CreateRatingsData() *rating.RatingsData {
 	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{
 			RatingSteps: config.RatingSteps{
-				ProposerValidatorImportance:    1,
-				ProposerDecreaseFactor:         -4,
-				ValidatorDecreaseFactor:        -4,
-				ConsecutiveMissedBlocksPenalty: 1.1,
+				HoursToMaxRatingFromStartRating: 50,
+				ProposerValidatorImportance:     1,
+				ProposerDecreaseFactor:          -4,
+				ValidatorDecreaseFactor:         -4,
+				ConsecutiveMissedBlocksPenalty:  1.1,
 			},
 		},
 		MetaChain: config.MetaChain{
 			RatingSteps: config.RatingSteps{
-				ProposerValidatorImportance:    1,
-				ProposerDecreaseFactor:         -4,
-				ValidatorDecreaseFactor:        -4,
-				ConsecutiveMissedBlocksPenalty: 1.1,
+				HoursToMaxRatingFromStartRating: 50,
+				ProposerValidatorImportance:     1,
+				ProposerDecreaseFactor:          -4,
+				ValidatorDecreaseFactor:         -4,
+				ConsecutiveMissedBlocksPenalty:  1.1,
 			},
 		},
 		General: config.General{
-			StartRating:                     500000,
-			MaxRating:                       1000000,
-			MinRating:                       1,
-			HoursToMaxRatingFromStartRating: 50,
-			SignedBlocksThreshold:           0.025,
+			StartRating:           500000,
+			MaxRating:             1000000,
+			MinRating:             1,
+			SignedBlocksThreshold: 0.025,
 			SelectionChances: []*config.SelectionChance{
 				{
 					MaxThreshold:  0,
