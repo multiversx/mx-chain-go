@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -11,11 +12,15 @@ var _ storage.Cacher = (*ImmunityCache)(nil)
 
 var log = logger.GetOrCreate("storage/immunitycache")
 
+const hospitalityWarnThreshold = -10000
+const hospitalityUpperLimit = 10000
+
 // ImmunityCache is a cache-like structure
 type ImmunityCache struct {
-	config CacheConfig
-	chunks []*immunityChunk
-	mutex  sync.RWMutex
+	config      CacheConfig
+	chunks      []*immunityChunk
+	hospitality atomic.Counter
+	mutex       sync.RWMutex
 }
 
 // NewImmunityCache creates a new cache
@@ -51,6 +56,12 @@ func (ic *ImmunityCache) initializeChunksWithLock() {
 
 // ImmunizeKeys marks items as immune to eviction
 func (ic *ImmunityCache) ImmunizeKeys(keys [][]byte) (numNowTotal, numFutureTotal int) {
+	immuneItemsCapacityReached := ic.CountImmune()+len(keys) > int(ic.config.MaxNumItems)
+	if immuneItemsCapacityReached {
+		log.Warn("ImmunityCache.ImmunizeKeys(): will not immunize", "err", storage.ErrImmuneItemsCapacityReached)
+		return
+	}
+
 	groups := ic.groupKeysByChunk(keys)
 
 	for chunkIndex, chunkKeys := range groups {
@@ -137,6 +148,14 @@ func (ic *ImmunityCache) HasOrAdd(key []byte, value interface{}, sizeInBytes int
 	cacheItem := newCacheItem(value, string(key), sizeInBytes)
 	chunk := ic.getChunkByKeyWithLock(string(key))
 	has, added = chunk.AddItem(cacheItem)
+	if !has {
+		if added {
+			ic.hospitality.Increment()
+		} else {
+			ic.hospitality.Decrement()
+		}
+	}
+
 	return has, added
 }
 
@@ -247,11 +266,32 @@ func (ic *ImmunityCache) Diagnose(_ bool) {
 	count := ic.Count()
 	countImmune := ic.CountImmune()
 	numBytes := ic.NumBytes()
+	hospitality := ic.hospitality.Get()
+
+	isNotHospitable := hospitality <= hospitalityWarnThreshold
+	if isNotHospitable {
+		// After emitting a Warn, we reset the hospitality indicator
+		log.Warn("ImmunityCache.Diagnose(): cache is not hospitable",
+			"name", ic.config.Name,
+			"count", count,
+			"countImmune", countImmune,
+			"numBytes", numBytes,
+			"hospitality", hospitality,
+		)
+		ic.hospitality.Reset()
+		return
+	}
+
+	if hospitality >= hospitalityUpperLimit {
+		ic.hospitality.Set(hospitalityUpperLimit)
+	}
+
 	log.Debug("ImmunityCache.Diagnose()",
 		"name", ic.config.Name,
 		"count", count,
 		"countImmune", countImmune,
 		"numBytes", numBytes,
+		"hospitality", hospitality,
 	)
 }
 

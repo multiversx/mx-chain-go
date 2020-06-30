@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -765,8 +766,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-			return nil
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			return 0, nil
 		}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
@@ -835,8 +836,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-			return nil
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			return 0, nil
 		}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
@@ -910,8 +911,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-			return nil
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			return 0, nil
 		}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
@@ -1103,8 +1104,8 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		shardCoordinatorMock,

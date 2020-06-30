@@ -1357,7 +1357,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
-		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
+		node.WithPeerHonestyHandler(&testscommon.PeerHonestyHandlerStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),

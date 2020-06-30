@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -113,6 +114,26 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	}
 
 	return nil
+}
+
+// CheckTxWhiteList will check if the cross shard transactions are whitelisted and could be added in pools
+func (txv *txValidator) CheckTxWhiteList(data process.InterceptedData) error {
+	interceptedTx, ok := data.(processor.InterceptedTransactionHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	isTxCrossShardDestMe := interceptedTx.SenderShardId() != txv.shardCoordinator.SelfId() &&
+		interceptedTx.ReceiverShardId() == txv.shardCoordinator.SelfId()
+	if !isTxCrossShardDestMe {
+		return nil
+	}
+
+	if txv.whiteListHandler.IsWhiteListed(data) {
+		return nil
+	}
+
+	return process.ErrTransactionIsNotWhitelisted
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

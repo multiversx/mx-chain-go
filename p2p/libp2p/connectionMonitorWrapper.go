@@ -108,6 +108,14 @@ func (cmw *connectionMonitorWrapper) SetPeerDenialEvaluator(handler p2p.PeerDeni
 	return nil
 }
 
+// PeerDenialEvaluator gets the peer denial evauator
+func (cmw *connectionMonitorWrapper) PeerDenialEvaluator() p2p.PeerDenialEvaluator {
+	cmw.mutPeerBlackList.RLock()
+	defer cmw.mutPeerBlackList.RUnlock()
+
+	return cmw.peerDenialEvaluator
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (cmw *connectionMonitorWrapper) IsInterfaceNil() bool {
 	return cmw == nil

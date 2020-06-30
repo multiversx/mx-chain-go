@@ -29,7 +29,7 @@ copyConfig() {
 
 copySeednodeConfig() {
   pushd $TESTNETDIR
-  cp $SEEDNODEDIR/config/p2p.toml ./seednode/config
+  cp $SEEDNODEDIR/config/*.toml ./seednode/config
   popd
 }
 

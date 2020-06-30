@@ -1,8 +1,6 @@
 package mock
 
 import (
-	"math/big"
-
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -10,11 +8,10 @@ import (
 type BlockChainHookStub struct {
 	AccountExtistsCalled          func(address []byte) (bool, error)
 	NewAddressCalled              func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	GetBalanceCalled              func(address []byte) (*big.Int, error)
-	GetNonceCalled                func(address []byte) (uint64, error)
 	GetStorageDataCalled          func(accountsAddress []byte, index []byte) ([]byte, error)
-	IsCodeEmptyCalled             func(address []byte) (bool, error)
-	GetCodeCalled                 func(address []byte) ([]byte, error)
+	GetUserAccountCalled          func(address []byte) (vmcommon.UserAccountHandler, error)
+	GetShardOfAddressCalled       func(address []byte) uint32
+	IsSmartContractCalled         func(address []byte) bool
 	GetBlockHashCalled            func(nonce uint64) ([]byte, error)
 	LastNonceCalled               func() uint64
 	LastRoundCalled               func() uint64
@@ -32,7 +29,7 @@ type BlockChainHookStub struct {
 	GetAllStateCalled             func(address []byte) (map[string][]byte, error)
 }
 
-// AccountExists -
+// GetAccount -
 func (b *BlockChainHookStub) AccountExists(address []byte) (bool, error) {
 	if b.AccountExtistsCalled != nil {
 		return b.AccountExtistsCalled(address)
@@ -48,22 +45,6 @@ func (b *BlockChainHookStub) NewAddress(creatorAddress []byte, creatorNonce uint
 	return []byte("newAddress"), nil
 }
 
-// GetBalance -
-func (b *BlockChainHookStub) GetBalance(address []byte) (*big.Int, error) {
-	if b.GetBalanceCalled != nil {
-		return b.GetBalanceCalled(address)
-	}
-	return big.NewInt(0), nil
-}
-
-// GetNonce -
-func (b *BlockChainHookStub) GetNonce(address []byte) (uint64, error) {
-	if b.GetNonceCalled != nil {
-		return b.GetNonceCalled(address)
-	}
-	return 0, nil
-}
-
 // GetStorageData -
 func (b *BlockChainHookStub) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
 	if b.GetStorageDataCalled != nil {
@@ -72,20 +53,31 @@ func (b *BlockChainHookStub) GetStorageData(accountAddress []byte, index []byte)
 	return nil, nil
 }
 
-// IsCodeEmpty -
-func (b *BlockChainHookStub) IsCodeEmpty(address []byte) (bool, error) {
-	if b.IsCodeEmptyCalled != nil {
-		return b.IsCodeEmptyCalled(address)
+// GetUserAccount -
+func (b *BlockChainHookStub) GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error) {
+	if b.GetUserAccountCalled != nil {
+		return b.GetUserAccountCalled(address)
 	}
-	return true, nil
+
+	return nil, nil
 }
 
-// GetCode -
-func (b *BlockChainHookStub) GetCode(address []byte) ([]byte, error) {
-	if b.GetCodeCalled != nil {
-		return b.GetCodeCalled(address)
+// GetShardOfAddress -
+func (b *BlockChainHookStub) GetShardOfAddress(address []byte) uint32 {
+	if b.GetShardOfAddressCalled != nil {
+		return b.GetShardOfAddressCalled(address)
 	}
-	return nil, nil
+
+	return 0
+}
+
+// IsSmartContract -
+func (b *BlockChainHookStub) IsSmartContract(address []byte) bool {
+	if b.IsSmartContractCalled != nil {
+		return b.IsSmartContractCalled(address)
+	}
+
+	return false
 }
 
 // GetBlockhash -

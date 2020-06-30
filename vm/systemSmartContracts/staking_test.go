@@ -29,6 +29,7 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 		BleedPercentagePerRound:  0,
 		MaximumPercentageToBleed: 0,
 		MinNumNodes:              0,
+		Marshalizer:              &mock.MarshalizerMock{},
 	}
 }
 
@@ -160,7 +161,11 @@ func TestStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	stakeValue := big.NewInt(100)
-	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook := &mock.BlockChainHookStub{
+		GetUserAccountCalled: func(address []byte) (vmcommon.UserAccountHandler, error) {
+			return nil, state.ErrAccNotFound
+		},
+	}
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
 	eei.SetSCAddress([]byte("addr"))
 	args := createMockStakingScArguments()

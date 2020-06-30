@@ -35,6 +35,12 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 	if vmInput.CallValue.Cmp(zero) != 0 {
 		return nil, process.ErrBuiltInFunctionCalledWithValue
 	}
+	if len(vmInput.Arguments[0]) != len(vmInput.CallerAddr) {
+		return nil, process.ErrInvalidAddressLength
+	}
+	if vmInput.GasProvided < c.gasCost {
+		return nil, process.ErrNotEnoughGas
+	}
 	if check.IfNil(acntDst) {
 		// cross-shard call, in sender shard only the gas is taken out
 		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
@@ -42,12 +48,6 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 
 	if !bytes.Equal(vmInput.CallerAddr, acntDst.GetOwnerAddress()) {
 		return nil, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
-	}
-	if len(vmInput.Arguments[0]) != len(acntDst.AddressBytes()) {
-		return nil, process.ErrInvalidAddressLength
-	}
-	if vmInput.GasProvided < c.gasCost {
-		return nil, process.ErrNotEnoughGas
 	}
 
 	err := acntDst.ChangeOwnerAddress(vmInput.CallerAddr, vmInput.Arguments[0])

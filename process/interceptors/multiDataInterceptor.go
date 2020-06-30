@@ -113,26 +113,29 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		return err
 	}
 
-	lastErrEncountered := error(nil)
-	wgProcess := &sync.WaitGroup{}
-	wgProcess.Add(len(multiDataBuff))
+	listInterceptedData := make([]process.InterceptedData, len(multiDataBuff))
+	errOriginator := mdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), mdi.topic)
 
-	go func() {
-		wgProcess.Wait()
-		mdi.throttler.EndProcessing()
-	}()
-
-	for _, dataBuff := range multiDataBuff {
+	for index, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
 		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
+		listInterceptedData[index] = interceptedData
 		if err != nil {
-			lastErrEncountered = err
-			wgProcess.Done()
-			continue
+			mdi.throttler.EndProcessing()
+			return err
+		}
+
+		isWhiteListed := mdi.whiteListRequest.IsWhiteListed(interceptedData)
+		if !isWhiteListed && errOriginator != nil {
+			mdi.throttler.EndProcessing()
+			log.Trace("got message from peer on topic only for validators", "originator",
+				p2p.PeerIdToShortString(message.Peer()),
+				"topic", mdi.topic,
+				"err", errOriginator)
+			return errOriginator
 		}
 
 		isForCurrentShard := interceptedData.IsForCurrentShard()
-		isWhiteListed := mdi.whiteListRequest.IsWhiteListed(interceptedData)
 		shouldProcess := isForCurrentShard || isWhiteListed
 		if !shouldProcess {
 			log.Trace("intercepted data should not be processed",
@@ -143,21 +146,25 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 				"is for this shard", isForCurrentShard,
 				"is white listed", isWhiteListed,
 			)
-			wgProcess.Done()
-			continue
+			mdi.throttler.EndProcessing()
+			return process.ErrInterceptedDataNotForCurrentShard
 		}
-
-		go processInterceptedData(
-			mdi.processor,
-			mdi.interceptedDebugHandler,
-			interceptedData,
-			mdi.topic,
-			wgProcess,
-			message,
-		)
 	}
 
-	return lastErrEncountered
+	go func() {
+		for _, interceptedData := range listInterceptedData {
+			processInterceptedData(
+				mdi.processor,
+				mdi.interceptedDebugHandler,
+				interceptedData,
+				mdi.topic,
+				message,
+			)
+		}
+		mdi.throttler.EndProcessing()
+	}()
+
+	return nil
 }
 
 func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {

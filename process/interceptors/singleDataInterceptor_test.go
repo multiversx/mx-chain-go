@@ -324,6 +324,71 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
+func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T) {
+	t.Parallel()
+
+	checkCalledNum := int32(0)
+	processCalledNum := int32(0)
+	throttler := createMockThrottler()
+	interceptedData := &mock.InterceptedDataStub{
+		CheckValidityCalled: func() error {
+			return nil
+		},
+		IsForCurrentShardCalled: func() bool {
+			return false
+		},
+	}
+
+	whiteListHandler := &mock.WhiteListHandlerStub{
+		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+			return true
+		},
+	}
+	sdi, _ := interceptors.NewSingleDataInterceptor(
+		testTopic,
+		&mock.InterceptedDataFactoryStub{
+			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
+				return interceptedData, nil
+			},
+		},
+		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
+		throttler,
+		&mock.P2PAntifloodHandlerStub{
+			IsOriginatorEligibleForTopicCalled: func(pid core.PeerID, topic string) error {
+				return process.ErrOnlyValidatorsCanUseThisTopic
+			},
+		},
+		whiteListHandler,
+	)
+
+	msg := &mock.P2PMessageMock{
+		DataField: []byte("data to be processed"),
+	}
+	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+
+	time.Sleep(time.Second)
+
+	assert.Nil(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&checkCalledNum))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+
+	whiteListHandler.IsWhiteListedCalled = func(interceptedData process.InterceptedData) bool {
+		return false
+	}
+
+	err = sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+
+	time.Sleep(time.Second)
+
+	assert.Equal(t, err, process.ErrOnlyValidatorsCanUseThisTopic)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&checkCalledNum))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
+	assert.Equal(t, int32(2), throttler.EndProcessingCount())
+	assert.Equal(t, int32(2), throttler.EndProcessingCount())
+}
+
 //------- debug
 
 func TestSingleDataInterceptor_SetInterceptedDebugHandlerNilShouldErr(t *testing.T) {

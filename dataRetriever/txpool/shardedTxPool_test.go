@@ -101,8 +101,8 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	require.Equal(t, 200, int(pool.configPrototypeSourceMe.MinGasPriceNanoErd))
 	require.Equal(t, 300000, int(pool.configPrototypeSourceMe.CountThreshold))
 
-	require.Equal(t, 150000, int(pool.configPrototypeDestinationMe.MaxNumItems))
-	require.Equal(t, 104857600, int(pool.configPrototypeDestinationMe.MaxNumBytes))
+	require.Equal(t, 300000, int(pool.configPrototypeDestinationMe.MaxNumItems))
+	require.Equal(t, 209715200, int(pool.configPrototypeDestinationMe.MaxNumBytes))
 }
 
 func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {

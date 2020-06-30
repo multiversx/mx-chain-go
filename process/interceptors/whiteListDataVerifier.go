@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+const maxElementSize = 32
+
 var _ process.WhiteListHandler = (*whiteListDataVerifier)(nil)
 
 type whiteListDataVerifier struct {
@@ -31,12 +33,25 @@ func (w *whiteListDataVerifier) IsWhiteListed(interceptedData process.Intercepte
 		return false
 	}
 
-	return w.cache.Has(interceptedData.Hash())
+	for _, identifier := range interceptedData.Identifiers() {
+		if w.cache.Has(identifier) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Add adds all the list to the cache
 func (w *whiteListDataVerifier) Add(keys [][]byte) {
 	for _, key := range keys {
+		if len(key) > maxElementSize {
+			log.Warn("whitelist add", "error", "key too large",
+				"len", len(key),
+			)
+			continue
+		}
+
 		_ = w.cache.Put(key, struct{}{}, 0)
 	}
 }

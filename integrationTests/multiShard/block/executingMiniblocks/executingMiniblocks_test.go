@@ -1,6 +1,8 @@
 package executingMiniblocks
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -11,7 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -200,7 +205,14 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 		nonce++
 
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransactionWithGasLimit(node, sendValue, gasLimit, receiverAddress, []byte(""))
+			integrationTests.PlayerSendsTransaction(
+				nodes,
+				node.OwnAccount,
+				receiverAddress,
+				sendValue,
+				"",
+				gasLimit,
+			)
 		}
 
 		time.Sleep(2 * time.Second)
@@ -280,7 +292,14 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 
 	for _, node := range nodes {
 		for j := uint64(0); j < nrTxsToSend; j++ {
-			integrationTests.CreateAndSendTransactionWithGasLimit(node, halfInitVal, minGasLimit, receiverAddress, []byte(""))
+			integrationTests.PlayerSendsTransaction(
+				nodes,
+				node.OwnAccount,
+				receiverAddress,
+				halfInitVal,
+				"",
+				minGasLimit,
+			)
 		}
 	}
 
@@ -430,4 +449,138 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 	firstNodeOnMeta.ProposeBlock(round, nonce)
 
 	assert.Equal(t, roundDifference, putCounter)
+}
+
+// TestShouldSubtractTheCorrectTxFee uses the mock VM as it's gas model is predictable
+// The test checks the tx fee subtraction from the sender account when deploying a SC
+// It also checks the fee obtained by the leader is correct
+// Test parameters: 2 shards + meta, each with 2 nodes
+func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	maxShards := 2
+	consensusGroupSize := 2
+	nodesPerShard := 2
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	// create map of shards - testNodeProcessors for metachain and shard chain
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+		nodesPerShard,
+		nodesPerShard,
+		maxShards,
+		consensusGroupSize,
+		consensusGroupSize,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	for _, nodes := range nodesMap {
+		integrationTests.DisplayAndStartNodes(nodes)
+		integrationTests.SetEconomicsParameters(nodes, integrationTests.MaxGasLimitPerBlock, integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, nodes := range nodesMap {
+			for _, n := range nodes {
+				_ = n.Messenger.Close()
+			}
+		}
+	}()
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(integrationTests.StepDelay)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	initialVal := big.NewInt(10000000)
+	senders := integrationTests.CreateSendersWithInitialBalances(nodesMap, initialVal)
+
+	deployValue := big.NewInt(0)
+	nodeShard0 := nodesMap[0][0]
+	txData := "DEADBEEF@" + hex.EncodeToString(factory.InternalTestingVM) + "@00"
+	dummyTx := &transaction.Transaction{
+		Data: []byte(txData),
+	}
+	gasLimit := nodeShard0.EconomicsData.ComputeGasLimit(dummyTx)
+	gasLimit += integrationTests.OpGasValueForMockVm
+	gasPrice := integrationTests.MinTxGasPrice
+	txNonce := uint64(0)
+	owner := senders[0][0]
+	ownerPk, _ := owner.GeneratePublic().ToByteArray()
+	integrationTests.ScCallTxWithParams(
+		nodeShard0,
+		owner,
+		txNonce,
+		txData,
+		deployValue,
+		gasLimit,
+		gasPrice,
+	)
+
+	_, _, consensusNodes := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+	shardId0 := uint32(0)
+
+	_ = integrationTests.IncrementAndPrintRound(round)
+
+	// test sender account decreased its balance with gasPrice * gasLimit
+	accnt, err := consensusNodes[shardId0][0].AccntState.GetExistingAccount(ownerPk)
+	assert.Nil(t, err)
+	ownerAccnt := accnt.(state.UserAccountHandler)
+	expectedBalance := big.NewInt(0).Set(initialVal)
+	txCost := big.NewInt(0).SetUint64(gasPrice * gasLimit)
+	expectedBalance.Sub(expectedBalance, txCost)
+	assert.Equal(t, expectedBalance, ownerAccnt.GetBalance())
+
+	printContainingTxs(consensusNodes[shardId0][0], consensusNodes[shardId0][0].BlockChain.GetCurrentBlockHeader().(*block.Header))
+}
+
+func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr *block.Header) {
+	for _, miniblockHdr := range hdr.MiniBlockHeaders {
+		miniblockBytes, err := tpn.Storage.Get(dataRetriever.MiniBlockUnit, miniblockHdr.Hash)
+		if err != nil {
+			fmt.Println("miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.Hash) + "not found")
+			continue
+		}
+
+		miniblock := &block.MiniBlock{}
+		err = integrationTests.TestMarshalizer.Unmarshal(miniblock, miniblockBytes)
+		if err != nil {
+			fmt.Println("can not unmarshal miniblock " + base64.StdEncoding.EncodeToString(miniblockHdr.Hash))
+			continue
+		}
+
+		for _, txHash := range miniblock.TxHashes {
+			txBytes := []byte("not found")
+
+			mbType := miniblockHdr.Type
+			switch mbType {
+			case block.TxBlock:
+				txBytes, err = tpn.Storage.Get(dataRetriever.TransactionUnit, txHash)
+				if err != nil {
+					fmt.Println("tx hash " + base64.StdEncoding.EncodeToString(txHash) + " not found")
+					continue
+				}
+			case block.SmartContractResultBlock:
+				txBytes, err = tpn.Storage.Get(dataRetriever.UnsignedTransactionUnit, txHash)
+				if err != nil {
+					fmt.Println("scr hash " + base64.StdEncoding.EncodeToString(txHash) + " not found")
+					continue
+				}
+			case block.RewardsBlock:
+				txBytes, err = tpn.Storage.Get(dataRetriever.RewardTransactionUnit, txHash)
+				if err != nil {
+					fmt.Println("reward hash " + base64.StdEncoding.EncodeToString(txHash) + " not found")
+					continue
+				}
+			}
+
+			fmt.Println(string(txBytes))
+		}
+	}
 }

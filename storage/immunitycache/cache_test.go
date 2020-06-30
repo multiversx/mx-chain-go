@@ -76,6 +76,20 @@ func TestImmunityCache_ImmunizeAgainstEviction(t *testing.T) {
 	require.Equal(t, 2, cache.CountImmune())
 }
 
+func TestImmunityCache_ImmunizeDoesNothingIfCapacityReached(t *testing.T) {
+	cache := newCacheToTest(1, 4, maxNumBytesUpperBound)
+
+	numNow, numFuture := cache.ImmunizeKeys(keysAsBytes([]string{"a", "b", "c", "d"}))
+	require.Equal(t, 0, numNow)
+	require.Equal(t, 4, numFuture)
+	require.Equal(t, 4, cache.CountImmune())
+
+	numNow, numFuture = cache.ImmunizeKeys(keysAsBytes([]string{"e", "f", "g", "h"}))
+	require.Equal(t, 0, numNow)
+	require.Equal(t, 0, numFuture)
+	require.Equal(t, 4, cache.CountImmune())
+}
+
 func TestImmunityCache_AddThenRemove(t *testing.T) {
 	cache := newCacheToTest(1, 8, maxNumBytesUpperBound)
 
@@ -84,6 +98,7 @@ func TestImmunityCache_AddThenRemove(t *testing.T) {
 	_, _ = cache.HasOrAdd([]byte("c"), "foo-c", 0)
 	_ = cache.Put([]byte("d"), "foo-d", 0) // Same as HasOrAdd()
 	require.Equal(t, 4, cache.Len())
+	require.Equal(t, 4, int(cache.hospitality.Get()))
 	require.True(t, cache.Has([]byte("a")))
 	require.True(t, cache.Has([]byte("c")))
 
@@ -190,10 +205,12 @@ func TestImmunityCache_AddDoesNotWork_WhenFullWithImmune(t *testing.T) {
 	numNow, numFuture := cache.ImmunizeKeys(keysAsBytes([]string{"a", "b", "c", "d"}))
 	require.Equal(t, 4, numNow)
 	require.Equal(t, 0, numFuture)
+	require.Equal(t, 4, int(cache.hospitality.Get()))
 
 	_, added := cache.HasOrAdd([]byte("x"), "foo-x", 1)
 	require.False(t, added)
 	require.False(t, cache.Has([]byte("x")))
+	require.Equal(t, 3, int(cache.hospitality.Get()))
 }
 
 func TestImmunityCache_ForEachItem(t *testing.T) {
@@ -221,6 +238,42 @@ func TestImmunityCache_Fnv32Hash(t *testing.T) {
 	require.Equal(t, 1, int(fnv32Hash("b")%4))
 	require.Equal(t, 0, int(fnv32Hash("c")%4))
 	require.Equal(t, 3, int(fnv32Hash("d")%4))
+}
+
+func TestImmunityCache_DiagnoseAppliesLimitToHospitality(t *testing.T) {
+	cache := newCacheToTest(1, hospitalityUpperLimit*42, 1000)
+
+	for i := 0; i < hospitalityUpperLimit*2; i++ {
+		cache.addTestItems(fmt.Sprintf("%d", i))
+		require.Equal(t, i+1, int(cache.hospitality.Get()))
+	}
+
+	require.Equal(t, hospitalityUpperLimit*2, int(cache.hospitality.Get()))
+	cache.Diagnose(false)
+	require.Equal(t, hospitalityUpperLimit, int(cache.hospitality.Get()))
+}
+
+func TestImmunityCache_DiagnoseResetsHospitalityAfterWarn(t *testing.T) {
+	cache := newCacheToTest(1, 4, 1000)
+	cache.addTestItems("a", "b", "c", "d")
+	_, _ = cache.ImmunizeKeys(keysAsBytes([]string{"a", "b", "c", "d"}))
+	require.Equal(t, 4, int(cache.hospitality.Get()))
+
+	cache.addTestItems("e", "f", "g", "h")
+	require.Equal(t, 0, int(cache.hospitality.Get()))
+
+	for i := -1; i > hospitalityWarnThreshold; i-- {
+		cache.addTestItems("foo")
+		require.Equal(t, i, int(cache.hospitality.Get()))
+	}
+
+	require.Equal(t, hospitalityWarnThreshold+1, int(cache.hospitality.Get()))
+	cache.Diagnose(false)
+	require.Equal(t, hospitalityWarnThreshold+1, int(cache.hospitality.Get()))
+	cache.addTestItems("foo")
+	require.Equal(t, hospitalityWarnThreshold, int(cache.hospitality.Get()))
+	cache.Diagnose(false)
+	require.Equal(t, 0, int(cache.hospitality.Get()))
 }
 
 func TestImmunityCache_ClearConcurrentWithRangeOverChunks(t *testing.T) {

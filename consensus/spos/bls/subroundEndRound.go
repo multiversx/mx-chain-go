@@ -85,10 +85,11 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 	}
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
-		sr.PeerHonestyHandler().Decrease(
+		sr.PeerHonestyHandler().ChangeScore(
 			node,
 			spos.GetConsensusTopicID(sr.ShardCoordinator()),
-			spos.LeaderPeerHonestyDecreaseFactor)
+			spos.LeaderPeerHonestyDecreaseFactor,
+		)
 
 		return false
 	}
@@ -110,10 +111,11 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 		"AggregateSignature", cnsDta.AggregateSignature,
 		"LeaderSignature", cnsDta.LeaderSignature)
 
-	sr.PeerHonestyHandler().Increase(
+	sr.PeerHonestyHandler().ChangeScore(
 		node,
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.LeaderPeerHonestyIncreaseFactor)
+		spos.LeaderPeerHonestyIncreaseFactor,
+	)
 
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }
@@ -305,9 +307,11 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
-	err = sr.setHeaderForValidator(header)
-	if err != nil {
-		log.Warn("doEndRoundJobByParticipant", "error", err.Error())
+	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+		err = sr.setHeaderForValidator(header)
+		if err != nil {
+			log.Warn("doEndRoundJobByParticipant", "error", err.Error())
+		}
 	}
 
 	sr.displayStatistics()
@@ -414,7 +418,9 @@ func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) err
 		return err
 	}
 
-	return sr.BroadcastMessenger().PrepareBroadcastHeaderValidator(header, miniBlocks, transactions, idx)
+	go sr.BroadcastMessenger().PrepareBroadcastHeaderValidator(header, miniBlocks, transactions, idx)
+
+	return nil
 }
 
 func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {
@@ -428,7 +434,9 @@ func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {
 		return err
 	}
 
-	return sr.BroadcastMessenger().PrepareBroadcastBlockDataValidator(sr.Header, miniBlocks, transactions, idx)
+	go sr.BroadcastMessenger().PrepareBroadcastBlockDataValidator(sr.Header, miniBlocks, transactions, idx)
+
+	return nil
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved

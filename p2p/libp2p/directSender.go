@@ -30,7 +30,7 @@ type directSender struct {
 	counter        uint64
 	ctx            context.Context
 	hostP2P        host.Host
-	messageHandler func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	messageHandler func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error
 	mutSeenMesages sync.Mutex
 	seenMessages   *timecache.TimeCache
 	mutexForPeer   *MutexHolder
@@ -40,7 +40,7 @@ type directSender struct {
 func NewDirectSender(
 	ctx context.Context,
 	h host.Host,
-	messageHandler func(msg p2p.MessageP2P, fromConnectedPeer core.PeerID) error,
+	messageHandler func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error,
 ) (*directSender, error) {
 
 	if h == nil {
@@ -120,15 +120,11 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 		return p2p.ErrAlreadySeenMessage
 	}
 
-	p2pMsg, err := NewMessage(
-		&pubsub.Message{
-			Message: message,
-		},
-	)
-	if err != nil {
-		return err
+	pbMessage := &pubsub.Message{
+		Message: message,
 	}
-	return ds.messageHandler(p2pMsg, core.PeerID(fromConnectedPeer))
+
+	return ds.messageHandler(pbMessage, core.PeerID(fromConnectedPeer))
 }
 
 func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
