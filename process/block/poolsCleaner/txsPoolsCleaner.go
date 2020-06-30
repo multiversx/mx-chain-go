@@ -117,8 +117,13 @@ func (tpc *txsPoolsCleaner) cleanTxsPools(ctx context.Context) {
 		case <-time.After(sleepTime):
 		}
 
+		startTime := time.Now()
 		numTxsInMap := tpc.cleanTxsPoolsIfNeeded()
-		log.Debug("txsPoolsCleaner.cleanTxsPools", "num txs in map", numTxsInMap)
+		elapsedTime := time.Since(startTime)
+
+		log.Debug("txsPoolsCleaner.cleanTxsPools",
+			"num txs in map", numTxsInMap,
+			"elapsed time", elapsedTime)
 	}
 }
 
@@ -216,11 +221,10 @@ func (tpc *txsPoolsCleaner) processReceivedTx(
 }
 
 func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
-	tpc.mutMapTxsRounds.Lock()
-	defer tpc.mutMapTxsRounds.Unlock()
-
 	numTxsCleaned := 0
+	hashesToRemove := make(map[string]storage.Cacher)
 
+	tpc.mutMapTxsRounds.Lock()
 	for hash, currTxInfo := range tpc.mapTxsRounds {
 		_, ok := currTxInfo.txStore.Get([]byte(hash))
 		if !ok {
@@ -247,7 +251,7 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 			continue
 		}
 
-		currTxInfo.txStore.Remove([]byte(hash))
+		hashesToRemove[hash] = currTxInfo.txStore
 		delete(tpc.mapTxsRounds, hash)
 		numTxsCleaned++
 
@@ -259,11 +263,22 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 			"type", getTxTypeName(currTxInfo.txType))
 	}
 
+	numTxsRounds := len(tpc.mapTxsRounds)
+	tpc.mutMapTxsRounds.Unlock()
+
+	startTime := time.Now()
+	for hash, txStore := range hashesToRemove {
+		txStore.Remove([]byte(hash))
+	}
+	elapsedTime := time.Since(startTime)
+
 	if numTxsCleaned > 0 {
-		log.Debug("txsPoolsCleaner.cleanTxsPoolsIfNeeded", "num txs cleaned", numTxsCleaned)
+		log.Debug("txsPoolsCleaner.cleanTxsPoolsIfNeeded",
+			"num txs cleaned", numTxsCleaned,
+			"elapsed time to remove txs from cacher", elapsedTime)
 	}
 
-	return len(tpc.mapTxsRounds)
+	return numTxsRounds
 }
 
 func (tpc *txsPoolsCleaner) getTransactionPool(txType int8) dataRetriever.ShardedDataCacherNotifier {

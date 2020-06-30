@@ -205,17 +205,19 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 	idx int,
-) error {
+) {
 	if check.IfNil(header) {
-		return spos.ErrNilHeader
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", spos.ErrNilHeader)
+		return
 	}
 	if len(miniBlocks) == 0 {
-		return nil
+		return
 	}
 
 	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
 	if err != nil {
-		return err
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", err)
+		return
 	}
 
 	broadcastData := &delayedBroadcastData{
@@ -226,7 +228,10 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 		order:          uint32(idx),
 	}
 
-	return scm.delayedBlockBroadcaster.SetValidatorData(broadcastData)
+	err = scm.delayedBlockBroadcaster.SetValidatorData(broadcastData)
+	if err != nil {
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", err)
+	}
 }
 
 // Close closes all the started infinite looping goroutines and subcomponents
