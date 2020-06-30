@@ -25,5 +25,6 @@ message Transaction {
 	uint64   GasLimit    = 8  [(gogoproto.jsontag) = "gasLimit,omitempty"];
 	bytes    Data        = 9  [(gogoproto.jsontag) = "data,omitempty"];
 	bytes    ChainID     = 10 [(gogoproto.jsontag) = "chainID"];
-	bytes    Signature   = 11 [(gogoproto.jsontag) = "signature,omitempty"];
+	uint32   Version     = 11 [(gogoproto.jsontag) = "version"];
+	bytes    Signature   = 12 [(gogoproto.jsontag) = "signature,omitempty"];
 }

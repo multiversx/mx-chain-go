@@ -768,6 +768,7 @@ func newShardInterceptorContainerFactory(
 		AntifloodHandler:        network.InputAntifloodHandler,
 		ArgumentsParser:         smartContract.NewArgumentParser(),
 		ChainID:                 dataCore.ChainID,
+		MinTransactionVersion:   dataCore.MinTransactionVersion,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -824,6 +825,7 @@ func newMetaInterceptorContainerFactory(
 		AntifloodHandler:        network.InputAntifloodHandler,
 		ArgumentsParser:         smartContract.NewArgumentParser(),
 		ChainID:                 dataCore.ChainID,
+		MinTransactionVersion:   dataCore.MinTransactionVersion,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {

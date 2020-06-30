@@ -72,6 +72,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 		nodes[idxSender].OwnAccount.SkTxSign,
 		nil,
 		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 
 	time.Sleep(time.Second * 10)
@@ -166,6 +167,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 		nodes[idxSender].OwnAccount.SkTxSign,
 		nil,
 		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 
 	//display, can be removed
@@ -287,6 +289,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 		nodes[0].OwnAccount.SkTxSign,
 		whiteListTxs,
 		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 
 	fmt.Println("Waiting for senders to fetch generated transactions...")

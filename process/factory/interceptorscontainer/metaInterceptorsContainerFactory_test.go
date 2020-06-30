@@ -494,5 +494,6 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
 		ChainID:                 []byte("chainID"),
+		MinTransactionVersion:   1,
 	}
 }

@@ -31,4 +31,5 @@ type ArgInterceptedDataFactory struct {
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	ArgsParser              process.ArgumentsParser
 	ChainID                 []byte
+	MinTransactionVersion   uint32
 }

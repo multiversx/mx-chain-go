@@ -71,6 +71,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgsParser:              &mock.ArgumentParserMock{},
 		ChainID:                 []byte("chainID"),
+		MinTransactionVersion:   1,
 	}
 }
 

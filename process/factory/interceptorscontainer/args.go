@@ -41,6 +41,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	AntifloodHandler        process.P2PAntifloodHandler
 	ArgumentsParser         process.ArgumentsParser
 	ChainID                 []byte
+	MinTransactionVersion   uint32
 }
 
 // MetaInterceptorsContainerFactoryArgs holds the arguments needed for MetaInterceptorsContainerFactory
@@ -73,4 +74,5 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	AntifloodHandler        process.P2PAntifloodHandler
 	ArgumentsParser         process.ArgumentsParser
 	ChainID                 []byte
+	MinTransactionVersion   uint32
 }

@@ -92,6 +92,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		integrationTests.MinTxGasPrice,
 		integrationTests.MinTxGasLimit,
 		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)

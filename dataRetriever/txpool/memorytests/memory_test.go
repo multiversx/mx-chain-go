@@ -41,11 +41,11 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 
 	// With larger memory footprint
 
-	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 300}, memoryAssertion{95, 110}))
-	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 300}, memoryAssertion{120, 130}))
-	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 300}, memoryAssertion{170, 190}))
-	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 300}, memoryAssertion{60, 70}))
-	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 300}, memoryAssertion{60, 70}))
+	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 310}, memoryAssertion{95, 110}))
+	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 310}, memoryAssertion{120, 130}))
+	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 310}, memoryAssertion{170, 190}))
+	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 310}, memoryAssertion{60, 70}))
+	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 310}, memoryAssertion{60, 70}))
 
 	// Scenarios where destination == me
 

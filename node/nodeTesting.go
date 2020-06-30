@@ -33,6 +33,7 @@ func (n *Node) GenerateAndSendBulkTransactions(
 	sk crypto.PrivateKey,
 	whiteList func([]*transaction.Transaction),
 	chainID []byte,
+	minTxVersion uint32,
 ) error {
 	if sk == nil {
 		return ErrNilPrivateKey
@@ -77,6 +78,7 @@ func (n *Node) GenerateAndSendBulkTransactions(
 				"",
 				sk,
 				chainID,
+				minTxVersion,
 			)
 
 			if errGenTx != nil {
@@ -197,6 +199,7 @@ func (n *Node) generateAndSignSingleTx(
 	dataField string,
 	sk crypto.PrivateKey,
 	chainID []byte,
+	minTxVersion uint32,
 ) (*transaction.Transaction, []byte, error) {
 	if check.IfNil(n.internalMarshalizer) {
 		return nil, nil, ErrNilMarshalizer
@@ -217,6 +220,7 @@ func (n *Node) generateAndSignSingleTx(
 		SndAddr:  sndAddrBytes,
 		Data:     []byte(dataField),
 		ChainID:  chainID,
+		Version:  minTxVersion,
 	}
 
 	marshalizedTx, err := tx.GetDataForSigning(n.addressPubkeyConverter, n.txSignMarshalizer)
@@ -246,8 +250,9 @@ func (n *Node) generateAndSignTxBuffArray(
 	data string,
 	sk crypto.PrivateKey,
 	chainID []byte,
+	minTxVersion uint32,
 ) (*transaction.Transaction, []byte, error) {
-	tx, txBuff, err := n.generateAndSignSingleTx(nonce, value, rcvAddrBytes, sndAddrBytes, data, sk, chainID)
+	tx, txBuff, err := n.generateAndSignSingleTx(nonce, value, rcvAddrBytes, sndAddrBytes, data, sk, chainID, minTxVersion)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -261,7 +266,7 @@ func (n *Node) generateAndSignTxBuffArray(
 }
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
-func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *big.Int, transactionData string, privateKey crypto.PrivateKey, chainID []byte) (*transaction.Transaction, error) {
+func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *big.Int, transactionData string, privateKey crypto.PrivateKey, chainID []byte, minTxVersion uint32) (*transaction.Transaction, error) {
 	if check.IfNil(n.addressPubkeyConverter) {
 		return nil, ErrNilPubkeyConverter
 	}
@@ -300,6 +305,7 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 		transactionData,
 		privateKey,
 		chainID,
+		minTxVersion,
 	)
 
 	return tx, err

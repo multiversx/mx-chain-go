@@ -44,6 +44,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	NonceConverter         typeConverters.Uint64ByteSliceConverter
 	ChainID                []byte
 	ArgumentsParser        process.ArgumentsParser
+	MinTransactionVersion  uint32
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -96,6 +97,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		AntifloodHandler:        antiFloodHandler,
 		ArgumentsParser:         args.ArgumentsParser,
 		ChainID:                 args.ChainID,
+		MinTransactionVersion:   args.MinTransactionVersion,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

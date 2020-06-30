@@ -22,12 +22,13 @@ func TestInterceptedTxWhithoutDataField(t *testing.T) {
 		0,
 		value,
 		"erd12dnfhej64s6c56ka369gkyj3hwv5ms0y5rxgsk2k7hkd2vuk7rvqxkalsa",
-		"erd1mz65n2x7tggk3gge2x3hsy9clalq83ujdhharmx8k46jav3vzq9q9cgcqx",
-		"a077852ca62b4d6fbbaa5cdb8984963211fd0c157d0e04722c375a5ce023c78c61cf6557bfd9ab201decc0646c9084d8b44c3fc9c94a668515445dd5eb2f7f02",
+		"erd1r37vju4vtruk5nnxrudnfg2ajy64xr0ztceqhcljlce648a258wswwv9zy",
+		"0294d19f2699e049e3a535922205fe87a6b3ecd1c4f8662082fd9d1ba9b190f61c607269f7ae682eff95c517f214d49214d724b34416d7dff87ad069d73eae09",
 		10,
 		100000,
 		[]byte(""),
 		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 }
 
@@ -40,12 +41,13 @@ func TestInterceptedTxWhithDataField(t *testing.T) {
 		0,
 		value,
 		"erd12dnfhej64s6c56ka369gkyj3hwv5ms0y5rxgsk2k7hkd2vuk7rvqxkalsa",
-		"erd1xehvyp68ufu7gd543nrjs4m5fx2d090qkeqh5k7y3yt42en0ealszcr5n8",
-		"9fcccee9545345be4aa36883b5938581f9d1ff7eb54190b1507364d43aaa8236fe655ef75d77c8973779c321ff454cb35c6689947c81ebbc2208327b694a0708",
+		"erd14t6l0x27w4d4354sqfm40wuv9p0r49uzl9598eka290x9kws2nvqlkc36j",
+		"1e4692dffac8d6c3ca4115676f866e2ded9322b6ba6981853f48d737dd041e8b7255bd9d61636e060a1d9664d97c0f015a26a2cf2a7111a0f1a67c56d54ee902",
 		10,
 		100000,
-		[]byte("erd-test-data"),
+		[]byte("data@~`!@#$^&*()_=[]{};'<>?,./|<>><!!!!!"),
 		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 }
 
@@ -62,6 +64,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	frontendGasLimit uint64,
 	frontendData []byte,
 	chainID []byte,
+	version uint32,
 ) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -128,6 +131,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		Data:      frontendData,
 		Signature: signatureBytes,
 		ChainID:   chainID,
+		Version:   version,
 	}
 	tx.Value = big.NewInt(0).Set(frontendValue)
 	txHexHash, err = node.SendTransaction(tx)

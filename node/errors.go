@@ -177,3 +177,6 @@ var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")
 
 // ErrNilWatchdog signals that a nil watchdog has been provided
 var ErrNilWatchdog = errors.New("nil watchdog")
+
+// ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
+var ErrInvalidTransactionVersion = errors.New("invalid transaction version")

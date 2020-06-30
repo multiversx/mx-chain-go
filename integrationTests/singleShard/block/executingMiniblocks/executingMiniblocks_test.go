@@ -164,6 +164,7 @@ func generateTransferTxs(
 			integrationTests.MinTxGasPrice,
 			integrationTests.MinTxGasLimit,
 			integrationTests.ChainID,
+			integrationTests.MinTransactionVersion,
 		)
 
 		hashes[i], _ = core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, txs[i])

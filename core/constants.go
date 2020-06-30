@@ -287,6 +287,9 @@ const MetricMinGasPrice = "erd_min_gas_price"
 // MetricMinGasLimit is the metric that specifies the minimum gas limit
 const MetricMinGasLimit = "erd_min_gas_limit"
 
+// MetricMinTransactionVersion is the metric that specifies the minimum transaction version
+const MetricMinTransactionVersion = "erd_min_transaction_version"
+
 // MetricGasPerDataByte is the metric that specifies the required gas for a data byte
 const MetricGasPerDataByte = "erd_gas_per_data_byte"
 

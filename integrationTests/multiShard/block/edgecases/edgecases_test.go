@@ -241,6 +241,7 @@ func generateAndSendTxs(
 			integrationTests.MinTxGasPrice,
 			integrationTests.MinTxGasLimit,
 			integrationTests.ChainID,
+			integrationTests.MinTransactionVersion,
 		)
 
 		txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)

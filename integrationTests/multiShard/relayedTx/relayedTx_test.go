@@ -106,6 +106,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 		make([]byte, 32),
 		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
 		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 
 	transferTokenVMGas := uint64(6960)
@@ -122,6 +123,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 			scAddress,
 			[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(initialTokenSupply.Bytes())),
 			integrationTests.ChainID,
+			integrationTests.MinTransactionVersion,
 		)
 	}
 	time.Sleep(time.Second)

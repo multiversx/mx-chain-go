@@ -544,5 +544,6 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
 		ChainID:                 []byte("chainID"),
+		MinTransactionVersion:   1,
 	}
 }

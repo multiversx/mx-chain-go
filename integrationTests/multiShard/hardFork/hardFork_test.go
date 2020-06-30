@@ -173,6 +173,7 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		make([]byte, 32),
 		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
 		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 	time.Sleep(time.Second)
 	/////////----- wait for epoch end period
@@ -194,6 +195,7 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 				scAddress,
 				[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(transferToken.Bytes())),
 				integrationTests.ChainID,
+				integrationTests.MinTransactionVersion,
 			)
 		}
 

@@ -38,6 +38,7 @@ type InterceptedTransaction struct {
 	whiteListerVerifiedTxs process.WhiteListHandler
 	argsParser             process.ArgumentsParser
 	chainID                []byte
+	minTransactionVersion  uint32
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -54,6 +55,7 @@ func NewInterceptedTransaction(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	argsParser process.ArgumentsParser,
 	chainID []byte,
+	minTxVersion uint32,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -92,6 +94,9 @@ func NewInterceptedTransaction(
 	if len(chainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
+	if minTxVersion == 0 {
+		return nil, process.ErrInvalidTransactionVersion
+	}
 
 	tx, err := createTx(protoMarshalizer, txBuff)
 	if err != nil {
@@ -111,6 +116,7 @@ func NewInterceptedTransaction(
 		whiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		argsParser:             argsParser,
 		chainID:                chainID,
+		minTransactionVersion:  minTxVersion,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -222,7 +228,10 @@ func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 
 // integrity checks for not nil fields and negative value
 func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error {
-	if tx.ChainID == nil || !bytes.Equal(tx.ChainID, inTx.chainID) {
+	if tx.Version < inTx.minTransactionVersion {
+		return process.ErrInvalidTransactionVersion
+	}
+	if !bytes.Equal(tx.ChainID, inTx.chainID) {
 		return process.ErrInvalidChainID
 	}
 	if tx.Signature == nil {

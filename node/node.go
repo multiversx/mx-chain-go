@@ -129,7 +129,9 @@ type Node struct {
 	headerSigVerifier       spos.RandSeedVerifier
 	headerIntegrityVerifier spos.HeaderIntegrityVerifier
 
-	chainID                  []byte
+	chainID               []byte
+	minTransactionVersion uint32
+
 	blockTracker             process.BlockTracker
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
@@ -830,6 +832,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.whiteListerVerifiedTxs,
 		argumentParser,
 		n.chainID,
+		n.minTransactionVersion,
 	)
 	if err != nil {
 		return err
@@ -897,7 +900,11 @@ func (n *Node) CreateTransaction(
 	dataField string,
 	signatureHex string,
 	chainID string,
+	version uint32,
 ) (*transaction.Transaction, []byte, error) {
+	if version == 0 {
+		return nil, nil, ErrInvalidTransactionVersion
+	}
 	if chainID == "" {
 		return nil, nil, ErrInvalidChainID
 	}
@@ -938,6 +945,7 @@ func (n *Node) CreateTransaction(
 		Data:      []byte(dataField),
 		Signature: signatureBytes,
 		ChainID:   []byte(chainID),
+		Version:   version,
 	}
 
 	var txHash []byte

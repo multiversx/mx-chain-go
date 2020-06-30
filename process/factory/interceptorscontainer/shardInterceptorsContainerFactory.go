@@ -79,6 +79,9 @@ func NewShardInterceptorsContainerFactory(
 	if len(args.ChainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
+	if args.MinTransactionVersion == 0 {
+		return nil, process.ErrInvalidTransactionVersion
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		ProtoMarshalizer:        args.ProtoMarshalizer,
@@ -100,6 +103,7 @@ func NewShardInterceptorsContainerFactory(
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		ArgsParser:              args.ArgumentsParser,
 		ChainID:                 args.ChainID,
+		MinTransactionVersion:   args.MinTransactionVersion,
 	}
 
 	container := containers.NewInterceptorsContainer()

@@ -25,6 +25,7 @@ type interceptedTxDataFactory struct {
 	whiteListerVerifiedTxs process.WhiteListHandler
 	argsParser             process.ArgumentsParser
 	chainID                []byte
+	minTransactionVersion  uint32
 }
 
 // NewInterceptedTxDataFactory creates an instance of interceptedTxDataFactory
@@ -65,6 +66,9 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if len(argument.ChainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
+	if argument.MinTransactionVersion == 0 {
+		return nil, process.ErrInvalidTransactionVersion
+	}
 
 	return &interceptedTxDataFactory{
 		protoMarshalizer:       argument.ProtoMarshalizer,
@@ -78,6 +82,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		whiteListerVerifiedTxs: argument.WhiteListerVerifiedTxs,
 		argsParser:             argument.ArgsParser,
 		chainID:                argument.ChainID,
+		minTransactionVersion:  argument.MinTransactionVersion,
 	}, nil
 }
 
@@ -96,6 +101,7 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 		itdf.whiteListerVerifiedTxs,
 		itdf.argsParser,
 		itdf.chainID,
+		itdf.minTransactionVersion,
 	)
 }
 

@@ -137,6 +137,9 @@ const roundDuration = 5 * time.Second
 // ChainID is the chain ID identifier used in integration tests, processing nodes
 var ChainID = []byte("integration tests chain ID")
 
+// MinTransactionVersion is the minimum transaction version used in integration testes, processing nodes
+var MinTransactionVersion = uint32(999)
+
 // SoftwareVersion is the software version identifier used in integration tests, processing nodes
 var SoftwareVersion = []byte("intT")
 
@@ -243,7 +246,8 @@ type TestProcessorNode struct {
 
 	InitialNodes []*sharding.InitialNode
 
-	ChainID []byte
+	ChainID               []byte
+	MinTransactionVersion uint32
 
 	ExportHandler update.ExportHandler
 	WaitTime      time.Duration
@@ -327,6 +331,7 @@ func newBaseTestProcessorNode(
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
 		ChainID:                 ChainID,
+		MinTransactionVersion:   MinTransactionVersion,
 		NodesSetup:              nodesSetup,
 	}
 
@@ -435,6 +440,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                 ChainID,
 		NodesSetup:              &mock.NodesSetupStub{},
+		MinTransactionVersion:   MinTransactionVersion,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -762,6 +768,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			ChainID:                 tpn.ChainID,
+			MinTransactionVersion:   tpn.MinTransactionVersion,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -822,6 +829,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			ChainID:                 tpn.ChainID,
+			MinTransactionVersion:   tpn.MinTransactionVersion,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1421,6 +1429,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithChainID(tpn.ChainID),
+		node.WithMinTransactionVersion(tpn.MinTransactionVersion),
 	)
 	log.LogIfError(err)
 
@@ -1453,6 +1462,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		string(tx.Data),
 		hex.EncodeToString(tx.Signature),
 		string(tx.ChainID),
+		tx.Version,
 	)
 	if err != nil {
 		return "", err
