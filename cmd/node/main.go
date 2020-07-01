@@ -705,7 +705,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating network components")
-	args := mainFactory.NetworkComponentsHandlerArgs{
+	args := mainFactory.NetworkComponentsFactoryArgs{
 		P2pConfig:     *p2pConfig,
 		MainConfig:    *generalConfig,
 		StatusHandler: managedCoreComponents.StatusHandler(),
@@ -850,12 +850,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	trieContainer, trieStorageManager := bootstrapper.GetTriesComponents()
-	triesComponents := &mainFactory.TriesComponents{
-		TriesContainer:      trieContainer,
-		TrieStorageManagers: trieStorageManager,
-	}
-
 	log.Info("bootstrap parameters", "shardId", bootstrapParameters.SelfShardId, "epoch", bootstrapParameters.Epoch, "numShards", bootstrapParameters.NumOfShards)
 
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(bootstrapParameters.NumOfShards, bootstrapParameters.SelfShardId)
@@ -882,6 +876,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		workingDir,
 		managedCoreComponents.PathHandler(),
 		shardId)
+	if err != nil {
+		return err
+	}
+
+	log.Trace("creating state components")
+	stateArgs := mainFactory.StateComponentsFactoryArgs{
+		Config:           *generalConfig,
+		ShardCoordinator: shardCoordinator,
+		Core:             managedCoreComponents,
+	}
+	managedStateComponents, err := mainFactory.NewManagedStateComponents(stateArgs)
+	if err != nil {
+		return err
+	}
+
+	err = managedStateComponents.Create()
+	if err != nil {
+		return err
+	}
+
+	trieContainer, trieStorageManager := bootstrapper.GetTriesComponents()
+	err = managedStateComponents.SetTriesContainer(trieContainer)
+	if err != nil {
+		return err
+	}
+	err = managedStateComponents.SetTriesStorageManagers(trieStorageManager)
 	if err != nil {
 		return err
 	}
@@ -967,22 +987,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		bootstrapParameters,
 		currentEpoch,
 	)
-	if err != nil {
-		return err
-	}
-
-	log.Trace("creating state components")
-	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:           *generalConfig,
-		ShardCoordinator: shardCoordinator,
-		Core:             managedCoreComponents,
-		Tries:            triesComponents,
-	}
-	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
-	if err != nil {
-		return err
-	}
-	stateComponents, err := stateComponentsFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -1109,9 +1113,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Data:                      managedDataComponents,
 		CoreData:                  managedCoreComponents,
 		Crypto:                    managedCryptoComponents,
-		State:                     stateComponents,
+		State:                     managedStateComponents,
 		Network:                   managedNetworkComponents,
-		Tries:                     triesComponents,
 		CoreServiceContainer:      coreServiceContainer,
 		RequestedItemsHandler:     requestedItemsHandler,
 		WhiteListHandler:          whiteListRequest,
@@ -1149,7 +1152,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator,
 		nodesCoordinator,
 		managedCoreComponents,
-		stateComponents,
+		managedStateComponents,
 		managedDataComponents,
 		managedCryptoComponents,
 		managedProcessComponents,
@@ -1188,7 +1191,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator,
 		nodesCoordinator,
 		managedCoreComponents,
-		stateComponents,
+		managedStateComponents,
 		managedDataComponents,
 		managedCryptoComponents,
 		managedProcessComponents,
@@ -1229,9 +1232,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating api resolver structure")
 	apiResolver, err := createApiResolver(
 		generalConfig,
-		stateComponents.AccountsAdapter,
-		stateComponents.PeerAccounts,
-		stateComponents.AddressPubkeyConverter,
+		managedStateComponents.AccountsAdapter(),
+		managedStateComponents.PeerAccounts(),
+		managedCoreComponents.AddressPubKeyConverter(),
 		managedDataComponents.StorageService(),
 		managedDataComponents.Blockchain(),
 		managedCoreComponents.InternalMarshalizer(),
@@ -1250,6 +1253,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("starting status pooling components")
+
 	statusPollingInterval := time.Duration(generalConfig.GeneralSettings.StatusPollingIntervalSec) * time.Second
 	err = metrics.StartStatusPolling(
 		currentNode.GetAppStatusHandler(),
@@ -1314,7 +1318,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(log, healthService, managedDataComponents, triesComponents, managedNetworkComponents, chanCloseComponents)
+		closeAllComponents(log, healthService, managedDataComponents, managedStateComponents, managedNetworkComponents, chanCloseComponents)
 	}()
 
 	select {
@@ -1332,7 +1336,7 @@ func closeAllComponents(
 	log logger.Logger,
 	healthService io.Closer,
 	dataComponents mainFactory.DataComponentsHolder,
-	triesComponents *mainFactory.TriesComponents,
+	stateComponents mainFactory.StateComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
 	chanCloseComponents chan struct{},
 ) {
@@ -1344,7 +1348,7 @@ func closeAllComponents(
 	err = dataComponents.StorageService().CloseAll()
 	log.LogIfError(err)
 
-	dataTries := triesComponents.TriesContainer.GetAll()
+	dataTries := stateComponents.TriesContainer().GetAll()
 	for _, trie := range dataTries {
 		err = trie.ClosePersister()
 		log.LogIfError(err)
@@ -1871,7 +1875,7 @@ func createHardForkTrigger(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	coreData mainFactory.CoreComponentsHolder,
-	stateComponents *mainFactory.StateComponents,
+	stateComponents mainFactory.StateComponentsHolder,
 	data mainFactory.DataComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
 	process mainFactory.ProcessComponentsHolder,
@@ -1885,14 +1889,14 @@ func createHardForkTrigger(
 ) (node.HardforkTrigger, error) {
 
 	selfPubKeyBytes := crypto.PublicKeyBytes()
-	triggerPubKeyBytes, err := stateComponents.ValidatorPubkeyConverter.Decode(config.Hardfork.PublicKeyToListenFrom)
+	triggerPubKeyBytes, err := coreData.ValidatorPubKeyConverter().Decode(config.Hardfork.PublicKeyToListenFrom)
 	if err != nil {
 		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
 	}
 
 	accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDBs[state.UserAccountsState] = stateComponents.AccountsAdapter
-	accountsDBs[state.PeerAccountsState] = stateComponents.PeerAccounts
+	accountsDBs[state.UserAccountsState] = stateComponents.AccountsAdapter()
+	accountsDBs[state.PeerAccountsState] = stateComponents.PeerAccounts()
 	hardForkConfig := config.Hardfork
 	exportFolder := filepath.Join(workingDir, hardForkConfig.ImportFolder)
 	argsExporter := exportFactory.ArgsExporter{
@@ -1959,7 +1963,7 @@ func createNode(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	coreData mainFactory.CoreComponentsHolder,
-	stateComponents *mainFactory.StateComponents,
+	stateComponents mainFactory.StateComponentsHolder,
 	data mainFactory.DataComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
 	process mainFactory.ProcessComponentsHolder,
@@ -2018,9 +2022,9 @@ func createNode(
 		node.WithTxSignMarshalizer(coreData.TxMarshalizer()),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(nodesConfig.InitialNodesPubKeys()),
-		node.WithAddressPubkeyConverter(stateComponents.AddressPubkeyConverter),
-		node.WithValidatorPubkeyConverter(stateComponents.ValidatorPubkeyConverter),
-		node.WithAccountsAdapter(stateComponents.AccountsAdapter),
+		node.WithAddressPubkeyConverter(coreData.AddressPubKeyConverter()),
+		node.WithValidatorPubkeyConverter(coreData.ValidatorPubKeyConverter()),
+		node.WithAccountsAdapter(stateComponents.AccountsAdapter()),
 		node.WithBlockChain(data.Blockchain()),
 		node.WithDataStore(data.StorageService()),
 		node.WithRoundDuration(nodesConfig.RoundDuration),

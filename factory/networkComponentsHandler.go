@@ -3,8 +3,6 @@ package factory
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -12,13 +10,6 @@ import (
 var _ ComponentHandler = (*managedNetworkComponents)(nil)
 var _ NetworkComponentsHolder = (*managedNetworkComponents)(nil)
 var _ NetworkComponentsHandler = (*managedNetworkComponents)(nil)
-
-// NetworkComponentsHandlerArgs holds the arguments to create a network component handler instance
-type NetworkComponentsHandlerArgs struct {
-	P2pConfig     config.P2PConfig
-	MainConfig    config.Config
-	StatusHandler core.AppStatusHandler
-}
 
 // managedNetworkComponents creates the data components handler that can create, close and access the data components
 type managedNetworkComponents struct {
@@ -28,12 +19,8 @@ type managedNetworkComponents struct {
 }
 
 // NewManagedNetworkComponents creates a new data components handler
-func NewManagedNetworkComponents(args NetworkComponentsHandlerArgs) (*managedNetworkComponents, error) {
-	ncf, err := newNetworkComponentsFactory(
-		args.P2pConfig,
-		args.MainConfig,
-		args.StatusHandler,
-	)
+func NewManagedNetworkComponents(args NetworkComponentsFactoryArgs) (*managedNetworkComponents, error) {
+	ncf, err := NewNetworkComponentsFactory(args)
 	if err != nil {
 		return nil, err
 	}

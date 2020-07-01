@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -16,9 +17,9 @@ var _ StateComponentsHandler = (*managedStateComponents)(nil)
 
 type managedStateComponents struct {
 	*stateComponents
-	factory              *stateComponentsFactory
-	cancelFunc           func()
-	mutProcessComponents sync.RWMutex
+	factory            *stateComponentsFactory
+	cancelFunc         func()
+	mutStateComponents sync.RWMutex
 }
 
 // NewManagedStateComponents returns a news instance of managedStateComponents
@@ -41,18 +42,18 @@ func (m *managedStateComponents) Create() error {
 		return err
 	}
 
-	m.mutProcessComponents.Lock()
+	m.mutStateComponents.Lock()
 	m.stateComponents = sc
 	_, m.cancelFunc = context.WithCancel(context.Background())
-	m.mutProcessComponents.Unlock()
+	m.mutStateComponents.Unlock()
 
 	return nil
 }
 
 // Close will close all underlying sub-components
 func (m *managedStateComponents) Close() error {
-	m.mutProcessComponents.Lock()
-	defer m.mutProcessComponents.Unlock()
+	m.mutStateComponents.Lock()
+	defer m.mutStateComponents.Unlock()
 
 	m.cancelFunc()
 	//TODO: close underlying components
@@ -64,12 +65,12 @@ func (m *managedStateComponents) Close() error {
 
 // PeerAccounts returns the accounts adapter for the validators
 func (m *managedStateComponents) PeerAccounts() state.AccountsAdapter {
-	return m.stateComponents.PeerAccounts
+	return m.stateComponents.peerAccounts
 }
 
 // AccountsAdapter returns the accounts adapter for the user accounts
 func (m *managedStateComponents) AccountsAdapter() state.AccountsAdapter {
-	return m.stateComponents.AccountsAdapter
+	return m.stateComponents.accountsAdapter
 }
 
 // TriesContainer returns the tries container
@@ -77,12 +78,44 @@ func (m *managedStateComponents) TriesContainer() state.TriesHolder {
 	return m.stateComponents.triesContainer
 }
 
-// TrieStorageManager returns the trie storage manager for the given account type
-func (m *managedStateComponents) TrieStorageManager(accType string) data.StorageManager {
-	m.mutTrieStorageManagers.RLock()
-	defer m.mutTrieStorageManagers.RUnlock()
+// TrieStorageManagers returns the trie storage manager for the given account type
+func (m *managedStateComponents) TrieStorageManagers() map[string]data.StorageManager {
+	retMap := make(map[string]data.StorageManager)
 
-	return m.stateComponents.trieStorageManagers[accType]
+	// give back a map copy
+	m.mutStateComponents.RLock()
+	for key, val := range m.stateComponents.trieStorageManagers {
+		retMap[key] = val
+	}
+	m.mutStateComponents.RUnlock()
+
+	return retMap
+}
+
+// SetTriesContainer sets the internal tries container to the one given as parameter
+func (m *managedStateComponents) SetTriesContainer(triesContainer state.TriesHolder) error {
+	if check.IfNil(triesContainer) {
+		return ErrNilTriesContainer
+	}
+
+	m.mutStateComponents.Lock()
+	m.stateComponents.triesContainer = triesContainer
+	m.mutStateComponents.Unlock()
+
+	return nil
+}
+
+// SetTriesStorageManagers sets the internal map with the given parameter
+func (m *managedStateComponents) SetTriesStorageManagers(managers map[string]data.StorageManager) error {
+	if len(managers) == 0 {
+		return ErrNilTriesStorageManagers
+	}
+
+	m.mutStateComponents.Lock()
+	m.stateComponents.trieStorageManagers = managers
+	m.mutStateComponents.Unlock()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if the interface is nil

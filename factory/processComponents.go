@@ -49,10 +49,12 @@ var timeSpanForBadHeaders = time.Minute * 2
 
 // processComponents struct holds the process components
 type processComponents struct {
+	NodesCoordinator            sharding.NodesCoordinator
 	InterceptorsContainer       process.InterceptorsContainer
 	ResolversFinder             dataRetriever.ResolversFinder
 	Rounder                     consensus.Rounder
 	EpochStartTrigger           epochStart.TriggerHandler
+	EpochStartNotifier          EpochStartNotifier
 	ForkDetector                process.ForkDetector
 	BlockProcessor              process.BlockProcessor
 	BlackListHandler            process.BlackListHandler
@@ -82,9 +84,8 @@ type ProcessComponentsFactoryArgs struct {
 	Data                      DataComponentsHolder
 	CoreData                  CoreComponentsHolder
 	Crypto                    CryptoComponentsHolder
-	State                     *StateComponents
+	State                     StateComponentsHolder
 	Network                   NetworkComponentsHolder
-	Tries                     *TriesComponents
 	CoreServiceContainer      serviceContainer.Core
 	RequestedItemsHandler     dataRetriever.RequestedItemsHandler
 	WhiteListHandler          process.WhiteListHandler
@@ -121,9 +122,8 @@ type processComponentsFactory struct {
 	data                      DataComponentsHolder
 	coreData                  CoreComponentsHolder
 	crypto                    CryptoComponentsHolder
-	state                     *StateComponents
+	state                     StateComponentsHolder
 	network                   NetworkComponentsHolder
-	tries                     *TriesComponents
 	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
 	whiteListHandler          process.WhiteListHandler
@@ -169,7 +169,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		crypto:                    args.Crypto,
 		state:                     args.State,
 		network:                   args.Network,
-		tries:                     args.Tries,
 		coreServiceContainer:      args.CoreServiceContainer,
 		requestedItemsHandler:     args.RequestedItemsHandler,
 		whiteListHandler:          args.WhiteListHandler,
@@ -335,7 +334,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	mbsPoolsCleaner.StartCleaning()
 
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
-		pcf.state.AddressPubkeyConverter,
+		pcf.coreData.AddressPubKeyConverter(),
 		pcf.data.Datapool(),
 		pcf.rounder,
 		pcf.shardCoordinator,
@@ -405,12 +404,14 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	return &processComponents{
+		NodesCoordinator:            pcf.nodesCoordinator,
 		InterceptorsContainer:       interceptorsContainer,
 		ResolversFinder:             resolversFinder,
 		Rounder:                     pcf.rounder,
 		ForkDetector:                forkDetector,
 		BlockProcessor:              blockProcessor,
 		EpochStartTrigger:           epochStartTrigger,
+		EpochStartNotifier:          pcf.epochStartNotifier,
 		BlackListHandler:            blackListHandler,
 		BootStorer:                  bootStorer,
 		HeaderSigVerifier:           headerSigVerifier,
@@ -440,8 +441,8 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:         pcf.state.PeerAccounts,
-		PubkeyConv:          pcf.state.ValidatorPubkeyConverter,
+		PeerAdapter:         pcf.state.PeerAccounts(),
+		PubkeyConv:          pcf.coreData.ValidatorPubKeyConverter(),
 		NodesCoordinator:    pcf.nodesCoordinator,
 		ShardCoordinator:    pcf.shardCoordinator,
 		DataPool:            peerDataPool,
@@ -542,18 +543,18 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		Data:                 pcf.data,
 		GenesisTime:          uint64(pcf.nodesConfig.StartTime),
 		StartEpochNum:        pcf.startEpochNum,
-		Accounts:             pcf.state.AccountsAdapter,
+		Accounts:             pcf.state.AccountsAdapter(),
 		InitialNodesSetup:    pcf.nodesConfig,
 		Economics:            pcf.economicsData,
 		ShardCoordinator:     pcf.shardCoordinator,
 		AccountsParser:       pcf.accountsParser,
 		SmartContractParser:  pcf.smartContractParser,
-		ValidatorAccounts:    pcf.state.PeerAccounts,
+		ValidatorAccounts:    pcf.state.PeerAccounts(),
 		GasMap:               pcf.gasSchedule,
 		VirtualMachineConfig: pcf.coreFactoryArgs.Config.VirtualMachineConfig,
 		TxLogsProcessor:      pcf.txLogsProcessor,
 		HardForkConfig:       pcf.coreFactoryArgs.Config.Hardfork,
-		TrieStorageManagers:  pcf.tries.TrieStorageManagers,
+		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
 		SystemSCConfig:       *pcf.systemSCConfig,
 		ImportStartHandler:   pcf.importStartHandler,
 		WorkingDir:           pcf.workingDir,
@@ -670,7 +671,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory() (dataRet
 		DataPools:                  pcf.data.Datapool(),
 		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
 		DataPacker:                 dataPacker,
-		TriesContainer:             pcf.tries.TriesContainer,
+		TriesContainer:             pcf.state.TriesContainer(),
 		SizeCheckDelta:             pcf.sizeCheckDelta,
 		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
@@ -698,7 +699,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory() (dataRetr
 		DataPools:                  pcf.data.Datapool(),
 		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
 		DataPacker:                 dataPacker,
-		TriesContainer:             pcf.tries.TriesContainer,
+		TriesContainer:             pcf.state.TriesContainer(),
 		SizeCheckDelta:             pcf.sizeCheckDelta,
 		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
@@ -747,7 +748,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
 		CoreComponents:          pcf.coreData,
 		CryptoComponents:        pcf.crypto,
-		Accounts:                pcf.state.AccountsAdapter,
+		Accounts:                pcf.state.AccountsAdapter(),
 		ShardCoordinator:        pcf.shardCoordinator,
 		NodesCoordinator:        pcf.nodesCoordinator,
 		Messenger:               pcf.network.NetworkMessenger(),
@@ -788,7 +789,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		Messenger:               pcf.network.NetworkMessenger(),
 		Store:                   pcf.data.StorageService(),
 		DataPool:                pcf.data.Datapool(),
-		Accounts:                pcf.state.AccountsAdapter,
+		Accounts:                pcf.state.AccountsAdapter(),
 		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:            pcf.economicsData,
 		BlackList:               headerBlackList,
@@ -852,7 +853,7 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.NodesCoordinator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilNodesCoordinator)
 	}
-	if args.Data == nil {
+	if check.IfNil(args.Data) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilDataComponents)
 	}
 	if check.IfNil(args.CoreData) {
@@ -861,14 +862,11 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.Crypto) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilCryptoComponentsHolder)
 	}
-	if args.State == nil {
+	if check.IfNil(args.State) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilStateComponents)
 	}
 	if check.IfNil(args.Network) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilNetworkComponentsHolder)
-	}
-	if args.Tries == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilTriesComponents)
 	}
 	if check.IfNil(args.CoreServiceContainer) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilCoreServiceContainer)

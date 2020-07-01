@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -21,27 +20,16 @@ var _ ComponentHandler = (*managedStatusComponents)(nil)
 var _ StatusComponentsHolder = (*managedStatusComponents)(nil)
 var _ StatusComponentsHandler = (*managedStatusComponents)(nil)
 
-// StatusComponentsHandlerArgs redefines the arguments structure needed for the status components factory
-type StatusComponentsHandlerArgs struct {
-	FactoryArgs       StatusComponentsFactoryArgs
-	NetworkComponents NetworkComponentsHandler
-	ProcessComponents ProcessComponentsHandler
-	MainConfig        config.Config
-}
-
 type managedStatusComponents struct {
 	*statusComponents
-	networkComponents       NetworkComponentsHandler
 	statusComponentsFactory *statusComponentsFactory
-	processComponents       ProcessComponentsHandler
-	mainConfig              config.Config
 	cancelFunc              func()
 	mutStatusComponents     sync.RWMutex
 }
 
 // NewManagedStatusComponents returns a new instance of managedStatusComponents
-func NewManagedStatusComponents(args StatusComponentsHandlerArgs) (*managedStatusComponents, error) {
-	scf, err := NewStatusComponentsFactory(args.FactoryArgs)
+func NewManagedStatusComponents(args StatusComponentsFactoryArgs) (*managedStatusComponents, error) {
+	scf, err := NewStatusComponentsFactory(args)
 	if err != nil {
 		return nil, err
 	}
@@ -49,9 +37,8 @@ func NewManagedStatusComponents(args StatusComponentsHandlerArgs) (*managedStatu
 	return &managedStatusComponents{
 		statusComponents:        nil,
 		statusComponentsFactory: scf,
-		mainConfig:              args.MainConfig,
-		networkComponents:       args.NetworkComponents,
-		processComponents:       args.ProcessComponents,
+		cancelFunc:              nil,
+		mutStatusComponents:     sync.RWMutex{},
 	}, nil
 }
 
@@ -148,19 +135,19 @@ func (m *managedStatusComponents) IsInterfaceNil() bool {
 func (m *managedStatusComponents) startStatusPolling(ctx context.Context) error {
 	// TODO: inject the context to the AppStatusPolling
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(
-		m.statusComponentsFactory.coreData.StatusHandler(),
-		time.Duration(m.mainConfig.GeneralSettings.StatusPollingIntervalSec)*time.Second,
+		m.statusComponentsFactory.coreComponents.StatusHandler(),
+		time.Duration(m.statusComponentsFactory.config.GeneralSettings.StatusPollingIntervalSec)*time.Second,
 	)
 	if err != nil {
 		return errors.New("cannot init AppStatusPolling")
 	}
 
-	err = registerPollConnectedPeers(appStatusPollingHandler, m.networkComponents)
+	err = registerPollConnectedPeers(appStatusPollingHandler, m.statusComponentsFactory.networkComponents)
 	if err != nil {
 		return err
 	}
 
-	err = registerPollProbableHighestNonce(appStatusPollingHandler, m.processComponents)
+	err = registerPollProbableHighestNonce(appStatusPollingHandler, m.statusComponentsFactory.processComponents)
 	if err != nil {
 		return err
 	}
@@ -170,7 +157,7 @@ func (m *managedStatusComponents) startStatusPolling(ctx context.Context) error 
 		return err
 	}
 
-	appStatusPollingHandler.Poll()
+	appStatusPollingHandler.Poll(ctx)
 
 	return nil
 }
@@ -268,7 +255,7 @@ func setCurrentP2pNodeAddresses(
 
 func registerPollProbableHighestNonce(
 	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
-	processComponents ProcessComponentsHandler,
+	processComponents ProcessComponentsHolder,
 ) error {
 
 	probableHighestNonceHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
@@ -285,7 +272,7 @@ func registerPollProbableHighestNonce(
 }
 
 func (m *managedStatusComponents) startMachineStatisticsPolling(ctx context.Context) error {
-	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(m.statusComponentsFactory.coreData.StatusHandler(), time.Second)
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(m.statusComponentsFactory.coreComponents.StatusHandler(), time.Second)
 	if err != nil {
 		return errors.New("cannot init AppStatusPolling")
 	}
@@ -305,7 +292,7 @@ func (m *managedStatusComponents) startMachineStatisticsPolling(ctx context.Cont
 		return err
 	}
 
-	appStatusPollingHandler.Poll()
+	appStatusPollingHandler.Poll(ctx)
 
 	return nil
 }

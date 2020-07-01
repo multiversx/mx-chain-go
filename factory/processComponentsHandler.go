@@ -8,7 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var _ ComponentHandler = (*managedProcessComponents)(nil)
+var _ ProcessComponentsHolder = (*managedProcessComponents)(nil)
+var _ ProcessComponentsHandler = (*managedProcessComponents)(nil)
 
 // TODO: integrate this in main.go and remove obsolete component from structs.go afterwards
 
@@ -60,6 +65,18 @@ func (m *managedProcessComponents) Close() error {
 	return nil
 }
 
+// NodesCoordinator returns the nodes coordinator
+func (m *managedProcessComponents) NodesCoordinator() sharding.NodesCoordinator {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.NodesCoordinator
+}
+
 // InterceptorsContainer returns the interceptors container
 func (m *managedProcessComponents) InterceptorsContainer() process.InterceptorsContainer {
 	m.mutProcessComponents.RLock()
@@ -96,7 +113,7 @@ func (m *managedProcessComponents) Rounder() consensus.Rounder {
 	return m.processComponents.Rounder
 }
 
-// EpochStartTrigger returns the epoch start trigger
+// EpochStartTrigger returns the epoch start trigger handler
 func (m *managedProcessComponents) EpochStartTrigger() epochStart.TriggerHandler {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
@@ -106,6 +123,18 @@ func (m *managedProcessComponents) EpochStartTrigger() epochStart.TriggerHandler
 	}
 
 	return m.processComponents.EpochStartTrigger
+}
+
+// EpochStartNotifier returns the epoch start notifier
+func (m *managedProcessComponents) EpochStartNotifier() EpochStartNotifier {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.EpochStartNotifier
 }
 
 // ForkDetector returns the fork detector
@@ -252,6 +281,7 @@ func (m *managedProcessComponents) TxLogsProcessor() process.TransactionLogProce
 	return m.processComponents.TxLogsProcessor
 }
 
+// HeaderConstructionValidator returns the validator for header construction
 func (m *managedProcessComponents) HeaderConstructionValidator() process.HeaderConstructionValidator {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()

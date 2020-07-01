@@ -26,7 +26,6 @@ func getProcessArgs() factory.ProcessComponentsFactoryArgs {
 		Crypto:                    &mock.CryptoComponentsMock{},
 		State:                     nil,
 		Network:                   nil,
-		Tries:                     nil,
 		CoreServiceContainer:      nil,
 		RequestedItemsHandler:     nil,
 		WhiteListHandler:          nil,

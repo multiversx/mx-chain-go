@@ -16,6 +16,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
+// NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
+type NetworkComponentsFactoryArgs struct {
+	P2pConfig     config.P2PConfig
+	MainConfig    config.Config
+	StatusHandler core.AppStatusHandler
+}
+
 type networkComponentsFactory struct {
 	p2pConfig     config.P2PConfig
 	mainConfig    config.Config
@@ -35,20 +42,18 @@ type networkComponents struct {
 	closeFunc              context.CancelFunc
 }
 
-// newNetworkComponentsFactory returns a new instance of a network components factory
-func newNetworkComponentsFactory(
-	p2pConfig config.P2PConfig,
-	mainConfig config.Config,
-	statusHandler core.AppStatusHandler,
+// NewNetworkComponentsFactory returns a new instance of a network components factory
+func NewNetworkComponentsFactory(
+	args NetworkComponentsFactoryArgs,
 ) (*networkComponentsFactory, error) {
-	if check.IfNil(statusHandler) {
+	if check.IfNil(args.StatusHandler) {
 		return nil, ErrNilStatusHandler
 	}
 
 	return &networkComponentsFactory{
-		p2pConfig:     p2pConfig,
-		mainConfig:    mainConfig,
-		statusHandler: statusHandler,
+		p2pConfig:     args.P2pConfig,
+		mainConfig:    args.MainConfig,
+		statusHandler: args.StatusHandler,
 		listenAddress: libp2p.ListenAddrWithIp4AndTcp,
 	}, nil
 }

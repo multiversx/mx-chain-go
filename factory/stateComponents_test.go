@@ -87,8 +87,9 @@ func TestStateComponentsFactory_CreateTriesShouldWork(t *testing.T) {
 
 	scf, _ := factory.NewStateComponentsFactory(args)
 
-	tc, err := scf.CreateTries()
+	tc, trieStorageManagers, err := scf.CreateTries()
 	require.NoError(t, err)
+	require.NotNil(t, trieStorageManagers)
 	require.NotNil(t, tc)
 }
 

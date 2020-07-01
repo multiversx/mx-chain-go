@@ -2,7 +2,6 @@ package factory
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -31,11 +30,10 @@ type stateComponentsFactory struct {
 
 // stateComponents struct holds the state components of the Elrond protocol
 type stateComponents struct {
-	PeerAccounts           state.AccountsAdapter
-	AccountsAdapter        state.AccountsAdapter
-	triesContainer         state.TriesHolder
-	trieStorageManagers    map[string]data.StorageManager
-	mutTrieStorageManagers sync.RWMutex
+	peerAccounts        state.AccountsAdapter
+	accountsAdapter     state.AccountsAdapter
+	triesContainer      state.TriesHolder
+	trieStorageManagers map[string]data.StorageManager
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
@@ -85,11 +83,10 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	}
 
 	return &stateComponents{
-		PeerAccounts:           peerAdapter,
-		AccountsAdapter:        accountsAdapter,
-		triesContainer:         triesContainer,
-		trieStorageManagers:    triesStorageManagers,
-		mutTrieStorageManagers: sync.RWMutex{},
+		peerAccounts:        peerAdapter,
+		accountsAdapter:     accountsAdapter,
+		triesContainer:      triesContainer,
+		trieStorageManagers: triesStorageManagers,
 	}, nil
 }
 

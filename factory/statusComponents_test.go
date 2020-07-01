@@ -1,7 +1,6 @@
 package factory_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -13,50 +12,54 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewStatusComponentsFactory_NilParamsShouldErr(t *testing.T) {
+func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	okArgs := getStatusComponentsFactoryArgs()
+	args := getStatusComponentsFactoryArgs()
+	args.CoreComponents = nil
+	scf, err := factory.NewStatusComponentsFactory(args)
+	assert.True(t, check.IfNil(scf))
+	assert.Equal(t, factory.ErrNilCoreComponentsHolder, err)
+}
 
-	testInput := make(map[factory.StatusComponentsFactoryArgs]error)
+func TestNewStatusComponentsFactory_NilProcessComponentsShouldErr(t *testing.T) {
+	t.Parallel()
 
-	nilCoreDataArgs := okArgs
-	nilCoreDataArgs.CoreData = nil
-	testInput[nilCoreDataArgs] = factory.ErrNilCoreComponentsHolder
+	args := getStatusComponentsFactoryArgs()
+	args.ProcessComponents = nil
+	scf, err := factory.NewStatusComponentsFactory(args)
+	assert.True(t, check.IfNil(scf))
+	assert.Equal(t, factory.ErrNilProcessComponentsHolder, err)
+}
 
-	nilShardCoordinatorArgs := okArgs
-	nilShardCoordinatorArgs.ShardCoordinator = nil
-	testInput[nilShardCoordinatorArgs] = factory.ErrNilShardCoordinator
+func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) {
+	t.Parallel()
 
-	nilEpochStartNotifierArgs := okArgs
-	nilEpochStartNotifierArgs.EpochNotifier = nil
-	testInput[nilEpochStartNotifierArgs] = factory.ErrNilEpochStartNotifier
+	args := getStatusComponentsFactoryArgs()
+	args.NetworkComponents = nil
+	scf, err := factory.NewStatusComponentsFactory(args)
+	assert.True(t, check.IfNil(scf))
+	assert.Equal(t, factory.ErrNilNetworkComponentsHolder, err)
+}
 
-	nilNodesCoordinatorArgs := okArgs
-	nilNodesCoordinatorArgs.NodesCoordinator = nil
-	testInput[nilNodesCoordinatorArgs] = factory.ErrNilNodesCoordinator
+func TestNewStatusComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
 
-	invalidRoundDurationArgs := okArgs
-	invalidRoundDurationArgs.RoundDurationSec = 0
-	testInput[invalidRoundDurationArgs] = factory.ErrInvalidRoundDuration
+	args := getStatusComponentsFactoryArgs()
+	args.ShardCoordinator = nil
+	scf, err := factory.NewStatusComponentsFactory(args)
+	assert.True(t, check.IfNil(scf))
+	assert.Equal(t, factory.ErrNilShardCoordinator, err)
+}
 
-	nilAddressPubKeyConverterArgs := okArgs
-	nilAddressPubKeyConverterArgs.AddressPubkeyConverter = nil
-	testInput[nilAddressPubKeyConverterArgs] = factory.ErrNilPubKeyConverter
+func TestNewStatusComponentsFactory_InvalidRoundDurationShouldErr(t *testing.T) {
+	t.Parallel()
 
-	nilValidatorPubKeyConverterArgs := okArgs
-	nilValidatorPubKeyConverterArgs.ValidatorPubkeyConverter = nil
-	testInput[nilValidatorPubKeyConverterArgs] = factory.ErrNilPubKeyConverter
-
-	nilElasticOptionsArgs := okArgs
-	nilElasticOptionsArgs.ElasticOptions = nil
-	testInput[nilElasticOptionsArgs] = factory.ErrNilElasticOptions
-
-	for args, expectedErr := range testInput {
-		scf, err := factory.NewStatusComponentsFactory(args)
-		assert.True(t, check.IfNil(scf))
-		assert.True(t, errors.Is(err, expectedErr), "expected %s in test, but got %s", expectedErr.Error(), err.Error())
-	}
+	args := getStatusComponentsFactoryArgs()
+	args.RoundDurationSec = 0
+	scf, err := factory.NewStatusComponentsFactory(args)
+	assert.True(t, check.IfNil(scf))
+	assert.Equal(t, factory.ErrInvalidRoundDuration, err)
 }
 
 func TestNewStatusComponentsFactory_ShouldWork(t *testing.T) {
@@ -71,7 +74,8 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	args := getStatusComponentsFactoryArgs()
-	scf, _ := factory.NewStatusComponentsFactory(args)
+	scf, err := factory.NewStatusComponentsFactory(args)
+	require.Nil(t, err)
 
 	res, err := scf.Create()
 	require.NoError(t, err)
@@ -80,18 +84,27 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 
 func getStatusComponentsFactoryArgs() factory.StatusComponentsFactoryArgs {
 	return factory.StatusComponentsFactoryArgs{
-		CoreData:                 getCoreComponents(),
-		ShardCoordinator:         mock.NewMultiShardsCoordinatorMock(2),
-		ElasticConfig:            config.ElasticSearchConfig{},
-		EpochNotifier:            &mock.EpochStartNotifierStub{},
-		NodesCoordinator:         &mock.NodesCoordinatorMock{},
-		AddressPubkeyConverter:   &mock.PubkeyConverterStub{},
-		ValidatorPubkeyConverter: &mock.PubkeyConverterStub{},
-		ElasticOptions:           &indexer.Options{},
-		RoundDurationSec:         4,
-		SoftwareVersionConfig: config.SoftwareVersionConfig{
-			StableTagLocation:        "tag",
-			PollingIntervalInMinutes: 1,
-		},
+		Config:            config.Config{},
+		ExternalConfig:    config.ExternalConfig{},
+		RoundDurationSec:  4,
+		ElasticOptions:    &indexer.Options{},
+		ShardCoordinator:  mock.NewMultiShardsCoordinatorMock(2),
+		CoreComponents:    getCoreComponents(),
+		NetworkComponents: getNetworkComponents(),
+		ProcessComponents: getProcessComponents(),
 	}
+}
+
+func getNetworkComponents() factory.NetworkComponentsHolder {
+	networkArgs := getNetworkArgs()
+	networkComponents, _ := factory.NewManagedNetworkComponents(networkArgs)
+	_ = networkComponents.Create()
+	return networkComponents
+}
+
+func getProcessComponents() factory.ProcessComponentsHolder {
+	processArgs := getProcessArgs()
+	processComponents, _ := factory.NewManagedProcessComponents(processArgs)
+	_ = processComponents.Create()
+	return processComponents
 }

@@ -83,8 +83,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         pcf.state.AccountsAdapter,
-		PubkeyConv:       pcf.state.AddressPubkeyConverter,
+		Accounts:         pcf.state.AccountsAdapter(),
+		PubkeyConv:       pcf.coreData.AddressPubKeyConverter(),
 		StorageService:   pcf.data.StorageService(),
 		BlockChain:       pcf.data.Blockchain(),
 		ShardCoordinator: pcf.shardCoordinator,
@@ -111,7 +111,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.shardCoordinator,
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
-		pcf.state.AddressPubkeyConverter,
+		pcf.coreData.AddressPubKeyConverter(),
 		pcf.data.StorageService(),
 		pcf.data.Datapool(),
 	)
@@ -140,7 +140,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pcf.state.AddressPubkeyConverter,
+		PubkeyConverter:  pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator: pcf.shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
@@ -165,9 +165,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ArgsParser:       argsParser,
 		Hasher:           pcf.coreData.Hasher(),
 		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		AccountsDB:       pcf.state.AccountsAdapter,
+		AccountsDB:       pcf.state.AccountsAdapter(),
 		TempAccounts:     vmFactory.BlockChainHookImpl(),
-		PubkeyConv:       pcf.state.AddressPubkeyConverter,
+		PubkeyConv:       pcf.coreData.AddressPubKeyConverter(),
 		Coordinator:      pcf.shardCoordinator,
 		ScrForwarder:     scForwarder,
 		TxFeeHandler:     txFeeHandler,
@@ -183,8 +183,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	rewardsTxProcessor, err := rewardTransaction.NewRewardTxProcessor(
-		pcf.state.AccountsAdapter,
-		pcf.state.AddressPubkeyConverter,
+		pcf.state.AccountsAdapter(),
+		pcf.coreData.AddressPubKeyConverter(),
 		pcf.shardCoordinator,
 	)
 	if err != nil {
@@ -192,9 +192,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	transactionProcessor, err := transaction.NewTxProcessor(
-		pcf.state.AccountsAdapter,
+		pcf.state.AccountsAdapter(),
 		pcf.coreData.Hasher(),
-		pcf.state.AddressPubkeyConverter,
+		pcf.coreData.AddressPubKeyConverter(),
 		pcf.coreData.InternalMarshalizer(),
 		pcf.shardCoordinator,
 		scProcessor,
@@ -233,8 +233,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
 		pcf.data.Datapool(),
-		pcf.state.AddressPubkeyConverter,
-		pcf.state.AccountsAdapter,
+		pcf.coreData.AddressPubKeyConverter(),
+		pcf.state.AccountsAdapter(),
 		requestHandler,
 		transactionProcessor,
 		scProcessor,
@@ -259,7 +259,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.coreData.Hasher(),
 		pcf.coreData.InternalMarshalizer(),
 		pcf.shardCoordinator,
-		pcf.state.AccountsAdapter,
+		pcf.state.AccountsAdapter(),
 		pcf.data.Datapool().MiniBlocks(),
 		requestHandler,
 		preProcContainer,
@@ -274,7 +274,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter
+	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:         pcf.coreData,
@@ -327,8 +327,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         pcf.state.AccountsAdapter,
-		PubkeyConv:       pcf.state.AddressPubkeyConverter,
+		Accounts:         pcf.state.AccountsAdapter(),
+		PubkeyConv:       pcf.coreData.AddressPubKeyConverter(),
 		StorageService:   pcf.data.StorageService(),
 		BlockChain:       pcf.data.Blockchain(),
 		ShardCoordinator: pcf.shardCoordinator,
@@ -345,7 +345,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.coreData.Hasher(),
 		pcf.coreData.InternalMarshalizer(),
 		pcf.systemSCConfig,
-		pcf.state.PeerAccounts,
+		pcf.state.PeerAccounts(),
 	)
 	if err != nil {
 		return nil, err
@@ -362,7 +362,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.shardCoordinator,
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
-		pcf.state.AddressPubkeyConverter,
+		pcf.coreData.AddressPubKeyConverter(),
 		pcf.data.StorageService(),
 		pcf.data.Datapool(),
 	)
@@ -381,7 +381,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pcf.state.AddressPubkeyConverter,
+		PubkeyConverter:  pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator: pcf.shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
@@ -406,9 +406,9 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ArgsParser:       argsParser,
 		Hasher:           pcf.coreData.Hasher(),
 		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		AccountsDB:       pcf.state.AccountsAdapter,
+		AccountsDB:       pcf.state.AccountsAdapter(),
 		TempAccounts:     vmFactory.BlockChainHookImpl(),
-		PubkeyConv:       pcf.state.AddressPubkeyConverter,
+		PubkeyConv:       pcf.coreData.AddressPubKeyConverter(),
 		Coordinator:      pcf.shardCoordinator,
 		ScrForwarder:     scForwarder,
 		TxFeeHandler:     txFeeHandler,
@@ -426,8 +426,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	transactionProcessor, err := transaction.NewMetaTxProcessor(
 		pcf.coreData.Hasher(),
 		pcf.coreData.InternalMarshalizer(),
-		pcf.state.AccountsAdapter,
-		pcf.state.AddressPubkeyConverter,
+		pcf.state.AccountsAdapter(),
+		pcf.coreData.AddressPubKeyConverter(),
 		pcf.shardCoordinator,
 		scProcessor,
 		txTypeHandler,
@@ -462,14 +462,14 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
 		pcf.data.Datapool(),
-		pcf.state.AccountsAdapter,
+		pcf.state.AccountsAdapter(),
 		requestHandler,
 		transactionProcessor,
 		scProcessor,
 		pcf.economicsData,
 		gasHandler,
 		blockTracker,
-		pcf.state.AddressPubkeyConverter,
+		pcf.coreData.AddressPubKeyConverter(),
 		blockSizeComputationHandler,
 		balanceComputationHandler,
 	)
@@ -486,7 +486,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.coreData.Hasher(),
 		pcf.coreData.InternalMarshalizer(),
 		pcf.shardCoordinator,
-		pcf.state.AccountsAdapter,
+		pcf.state.AccountsAdapter(),
 		pcf.data.Datapool().MiniBlocks(),
 		requestHandler,
 		preProcContainer,
@@ -506,12 +506,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:       pcf.state.ValidatorPubkeyConverter,
+		PubkeyConv:       pcf.coreData.ValidatorPubKeyConverter(),
 		Hasher:           pcf.coreData.Hasher(),
 		ProtoMarshalizer: pcf.coreData.InternalMarshalizer(),
 		VmMarshalizer:    pcf.coreData.VmMarshalizer(),
-		PeerState:        pcf.state.PeerAccounts,
-		BaseState:        pcf.state.AccountsAdapter,
+		PeerState:        pcf.state.PeerAccounts(),
+		BaseState:        pcf.state.AccountsAdapter(),
 		ArgParser:        argsParser,
 		CurrTxs:          pcf.data.Datapool().CurrentBlockTxs(),
 		ScQuery:          scDataGetter,
@@ -558,7 +558,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	miniBlockStorage := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
 	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
 		ShardCoordinator:    pcf.shardCoordinator,
-		PubkeyConverter:     pcf.state.AddressPubkeyConverter,
+		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
 		RewardsStorage:      rewardsStorage,
 		MiniBlockStorage:    miniBlockStorage,
 		Hasher:              pcf.coreData.Hasher(),
@@ -585,8 +585,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter
-	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts
+	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
+	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:         pcf.coreData,

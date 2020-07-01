@@ -21,77 +21,77 @@ type statusComponents struct {
 	softwareVersion statistics.SoftwareVersionChecker
 }
 
-type statusComponentsFactory struct {
-	shardCoordinator         sharding.Coordinator
-	softwareVersionConfig    config.SoftwareVersionConfig
-	elasticConfig            config.ElasticSearchConfig
-	coreData                 CoreComponentsHolder
-	epochStartNotifier       EpochStartNotifier
-	nodesCoordinator         sharding.NodesCoordinator
-	addressPubkeyConverter   core.PubkeyConverter
-	validatorPubkeyConverter core.PubkeyConverter
-	elasticOptions           *indexer.Options
-	roundDurationSec         int
+// StatusComponentsFactoryArgs redefines the arguments structure needed for the status components factory
+type StatusComponentsFactoryArgs struct {
+	Config            config.Config
+	ExternalConfig    config.ExternalConfig
+	RoundDurationSec  uint64
+	ElasticOptions    *indexer.Options
+	ShardCoordinator  sharding.Coordinator
+	CoreComponents    CoreComponentsHolder
+	NetworkComponents NetworkComponentsHolder
+	ProcessComponents ProcessComponentsHolder
 }
 
-// StatusComponentsFactoryArgs holds the arguments needed for creating a status components factory
-type StatusComponentsFactoryArgs struct {
-	CoreData                 CoreComponentsHolder
-	ShardCoordinator         sharding.Coordinator
-	SoftwareVersionConfig    config.SoftwareVersionConfig
-	ElasticConfig            config.ElasticSearchConfig
-	EpochNotifier            EpochStartNotifier
-	NodesCoordinator         sharding.NodesCoordinator
-	AddressPubkeyConverter   core.PubkeyConverter
-	ValidatorPubkeyConverter core.PubkeyConverter
-	ElasticOptions           *indexer.Options
-	RoundDurationSec         int
+type statusComponentsFactory struct {
+	config            config.Config
+	externalConfig    config.ExternalConfig
+	roundDuration     uint64
+	elasticOptions    *indexer.Options
+	shardCoordinator  sharding.Coordinator
+	coreComponents    CoreComponentsHolder
+	networkComponents NetworkComponentsHolder
+	processComponents ProcessComponentsHolder
 }
 
 // NewStatusComponentsFactory will return a status components factory
 func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusComponentsFactory, error) {
-	if args.CoreData == nil {
+	if check.IfNil(args.CoreComponents) {
 		return nil, ErrNilCoreComponentsHolder
 	}
-	if check.IfNil(args.ShardCoordinator) {
-		return nil, ErrNilShardCoordinator
+	if check.IfNil(args.NetworkComponents) {
+		return nil, ErrNilNetworkComponentsHolder
+	}
+	if check.IfNil(args.ProcessComponents) {
+		return nil, ErrNilProcessComponentsHolder
+	}
+	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
+		return nil, fmt.Errorf("%w for address", ErrNilPubKeyConverter)
+	}
+	if check.IfNil(args.CoreComponents.ValidatorPubKeyConverter()) {
+		return nil, fmt.Errorf("%w for validator", ErrNilPubKeyConverter)
+	}
+	if check.IfNil(args.ProcessComponents.NodesCoordinator()) {
+		return nil, ErrNilNodesCoordinator
 	}
 	if args.RoundDurationSec < 1 {
 		return nil, ErrInvalidRoundDuration
 	}
-	if check.IfNil(args.EpochNotifier) {
+	if check.IfNil(args.ProcessComponents.EpochStartNotifier()) {
 		return nil, ErrNilEpochStartNotifier
-	}
-	if check.IfNil(args.NodesCoordinator) {
-		return nil, ErrNilNodesCoordinator
-	}
-	if check.IfNil(args.AddressPubkeyConverter) {
-		return nil, fmt.Errorf("%w for address", ErrNilPubKeyConverter)
-	}
-	if check.IfNil(args.ValidatorPubkeyConverter) {
-		return nil, fmt.Errorf("%w for validator", ErrNilPubKeyConverter)
 	}
 	if args.ElasticOptions == nil {
 		return nil, ErrNilElasticOptions
 	}
 
 	return &statusComponentsFactory{
-		shardCoordinator:         args.ShardCoordinator,
-		roundDurationSec:         args.RoundDurationSec,
-		elasticConfig:            args.ElasticConfig,
-		coreData:                 args.CoreData,
-		epochStartNotifier:       args.EpochNotifier,
-		nodesCoordinator:         args.NodesCoordinator,
-		addressPubkeyConverter:   args.AddressPubkeyConverter,
-		validatorPubkeyConverter: args.ValidatorPubkeyConverter,
-		elasticOptions:           args.ElasticOptions,
-		softwareVersionConfig:    args.SoftwareVersionConfig,
+		config:            args.Config,
+		externalConfig:    args.ExternalConfig,
+		roundDuration:     args.RoundDurationSec,
+		elasticOptions:    args.ElasticOptions,
+		shardCoordinator:  args.ShardCoordinator,
+		coreComponents:    args.CoreComponents,
+		networkComponents: args.NetworkComponents,
+		processComponents: args.ProcessComponents,
 	}, nil
 }
 
 // Create will create and return the status components
 func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
-	softwareVersionCheckerFactory, err := factory.NewSoftwareVersionFactory(scf.coreData.StatusHandler(), scf.softwareVersionConfig)
+	softwareVersionCheckerFactory, err := factory.NewSoftwareVersionFactory(
+		scf.coreComponents.StatusHandler(),
+		scf.config.SoftwareVersionConfig,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -100,24 +100,25 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		return nil, err
 	}
 
-	tpsBenchmark, err := statistics.NewTPSBenchmark(scf.shardCoordinator.NumberOfShards(), uint64(scf.roundDurationSec))
+	tpsBenchmark, err := statistics.NewTPSBenchmark(scf.shardCoordinator.NumberOfShards(), scf.roundDuration)
 	if err != nil {
 		return nil, err
 	}
 
 	var elasticIndexer indexer.Indexer
-	if scf.elasticConfig.Enabled {
+
+	if scf.externalConfig.ElasticSearchConnector.Enabled {
 		elasticIndexerArgs := indexer.ElasticIndexerArgs{
 			ShardId:                  scf.shardCoordinator.SelfId(),
-			Url:                      scf.elasticConfig.URL,
-			UserName:                 scf.elasticConfig.Username,
-			Password:                 scf.elasticConfig.Password,
-			Marshalizer:              scf.coreData.VmMarshalizer(),
-			Hasher:                   scf.coreData.Hasher(),
-			EpochStartNotifier:       scf.epochStartNotifier,
-			NodesCoordinator:         scf.nodesCoordinator,
-			AddressPubkeyConverter:   scf.addressPubkeyConverter,
-			ValidatorPubkeyConverter: scf.validatorPubkeyConverter,
+			Url:                      scf.externalConfig.ElasticSearchConnector.URL,
+			UserName:                 scf.externalConfig.ElasticSearchConnector.Username,
+			Password:                 scf.externalConfig.ElasticSearchConnector.Password,
+			Marshalizer:              scf.coreComponents.VmMarshalizer(),
+			Hasher:                   scf.coreComponents.Hasher(),
+			EpochStartNotifier:       scf.processComponents.EpochStartNotifier(),
+			NodesCoordinator:         scf.processComponents.NodesCoordinator(),
+			AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
+			ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
 			Options:                  scf.elasticOptions,
 		}
 		elasticIndexer, err = indexer.NewElasticIndexer(elasticIndexerArgs)

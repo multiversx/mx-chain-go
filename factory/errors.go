@@ -5,17 +5,17 @@ import "errors"
 // ErrNilEconomicsData signals that a nil economics data handler has been provided
 var ErrNilEconomicsData = errors.New("nil economics data provided")
 
-// ErrNilGenesisConfiguration signals that a nil genesis configuration has been provided
-var ErrNilGenesisConfiguration = errors.New("nil genesis configuration provided")
-
 // ErrNilCoreComponents signals that nil core components have been provided
 var ErrNilCoreComponents = errors.New("nil core components provided")
 
 // ErrNilCryptoComponents signals that a nil crypto components has been provided
 var ErrNilCryptoComponents = errors.New("nil crypto components provided")
 
-// ErrNilTriesComponents signals that nil tries components have been provided
-var ErrNilTriesComponents = errors.New("nil tries components provided")
+// ErrNilTriesContainer signals that a nil tries container has been provided
+var ErrNilTriesContainer = errors.New("nil tries container provided")
+
+// ErrNilTriesStorageManagers signals that nil tries storage managers have been provided
+var ErrNilTriesStorageManagers = errors.New("nil tries storage managers providedd")
 
 // ErrNilShardCoordinator signals that nil core components have been provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator provided")
@@ -46,9 +46,6 @@ var ErrPubKeyConverterCreation = errors.New("error creating public key converter
 
 // ErrAccountsAdapterCreation signals that the accounts adapter cannot be created based on provided data
 var ErrAccountsAdapterCreation = errors.New("error creating accounts adapter")
-
-// ErrInitialBalancesCreation signals that the initial balances cannot be created based on provided data
-var ErrInitialBalancesCreation = errors.New("error creating initial balances")
 
 // ErrPublicKeyMismatch signals that the read public key mismatch the one read
 var ErrPublicKeyMismatch = errors.New("public key mismatch between the computed and the one read from the file")
@@ -110,6 +107,9 @@ var ErrNilStateComponents = errors.New("nil state components")
 // ErrNilNetworkComponentsHolder signals that a nil network components holder has been provided
 var ErrNilNetworkComponentsHolder = errors.New("nil network components holder")
 
+// ErrNilProcessComponentsHolder signals that a nil process components holder was provided
+var ErrNilProcessComponentsHolder = errors.New("nil process components holder")
+
 // ErrNilCoreServiceContainer signals that a nil core service container has been provided
 var ErrNilCoreServiceContainer = errors.New("nil core service container")
 
@@ -136,9 +136,6 @@ var ErrNilPubKeyConverter = errors.New("nil public key converter")
 
 // ErrNilSystemSCConfig signals that a nil system smart contract configuration has been provided
 var ErrNilSystemSCConfig = errors.New("nil system smart contract configuration")
-
-// ErrNilTxLogsConfiguration signals that a nil transaction logs processor has been provided
-var ErrNilTxLogsConfiguration = errors.New("nil transaction logs processor")
 
 // ErrInvalidRoundDuration signals that an invalid round duration has been provided
 var ErrInvalidRoundDuration = errors.New("invalid round duration provided")

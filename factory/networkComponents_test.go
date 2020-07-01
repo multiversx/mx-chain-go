@@ -1,9 +1,10 @@
-package factory
+package factory_test
 
 import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/stretchr/testify/require"
@@ -12,15 +13,17 @@ import (
 func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := newNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, nil)
+	args := getNetworkArgs()
+	args.StatusHandler = nil
+	ncf, err := factory.NewNetworkComponentsFactory(args)
 	require.Nil(t, ncf)
-	require.Equal(t, ErrNilStatusHandler, err)
+	require.Equal(t, factory.ErrNilStatusHandler, err)
 }
 
 func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
-
-	ncf, err := newNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{})
+	args := getNetworkArgs()
+	ncf, err := factory.NewNetworkComponentsFactory(args)
 	require.NoError(t, err)
 	require.NotNil(t, ncf)
 }
@@ -31,7 +34,11 @@ func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
 		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
 	}
 
-	ncf, _ := newNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{})
+	args := getNetworkArgs()
+	args.MainConfig = config.Config{}
+	args.P2pConfig = config.P2PConfig{}
+
+	ncf, _ := factory.NewNetworkComponentsFactory(args)
 
 	nc, err := ncf.Create()
 	require.Error(t, err)
@@ -44,6 +51,16 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
 	}
 
+	args := getNetworkArgs()
+	ncf, _ := factory.NewNetworkComponentsFactory(args)
+	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
+
+	nc, err := ncf.Create()
+	require.NoError(t, err)
+	require.NotNil(t, nc)
+}
+
+func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
 			Port: "0",
@@ -66,28 +83,27 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 			Type:                    "NilListSharder",
 		},
 	}
-	ncf, _ := newNetworkComponentsFactory(
-		p2pConfig,
-		config.Config{
-			P2PMessageIDAdditionalCache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 100,
-				Shards:   16,
-			},
-			Debug: config.DebugConfig{
-				Antiflood: config.AntifloodDebugConfig{
-					Enabled:                    true,
-					CacheSize:                  100,
-					IntervalAutoPrintInSeconds: 1,
-				},
+
+	mainConfig := config.Config{
+		P2PMessageIDAdditionalCache: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 100,
+			Shards:   16,
+		},
+		Debug: config.DebugConfig{
+			Antiflood: config.AntifloodDebugConfig{
+				Enabled:                    true,
+				CacheSize:                  100,
+				IntervalAutoPrintInSeconds: 1,
 			},
 		},
-		&mock.AppStatusHandlerMock{},
-	)
+	}
 
-	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
+	appStatusHandler := &mock.AppStatusHandlerMock{}
 
-	nc, err := ncf.Create()
-	require.NoError(t, err)
-	require.NotNil(t, nc)
+	return factory.NetworkComponentsFactoryArgs{
+		P2pConfig:     p2pConfig,
+		MainConfig:    mainConfig,
+		StatusHandler: appStatusHandler,
+	}
 }

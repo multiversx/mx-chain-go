@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -152,10 +153,12 @@ type NetworkComponentsHandler interface {
 
 // ProcessComponentsHolder holds the process components
 type ProcessComponentsHolder interface {
+	NodesCoordinator() sharding.NodesCoordinator
 	InterceptorsContainer() process.InterceptorsContainer
 	ResolversFinder() dataRetriever.ResolversFinder
 	Rounder() consensus.Rounder
 	EpochStartTrigger() epochStart.TriggerHandler
+	EpochStartNotifier() EpochStartNotifier
 	ForkDetector() process.ForkDetector
 	BlockProcessor() process.BlockProcessor
 	BlackListHandler() process.BlackListHandler
@@ -189,7 +192,7 @@ type StateComponentsHolder interface {
 	PeerAccounts() state.AccountsAdapter
 	AccountsAdapter() state.AccountsAdapter
 	TriesContainer() state.TriesHolder
-	TrieStorageManager(string) data.StorageManager
+	TrieStorageManagers() map[string]data.StorageManager
 	IsInterfaceNil() bool
 }
 
