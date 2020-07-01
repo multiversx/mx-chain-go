@@ -291,6 +291,17 @@ func TestNewShardInterceptorsContainerFactory_InvalidChainIDShouldErr(t *testing
 	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_InvalidMinTransactionVersionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.MinTransactionVersion = 0
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t *testing.T) {
 	t.Parallel()
 
