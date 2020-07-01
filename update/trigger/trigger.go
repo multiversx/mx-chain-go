@@ -138,7 +138,7 @@ func (t *trigger) epochConfirmed(epoch uint32) {
 		return
 	}
 
-	t.exportAll()
+	t.doTrigger()
 }
 
 func (t *trigger) computeTriggerStartOfEpoch(receivedTrigger uint32) bool {
