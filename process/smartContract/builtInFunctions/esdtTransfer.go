@@ -129,7 +129,7 @@ func (e *esdtTransfer) addToESDTBalance(userAcnt state.UserAccountHandler, key [
 func (e *esdtTransfer) getESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) (*ESDigitalToken, error) {
 	esdtData := &ESDigitalToken{Value: big.NewInt(0)}
 	marshalledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
-	if err != nil {
+	if err != nil || len(marshalledData) == 0 {
 		return esdtData, nil
 	}
 
