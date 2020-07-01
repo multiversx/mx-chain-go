@@ -30,6 +30,7 @@ type ArgsGenesisBlockCreator struct {
 	Store                    dataRetriever.StorageService
 	Blkc                     data.ChainHandler
 	Marshalizer              marshal.Marshalizer
+	SignMarshalizer          marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	DataPool                 dataRetriever.PoolsHolder
