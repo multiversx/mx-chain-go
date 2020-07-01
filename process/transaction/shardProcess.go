@@ -30,6 +30,7 @@ type txProcessor struct {
 	badTxForwarder   process.IntermediateTransactionHandler
 	argsParser       process.ArgumentsParser
 	scrForwarder     process.IntermediateTransactionHandler
+	signMarshalizer  marshal.Marshalizer
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -38,6 +39,7 @@ func NewTxProcessor(
 	hasher hashing.Hasher,
 	pubkeyConv core.PubkeyConverter,
 	marshalizer marshal.Marshalizer,
+	signMarshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
 	txFeeHandler process.TransactionFeeHandler,
@@ -88,6 +90,9 @@ func NewTxProcessor(
 	if check.IfNil(scrForwarder) {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
+	if check.IfNil(signMarshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:         accounts,
@@ -107,6 +112,7 @@ func NewTxProcessor(
 		badTxForwarder:   badTxForwarder,
 		argsParser:       argsParser,
 		scrForwarder:     scrForwarder,
+		signMarshalizer:  signMarshalizer,
 	}, nil
 }
 
@@ -429,7 +435,7 @@ func (txProc *txProcessor) processRelayedTx(
 	}
 
 	userTx := &transaction.Transaction{}
-	err = txProc.marshalizer.Unmarshal(userTx, args[0])
+	err = txProc.signMarshalizer.Unmarshal(userTx, args[0])
 	if err != nil {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, err)
 	}
