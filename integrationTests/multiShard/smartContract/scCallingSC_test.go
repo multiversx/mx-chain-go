@@ -616,7 +616,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 	// one node calls to stake all the money from the delegation - that's how the contract is :D
 	node := nodes[0]
 	txData := "sendToStaking"
-	integrationTests.CreateAndSendTransaction(node, node.EconomicsData.GenesisNodePrice(), delegateSCAddress, txData)
+	integrationTests.PlayerSendsTransaction(nodes, node.OwnAccount, delegateSCAddress, node.EconomicsData.GenesisNodePrice(), txData, 500000)
 
 	time.Sleep(time.Second)
 

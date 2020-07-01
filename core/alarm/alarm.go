@@ -177,13 +177,14 @@ func (as *alarmScheduler) Close() {
 func (as *alarmScheduler) Reset(alarmID string) {
 	as.mutScheduledAlarms.RLock()
 	alarm, ok := as.scheduledAlarms[alarmID]
+	if !ok {
+		as.mutScheduledAlarms.RUnlock()
+		return
+	}
+
 	callback := alarm.callback
 	duration := alarm.initialDuration
 	as.mutScheduledAlarms.RUnlock()
-
-	if !ok {
-		return
-	}
 
 	evt := alarmEvent{
 		alarmID: alarmID,

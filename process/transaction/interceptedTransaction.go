@@ -173,7 +173,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 		return process.ErrInvalidArguments
 	}
 
-	userTx, err := createTx(inTx.protoMarshalizer, userTxArgs[0])
+	userTx, err := createTx(inTx.signMarshalizer, userTxArgs[0])
 	if err != nil {
 		return err
 	}

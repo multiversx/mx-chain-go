@@ -137,11 +137,17 @@ const MetricMemLoadPercent = "erd_mem_load_percent"
 // MetricMemTotal is the metric for monitoring total memory bytes
 const MetricMemTotal = "erd_mem_total"
 
-// MetricMemUsedGolang is the metric that stores the total memory used by golang in bytes
+// MetricMemUsedGolang is a metric for monitoring the memory ("total")
 const MetricMemUsedGolang = "erd_mem_used_golang"
 
-// MetricMemUsedSystem is the metric that stores the total memory used by the system in bytes
+// MetricMemUsedSystem is a metric for monitoring the memory ("sys mem")
 const MetricMemUsedSystem = "erd_mem_used_sys"
+
+// MetricMemHeapInUse is a metric for monitoring the memory ("heap in use")
+const MetricMemHeapInUse = "erd_mem_heap_inuse"
+
+// MetricMemStackInUse is a metric for monitoring the memory ("stack in use")
+const MetricMemStackInUse = "erd_mem_stack_inuse"
 
 // MetricNetworkRecvPercent is the metric for monitoring network receive load [%]
 const MetricNetworkRecvPercent = "erd_network_recv_percent"
