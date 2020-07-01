@@ -77,7 +77,7 @@ func NewTrieSyncer(
 
 // StartSyncing completes the trie, asking for missing trie nodes on the network
 func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
-	if len(rootHash) == 0 {
+	if len(rootHash) == 0 || bytes.Equal(rootHash, EmptyTrieHash) {
 		return nil
 	}
 	if ctx == nil {
