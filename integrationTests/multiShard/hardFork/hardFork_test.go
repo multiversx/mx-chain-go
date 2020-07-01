@@ -258,6 +258,7 @@ func hardForkImport(
 			Store:                    node.Storage,
 			Blkc:                     node.BlockChain,
 			Marshalizer:              integrationTests.TestMarshalizer,
+			SignMarshalizer:          integrationTests.TestTxSignMarshalizer,
 			Hasher:                   integrationTests.TestHasher,
 			Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 			DataPool:                 node.DataPool,
