@@ -161,6 +161,7 @@ type Trie interface {
 	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetAllLeaves() (map[string][]byte, error)
+	GetAllHashes() ([][]byte, error)
 	IsPruningEnabled() bool
 	EnterSnapshotMode()
 	ExitSnapshotMode()
