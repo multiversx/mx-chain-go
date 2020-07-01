@@ -591,6 +591,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		testHasher,
 		pubkeyConv,
 		testMarshalizer,
+		testMarshalizer,
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
