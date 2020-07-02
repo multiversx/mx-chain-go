@@ -15,6 +15,7 @@ import (
 	errors2 "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -39,9 +40,14 @@ type TransactionHashResponse struct {
 	TxHash string `json:"txHash,omitempty"`
 }
 
-type TransactionCostResponse struct {
-	GeneralResponse
+type transactionCostResponseData struct {
 	Cost uint64 `json:"txGasUnits"`
+}
+
+type TransactionCostResponse struct {
+	Data  transactionCostResponseData `json:"data"`
+	Error string                      `json:"error"`
+	Code  string                      `json:"code"`
 }
 
 func init() {
@@ -70,11 +76,15 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
 	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &transactionResponse)
 
 	txResp := transactionResponse.TxResp
-
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, sender, txResp.Sender)
 	assert.Equal(t, receiver, txResp.Receiver)
@@ -87,12 +97,11 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	receiver := "receiver"
 	value := "10"
 	txData := "data"
-	hs := "hash"
 	wrongHash := "wronghash"
 	facade := mock.Facade{
-		GetTransactionHandler: func(hash string) (i *tr.ApiTransactionResult, e error) {
-			if hash != hs {
-				return nil, errors.New("invalid hash")
+		GetTransactionHandler: func(hash string) (*tr.ApiTransactionResult, error) {
+			if hash == wrongHash {
+				return nil, errors.New("local error")
 			}
 			return &tr.ApiTransactionResult{
 				Sender:   sender,
@@ -257,8 +266,13 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
 	txHashResponse := TransactionHashResponse{}
-	loadResponse(resp.Body, &txHashResponse)
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &txHashResponse)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Empty(t, txHashResponse.Error)
@@ -389,7 +403,7 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 	loadResponse(resp.Body, &transactionCostResponse)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, expectedGasLimit, transactionCostResponse.Cost)
+	assert.Equal(t, expectedGasLimit, transactionCostResponse.Data.Cost)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {
