@@ -20,18 +20,19 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 	if errNotCritical != nil {
 		e.baseData.storageExists = false
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
-	} else {
-		e.baseData.storageExists = true
-		e.baseData.lastEpoch = latestData.Epoch
-		e.baseData.shardId = latestData.ShardID
-		e.baseData.lastRound = latestData.LastRound
-		e.baseData.epochStartRound = latestData.EpochStartRound
-		log.Debug("got last data from storage",
-			"epoch", e.baseData.lastEpoch,
-			"last round", e.baseData.lastRound,
-			"last shard ID", e.baseData.shardId,
-			"epoch start Round", e.baseData.epochStartRound)
+		return
 	}
+
+	e.baseData.storageExists = true
+	e.baseData.lastEpoch = latestData.Epoch
+	e.baseData.shardId = latestData.ShardID
+	e.baseData.lastRound = latestData.LastRound
+	e.baseData.epochStartRound = latestData.EpochStartRound
+	log.Debug("got last data from storage",
+		"epoch", e.baseData.lastEpoch,
+		"last round", e.baseData.lastRound,
+		"last shard ID", e.baseData.shardId,
+		"epoch start Round", e.baseData.epochStartRound)
 }
 
 func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
@@ -66,7 +67,11 @@ func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.EpochStart.LastFinalizedHeaders))
 
 	newShardId, isShuffledOut := e.checkIfShuffledOut(pubKey, e.nodesConfig)
-	return newShardId, isShuffledOut, nil
+	modifiedShardId := e.applyShardIDAsObserverIfNeeded(newShardId)
+	if newShardId != modifiedShardId {
+		isShuffledOut = true
+	}
+	return modifiedShardId, isShuffledOut, nil
 }
 
 func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
@@ -138,9 +143,10 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		}
 	}
 
+	shardIDToReturn := e.applyShardIDAsObserverIfNeeded(e.shardCoordinator.SelfId())
 	parameters := Parameters{
 		Epoch:       e.baseData.lastEpoch,
-		SelfShardId: e.shardCoordinator.SelfId(),
+		SelfShardId: shardIDToReturn,
 		NumOfShards: e.shardCoordinator.NumberOfShards(),
 		NodesConfig: e.nodesConfig,
 	}
@@ -157,12 +163,14 @@ func (e *epochStartBootstrap) checkIfShuffledOut(
 	newShardId, isWaitingForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.WaitingValidators)
 	if isWaitingForShard {
 		isShuffledOut := newShardId != e.baseData.shardId
+		e.nodeType = core.NodeTypeValidator
 		return newShardId, isShuffledOut
 	}
 
 	newShardId, isEligibleForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.EligibleValidators)
 	if isEligibleForShard {
 		isShuffledOut := newShardId != e.baseData.shardId
+		e.nodeType = core.NodeTypeValidator
 		return newShardId, isShuffledOut
 	}
 
