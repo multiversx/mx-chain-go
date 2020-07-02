@@ -121,3 +121,15 @@ func TestStopWatch_AddShouldWork(t *testing.T) {
 	assert.Equal(t, duration1*2, data[identifier1])
 	assert.Equal(t, duration2*2, data[identifier2])
 }
+
+func TestStopWatch_GetMeasurement(t *testing.T) {
+	t.Parallel()
+
+	fooDuration := time.Duration(4243) * time.Millisecond
+	sw := NewStopWatch()
+	sw.identifiers = []string{"foo"}
+	sw.elapsed["foo"] = fooDuration
+
+	assert.Equal(t, fooDuration, sw.GetMeasurement("foo"))
+	assert.Equal(t, time.Duration(0), sw.GetMeasurement("bar"))
+}

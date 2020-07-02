@@ -51,6 +51,7 @@ func createMockArgument(
 		PubkeyConv:               mock.NewPubkeyConverterMock(32),
 		Blkc:                     &mock.BlockChainStub{},
 		Marshalizer:              &mock.MarshalizerMock{},
+		SignMarshalizer:          &mock.MarshalizerMock{},
 		Hasher:                   &mock.HasherMock{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 		DataPool:                 testscommon.NewPoolsHolderMock(),
