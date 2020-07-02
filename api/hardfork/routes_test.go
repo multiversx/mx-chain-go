@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/gin-contrib/cors"
@@ -28,13 +29,7 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-type generalResponse struct {
-	Message string `json:"message"`
-	Error   string `json:"error"`
-}
-
 type TriggerResponse struct {
-	generalResponse
 	Status string `json:"status"`
 }
 
@@ -77,11 +72,11 @@ func TestTrigger_WithWrongFacadeShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	triggerResponse := TriggerResponse{}
-	loadResponse(resp.Body, &triggerResponse)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, triggerResponse.Error, apiErrors.ErrInvalidAppContext.Error())
+	assert.Equal(t, response.Error, apiErrors.ErrInvalidAppContext.Error())
 }
 
 func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
@@ -103,11 +98,11 @@ func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	triggerResponse := TriggerResponse{}
-	loadResponse(resp.Body, &triggerResponse)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Contains(t, triggerResponse.Error, expectedErr.Error())
+	assert.Contains(t, response.Error, expectedErr.Error())
 }
 
 func TestTrigger_TriggerWrongRequestTypeShouldErr(t *testing.T) {
@@ -148,8 +143,13 @@ func TestTrigger_ManualShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
 	triggerResponse := TriggerResponse{}
-	loadResponse(resp.Body, &triggerResponse)
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseBytes, _ := json.Marshal(&mapResponseData)
+	_ = json.Unmarshal(mapResponseBytes, &triggerResponse)
 
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.Equal(t, hardfork.ExecManualTrigger, triggerResponse.Status)
@@ -176,8 +176,13 @@ func TestTrigger_BroadcastShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
 	triggerResponse := TriggerResponse{}
-	loadResponse(resp.Body, &triggerResponse)
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseBytes, _ := json.Marshal(&mapResponseData)
+	_ = json.Unmarshal(mapResponseBytes, &triggerResponse)
 
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.Equal(t, hardfork.ExecBroadcastTrigger, triggerResponse.Status)
