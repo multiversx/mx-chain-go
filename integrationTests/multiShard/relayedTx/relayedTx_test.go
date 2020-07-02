@@ -305,6 +305,8 @@ func createUserTx(
 		GasPrice: integrationTests.MinTxGasPrice,
 		GasLimit: gasLimit,
 		Data:     txData,
+		ChainID:  integrationTests.ChainID,
+		Version:  integrationTests.MinTransactionVersion,
 	}
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
 	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
@@ -327,6 +329,8 @@ func createRelayedTx(
 		SndAddr:  relayer.Address,
 		GasPrice: integrationTests.MinTxGasPrice,
 		Data:     []byte(txData),
+		ChainID:  userTx.ChainID,
+		Version:  userTx.Version,
 	}
 	gasLimit := feeHandler.ComputeGasLimit(tx)
 	tx.GasLimit = userTx.GasLimit + gasLimit
