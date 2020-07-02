@@ -234,6 +234,7 @@ func CreateNodeWithBLSAndTxKeys(
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
 		RatingsData:             ratingsData,
+		MinTransactionVersion:   MinTransactionVersion,
 	}
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
