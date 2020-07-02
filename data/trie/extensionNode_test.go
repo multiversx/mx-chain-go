@@ -1027,3 +1027,24 @@ func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(dirtyHashes))
 }
+
+func TestExtensionNode_getAllHashes(t *testing.T) {
+	t.Parallel()
+
+	en, _ := getEnAndCollapsedEn()
+	hashes, err := en.getAllHashes(mock.NewMemDbMock())
+	assert.Nil(t, err)
+	assert.Equal(t, 5, len(hashes))
+}
+
+func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	en, collapsedEn := getEnAndCollapsedEn()
+	_ = en.commit(true, 0, 5, db, db)
+
+	hashes, err := collapsedEn.getAllHashes(db)
+	assert.Nil(t, err)
+	assert.Equal(t, 5, len(hashes))
+}

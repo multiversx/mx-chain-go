@@ -1337,3 +1337,24 @@ func TestBranchNode_getDirtyHashesFromCleanNode(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(dirtyHashes))
 }
+
+func TestBranchNode_getAllHashes(t *testing.T) {
+	t.Parallel()
+
+	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
+	hashes, err := bn.getAllHashes(mock.NewMemDbMock())
+	assert.Nil(t, err)
+	assert.Equal(t, 4, len(hashes))
+}
+
+func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
+	_ = bn.commit(true, 0, 5, db, db)
+
+	hashes, err := collapsedBn.getAllHashes(db)
+	assert.Nil(t, err)
+	assert.Equal(t, 4, len(hashes))
+}

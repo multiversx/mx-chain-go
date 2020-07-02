@@ -209,3 +209,37 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (AccountHandler, error) {
 func (jedtu *journalEntryDataTrieUpdates) IsInterfaceNil() bool {
 	return jedtu == nil
 }
+
+// journalEntryDataTrieRemove cancels the eviction of the hashes from the data trie with the given root hash
+type journalEntryDataTrieRemove struct {
+	rootHash               []byte
+	obsoleteDataTrieHashes map[string][][]byte
+}
+
+// NewJournalEntryDataTrieRemove outputs a new journalEntryDataTrieRemove implementation used to cancel
+// the eviction of the hashes from the data trie with the given root hash
+func NewJournalEntryDataTrieRemove(rootHash []byte, obsoleteDataTrieHashes map[string][][]byte) (*journalEntryDataTrieRemove, error) {
+	if obsoleteDataTrieHashes == nil {
+		return nil, fmt.Errorf("%w in NewJournalEntryDataTrieRemove", ErrNilHashesMap)
+	}
+	if len(rootHash) == 0 {
+		return nil, ErrInvalidRootHash
+	}
+
+	return &journalEntryDataTrieRemove{
+		rootHash:               rootHash,
+		obsoleteDataTrieHashes: obsoleteDataTrieHashes,
+	}, nil
+}
+
+// Revert applies undo operation
+func (jedtr *journalEntryDataTrieRemove) Revert() (AccountHandler, error) {
+	delete(jedtr.obsoleteDataTrieHashes, string(jedtr.rootHash))
+
+	return nil, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (jedtr *journalEntryDataTrieRemove) IsInterfaceNil() bool {
+	return jedtr == nil
+}

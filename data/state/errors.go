@@ -109,3 +109,9 @@ var ErrInvalidErdAddress = errors.New("invalid ERD address")
 
 // ErrInvalidPubkeyConverterType signals that the provided pubkey converter type is invalid
 var ErrInvalidPubkeyConverterType = errors.New("invalid pubkey converter type")
+
+// ErrNilHashesMap signals that the provided hashes map is nil
+var ErrNilHashesMap = errors.New("nil hashes map")
+
+// ErrInvalidRootHash signals that the provided root hash is invalid
+var ErrInvalidRootHash = errors.New("invalid root hash")

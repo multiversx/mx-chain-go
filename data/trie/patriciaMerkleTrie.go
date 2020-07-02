@@ -604,8 +604,8 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 
 // GetAllHashes returns all the hashes from the trie
 func (tr *patriciaMerkleTrie) GetAllHashes() ([][]byte, error) {
-	tr.mutOperation.RLock()
-	defer tr.mutOperation.RUnlock()
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
 
 	hashes := make([][]byte, 0)
 	if tr.root == nil {
