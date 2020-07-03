@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -27,7 +28,7 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
 
-const executeDurationWarnThreshold = float64(0.100)
+const executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
 
 var zero = big.NewInt(0)
 
@@ -172,12 +173,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	sw.Stop("execute")
 	duration := sw.GetMeasurement("execute")
 
-	logFunc := log.Trace
-	if duration > executeDurationWarnThreshold {
-		logFunc = log.Warn
+	if duration > executeDurationAlarmThreshold {
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", duration), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+	} else {
+		log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	}
 
-	logFunc("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()), "duration", duration, "returnCode", returnCode, "err", err)
 	return returnCode, err
 }
 
