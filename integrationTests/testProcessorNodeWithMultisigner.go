@@ -53,6 +53,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		ChainID:                 ChainID,
 		NodesSetup:              nodeSetup,
 		RatingsData:             ratingsData,
+		MinTransactionVersion:   MinTransactionVersion,
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -233,6 +234,7 @@ func CreateNodeWithBLSAndTxKeys(
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
 		RatingsData:             ratingsData,
+		MinTransactionVersion:   MinTransactionVersion,
 	}
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]

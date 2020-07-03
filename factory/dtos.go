@@ -34,6 +34,7 @@ type CoreComponents struct {
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	StatusHandler            core.AppStatusHandler
 	ChainID                  []byte
+	MinTransactionVersion    uint32
 }
 
 // CryptoParams is a DTO for holding block signing parameters

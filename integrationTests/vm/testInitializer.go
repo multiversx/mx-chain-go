@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -536,14 +537,6 @@ func ComputeExpectedBalance(
 	return expectedSenderBalance
 }
 
-// GetAccountsBalance -
-func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int {
-	accnt, _ := accnts.GetExistingAccount(addrBytes)
-	shardAccnt, _ := accnt.(state.UserAccountHandler)
-
-	return shardAccnt.GetBalance()
-}
-
 // GetIntValueFromSC -
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
@@ -589,6 +582,7 @@ func CreateTransferTokenTx(
 		GasPrice: 0,
 		GasLimit: 5000000,
 		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@00" + hex.EncodeToString(value.Bytes())),
+		ChainID:  integrationTests.ChainID,
 	}
 }
 

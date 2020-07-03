@@ -1208,6 +1208,8 @@ func GenerateAndDisseminateTxs(
 	valToTransfer *big.Int,
 	gasPrice uint64,
 	gasLimit uint64,
+	chainID []byte,
+	version uint32,
 ) {
 
 	for i := 0; i < len(senders); i++ {
@@ -1215,7 +1217,7 @@ func GenerateAndDisseminateTxs(
 		incrementalNonce := make([]uint64, len(senders))
 		for _, shardReceiversPublicKeys := range receiversPublicKeysMap {
 			receiverPubKey := shardReceiversPublicKeys[i]
-			tx := GenerateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit)
+			tx := GenerateTransferTx(incrementalNonce[i], senderKey, receiverPubKey, valToTransfer, gasPrice, gasLimit, chainID, version)
 			_, _ = n.SendTransaction(tx)
 			incrementalNonce[i]++
 		}
@@ -1267,6 +1269,8 @@ func CreateAndSendTransaction(
 		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
 		GasLimit: MinTxGasLimit*1000 + uint64(len(txData)),
+		ChainID:  ChainID,
+		Version:  MinTransactionVersion,
 	}
 
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
@@ -1286,6 +1290,8 @@ func CreateAndSendTransactionWithGasLimit(
 	gasLimit uint64,
 	rcvAddress []byte,
 	txData []byte,
+	chainID []byte,
+	version uint32,
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
@@ -1295,6 +1301,8 @@ func CreateAndSendTransactionWithGasLimit(
 		Data:     txData,
 		GasPrice: MinTxGasPrice,
 		GasLimit: gasLimit,
+		ChainID:  chainID,
+		Version:  version,
 	}
 
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
@@ -1322,6 +1330,8 @@ func GenerateTransferTx(
 	valToTransfer *big.Int,
 	gasPrice uint64,
 	gasLimit uint64,
+	chainID []byte,
+	version uint32,
 ) *transaction.Transaction {
 
 	receiverPubKeyBytes, _ := receiverPublicKey.ToByteArray()
@@ -1333,6 +1343,8 @@ func GenerateTransferTx(
 		Data:     []byte(""),
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
+		ChainID:  chainID,
+		Version:  version,
 	}
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	signer := &ed25519SingleSig.Ed25519Signer{}
@@ -1354,6 +1366,8 @@ func generateTx(
 		GasPrice: args.gasPrice,
 		GasLimit: args.gasLimit,
 		Data:     []byte(args.data),
+		ChainID:  ChainID,
+		Version:  MinTransactionVersion,
 	}
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
@@ -1505,6 +1519,8 @@ func CreateAndSendTransactions(
 			valueToTransfer,
 			gasPricePerTx,
 			gasLimitPerTx,
+			ChainID,
+			MinTransactionVersion,
 		)
 	}
 
@@ -1712,6 +1728,8 @@ func generateValidTx(
 		big.NewInt(1),
 		"",
 		skSender,
+		ChainID,
+		MinTransactionVersion,
 	)
 	assert.Nil(t, err)
 
@@ -1740,53 +1758,6 @@ func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrS
 	}
 
 	return sumTxs
-}
-
-// ProposeAndSyncBlocks proposes and syncs blocks until all transaction pools are empty
-func ProposeAndSyncBlocks(
-	t *testing.T,
-	nodes []*TestProcessorNode,
-	idxProposers []int,
-	round uint64,
-	nonce uint64,
-) (uint64, uint64) {
-
-	// if there are many transactions, they might not fit into the block body in only one round
-	for {
-		numTxsInPool := 0
-		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-
-		for _, idProposer := range idxProposers {
-			proposerNode := nodes[idProposer]
-			numTxsInPool = GetNumTxsWithDst(
-				proposerNode.ShardCoordinator.SelfId(),
-				proposerNode.DataPool,
-				proposerNode.ShardCoordinator.NumberOfShards(),
-			)
-
-			if numTxsInPool > 0 {
-				break
-			}
-		}
-
-		if numTxsInPool == 0 {
-			break
-		}
-	}
-
-	if nodes[0].ShardCoordinator.NumberOfShards() == 1 {
-		return round, nonce
-	}
-
-	// cross shard smart contract call is first processed at sender shard, notarized by metachain, processed at
-	// shard with smart contract, smart contract result is notarized by metachain, then finally processed at the
-	// sender shard
-	numberToPropagateToEveryShard := 5
-	for i := 0; i < numberToPropagateToEveryShard; i++ {
-		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-	}
-
-	return round, nonce
 }
 
 // ProposeAndSyncOneBlock proposes a block, syncs the block and then increments the round

@@ -164,6 +164,7 @@ type GenesisNodesSetupHandler interface {
 	GetStartTime() int64
 	GetRoundDuration() uint64
 	GetChainId() string
+	GetMinTransactionVersion() uint32
 	GetShardConsensusGroupSize() uint32
 	GetMetaConsensusGroupSize() uint32
 	NumberOfShards() uint32
