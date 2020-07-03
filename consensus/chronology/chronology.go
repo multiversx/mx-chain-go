@@ -235,6 +235,8 @@ func (chr *chronology) Close() error {
 		chr.cancelFunc()
 	}
 
+	chr.watchdog.Stop(chronologyAlarmID)
+
 	return nil
 }
 

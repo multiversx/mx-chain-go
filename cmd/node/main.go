@@ -1797,6 +1797,8 @@ func createNodesCoordinator(
 	randDurationBeforeStop := intRandomizer.Intn(int(maxDurationBeforeStopProcess))
 	endOfProcessingHandler := func(argument endProcess.ArgEndProcess) error {
 		go func() {
+			//TODO cancel shuffle out after hardfork
+
 			time.Sleep(time.Duration(randDurationBeforeStop) * time.Millisecond)
 			fmt.Println(fmt.Sprintf("the application stops after waiting %d miliseconds because the node was "+
 				"shuffled out", randDurationBeforeStop))
