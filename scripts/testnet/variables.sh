@@ -103,7 +103,7 @@ export LOGLEVEL="*:INFO"
 
 if [ "$TESTNETMODE" == "debug" ]; then
   NODETERMUI=0
-  LOGLEVEL="*:DEBUG"
+  LOGLEVEL="*:DEBUG,api:INFO"
 fi
 
 if [ "$TESTNETMODE" == "trace" ]; then

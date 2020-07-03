@@ -21,8 +21,9 @@ import (
 )
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
-	// TODO: fix these tests on TC - it works on local machines always
-	t.Skip("this is not a short test")
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
 	defer func() {
@@ -74,8 +75,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing.T) {
-	// TODO: fix these tests on TC - it works on local machines always
-	t.Skip("this is not a short test")
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
 	defer func() {
@@ -104,7 +106,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 		big.NewInt(0),
 		integrationTests.MaxGasLimitPerBlock-1,
 		make([]byte, 32),
-		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply))
+		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
+		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
+	)
 
 	transferTokenVMGas := uint64(6960)
 	transferTokenBaseGas := ownerNode.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte("transferToken@" + hex.EncodeToString(receiverAddress1) + "@00" + hex.EncodeToString(sendValue.Bytes()))})
@@ -118,7 +123,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 			big.NewInt(0),
 			transferTokenFullGas+initialPlusForGas,
 			scAddress,
-			[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(initialTokenSupply.Bytes())))
+			[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(initialTokenSupply.Bytes())),
+			integrationTests.ChainID,
+			integrationTests.MinTransactionVersion,
+		)
 	}
 	time.Sleep(time.Second)
 
@@ -156,8 +164,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
-	// TODO: fix these tests on TC - it works on local machines always
-	t.Skip("this is not a short test")
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
 	defer func() {
@@ -296,6 +305,8 @@ func createUserTx(
 		GasPrice: integrationTests.MinTxGasPrice,
 		GasLimit: gasLimit,
 		Data:     txData,
+		ChainID:  integrationTests.ChainID,
+		Version:  integrationTests.MinTransactionVersion,
 	}
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
 	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
@@ -309,7 +320,7 @@ func createRelayedTx(
 	userTx *transaction.Transaction,
 ) *transaction.Transaction {
 
-	userTxMarshaled, _ := integrationTests.TestMarshalizer.Marshal(userTx)
+	userTxMarshaled, _ := integrationTests.TestTxSignMarshalizer.Marshal(userTx)
 	txData := core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshaled)
 	tx := &transaction.Transaction{
 		Nonce:    relayer.Nonce,
@@ -318,6 +329,8 @@ func createRelayedTx(
 		SndAddr:  relayer.Address,
 		GasPrice: integrationTests.MinTxGasPrice,
 		Data:     []byte(txData),
+		ChainID:  userTx.ChainID,
+		Version:  userTx.Version,
 	}
 	gasLimit := feeHandler.ComputeGasLimit(tx)
 	tx.GasLimit = userTx.GasLimit + gasLimit

@@ -63,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	sync2 "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -136,6 +137,9 @@ const roundDuration = 5 * time.Second
 
 // ChainID is the chain ID identifier used in integration tests, processing nodes
 var ChainID = []byte("integration tests chain ID")
+
+// MinTransactionVersion is the minimum transaction version used in integration testes, processing nodes
+var MinTransactionVersion = uint32(999)
 
 // SoftwareVersion is the software version identifier used in integration tests, processing nodes
 var SoftwareVersion = []byte("intT")
@@ -243,7 +247,8 @@ type TestProcessorNode struct {
 
 	InitialNodes []*sharding.InitialNode
 
-	ChainID []byte
+	ChainID               []byte
+	MinTransactionVersion uint32
 
 	ExportHandler update.ExportHandler
 	WaitTime      time.Duration
@@ -327,6 +332,7 @@ func newBaseTestProcessorNode(
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
 		ChainID:                 ChainID,
+		MinTransactionVersion:   MinTransactionVersion,
 		NodesSetup:              nodesSetup,
 	}
 
@@ -357,7 +363,7 @@ func NewTestProcessorNode(
 	return tpn
 }
 
-// NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger and a full genesis deploy
+// NewTestProcessorNodeWithFullGenesis returns a new TestProcessorNode instance with a libp2p messenger and a full genesis deploy
 func NewTestProcessorNodeWithFullGenesis(
 	maxShards uint32,
 	nodeShardId uint32,
@@ -435,6 +441,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                 ChainID,
 		NodesSetup:              &mock.NodesSetupStub{},
+		MinTransactionVersion:   MinTransactionVersion,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -628,26 +635,27 @@ func CreateRatingsData() *rating.RatingsData {
 	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{
 			RatingSteps: config.RatingSteps{
-				ProposerValidatorImportance:    1,
-				ProposerDecreaseFactor:         -4,
-				ValidatorDecreaseFactor:        -4,
-				ConsecutiveMissedBlocksPenalty: 1.1,
+				HoursToMaxRatingFromStartRating: 50,
+				ProposerValidatorImportance:     1,
+				ProposerDecreaseFactor:          -4,
+				ValidatorDecreaseFactor:         -4,
+				ConsecutiveMissedBlocksPenalty:  1.1,
 			},
 		},
 		MetaChain: config.MetaChain{
 			RatingSteps: config.RatingSteps{
-				ProposerValidatorImportance:    1,
-				ProposerDecreaseFactor:         -4,
-				ValidatorDecreaseFactor:        -4,
-				ConsecutiveMissedBlocksPenalty: 1.1,
+				HoursToMaxRatingFromStartRating: 50,
+				ProposerValidatorImportance:     1,
+				ProposerDecreaseFactor:          -4,
+				ValidatorDecreaseFactor:         -4,
+				ConsecutiveMissedBlocksPenalty:  1.1,
 			},
 		},
 		General: config.General{
-			StartRating:                     500000,
-			MaxRating:                       1000000,
-			MinRating:                       1,
-			HoursToMaxRatingFromStartRating: 50,
-			SignedBlocksThreshold:           0.025,
+			StartRating:           500000,
+			MaxRating:             1000000,
+			MinRating:             1,
+			SignedBlocksThreshold: 0.025,
 			SelectionChances: []*config.SelectionChance{
 				{
 					MaxThreshold:  0,
@@ -761,6 +769,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
+			ChainID:                 tpn.ChainID,
+			MinTransactionVersion:   tpn.MinTransactionVersion,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -820,6 +830,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
+			ChainID:                 tpn.ChainID,
+			MinTransactionVersion:   tpn.MinTransactionVersion,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -996,6 +1008,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestHasher,
 		TestAddressPubkeyConverter,
 		TestMarshalizer,
+		TestTxSignMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.ScProcessor,
 		tpn.FeeAccumulator,
@@ -1185,19 +1198,10 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
 
-	tpn.ForkDetector = &mock.ForkDetectorStub{
-		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-			return nil
-		},
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return 100
-		},
-		ProbableHighestNonceCalled: func() uint64 {
-			return 0
-		},
-		GetHighestFinalBlockHashCalled: func() []byte {
-			return nil
-		},
+	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
+		tpn.ForkDetector, _ = sync2.NewShardForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
+	} else {
+		tpn.ForkDetector, _ = sync2.NewMetaForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
 	}
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
@@ -1418,6 +1422,8 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithChainID(tpn.ChainID),
+		node.WithMinTransactionVersion(tpn.MinTransactionVersion),
 	)
 	log.LogIfError(err)
 
@@ -1449,6 +1455,8 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		tx.GasLimit,
 		string(tx.Data),
 		hex.EncodeToString(tx.Signature),
+		string(tx.ChainID),
+		tx.Version,
 	)
 	if err != nil {
 		return "", err

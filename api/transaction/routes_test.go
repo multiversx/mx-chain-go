@@ -15,6 +15,7 @@ import (
 	errors2 "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -39,9 +40,14 @@ type TransactionHashResponse struct {
 	TxHash string `json:"txHash,omitempty"`
 }
 
-type TransactionCostResponse struct {
-	GeneralResponse
+type transactionCostResponseData struct {
 	Cost uint64 `json:"txGasUnits"`
+}
+
+type TransactionCostResponse struct {
+	Data  transactionCostResponseData `json:"data"`
+	Error string                      `json:"error"`
+	Code  string                      `json:"code"`
 }
 
 func init() {
@@ -70,11 +76,15 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
 	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &transactionResponse)
 
 	txResp := transactionResponse.TxResp
-
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, sender, txResp.Sender)
 	assert.Equal(t, receiver, txResp.Receiver)
@@ -87,12 +97,11 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	receiver := "receiver"
 	value := "10"
 	txData := "data"
-	hs := "hash"
 	wrongHash := "wronghash"
 	facade := mock.Facade{
-		GetTransactionHandler: func(hash string) (i *tr.ApiTransactionResult, e error) {
-			if hash != hs {
-				return nil, errors.New("invalid hash")
+		GetTransactionHandler: func(hash string) (*tr.ApiTransactionResult, error) {
+			if hash == wrongHash {
+				return nil, errors.New("local error")
 			}
 			return &tr.ApiTransactionResult{
 				Sender:   sender,
@@ -183,7 +192,8 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	errorString := "send transaction error"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string) (t *tr.Transaction, i []byte, err error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		) (*tr.Transaction, []byte, error) {
 			return nil, nil, nil
 		},
 		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, err error) {
@@ -227,8 +237,8 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	hexTxHash := "deadbeef"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-			gasLimit uint64, data string, signatureHex string) (t *tr.Transaction, i []byte, err error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		) (*tr.Transaction, []byte, error) {
 			txHash, _ := hex.DecodeString(hexTxHash)
 			return nil, txHash, nil
 		},
@@ -256,8 +266,13 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
 	txHashResponse := TransactionHashResponse{}
-	loadResponse(resp.Body, &txHashResponse)
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &txHashResponse)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Empty(t, txHashResponse.Error)
@@ -306,8 +321,8 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	sendBulkTxsWasCalled := false
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-			gasLimit uint64, data string, signatureHex string) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		) (*tr.Transaction, []byte, error) {
 			createTxWasCalled = true
 			return &tr.Transaction{}, make([]byte, 0), nil
 		},
@@ -356,7 +371,8 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 	expectedGasLimit := uint64(37)
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, nil, nil
 		},
 		ComputeTransactionGasLimitHandler: func(tx *tr.Transaction) (uint64, error) {
@@ -387,7 +403,7 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 	loadResponse(resp.Body, &transactionCostResponse)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, expectedGasLimit, transactionCostResponse.Cost)
+	assert.Equal(t, expectedGasLimit, transactionCostResponse.Data.Cost)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

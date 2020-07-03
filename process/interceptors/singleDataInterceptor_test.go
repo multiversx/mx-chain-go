@@ -324,6 +324,70 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
+func TestSingleDataInterceptor_InvalidTxVersionShouldBlackList(t *testing.T) {
+	t.Parallel()
+
+	processReceivedMessageSingleDataInvalidVersion(t, process.ErrInvalidTransactionVersion)
+}
+
+func TestSingleDataInterceptor_InvalidTxChainIDShouldBlackList(t *testing.T) {
+	t.Parallel()
+
+	processReceivedMessageSingleDataInvalidVersion(t, process.ErrInvalidTransactionVersion)
+}
+
+func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr error) {
+	checkCalledNum := int32(0)
+	processCalledNum := int32(0)
+	throttler := createMockThrottler()
+	interceptedData := &mock.InterceptedDataStub{
+		CheckValidityCalled: func() error {
+			return expectedErr
+		},
+		IsForCurrentShardCalled: func() bool {
+			return false
+		},
+	}
+
+	isOriginatorBlackListed := false
+	isFromConnectedPeerBlackListed := false
+	originator := core.PeerID("originator")
+	sdi, _ := interceptors.NewSingleDataInterceptor(
+		testTopic,
+		&mock.InterceptedDataFactoryStub{
+			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
+				return interceptedData, nil
+			},
+		},
+		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
+		throttler,
+		&mock.P2PAntifloodHandlerStub{
+			BlacklistPeerCalled: func(peer core.PeerID, reason string, duration time.Duration) {
+				switch string(peer) {
+				case string(originator):
+					isOriginatorBlackListed = true
+				case string(fromConnectedPeerId):
+					isFromConnectedPeerBlackListed = true
+				}
+			},
+		},
+		&mock.WhiteListHandlerStub{
+			IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+				return true
+			},
+		},
+	)
+
+	msg := &mock.P2PMessageMock{
+		DataField: []byte("data to be processed"),
+		PeerField: originator,
+	}
+	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	assert.Equal(t, expectedErr, err)
+	assert.True(t, isFromConnectedPeerBlackListed)
+	assert.True(t, isOriginatorBlackListed)
+}
+
 func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T) {
 	t.Parallel()
 

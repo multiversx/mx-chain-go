@@ -767,6 +767,8 @@ func newShardInterceptorContainerFactory(
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
 		ArgumentsParser:         smartContract.NewArgumentParser(),
+		ChainID:                 dataCore.ChainID,
+		MinTransactionVersion:   dataCore.MinTransactionVersion,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -822,6 +824,8 @@ func newMetaInterceptorContainerFactory(
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		AntifloodHandler:        network.InputAntifloodHandler,
 		ArgumentsParser:         smartContract.NewArgumentParser(),
+		ChainID:                 dataCore.ChainID,
+		MinTransactionVersion:   dataCore.MinTransactionVersion,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -924,6 +928,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		Store:                    dataComponents.Store,
 		Blkc:                     dataComponents.Blkc,
 		Marshalizer:              coreComponents.InternalMarshalizer,
+		SignMarshalizer:          coreComponents.TxSignMarshalizer,
 		Hasher:                   coreComponents.Hasher,
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
 		DataPool:                 dataComponents.Datapool,
@@ -1236,6 +1241,7 @@ func newShardBlockProcessor(
 		core.Hasher,
 		stateComponents.AddressPubkeyConverter,
 		core.InternalMarshalizer,
+		core.TxSignMarshalizer,
 		shardCoordinator,
 		scProcessor,
 		txFeeHandler,

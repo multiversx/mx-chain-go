@@ -377,7 +377,7 @@ func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators
 }
 
 func (dbb *delayedBlockBroadcaster) alarmExpired(alarmID string) {
-	headerHash, err := hex.DecodeString(strings.TrimLeft(alarmID, prefixDelayDataAlarm))
+	headerHash, err := hex.DecodeString(strings.TrimPrefix(alarmID, prefixDelayDataAlarm))
 	if err != nil {
 		log.Error("delayedBroadcast.alarmExpired", "error", err.Error(), "alarmID", alarmID)
 		return

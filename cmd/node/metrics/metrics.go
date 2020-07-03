@@ -97,6 +97,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumMetachainNodes, uint64(nodesConfig.MetaChainMinNodes))
 	appStatusHandler.SetUInt64Value(core.MetricStartTime, uint64(nodesConfig.StartTime))
 	appStatusHandler.SetUInt64Value(core.MetricRoundDuration, nodesConfig.RoundDuration)
+	appStatusHandler.SetUInt64Value(core.MetricMinTransactionVersion, uint64(nodesConfig.MinTransactionVersion))
 
 	var consensusGroupSize uint32
 	switch {

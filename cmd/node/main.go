@@ -91,6 +91,7 @@ const (
 	defaultEpochString           = "Epoch"
 	defaultStaticDbString        = "Static"
 	defaultShardString           = "Shard"
+	notSetDestinationShardID     = "disabled"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
 	maxNumGoRoutinesTxsByHashApi = 10
@@ -749,9 +750,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
-		Config:  *generalConfig,
-		ShardId: shardId,
-		ChainID: []byte(genesisNodesConfig.ChainID),
+		Config:                *generalConfig,
+		ShardId:               shardId,
+		ChainID:               []byte(genesisNodesConfig.ChainID),
+		MinTransactionVersion: genesisNodesConfig.MinTransactionVersion,
 	}
 	coreComponentsFactory := mainFactory.NewCoreComponentsFactory(coreArgs)
 	coreComponents, err := coreComponentsFactory.Create()
@@ -1693,6 +1695,12 @@ func createShardCoordinator(
 		log.Info("starting as observer node")
 
 		selfShardId, err = processDestinationShardAsObserver(prefsConfig)
+		if err != nil {
+			return nil, "", err
+		}
+		if selfShardId == core.DisabledShardIDAsObserver {
+			selfShardId = uint32(0)
+		}
 	}
 	if err != nil {
 		return nil, "", err
@@ -1733,6 +1741,9 @@ func createNodesCoordinator(
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
 		return nil, err
+	}
+	if shardIDAsObserver == core.DisabledShardIDAsObserver {
+		shardIDAsObserver = uint32(0)
 	}
 
 	nbShards := nodesConfig.NumberOfShards()
@@ -1836,6 +1847,11 @@ func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (ui
 	if len(destShard) == 0 {
 		return 0, errors.New("option DestinationShardAsObserver is not set in prefs.toml")
 	}
+
+	if destShard == notSetDestinationShardID {
+		return core.DisabledShardIDAsObserver, nil
+	}
+
 	if destShard == metachainShardName {
 		return core.MetachainShardId, nil
 	}
@@ -1962,6 +1978,7 @@ func createHardForkTrigger(
 		InputAntifloodHandler:    network.InputAntifloodHandler,
 		OutputAntifloodHandler:   network.OutputAntifloodHandler,
 		ValidityAttester:         process.BlockTracker,
+		ChainID:                  coreData.ChainID,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -2128,6 +2145,7 @@ func createNode(
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithValidatorsProvider(process.ValidatorsProvider),
 		node.WithChainID(coreData.ChainID),
+		node.WithMinTransactionVersion(nodesConfig.MinTransactionVersion),
 		node.WithBlockTracker(process.BlockTracker),
 		node.WithRequestHandler(process.RequestHandler),
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
