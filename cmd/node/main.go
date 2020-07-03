@@ -750,9 +750,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
-		Config:  *generalConfig,
-		ShardId: shardId,
-		ChainID: []byte(genesisNodesConfig.ChainID),
+		Config:                *generalConfig,
+		ShardId:               shardId,
+		ChainID:               []byte(genesisNodesConfig.ChainID),
+		MinTransactionVersion: genesisNodesConfig.MinTransactionVersion,
 	}
 	coreComponentsFactory := mainFactory.NewCoreComponentsFactory(coreArgs)
 	coreComponents, err := coreComponentsFactory.Create()
@@ -1977,6 +1978,7 @@ func createHardForkTrigger(
 		InputAntifloodHandler:    network.InputAntifloodHandler,
 		OutputAntifloodHandler:   network.OutputAntifloodHandler,
 		ValidityAttester:         process.BlockTracker,
+		ChainID:                  coreData.ChainID,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -2143,6 +2145,7 @@ func createNode(
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithValidatorsProvider(process.ValidatorsProvider),
 		node.WithChainID(coreData.ChainID),
+		node.WithMinTransactionVersion(nodesConfig.MinTransactionVersion),
 		node.WithBlockTracker(process.BlockTracker),
 		node.WithRequestHandler(process.RequestHandler),
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),

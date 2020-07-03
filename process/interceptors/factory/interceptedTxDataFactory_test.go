@@ -53,6 +53,28 @@ func TestNewInterceptedTxDataFactory_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
+func TestNewInterceptedTxDataFactory_InvalidChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.ChainID = nil
+
+	imh, err := NewInterceptedTxDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestNewInterceptedTxDataFactory_InvalidMinTransactionVersionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.MinTransactionVersion = 0
+
+	imh, err := NewInterceptedTxDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
+}
+
 func TestNewInterceptedTxDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 

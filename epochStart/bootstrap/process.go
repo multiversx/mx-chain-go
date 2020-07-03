@@ -468,6 +468,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		NonceConverter:         e.uint64Converter,
 		ChainID:                []byte(e.genesisNodesConfig.GetChainId()),
 		ArgumentsParser:        e.argumentsParser,
+		MinTransactionVersion:  e.genesisNodesConfig.GetMinTransactionVersion(),
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

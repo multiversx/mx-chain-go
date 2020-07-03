@@ -809,6 +809,9 @@ var ErrNilInterceptorContainer = errors.New("nil interceptor container")
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID")
 
+// ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
+var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
+
 // ErrTxValueTooBig signals that transaction value is too big
 var ErrTxValueTooBig = errors.New("tx value is too big")
 

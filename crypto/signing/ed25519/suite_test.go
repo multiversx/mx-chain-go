@@ -61,23 +61,23 @@ func TestNewEd25519PointLen(t *testing.T) {
 }
 
 func TestSuiteEd25519_CheckPointValid(t *testing.T) {
-	validPointHexStr :="246008bbf5ebb46892c4b079c4ba5d76ee2d5f648ab8005ff082029c8e8daa18"
-	shortPointHexStr :="246008bbf5ebb46892c4b079c4ba5d76ee2d5f648ab8005ff082029c8e8daa"
+	validPointHexStr := "246008bbf5ebb46892c4b079c4ba5d76ee2d5f648ab8005ff082029c8e8daa18"
+	shortPointHexStr := "246008bbf5ebb46892c4b079c4ba5d76ee2d5f648ab8005ff082029c8e8daa"
 	longPointHexStr := "246008bbf5ebb46892c4b079c4ba5d76ee2d5f648ab8005ff082029c8e8daa1818"
 
 	suite := ed25519.NewEd25519()
 
-	validPointBytes, err:= hex.DecodeString(validPointHexStr)
+	validPointBytes, err := hex.DecodeString(validPointHexStr)
 	require.Nil(t, err)
 	err = suite.CheckPointValid(validPointBytes)
 	require.Nil(t, err)
 
-	shortPointBytes, err:= hex.DecodeString(shortPointHexStr)
+	shortPointBytes, err := hex.DecodeString(shortPointHexStr)
 	require.Nil(t, err)
 	err = suite.CheckPointValid(shortPointBytes)
 	require.Equal(t, crypto.ErrInvalidParam, err)
 
-	longPointBytes, err:= hex.DecodeString(longPointHexStr)
+	longPointBytes, err := hex.DecodeString(longPointHexStr)
 	require.Nil(t, err)
 	err = suite.CheckPointValid(longPointBytes)
 	require.Equal(t, crypto.ErrInvalidParam, err)

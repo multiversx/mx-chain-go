@@ -464,6 +464,75 @@ func TestMultiDataInterceptor_ProcessReceivedMessageWhitelistedShouldRetNil(t *t
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
+func TestMultiDataInterceptor_InvalidTxVersionShouldBackList(t *testing.T) {
+	t.Parallel()
+
+	processReceivedMessageMultiDataInvalidVersion(t, process.ErrInvalidTransactionVersion)
+}
+
+func TestMultiDataInterceptor_InvalidTxChainIDShouldBackList(t *testing.T) {
+	t.Parallel()
+
+	processReceivedMessageMultiDataInvalidVersion(t, process.ErrInvalidChainID)
+}
+
+func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr error) {
+	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
+	marshalizer := &mock.MarshalizerMock{}
+	checkCalledNum := int32(0)
+	processCalledNum := int32(0)
+	throttler := createMockThrottler()
+	interceptedData := &mock.InterceptedDataStub{
+		CheckValidityCalled: func() error {
+			return expectedErr
+		},
+		IsForCurrentShardCalled: func() bool {
+			return false
+		},
+	}
+
+	isOriginatorBlackListed := false
+	isFromConnectedPeerBlackListed := false
+	originator := core.PeerID("originator")
+	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
+		marshalizer,
+		&mock.InterceptedDataFactoryStub{
+			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
+				return interceptedData, nil
+			},
+		},
+		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
+		throttler,
+		&mock.P2PAntifloodHandlerStub{
+			BlacklistPeerCalled: func(peer core.PeerID, reason string, duration time.Duration) {
+				switch string(peer) {
+				case string(originator):
+					isOriginatorBlackListed = true
+				case string(fromConnectedPeerId):
+					isFromConnectedPeerBlackListed = true
+				}
+			},
+		},
+		&mock.WhiteListHandlerStub{
+			IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+				return true
+			},
+		},
+	)
+
+	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
+	msg := &mock.P2PMessageMock{
+		DataField: dataField,
+		PeerField: originator,
+	}
+
+	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	assert.Equal(t, expectedErr, err)
+	assert.True(t, isFromConnectedPeerBlackListed)
+	assert.True(t, isOriginatorBlackListed)
+}
+
 //------- debug
 
 func TestMultiDataInterceptor_SetInterceptedDebugHandlerNilShouldErr(t *testing.T) {

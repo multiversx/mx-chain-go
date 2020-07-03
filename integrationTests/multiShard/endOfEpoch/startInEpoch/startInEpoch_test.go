@@ -155,6 +155,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		NumberOfShardsCalled: func() uint32 {
 			return uint32(numOfShards)
 		},
+		GetMinTransactionVersionCalled: func() uint32 {
+			return integrationTests.MinTransactionVersion
+		},
 	}
 
 	defer func() {
