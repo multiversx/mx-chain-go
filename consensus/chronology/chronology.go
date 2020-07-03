@@ -10,14 +10,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/close"
+	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ consensus.ChronologyHandler = (*chronology)(nil)
-var _ close.Closer = (*chronology)(nil)
+var _ closing.Closer = (*chronology)(nil)
 
 var log = logger.GetOrCreate("consensus/chronology")
 
