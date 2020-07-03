@@ -163,6 +163,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.ImportStartHandler) {
 		return update.ErrNilImportStartHandler
 	}
+	if check.IfNil(arg.SignMarshalizer) {
+		return process.ErrNilMarshalizer
+	}
 
 	return nil
 }

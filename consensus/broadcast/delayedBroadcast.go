@@ -377,9 +377,9 @@ func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators
 }
 
 func (dbb *delayedBlockBroadcaster) alarmExpired(alarmID string) {
-	headerHash, err := hex.DecodeString(strings.TrimLeft(alarmID, prefixDelayDataAlarm))
+	headerHash, err := hex.DecodeString(strings.TrimPrefix(alarmID, prefixDelayDataAlarm))
 	if err != nil {
-		log.Error("delayedBroadcast.alarmExpired", "error", err.Error())
+		log.Error("delayedBroadcast.alarmExpired", "error", err.Error(), "alarmID", alarmID)
 		return
 	}
 
@@ -406,7 +406,7 @@ func (dbb *delayedBlockBroadcaster) alarmExpired(alarmID string) {
 func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 	headerHash, err := hex.DecodeString(strings.TrimPrefix(alarmID, prefixHeaderAlarm))
 	if err != nil {
-		log.Error("delayedBroadcast.headerAlarmExpired", "error", err.Error())
+		log.Error("delayedBroadcast.headerAlarmExpired", "error", err.Error(), "alarmID", alarmID)
 		return
 	}
 
@@ -422,7 +422,7 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 	dbb.mutDataForBroadcast.Unlock()
 
 	if vHeader == nil {
-		log.Warn("delayedBroadcast.headerAlarmExpired", "error", "alarm data is nil")
+		log.Warn("delayedBroadcast.headerAlarmExpired", "error", "alarm data is nil", "alarmID", alarmID)
 		return
 	}
 
@@ -433,7 +433,7 @@ func (dbb *delayedBlockBroadcaster) headerAlarmExpired(alarmID string) {
 	// broadcast header
 	err = dbb.broadcastHeader(vHeader.header)
 	if err != nil {
-		log.Warn("delayedBroadcast.headerAlarmExpired", "error", err.Error())
+		log.Warn("delayedBroadcast.headerAlarmExpired", "error", err.Error(), "alarmID", alarmID)
 	}
 
 	// if metaChain broadcast meta data with extra delay

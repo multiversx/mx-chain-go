@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -26,6 +27,8 @@ var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
 var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
+
+const executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
 
 var zero = big.NewInt(0)
 
@@ -160,12 +163,30 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx data.TransactionHandler,
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
-	defer sc.tempAccounts.CleanTempAccounts()
-
 	if check.IfNil(tx) {
 		return 0, process.ErrNilTransaction
 	}
-	log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()))
+
+	sw := core.NewStopWatch()
+	sw.Start("execute")
+	returnCode, err := sc.doExecuteSmartContractTransaction(tx, acntSnd, acntDst)
+	sw.Stop("execute")
+	duration := sw.GetMeasurement("execute")
+
+	if duration > executeDurationAlarmThreshold {
+		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", duration), "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+	} else {
+		log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+	}
+
+	return returnCode, err
+}
+
+func (sc *scProcessor) doExecuteSmartContractTransaction(
+	tx data.TransactionHandler,
+	acntSnd, acntDst state.UserAccountHandler,
+) (vmcommon.ReturnCode, error) {
+	defer sc.tempAccounts.CleanTempAccounts()
 
 	err := sc.processSCPayment(tx, acntSnd)
 	if err != nil {

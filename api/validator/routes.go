@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-gonic/gin"
@@ -24,15 +25,36 @@ func Routes(router *wrapper.RouterWrapper) {
 func Statistics(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(ValidatorsStatisticsApiHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
 		return
 	}
 
 	valStats, err := ef.ValidatorStatisticsApi()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"statistics": valStats})
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"statistics": valStats},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
 }
