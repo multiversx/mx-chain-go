@@ -48,11 +48,12 @@ func (ni *NodeInfo) IsInterfaceNil() bool {
 
 // NodesSetup hold data for decoded data from json file
 type NodesSetup struct {
-	StartTime          int64  `json:"startTime"`
-	RoundDuration      uint64 `json:"roundDuration"`
-	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
-	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
-	ChainID            string `json:"chainID"`
+	StartTime             int64  `json:"startTime"`
+	RoundDuration         uint64 `json:"roundDuration"`
+	ConsensusGroupSize    uint32 `json:"consensusGroupSize"`
+	MinNodesPerShard      uint32 `json:"minNodesPerShard"`
+	ChainID               string `json:"chainID"`
+	MinTransactionVersion uint32 `json:"minTransactionVersion"`
 
 	MetaChainConsensusGroupSize uint32  `json:"metaChainConsensusGroupSize"`
 	MetaChainMinNodes           uint32  `json:"metaChainMinNodes"`
@@ -320,6 +321,11 @@ func (ns *NodesSetup) GetRoundDuration() uint64 {
 // GetChainId returns the chain ID
 func (ns *NodesSetup) GetChainId() string {
 	return ns.ChainID
+}
+
+// GetMinTransactionVersion returns the minimum transaction version
+func (ns *NodesSetup) GetMinTransactionVersion() uint32 {
+	return ns.MinTransactionVersion
 }
 
 // GetShardConsensusGroupSize returns the shard consensus group size

@@ -67,6 +67,8 @@ type frontendTransaction struct {
 	GasLimit         uint64 `json:"gasLimit"`
 	Data             string `json:"data,omitempty"`
 	Signature        string `json:"signature,omitempty"`
+	ChainID          string `json:"chainID"`
+	Version          uint32 `json:"version"`
 }
 
 // GetDataForSigning returns the serialized transaction having an empty signature field
@@ -88,6 +90,8 @@ func (tx *Transaction) GetDataForSigning(encoder Encoder, marshalizer Marshalize
 		SenderUsername:   tx.SndUserName,
 		ReceiverUsername: tx.RcvUserName,
 		Data:             string(tx.Data),
+		ChainID:          string(tx.ChainID),
+		Version:          tx.Version,
 	}
 
 	return marshalizer.Marshal(ftx)

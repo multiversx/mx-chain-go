@@ -1029,6 +1029,26 @@ func TestWithChainID_InvalidShouldErr(t *testing.T) {
 	assert.Equal(t, ErrInvalidChainID, err)
 }
 
+func TestWithChainID_InvalidMinTransactionVersionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	opt := WithMinTransactionVersion(0)
+
+	err := opt(node)
+	assert.Equal(t, ErrInvalidTransactionVersion, err)
+}
+
+func TestWithChainID_MinTransactionVersionShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	opt := WithMinTransactionVersion(1)
+
+	err := opt(node)
+	assert.Nil(t, err)
+}
+
 func TestWithChainID_OkValueShouldWork(t *testing.T) {
 	t.Parallel()
 

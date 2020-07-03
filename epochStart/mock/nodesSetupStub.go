@@ -9,6 +9,7 @@ type NodesSetupStub struct {
 	GetStartTimeCalled               func() int64
 	GetRoundDurationCalled           func() uint64
 	GetChainIdCalled                 func() string
+	GetMinTransactionVersionCalled   func() uint32
 	GetShardConsensusGroupSizeCalled func() uint32
 	GetMetaConsensusGroupSizeCalled  func() uint32
 	NumberOfShardsCalled             func() uint32
@@ -29,6 +30,14 @@ func (n *NodesSetupStub) GetStartTime() int64 {
 		return n.GetStartTimeCalled()
 	}
 	return 0
+}
+
+// GetMinTransactionVersion -
+func (n *NodesSetupStub) GetMinTransactionVersion() uint32 {
+	if n.GetMinTransactionVersionCalled != nil {
+		return n.GetMinTransactionVersionCalled()
+	}
+	return 1
 }
 
 // GetRoundDuration -
