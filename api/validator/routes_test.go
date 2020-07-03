@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -83,12 +84,17 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := ValidatorStatisticsResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
+
+	validatorStatistics := ValidatorStatisticsResponse{}
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &validatorStatistics)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	assert.Equal(t, response.Result, mapToReturn)
+	assert.Equal(t, validatorStatistics.Result, mapToReturn)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {
