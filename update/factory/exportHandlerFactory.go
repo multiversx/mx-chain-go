@@ -64,6 +64,7 @@ type ArgsExporter struct {
 	ValidityAttester         process.ValidityAttester
 	InputAntifloodHandler    process.P2PAntifloodHandler
 	OutputAntifloodHandler   process.P2PAntifloodHandler
+	ChainID                  []byte
 }
 
 type exportHandlerFactory struct {
@@ -101,6 +102,7 @@ type exportHandlerFactory struct {
 	resolverContainer        dataRetriever.ResolversContainer
 	inputAntifloodHandler    process.P2PAntifloodHandler
 	outputAntifloodHandler   process.P2PAntifloodHandler
+	chainID                  []byte
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -220,6 +222,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
 		maxTrieLevelInMemory:     args.MaxTrieLevelInMemory,
+		chainID:                  args.ChainID,
 	}
 
 	return e, nil
@@ -430,6 +433,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		InterceptorsContainer:   e.interceptorsContainer,
 		AntifloodHandler:        e.inputAntifloodHandler,
 		NonceConverter:          e.uint64Converter,
+		ChainID:                 e.chainID,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

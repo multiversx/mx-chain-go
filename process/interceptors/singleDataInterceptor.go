@@ -93,6 +93,14 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.throttler.EndProcessing()
 		processDebugInterceptedData(sdi.interceptedDebugHandler, interceptedData, sdi.topic, err)
 
+		isWrongVersion := err == process.ErrInvalidTransactionVersion || err == process.ErrInvalidChainID
+		if isWrongVersion {
+			//this situation is so severe that we need to black list de peers
+			reason := "wrong version of received intercepted data, topic " + sdi.topic + ", error " + err.Error()
+			sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+			sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+		}
+
 		return err
 	}
 

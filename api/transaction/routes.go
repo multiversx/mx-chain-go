@@ -16,7 +16,7 @@ import (
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
 	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
-		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data string, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
@@ -50,6 +50,8 @@ type SendTxRequest struct {
 	GasPrice  uint64 `form:"gasPrice" json:"gasPrice"`
 	GasLimit  uint64 `form:"gasLimit" json:"gasLimit"`
 	Signature string `form:"signature" json:"signature"`
+	ChainID   string `form:"chainID" json:"chainID"`
+	Version   uint32 `form:"version" json:"version"`
 }
 
 //TxResponse represents the structure on which the response will be validated against
@@ -108,6 +110,8 @@ func SendTransaction(c *gin.Context) {
 		gtx.GasLimit,
 		gtx.Data,
 		gtx.Signature,
+		gtx.ChainID,
+		gtx.Version,
 	)
 	if err != nil {
 		c.JSON(
@@ -204,6 +208,8 @@ func SendMultipleTransactions(c *gin.Context) {
 			receivedTx.GasLimit,
 			receivedTx.Data,
 			receivedTx.Signature,
+			receivedTx.ChainID,
+			receivedTx.Version,
 		)
 		if err != nil {
 			continue
@@ -332,6 +338,8 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		gtx.GasLimit,
 		gtx.Data,
 		gtx.Signature,
+		gtx.ChainID,
+		gtx.Version,
 	)
 	if err != nil {
 		c.JSON(

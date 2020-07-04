@@ -92,6 +92,8 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		uint64(noOfTx),
 		n.OwnAccount.SkTxSign,
 		nil,
+		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 
 	assert.Nil(t, err)
