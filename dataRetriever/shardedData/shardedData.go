@@ -96,7 +96,7 @@ func (sd *shardedData) AddData(key []byte, value interface{}, sizeInBytes int, c
 	if added {
 		sd.mutAddedDataHandlers.RLock()
 		for _, handler := range sd.addedDataHandlers {
-			go handler(key, value)
+			handler(key, value)
 		}
 		sd.mutAddedDataHandlers.RUnlock()
 	}

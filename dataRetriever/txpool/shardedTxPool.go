@@ -200,7 +200,7 @@ func (txPool *shardedTxPool) onAdded(key []byte, value interface{}) {
 	defer txPool.mutexAddCallbacks.RUnlock()
 
 	for _, handler := range txPool.onAddCallbacks {
-		go handler(key, value)
+		handler(key, value)
 	}
 }
 
