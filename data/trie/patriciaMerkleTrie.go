@@ -602,6 +602,29 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 	return leaves, nil
 }
 
+// GetAllHashes returns all the hashes from the trie
+func (tr *patriciaMerkleTrie) GetAllHashes() ([][]byte, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	hashes := make([][]byte, 0)
+	if tr.root == nil {
+		return hashes, nil
+	}
+
+	err := tr.root.setRootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	hashes, err = tr.root.getAllHashes(tr.Database())
+	if err != nil {
+		return nil, err
+	}
+
+	return hashes, nil
+}
+
 // IsPruningEnabled returns true if state pruning is enabled
 func (tr *patriciaMerkleTrie) IsPruningEnabled() bool {
 	return tr.trieStorage.IsPruningEnabled()

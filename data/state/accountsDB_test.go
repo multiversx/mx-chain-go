@@ -1270,3 +1270,76 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	hashesForEviction = ewl.Cache[string(rootHash2)]
 	assert.Equal(t, 3, len(hashesForEviction))
 }
+
+func TestAccountsDB_RemoveAccountSetsObsoleteHashes(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	adb, _ := getTestAccountsDbAndTrie(marshalizer, hsh)
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+	userAcc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
+
+	_ = adb.SaveAccount(userAcc)
+	_, _ = adb.Commit()
+
+	acc, _ = adb.LoadAccount(addr)
+	userAcc = acc.(state.UserAccountHandler)
+	userAcc.SetCode([]byte("code"))
+	snapshot := adb.JournalLen()
+	hashes, _ := userAcc.DataTrieTracker().DataTrie().GetAllHashes()
+	dataTrieRootHash := string(hashes[0])
+
+	err := adb.RemoveAccount(addr)
+	obsoleteHashes := adb.GetObsoleteHashes()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(obsoleteHashes))
+	assert.Equal(t, hashes, obsoleteHashes[dataTrieRootHash])
+
+	err = adb.RevertToSnapshot(snapshot)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(adb.GetObsoleteHashes()))
+}
+
+func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
+	t.Parallel()
+
+	maxTrieLevelInMemory := uint(5)
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	db := mock.NewMemDbMock()
+
+	ewl, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hsh, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator())
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+	userAcc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
+	_ = adb.SaveAccount(userAcc)
+
+	addr1 := make([]byte, 32)
+	addr1[0] = 1
+	acc, _ = adb.LoadAccount(addr1)
+	_ = adb.SaveAccount(acc)
+
+	rootHash, _ := adb.Commit()
+	hashes, _ := userAcc.DataTrieTracker().DataTrie().GetAllHashes()
+	dataTrieRootHash := string(hashes[0])
+
+	err := adb.RemoveAccount(addr)
+	obsoleteHashes := adb.GetObsoleteHashes()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(obsoleteHashes))
+	assert.Equal(t, hashes, obsoleteHashes[dataTrieRootHash])
+
+	_, _ = adb.Commit()
+	rootHash = append(rootHash, byte(data.OldRoot))
+	oldHashes := ewl.Cache[string(rootHash)]
+	assert.Equal(t, 5, len(oldHashes))
+}
