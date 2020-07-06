@@ -220,7 +220,7 @@ type journalEntryDataTrieRemove struct {
 // the eviction of the hashes from the data trie with the given root hash
 func NewJournalEntryDataTrieRemove(rootHash []byte, obsoleteDataTrieHashes map[string][][]byte) (*journalEntryDataTrieRemove, error) {
 	if obsoleteDataTrieHashes == nil {
-		return nil, fmt.Errorf("%w in NewJournalEntryDataTrieRemove", ErrNilHashesMap)
+		return nil, fmt.Errorf("%w in NewJournalEntryDataTrieRemove", ErrNilMapOfHashes)
 	}
 	if len(rootHash) == 0 {
 		return nil, ErrInvalidRootHash

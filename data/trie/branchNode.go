@@ -733,7 +733,7 @@ func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data
 func (bn *branchNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("getAllHashes error %w", err)
+		return nil, fmt.Errorf("getAllHashes error: %w", err)
 	}
 
 	var childrenHashes [][]byte

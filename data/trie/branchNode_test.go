@@ -1341,10 +1341,12 @@ func TestBranchNode_getDirtyHashesFromCleanNode(t *testing.T) {
 func TestBranchNode_getAllHashes(t *testing.T) {
 	t.Parallel()
 
+	trieNodes := 4
 	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
+
 	hashes, err := bn.getAllHashes(mock.NewMemDbMock())
 	assert.Nil(t, err)
-	assert.Equal(t, 4, len(hashes))
+	assert.Equal(t, trieNodes, len(hashes))
 }
 
 func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {

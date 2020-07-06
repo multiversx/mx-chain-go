@@ -358,7 +358,7 @@ func (ln *leafNode) getAllLeaves(leaves map[string][]byte, key []byte, _ data.DB
 func (ln *leafNode) getAllHashes(_ data.DBWriteCacher) ([][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("getAllHashes error %w", err)
+		return nil, fmt.Errorf("getAllHashes error: %w", err)
 	}
 
 	return [][]byte{ln.hash}, nil

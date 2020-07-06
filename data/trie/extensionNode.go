@@ -596,7 +596,7 @@ func (en *extensionNode) getAllLeaves(leaves map[string][]byte, key []byte, db d
 func (en *extensionNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("getAllHashes error %w", err)
+		return nil, fmt.Errorf("getAllHashes error: %w", err)
 	}
 
 	err = resolveIfCollapsed(en, 0, db)

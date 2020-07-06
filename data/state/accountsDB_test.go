@@ -1276,12 +1276,7 @@ func TestAccountsDB_RemoveAccountSetsObsoleteHashes(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
-	db := mock.NewMemDbMock()
-	ewl, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hsh, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator())
+	adb, _ := getTestAccountsDbAndTrie(marshalizer, hsh)
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -1295,10 +1290,14 @@ func TestAccountsDB_RemoveAccountSetsObsoleteHashes(t *testing.T) {
 	userAcc = acc.(state.UserAccountHandler)
 	userAcc.SetCode([]byte("code"))
 	snapshot := adb.JournalLen()
+	hashes, _ := userAcc.DataTrieTracker().DataTrie().GetAllHashes()
+	dataTrieRootHash := string(hashes[0])
 
 	err := adb.RemoveAccount(addr)
+	obsoleteHashes := adb.GetObsoleteHashes()
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(adb.GetObsoleteHashes()))
+	assert.Equal(t, 1, len(obsoleteHashes))
+	assert.Equal(t, hashes, obsoleteHashes[dataTrieRootHash])
 
 	err = adb.RevertToSnapshot(snapshot)
 	assert.Nil(t, err)
@@ -1308,12 +1307,13 @@ func TestAccountsDB_RemoveAccountSetsObsoleteHashes(t *testing.T) {
 func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	t.Parallel()
 
+	maxTrieLevelInMemory := uint(5)
 	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
 	db := mock.NewMemDbMock()
+
 	ewl, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
 	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hsh, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
-	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator())
 
@@ -1329,10 +1329,14 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	_ = adb.SaveAccount(acc)
 
 	rootHash, _ := adb.Commit()
+	hashes, _ := userAcc.DataTrieTracker().DataTrie().GetAllHashes()
+	dataTrieRootHash := string(hashes[0])
 
 	err := adb.RemoveAccount(addr)
+	obsoleteHashes := adb.GetObsoleteHashes()
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(adb.GetObsoleteHashes()))
+	assert.Equal(t, 1, len(obsoleteHashes))
+	assert.Equal(t, hashes, obsoleteHashes[dataTrieRootHash])
 
 	_, _ = adb.Commit()
 	rootHash = append(rootHash, byte(data.OldRoot))
