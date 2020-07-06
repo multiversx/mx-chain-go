@@ -180,3 +180,6 @@ var ErrNilWatchdog = errors.New("nil watchdog")
 
 // ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
+
+// ErrNilHistoryProcessor signals that history processor is nil
+var ErrNilHistoryProcessor = errors.New("history processor is nil")

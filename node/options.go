@@ -716,6 +716,9 @@ func WithWatchdogTimer(watchdog core.WatchdogTimer) Option {
 // WithHistoryProcessor sets up a history processor for the node
 func WithHistoryProcessor(historyProc fullHistory.HistoryHandler) Option {
 	return func(n *Node) error {
+		if check.IfNil(historyProc) {
+			return ErrNilHistoryProcessor
+		}
 		n.historyProcessor = historyProc
 		return nil
 	}
