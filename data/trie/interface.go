@@ -39,6 +39,7 @@ type node interface {
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
 	getAllLeaves(map[string][]byte, []byte, data.DBWriteCacher, marshal.Marshalizer) error
+	getAllHashes(db data.DBWriteCacher) ([][]byte, error)
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
