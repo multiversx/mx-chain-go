@@ -42,7 +42,9 @@ func (shardedData *ShardedDataStub) ShardDataStore(cacheID string) storage.Cache
 
 // AddData -
 func (shardedData *ShardedDataStub) AddData(key []byte, data interface{}, sizeInBytes int, cacheID string) {
-	shardedData.AddDataCalled(key, data, sizeInBytes, cacheID)
+	if shardedData.AddDataCalled != nil {
+		shardedData.AddDataCalled(key, data, sizeInBytes, cacheID)
+	}
 }
 
 // SearchFirstData -
