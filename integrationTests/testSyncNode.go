@@ -182,6 +182,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
 		Version:                string(SoftwareVersion),
+		HistoryProcessor:       tpn.HistoryProcessor,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
