@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -708,6 +709,14 @@ func WithWatchdogTimer(watchdog core.WatchdogTimer) Option {
 		}
 
 		n.watchdog = watchdog
+		return nil
+	}
+}
+
+// WithHistoryProcessor sets up a history processor for the node
+func WithHistoryProcessor(historyProc fullHistory.HistoryHandler) Option {
+	return func(n *Node) error {
+		n.historyProcessor = historyProc
 		return nil
 	}
 }

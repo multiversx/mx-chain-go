@@ -209,6 +209,18 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 
+	if psf.generalConfig.FullHistory.EnableHistoryNode {
+		historyTxsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.FullHistory.HistoryTransactionStorageConfig)
+		historyTxUnit, err := pruning.NewPruningStorer(historyTxsUnitArgs)
+		if err != nil {
+			return nil, err
+		}
+
+		successfullyCreatedStorers = append(successfullyCreatedStorers, historyTxUnit)
+
+		store.AddStorer(dataRetriever.TransactionHistoryUnit, historyTxUnit)
+	}
+
 	return store, err
 }
 
@@ -353,6 +365,18 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
+
+	if psf.generalConfig.FullHistory.EnableHistoryNode {
+		historyTxsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.FullHistory.HistoryTransactionStorageConfig)
+		historyTxUnit, err := pruning.NewPruningStorer(historyTxsUnitArgs)
+		if err != nil {
+			return nil, err
+		}
+
+		successfullyCreatedStorers = append(successfullyCreatedStorers, historyTxUnit)
+
+		store.AddStorer(dataRetriever.TransactionHistoryUnit, historyTxUnit)
+	}
 
 	return store, err
 }

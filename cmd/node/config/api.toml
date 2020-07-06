@@ -93,3 +93,8 @@
          # /transaction/:txhash will return the transaction in JSON format based on its hash
          { Name = "/:txhash", Open = true },
 	]
+
+[APIPackages.history]
+	Routes = [
+	    { Name = "/transaction/:txhash", Open = false },
+	]

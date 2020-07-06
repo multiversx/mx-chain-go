@@ -728,6 +728,9 @@ var ErrNilValidatorInfos = errors.New("nil validator infos")
 // ErrNilBlockSizeThrottler signals that block size throttler si nil
 var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
 
+// ErrNilHistoryProcessor signals that history processor is nil
+var ErrNilHistoryProcessor = errors.New("history processor is nil")
+
 // ErrInvalidMetaTransaction signals that meta transaction is invalid
 var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
 

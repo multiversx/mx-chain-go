@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -71,6 +72,7 @@ type baseProcessor struct {
 	stateCheckpointModulus uint
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
+	historyProc            fullHistory.HistoryHandler
 }
 
 type bootStorerDataArgs struct {
@@ -395,6 +397,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
+	}
+	if check.IfNil(arguments.HistoryProcessor) {
+		return process.ErrNilHistoryProcessor
 	}
 	if len(arguments.Version) == 0 {
 		return process.ErrEmptySoftwareVersion
@@ -1180,4 +1185,24 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	time.Sleep(core.ExtraDelayForRequestBlockInfo)
 
 	bp.txCoordinator.RequestMiniBlocks(headerHandler)
+}
+
+func (bp *baseProcessor) saveHistoryData(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) {
+	if !bp.historyProc.IsEnabled() {
+		return
+	}
+
+	historyTransactionData := &fullHistory.HistoryTransactionsData{
+		// for the moment we dont need transactions
+		Transactions:  nil,
+		HeaderHash:    headerHash,
+		HeaderHandler: header,
+		BodyHandler:   body,
+	}
+
+	err := bp.historyProc.PutTransactionsData(historyTransactionData)
+	if err != nil {
+		log.Debug("history processor: cannot save transaction data",
+			"error", err.Error())
+	}
 }

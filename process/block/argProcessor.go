@@ -2,6 +2,7 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -40,6 +41,7 @@ type ArgBaseProcessor struct {
 	StateCheckpointModulus uint
 	BlockSizeThrottler     process.BlockSizeThrottler
 	Version                string
+	HistoryProcessor       fullHistory.HistoryHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

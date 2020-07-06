@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
@@ -146,6 +147,7 @@ type processComponentsFactoryArgs struct {
 	version                   string
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
+	historyProc               fullHistory.HistoryHandler
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -186,6 +188,7 @@ func NewProcessComponentsFactoryArgs(
 	version string,
 	importStartHandler update.ImportStartHandler,
 	workingDir string,
+	historyProc fullHistory.HistoryHandler,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -225,6 +228,7 @@ func NewProcessComponentsFactoryArgs(
 		version:                   version,
 		importStartHandler:        importStartHandler,
 		workingDir:                workingDir,
+		historyProc:               historyProc,
 	}
 }
 
@@ -1051,6 +1055,7 @@ func newBlockProcessor(
 			txLogsProcessor,
 			processArgs.version,
 			processArgs.smartContractParser,
+			processArgs.historyProc,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1081,6 +1086,7 @@ func newBlockProcessor(
 			txLogsProcessor,
 			processArgs.systemSCConfig,
 			processArgs.version,
+			processArgs.historyProc,
 		)
 	}
 
@@ -1110,6 +1116,7 @@ func newShardBlockProcessor(
 	txLogsProcessor process.TransactionLogProcessor,
 	version string,
 	smartContractParser genesis.InitialSmartContractParser,
+	historyProcessor fullHistory.HistoryHandler,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -1344,6 +1351,7 @@ func newShardBlockProcessor(
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockSizeThrottler:     blockSizeThrottler,
+		HistoryProcessor:       historyProcessor,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1389,6 +1397,7 @@ func newMetaBlockProcessor(
 	txLogsProcessor process.TransactionLogProcessor,
 	systemSCConfig *config.SystemSmartContractsConfig,
 	version string,
+	historyProcessor fullHistory.HistoryHandler,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1673,6 +1682,7 @@ func newMetaBlockProcessor(
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockSizeThrottler:     blockSizeThrottler,
+		HistoryProcessor:       historyProcessor,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,

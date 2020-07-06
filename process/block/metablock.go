@@ -106,6 +106,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),
+		historyProc:            arguments.HistoryProcessor,
 	}
 
 	mp := metaProcessor{
@@ -1097,6 +1098,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	mp.saveHistoryData(headerHash, headerHandler, bodyHandler)
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 

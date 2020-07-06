@@ -3,7 +3,7 @@ package node
 import (
 	"encoding/hex"
 	"fmt"
-
+	"github.com/ElrondNetwork/elrond-go/api/history"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	rewardTxData "github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -242,4 +242,27 @@ func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool boo
 
 	// is in storage on source shard
 	return core.TxStatusPartiallyExecuted
+}
+
+// GetHistoryTransaction will return from storage a history transaction
+func (n *Node) GetHistoryTransaction(txHash string) (*history.HistoryTransaction, error) {
+	hash, err := hex.DecodeString(txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	historyTx, err := n.historyProcessor.GetTransaction(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return &history.HistoryTransaction{
+		MBHash:     hex.EncodeToString(historyTx.MbHash),
+		BlockHash:  hex.EncodeToString(historyTx.HeaderHash),
+		RcvShard:   historyTx.RcvShardID,
+		SndShard:   historyTx.SndShardID,
+		Round:      historyTx.Round,
+		BlockNonce: historyTx.Nonce,
+		Status:     string(historyTx.Status),
+	}, nil
 }

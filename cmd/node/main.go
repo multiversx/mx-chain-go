@@ -27,6 +27,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -1179,6 +1181,23 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	historyProcFactoryArgs := &historyFactory.ArgsHistoryProcessorFactory{
+		Hasher:      coreComponents.Hasher,
+		Marshalizer: coreComponents.InternalMarshalizer,
+		Store:       dataComponents.Store.GetStorer(dataRetriever.TransactionHistoryUnit),
+		SelfShardID: shardCoordinator.SelfId(),
+		IsEnabled:   generalConfig.FullHistory.EnableHistoryNode,
+	}
+	historyProcessorFactory, err := historyFactory.NewHistoryProcessorFactory(historyProcFactoryArgs)
+	if err != nil {
+		return err
+	}
+
+	historyProcessor, err := historyProcessorFactory.Create()
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		&coreArgs,
@@ -1217,6 +1236,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		version,
 		importStartHandler,
 		workingDir,
+		historyProcessor,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1281,6 +1301,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		hardForkTrigger,
+		historyProcessor,
 	)
 	if err != nil {
 		return err
@@ -2034,6 +2055,7 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
+	historyProcessor fullHistory.HistoryHandler,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2159,6 +2181,7 @@ func createNode(
 		node.WithApiTransactionByHashThrottler(apiTxsByHashThrottler),
 		node.WithPeerHonestyHandler(peerHonestyHandler),
 		node.WithWatchdogTimer(watchdogTimer),
+		node.WithHistoryProcessor(historyProcessor),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

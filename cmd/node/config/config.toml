@@ -573,3 +573,15 @@
     StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
     PollingIntervalInMinutes = 65
 
+[FullHistory]
+    EnableHistoryNode = false
+    [FullHistory.HistoryTransactionStorageConfig.Cache]
+        Name = "FullHistory.HistoryTransactionsConfig"
+        Capacity = 75000
+        Type = "LRU"
+    [FullHistory.HistoryTransactionStorageConfig.DB]
+        FilePath = "FullHistory.HistoryTransactions/MainDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
