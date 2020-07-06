@@ -81,6 +81,7 @@ func NewTestSyncNode(
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		NodesSetup:              nodesSetup,
 		MinTransactionVersion:   MinTransactionVersion,
+		HistoryProcessor:        &mock.HistoryProcessorStub{},
 	}
 
 	kg := &mock.KeyGenMock{}

@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -250,8 +252,9 @@ type TestProcessorNode struct {
 	ChainID               []byte
 	MinTransactionVersion uint32
 
-	ExportHandler update.ExportHandler
-	WaitTime      time.Duration
+	ExportHandler    update.ExportHandler
+	WaitTime         time.Duration
+	HistoryProcessor fullHistory.HistoryHandler
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -334,6 +337,7 @@ func newBaseTestProcessorNode(
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
 		NodesSetup:              nodesSetup,
+		HistoryProcessor:        &mock.HistoryProcessorStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -1234,6 +1238,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
 		Version:                string(SoftwareVersion),
+		HistoryProcessor:       tpn.HistoryProcessor,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1424,6 +1429,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithChainID(tpn.ChainID),
 		node.WithMinTransactionVersion(tpn.MinTransactionVersion),
+		node.WithHistoryProcessor(tpn.HistoryProcessor),
 	)
 	log.LogIfError(err)
 
