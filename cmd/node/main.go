@@ -491,6 +491,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
+	err = logger.SetDisplayByteSlice(logger.ToHex)
+	log.LogIfError(err)
 	logger.ToggleCorrelation(ctx.GlobalBool(logWithCorrelation.Name))
 	logger.ToggleLoggerName(ctx.GlobalBool(logWithLoggerName.Name))
 	logLevelFlagValue := ctx.GlobalString(logLevel.Name)

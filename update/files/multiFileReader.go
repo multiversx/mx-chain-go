@@ -3,6 +3,7 @@ package files
 import (
 	"bufio"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -19,6 +20,7 @@ type multiFileReader struct {
 	importFolder string
 	files        map[string]io.Closer
 	dataReader   map[string]update.DataReader
+	filenames    map[string]string
 	importStore  storage.Storer
 }
 
@@ -41,10 +43,11 @@ func NewMultiFileReader(args ArgsNewMultiFileReader) (*multiFileReader, error) {
 		importFolder: args.ImportFolder,
 		files:        make(map[string]io.Closer),
 		dataReader:   make(map[string]update.DataReader),
+		filenames:    make(map[string]string),
 		importStore:  args.ImportStore,
 	}
 
-	err := m.readAllFiles()
+	err := m.readAllFileNames()
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +55,7 @@ func NewMultiFileReader(args ArgsNewMultiFileReader) (*multiFileReader, error) {
 	return m, nil
 }
 
-func (m *multiFileReader) readAllFiles() error {
+func (m *multiFileReader) readAllFileNames() error {
 	files, err := ioutil.ReadDir(m.importFolder)
 	if err != nil {
 		return err
@@ -64,15 +67,7 @@ func (m *multiFileReader) readAllFiles() error {
 		}
 
 		name := fileInfo.Name()
-		file, err := os.OpenFile(m.importFolder+"/"+name, os.O_RDONLY, 0644)
-		if err != nil {
-			log.Warn("unable to open file", "fileName", name, "error", err)
-			continue
-		}
-
-		scanner := bufio.NewScanner(file)
-		m.files[name] = file
-		m.dataReader[name] = scanner
+		m.filenames[name] = m.importFolder + "/" + name
 	}
 
 	return nil
@@ -81,7 +76,7 @@ func (m *multiFileReader) readAllFiles() error {
 // GetFileNames returns the list of opened files
 func (m *multiFileReader) GetFileNames() []string {
 	fileNames := make([]string, 0)
-	for fileName := range m.files {
+	for fileName := range m.filenames {
 		fileNames = append(fileNames, fileName)
 	}
 
@@ -119,7 +114,21 @@ func (m *multiFileReader) ReadNextItem(fileName string) (string, []byte, error) 
 func (m *multiFileReader) getDataReader(fileName string) (update.DataReader, error) {
 	scanner, ok := m.dataReader[fileName]
 	if !ok {
-		return nil, update.ErrNilDataReader
+		var importFileName string
+		importFileName, ok = m.filenames[fileName]
+		if !ok {
+			return nil, fmt.Errorf("%w for file: %s", update.ErrMissingFile, fileName)
+		}
+
+		log.Debug("file opened", "filename", fileName)
+		file, err := os.OpenFile(importFileName, os.O_RDONLY, 0644)
+		if err != nil {
+			return nil, fmt.Errorf("%w for file: %s", err, importFileName)
+		}
+
+		scanner = bufio.NewScanner(file)
+		m.files[fileName] = file
+		m.dataReader[fileName] = scanner
 	}
 
 	canRead := scanner.Scan()
@@ -143,6 +152,8 @@ func (m *multiFileReader) CloseFile(fileName string) {
 		err := file.Close()
 		log.LogIfError(err, "closeFile multiFileWriter file close", fileName)
 	}
+
+	m.fileClosed(fileName)
 }
 
 // Finish closes all the opened files
@@ -152,12 +163,20 @@ func (m *multiFileReader) Finish() {
 		if err != nil {
 			log.Trace("could not close file ", "fileName", fileName, "error", err)
 		}
+
+		m.fileClosed(fileName)
 	}
 
 	err := m.importStore.Close()
 	if err != nil {
 		log.Trace("could not close import store ", "error", err)
 	}
+}
+
+func (m *multiFileReader) fileClosed(fileName string) {
+	log.Debug("file closed", "filename", fileName)
+	delete(m.files, fileName)
+	delete(m.dataReader, fileName)
 }
 
 // IsInterfaceNil returns true if underlying object is nil
