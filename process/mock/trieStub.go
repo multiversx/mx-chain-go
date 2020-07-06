@@ -18,6 +18,7 @@ type TrieStub struct {
 	AppendToOldHashesCalled  func([][]byte)
 	SnapshotCalled           func() error
 	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, uint64, error)
+	GetAllHashesCalled       func() ([][]byte, error)
 	DatabaseCalled           func() data.DBWriteCacher
 }
 
@@ -177,4 +178,13 @@ func (ts *TrieStub) GetDirtyHashes() (data.ModifiedHashes, error) {
 
 // SetNewHashes -
 func (ts *TrieStub) SetNewHashes(_ data.ModifiedHashes) {
+}
+
+// GetAllHashes -
+func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
+	if ts.GetAllHashesCalled != nil {
+		return ts.GetAllHashesCalled()
+	}
+
+	return nil, nil
 }
