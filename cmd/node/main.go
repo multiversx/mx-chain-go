@@ -1799,12 +1799,13 @@ func createNodesCoordinator(
 	}
 	maxDurationBeforeStopProcess := int64(nodesConfig.RoundDuration) * epochConfig.RoundsPerEpoch
 	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
-	minDurationBeforeStopProcess := maxDurationBeforeStopProcess / 2
+	maxDurationInterval := time.Second * time.Duration(maxDurationBeforeStopProcess)
+	minDurationInterval := maxDurationInterval / 2
 	//waiting interval will be [maxDuration/2 and maxDuration]
 
 	nodeShufflerOut, err := closing.NewShuffleOutCloser(
-		time.Duration(minDurationBeforeStopProcess),
-		time.Duration(maxDurationBeforeStopProcess),
+		minDurationInterval,
+		maxDurationInterval,
 		chanStopNodeProcess,
 	)
 	if err != nil {
