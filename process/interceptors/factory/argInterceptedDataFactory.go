@@ -30,4 +30,6 @@ type ArgInterceptedDataFactory struct {
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	ArgsParser              process.ArgumentsParser
+	ChainID                 []byte
+	MinTransactionVersion   uint32
 }

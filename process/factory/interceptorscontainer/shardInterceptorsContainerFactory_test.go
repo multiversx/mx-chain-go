@@ -280,6 +280,28 @@ func TestNewShardInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *te
 	assert.Equal(t, process.ErrNilValidityAttester, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_InvalidChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.ChainID = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestNewShardInterceptorsContainerFactory_InvalidMinTransactionVersionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.MinTransactionVersion = 0
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -532,5 +554,7 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
+		ChainID:                 []byte("chainID"),
+		MinTransactionVersion:   1,
 	}
 }

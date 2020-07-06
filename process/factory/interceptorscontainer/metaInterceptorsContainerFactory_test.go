@@ -94,6 +94,28 @@ func TestNewMetaInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *tes
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
+func TestNewMetaInterceptorsContainerFactory_InvalidChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.ChainID = nil
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestNewMetaInterceptorsContainerFactory_InvalidMinTransactionVersionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.MinTransactionVersion = 0
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
+}
+
 func TestNewMetaInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -482,5 +504,7 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
+		ChainID:                 []byte("chainID"),
+		MinTransactionVersion:   1,
 	}
 }

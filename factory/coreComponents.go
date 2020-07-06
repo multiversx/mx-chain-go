@@ -12,24 +12,27 @@ import (
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
-	Config  config.Config
-	ShardId string
-	ChainID []byte
+	Config                config.Config
+	ShardId               string
+	ChainID               []byte
+	MinTransactionVersion uint32
 }
 
 // CoreComponentsFactory is responsible for creating the core components
 type CoreComponentsFactory struct {
-	config  config.Config
-	shardId string
-	chainID []byte
+	config                config.Config
+	shardId               string
+	chainID               []byte
+	MinTransactionVersion uint32
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *CoreComponentsFactory {
 	return &CoreComponentsFactory{
-		config:  args.Config,
-		shardId: args.ShardId,
-		chainID: args.ChainID,
+		config:                args.Config,
+		shardId:               args.ShardId,
+		chainID:               args.ChainID,
+		MinTransactionVersion: args.MinTransactionVersion,
 	}
 }
 
@@ -65,5 +68,6 @@ func (ccf *CoreComponentsFactory) Create() (*CoreComponents, error) {
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		StatusHandler:            statusHandler.NewNilStatusHandler(),
 		ChainID:                  ccf.chainID,
+		MinTransactionVersion:    ccf.MinTransactionVersion,
 	}, nil
 }
