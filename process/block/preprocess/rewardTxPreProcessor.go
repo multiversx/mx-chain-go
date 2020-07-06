@@ -104,7 +104,7 @@ func NewRewardTxPreprocessor(
 	}
 
 	rtp.chReceivedAllRewardTxs = make(chan bool)
-	rtp.rewardTxPool.RegisterHandler(rtp.receivedRewardTransaction)
+	rtp.rewardTxPool.RegisterOnAdded(rtp.receivedRewardTransaction)
 	rtp.rewardTxsForBlock.txHashAndInfo = make(map[string]*txInfo)
 
 	return rtp, nil

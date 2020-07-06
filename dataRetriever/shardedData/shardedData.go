@@ -244,8 +244,8 @@ func (sd *shardedData) ClearShardStore(cacheID string) {
 	store.cache.Clear()
 }
 
-// RegisterHandler registers a new handler to be called when a new data is added
-func (sd *shardedData) RegisterHandler(handler func(key []byte, value interface{})) {
+// RegisterOnAdded registers a new handler to be called when a new data is added
+func (sd *shardedData) RegisterOnAdded(handler func(key []byte, value interface{})) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler to a ShardedData object")
 		return
