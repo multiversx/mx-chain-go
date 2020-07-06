@@ -49,6 +49,11 @@ func (ccf *cryptoComponentsFactory) SetKeyLoader(keyLoad func(string, int) ([]by
 	ccf.keyLoader = keyLoad
 }
 
+// GetFactory
+func (cc *managedCryptoComponents) GetFactory() *cryptoComponentsFactory {
+	return cc.cryptoComponentsFactory
+}
+
 // SetListenAddress -
 func (ncf *networkComponentsFactory) SetListenAddress(address string) {
 	ncf.listenAddress = address

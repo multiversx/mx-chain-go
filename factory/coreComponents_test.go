@@ -265,6 +265,12 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 			Consensus: config.ConsensusConfig{
 				Type: "bls",
 			},
+			ValidatorStatistics: config.ValidatorStatisticsConfig{
+				CacheRefreshIntervalInSec: uint32(100),
+			},
+			SoftwareVersionConfig: config.SoftwareVersionConfig{
+				PollingIntervalInMinutes: 30,
+			},
 		},
 		WorkingDirectory: "home",
 	}

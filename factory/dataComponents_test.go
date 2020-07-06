@@ -15,7 +15,8 @@ import (
 func TestNewDataComponentsFactory_NilEconomicsDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getDataArgs()
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
 	args.EconomicsData = nil
 
 	dcf, err := factory.NewDataComponentsFactory(args)
@@ -26,7 +27,8 @@ func TestNewDataComponentsFactory_NilEconomicsDataShouldErr(t *testing.T) {
 func TestNewDataComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getDataArgs()
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
 	args.ShardCoordinator = nil
 
 	dcf, err := factory.NewDataComponentsFactory(args)
@@ -37,7 +39,7 @@ func TestNewDataComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewDataComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getDataArgs()
+	args := getDataArgs(nil)
 	args.Core = nil
 
 	dcf, err := factory.NewDataComponentsFactory(args)
@@ -48,7 +50,8 @@ func TestNewDataComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getDataArgs()
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
 	args.EpochStartNotifier = nil
 
 	dcf, err := factory.NewDataComponentsFactory(args)
@@ -59,8 +62,8 @@ func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 func TestNewDataComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getDataArgs()
-
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
 	dcf, err := factory.NewDataComponentsFactory(args)
 	require.NoError(t, err)
 	require.NotNil(t, dcf)
@@ -69,7 +72,8 @@ func TestNewDataComponentsFactory_OkValsShouldWork(t *testing.T) {
 func TestDataComponentsFactory_CreateShouldErrDueBadConfig(t *testing.T) {
 	t.Parallel()
 
-	args := getDataArgs()
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
 	args.Config.ShardHdrNonceHashStorage = config.StorageConfig{}
 	dcf, err := factory.NewDataComponentsFactory(args)
 	require.NoError(t, err)
@@ -82,7 +86,8 @@ func TestDataComponentsFactory_CreateShouldErrDueBadConfig(t *testing.T) {
 func TestDataComponentsFactory_CreateForShardShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getDataArgs()
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
 	dcf, err := factory.NewDataComponentsFactory(args)
 
 	require.NoError(t, err)
@@ -94,7 +99,8 @@ func TestDataComponentsFactory_CreateForShardShouldWork(t *testing.T) {
 func TestDataComponentsFactory_CreateForMetaShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getDataArgs()
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
 	multiShrdCoord := mock.NewMultiShardsCoordinatorMock(3)
 	multiShrdCoord.CurrentShard = core.MetachainShardId
 	args.ShardCoordinator = multiShrdCoord
@@ -105,11 +111,7 @@ func TestDataComponentsFactory_CreateForMetaShouldWork(t *testing.T) {
 	require.NotNil(t, dc)
 }
 
-func getDataArgs() factory.DataComponentsFactoryArgs {
-	coreArgs := getCoreArgs()
-	coreComponents, _ := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
-	_ = coreComponents.Create()
-
+func getDataArgs(coreComponents factory.CoreComponentsHolder) factory.DataComponentsFactoryArgs {
 	testEconomics := &economics.TestEconomicsData{EconomicsData: &economics.EconomicsData{}}
 	testEconomics.SetMinGasPrice(200000000000)
 
