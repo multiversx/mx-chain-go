@@ -562,10 +562,10 @@
         IntervalAutoPrintInSeconds = 20
 
 [Health]
-    IntervalVerifyMemoryInSeconds = 1
+    IntervalVerifyMemoryInSeconds = 5
     IntervalDiagnoseComponentsInSeconds = 30
     IntervalDiagnoseComponentsDeeplyInSeconds = 120
-    MemoryUsageToCreateProfiles = 2147483648 # 2GB
+    MemoryUsageToCreateProfiles = 2415919104 # 2.25GB
     NumMemoryUsageRecordsToKeep = 100
     FolderPath = "health-records"
 
