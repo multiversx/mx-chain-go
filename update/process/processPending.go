@@ -93,7 +93,12 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 
 		blockType, err := p.processSingleTransaction(info)
 		if err != nil {
-			log.Debug("could not process transaction", "err", err)
+			log.Debug("could not process transaction",
+				"err", err,
+				"snd", info.tx.GetSndAddr(),
+				"rcv", info.tx.GetRcvAddr(),
+				"value", info.tx.GetValue(),
+				"data", info.tx.GetData())
 			continue
 		}
 
