@@ -120,7 +120,7 @@ func (m *multiFileReader) getDataReader(fileName string) (update.DataReader, err
 			return nil, fmt.Errorf("%w for file: %s", update.ErrMissingFile, fileName)
 		}
 
-		log.Debug("file opened", "filename", fileName)
+		log.Trace("file opened", "filename", fileName)
 		file, err := os.OpenFile(importFileName, os.O_RDONLY, 0644)
 		if err != nil {
 			return nil, fmt.Errorf("%w for file: %s", err, importFileName)
@@ -174,7 +174,7 @@ func (m *multiFileReader) Finish() {
 }
 
 func (m *multiFileReader) fileClosed(fileName string) {
-	log.Debug("file closed", "filename", fileName)
+	log.Trace("file closed", "filename", fileName)
 	delete(m.files, fileName)
 	delete(m.dataReader, fileName)
 }

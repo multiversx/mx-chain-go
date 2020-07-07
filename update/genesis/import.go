@@ -324,7 +324,7 @@ func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
 	}
 
 	if !bytes.Equal(rootHash, originalRootHash) {
-		log.Warn("importad state rootHash does not match original ", "new", rootHash, "old", originalRootHash, "shID", shID, "accType", DataTrie)
+		log.Warn("imported state rootHash does not match original ", "new", rootHash, "old", originalRootHash, "shardID", shID, "accType", DataTrie)
 	}
 
 	return nil
@@ -454,7 +454,7 @@ func (si *stateImport) saveRootHash(
 	}
 
 	if !bytes.Equal(rootHash, originalRootHash) {
-		log.Warn("importad state rootHash does not match original ", "new", rootHash, "old", originalRootHash, "accType", accType, "shardID", shardID)
+		log.Warn("imported state rootHash does not match original ", "new", rootHash, "old", originalRootHash, "accType", accType, "shardID", shardID)
 	}
 
 	return nil

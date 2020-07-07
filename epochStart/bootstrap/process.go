@@ -350,7 +350,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
 
 	if isStartInEpochZero || isCurrentEpochSaved {
-		if e.baseData.lastEpoch == e.startEpoch {
+		if e.baseData.lastEpoch <= e.startEpoch {
 			return e.prepareEpochZero()
 		}
 
