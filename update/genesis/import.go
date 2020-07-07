@@ -256,18 +256,17 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) 
 }
 
 func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
+	var originalRootHash, address, value []byte
 	var key string
-	var value []byte
 	var err error
-	var address []byte
 
 	// read root hash - that is the first saved in the file
-	key, _, err = si.reader.ReadNextItem(fileName)
+	key, originalRootHash, err = si.reader.ReadNextItem(fileName)
 	if err != nil {
 		return err
 	}
 
-	keyType, originalRootHash, err := GetKeyTypeAndHash(key)
+	keyType, _, err := GetKeyTypeAndHash(key)
 	if err != nil {
 		return err
 	}
