@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"math/rand"
 	"runtime"
@@ -1853,6 +1854,143 @@ func checkCodeConsistency(
 			assert.Nil(t, err)
 
 			assert.Equal(t, uint32(codeMap[code]), codeEntry.NumReferences)
+		}
+	}
+}
+
+func TestAccountRemoval(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+	senderShard := uint32(0)
+	round := uint64(0)
+	nonce := uint64(0)
+	valMinting := big.NewInt(1000000000)
+
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+
+	fmt.Println("Generating private keys for senders...")
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
+	nrAccounts := 10000
+
+	sendersPrivateKeys := make([]crypto.PrivateKey, nrAccounts)
+	for i := 0; i < nrAccounts; i++ {
+		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
+	}
+
+	accounts := make([][]byte, len(sendersPrivateKeys))
+	for i := range sendersPrivateKeys {
+		accounts[i], _ = sendersPrivateKeys[i].GeneratePublic().ToByteArray()
+	}
+
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	shardNode := nodes[0]
+
+	dataTriesRootHashes, codeMap := generateAccounts(shardNode, accounts)
+
+	_, _ = shardNode.AccntState.Commit()
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	numAccountsToRemove := 2
+	roundsToWait := 50
+
+	removedAccounts := make(map[int]struct{})
+	for i := 0; i < roundsToWait; i++ {
+		for j := 0; j < numAccountsToRemove; j++ {
+			accountIndex := rand.Intn(nrAccounts)
+			removedAccounts[accountIndex] = struct{}{}
+			account, err := shardNode.AccntState.GetExistingAccount(accounts[accountIndex])
+			if err != nil {
+				continue
+			}
+			code := account.(state.UserAccountHandler).GetCode()
+
+			_ = shardNode.AccntState.RemoveAccount(account.AddressBytes())
+
+			codeMap[string(code)]--
+		}
+
+		_, _ = shardNode.AccntState.Commit()
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		checkCodeConsistency(t, shardNode, codeMap)
+	}
+
+	delayRounds := 5
+	for i := 0; i < delayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
+	checkDataTrieConsistency(t, shardNode.AccntState, removedAccounts, dataTriesRootHashes)
+}
+
+func generateAccounts(
+	shardNode *integrationTests.TestProcessorNode,
+	accounts [][]byte,
+) ([][]byte, map[string]int) {
+	numCodes := 100
+	codeMap := getCodeMap(numCodes)
+	codeArray := make([][]byte, 0)
+	for code := range codeMap {
+		codeArray = append(codeArray, []byte(code))
+	}
+
+	dataTriesRootHashes := make([][]byte, 0)
+	dataTrieSize := 5
+	for i := 0; i < len(accounts); i++ {
+		account, _ := shardNode.AccntState.LoadAccount(accounts[i])
+
+		code := codeArray[rand.Intn(numCodes)]
+		account.(state.UserAccountHandler).SetCode(code)
+		codeMap[string(code)]++
+
+		for j := 0; j < dataTrieSize; j++ {
+			account.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(getDataTrieEntry())
+		}
+
+		_ = shardNode.AccntState.SaveAccount(account)
+
+		rootHash := account.(state.UserAccountHandler).GetRootHash()
+		dataTriesRootHashes = append(dataTriesRootHashes, rootHash)
+	}
+
+	return dataTriesRootHashes, codeMap
+}
+
+func getDataTrieEntry() ([]byte, []byte) {
+	index := strconv.Itoa(rand.Intn(math.MaxInt32))
+	key := []byte("key" + index)
+	value := []byte("value" + index)
+
+	return key, value
+}
+
+func checkDataTrieConsistency(
+	t *testing.T,
+	adb state.AccountsAdapter,
+	removedAccounts map[int]struct{},
+	dataTriesRootHashes [][]byte,
+) {
+	for i, rootHash := range dataTriesRootHashes {
+		_, ok := removedAccounts[i]
+		if ok {
+			err := adb.RecreateTrie(rootHash)
+			assert.NotNil(t, err)
+		} else {
+			err := adb.RecreateTrie(rootHash)
+			assert.Nil(t, err)
 		}
 	}
 }
