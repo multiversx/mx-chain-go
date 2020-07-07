@@ -44,6 +44,7 @@ type txsPoolsCleaner struct {
 	unsignedTransactionsPool dataRetriever.ShardedDataCacherNotifier
 	rounder                  process.Rounder
 	shardCoordinator         sharding.Coordinator
+	whitelistHandler         process.WhiteListHandler
 
 	mutMapTxsRounds sync.RWMutex
 	mapTxsRounds    map[string]*txInfo
@@ -57,6 +58,7 @@ func NewTxsPoolsCleaner(
 	dataPool dataRetriever.PoolsHolder,
 	rounder process.Rounder,
 	shardCoordinator sharding.Coordinator,
+	whitelistHandler process.WhiteListHandler,
 ) (*txsPoolsCleaner, error) {
 
 	if check.IfNil(addressPubkeyConverter) {
@@ -80,6 +82,9 @@ func NewTxsPoolsCleaner(
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(whitelistHandler) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	tpc := txsPoolsCleaner{
 		addressPubkeyConverter:   addressPubkeyConverter,
@@ -88,6 +93,7 @@ func NewTxsPoolsCleaner(
 		unsignedTransactionsPool: dataPool.UnsignedTransactions(),
 		rounder:                  rounder,
 		shardCoordinator:         shardCoordinator,
+		whitelistHandler:         whitelistHandler,
 	}
 
 	tpc.mapTxsRounds = make(map[string]*txInfo)
@@ -234,6 +240,7 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 				"sender", currTxInfo.senderShardID,
 				"receiver", currTxInfo.receiverShardID,
 				"type", getTxTypeName(currTxInfo.txType))
+			hashesToRemove[hash] = currTxInfo.txStore
 			delete(tpc.mapTxsRounds, hash)
 			continue
 		}
@@ -266,11 +273,20 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 	numTxsRounds := len(tpc.mapTxsRounds)
 	tpc.mutMapTxsRounds.Unlock()
 
+	hashesToRemoveList := make([][]byte, len(hashesToRemove))
+	index := 0
+
 	startTime := time.Now()
 	for hash, txStore := range hashesToRemove {
 		txStore.Remove([]byte(hash))
+		hashesToRemoveList[index] = []byte(hash)
+		index++
 	}
 	elapsedTime := time.Since(startTime)
+
+	if len(hashesToRemoveList) > 0 {
+		tpc.whitelistHandler.Remove(hashesToRemoveList)
+	}
 
 	if numTxsCleaned > 0 {
 		log.Debug("txsPoolsCleaner.cleanTxsPoolsIfNeeded",

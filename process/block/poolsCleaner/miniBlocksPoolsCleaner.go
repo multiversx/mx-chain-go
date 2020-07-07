@@ -31,6 +31,7 @@ type miniBlocksPoolsCleaner struct {
 	miniblocksPool   storage.Cacher
 	rounder          process.Rounder
 	shardCoordinator sharding.Coordinator
+	whitelistHandler process.WhiteListHandler
 
 	mutMapMiniBlocksRounds sync.RWMutex
 	mapMiniBlocksRounds    map[string]*mbInfo
@@ -42,6 +43,7 @@ func NewMiniBlocksPoolsCleaner(
 	miniblocksPool storage.Cacher,
 	rounder process.Rounder,
 	shardCoordinator sharding.Coordinator,
+	whitelistHandler process.WhiteListHandler,
 ) (*miniBlocksPoolsCleaner, error) {
 
 	if check.IfNil(miniblocksPool) {
@@ -53,11 +55,15 @@ func NewMiniBlocksPoolsCleaner(
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(whitelistHandler) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	mbpc := miniBlocksPoolsCleaner{
 		miniblocksPool:   miniblocksPool,
 		rounder:          rounder,
 		shardCoordinator: shardCoordinator,
+		whitelistHandler: whitelistHandler,
 	}
 
 	mbpc.mapMiniBlocksRounds = make(map[string]*mbInfo)
@@ -141,6 +147,7 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 				"sender", mbi.senderShardID,
 				"receiver", mbi.receiverShardID,
 				"type", mbi.mbType)
+			hashesToRemove[hash] = struct{}{}
 			delete(mbpc.mapMiniBlocksRounds, hash)
 			continue
 		}
@@ -173,11 +180,20 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 	numMiniBlocksRounds := len(mbpc.mapMiniBlocksRounds)
 	mbpc.mutMapMiniBlocksRounds.Unlock()
 
+	hashesToRemoveList := make([][]byte, len(hashesToRemove))
+	index := 0
+
 	startTime := time.Now()
 	for hash := range hashesToRemove {
 		mbpc.miniblocksPool.Remove([]byte(hash))
+		hashesToRemoveList[index] = []byte(hash)
+		index++
 	}
 	elapsedTime := time.Since(startTime)
+
+	if len(hashesToRemoveList) > 0 {
+		mbpc.whitelistHandler.Remove(hashesToRemoveList)
+	}
 
 	if numMbsCleaned > 0 {
 		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPoolsIfNeeded",

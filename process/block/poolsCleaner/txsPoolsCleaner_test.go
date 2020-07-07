@@ -17,7 +17,7 @@ func TestNewTxsPoolsCleaner_NilAddrConverterErr(t *testing.T) {
 	t.Parallel()
 
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		nil, testscommon.NewPoolsHolderMock(), &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		nil, testscommon.NewPoolsHolderMock(), &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{},
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
@@ -27,7 +27,7 @@ func TestNewTxsPoolsCleaner_NilDataPoolHolderErr(t *testing.T) {
 	t.Parallel()
 
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, nil, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, nil, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{},
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
@@ -42,7 +42,7 @@ func TestNewTxsPoolsCleaner_NilTxsPoolErr(t *testing.T) {
 		},
 	}
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{},
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilTransactionPool, err)
@@ -60,7 +60,7 @@ func TestNewTxsPoolsCleaner_NilRewardTxsPoolErr(t *testing.T) {
 		},
 	}
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{},
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilRewardTxDataPool, err)
@@ -81,7 +81,7 @@ func TestNewTxsPoolsCleaner_NilUnsignedTxsPoolErr(t *testing.T) {
 		},
 	}
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{},
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilUnsignedTxDataPool, err)
@@ -102,7 +102,7 @@ func TestNewTxsPoolsCleaner_NilRounderErr(t *testing.T) {
 		},
 	}
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, dataPool, nil, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, nil, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{},
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilRounder, err)
@@ -123,10 +123,31 @@ func TestNewTxsPoolsCleaner_NilShardCoordinatorErr(t *testing.T) {
 		},
 	}
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, nil,
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, nil, &mock.WhiteListHandlerStub{},
 	)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestNewTxsPoolsCleaner_NilWhitelistHandlerErr(t *testing.T) {
+	t.Parallel()
+
+	dataPool := &testscommon.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+	}
+	txsPoolsCleaner, err := NewTxsPoolsCleaner(
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(), nil,
+	)
+	assert.Nil(t, txsPoolsCleaner)
+	assert.Equal(t, process.ErrNilWhiteListHandler, err)
 }
 
 func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
@@ -145,7 +166,7 @@ func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
 	}
 
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(), &mock.WhiteListHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, txsPoolsCleaner)
@@ -170,6 +191,7 @@ func TestGetShardFromAddress(t *testing.T) {
 				return expectedShard
 			},
 		},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	emptyAddr := make([]byte, addrLen)
@@ -198,6 +220,7 @@ func TestReceivedBlockTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 		},
 		&mock.RounderMock{},
 		&mock.CoordinatorStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	txWrap := &txcache.WrappedTransaction{
@@ -225,6 +248,7 @@ func TestReceivedRewardTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 		},
 		&mock.RounderMock{},
 		&mock.CoordinatorStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	txKey := []byte("key")
@@ -253,6 +277,7 @@ func TestReceivedUnsignedTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 				return 2
 			},
 		},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	txKey := []byte("key")
@@ -284,6 +309,7 @@ func TestCleanTxsPoolsIfNeeded_CannotFindTxInPoolShouldBeRemovedFromMap(t *testi
 				return 2
 			},
 		},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	txKey := []byte("key")
@@ -321,6 +347,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooSmallShouldNotBeRemoved(t *testing.T)
 				return 2
 			},
 		},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	txKey := []byte("key")
@@ -365,6 +392,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T) {
 				return 2
 			},
 		},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	txKey := []byte("key")

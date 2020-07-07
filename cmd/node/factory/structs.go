@@ -371,6 +371,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.data.Datapool.MiniBlocks(),
 		args.rounder,
 		args.shardCoordinator,
+		args.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -383,6 +384,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.data.Datapool,
 		args.rounder,
 		args.shardCoordinator,
+		args.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
