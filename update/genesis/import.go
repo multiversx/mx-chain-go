@@ -267,7 +267,7 @@ func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
 		return err
 	}
 
-	keyType, _, err := GetKeyTypeAndHash(key)
+	keyType, originalRootHash, err := GetKeyTypeAndHash(key)
 	if err != nil {
 		return err
 	}
@@ -279,6 +279,16 @@ func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
 	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher, maxTrieLevelInMemory)
 	if err != nil {
 		return err
+	}
+
+	if len(originalRootHash) == 0 || bytes.Equal(originalRootHash, trie.EmptyTrieHash) {
+		err = dataTrie.Commit()
+		if err != nil {
+			return err
+		}
+		si.tries[fileName] = dataTrie
+		si.reader.CloseFile(fileName)
+		return nil
 	}
 
 	for {
@@ -312,7 +322,10 @@ func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
 	if err != nil {
 		return err
 	}
-	log.Info("imported state", "rootHash", rootHash, "shID", shID, "accType", DataTrie)
+
+	if !bytes.Equal(rootHash, originalRootHash) {
+		log.Warn("importad state rootHash does not match original ", "new", rootHash, "old", originalRootHash, "shID", shID, "accType", DataTrie)
+	}
 
 	return nil
 }
@@ -379,8 +392,8 @@ func (si *stateImport) importState(fileName string) error {
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	if bytes.Equal(rootHash, trie.EmptyTrieHash) {
-		return si.saveRootHash(accountsDB, accType, shId)
+	if len(rootHash) == 0 || bytes.Equal(rootHash, trie.EmptyTrieHash) {
+		return si.saveRootHash(accountsDB, accType, shId, rootHash)
 	}
 
 	var marshalledData []byte
@@ -426,16 +439,23 @@ func (si *stateImport) importState(fileName string) error {
 	}
 
 	si.reader.CloseFile(fileName)
-	return si.saveRootHash(accountsDB, accType, shId)
+	return si.saveRootHash(accountsDB, accType, shId, rootHash)
 }
 
-func (si *stateImport) saveRootHash(accountsDB state.AccountsAdapter, accType Type, shardID uint32) error {
+func (si *stateImport) saveRootHash(
+	accountsDB state.AccountsAdapter,
+	accType Type,
+	shardID uint32,
+	originalRootHash []byte,
+) error {
 	rootHash, err := accountsDB.Commit()
 	if err != nil {
 		return err
 	}
 
-	log.Info("imported state", "rootHash", rootHash, "shID", shardID, "accType", accType)
+	if !bytes.Equal(rootHash, originalRootHash) {
+		log.Warn("importad state rootHash does not match original ", "new", rootHash, "old", originalRootHash, "accType", accType, "shardID", shardID)
+	}
 
 	return nil
 }
