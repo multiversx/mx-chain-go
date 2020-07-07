@@ -239,6 +239,23 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		return nil, fmt.Errorf("'%w' while saving genesis block for metachain", err)
 	}
 
+	for i := uint32(0); i < gbc.arg.ShardCoordinator.NumberOfShards(); i++ {
+		gb := genesisBlocks[i]
+
+		log.Info("genesis block created",
+			"shard ID", gb.GetShardID(),
+			"nonce", gb.GetNonce(),
+			"round", gb.GetRound(),
+			"root hash", gb.GetRootHash(),
+		)
+	}
+	log.Info("genesis block created",
+		"shard ID", "metachain",
+		"nonce", genesisBlock.GetNonce(),
+		"round", genesisBlock.GetRound(),
+		"root hash", genesisBlock.GetRootHash(),
+	)
+
 	//TODO call here trie pruning on all roothashes not from current shard
 
 	return genesisBlocks, nil
