@@ -740,3 +740,13 @@ func TestLeafNode_getMarshalizer(t *testing.T) {
 
 	assert.Equal(t, marsh, ln.getMarshalizer())
 }
+
+func TestLeafNode_getAllHashes(t *testing.T) {
+	t.Parallel()
+
+	ln := getLn(getTestMarshAndHasher())
+	hashes, err := ln.getAllHashes(mock.NewMemDbMock())
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(hashes))
+	assert.Equal(t, ln.hash, hashes[0])
+}

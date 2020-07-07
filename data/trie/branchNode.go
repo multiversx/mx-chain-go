@@ -729,3 +729,34 @@ func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data
 
 	return nil
 }
+
+func (bn *branchNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return nil, fmt.Errorf("getAllHashes error: %w", err)
+	}
+
+	var childrenHashes [][]byte
+	hashes := make([][]byte, 0)
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), db)
+		if err != nil {
+			return nil, err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		childrenHashes, err = bn.children[i].getAllHashes(db)
+		if err != nil {
+			return nil, err
+		}
+
+		hashes = append(hashes, childrenHashes...)
+	}
+
+	hashes = append(hashes, bn.hash)
+
+	return hashes, nil
+}
