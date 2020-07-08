@@ -298,7 +298,6 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	oldValues := make(map[string][]byte)
 
 	for k, v := range trackableDataTrie.DirtyData() {
-		//TODO use trackableDataTrie.originalData() instead of getting from the trie
 		val, err := dataTrie.Get([]byte(k))
 		if err != nil {
 			return err
