@@ -14,6 +14,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	sendTransactionEndpoint          = "/transaction/send"
+	sendMultipleTransactionsEndpoint = "/transaction/send-multiple"
+	getTransactionEndpoint           = "/transaction/:hash"
+)
+
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
 	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
@@ -89,7 +95,7 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	endpointThrottler, ok := ef.GetThrottlerForEndpoint("/transaction/send")
+	endpointThrottler, ok := ef.GetThrottlerForEndpoint(sendTransactionEndpoint)
 	if ok {
 		if !endpointThrottler.CanProcess() {
 			c.JSON(
@@ -197,7 +203,7 @@ func SendMultipleTransactions(c *gin.Context) {
 		return
 	}
 
-	endpointThrottler, ok := ef.GetThrottlerForEndpoint("/transaction/send-multiple")
+	endpointThrottler, ok := ef.GetThrottlerForEndpoint(sendMultipleTransactionsEndpoint)
 	if ok {
 		if !endpointThrottler.CanProcess() {
 			c.JSON(
@@ -303,7 +309,7 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	endpointThrottler, ok := ef.GetThrottlerForEndpoint("/transaction/get")
+	endpointThrottler, ok := ef.GetThrottlerForEndpoint(getTransactionEndpoint)
 	if ok {
 		if !endpointThrottler.CanProcess() {
 			c.JSON(

@@ -107,9 +107,9 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	}, nil
 }
 
-func computeEndpointsNumGoRoutinesThrottlers(endpointSpecificAntiFlood config.WebServerAntifloodConfig) map[string]core.Throttler {
+func computeEndpointsNumGoRoutinesThrottlers(webServerAntiFloodConfig config.WebServerAntifloodConfig) map[string]core.Throttler {
 	throttlersMap := make(map[string]core.Throttler)
-	for _, endpointSetting := range endpointSpecificAntiFlood.EndpointsThrottlers {
+	for _, endpointSetting := range webServerAntiFloodConfig.EndpointsThrottlers {
 		newThrottler, err := throttler.NewNumGoRoutinesThrottler(endpointSetting.MaxNumGoRoutines)
 		if err != nil {
 			log.Warn("error when setting the maximum go routines throttler for endpoint",

@@ -12,7 +12,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	errors2 "github.com/ElrondNetwork/elrond-go/api/errors"
+	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -147,7 +147,7 @@ func TestGetTransaction_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	transactionResponse := transactionResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, transactionResponse.Error, errors2.ErrInvalidAppContext.Error())
+	assert.Equal(t, transactionResponse.Error, apiErrors.ErrInvalidAppContext.Error())
 }
 
 func TestGetTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
@@ -171,7 +171,7 @@ func TestGetTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
-	assert.Equal(t, errors2.ErrTooManyRequests.Error(), transactionResponse.Error)
+	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), transactionResponse.Error)
 	assert.Equal(t, string(shared.ReturnCodeSystemBusy), transactionResponse.Code)
 	assert.Empty(t, transactionResponse.Data)
 }
@@ -187,7 +187,7 @@ func TestSendTransaction_ErrorWithWrongFacade(t *testing.T) {
 	transactionResponse := sendSingleTxResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, errors2.ErrInvalidAppContext.Error(), transactionResponse.Error)
+	assert.Equal(t, apiErrors.ErrInvalidAppContext.Error(), transactionResponse.Error)
 }
 
 func TestSendTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
@@ -214,7 +214,7 @@ func TestSendTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
-	assert.Equal(t, errors2.ErrTooManyRequests.Error(), transactionResponse.Error)
+	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), transactionResponse.Error)
 	assert.Equal(t, string(shared.ReturnCodeSystemBusy), transactionResponse.Code)
 	assert.Empty(t, transactionResponse.Data)
 }
@@ -245,7 +245,7 @@ func TestSendTransaction_WrongParametersShouldErrorOnValidation(t *testing.T) {
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, transactionResponse.Error, errors2.ErrValidation.Error())
+	assert.Contains(t, transactionResponse.Error, apiErrors.ErrValidation.Error())
 	assert.Empty(t, transactionResponse.Data)
 }
 
@@ -352,7 +352,7 @@ func TestSendMultipleTransactions_ErrorWithWrongFacade(t *testing.T) {
 	transactionResponse := sendMultipleTxsResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Equal(t, errors2.ErrInvalidAppContext.Error(), transactionResponse.Error)
+	assert.Equal(t, apiErrors.ErrInvalidAppContext.Error(), transactionResponse.Error)
 }
 
 func TestSendMultipleTransactions_ErrorWithExceededNumGoRoutines(t *testing.T) {
@@ -380,7 +380,7 @@ func TestSendMultipleTransactions_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
-	assert.Equal(t, errors2.ErrTooManyRequests.Error(), transactionResponse.Error)
+	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), transactionResponse.Error)
 	assert.Equal(t, string(shared.ReturnCodeSystemBusy), transactionResponse.Code)
 	assert.Empty(t, transactionResponse.Data)
 }
@@ -402,7 +402,7 @@ func TestSendMultipleTransactions_WrongPayloadShouldErrorOnValidation(t *testing
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, transactionResponse.Error, errors2.ErrValidation.Error())
+	assert.Contains(t, transactionResponse.Error, apiErrors.ErrValidation.Error())
 	assert.Empty(t, transactionResponse.Data)
 }
 
