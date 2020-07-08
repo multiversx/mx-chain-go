@@ -6,36 +6,28 @@ import (
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type TrackableDataTrie struct {
-	originalData map[string][]byte
-	dirtyData    map[string][]byte
-	tr           data.Trie
-	identifier   []byte
+	dirtyData  map[string][]byte
+	tr         data.Trie
+	identifier []byte
 }
 
 // NewTrackableDataTrie returns an instance of DataTrieTracker
 func NewTrackableDataTrie(identifier []byte, tr data.Trie) *TrackableDataTrie {
 	return &TrackableDataTrie{
-		tr:           tr,
-		originalData: make(map[string][]byte),
-		dirtyData:    make(map[string][]byte),
-		identifier:   identifier,
+		tr:         tr,
+		dirtyData:  make(map[string][]byte),
+		identifier: identifier,
 	}
 }
 
 // ClearDataCaches empties the dirtyData map and original map
 func (tdaw *TrackableDataTrie) ClearDataCaches() {
 	tdaw.dirtyData = make(map[string][]byte)
-	tdaw.originalData = make(map[string][]byte)
 }
 
 // DirtyData returns the map of (key, value) pairs that contain the data needed to be saved in the data trie
 func (tdaw *TrackableDataTrie) DirtyData() map[string][]byte {
 	return tdaw.dirtyData
-}
-
-// OriginalValue returns the value for a key stored in originalData map which is acting like a cache
-func (tdaw *TrackableDataTrie) OriginalValue(key []byte) []byte {
-	return tdaw.originalData[string(key)]
 }
 
 // RetrieveValue fetches the value from a particular key searching the account data store
@@ -50,12 +42,6 @@ func (tdaw *TrackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
 		return trimValue(value, tailLength)
 	}
 
-	//search in original data cache
-	if value, found := tdaw.originalData[string(key)]; found {
-		log.Trace("retrieve value from original data", "key", key, "value", value)
-		return trimValue(value, tailLength)
-	}
-
 	//ok, not in cache, retrieve from trie
 	if tdaw.tr == nil {
 		return nil, ErrNilTrie
@@ -67,8 +53,6 @@ func (tdaw *TrackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
 	log.Trace("retrieve value from trie", "key", key, "value", value)
 	value, _ = trimValue(value, tailLength)
 
-	//got the value, put it originalData cache as the next fetch will run faster
-	tdaw.originalData[string(key)] = value
 	return value, nil
 }
 
