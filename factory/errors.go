@@ -41,9 +41,6 @@ var ErrHasherCreation = errors.New("error creating hasher")
 // ErrMarshalizerCreation signals that the marshalizer cannot be created based on provided data
 var ErrMarshalizerCreation = errors.New("error creating marshalizer")
 
-// ErrPubKeyConverterCreation signals that the public key converter cannot be created based on provided data
-var ErrPubKeyConverterCreation = errors.New("error creating public key converter")
-
 // ErrAccountsAdapterCreation signals that the accounts adapter cannot be created based on provided data
 var ErrAccountsAdapterCreation = errors.New("error creating accounts adapter")
 
@@ -142,3 +139,6 @@ var ErrInvalidRoundDuration = errors.New("invalid round duration provided")
 
 // ErrNilElasticOptions signals that nil elastic options have been provided
 var ErrNilElasticOptions = errors.New("nil elastic options")
+
+// ErrNilStatusHandlersUtils signals that a nil status handlers utils has been provided
+var ErrNilStatusHandlersUtils = errors.New("nil status handlers utils")

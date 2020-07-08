@@ -29,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/random"
-	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -359,14 +358,6 @@ VERSION:
 
 	rm *statistics.ResourceMonitor
 )
-
-// dbIndexer will hold the database indexer. Defined globally so it can be initialised only in
-//  certain conditions. If those conditions will not be met, it will stay as nil
-var dbIndexer indexer.Indexer
-
-// coreServiceContainer is defined globally so it can be injected with appropriate
-//  params depending on the type of node we are starting
-var coreServiceContainer serviceContainer.Core
 
 // appVersion should be populated at build time using ldflags
 // Usage examples:
@@ -1037,45 +1028,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = ioutil.WriteFile(computedRatingsData, []byte(computedRatingsDataStr), os.ModePerm)
 	log.LogIfError(err)
 
-	log.Trace("creating tps benchmark components")
-	initialTpsBenchmark := statusHandlersInfo.LoadTpsBenchmarkFromStorage(
-		managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
-		managedCoreComponents.InternalMarshalizer(),
-	)
-	tpsBenchmark, err := statistics.NewTPSBenchmarkWithInitialData(
-		statusHandlersInfo.StatusHandler,
-		initialTpsBenchmark,
-		shardCoordinator.NumberOfShards(),
-		genesisNodesConfig.RoundDuration/1000,
-	)
-	if err != nil {
-		return err
-	}
-
-	if externalConfig.ElasticSearchConnector.Enabled {
-		log.Trace("creating elastic search components")
-		dbIndexer, err = createElasticIndexer(
-			ctx,
-			externalConfig.ElasticSearchConnector,
-			externalConfig.ElasticSearchConnector.URL,
-			managedCoreComponents.InternalMarshalizer(),
-			managedCoreComponents.Hasher(),
-			nodesCoordinator,
-			epochStartNotifier,
-			managedCoreComponents.AddressPubKeyConverter(),
-			managedCoreComponents.ValidatorPubKeyConverter(),
-			shardCoordinator.SelfId(),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = setServiceContainer(shardCoordinator, tpsBenchmark)
-	if err != nil {
-		return err
-	}
-
 	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
 	gasSchedule, err := core.LoadGasScheduleConfig(gasScheduleConfigurationFileName)
 	if err != nil {
@@ -1099,7 +1051,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	log.Trace("starting status pooling components")
+	statArgs := mainFactory.StatusComponentsFactoryArgs{
+		Config:             *generalConfig,
+		ExternalConfig:     *externalConfig,
+		RoundDurationSec:   genesisNodesConfig.RoundDuration / 1000,
+		ElasticOptions:     &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
+		ShardCoordinator:   shardCoordinator,
+		NodesCoordinator:   nodesCoordinator,
+		EpochStartNotifier: epochStartNotifier,
+		StatusUtils:        statusHandlersInfo,
+		CoreComponents:     managedCoreComponents,
+		DataComponents:     managedDataComponents,
+		NetworkComponents:  managedNetworkComponents,
+	}
+	managedStatusComponents, err := mainFactory.NewManagedStatusComponents(statArgs)
+	if err != nil {
+		return err
+	}
+	err = managedStatusComponents.Create()
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating process components")
+	coreServiceContainer, _ := managedStatusComponents.ServiceContainer()
+
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
 		CoreFactoryArgs:           (*mainFactory.CoreComponentsFactoryArgs)(&coreArgs),
 		AccountsParser:            accountsParser,
@@ -1146,6 +1123,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	err = managedStatusComponents.StartPolling()
 
 	hardForkTrigger, err := createHardForkTrigger(
 		generalConfig,
@@ -1252,26 +1232,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	log.Trace("starting status pooling components")
-
-	statusPollingInterval := time.Duration(generalConfig.GeneralSettings.StatusPollingIntervalSec) * time.Second
-	err = metrics.StartStatusPolling(
-		currentNode.GetAppStatusHandler(),
-		statusPollingInterval,
-		managedNetworkComponents,
-		managedProcessComponents,
-		shardCoordinator,
-	)
-	if err != nil {
-		return err
-	}
-
-	updateMachineStatisticsDuration := time.Second
-	err = metrics.StartMachineStatisticsPolling(managedCoreComponents.StatusHandler(), updateMachineStatisticsDuration)
-	if err != nil {
-		return err
-	}
-
 	log.Trace("creating elrond node facade")
 	restAPIServerDebugMode := ctx.GlobalBool(restApiDebug.Name)
 
@@ -1293,7 +1253,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	ef.SetSyncer(syncer)
-	ef.SetTpsBenchmark(tpsBenchmark)
+	ef.SetTpsBenchmark(managedStatusComponents.TpsBenchmark())
 
 	log.Trace("starting background services")
 	ef.StartBackgroundServices()
@@ -1822,43 +1782,6 @@ func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (ui
 	return uint32(val), err
 }
 
-// createElasticIndexer creates a new elasticIndexer where the server listens on the url,
-// authentication for the server is using the username and password
-func createElasticIndexer(
-	ctx *cli.Context,
-	elasticSearchConfig config.ElasticSearchConfig,
-	url string,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	nodesCoordinator sharding.NodesCoordinator,
-	startNotifier notifier.EpochStartNotifier,
-	addressPubkeyConverter core.PubkeyConverter,
-	validatorPubkeyConverter core.PubkeyConverter,
-	shardId uint32,
-) (indexer.Indexer, error) {
-	arguments := indexer.ElasticIndexerArgs{
-		Url:                      url,
-		UserName:                 elasticSearchConfig.Username,
-		Password:                 elasticSearchConfig.Password,
-		Marshalizer:              marshalizer,
-		Hasher:                   hasher,
-		Options:                  &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
-		NodesCoordinator:         nodesCoordinator,
-		EpochStartNotifier:       startNotifier,
-		AddressPubkeyConverter:   addressPubkeyConverter,
-		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		ShardId:                  shardId,
-	}
-
-	var err error
-	dbIndexer, err = indexer.NewElasticIndexer(arguments)
-	if err != nil {
-		return nil, err
-	}
-
-	return dbIndexer, nil
-}
-
 func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return nodesConfig.MetaChainConsensusGroupSize, nil
@@ -2134,32 +2057,6 @@ func initStatsFileMonitor(
 	}
 
 	return nil
-}
-
-func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *statistics.TpsBenchmark) error {
-	var err error
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		coreServiceContainer, err = serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(dbIndexer))
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		var indexerToUse indexer.Indexer
-		indexerToUse = indexer.NewNilIndexer()
-		if dbIndexer != nil {
-			indexerToUse = dbIndexer
-		}
-		coreServiceContainer, err = serviceContainer.NewServiceContainer(
-			serviceContainer.WithIndexer(indexerToUse),
-			serviceContainer.WithTPSBenchmark(tpsBenchmark))
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	return errors.New("could not init core service container")
 }
 
 func startStatisticsMonitor(

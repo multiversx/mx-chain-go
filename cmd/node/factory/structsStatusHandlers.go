@@ -220,6 +220,11 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
 	return okTpsBenchmarks
 }
 
+// IsInterfaceNil returns true if the interface is nil
+func (shi *statusHandlersInfo) IsInterfaceNil() bool {
+	return shi == nil
+}
+
 func (shi *statusHandlersInfo) updateTpsMetrics(metricsMap map[string]interface{}) {
 	for key, value := range metricsMap {
 		if key == core.MetricAverageBlockTxCount {

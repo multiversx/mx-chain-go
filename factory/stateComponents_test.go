@@ -1,7 +1,6 @@
 package factory_test
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 
@@ -44,34 +43,6 @@ func TestNewStateComponentsFactory_ShouldWork(t *testing.T) {
 	scf, err := factory.NewStateComponentsFactory(args)
 	require.NoError(t, err)
 	require.NotNil(t, scf)
-}
-
-func TestStateComponentsFactory_Create_InvalidValidatorPubKeyConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
-	args.Config.ValidatorPubkeyConverter = config.PubkeyConfig{}
-
-	scf, _ := factory.NewStateComponentsFactory(args)
-
-	res, err := scf.Create()
-	require.True(t, errors.Is(err, factory.ErrPubKeyConverterCreation))
-	require.Nil(t, res)
-}
-
-func TestStateComponentsFactory_Create_InvalidAddressPubKeyConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
-	args.Config.AddressPubkeyConverter = config.PubkeyConfig{}
-
-	scf, _ := factory.NewStateComponentsFactory(args)
-
-	res, err := scf.Create()
-	require.True(t, errors.Is(err, factory.ErrPubKeyConverterCreation))
-	require.Nil(t, res)
 }
 
 func TestStateComponentsFactory_Create_ShouldWork(t *testing.T) {

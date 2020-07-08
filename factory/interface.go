@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -196,10 +197,18 @@ type StateComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
+// StatusHandlersUtils provides some functionality for statusHandlers
+type StatusHandlersUtils interface {
+	UpdateStorerAndMetricsForPersistentHandler(store storage.Storer) error
+	LoadTpsBenchmarkFromStorage(store storage.Storer, marshalizer marshal.Marshalizer) *statistics.TpsPersistentData
+	IsInterfaceNil() bool
+}
+
 // StatusComponentsHolder holds the status components
 type StatusComponentsHolder interface {
 	TpsBenchmark() statistics.TPSBenchmark
 	ElasticIndexer() indexer.Indexer
+	ServiceContainer() (serviceContainer.Core, error)
 	SoftwareVersionChecker() statistics.SoftwareVersionChecker
 	StatusHandler() core.AppStatusHandler
 	IsInterfaceNil() bool
@@ -209,4 +218,7 @@ type StatusComponentsHolder interface {
 type StatusComponentsHandler interface {
 	ComponentHandler
 	StatusComponentsHolder
+	// SetForkDetector should be set before starting Polling for updates
+	SetForkDetector(forkDetector process.ForkDetector)
+	StartPolling() error
 }

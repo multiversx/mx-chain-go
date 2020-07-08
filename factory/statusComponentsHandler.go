@@ -10,9 +10,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -51,11 +53,26 @@ func (m *managedStatusComponents) Create() error {
 
 	m.mutStatusComponents.Lock()
 	m.statusComponents = components
+	m.mutStatusComponents.Unlock()
+
+	return nil
+}
+
+// SetForkDetector sets the fork detector
+func (m *managedStatusComponents) SetForkDetector(forkDetector process.ForkDetector) {
+	m.mutStatusComponents.Lock()
+	m.statusComponentsFactory.forkDetector = forkDetector
+	m.mutStatusComponents.Unlock()
+}
+
+// StartPolling starts polling for the updated status
+func (m *managedStatusComponents) StartPolling() error {
 	var ctx context.Context
+	m.mutStatusComponents.Lock()
 	ctx, m.cancelFunc = context.WithCancel(context.Background())
 	m.mutStatusComponents.Unlock()
 
-	err = m.startStatusPolling(ctx)
+	err := m.startStatusPolling(ctx)
 	if err != nil {
 		return err
 	}
@@ -127,6 +144,40 @@ func (m *managedStatusComponents) StatusHandler() core.AppStatusHandler {
 	return m.statusHandler
 }
 
+// ServiceContainer returns a ServiceContainer instance for the assigned shard
+func (m *managedStatusComponents) ServiceContainer() (serviceContainer.Core, error) {
+	var err error
+	shardCoordinator := m.statusComponentsFactory.shardCoordinator
+
+	var coreServiceContainer serviceContainer.Core
+
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		coreServiceContainer, err = serviceContainer.NewServiceContainer(
+			serviceContainer.WithIndexer(m.statusComponents.elasticSearch),
+		)
+		if err != nil {
+			return nil, err
+		}
+		return coreServiceContainer, nil
+	}
+
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		var indexerToUse indexer.Indexer
+		indexerToUse = indexer.NewNilIndexer()
+		if m.statusComponents.elasticSearch != nil {
+			indexerToUse = m.statusComponents.elasticSearch
+		}
+		coreServiceContainer, err = serviceContainer.NewServiceContainer(
+			serviceContainer.WithIndexer(indexerToUse),
+			serviceContainer.WithTPSBenchmark(m.statusComponents.tpsBenchmark))
+		if err != nil {
+			return nil, err
+		}
+		return coreServiceContainer, nil
+	}
+	return nil, errors.New("could not init core service container")
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *managedStatusComponents) IsInterfaceNil() bool {
 	return m == nil
@@ -147,7 +198,7 @@ func (m *managedStatusComponents) startStatusPolling(ctx context.Context) error 
 		return err
 	}
 
-	err = registerPollProbableHighestNonce(appStatusPollingHandler, m.statusComponentsFactory.processComponents)
+	err = registerPollProbableHighestNonce(appStatusPollingHandler, m.statusComponentsFactory.forkDetector)
 	if err != nil {
 		return err
 	}
@@ -255,11 +306,11 @@ func setCurrentP2pNodeAddresses(
 
 func registerPollProbableHighestNonce(
 	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
-	processComponents ProcessComponentsHolder,
+	forkDetector process.ForkDetector,
 ) error {
 
 	probableHighestNonceHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
-		probableHigherNonce := processComponents.ForkDetector().ProbableHighestNonce()
+		probableHigherNonce := forkDetector.ProbableHighestNonce()
 		appStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, probableHigherNonce)
 	}
 
