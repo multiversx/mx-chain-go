@@ -126,6 +126,7 @@ func (s *SerialDB) Put(key, val []byte) error {
 
 // Get returns the value associated to the key
 func (s *SerialDB) Get(key []byte) ([]byte, error) {
+	timeBeforeRequest := time.Now()
 	if s.isClosed() {
 		return nil, storage.ErrSerialDBIsClosed
 	}
@@ -151,6 +152,8 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 	result := <-ch
 	close(ch)
 
+	logTimings("get", timeBeforeRequest, result)
+
 	if result.err == leveldb.ErrNotFound {
 		return nil, storage.ErrKeyNotFound
 	}
@@ -163,6 +166,7 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 
 // Has returns nil if the given key is present in the persistence medium
 func (s *SerialDB) Has(key []byte) error {
+	timeBeforeRequest := time.Now()
 	if s.isClosed() {
 		return storage.ErrSerialDBIsClosed
 	}
@@ -178,7 +182,7 @@ func (s *SerialDB) Has(key []byte) error {
 		return nil
 	}
 
-	ch := make(chan error)
+	ch := make(chan *pairResult)
 	req := &hasAct{
 		key:     key,
 		resChan: ch,
@@ -188,7 +192,9 @@ func (s *SerialDB) Has(key []byte) error {
 	result := <-ch
 	close(ch)
 
-	return result
+	logTimings("has", timeBeforeRequest, result)
+
+	return result.err
 }
 
 // Init initializes the storage medium and prepares it for usage
@@ -199,6 +205,7 @@ func (s *SerialDB) Init() error {
 
 // putBatch writes the Batch data into the database
 func (s *SerialDB) putBatch() error {
+	timeBeforeRequest := time.Now()
 	s.mutBatch.Lock()
 	dbBatch, ok := s.batch.(*batch)
 	if !ok {
@@ -209,7 +216,7 @@ func (s *SerialDB) putBatch() error {
 	s.batch = NewBatch()
 	s.mutBatch.Unlock()
 
-	ch := make(chan error)
+	ch := make(chan *pairResult)
 	req := &putBatchAct{
 		batch:   dbBatch,
 		resChan: ch,
@@ -219,7 +226,25 @@ func (s *SerialDB) putBatch() error {
 	result := <-ch
 	close(ch)
 
-	return result
+	logTimings("putBatch", timeBeforeRequest, result)
+
+	return result.err
+}
+
+func logTimings(action string, timeStart time.Time, result *pairResult) {
+	fromRequestToAction := result.timestampBeforeAccess.UnixNano() - timeStart.UnixNano()
+	diskIODuration := result.timestampAfterAccess.UnixNano() - result.timestampBeforeAccess.UnixNano()
+	timeNow := time.Now()
+	fromDiskIOToReturn := timeNow.UnixNano() - result.timestampAfterAccess.UnixNano()
+	fromStartToFinish := timeNow.UnixNano() - timeStart.UnixNano()
+
+	if time.Duration(fromStartToFinish) > time.Second {
+		log.Debug("leveldbSerial",
+			"action", action,
+			"requestQueue", fromRequestToAction,
+			"diskAccess", diskIODuration,
+			"scheduleRequesterRoutine", fromDiskIOToReturn)
+	}
 }
 
 func (s *SerialDB) isClosed() bool {
