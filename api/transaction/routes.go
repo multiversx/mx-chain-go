@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,7 @@ type TxService interface {
 	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
+	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	IsInterfaceNil() bool
 }
 
@@ -85,6 +87,24 @@ func SendTransaction(c *gin.Context) {
 			},
 		)
 		return
+	}
+
+	endpointThrottler, ok := ef.GetThrottlerForEndpoint("/transaction/send")
+	if ok {
+		if !endpointThrottler.CanProcess() {
+			c.JSON(
+				http.StatusTooManyRequests,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: errors.ErrTooManyRequests.Error(),
+					Code:  shared.ReturnCodeSystemBusy,
+				},
+			)
+			return
+		}
+
+		endpointThrottler.StartProcessing()
+		defer endpointThrottler.EndProcessing()
 	}
 
 	var gtx = SendTxRequest{}
@@ -177,6 +197,24 @@ func SendMultipleTransactions(c *gin.Context) {
 		return
 	}
 
+	endpointThrottler, ok := ef.GetThrottlerForEndpoint("/transaction/send-multiple")
+	if ok {
+		if !endpointThrottler.CanProcess() {
+			c.JSON(
+				http.StatusTooManyRequests,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: errors.ErrTooManyRequests.Error(),
+					Code:  shared.ReturnCodeSystemBusy,
+				},
+			)
+			return
+		}
+
+		endpointThrottler.StartProcessing()
+		defer endpointThrottler.EndProcessing()
+	}
+
 	var gtx []SendTxRequest
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
@@ -263,6 +301,24 @@ func GetTransaction(c *gin.Context) {
 			},
 		)
 		return
+	}
+
+	endpointThrottler, ok := ef.GetThrottlerForEndpoint("/transaction/get")
+	if ok {
+		if !endpointThrottler.CanProcess() {
+			c.JSON(
+				http.StatusTooManyRequests,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: errors.ErrTooManyRequests.Error(),
+					Code:  shared.ReturnCodeSystemBusy,
+				},
+			)
+			return
+		}
+
+		endpointThrottler.StartProcessing()
+		defer endpointThrottler.EndProcessing()
 	}
 
 	txhash := c.Param("txhash")
