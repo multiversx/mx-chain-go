@@ -50,12 +50,13 @@ func (mnc *managedNetworkComponents) Close() error {
 	mnc.mutNetworkComponents.Lock()
 	defer mnc.mutNetworkComponents.Unlock()
 
-	mnc.networkComponents.closeFunc()
-	err := mnc.netMessenger.Close()
-	if err != nil {
-		return err
+	if mnc.networkComponents != nil {
+		err := mnc.networkComponents.Close()
+		if err != nil {
+			return err
+		}
+		mnc.networkComponents = nil
 	}
-	mnc.networkComponents = nil
 
 	return nil
 }

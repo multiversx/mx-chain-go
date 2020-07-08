@@ -233,6 +233,18 @@ func TestCoreComponentsFactory_CreateStorerTemplatePaths(t *testing.T) {
 	require.Equal(t, "home/db/undefined/Static/Shard_[S]/[I]", pathStatic)
 }
 
+func TestCoreComponents_Close_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getCoreArgs()
+	ccf := factory.NewCoreComponentsFactory(args)
+	cc, _ := ccf.Create()
+
+	err := cc.Close()
+
+	require.NoError(t, err)
+}
+
 func getCoreArgs() factory.CoreComponentsFactoryArgs {
 	return factory.CoreComponentsFactoryArgs{
 		Config: config.Config{

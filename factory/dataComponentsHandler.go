@@ -16,7 +16,7 @@ type DataComponentsHandlerArgs DataComponentsFactoryArgs
 
 // managedDataComponents creates the data components handler that can create, close and access the data components
 type managedDataComponents struct {
-	*DataComponents
+	*dataComponents
 	dataComponentsFactory *dataComponentsFactory
 	mutDataComponents     sync.RWMutex
 }
@@ -29,7 +29,7 @@ func NewManagedDataComponents(args DataComponentsHandlerArgs) (*managedDataCompo
 	}
 
 	return &managedDataComponents{
-		DataComponents:        nil,
+		dataComponents:        nil,
 		dataComponentsFactory: dcf,
 	}, nil
 }
@@ -42,7 +42,7 @@ func (mdc *managedDataComponents) Create() error {
 	}
 
 	mdc.mutDataComponents.Lock()
-	mdc.DataComponents = dc
+	mdc.dataComponents = dc
 	mdc.mutDataComponents.Unlock()
 
 	return nil
@@ -53,12 +53,13 @@ func (mdc *managedDataComponents) Close() error {
 	mdc.mutDataComponents.Lock()
 	defer mdc.mutDataComponents.Unlock()
 
-	err := mdc.DataComponents.Store.CloseAll()
-	if err != nil {
-		return err
+	if mdc.dataComponents != nil {
+		err := mdc.dataComponents.Close()
+		if err != nil {
+			return err
+		}
+		mdc.dataComponents = nil
 	}
-
-	mdc.DataComponents = nil
 
 	return nil
 }
@@ -68,7 +69,7 @@ func (mdc *managedDataComponents) Blockchain() data.ChainHandler {
 	mdc.mutDataComponents.RLock()
 	defer mdc.mutDataComponents.RUnlock()
 
-	if mdc.DataComponents == nil {
+	if mdc.dataComponents == nil {
 		return nil
 	}
 
@@ -86,7 +87,7 @@ func (mdc *managedDataComponents) StorageService() dataRetriever.StorageService 
 	mdc.mutDataComponents.RLock()
 	defer mdc.mutDataComponents.RUnlock()
 
-	if mdc.DataComponents == nil {
+	if mdc.dataComponents == nil {
 		return nil
 	}
 
@@ -98,18 +99,18 @@ func (mdc *managedDataComponents) Datapool() dataRetriever.PoolsHolder {
 	mdc.mutDataComponents.RLock()
 	defer mdc.mutDataComponents.RUnlock()
 
-	if mdc.DataComponents == nil {
+	if mdc.dataComponents == nil {
 		return nil
 	}
 
-	return mdc.DataComponents.Datapool
+	return mdc.dataComponents.Datapool
 }
 
 // Clone creates a shallow clone of a managedDataComponents
 func (mdc *managedDataComponents) Clone() interface{} {
-	dataComponents := (*DataComponents)(nil)
-	if mdc.DataComponents != nil {
-		dataComponents = &DataComponents{
+	dataComps := (*dataComponents)(nil)
+	if mdc.dataComponents != nil {
+		dataComps = &dataComponents{
 			Blkc:     mdc.Blockchain(),
 			Store:    mdc.StorageService(),
 			Datapool: mdc.Datapool(),
@@ -117,7 +118,7 @@ func (mdc *managedDataComponents) Clone() interface{} {
 	}
 
 	return &managedDataComponents{
-		DataComponents:        dataComponents,
+		dataComponents:        dataComps,
 		dataComponentsFactory: mdc.dataComponentsFactory,
 		mutDataComponents:     sync.RWMutex{},
 	}

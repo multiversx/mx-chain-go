@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"context"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -18,7 +17,6 @@ var _ StateComponentsHandler = (*managedStateComponents)(nil)
 type managedStateComponents struct {
 	*stateComponents
 	factory            *stateComponentsFactory
-	cancelFunc         func()
 	mutStateComponents sync.RWMutex
 }
 
@@ -44,7 +42,6 @@ func (m *managedStateComponents) Create() error {
 
 	m.mutStateComponents.Lock()
 	m.stateComponents = sc
-	_, m.cancelFunc = context.WithCancel(context.Background())
 	m.mutStateComponents.Unlock()
 
 	return nil
@@ -55,10 +52,13 @@ func (m *managedStateComponents) Close() error {
 	m.mutStateComponents.Lock()
 	defer m.mutStateComponents.Unlock()
 
-	m.cancelFunc()
-	//TODO: close underlying components
-	m.cancelFunc = nil
-	m.stateComponents = nil
+	if m.stateComponents != nil {
+		err := m.stateComponents.Close()
+		if err != nil {
+			return err
+		}
+		m.stateComponents = nil
+	}
 
 	return nil
 }

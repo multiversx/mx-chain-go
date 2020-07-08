@@ -239,3 +239,8 @@ func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
 
 	return skBytes, pkBytes, nil
 }
+
+// Closes all underlying components that need closing
+func (cc *cryptoComponents) Close() error {
+	return nil
+}

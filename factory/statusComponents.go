@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -19,6 +20,7 @@ type statusComponents struct {
 	tpsBenchmark    statistics.TPSBenchmark
 	elasticSearch   indexer.Indexer
 	softwareVersion statistics.SoftwareVersionChecker
+	cancelFunc      func()
 }
 
 // StatusComponentsFactoryArgs redefines the arguments structure needed for the status components factory
@@ -88,6 +90,8 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 
 // Create will create and return the status components
 func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
+	_, cancelFunc := context.WithCancel(context.Background())
+
 	softwareVersionCheckerFactory, err := factory.NewSoftwareVersionFactory(
 		scf.coreComponents.StatusHandler(),
 		scf.config.SoftwareVersionConfig,
@@ -133,10 +137,20 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		softwareVersion: softwareVersionChecker,
 		tpsBenchmark:    tpsBenchmark,
 		elasticSearch:   elasticIndexer,
+		cancelFunc:      cancelFunc,
 	}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (scf *statusComponentsFactory) IsInterfaceNil() bool {
 	return scf == nil
+}
+
+// Closes all underlying components that need closing
+func (pc *statusComponents) Close() error {
+	pc.cancelFunc()
+
+	// TODO: close all components
+
+	return nil
 }

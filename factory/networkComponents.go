@@ -135,3 +135,10 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		closeFunc:              cancelFunc,
 	}, nil
 }
+
+// Closes all underlying components that need closing
+func (nc *networkComponents) Close() error {
+	nc.closeFunc()
+
+	return nil
+}

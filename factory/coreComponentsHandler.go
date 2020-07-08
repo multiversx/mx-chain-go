@@ -52,9 +52,15 @@ func (mcc *managedCoreComponents) Create() error {
 // Close closes the managed core components
 func (mcc *managedCoreComponents) Close() error {
 	mcc.mutCoreComponents.Lock()
-	mcc.coreComponents.statusHandler.Close()
-	mcc.coreComponents = nil
-	mcc.mutCoreComponents.Unlock()
+	defer mcc.mutCoreComponents.Unlock()
+
+	if mcc.coreComponents != nil {
+		err := mcc.coreComponents.Close()
+		if err != nil {
+			return err
+		}
+		mcc.coreComponents = nil
+	}
 
 	return nil
 }

@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -68,6 +69,8 @@ type processComponents struct {
 	RequestHandler              process.RequestHandler
 	TxLogsProcessor             process.TransactionLogProcessorDatabase
 	HeaderConstructionValidator process.HeaderConstructionValidator
+
+	closeFunc func()
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -202,6 +205,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		SingleSigVerifier: pcf.crypto.BlockSigner(),
 		KeyGen:            pcf.crypto.BlockSignKeyGen(),
 	}
+
+	_, cancelFunc := context.WithCancel(context.Background())
+
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
 		return nil, err
@@ -423,6 +429,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		TxLogsProcessor:             txLogsProcessor,
 		HeaderConstructionValidator: headerValidator,
 		HeaderIntegrityVerifier:     headerIntegrityVerifier,
+		closeFunc:                   cancelFunc,
 	}, nil
 }
 
@@ -901,6 +908,15 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 	if args.SystemSCConfig == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilSystemSCConfig)
 	}
+
+	return nil
+}
+
+// Closes all underlying components that need closing
+func (pc *processComponents) Close() error {
+	pc.closeFunc()
+
+	// TODO: close all components
 
 	return nil
 }

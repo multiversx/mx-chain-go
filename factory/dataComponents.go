@@ -34,8 +34,8 @@ type dataComponentsFactory struct {
 	currentEpoch       uint32
 }
 
-// DataComponents struct holds the data components
-type DataComponents struct {
+// dataComponents struct holds the data components
+type dataComponents struct {
 	Blkc     data.ChainHandler
 	Store    dataRetriever.StorageService
 	Datapool dataRetriever.PoolsHolder
@@ -70,7 +70,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 }
 
 // Create will create and return the data components
-func (dcf *dataComponentsFactory) Create() (*DataComponents, error) {
+func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 	var datapool dataRetriever.PoolsHolder
 	blkc, err := dcf.createBlockChainFromConfig()
 	if err != nil {
@@ -92,7 +92,7 @@ func (dcf *dataComponentsFactory) Create() (*DataComponents, error) {
 		return nil, fmt.Errorf("%w: %s", ErrDataPoolCreation, err.Error())
 	}
 
-	return &DataComponents{
+	return &dataComponents{
 		Blkc:     blkc,
 		Store:    store,
 		Datapool: datapool,
@@ -141,4 +141,13 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 		return storageServiceFactory.CreateForMeta()
 	}
 	return nil, ErrDataStoreCreation
+}
+
+// Closes all underlying components that need closing
+func (cc *dataComponents) Close() error {
+	if cc.Store != nil {
+		cc.Store.CloseAll()
+	}
+
+	return nil
 }

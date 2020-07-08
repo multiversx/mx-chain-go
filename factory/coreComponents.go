@@ -124,3 +124,12 @@ func (ccf *coreComponentsFactory) createStorerTemplatePaths() (string, string) {
 
 	return pathTemplateForPruningStorer, pathTemplateForStaticStorer
 }
+
+// Closes all underlying components that need closing
+func (cc *coreComponents) Close() error {
+	if cc.statusHandler != nil {
+		cc.statusHandler.Close()
+	}
+
+	return nil
+}
