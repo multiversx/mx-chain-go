@@ -605,10 +605,12 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
 func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(leavesChannel chan *data.TrieLeaf) error {
 	tr.mutOperation.RLock()
-	defer tr.mutOperation.RUnlock()
+	defer func() {
+		close(leavesChannel)
+		tr.mutOperation.RUnlock()
+	}()
 
 	if tr.root == nil {
-		close(leavesChannel)
 		return nil
 	}
 
@@ -616,7 +618,6 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(leavesChannel chan *data.Tri
 	if err != nil {
 		return err
 	}
-	close(leavesChannel)
 
 	return nil
 }
