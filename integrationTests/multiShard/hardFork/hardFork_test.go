@@ -218,7 +218,6 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		}
 	}()
 
-	_ = logger.SetLogLevel("*:DEBUG,update:TRACE,api:INFO")
 	exportStorageConfigs := hardForkExport(t, nodes, epoch)
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)
