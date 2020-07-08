@@ -10,24 +10,25 @@ var errNotImplemented = errors.New("not implemented")
 
 // TrieStub -
 type TrieStub struct {
-	GetCalled                func(key []byte) ([]byte, error)
-	UpdateCalled             func(key, value []byte) error
-	DeleteCalled             func(key []byte) error
-	RootCalled               func() ([]byte, error)
-	CommitCalled             func() error
-	RecreateCalled           func(root []byte) (data.Trie, error)
-	CancelPruneCalled        func(rootHash []byte, identifier data.TriePruningIdentifier)
-	PruneCalled              func(rootHash []byte, identifier data.TriePruningIdentifier)
-	ResetOldHashesCalled     func() [][]byte
-	AppendToOldHashesCalled  func([][]byte)
-	TakeSnapshotCalled       func(rootHash []byte)
-	SetCheckpointCalled      func(rootHash []byte)
-	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, uint64, error)
-	DatabaseCalled           func() data.DBWriteCacher
-	GetAllLeavesCalled       func() (map[string][]byte, error)
-	GetAllHashesCalled       func() ([][]byte, error)
-	IsPruningEnabledCalled   func() bool
-	ClosePersisterCalled     func() error
+	GetCalled                   func(key []byte) ([]byte, error)
+	UpdateCalled                func(key, value []byte) error
+	DeleteCalled                func(key []byte) error
+	RootCalled                  func() ([]byte, error)
+	CommitCalled                func() error
+	RecreateCalled              func(root []byte) (data.Trie, error)
+	CancelPruneCalled           func(rootHash []byte, identifier data.TriePruningIdentifier)
+	PruneCalled                 func(rootHash []byte, identifier data.TriePruningIdentifier)
+	ResetOldHashesCalled        func() [][]byte
+	AppendToOldHashesCalled     func([][]byte)
+	TakeSnapshotCalled          func(rootHash []byte)
+	SetCheckpointCalled         func(rootHash []byte)
+	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
+	DatabaseCalled              func() data.DBWriteCacher
+	GetAllLeavesCalled          func() (map[string][]byte, error)
+	GetAllLeavesOnChannelCalled func(chan *data.TrieLeaf) error
+	GetAllHashesCalled          func() ([][]byte, error)
+	IsPruningEnabledCalled      func() bool
+	ClosePersisterCalled        func() error
 }
 
 // EnterSnapshotMode -
@@ -113,6 +114,15 @@ func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
 	}
 
 	return nil, errNotImplemented
+}
+
+// GetAllLeavesOnChannel -
+func (ts *TrieStub) GetAllLeavesOnChannel(leavesChannel chan *data.TrieLeaf) error {
+	if ts.GetAllLeavesOnChannelCalled != nil {
+		return ts.GetAllLeavesOnChannelCalled(leavesChannel)
+	}
+
+	return errNotImplemented
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

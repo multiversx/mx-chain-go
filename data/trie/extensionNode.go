@@ -593,6 +593,26 @@ func (en *extensionNode) getAllLeaves(leaves map[string][]byte, key []byte, db d
 	return nil
 }
 
+func (en *extensionNode) getAllLeavesOnChannel(leavesChannel chan *data.TrieLeaf, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("getAllLeavesOnChannel error: %w", err)
+	}
+
+	err = resolveIfCollapsed(en, 0, db)
+	if err != nil {
+		return err
+	}
+
+	childKey := append(key, en.Key...)
+	err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (en *extensionNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {

@@ -6,20 +6,21 @@ import (
 
 // TrieStub -
 type TrieStub struct {
-	GetCalled                func(key []byte) ([]byte, error)
-	UpdateCalled             func(key, value []byte) error
-	DeleteCalled             func(key []byte) error
-	RootCalled               func() ([]byte, error)
-	CommitCalled             func() error
-	RecreateCalled           func(root []byte) (data.Trie, error)
-	CancelPruneCalled        func(rootHash []byte, identifier data.TriePruningIdentifier)
-	PruneCalled              func(rootHash []byte, identifier data.TriePruningIdentifier)
-	ResetOldHashesCalled     func() [][]byte
-	AppendToOldHashesCalled  func([][]byte)
-	SnapshotCalled           func() error
-	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, uint64, error)
-	GetAllHashesCalled       func() ([][]byte, error)
-	DatabaseCalled           func() data.DBWriteCacher
+	GetCalled                   func(key []byte) ([]byte, error)
+	UpdateCalled                func(key, value []byte) error
+	DeleteCalled                func(key []byte) error
+	RootCalled                  func() ([]byte, error)
+	CommitCalled                func() error
+	RecreateCalled              func(root []byte) (data.Trie, error)
+	CancelPruneCalled           func(rootHash []byte, identifier data.TriePruningIdentifier)
+	PruneCalled                 func(rootHash []byte, identifier data.TriePruningIdentifier)
+	ResetOldHashesCalled        func() [][]byte
+	AppendToOldHashesCalled     func([][]byte)
+	SnapshotCalled              func() error
+	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
+	GetAllHashesCalled          func() ([][]byte, error)
+	DatabaseCalled              func() data.DBWriteCacher
+	GetAllLeavesOnChannelCalled func(chan *data.TrieLeaf) error
 }
 
 // EnterSnapshotMode -
@@ -41,6 +42,15 @@ func (ts *TrieStub) SetCheckpoint(_ []byte) {
 // GetAllLeaves -
 func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
 	return nil, nil
+}
+
+// GetAllLeavesOnChannel -
+func (ts *TrieStub) GetAllLeavesOnChannel(leavesChannel chan *data.TrieLeaf) error {
+	if ts.GetAllLeavesOnChannelCalled != nil {
+		return ts.GetAllLeavesOnChannelCalled(leavesChannel)
+	}
+
+	return errNotImplemented
 }
 
 // IsPruningEnabled -

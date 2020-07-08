@@ -602,6 +602,25 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 	return leaves, nil
 }
 
+// GetAllLeavesOnChannel adds all the trie leaves to the given channel
+func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(leavesChannel chan *data.TrieLeaf) error {
+	tr.mutOperation.RLock()
+	defer tr.mutOperation.RUnlock()
+
+	if tr.root == nil {
+		close(leavesChannel)
+		return nil
+	}
+
+	err := tr.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.Database(), tr.marshalizer)
+	if err != nil {
+		return err
+	}
+	close(leavesChannel)
+
+	return nil
+}
+
 // GetAllHashes returns all the hashes from the trie
 func (tr *patriciaMerkleTrie) GetAllHashes() ([][]byte, error) {
 	tr.mutOperation.Lock()

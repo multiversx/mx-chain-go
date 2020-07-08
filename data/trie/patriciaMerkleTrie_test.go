@@ -635,6 +635,31 @@ func TestPatriciaMerkleTrie_GetAllHashesEmtyTrie(t *testing.T) {
 	assert.Equal(t, 0, len(hashes))
 }
 
+func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	leafChannel := make(chan *data.TrieLeaf, 10)
+	leaves := map[string][]byte{
+		"doe":  []byte("reindeer"),
+		"dog":  []byte("puppy"),
+		"ddog": []byte("cat"),
+	}
+
+	expectedLeaves := 3
+	err := tr.GetAllLeavesOnChannel(leafChannel)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedLeaves, len(leafChannel))
+
+	for i := 0; i < expectedLeaves; i++ {
+		leaf := <-leafChannel
+		assert.Equal(t, leaves[string(leaf.Key)], leaf.Value)
+	}
+
+	_, ok := <-leafChannel
+	assert.False(t, ok)
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}

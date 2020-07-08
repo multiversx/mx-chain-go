@@ -355,6 +355,27 @@ func (ln *leafNode) getAllLeaves(leaves map[string][]byte, key []byte, _ data.DB
 	return nil
 }
 
+func (ln *leafNode) getAllLeavesOnChannel(leavesChannel chan *data.TrieLeaf, key []byte, _ data.DBWriteCacher, _ marshal.Marshalizer) error {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("getAllLeavesOnChannel error: %w", err)
+	}
+
+	nodeKey := append(key, ln.Key...)
+	nodeKey, err = hexToKeyBytes(nodeKey)
+	if err != nil {
+		return err
+	}
+
+	trieLeaf := &data.TrieLeaf{
+		Key:   nodeKey,
+		Value: ln.Value,
+	}
+	leavesChannel <- trieLeaf
+
+	return nil
+}
+
 func (ln *leafNode) getAllHashes(_ data.DBWriteCacher) ([][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
