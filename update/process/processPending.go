@@ -97,7 +97,7 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 				"err", err,
 				"snd", info.tx.GetSndAddr(),
 				"rcv", info.tx.GetRcvAddr(),
-				"value", info.tx.GetValue(),
+				"value", info.tx.GetValue().String(),
 				"data", info.tx.GetData())
 			continue
 		}

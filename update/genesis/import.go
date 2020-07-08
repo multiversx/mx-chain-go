@@ -417,7 +417,7 @@ func (si *stateImport) importState(fileName string) error {
 		err = json.Unmarshal(marshalledData, account)
 		if err != nil {
 			log.Trace("error unmarshaling account this is maybe a code error",
-				"address", hex.EncodeToString(address),
+				"key", hex.EncodeToString(address),
 				"error", err,
 			)
 			err = mainTrie.Update(address, marshalledData)
