@@ -16,27 +16,47 @@ import (
 func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getStatusComponentsFactoryArgs()
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
 	args.CoreComponents = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
 	assert.Equal(t, factory.ErrNilCoreComponentsHolder, err)
 }
 
-func TestNewStatusComponentsFactory_NilProcessComponentsShouldErr(t *testing.T) {
+func TestNewStatusComponentsFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getStatusComponentsFactoryArgs()
-	args.ProcessComponents = nil
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	args.NodesCoordinator = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, factory.ErrNilProcessComponentsHolder, err)
+	assert.Equal(t, factory.ErrNilNodesCoordinator, err)
+}
+
+func TestNewStatusComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	args.EpochStartNotifier = nil
+	scf, err := factory.NewStatusComponentsFactory(args)
+	assert.True(t, check.IfNil(scf))
+	assert.Equal(t, factory.ErrNilEpochStartNotifier, err)
+}
+
+func TestNewStatusComponentsFactory_NilStatusHandlerErr(t *testing.T) {
+	t.Parallel()
+
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	args.StatusUtils = nil
+	scf, err := factory.NewStatusComponentsFactory(args)
+	assert.True(t, check.IfNil(scf))
+	assert.Equal(t, factory.ErrNilStatusHandlersUtils, err)
 }
 
 func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getStatusComponentsFactoryArgs()
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
 	args.NetworkComponents = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
@@ -46,7 +66,7 @@ func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) 
 func TestNewStatusComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getStatusComponentsFactoryArgs()
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
 	args.ShardCoordinator = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
@@ -56,7 +76,7 @@ func TestNewStatusComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewStatusComponentsFactory_InvalidRoundDurationShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getStatusComponentsFactoryArgs()
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
 	args.RoundDurationSec = 0
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
@@ -66,7 +86,8 @@ func TestNewStatusComponentsFactory_InvalidRoundDurationShouldErr(t *testing.T) 
 func TestNewStatusComponentsFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	scf, err := factory.NewStatusComponentsFactory(getStatusComponentsFactoryArgs())
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	scf, err := factory.NewStatusComponentsFactory(args)
 	require.NoError(t, err)
 	require.False(t, check.IfNil(scf))
 }
@@ -74,7 +95,7 @@ func TestNewStatusComponentsFactory_ShouldWork(t *testing.T) {
 func TestStatusComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	args := getStatusComponentsFactoryArgs()
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
 	scf, err := factory.NewStatusComponentsFactory(args)
 	require.Nil(t, err)
 
@@ -83,7 +104,8 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 	require.NotNil(t, res)
 }
 
-func getStatusComponentsFactoryArgs() factory.StatusComponentsFactoryArgs {
+func getStatusComponentsFactoryArgsAndProcessComponents() (factory.StatusComponentsFactoryArgs, factory.ProcessComponentsHolder) {
+	coreArgs := getCoreArgs()
 	coreComponents := getCoreComponents()
 	networkComponents := getNetworkComponents()
 	dataComponents := getDataComponents(coreComponents)
@@ -98,15 +120,18 @@ func getStatusComponentsFactoryArgs() factory.StatusComponentsFactoryArgs {
 	)
 
 	return factory.StatusComponentsFactoryArgs{
-		Config:            config.Config{},
-		ExternalConfig:    config.ExternalConfig{},
-		RoundDurationSec:  4,
-		ElasticOptions:    &indexer.Options{},
-		ShardCoordinator:  mock.NewMultiShardsCoordinatorMock(2),
-		CoreComponents:    coreComponents,
-		NetworkComponents: networkComponents,
-		ProcessComponents: processComponents,
-	}
+		Config:             coreArgs.Config,
+		ExternalConfig:     config.ExternalConfig{},
+		RoundDurationSec:   4,
+		ElasticOptions:     &indexer.Options{},
+		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
+		NodesCoordinator:   processComponents.NodesCoordinator(),
+		EpochStartNotifier: processComponents.EpochStartNotifier(),
+		CoreComponents:     coreComponents,
+		DataComponents:     dataComponents,
+		NetworkComponents:  networkComponents,
+		StatusUtils:        &mock.StatusHandlersUtilsMock{},
+	}, processComponents
 }
 
 func getNetworkComponents() factory.NetworkComponentsHolder {

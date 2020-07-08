@@ -1,15 +1,14 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type NetworkComponentsMock struct {
 	Messenger       p2p.Messenger
-	InputAntiFlood  factory.P2PAntifloodHandler
-	OutputAntiFlood factory.P2PAntifloodHandler
+	InputAntiFlood  process.P2PAntifloodHandler
+	OutputAntiFlood process.P2PAntifloodHandler
 	PeerBlackList   process.PeerBlackListHandler
 }
 
@@ -19,12 +18,12 @@ func (ncm *NetworkComponentsMock) NetworkMessenger() p2p.Messenger {
 }
 
 // InputAntiFloodHandler -
-func (ncm *NetworkComponentsMock) InputAntiFloodHandler() factory.P2PAntifloodHandler {
+func (ncm *NetworkComponentsMock) InputAntiFloodHandler() process.P2PAntifloodHandler {
 	return ncm.InputAntiFlood
 }
 
 // OutputAntiFloodHandler -
-func (ncm *NetworkComponentsMock) OutputAntiFloodHandler() factory.P2PAntifloodHandler {
+func (ncm *NetworkComponentsMock) OutputAntiFloodHandler() process.P2PAntifloodHandler {
 	return ncm.OutputAntiFlood
 }
 

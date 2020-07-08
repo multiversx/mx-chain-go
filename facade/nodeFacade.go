@@ -64,7 +64,7 @@ type nodeFacade struct {
 	node                   NodeHandler
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	tpsBenchmark           *statistics.TpsBenchmark
+	tpsBenchmark           statistics.TPSBenchmark
 	config                 config.FacadeConfig
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	apiRoutesConfig        config.ApiRoutesConfig
@@ -108,12 +108,12 @@ func (nf *nodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 }
 
 // SetTpsBenchmark sets the tps benchmark handler
-func (nf *nodeFacade) SetTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) {
+func (nf *nodeFacade) SetTpsBenchmark(tpsBenchmark statistics.TPSBenchmark) {
 	nf.tpsBenchmark = tpsBenchmark
 }
 
 // TpsBenchmark returns the tps benchmark handler
-func (nf *nodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
+func (nf *nodeFacade) TpsBenchmark() statistics.TPSBenchmark {
 	return nf.tpsBenchmark
 }
 

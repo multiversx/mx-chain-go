@@ -20,7 +20,7 @@ const pidQueryParam = "pid"
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
-	TpsBenchmark() *statistics.TpsBenchmark
+	TpsBenchmark() statistics.TPSBenchmark
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
@@ -127,7 +127,7 @@ func P2pStatusMetrics(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"details": details})
 }
 
-func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResponse {
+func statsFromTpsBenchmark(tpsBenchmark statistics.TPSBenchmark) statisticsResponse {
 	sr := statisticsResponse{}
 	sr.LiveTPS = tpsBenchmark.LiveTPS()
 	sr.PeakTPS = tpsBenchmark.PeakTPS()
