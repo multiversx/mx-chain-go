@@ -6,7 +6,6 @@ import "github.com/ElrondNetwork/elrond-go/data"
 type DataTrieTrackerStub struct {
 	ClearDataCachesCalled func()
 	DirtyDataCalled       func() map[string][]byte
-	OriginalValueCalled   func(key []byte) []byte
 	RetrieveValueCalled   func(key []byte) ([]byte, error)
 	SaveKeyValueCalled    func(key []byte, value []byte)
 	SetDataTrieCalled     func(tr data.Trie)
@@ -21,11 +20,6 @@ func (dtts *DataTrieTrackerStub) ClearDataCaches() {
 // DirtyData -
 func (dtts *DataTrieTrackerStub) DirtyData() map[string][]byte {
 	return dtts.DirtyDataCalled()
-}
-
-// OriginalValue -
-func (dtts *DataTrieTrackerStub) OriginalValue(key []byte) []byte {
-	return dtts.OriginalValueCalled(key)
 }
 
 // RetrieveValue -

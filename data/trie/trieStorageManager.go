@@ -378,7 +378,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh m
 		return
 	}
 
-	log.Debug("trie snapshot started", "rootHash", snapshot.rootHash, "newDB", snapshot.newDb)
+	log.Trace("trie snapshot started", "rootHash", snapshot.rootHash, "newDB", snapshot.newDb)
 
 	newRoot, err := newSnapshotNode(tsm.db, msh, hsh, snapshot.rootHash)
 	if err != nil {
@@ -397,7 +397,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh m
 		return
 	}
 
-	log.Debug("trie snapshot finished", "rootHash", snapshot.rootHash)
+	log.Trace("trie snapshot finished", "rootHash", snapshot.rootHash)
 }
 
 func (tsm *trieStorageManager) isPresentInLastSnapshotDb(rootHash []byte) bool {
