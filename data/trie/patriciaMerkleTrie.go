@@ -605,19 +605,23 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
 func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(leavesChannel chan *data.TrieLeaf) error {
 	tr.mutOperation.RLock()
-	defer func() {
+
+	if tr.root == nil {
+		close(leavesChannel)
+		tr.mutOperation.RUnlock()
+		return nil
+	}
+	tr.mutOperation.RUnlock()
+
+	go func() {
+		tr.mutOperation.RLock()
+		err := tr.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.Database(), tr.marshalizer)
+		if err != nil {
+			log.Error("could not get all trie leaves: ", "error", err)
+		}
 		close(leavesChannel)
 		tr.mutOperation.RUnlock()
 	}()
-
-	if tr.root == nil {
-		return nil
-	}
-
-	err := tr.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.Database(), tr.marshalizer)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }

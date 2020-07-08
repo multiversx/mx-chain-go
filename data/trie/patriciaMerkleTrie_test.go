@@ -646,18 +646,24 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		"ddog": []byte("cat"),
 	}
 
-	expectedLeaves := 3
 	err := tr.GetAllLeavesOnChannel(leafChannel)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedLeaves, len(leafChannel))
+	checkLeaves(t, leafChannel, leaves)
+}
 
-	for i := 0; i < expectedLeaves; i++ {
-		leaf := <-leafChannel
-		assert.Equal(t, leaves[string(leaf.Key)], leaf.Value)
+func checkLeaves(t *testing.T, leafChannel chan *data.TrieLeaf, leaves map[string][]byte) {
+	nrLeaves := len(leaves)
+	for {
+		select {
+		case leaf, ok := <-leafChannel:
+			if !ok {
+				assert.Equal(t, 0, nrLeaves)
+				return
+			}
+			nrLeaves--
+			assert.Equal(t, leaves[string(leaf.Key)], leaf.Value)
+		}
 	}
-
-	_, ok := <-leafChannel
-	assert.False(t, ok)
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
