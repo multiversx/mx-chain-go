@@ -94,7 +94,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		return nil, fmt.Errorf("%w, SameSourceResetIntervalInSec should not be 0", ErrInvalidValue)
 	}
 
-	throtlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
+	throttlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
 
 	return &nodeFacade{
 		node:                   arg.Node,
@@ -103,7 +103,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		wsAntifloodConfig:      arg.WsAntifloodConfig,
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
-		endpointsThrottlers:    throtlersMap,
+		endpointsThrottlers:    throttlersMap,
 	}, nil
 }
 
