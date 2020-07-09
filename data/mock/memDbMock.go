@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // MemDbMock represents the memory database storage. It holds a map of key value pairs
@@ -94,6 +96,27 @@ func (s *MemDbMock) Destroy() error {
 // DestroyClosed removes the already closed storage medium stored data
 func (s *MemDbMock) DestroyClosed() error {
 	return nil
+}
+
+// Iterate will iterate over all contained (key, value) pairs
+func (s *MemDbMock) Iterate() chan core.KeyValHolder {
+	ch := make(chan core.KeyValHolder)
+
+	go func() {
+		s.mutx.RLock()
+		defer s.mutx.RUnlock()
+
+		for k, v := range s.db {
+			ch <- &core.KeyValStorage{
+				KeyField: []byte(k),
+				ValField: v,
+			}
+		}
+
+		close(ch)
+	}()
+
+	return ch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

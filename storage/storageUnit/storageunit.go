@@ -145,6 +145,11 @@ func (u *Unit) Close() error {
 	return nil
 }
 
+// Iterate ca iterate over the persisted (key, value) pairs
+func (u *Unit) Iterate() chan core.KeyValHolder {
+	return u.persister.Iterate()
+}
+
 // Get searches the key in the cache. In case it is not found, it searches
 // for the key in bloom filter first and if found
 // it further searches it in the associated database.
