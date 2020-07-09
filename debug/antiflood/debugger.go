@@ -31,8 +31,8 @@ type event struct {
 	pid           core.PeerID
 	sequences     map[uint64]struct{}
 	topic         string
-	numRejected   uint32
 	sizeRejected  uint64
+	numRejected   uint32
 	isBlackListed bool
 }
 

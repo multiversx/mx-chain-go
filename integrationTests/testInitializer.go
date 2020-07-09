@@ -1739,27 +1739,6 @@ func generateValidTx(
 	return tx, txHash
 }
 
-// GetNumTxsWithDst returns the total number of transactions that have a certain destination shard
-func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
-	txPool := dataPool.Transactions()
-	if txPool == nil {
-		return 0
-	}
-
-	sumTxs := 0
-
-	for i := uint32(0); i < nrShards; i++ {
-		strCache := process.ShardCacherIdentifier(i, dstShardId)
-		txStore := txPool.ShardDataStore(strCache)
-		if txStore == nil {
-			continue
-		}
-		sumTxs += txStore.Len()
-	}
-
-	return sumTxs
-}
-
 // ProposeAndSyncOneBlock proposes a block, syncs the block and then increments the round
 func ProposeAndSyncOneBlock(
 	t *testing.T,
