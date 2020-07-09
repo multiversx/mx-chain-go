@@ -44,6 +44,7 @@ func (sot *shuffledOutTrigger) Process(newShardID uint32) error {
 	if sot.currentShardID == newShardID {
 		return nil
 	}
+	log.Debug("validator will be moved", "from", sot.currentShardID, "to", newShardID)
 
 	description := fmt.Sprintf("validator will be moved from: %d to %d", sot.currentShardID, newShardID)
 	sot.currentShardID = newShardID

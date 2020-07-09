@@ -755,6 +755,8 @@ func (ihgs *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, 
 
 // ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
 func (ihgs *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
+	log.Debug("shuffle out called for", "epoch", epoch)
+
 	ihgs.mutNodesConfig.Lock()
 	nodesConfig := ihgs.nodesConfig[epoch]
 	ihgs.mutNodesConfig.Unlock()
@@ -767,6 +769,7 @@ func (ihgs *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
 	}
 
 	if isValidator(nodesConfig, ihgs.selfPubKey) {
+		log.Debug("node is validator shuffle out process called")
 		err := ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
 		if err != nil {
 			log.Warn("shuffle out process failed", "err", err)
