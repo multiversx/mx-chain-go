@@ -44,3 +44,9 @@ type WatchdogTimer interface {
 	Reset(alarmID string)
 	IsInterfaceNil() bool
 }
+
+// KeyValHolder represents an entity able to hold both key and value as byte slices
+type KeyValHolder interface {
+	Key() []byte
+	Val() []byte
+}

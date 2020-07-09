@@ -1,6 +1,7 @@
 package memorydb
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -79,6 +80,36 @@ func (l *lruDB) Destroy() error {
 // DestroyClosed removes the already closed storage medium stored data
 func (l *lruDB) DestroyClosed() error {
 	return l.Destroy()
+}
+
+// Iterate will iterate over all contained (key, value) pairs
+func (l *lruDB) Iterate() chan core.KeyValHolder {
+	ch := make(chan core.KeyValHolder)
+
+	go func() {
+		keys := l.cacher.Keys()
+
+		for _, k := range keys {
+			v, ok := l.cacher.Get(k)
+			if !ok {
+				continue
+			}
+
+			vBuff, ok := v.([]byte)
+			if !ok {
+				continue
+			}
+
+			ch <- &core.KeyValStorage{
+				KeyField: k,
+				ValField: vBuff,
+			}
+		}
+
+		close(ch)
+	}()
+
+	return ch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

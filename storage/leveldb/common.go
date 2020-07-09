@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -66,4 +67,40 @@ func openOneTime(path string, options *opt.Options) (*leveldb.DB, error) {
 	}
 
 	return nil, errOpen
+}
+
+type baseLevelDb struct {
+	db *leveldb.DB
+}
+
+// Iterate will return a channel on which will be put all keys and values.
+func (bldb *baseLevelDb) Iterate() chan core.KeyValHolder {
+	ch := make(chan core.KeyValHolder)
+
+	iterator := bldb.db.NewIterator(nil, nil)
+	go func() {
+		for {
+			if !iterator.Next() {
+				break
+			}
+
+			key := iterator.Key()
+			clonedKey := make([]byte, len(key))
+			copy(clonedKey, key)
+
+			val := iterator.Value()
+			clonedVal := make([]byte, len(val))
+			copy(clonedVal, val)
+
+			ch <- &core.KeyValStorage{
+				KeyField: clonedKey,
+				ValField: clonedVal,
+			}
+		}
+
+		iterator.Release()
+		close(ch)
+	}()
+
+	return ch
 }
