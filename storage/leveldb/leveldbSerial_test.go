@@ -1,6 +1,8 @@
 package leveldb_test
 
 import (
+	"bytes"
+	"fmt"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -8,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createSerialLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.SerialDB) {
@@ -33,6 +36,29 @@ func TestSerialDB_PutNoError(t *testing.T) {
 	err := ldb.Put(key, val)
 
 	assert.Nil(t, err, "error saving in db")
+}
+
+func TestSerialDB_GetAllRecords(t *testing.T) {
+	key, val := []byte("key"), []byte("value")
+	key1, val1 := []byte("key1"), []byte("value1")
+	ldb := createSerialLevelDb(t, 10, 1, 10)
+
+	_ = ldb.Put(key, val)
+	_ = ldb.Put(key1, val1)
+
+	records := ldb.GetAllRecords()
+	require.Equal(t, 2, len(records))
+	res1, res2 := records[0], records[1]
+
+	firstPairRecovered := (bytes.Equal(res1.Key, key) && bytes.Equal(res1.Value, val)) ||
+		(bytes.Equal(res2.Key, key) && bytes.Equal(res2.Value, val))
+	secondPairRecovered := (bytes.Equal(res1.Key, key1) && bytes.Equal(res1.Value, val1)) ||
+		(bytes.Equal(res2.Key, key1) && bytes.Equal(res2.Value, val1))
+	require.True(t, firstPairRecovered)
+	require.True(t, secondPairRecovered)
+	for _, r := range records {
+		fmt.Println(fmt.Sprintf("key: %s ; value: %s", string(r.Key), string(r.Value)))
+	}
 }
 
 func TestSerialDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {

@@ -1,6 +1,7 @@
 package memorydb
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -50,6 +51,10 @@ func (l *lruDB) Has(key []byte) error {
 		return nil
 	}
 	return storage.ErrKeyNotFound
+}
+
+func (l *lruDB) GetAllRecords() []*core.KeyValuePair {
+	return make([]*core.KeyValuePair, 0)
 }
 
 // Init initializes the storage medium and prepares it for usage

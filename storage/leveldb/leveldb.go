@@ -9,6 +9,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -148,6 +149,22 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+// GetAllRecords returns a slice of all records inside the database
+func (s *DB) GetAllRecords() []*core.KeyValuePair {
+	sliceToRet := make([]*core.KeyValuePair, 0)
+	iter := s.db.NewIterator(nil, nil)
+	for iter.Next() {
+		sliceToRet = append(sliceToRet,
+			&core.KeyValuePair{
+				Key:   iter.Key(),
+				Value: iter.Value(),
+			},
+		)
+	}
+
+	return sliceToRet
 }
 
 // Has returns nil if the given key is present in the persistence medium

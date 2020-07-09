@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // MemDbMock represents the memory database storage. It holds a map of key value pairs
@@ -57,6 +59,23 @@ func (s *MemDbMock) Has(key []byte) error {
 	}
 
 	return nil
+}
+
+// GetAllRecords returns a slice containing all the records in the database
+func (s *MemDbMock) GetAllRecords() []*core.KeyValuePair {
+	s.mutx.RLock()
+	defer s.mutx.RUnlock()
+
+	sliceToRet := make([]*core.KeyValuePair, 0)
+	for k, v := range s.db {
+		sliceToRet = append(sliceToRet,
+			&core.KeyValuePair{
+				Key:   []byte(k),
+				Value: v,
+			})
+	}
+
+	return sliceToRet
 }
 
 // Init initializes the storage medium and prepares it for usage

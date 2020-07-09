@@ -1,5 +1,7 @@
 package mock
 
+import "github.com/ElrondNetwork/elrond-go/core"
+
 // MockDB -
 type MockDB struct {
 }
@@ -12,6 +14,11 @@ func (MockDB) Put(_, _ []byte) error {
 // Get -
 func (MockDB) Get(_ []byte) ([]byte, error) {
 	return []byte{}, nil
+}
+
+// GetAllRecords -
+func (MockDB) GetAllRecords() []*core.KeyValuePair {
+	return make([]*core.KeyValuePair, 0)
 }
 
 // Has -

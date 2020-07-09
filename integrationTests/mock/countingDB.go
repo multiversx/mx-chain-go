@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 )
@@ -32,6 +33,11 @@ func (cdb *countingDB) Get(key []byte) ([]byte, error) {
 // Has will return true if the db has the given key stored
 func (cdb *countingDB) Has(key []byte) error {
 	return cdb.db.Has(key)
+}
+
+// GetAllRecords returns a slice containing all the records in the database
+func (cdb *countingDB) GetAllRecords() []*core.KeyValuePair {
+	return cdb.db.GetAllRecords()
 }
 
 // Init will initialize the db

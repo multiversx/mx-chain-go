@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -122,6 +123,22 @@ func (s *SerialDB) Put(key, val []byte) error {
 	}
 
 	return s.updateBatchWithIncrement()
+}
+
+// GetAllRecords will return a slice of all pairs found in the DB
+func (s *SerialDB) GetAllRecords() []*core.KeyValuePair {
+	sliceToRet := make([]*core.KeyValuePair, 0)
+	iter := s.db.NewIterator(nil, nil)
+	for iter.Next() {
+		sliceToRet = append(sliceToRet,
+			&core.KeyValuePair{
+				Key:   iter.Key(),
+				Value: iter.Value(),
+			},
+		)
+	}
+
+	return sliceToRet
 }
 
 // Get returns the value associated to the key

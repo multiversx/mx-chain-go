@@ -3,6 +3,7 @@ package storage
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
@@ -19,6 +20,8 @@ type Persister interface {
 	Init() error
 	// Close closes the files/resources associated to the persistence medium
 	Close() error
+	// GetAllRecords returns a slice of all pairs found in the database (if the database supports it)
+	GetAllRecords() []*core.KeyValuePair
 	// Remove removes the data associated to the given key
 	Remove(key []byte) error
 	// Destroy removes the persistence medium stored data

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -48,6 +49,23 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	}
 
 	return val, nil
+}
+
+// GetAllRecords returns a slice containing all the key-value pairs inside the database
+func (s *DB) GetAllRecords() []*core.KeyValuePair {
+	s.mutx.RLock()
+	defer s.mutx.RUnlock()
+
+	sliceToRet := make([]*core.KeyValuePair, 0)
+	for k, v := range s.db {
+		sliceToRet = append(sliceToRet,
+			&core.KeyValuePair{
+				Key:   []byte(k),
+				Value: v,
+			})
+	}
+
+	return sliceToRet
 }
 
 // Has returns true if the given key is present in the persistence medium, false otherwise
