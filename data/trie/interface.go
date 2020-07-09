@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -39,7 +40,7 @@ type node interface {
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
 	getAllLeaves(map[string][]byte, []byte, data.DBWriteCacher, marshal.Marshalizer) error
-	getAllLeavesOnChannel(chan *data.TrieLeaf, []byte, data.DBWriteCacher, marshal.Marshalizer) error
+	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, data.DBWriteCacher, marshal.Marshalizer) error
 	getAllHashes(db data.DBWriteCacher) ([][]byte, error)
 
 	getMarshalizer() marshal.Marshalizer

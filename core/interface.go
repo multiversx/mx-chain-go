@@ -44,3 +44,9 @@ type WatchdogTimer interface {
 	Reset(alarmID string)
 	IsInterfaceNil() bool
 }
+
+// KeyValueHolder is used to hold a key and an associated value
+type KeyValueHolder interface {
+	GetKey() []byte
+	GetValue() []byte
+}

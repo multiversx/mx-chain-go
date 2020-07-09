@@ -7,7 +7,9 @@ import (
 	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -355,7 +357,7 @@ func (ln *leafNode) getAllLeaves(leaves map[string][]byte, key []byte, _ data.DB
 	return nil
 }
 
-func (ln *leafNode) getAllLeavesOnChannel(leavesChannel chan *data.TrieLeaf, key []byte, _ data.DBWriteCacher, _ marshal.Marshalizer) error {
+func (ln *leafNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, key []byte, _ data.DBWriteCacher, _ marshal.Marshalizer) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("getAllLeavesOnChannel error: %w", err)
@@ -367,10 +369,7 @@ func (ln *leafNode) getAllLeavesOnChannel(leavesChannel chan *data.TrieLeaf, key
 		return err
 	}
 
-	trieLeaf := &data.TrieLeaf{
-		Key:   nodeKey,
-		Value: ln.Value,
-	}
+	trieLeaf := keyValStorage.NewKeyValStorage(nodeKey, ln.Value)
 	leavesChannel <- trieLeaf
 
 	return nil

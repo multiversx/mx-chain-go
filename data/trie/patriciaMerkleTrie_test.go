@@ -635,35 +635,33 @@ func TestPatriciaMerkleTrie_GetAllHashesEmtyTrie(t *testing.T) {
 	assert.Equal(t, 0, len(hashes))
 }
 
+func TestPatriciaMerkleTrie_GetAllLeavesOnChannelNilTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+
+	leavesChannel := tr.GetAllLeavesOnChannel()
+	assert.Nil(t, leavesChannel)
+}
+
 func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	leafChannel := make(chan *data.TrieLeaf, 10)
 	leaves := map[string][]byte{
 		"doe":  []byte("reindeer"),
 		"dog":  []byte("puppy"),
 		"ddog": []byte("cat"),
 	}
 
-	err := tr.GetAllLeavesOnChannel(leafChannel)
-	assert.Nil(t, err)
-	checkLeaves(t, leafChannel, leaves)
-}
+	leavesChannel := tr.GetAllLeavesOnChannel()
+	assert.NotNil(t, leavesChannel)
 
-func checkLeaves(t *testing.T, leafChannel chan *data.TrieLeaf, leaves map[string][]byte) {
-	nrLeaves := len(leaves)
-	for {
-		select {
-		case leaf, ok := <-leafChannel:
-			if !ok {
-				assert.Equal(t, 0, nrLeaves)
-				return
-			}
-			nrLeaves--
-			assert.Equal(t, leaves[string(leaf.Key)], leaf.Value)
-		}
+	recovered := make(map[string][]byte)
+	for leaf := range leavesChannel {
+		recovered[string(leaf.GetKey())] = leaf.GetValue()
 	}
+	assert.Equal(t, leaves, recovered)
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // TriePruningIdentifier is the type for trie pruning identifiers
@@ -19,12 +20,6 @@ const (
 
 // ModifiedHashes is used to memorize all old hashes and new hashes from when a trie is committed
 type ModifiedHashes map[string]struct{}
-
-// TrieLeaf holds the key to a leaf and the value associated with that leaf
-type TrieLeaf struct {
-	Key   []byte
-	Value []byte
-}
 
 // HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
@@ -167,7 +162,7 @@ type Trie interface {
 	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetAllLeaves() (map[string][]byte, error)
-	GetAllLeavesOnChannel(leavesChannel chan *TrieLeaf) error
+	GetAllLeavesOnChannel() chan core.KeyValueHolder
 	GetAllHashes() ([][]byte, error)
 	IsPruningEnabled() bool
 	EnterSnapshotMode()

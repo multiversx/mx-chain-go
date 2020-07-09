@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -20,7 +21,7 @@ type TrieStub struct {
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
 	GetAllHashesCalled          func() ([][]byte, error)
 	DatabaseCalled              func() data.DBWriteCacher
-	GetAllLeavesOnChannelCalled func(chan *data.TrieLeaf) error
+	GetAllLeavesOnChannelCalled func() chan core.KeyValueHolder
 }
 
 // EnterSnapshotMode -
@@ -45,12 +46,12 @@ func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
 }
 
 // GetAllLeavesOnChannel -
-func (ts *TrieStub) GetAllLeavesOnChannel(leavesChannel chan *data.TrieLeaf) error {
+func (ts *TrieStub) GetAllLeavesOnChannel() chan core.KeyValueHolder {
 	if ts.GetAllLeavesOnChannelCalled != nil {
-		return ts.GetAllLeavesOnChannelCalled(leavesChannel)
+		return ts.GetAllLeavesOnChannelCalled()
 	}
 
-	return errNotImplemented
+	return nil
 }
 
 // IsPruningEnabled -

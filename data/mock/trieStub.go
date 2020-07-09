@@ -3,6 +3,7 @@ package mock
 import (
 	"errors"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -25,7 +26,7 @@ type TrieStub struct {
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
 	DatabaseCalled              func() data.DBWriteCacher
 	GetAllLeavesCalled          func() (map[string][]byte, error)
-	GetAllLeavesOnChannelCalled func(chan *data.TrieLeaf) error
+	GetAllLeavesOnChannelCalled func() chan core.KeyValueHolder
 	GetAllHashesCalled          func() ([][]byte, error)
 	IsPruningEnabledCalled      func() bool
 	ClosePersisterCalled        func() error
@@ -117,12 +118,12 @@ func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
 }
 
 // GetAllLeavesOnChannel -
-func (ts *TrieStub) GetAllLeavesOnChannel(leavesChannel chan *data.TrieLeaf) error {
+func (ts *TrieStub) GetAllLeavesOnChannel() chan core.KeyValueHolder {
 	if ts.GetAllLeavesOnChannelCalled != nil {
-		return ts.GetAllLeavesOnChannelCalled(leavesChannel)
+		return ts.GetAllLeavesOnChannelCalled()
 	}
 
-	return errNotImplemented
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
