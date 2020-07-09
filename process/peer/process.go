@@ -135,6 +135,8 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 // saveNodesCoordinatorUpdates is called at the first block after start in epoch to update the state trie according to
 // the shuffling and changes done by the nodesCoordinator at the end of the epoch
 func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) error {
+	log.Debug("save nodes coordinator updates ", "epoch", epoch)
+
 	nodesMap, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err

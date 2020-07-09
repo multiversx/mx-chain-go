@@ -370,6 +370,11 @@ func (si *stateImport) importState(fileName string) error {
 		return err
 	}
 
+	// no need to import validator account trie
+	if accType == ValidatorAccount {
+		return nil
+	}
+
 	if accType == DataTrie {
 		return si.importDataTrie(fileName, shId)
 	}

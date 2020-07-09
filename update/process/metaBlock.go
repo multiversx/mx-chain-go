@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -15,17 +16,19 @@ import (
 
 // ArgsNewMetaBlockCreatorAfterHardfork defines the arguments structure for new metablock creator after hardfork
 type ArgsNewMetaBlockCreatorAfterHardfork struct {
-	ImportHandler    update.ImportHandler
-	Marshalizer      marshal.Marshalizer
-	Hasher           hashing.Hasher
-	ShardCoordinator sharding.Coordinator
+	ImportHandler     update.ImportHandler
+	Marshalizer       marshal.Marshalizer
+	Hasher            hashing.Hasher
+	ShardCoordinator  sharding.Coordinator
+	ValidatorAccounts state.AccountsAdapter
 }
 
 type metaBlockCreator struct {
-	importHandler    update.ImportHandler
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	shardCoordinator sharding.Coordinator
+	importHandler     update.ImportHandler
+	marshalizer       marshal.Marshalizer
+	hasher            hashing.Hasher
+	shardCoordinator  sharding.Coordinator
+	validatorAccounts state.AccountsAdapter
 }
 
 // NewMetaBlockCreatorAfterHardfork creates the after hardfork metablock creator
@@ -42,12 +45,16 @@ func NewMetaBlockCreatorAfterHardfork(args ArgsNewMetaBlockCreatorAfterHardfork)
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, update.ErrNilShardCoordinator
 	}
+	if check.IfNil(args.ValidatorAccounts) {
+		return nil, update.ErrNilAccounts
+	}
 
 	return &metaBlockCreator{
-		importHandler:    args.ImportHandler,
-		marshalizer:      args.Marshalizer,
-		hasher:           args.Hasher,
-		shardCoordinator: args.ShardCoordinator,
+		importHandler:     args.ImportHandler,
+		marshalizer:       args.Marshalizer,
+		hasher:            args.Hasher,
+		shardCoordinator:  args.ShardCoordinator,
+		validatorAccounts: args.ValidatorAccounts,
 	}, nil
 }
 
@@ -62,12 +69,7 @@ func (m *metaBlockCreator) CreateNewBlock(
 		return nil, nil, update.ErrEmptyChainID
 	}
 
-	validatorAccounts := m.importHandler.GetValidatorAccountsDB()
-	if check.IfNil(validatorAccounts) {
-		return nil, nil, update.ErrNilAccounts
-	}
-
-	validatorRootHash, err := validatorAccounts.Commit()
+	validatorRootHash, err := m.validatorAccounts.Commit()
 	if err != nil {
 		return nil, nil, err
 	}

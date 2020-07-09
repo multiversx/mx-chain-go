@@ -18,6 +18,11 @@ func createMockBlockCreatorAfterHardFork() ArgsNewMetaBlockCreatorAfterHardfork 
 		Marshalizer:      &mock.MarshalizerMock{},
 		Hasher:           &mock.HasherMock{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		ValidatorAccounts: &mock.AccountsStub{
+			CommitCalled: func() ([]byte, error) {
+				return []byte("roothash"), nil
+			},
+		},
 	}
 }
 func TestNewMetaBlockCreatorAfterHardfork_NilImport(t *testing.T) {
