@@ -356,6 +356,7 @@ func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
 		},
 	}
 	args.NumOfActivePersisters = 1
+	args.CleanOldEpochsData = true
 	args.NumOfEpochsToKeep = 2
 	ps, _ := pruning.NewPruningStorer(args)
 
