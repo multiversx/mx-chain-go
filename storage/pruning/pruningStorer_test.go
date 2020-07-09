@@ -51,7 +51,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 	return &pruning.StorerArgs{
 		PruningEnabled:        true,
 		Identifier:            "id",
-		FullArchive:           false,
+		CleanOldEpochsData:    false,
 		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
 		PathManager:           &mock.PathManagerStub{},
 		CacheConf:             cacheConf,
@@ -76,7 +76,7 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 	return &pruning.StorerArgs{
 		PruningEnabled:        true,
 		Identifier:            "id",
-		FullArchive:           false,
+		CleanOldEpochsData:    false,
 		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
 		PathManager:           &mock.PathManagerStub{},
 		CacheConf:             cacheConf,

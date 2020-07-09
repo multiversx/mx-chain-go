@@ -40,7 +40,7 @@ func NewStorageServiceFactory(
 	if config == nil {
 		return nil, storage.ErrNilConfig
 	}
-	if config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && !config.StoragePruning.FullArchive {
+	if config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && !config.StoragePruning.CleanOldEpochsData {
 		return nil, storage.ErrInvalidNumberOfEpochsToSave
 	}
 	if config.StoragePruning.NumActivePersisters < minimumNumberOfActivePersisters {
@@ -358,7 +358,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 }
 
 func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.StorageConfig) *pruning.StorerArgs {
-	fullArchiveMode := psf.generalConfig.StoragePruning.FullArchive
+	cleanOldEpochsData := psf.generalConfig.StoragePruning.CleanOldEpochsData
 	numOfEpochsToKeep := uint32(psf.generalConfig.StoragePruning.NumEpochsToKeep)
 	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
 	pruningEnabled := psf.generalConfig.StoragePruning.Enabled
@@ -368,7 +368,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 		Identifier:            storageConfig.DB.FilePath,
 		PruningEnabled:        pruningEnabled,
 		StartingEpoch:         psf.currentEpoch,
-		FullArchive:           fullArchiveMode,
+		CleanOldEpochsData:    cleanOldEpochsData,
 		ShardCoordinator:      psf.shardCoordinator,
 		CacheConf:             GetCacherFromConfig(storageConfig.Cache),
 		PathManager:           psf.pathManager,
