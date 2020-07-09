@@ -296,9 +296,12 @@ func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
 			break
 		}
 
-		_, address, err = GetKeyTypeAndHash(key)
+		keyType, address, err = GetKeyTypeAndHash(key)
 		if err != nil {
 			break
+		}
+		if keyType != DataTrie {
+			log.Error("only data trie type should have been in this file")
 		}
 
 		err = dataTrie.Update(address, value)
@@ -397,37 +400,21 @@ func (si *stateImport) importState(fileName string) error {
 
 	var marshalledData []byte
 	var address []byte
-	var account state.AccountHandler
 	for {
 		key, marshalledData, err = si.reader.ReadNextItem(fileName)
 		if err != nil {
 			break
 		}
 
-		_, address, err = GetKeyTypeAndHash(key)
+		keyType, address, err = GetKeyTypeAndHash(key)
 		if err != nil {
 			break
 		}
-
-		account, err = NewEmptyAccount(accType, address)
-		if err != nil {
-			break
+		if keyType != accType {
+			log.Error("only account type is allowed here")
 		}
 
-		err = json.Unmarshal(marshalledData, account)
-		if err != nil {
-			log.Trace("error unmarshaling account this is maybe a code error",
-				"address", hex.EncodeToString(address),
-				"error", err,
-			)
-			err = mainTrie.Update(address, marshalledData)
-			if err != nil {
-				break
-			}
-			continue
-		}
-
-		err = accountsDB.SaveAccount(account)
+		err = mainTrie.Update(address, marshalledData)
 		if err != nil {
 			break
 		}
@@ -439,6 +426,30 @@ func (si *stateImport) importState(fileName string) error {
 
 	si.reader.CloseFile(fileName)
 	return si.saveRootHash(accountsDB, accType, shId, rootHash)
+}
+
+func (si *stateImport) unMarshalAndSaveAccount(
+	accType Type,
+	address, buffer []byte,
+	accountsDB state.AccountsAdapter,
+	mainTrie data.Trie,
+) error {
+	account, err := NewEmptyAccount(accType, address)
+	if err != nil {
+		return err
+	}
+
+	err = si.marshalizer.Unmarshal(account, buffer)
+	if err != nil {
+		log.Trace("error unmarshaling account this is maybe a code error",
+			"key", hex.EncodeToString(address),
+			"error", err,
+		)
+		err = mainTrie.Update(address, buffer)
+		return err
+	}
+
+	return accountsDB.SaveAccount(account)
 }
 
 func (si *stateImport) saveRootHash(

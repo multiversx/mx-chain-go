@@ -42,11 +42,13 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
-	nodes := integrationTests.CreateNodes(
+	genesisFile := "testdata/smartcontracts.json"
+	nodes := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser),
+		genesisFile,
 	)
 
 	roundsPerEpoch := uint64(10)
@@ -98,6 +100,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 		}
 	}()
 
+	//_ = logger.SetLogLevel("*:DEBUG,api:INFO")
 	exportStorageConfigs := hardForkExport(t, nodes, epoch)
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)

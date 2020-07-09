@@ -2,6 +2,7 @@ package factory
 
 import (
 	"math"
+	"os"
 	"path"
 	"time"
 
@@ -368,7 +369,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	exportStore, err := createFinalExportStorage(e.exportStateStorageConfig, e.exportFolder)
+	exportStore, err := createCleanFinalExportStorage(e.exportStateStorageConfig, e.exportFolder)
 	if err != nil {
 		return nil, err
 	}
@@ -449,7 +450,12 @@ func (e *exportHandlerFactory) createInterceptors() error {
 	return nil
 }
 
-func createFinalExportStorage(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
+func createCleanFinalExportStorage(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
+	err := os.RemoveAll(folder)
+	if err != nil {
+		return nil, err
+	}
+
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
