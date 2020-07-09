@@ -19,7 +19,7 @@ func (hp *HistoryProcessorStub) PutTransactionsData(historyTxsData *fullHistory.
 	return nil
 }
 
-// GetTransaction will return a history transaction with give hash from storage
+// GetTransaction will return a history transaction for the given hash from storage
 func (hp *HistoryProcessorStub) GetTransaction(hash []byte) (*fullHistory.HistoryTransaction, error) {
 	if hp.GetTransactionCalled != nil {
 		return hp.GetTransactionCalled(hash)

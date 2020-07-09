@@ -1193,8 +1193,6 @@ func (bp *baseProcessor) saveHistoryData(headerHash []byte, header data.HeaderHa
 	}
 
 	historyTransactionData := &fullHistory.HistoryTransactionsData{
-		// for the moment we dont need transactions
-		Transactions:  nil,
 		HeaderHash:    headerHash,
 		HeaderHandler: header,
 		BodyHandler:   body,

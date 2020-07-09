@@ -28,9 +28,6 @@ type HistoryProcessorArguments struct {
 
 // HistoryTransactionsData is structure that stores information about history transactions
 type HistoryTransactionsData struct {
-	// for the moment we don't need transactions pool because we can build history transactions from information
-	// that are in header and body
-	Transactions  map[string]data.TransactionHandler
 	HeaderHash    []byte
 	HeaderHandler data.HeaderHandler
 	BodyHandler   data.BodyHandler
@@ -114,17 +111,17 @@ func buildTransaction(
 	status core.TransactionStatus,
 ) *HistoryTransaction {
 	return &HistoryTransaction{
-		HeaderHash: headerHash,
-		MbHash:     mbHash,
-		Round:      headerHandler.GetRound(),
-		Nonce:      headerHandler.GetNonce(),
-		RcvShardID: rcvShardID,
-		SndShardID: sndShardID,
-		Status:     []byte(status),
+		HeaderHash:  headerHash,
+		MbHash:      mbHash,
+		Round:       headerHandler.GetRound(),
+		HeaderNonce: headerHandler.GetNonce(),
+		RcvShardID:  rcvShardID,
+		SndShardID:  sndShardID,
+		Status:      []byte(status),
 	}
 }
 
-// GetTransaction will return a history transaction with give hash from storage
+// GetTransaction will return a history transaction for the given hash from storage
 func (hp *historyProcessor) GetTransaction(hash []byte) (*HistoryTransaction, error) {
 	historyTxBytes, err := hp.store.Get(hash)
 	if err != nil {

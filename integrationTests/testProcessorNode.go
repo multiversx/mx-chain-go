@@ -8,8 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
-
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -17,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/crypto"

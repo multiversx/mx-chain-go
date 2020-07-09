@@ -49,6 +49,29 @@ func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult,
 	return nil, fmt.Errorf("transaction not found")
 }
 
+// GetHistoryTransaction will return from storage a history transaction
+func (n *Node) GetHistoryTransaction(txHash string) (*history.HistoryTransaction, error) {
+	hash, err := hex.DecodeString(txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	historyTx, err := n.historyProcessor.GetTransaction(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return &history.HistoryTransaction{
+		MBHash:     hex.EncodeToString(historyTx.MbHash),
+		BlockHash:  hex.EncodeToString(historyTx.HeaderHash),
+		RcvShard:   historyTx.RcvShardID,
+		SndShard:   historyTx.SndShardID,
+		Round:      historyTx.Round,
+		BlockNonce: historyTx.HeaderNonce,
+		Status:     string(historyTx.Status),
+	}, nil
+}
+
 func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transactionType, bool) {
 	txsPool := n.dataPool.Transactions()
 	txObj, found := txsPool.SearchFirstData(hash)
@@ -242,27 +265,4 @@ func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool boo
 
 	// is in storage on source shard
 	return core.TxStatusPartiallyExecuted
-}
-
-// GetHistoryTransaction will return from storage a history transaction
-func (n *Node) GetHistoryTransaction(txHash string) (*history.HistoryTransaction, error) {
-	hash, err := hex.DecodeString(txHash)
-	if err != nil {
-		return nil, err
-	}
-
-	historyTx, err := n.historyProcessor.GetTransaction(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	return &history.HistoryTransaction{
-		MBHash:     hex.EncodeToString(historyTx.MbHash),
-		BlockHash:  hex.EncodeToString(historyTx.HeaderHash),
-		RcvShard:   historyTx.RcvShardID,
-		SndShard:   historyTx.SndShardID,
-		Round:      historyTx.Round,
-		BlockNonce: historyTx.Nonce,
-		Status:     string(historyTx.Status),
-	}, nil
 }

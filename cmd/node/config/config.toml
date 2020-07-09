@@ -577,7 +577,7 @@
     EnableHistoryNode = false
     [FullHistory.HistoryTransactionStorageConfig.Cache]
         Name = "FullHistory.HistoryTransactionsConfig"
-        Capacity = 75000
+        Capacity = 10000
         Type = "LRU"
     [FullHistory.HistoryTransactionStorageConfig.DB]
         FilePath = "FullHistory.HistoryTransactions/MainDB"

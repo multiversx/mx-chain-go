@@ -209,15 +209,13 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 
+	historyTxUnit, err := psf.createHistoryStorerIfNeeded()
+	if err != nil {
+		return nil, err
+	}
+
 	if psf.generalConfig.FullHistory.EnableHistoryNode {
-		historyTxsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.FullHistory.HistoryTransactionStorageConfig)
-		historyTxUnit, err := pruning.NewPruningStorer(historyTxsUnitArgs)
-		if err != nil {
-			return nil, err
-		}
-
 		successfullyCreatedStorers = append(successfullyCreatedStorers, historyTxUnit)
-
 		store.AddStorer(dataRetriever.TransactionHistoryUnit, historyTxUnit)
 	}
 
@@ -366,19 +364,31 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 
+	historyTxUnit, err := psf.createHistoryStorerIfNeeded()
+	if err != nil {
+		return nil, err
+	}
+
 	if psf.generalConfig.FullHistory.EnableHistoryNode {
-		historyTxsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.FullHistory.HistoryTransactionStorageConfig)
-		historyTxUnit, err := pruning.NewPruningStorer(historyTxsUnitArgs)
-		if err != nil {
-			return nil, err
-		}
-
 		successfullyCreatedStorers = append(successfullyCreatedStorers, historyTxUnit)
-
 		store.AddStorer(dataRetriever.TransactionHistoryUnit, historyTxUnit)
 	}
 
 	return store, err
+}
+
+func (psf *StorageServiceFactory) createHistoryStorerIfNeeded() (*pruning.PruningStorer, error) {
+	if !psf.generalConfig.FullHistory.EnableHistoryNode {
+		return nil, nil
+	}
+
+	historyTxsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.FullHistory.HistoryTransactionStorageConfig)
+	historyTxUnit, err := pruning.NewPruningStorer(historyTxsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	return historyTxUnit, nil
 }
 
 func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.StorageConfig) *pruning.StorerArgs {

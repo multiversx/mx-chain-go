@@ -32,7 +32,7 @@ type NodeHandler interface {
 	//ValidateTransaction will validate a transaction
 	ValidateTransaction(tx *transaction.Transaction) error
 
-	// GetHistoryTransaction return a transaction base on the hash from history transaction storage
+	// GetHistoryTransaction returns a transaction base on the hash from history transaction storage
 	GetHistoryTransaction(hash string) (*history.HistoryTransaction, error)
 
 	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
