@@ -887,7 +887,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	selfShard := ihgs.shardIDAsObserver
 	epNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
 	if ok {
-		log.Trace("computeShardForSelfPublicKey found existing config",
+		log.Debug("computeShardForSelfPublicKey found existing config",
 			"shard", epNodesConfig.shardID,
 		)
 		selfShard = epNodesConfig.shardID
@@ -895,7 +895,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 
 	found, shardId := searchInMap(nodesConfig.eligibleMap, pubKey)
 	if found {
-		log.Trace("computeShardForSelfPublicKey found validator in eligible",
+		log.Debug("computeShardForSelfPublicKey found validator in eligible",
 			"epoch", ihgs.currentEpoch,
 			"shard", shardId,
 			"validator PK", pubKey,
@@ -905,7 +905,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 
 	found, shardId = searchInMap(nodesConfig.waitingMap, pubKey)
 	if found {
-		log.Trace("computeShardForSelfPublicKey found validator in waiting",
+		log.Debug("computeShardForSelfPublicKey found validator in waiting",
 			"epoch", ihgs.currentEpoch,
 			"shard", shardId,
 			"validator PK", pubKey,
@@ -915,7 +915,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 
 	found, shardId = searchInMap(nodesConfig.leavingMap, pubKey)
 	if found {
-		log.Trace("computeShardForSelfPublicKey found validator in leaving",
+		log.Debug("computeShardForSelfPublicKey found validator in leaving",
 			"epoch", ihgs.currentEpoch,
 			"shard", shardId,
 			"validator PK", pubKey,
@@ -923,7 +923,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		return shardId
 	}
 
-	log.Trace("computeShardForSelfPublicKey returned default",
+	log.Debug("computeShardForSelfPublicKey returned default",
 		"shard", selfShard,
 	)
 	return selfShard
