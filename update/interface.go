@@ -62,24 +62,6 @@ type HistoryStorer interface {
 	IsInterfaceNil() bool
 }
 
-// MultiFileWriter writes several files in a buffered manner
-type MultiFileWriter interface {
-	NewFile(name string) error
-	Write(fileName string, key string, value []byte) error
-	Finish()
-	CloseFile(fileName string)
-	IsInterfaceNil() bool
-}
-
-// MultiFileReader reads data from several files in a buffered way
-type MultiFileReader interface {
-	GetFileNames() []string
-	ReadNextItem(fileName string) (string, []byte, error)
-	Finish()
-	CloseFile(fileName string)
-	IsInterfaceNil() bool
-}
-
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
 	RequestTransaction(shardId uint32, txHashes [][]byte)
@@ -171,13 +153,6 @@ type DataWriter interface {
 	Flush() error
 }
 
-// DataReader defines the methods to read data
-type DataReader interface {
-	Text() string
-	Scan() bool
-	Err() error
-}
-
 // WhiteListHandler is the interface needed to add whitelisted data
 type WhiteListHandler interface {
 	Remove(keys [][]byte)
@@ -240,5 +215,15 @@ type ImportStartHandler interface {
 	ShouldStartImport() bool
 	ResetStartImport() error
 	SetStartImport() error
+	IsInterfaceNil() bool
+}
+
+// HardforkStorer manages the export and import of data
+type HardforkStorer interface {
+	Write(identifier string, key []byte, value []byte) error
+	FinishedIdentifier(identifier string) error
+	RangeKeys(handler func(identifier string, keys [][]byte))
+	Get(key []byte) ([]byte, error)
+	Close() error
 	IsInterfaceNil() bool
 }

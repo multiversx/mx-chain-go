@@ -86,7 +86,20 @@ func (sm *StorerMock) DestroyUnit() error {
 // Iterate -
 func (sm *StorerMock) Iterate() chan core.KeyValHolder {
 	ch := make(chan core.KeyValHolder)
-	close(ch)
+
+	go func() {
+		sm.mut.Lock()
+		defer sm.mut.Unlock()
+
+		for k, v := range sm.data {
+			ch <- &core.KeyValStorage{
+				KeyField: []byte(k),
+				ValField: v,
+			}
+		}
+
+		close(ch)
+	}()
 
 	return ch
 }

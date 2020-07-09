@@ -5,6 +5,7 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -19,10 +20,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/files"
+	"github.com/ElrondNetwork/elrond-go/update/storing"
+
 	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
@@ -73,29 +76,24 @@ func getGenesisBlocksRoundNonceEpoch(arg ArgsGenesisBlockCreator) (uint64, uint6
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	importFolder := filepath.Join(gbc.arg.WorkingDir, gbc.arg.HardForkConfig.ImportFolder)
 
-	importConfig := gbc.arg.HardForkConfig.ImportStateStorageConfig
-	dbConfig := factory.GetDBFromConfig(importConfig.DB)
-	dbConfig.FilePath = path.Join(importFolder, importConfig.DB.FilePath)
-	importStore, err := storageUnit.NewStorageUnitFromConf(
-		factory.GetCacherFromConfig(importConfig.Cache),
-		dbConfig,
-		factory.GetBloomFromConfig(importConfig.Bloom),
-	)
+	//TODO remove duplicate code found in update/factory/exportHandlerFactory.go
+	keysStorer, err := createStorer(gbc.arg.HardForkConfig.ImportKeysStorageConfig, importFolder)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w while creating keys storer", err)
+	}
+	keysVals, err := createStorer(gbc.arg.HardForkConfig.ImportStateStorageConfig, importFolder)
+	if err != nil {
+		return fmt.Errorf("%w while creating keys-values storer", err)
 	}
 
-	args := files.ArgsNewMultiFileReader{
-		ImportFolder: importFolder,
-		ImportStore:  importStore,
-	}
-	multiFileReader, err := files.NewMultiFileReader(args)
-	if err != nil {
-		return err
-	}
+	hs, err := storing.NewHardforkStorer(
+		keysStorer,
+		keysVals,
+		gbc.arg.Marshalizer,
+	)
 
 	argsHardForkImport := hardfork.ArgsNewStateImport{
-		Reader:              multiFileReader,
+		HardforkStorer:      hs,
 		Hasher:              gbc.arg.Hasher,
 		Marshalizer:         gbc.arg.Marshalizer,
 		ShardID:             gbc.arg.ShardCoordinator.SelfId(),
@@ -109,6 +107,21 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 
 	gbc.arg.importHandler = importHandler
 	return nil
+}
+
+func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
+	dbConfig := factory.GetDBFromConfig(storageConfig.DB)
+	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
+	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
+		factory.GetCacherFromConfig(storageConfig.Cache),
+		dbConfig,
+		factory.GetBloomFromConfig(storageConfig.Bloom),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return accountsTrieStorage, nil
 }
 
 func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
@@ -297,9 +310,9 @@ func (gbc *genesisBlockCreator) computeDNSAddressesIfHardFork() error {
 	}
 	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
 	for _, address := range initialAddresses {
-		scResultingAddress, err := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
-		if err != nil {
-			return err
+		scResultingAddress, errNewAddress := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
+		if errNewAddress != nil {
+			return errNewAddress
 		}
 
 		dnsSC.AddAddressBytes(scResultingAddress)

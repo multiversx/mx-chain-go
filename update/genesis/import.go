@@ -27,16 +27,15 @@ const maxTrieLevelInMemory = uint(5)
 
 // ArgsNewStateImport is the arguments structure to create a new state importer
 type ArgsNewStateImport struct {
-	Reader              update.MultiFileReader
 	Hasher              hashing.Hasher
 	Marshalizer         marshal.Marshalizer
 	ShardID             uint32
 	StorageConfig       config.StorageConfig
 	TrieStorageManagers map[string]data.StorageManager
+	HardforkStorer      update.HardforkStorer
 }
 
 type stateImport struct {
-	reader            update.MultiFileReader
 	genesisHeaders    map[uint32]data.HeaderHandler
 	transactions      map[string]data.TransactionHandler
 	miniBlocks        map[string]*block.MiniBlock
@@ -44,6 +43,7 @@ type stateImport struct {
 	tries             map[string]data.Trie
 	accountDBsMap     map[uint32]state.AccountsAdapter
 	validatorDB       state.AccountsAdapter
+	hardforkStorer    update.HardforkStorer
 
 	hasher              hashing.Hasher
 	marshalizer         marshal.Marshalizer
@@ -54,9 +54,6 @@ type stateImport struct {
 
 // NewStateImport creates an importer which reads all the files for a new start
 func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
-	if check.IfNil(args.Reader) {
-		return nil, update.ErrNilMultiFileReader
-	}
 	if check.IfNil(args.Hasher) {
 		return nil, update.ErrNilHasher
 	}
@@ -66,9 +63,11 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	if len(args.TrieStorageManagers) == 0 {
 		return nil, update.ErrNilTrieStorageManagers
 	}
+	if check.IfNil(args.HardforkStorer) {
+		return nil, update.ErrNilHardforkStorer
+	}
 
 	st := &stateImport{
-		reader:              args.Reader,
 		genesisHeaders:      make(map[uint32]data.HeaderHandler),
 		transactions:        make(map[string]data.TransactionHandler),
 		miniBlocks:          make(map[string]*block.MiniBlock),
@@ -80,6 +79,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		trieStorageManagers: args.TrieStorageManagers,
 		storageConfig:       args.StorageConfig,
 		shardID:             args.ShardID,
+		hardforkStorer:      args.HardforkStorer,
 	}
 
 	return st, nil
@@ -87,40 +87,43 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 
 // ImportAll imports all the relevant files for the new genesis
 func (si *stateImport) ImportAll() error {
-	files := si.reader.GetFileNames()
-	if len(files) == 0 {
-		return update.ErrNoFileToImport
-	}
+	var errFound error
 
-	var err error
-	for _, fileName := range files {
-		switch fileName {
-		case MetaBlockFileName:
-			err = si.importMetaBlock()
-		case MiniBlocksFileName:
-			err = si.importMiniBlocks()
-		case TransactionsFileName:
-			err = si.importTransactions()
+	si.hardforkStorer.RangeKeys(func(identifier string, keys [][]byte) {
+		var err error
+		switch identifier {
+		case MetaBlockIdentifier:
+			err = si.importMetaBlock(keys)
+		case MiniBlocksIdentifier:
+			err = si.importMiniBlocks(keys)
+		case TransactionsIdentifier:
+			err = si.importTransactions(keys)
 		default:
-			splitString := strings.Split(fileName, atSep)
-			canImportState := len(splitString) > 1 && splitString[0] == TrieFileName
+			splitString := strings.Split(identifier, atSep)
+			canImportState := len(splitString) > 1 && splitString[0] == TrieIdentifier
 			if !canImportState {
-				continue
+				return
 			}
-			err = si.importState(fileName)
+			err = si.importState(identifier, keys)
 		}
 		if err != nil {
-			return err
+			errFound = err
 		}
+	})
+
+	err := si.hardforkStorer.Close()
+	if errFound != nil {
+		return errFound
 	}
 
-	si.reader.Finish()
-
-	return nil
+	return err
 }
 
-func (si *stateImport) importMetaBlock() error {
-	object, err := si.readNextElement(MetaBlockFileName)
+func (si *stateImport) importMetaBlock(keys [][]byte) error {
+	if len(keys) != 1 {
+		return update.ErrExpectedOneMetablock
+	}
+	object, err := si.createElement(string(keys[0]))
 	if err != nil {
 		return err
 	}
@@ -135,11 +138,11 @@ func (si *stateImport) importMetaBlock() error {
 	return nil
 }
 
-func (si *stateImport) importTransactions() error {
+func (si *stateImport) importTransactions(keys [][]byte) error {
 	var err error
 	var object interface{}
-	for {
-		object, err = si.readNextElement(TransactionsFileName)
+	for _, key := range keys {
+		object, err = si.createElement(string(key))
 		if err != nil {
 			break
 		}
@@ -150,7 +153,8 @@ func (si *stateImport) importTransactions() error {
 			break
 		}
 
-		hash, err := core.CalculateHash(si.marshalizer, si.hasher, tx)
+		var hash []byte
+		hash, err = core.CalculateHash(si.marshalizer, si.hasher, tx)
 		if err != nil {
 			break
 		}
@@ -158,19 +162,14 @@ func (si *stateImport) importTransactions() error {
 		si.transactions[string(hash)] = tx
 	}
 
-	if err != update.ErrEndOfFile {
-		return fmt.Errorf("%w fileName %s", err, TransactionsFileName)
+	if err != nil {
+		return fmt.Errorf("%w identifier %s", err, TransactionsIdentifier)
 	}
 
 	return nil
 }
 
-func (si *stateImport) readNextElement(fileName string) (interface{}, error) {
-	key, value, err := si.reader.ReadNextItem(fileName)
-	if err != nil {
-		return nil, err
-	}
-
+func (si *stateImport) createElement(key string) (interface{}, error) {
 	objType, _, err := GetKeyTypeAndHash(key)
 	if err != nil {
 		return nil, err
@@ -181,6 +180,12 @@ func (si *stateImport) readNextElement(fileName string) (interface{}, error) {
 		return nil, err
 	}
 
+	value, err := si.hardforkStorer.Get([]byte(key))
+	if err != nil {
+		return nil, fmt.Errorf("%w, key not found for %s, error: %s",
+			update.ErrImportingData, hex.EncodeToString([]byte(key)), err.Error())
+	}
+
 	err = json.Unmarshal(value, object)
 	if err != nil {
 		return nil, err
@@ -189,11 +194,11 @@ func (si *stateImport) readNextElement(fileName string) (interface{}, error) {
 	return object, nil
 }
 
-func (si *stateImport) importMiniBlocks() error {
+func (si *stateImport) importMiniBlocks(keys [][]byte) error {
 	var err error
 	var object interface{}
-	for {
-		object, err = si.readNextElement(MiniBlocksFileName)
+	for _, key := range keys {
+		object, err = si.createElement(string(key))
 		if err != nil {
 			break
 		}
@@ -204,7 +209,8 @@ func (si *stateImport) importMiniBlocks() error {
 			break
 		}
 
-		hash, err := core.CalculateHash(si.marshalizer, si.hasher, miniBlock)
+		var hash []byte
+		hash, err = core.CalculateHash(si.marshalizer, si.hasher, miniBlock)
 		if err != nil {
 			break
 		}
@@ -212,8 +218,8 @@ func (si *stateImport) importMiniBlocks() error {
 		si.miniBlocks[string(hash)] = miniBlock
 	}
 
-	if err != update.ErrEndOfFile {
-		return fmt.Errorf("%w fileName %s", err, MiniBlocksFileName)
+	if err != nil {
+		return fmt.Errorf("%w identifier %s", err, MiniBlocksIdentifier)
 	}
 
 	return nil
@@ -255,18 +261,20 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) 
 	return trieForShard, nil
 }
 
-func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
+func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]byte) error {
 	var originalRootHash, address, value []byte
-	var key string
 	var err error
 
-	// read root hash - that is the first saved in the file
-	key, originalRootHash, err = si.reader.ReadNextItem(fileName)
+	if len(keys) == 0 {
+		return fmt.Errorf("%w missing original root hash", update.ErrImportingData)
+	}
+
+	originalRootHash, err = si.hardforkStorer.Get(keys[0])
 	if err != nil {
 		return err
 	}
 
-	keyType, _, err := GetKeyTypeAndHash(key)
+	keyType, _, err := GetKeyTypeAndHash(string(keys[0]))
 	if err != nil {
 		return err
 	}
@@ -285,18 +293,18 @@ func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
 		if err != nil {
 			return err
 		}
-		si.tries[fileName] = dataTrie
-		si.reader.CloseFile(fileName)
+		si.tries[identifier] = dataTrie
+
 		return nil
 	}
 
-	for {
-		key, value, err = si.reader.ReadNextItem(fileName)
+	for _, key := range keys {
+		value, err = si.hardforkStorer.Get(key)
 		if err != nil {
 			break
 		}
 
-		keyType, address, err = GetKeyTypeAndHash(key)
+		keyType, address, err = GetKeyTypeAndHash(string(key))
 		if err != nil {
 			break
 		}
@@ -309,16 +317,15 @@ func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
 			break
 		}
 	}
-	if err != update.ErrEndOfFile {
-		return fmt.Errorf("%w fileName: %s", err, fileName)
+	if err != nil {
+		return fmt.Errorf("%w identifier: %s", err, identifier)
 	}
 
 	err = dataTrie.Commit()
 	if err != nil {
 		return err
 	}
-	si.tries[fileName] = dataTrie
-	si.reader.CloseFile(fileName)
+	si.tries[identifier] = dataTrie
 
 	rootHash, err := dataTrie.Root()
 	if err != nil {
@@ -345,9 +352,9 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 
 	if accType == ValidatorAccount {
 		if check.IfNil(si.validatorDB) {
-			accountsDB, err := state.NewAccountsDB(currentTrie, si.hasher, si.marshalizer, accountFactory)
-			if err != nil {
-				return nil, nil, err
+			accountsDB, errCreate := state.NewAccountsDB(currentTrie, si.hasher, si.marshalizer, accountFactory)
+			if errCreate != nil {
+				return nil, nil, errCreate
 			}
 			si.validatorDB = accountsDB
 		}
@@ -364,14 +371,14 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 	return accountsDB, currentTrie, err
 }
 
-func (si *stateImport) importState(fileName string) error {
-	accType, shId, err := GetTrieTypeAndShId(fileName)
+func (si *stateImport) importState(identifier string, keys [][]byte) error {
+	accType, shId, err := GetTrieTypeAndShId(identifier)
 	if err != nil {
 		return err
 	}
 
 	if accType == DataTrie {
-		return si.importDataTrie(fileName, shId)
+		return si.importDataTrie(identifier, shId, keys)
 	}
 
 	accountsDB, mainTrie, err := si.getAccountsDB(accType, shId)
@@ -379,13 +386,17 @@ func (si *stateImport) importState(fileName string) error {
 		return err
 	}
 
+	if len(keys) == 0 {
+		return fmt.Errorf("%w missing root hash", update.ErrImportingData)
+	}
+
 	// read root hash - that is the first saved in the file
-	key, rootHash, err := si.reader.ReadNextItem(fileName)
+	rootHash, err := si.hardforkStorer.Get(keys[0])
 	if err != nil {
 		return err
 	}
 
-	keyType, _, err := GetKeyTypeAndHash(key)
+	keyType, _, err := GetKeyTypeAndHash(string(keys[0]))
 	if err != nil {
 		return err
 	}
@@ -400,13 +411,13 @@ func (si *stateImport) importState(fileName string) error {
 
 	var marshalledData []byte
 	var address []byte
-	for {
-		key, marshalledData, err = si.reader.ReadNextItem(fileName)
+	for _, key := range keys {
+		marshalledData, err = si.hardforkStorer.Get(key)
 		if err != nil {
 			break
 		}
 
-		keyType, address, err = GetKeyTypeAndHash(key)
+		keyType, address, err = GetKeyTypeAndHash(string(key))
 		if err != nil {
 			break
 		}
@@ -420,11 +431,10 @@ func (si *stateImport) importState(fileName string) error {
 		}
 	}
 
-	if err != update.ErrEndOfFile {
-		return fmt.Errorf("%w fileName: %s", err, fileName)
+	if err != nil {
+		return fmt.Errorf("%w identifier: %s", err, identifier)
 	}
 
-	si.reader.CloseFile(fileName)
 	return si.saveRootHash(accountsDB, accType, shId, rootHash)
 }
 
