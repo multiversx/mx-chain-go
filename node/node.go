@@ -131,17 +131,15 @@ type Node struct {
 	chainID               []byte
 	minTransactionVersion uint32
 
+	sizeCheckDelta        uint32
+	txSentCounter         uint32
+	inputAntifloodHandler P2PAntifloodHandler
+	txAcumulator          Accumulator
+
 	blockTracker             process.BlockTracker
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
-	txStorageSize  uint32
-	sizeCheckDelta uint32
-
 	requestHandler process.RequestHandler
-
-	inputAntifloodHandler P2PAntifloodHandler
-	txAcumulator          Accumulator
-	txSentCounter         uint32
 
 	signatureSize int
 	publicKeySize int
