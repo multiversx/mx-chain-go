@@ -424,6 +424,7 @@ func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {
 
 func TestRequestAndProcessing(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs()
+	args.GeneralConfig.StoragePruning.CleanOldEpochsData = true
 	args.PublicKey = &mock.PublicKeyMock{}
 	args.GenesisNodesConfig = getNodesConfigMock(1)
 
