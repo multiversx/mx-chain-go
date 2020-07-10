@@ -589,10 +589,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	//TODO when refactoring main, maybe initialize economics data before this line
-	totalSupply, ok := big.NewInt(0).SetString(economicsConfig.GlobalSettings.TotalSupply, 10)
+	totalSupply, ok := big.NewInt(0).SetString(economicsConfig.GlobalSettings.GenesisTotalSupply, 10)
 	if !ok {
 		return fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
-			economicsConfig.GlobalSettings.TotalSupply)
+			economicsConfig.GlobalSettings.GenesisTotalSupply)
 	}
 
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))

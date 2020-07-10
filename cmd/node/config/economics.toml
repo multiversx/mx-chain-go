@@ -1,7 +1,20 @@
 #Economics config of the node
 [GlobalSettings]
-    TotalSupply = "20000000000000000000000000000" #20BILERD
-    MinimumInflation = 0.0
+    GenesisTotalSupply = "20000000000000000000000000" #20BILERD
+    MinimumInflation   = 0.0
+    YearSettings = [
+        {Year = 1, MaximumInflation = 10.845},
+        {Year = 2, MaximumInflation = 8.754},
+        {Year = 3, MaximumInflation = 7.102},
+        {Year = 4, MaximumInflation = 5.747},
+        {Year = 5, MaximumInflation = 4.599},
+        {Year = 6, MaximumInflation = 3.597},
+        {Year = 7, MaximumInflation = 2.701},
+        {Year = 8, MaximumInflation = 1.878},
+        {Year = 9, MaximumInflation = 1.106},
+        {Year = 10, MaximumInflation = 0.365},
+        {Year = 11, MaximumInflation = 0.0},
+    ]
     MaximumInflation = 0.075 #fraction of value 1 - 7.5%
     Denomination = 18 # represents the smallest erd subdivision (10^-X ERD for a denomination of X)
 
@@ -14,20 +27,20 @@
 [FeeSettings]
     MaxGasLimitPerBlock     = "1500000000"
     MaxGasLimitPerMetaBlock = "15000000000"
-    MinGasPrice = "200000000000" #will yield min tx fee of 0.01ERD
+    MinGasPrice = "500000000" #will yield min tx fee of 0.01ERD
     MinGasLimit = "50000"
     GasPerDataByte = "1500"
     DataLimitForBaseCalc = "10000"
 
 [ValidatorSettings]
-    GenesisNodePrice = "2500000000000000000000000" #2.5MILERD
+    GenesisNodePrice = "2500000000000000000000" #2.5MILERD
     UnBondPeriod = "400"
-    MinStepValue = "10000000000000000000000"
-    TotalSupply = "20000000000000000000000000000" #20BIL ERD
+    MinStepValue = "10000000000000000000"
+    TotalSupply = "20000000000000000000000000" #20BIL ERD
     AuctionEnableNonce = "100000000000"
     StakeEnableNonce = "0"
     NumRoundsWithoutBleed = "100"
     MaximumPercentageToBleed = "0.5"
     BleedPercentagePerRound = "0.00001"
-    UnJailValue = "2500000000000000000000" #0.1% of genesis node price
+    UnJailValue = "2500000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = false #TODO set to true before mainnet

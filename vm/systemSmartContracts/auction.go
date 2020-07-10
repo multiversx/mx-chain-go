@@ -88,7 +88,7 @@ func NewStakingAuctionSmartContract(
 	baseConfig := AuctionConfig{
 		MinStakeValue: big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
 		NumNodes:      args.NodesConfigProvider.MinNumberOfNodes(),
-		TotalSupply:   big.NewInt(0).Set(args.ValidatorSettings.TotalSupply()),
+		TotalSupply:   big.NewInt(0).Set(args.ValidatorSettings.GenesisTotalSupply()),
 		MinStep:       big.NewInt(0).Set(args.ValidatorSettings.MinStepValue()),
 		NodePrice:     big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
 		UnJailPrice:   big.NewInt(0).Set(args.ValidatorSettings.UnJailValue()),
@@ -407,7 +407,7 @@ func (s *stakingAuctionSC) checkConfigCorrectness(config AuctionConfig) error {
 		return fmt.Errorf("%w for NodePrice", vm.ErrIncorrectConfig)
 	}
 	if config.TotalSupply == nil {
-		return fmt.Errorf("%w for TotalSupply", vm.ErrIncorrectConfig)
+		return fmt.Errorf("%w for GenesisTotalSupply", vm.ErrIncorrectConfig)
 	}
 	if config.MinStep == nil {
 		return fmt.Errorf("%w for MinStep", vm.ErrIncorrectConfig)
