@@ -92,9 +92,9 @@ func NewTxsPoolsCleaner(
 
 	tpc.mapTxsRounds = make(map[string]*txInfo)
 
-	tpc.blockTransactionsPool.RegisterHandler(tpc.receivedBlockTx)
-	tpc.rewardTransactionsPool.RegisterHandler(tpc.receivedRewardTx)
-	tpc.unsignedTransactionsPool.RegisterHandler(tpc.receivedUnsignedTx)
+	tpc.blockTransactionsPool.RegisterOnAdded(tpc.receivedBlockTx)
+	tpc.rewardTransactionsPool.RegisterOnAdded(tpc.receivedRewardTx)
+	tpc.unsignedTransactionsPool.RegisterOnAdded(tpc.receivedUnsignedTx)
 
 	tpc.emptyAddress = make([]byte, tpc.addressPubkeyConverter.Len())
 

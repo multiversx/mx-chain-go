@@ -31,7 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
@@ -94,7 +93,6 @@ const (
 	notSetDestinationShardID     = "disabled"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
-	maxNumGoRoutinesTxsByHashApi = 10
 	maxTimeToClose               = 10 * time.Second
 	maxMachineIDLen              = 10
 )
@@ -2074,11 +2072,6 @@ func createNode(
 
 	factory.PrepareOpenTopics(network.InputAntifloodHandler, shardCoordinator)
 
-	apiTxsByHashThrottler, err := throttler.NewNumGoRoutinesThrottler(maxNumGoRoutinesTxsByHashApi)
-	if err != nil {
-		return nil, err
-	}
-
 	alarmScheduler := alarm.NewAlarmScheduler()
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, chanStopNodeProcess)
 	if err != nil {
@@ -2164,7 +2157,6 @@ func createNode(
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
-		node.WithApiTransactionByHashThrottler(apiTxsByHashThrottler),
 		node.WithPeerHonestyHandler(peerHonestyHandler),
 		node.WithWatchdogTimer(watchdogTimer),
 	)
