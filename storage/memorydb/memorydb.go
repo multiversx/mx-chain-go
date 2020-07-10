@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -97,18 +98,15 @@ func (s *DB) Destroy() error {
 }
 
 // Iterate will iterate over all contained (key, value) pairs
-func (s *DB) Iterate() chan core.KeyValHolder {
-	ch := make(chan core.KeyValHolder)
+func (s *DB) Iterate() chan core.KeyValueHolder {
+	ch := make(chan core.KeyValueHolder)
 
 	go func() {
 		s.mutx.RLock()
 		defer s.mutx.RUnlock()
 
 		for k, v := range s.db {
-			ch <- &core.KeyValStorage{
-				KeyField: []byte(k),
-				ValField: v,
-			}
+			ch <- keyValStorage.NewKeyValStorage([]byte(k), v)
 		}
 
 		close(ch)

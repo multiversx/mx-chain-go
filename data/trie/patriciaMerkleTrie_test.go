@@ -662,7 +662,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 
 	recovered := make(map[string][]byte)
 	for leaf := range leavesChannel {
-		recovered[string(leaf.GetKey())] = leaf.GetValue()
+		recovered[string(leaf.Key())] = leaf.Value()
 	}
 	assert.Equal(t, leaves, recovered)
 }

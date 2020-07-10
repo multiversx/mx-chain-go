@@ -12,7 +12,7 @@ type StorerStub struct {
 	HasInEpochCalled   func(key []byte, epoch uint32) error
 	ClearCacheCalled   func()
 	DestroyUnitCalled  func() error
-	IterateCalled      func() chan core.KeyValHolder
+	IterateCalled      func() chan core.KeyValueHolder
 }
 
 // SearchFirst -
@@ -73,12 +73,12 @@ func (ss *StorerStub) DestroyUnit() error {
 }
 
 // Iterate -
-func (ss *StorerStub) Iterate() chan core.KeyValHolder {
+func (ss *StorerStub) Iterate() chan core.KeyValueHolder {
 	if ss.IterateCalled != nil {
 		return ss.IterateCalled()
 	}
 
-	ch := make(chan core.KeyValHolder)
+	ch := make(chan core.KeyValueHolder)
 	close(ch)
 
 	return ch

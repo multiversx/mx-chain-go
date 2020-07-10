@@ -26,7 +26,7 @@ type Persister interface {
 	Destroy() error
 	// DestroyClosed removes the already closed persistence medium stored data
 	DestroyClosed() error
-	Iterate() chan core.KeyValHolder
+	Iterate() chan core.KeyValueHolder
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -105,7 +105,7 @@ type Storer interface {
 	HasInEpoch(key []byte, epoch uint32) error
 	IsInterfaceNil() bool
 	Close() error
-	Iterate() chan core.KeyValHolder
+	Iterate() chan core.KeyValueHolder
 }
 
 // StorerWithPutInEpoch is an extended storer with the ability to set the epoch which will be used for put operations

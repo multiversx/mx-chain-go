@@ -800,8 +800,8 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 }
 
 // Iterate returns a closed channel as it is unable to iterate over multiple persisters
-func (ps *PruningStorer) Iterate() chan core.KeyValHolder {
-	ch := make(chan core.KeyValHolder)
+func (ps *PruningStorer) Iterate() chan core.KeyValueHolder {
+	ch := make(chan core.KeyValueHolder)
 	close(ch)
 
 	log.Error("improper use of PruningStorer.Iterate()")

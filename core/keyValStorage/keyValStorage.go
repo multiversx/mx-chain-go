@@ -14,12 +14,12 @@ func NewKeyValStorage(key []byte, val []byte) *keyValStorage {
 	}
 }
 
-// GetKey returns the key in the key-value storage
-func (k *keyValStorage) GetKey() []byte {
+// Key returns the key in the key-value storage
+func (k *keyValStorage) Key() []byte {
 	return k.key
 }
 
-// GetValue returns the value in the key-value storage
-func (k *keyValStorage) GetValue() []byte {
+// Value returns the value in the key-value storage
+func (k *keyValStorage) Value() []byte {
 	return k.value
 }

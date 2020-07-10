@@ -146,7 +146,7 @@ func (u *Unit) Close() error {
 }
 
 // Iterate can iterate over the persisted (key, value) pairs
-func (u *Unit) Iterate() chan core.KeyValHolder {
+func (u *Unit) Iterate() chan core.KeyValueHolder {
 	return u.persister.Iterate()
 }
 

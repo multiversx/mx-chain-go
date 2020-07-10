@@ -288,7 +288,7 @@ func TestDB_Iterate(t *testing.T) {
 
 	ch := ldb.Iterate()
 	for kv := range ch {
-		recovered[string(kv.Key())] = kv.Val()
+		recovered[string(kv.Key())] = kv.Value()
 	}
 
 	assert.Equal(t, keysVals, recovered)
