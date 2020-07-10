@@ -13,8 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -505,8 +505,6 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 				},
 			}
 		},
-		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
-		},
 	}
 
 	dataPool.SetUnsignedTransactions(shardedDataStub)
@@ -889,7 +887,6 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &testscommon.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -999,12 +996,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 
 	dataPool := testscommon.NewPoolsHolderMock()
 
-	shardedDataStub := &testscommon.ShardedDataStub{
-		AddDataCalled: func(_ []byte, _ interface{}, _ int, _ string) {
-		},
-		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
-		},
-	}
+	shardedDataStub := &testscommon.ShardedDataStub{}
 
 	dataPool.SetUnsignedTransactions(shardedDataStub)
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}

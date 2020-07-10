@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const testTxHash = "tx1_hash"
+
 func TestNewRewardTxPreprocessor_NilRewardTxDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -316,7 +318,7 @@ func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
 func TestRewardTxPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txHash := "tx1_hash"
+	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -346,7 +348,7 @@ func TestRewardTxPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txHash := "tx1_hash"
+	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -378,7 +380,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txHash := "tx1_hash"
+	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -418,7 +420,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	t.Parallel()
 
-	txHash := "tx1_hash"
+	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -453,7 +455,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 func TestRewardTxPreprocessor_SaveTxBlockToStorageShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txHash := "tx1_hash"
+	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -497,7 +499,7 @@ func TestRewardTxPreprocessor_SaveTxBlockToStorageShouldWork(t *testing.T) {
 func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txHash := "tx1_hash"
+	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -540,7 +542,7 @@ func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *
 func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txHash := "tx1_hash"
+	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
@@ -572,7 +574,7 @@ func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testi
 func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	t.Parallel()
 
-	txHash := "tx1_hash"
+	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
