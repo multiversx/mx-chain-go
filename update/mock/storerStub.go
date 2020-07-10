@@ -13,6 +13,7 @@ type StorerStub struct {
 	ClearCacheCalled   func()
 	DestroyUnitCalled  func() error
 	IterateCalled      func() chan core.KeyValHolder
+	CloseCalled        func() error
 }
 
 // SearchFirst -
@@ -22,6 +23,10 @@ func (ss *StorerStub) SearchFirst(_ []byte) ([]byte, error) {
 
 // Close -
 func (ss *StorerStub) Close() error {
+	if ss.CloseCalled != nil {
+		return ss.CloseCalled()
+	}
+
 	return nil
 }
 

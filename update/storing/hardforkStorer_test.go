@@ -1,21 +1,73 @@
 package storing
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
 )
 
+func createDefaultArg() ArgHardforkStorer {
+	return ArgHardforkStorer{
+		KeysStore:   mock.NewStorerMock(),
+		KeyValue:    mock.NewStorerMock(),
+		Marshalizer: &mock.MarshalizerMock{},
+	}
+}
+
+func TestNewHardforkStorer_NilKeysStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultArg()
+	arg.KeysStore = nil
+	hs, err := NewHardforkStorer(arg)
+
+	assert.True(t, check.IfNil(hs))
+	assert.True(t, errors.Is(err, update.ErrNilStorage))
+}
+
+func TestNewHardforkStorer_NilKeyValStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultArg()
+	arg.KeyValue = nil
+	hs, err := NewHardforkStorer(arg)
+
+	assert.True(t, check.IfNil(hs))
+	assert.True(t, errors.Is(err, update.ErrNilStorage))
+}
+
+func TestNewHardforkStorer_NilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultArg()
+	arg.Marshalizer = nil
+	hs, err := NewHardforkStorer(arg)
+
+	assert.True(t, check.IfNil(hs))
+	assert.True(t, errors.Is(err, update.ErrNilMarshalizer))
+}
+
+func TestNewHardforkStorer_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultArg()
+	hs, err := NewHardforkStorer(arg)
+
+	assert.False(t, check.IfNil(hs))
+	assert.Nil(t, err)
+}
+
 func TestHardforkStorer_WriteReadTests(t *testing.T) {
 	t.Parallel()
 
-	keysStorer := mock.NewStorerMock()
-	keyVals := mock.NewStorerMock()
-	marshalizer := &mock.MarshalizerMock{}
-
-	hs, _ := NewHardforkStorer(keysStorer, keyVals, marshalizer)
+	arg := createDefaultArg()
+	hs, _ := NewHardforkStorer(arg)
 
 	expectedValues := map[string][]string{
 		"trie@tr@0@8": {"trie_key_0", "trie_key_1, trie_key_2"},
@@ -65,4 +117,93 @@ func TestHardforkStorer_WriteReadTests(t *testing.T) {
 	})
 
 	assert.Equal(t, expectedValues, recovered)
+}
+
+func TestHardforkStorer_Get(t *testing.T) {
+	t.Parallel()
+
+	getCalled := 0
+	expectedResult := []byte("expected result")
+	arg := createDefaultArg()
+	arg.KeyValue = &mock.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			getCalled++
+			return expectedResult, nil
+		},
+	}
+	hs, _ := NewHardforkStorer(arg)
+
+	val, err := hs.Get([]byte("key"))
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResult, val)
+	assert.Equal(t, 1, getCalled)
+}
+
+func TestHardforkStorer_CloseKeysCloseErrors(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("error keys store")
+	numCloseCalled := 0
+	arg := createDefaultArg()
+	arg.KeyValue = &mock.StorerStub{
+		CloseCalled: func() error {
+			numCloseCalled++
+			return errExpected
+		},
+	}
+	arg.KeysStore = &mock.StorerStub{
+		CloseCalled: func() error {
+			numCloseCalled++
+			return nil
+		},
+	}
+	hs, _ := NewHardforkStorer(arg)
+	err := hs.Close()
+
+	assert.Equal(t, errExpected, err)
+	assert.Equal(t, 2, numCloseCalled)
+}
+
+func TestHardforkStorer_CloseKeyValueCloseErrors(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("error keys store")
+	numCloseCalled := 0
+	arg := createDefaultArg()
+	arg.KeyValue = &mock.StorerStub{
+		CloseCalled: func() error {
+			numCloseCalled++
+			return nil
+		},
+	}
+	arg.KeysStore = &mock.StorerStub{
+		CloseCalled: func() error {
+			numCloseCalled++
+			return errExpected
+		},
+	}
+	hs, _ := NewHardforkStorer(arg)
+	err := hs.Close()
+
+	assert.Equal(t, errExpected, err)
+	assert.Equal(t, 2, numCloseCalled)
+}
+
+func TestHardforkStorer_RangeKeysNilHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultArg()
+	iterateCalled := false
+	arg.KeysStore = &mock.StorerStub{
+		IterateCalled: func() chan core.KeyValHolder {
+			iterateCalled = true
+			return nil
+		},
+	}
+	hs, _ := NewHardforkStorer(arg)
+
+	hs.RangeKeys(nil)
+
+	assert.False(t, iterateCalled)
 }
