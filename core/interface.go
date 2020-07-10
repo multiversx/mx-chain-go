@@ -45,6 +45,14 @@ type WatchdogTimer interface {
 	IsInterfaceNil() bool
 }
 
+// Throttler can monitor the number of the currently running go routines
+type Throttler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
+	IsInterfaceNil() bool
+}
+
 // KeyValueHolder is used to hold a key and an associated value
 type KeyValueHolder interface {
 	GetKey() []byte
