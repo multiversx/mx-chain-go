@@ -59,6 +59,7 @@ func (hs *hardforkStorer) Write(identifier string, key []byte, value []byte) err
 	hs.keys[identifier] = append(hs.keys[identifier], key)
 
 	log.Trace("hardforkStorer.Write",
+		"identifier", identifier,
 		"key", key,
 		"value", value,
 	)
