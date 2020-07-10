@@ -40,31 +40,31 @@ type ElasticIndexerArgs struct {
 }
 
 type elasticIndexer struct {
-	database     databaseHandler
+	database     DatabaseHandler
 	options      *Options
 	coordinator  sharding.NodesCoordinator
 	marshalizer  marshal.Marshalizer
 	isNilIndexer bool
 }
 
-// NewElasticIndexer creates a new elasticIndexer where the server listens on the url, authentication for the server is
-// using the username and password
+// NewElasticIndexer creates a new elasticIndexer where the server listens on the Url, authentication for the server is
+// using the username and Password
 func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 	err := checkElasticSearchParams(arguments)
 	if err != nil {
 		return nil, err
 	}
 
-	databaseArguments := elasticSearchDatabaseArgs{
-		addressPubkeyConverter:   arguments.AddressPubkeyConverter,
-		validatorPubkeyConverter: arguments.ValidatorPubkeyConverter,
-		url:                      arguments.Url,
-		userName:                 arguments.UserName,
-		password:                 arguments.Password,
-		marshalizer:              arguments.Marshalizer,
-		hasher:                   arguments.Hasher,
+	databaseArguments := ElasticSearchDatabaseArgs{
+		AddressPubkeyConverter:   arguments.AddressPubkeyConverter,
+		ValidatorPubkeyConverter: arguments.ValidatorPubkeyConverter,
+		Url:                      arguments.Url,
+		UserName:                 arguments.UserName,
+		Password:                 arguments.Password,
+		Marshalizer:              arguments.Marshalizer,
+		Hasher:                   arguments.Hasher,
 	}
-	client, err := newElasticSearchDatabase(databaseArguments)
+	client, err := NewElasticSearchDatabase(databaseArguments)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create indexer: %w", err)
 	}

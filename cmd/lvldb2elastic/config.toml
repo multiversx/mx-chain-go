@@ -1,0 +1,8 @@
+[general]
+    dbPath = "../../db"
+    timeout = 200 #number of seconds to wait for indexing all the data
+
+[elasticSearch]
+    url        = "http://localhost:9200"
+    username   = "basic_auth_username"
+    password   = "basic_auth_password"
