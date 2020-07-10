@@ -618,6 +618,10 @@ func (e *epochStartBootstrap) saveSelfShardId() {
 
 func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 	var err error
+	shardId := e.destinationShardAsObserver
+	if shardId > e.baseData.numberOfShards && shardId != core.MetachainShardId {
+		shardId = e.genesisShardCoordinator.SelfId()
+	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
 		DataPool:           e.dataPool,
 		Marshalizer:        e.marshalizer,
@@ -627,7 +631,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		NodeShuffler:       e.nodeShuffler,
 		Hasher:             e.hasher,
 		PubKey:             pubKey,
-		ShardIdAsObserver:  e.destinationShardAsObserver,
+		ShardIdAsObserver:  shardId,
 	}
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {

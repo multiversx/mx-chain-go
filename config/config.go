@@ -219,11 +219,18 @@ type TrieStorageManagerConfig struct {
 	MaxSnapshots       uint8
 }
 
-// WebServerAntifloodConfig will hold the anti-lflooding parameters for the web server
+// EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines
+type EndpointsThrottlersConfig struct {
+	Endpoint         string
+	MaxNumGoRoutines int32
+}
+
+// WebServerAntifloodConfig will hold the anti-flooding parameters for the web server
 type WebServerAntifloodConfig struct {
 	SimultaneousRequests         uint32
 	SameSourceRequests           uint32
 	SameSourceResetIntervalInSec uint32
+	EndpointsThrottlers          []EndpointsThrottlersConfig
 }
 
 // BlackListConfig will hold the p2p peer black list threshold values
