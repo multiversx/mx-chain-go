@@ -378,7 +378,7 @@ VERSION:
 
 // dbIndexer will hold the database indexer. Defined globally so it can be initialised only in
 //  certain conditions. If those conditions will not be met, it will stay as nil
-var dbIndexer indexer.Indexer
+var dbIndexer indexer_old.Indexer
 
 // coreServiceContainer is defined globally so it can be injected with appropriate
 //  params depending on the type of node we are starting
@@ -1246,7 +1246,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	var elasticIndexer indexer.Indexer
+	var elasticIndexer indexer_old.Indexer
 	if !check.IfNil(coreServiceContainer) && !check.IfNil(coreServiceContainer.Indexer()) {
 		elasticIndexer = coreServiceContainer.Indexer()
 		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
@@ -1558,7 +1558,7 @@ func prepareLogFile(workingDir string) (*os.File, error) {
 }
 
 func indexValidatorsListIfNeeded(
-	elasticIndexer indexer.Indexer,
+	elasticIndexer indexer_old.Indexer,
 	coordinator sharding.NodesCoordinator,
 	epoch uint32,
 	log logger.Logger,
@@ -1877,14 +1877,14 @@ func createElasticIndexer(
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
 	shardId uint32,
-) (indexer.Indexer, error) {
-	arguments := indexer.ElasticIndexerArgs{
+) (indexer_old.Indexer, error) {
+	arguments := indexer_old.ElasticIndexerArgs{
 		Url:                      url,
 		UserName:                 elasticSearchConfig.Username,
 		Password:                 elasticSearchConfig.Password,
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
-		Options:                  &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
+		Options:                  &indexer_old.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
 		NodesCoordinator:         nodesCoordinator,
 		EpochStartNotifier:       startNotifier,
 		AddressPubkeyConverter:   addressPubkeyConverter,
@@ -1893,7 +1893,7 @@ func createElasticIndexer(
 	}
 
 	var err error
-	dbIndexer, err = indexer.NewElasticIndexer(arguments)
+	dbIndexer, err = indexer_old.NewElasticIndexer(arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -2027,7 +2027,7 @@ func createNode(
 	network *mainFactory.NetworkComponents,
 	bootstrapRoundIndex uint64,
 	version string,
-	indexer indexer.Indexer,
+	indexer indexer_old.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListRequest process.WhiteListHandler,
@@ -2245,8 +2245,8 @@ func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *st
 		return nil
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		var indexerToUse indexer.Indexer
-		indexerToUse = indexer.NewNilIndexer()
+		var indexerToUse indexer_old.Indexer
+		indexerToUse = indexer_old.NewNilIndexer()
 		if dbIndexer != nil {
 			indexerToUse = dbIndexer
 		}

@@ -14,6 +14,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	indexer_old "github.com/ElrondNetwork/elrond-go/core/indexer-old"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -1847,7 +1848,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.Core = &mock.ServiceContainerMock{
-		IndexerCalled: func() indexer.Indexer {
+		IndexerCalled: func() indexer_old.Indexer {
 			return &mock.IndexerMock{
 				SaveBlockCalled: func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler) {
 					saveBlockCalledMutex.Lock()

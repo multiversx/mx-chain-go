@@ -6,7 +6,7 @@ import (
 )
 
 type serviceContainer struct {
-	indexer      indexer.Indexer
+	indexer      indexer_old.Indexer
 	tpsBenchmark statistics.TPSBenchmark
 }
 
@@ -28,7 +28,7 @@ func NewServiceContainer(opts ...Option) (Core, error) {
 }
 
 // Indexer returns the core package's indexer
-func (sc *serviceContainer) Indexer() indexer.Indexer {
+func (sc *serviceContainer) Indexer() indexer_old.Indexer {
 	return sc.indexer
 }
 
@@ -43,7 +43,7 @@ func (sc *serviceContainer) IsInterfaceNil() bool {
 }
 
 // WithIndexer sets up the database indexer for the core serviceContainer
-func WithIndexer(indexer indexer.Indexer) Option {
+func WithIndexer(indexer indexer_old.Indexer) Option {
 	return func(sc *serviceContainer) error {
 		sc.indexer = indexer
 		return nil

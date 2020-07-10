@@ -122,7 +122,7 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer                 indexer.Indexer
+	indexer                 indexer_old.Indexer
 	blocksBlackListHandler  process.TimeCacher
 	bootStorer              process.BootStorer
 	requestedItemsHandler   dataRetriever.RequestedItemsHandler

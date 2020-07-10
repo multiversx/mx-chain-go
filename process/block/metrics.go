@@ -9,7 +9,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	indexer_old "github.com/ElrondNetwork/elrond-go/core/indexer-old"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -196,14 +196,14 @@ func countMetaAcceptedSignedBlocks(
 }
 
 func indexRoundInfo(
-	indexerHandler indexer.Indexer,
+	indexerHandler indexer_old.Indexer,
 	nodesCoordinator sharding.NodesCoordinator,
 	shardId uint32,
 	header data.HeaderHandler,
 	lastHeader data.HeaderHandler,
 	signersIndexes []uint64,
 ) {
-	roundInfo := indexer.RoundInfo{
+	roundInfo := indexer_old.RoundInfo{
 		Index:            header.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: true,
@@ -212,7 +212,7 @@ func indexRoundInfo(
 	}
 
 	if check.IfNil(lastHeader) {
-		go indexerHandler.SaveRoundsInfos([]indexer.RoundInfo{roundInfo})
+		go indexerHandler.SaveRoundsInfos([]indexer_old.RoundInfo{roundInfo})
 		return
 	}
 
@@ -220,7 +220,7 @@ func indexRoundInfo(
 	currentBlockRound := header.GetRound()
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 
-	roundsInfos := make([]indexer.RoundInfo, 0)
+	roundsInfos := make([]indexer_old.RoundInfo, 0)
 	roundsInfos = append(roundsInfos, roundInfo)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
@@ -233,7 +233,7 @@ func indexRoundInfo(
 			continue
 		}
 
-		roundInfo = indexer.RoundInfo{
+		roundInfo = indexer_old.RoundInfo{
 			Index:            i,
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
@@ -248,7 +248,7 @@ func indexRoundInfo(
 }
 
 func indexValidatorsRating(
-	indexerHandler indexer.Indexer,
+	indexerHandler indexer_old.Indexer,
 	valStatProc process.ValidatorStatisticsProcessor,
 	metaBlock data.HeaderHandler,
 ) {
@@ -264,9 +264,9 @@ func indexValidatorsRating(
 	}
 
 	for shardID, validatorInfosInShard := range validators {
-		validatorsInfos := make([]indexer.ValidatorRatingInfo, 0)
+		validatorsInfos := make([]indexer_old.ValidatorRatingInfo, 0)
 		for _, validatorInfo := range validatorInfosInShard {
-			validatorsInfos = append(validatorsInfos, indexer.ValidatorRatingInfo{
+			validatorsInfos = append(validatorsInfos, indexer_old.ValidatorRatingInfo{
 				PublicKey: hex.EncodeToString(validatorInfo.PublicKey),
 				Rating:    float32(validatorInfo.Rating) * 100 / 10000000,
 			})

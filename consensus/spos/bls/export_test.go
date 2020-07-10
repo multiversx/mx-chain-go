@@ -119,7 +119,7 @@ func (fct *factory) AppStatusHandler() core.AppStatusHandler {
 }
 
 // Indexer gets the indexer object
-func (fct *factory) Indexer() indexer.Indexer {
+func (fct *factory) Indexer() indexer_old.Indexer {
 	return fct.indexer
 }
 

@@ -1,4 +1,4 @@
-package indexer
+package indexer_old
 
 import (
 	"math/big"
@@ -133,14 +133,4 @@ type TPS struct {
 	NrOfNodes             uint32   `json:"nrOfNodes"`
 	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
 	ShardID               uint32   `json:"shardID"`
-}
-
-type elasticNode struct {
-	Name string `json:"name"`
-	Roles []string `json:"roles"`
-
-}
-
-type elasticNodesInfo struct {
-	Nodes map[string]elasticNode `json:"nodes"`
 }

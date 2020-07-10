@@ -1,4 +1,4 @@
-package indexer
+package indexer_old
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
