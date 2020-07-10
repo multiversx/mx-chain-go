@@ -24,8 +24,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +49,7 @@ func createShardedDataChacherNotifier(
 ) func() dataRetriever.ShardedDataCacherNotifier {
 	return func() dataRetriever.ShardedDataCacherNotifier {
 		return &testscommon.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
+			RegisterOnAddedCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1098,7 +1098,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 	t.Parallel()
 
 	shardedCacheMock := &testscommon.ShardedDataStub{
-		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
+		RegisterOnAddedCalled: func(i func(key []byte, value interface{})) {},
 		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -2372,7 +2372,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 
 	tdp.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &testscommon.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
+			RegisterOnAddedCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
