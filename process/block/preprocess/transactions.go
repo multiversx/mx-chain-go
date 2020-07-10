@@ -136,7 +136,7 @@ func NewTransactionPreprocessor(
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
-	txs.txPool.RegisterHandler(txs.receivedTransaction)
+	txs.txPool.RegisterOnAdded(txs.receivedTransaction)
 
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)

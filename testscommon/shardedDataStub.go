@@ -7,7 +7,7 @@ import (
 
 // ShardedDataStub -
 type ShardedDataStub struct {
-	RegisterHandlerCalled                  func(func(key []byte, value interface{}))
+	RegisterOnAddedCalled                  func(func(key []byte, value interface{}))
 	ShardDataStoreCalled                   func(cacheID string) storage.Cacher
 	AddDataCalled                          func(key []byte, data interface{}, sizeInBytes int, cacheID string)
 	SearchFirstDataCalled                  func(key []byte) (value interface{}, ok bool)
@@ -28,10 +28,10 @@ func NewShardedDataStub() *ShardedDataStub {
 	return &ShardedDataStub{}
 }
 
-// RegisterHandler -
-func (shardedData *ShardedDataStub) RegisterHandler(handler func(key []byte, value interface{})) {
-	if shardedData.RegisterHandlerCalled != nil {
-		shardedData.RegisterHandlerCalled(handler)
+// RegisterOnAdded -
+func (shardedData *ShardedDataStub) RegisterOnAdded(handler func(key []byte, value interface{})) {
+	if shardedData.RegisterOnAddedCalled != nil {
+		shardedData.RegisterOnAddedCalled(handler)
 	}
 }
 
@@ -42,7 +42,9 @@ func (shardedData *ShardedDataStub) ShardDataStore(cacheID string) storage.Cache
 
 // AddData -
 func (shardedData *ShardedDataStub) AddData(key []byte, data interface{}, sizeInBytes int, cacheID string) {
-	shardedData.AddDataCalled(key, data, sizeInBytes, cacheID)
+	if shardedData.AddDataCalled != nil {
+		shardedData.AddDataCalled(key, data, sizeInBytes, cacheID)
+	}
 }
 
 // SearchFirstData -

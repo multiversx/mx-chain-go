@@ -66,7 +66,7 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 	unsignedTransactions := make([]data.TransactionHandler, 0)
 
 	//wire up handler
-	n.DataPool.UnsignedTransactions().RegisterHandler(func(key []byte, value interface{}) {
+	n.DataPool.UnsignedTransactions().RegisterOnAdded(func(key []byte, value interface{}) {
 		mut.Lock()
 		defer mut.Unlock()
 
