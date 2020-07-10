@@ -387,11 +387,12 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, fmt.Errorf("%w while creating keys-values storer", err)
 	}
 
-	hs, err := storing.NewHardforkStorer(
-		keysStorer,
-		keysVals,
-		e.marshalizer,
-	)
+	arg := storing.ArgHardforkStorer{
+		KeysStore:   keysStorer,
+		KeyValue:    keysVals,
+		Marshalizer: e.marshalizer,
+	}
+	hs, err := storing.NewHardforkStorer(arg)
 
 	argsExporter := genesis.ArgsNewStateExporter{
 		ShardCoordinator: e.shardCoordinator,

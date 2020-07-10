@@ -86,11 +86,12 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		return fmt.Errorf("%w while creating keys-values storer", err)
 	}
 
-	hs, err := storing.NewHardforkStorer(
-		keysStorer,
-		keysVals,
-		gbc.arg.Marshalizer,
-	)
+	arg := storing.ArgHardforkStorer{
+		KeysStore:   keysStorer,
+		KeyValue:    keysVals,
+		Marshalizer: gbc.arg.Marshalizer,
+	}
+	hs, err := storing.NewHardforkStorer(arg)
 
 	argsHardForkImport := hardfork.ArgsNewStateImport{
 		HardforkStorer:      hs,
