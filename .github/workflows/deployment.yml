@@ -35,10 +35,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      # https://github.com/actions/checkout#Checkout-multiple-repos-side-by-side
       - name: Checkout deployment config repo
         uses: actions/checkout@v2
         with:
           repository: elrondnetwork/elrond-k8s-testnet
+          token: ${{ secrets.PAT }} # `GitHub_PAT` is a secret that contains your PAT
           path: elrond-k8s-testnet
 
       # Setup gcloud CLI
@@ -50,27 +52,29 @@ jobs:
 
       - name: Create Configs
         run: |
+          export HYSTERESIS=0.21
+          export NUM_NODES_SHARD=9
+          export NUM_OF_SHARDS=2
+          export NUM_NODES_METACHAIN=9
+          export CONSENSUS_GROUP_SIZE=4
+          export METACHAIN_CONSENSUS_GROUP_SIZE=7
+          export hysteresisMul=$(expr 1+$HYSTERESIS)
+          export numValidatorsOnAShard=($NUM_NODES_SHARD + $hysteresisMul - 1) * $hysteresisMul
+          export NUM_SHARD_VALIDATORS=$NUM_OF_SHARDS * $numValidatorsOnAShard
+          export NUM_META_VALIDATORS=($NUM_NODES_METACHAIN + $hysteresisMul - 1) * $hysteresisMul
           docker run \
             -v "/home/runner/work/elrond-go/elrond-go/filegenConfig/:/data/" \
             elrondnetwork/elrond-go-filegen \
             -num-of-shards $NUM_OF_SHARDS \
             -num-of-nodes-in-each-shard $NUM_NODES_SHARD \
-            -consensus-group-size 4 \
+            -consensus-group-size $CONSENSUS_GROUP_SIZE \
+            -num-of-metachain-nodes $NUM_NODES_METACHAIN \
+            -metachain-consensus-group-size $METACHAIN_CONSENSUS_GROUP_SIZE \
             -num-of-observers-in-each-shard 1  \
-            -num-of-metachain-nodes 9 \
-            -metachain-consensus-group-size 7 \
             -num-of-observers-in-metachain 1 \
             -chain-id k8s-testnet \
-            -hysteresis 0.21 \
+            -hysteresis $HYSTERESIS \
             -stake-type delegated
-
-      - name: Prepare Configs
-        run: |
-            sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfig/nodesSetup.json > $BASE_PATH/filegenConfig/nodesSetupUpdated.json
-            sed 's/<NUM_NODES>/'$NUM_NODES'/' $BASE_PATH/kube/elrond.yaml > $BASE_PATH/kube/elrond_"$NUM_NODES".yaml
-            sed 's/<NUM_OF_SHARDS>/'$NUM_OF_SHARDS'/' $BASE_PATH/kube/observer.yaml > $BASE_PATH/kube/observer_"$NUM_OF_SHARDS".yaml
-            ls -lh "/home/runner/work/elrond-go/elrond-go/filegenConfig"
-        shell: bash
 
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
@@ -121,5 +125,5 @@ jobs:
 
           ./kustomize edit set image $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:${GITHUB_SHA}
           ./kustomize edit set image $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:${GITHUB_SHA}
-          ./kustomize edit set replicas elrond-node=50 elrond-seednode=1
+          ./kustomize edit set replicas elrond-node=($NUM_SHARD_VALIDATORS + $NUM_META_VALIDATORS) observer-shard=$NUM_OF_SHARDS
           ./kustomize build ./$BASE_PATH/kube/ | kubectl -n $NAMESPACE apply -f -
