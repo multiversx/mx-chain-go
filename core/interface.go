@@ -44,3 +44,11 @@ type WatchdogTimer interface {
 	Reset(alarmID string)
 	IsInterfaceNil() bool
 }
+
+// Throttler can monitor the number of the currently running go routines
+type Throttler interface {
+	CanProcess() bool
+	StartProcessing()
+	EndProcessing()
+	IsInterfaceNil() bool
+}

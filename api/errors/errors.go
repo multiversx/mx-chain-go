@@ -37,11 +37,11 @@ var ErrValidationEmptyTxHash = errors.New("TxHash is empty")
 // ErrGetTransaction signals an error happened trying to fetch a transaction
 var ErrGetTransaction = errors.New("transaction getting failed")
 
-// ErrTxNotFound signals an error happened trying to fetch a transaction
-var ErrTxNotFound = errors.New("transaction was not found")
-
 // ErrQueryError signals a general query error
 var ErrQueryError = errors.New("query error")
 
 // ErrGetPidInfo signals that an error occurred while getting peer ID info
 var ErrGetPidInfo = errors.New("error getting peer id info")
+
+// ErrTooManyRequests signals that too many requests were simultaneously received
+var ErrTooManyRequests = errors.New("too many request")
