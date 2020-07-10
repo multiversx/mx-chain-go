@@ -605,6 +605,7 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 
 // GetAllLeavesOnChannel adds all the trie leaves to the given channel
 func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel() chan core.KeyValueHolder {
+	//TODO pass a context for cancellation purposes when needed
 	leavesChannel := make(chan core.KeyValueHolder)
 
 	tr.mutOperation.RLock()
