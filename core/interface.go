@@ -53,8 +53,8 @@ type Throttler interface {
 	IsInterfaceNil() bool
 }
 
-// KeyValHolder represents an entity able to hold both key and value as byte slices
-type KeyValHolder interface {
-	Key() []byte
-	Val() []byte
+// KeyValueHolder is used to hold a key and an associated value
+type KeyValueHolder interface {
+	GetKey() []byte
+	GetValue() []byte
 }

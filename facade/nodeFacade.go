@@ -67,9 +67,9 @@ type nodeFacade struct {
 	syncer                 ntp.SyncTimer
 	tpsBenchmark           *statistics.TpsBenchmark
 	config                 config.FacadeConfig
-	wsAntifloodConfig      config.WebServerAntifloodConfig
 	apiRoutesConfig        config.ApiRoutesConfig
 	endpointsThrottlers    map[string]core.Throttler
+	wsAntifloodConfig      config.WebServerAntifloodConfig
 	restAPIServerDebugMode bool
 }
 

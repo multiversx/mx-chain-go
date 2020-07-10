@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/stretchr/testify/assert"
 )
 
 var log = logger.GetOrCreate("integrationTests/longTests/storage")
@@ -21,6 +22,7 @@ func TestPutRemove(t *testing.T) {
 	dir, _ := ioutil.TempDir("", "leveldb_temp")
 	log.Info("opened in", "directory", dir)
 	lvdb1, err := leveldb.NewDB(dir, 2, 1000, 10)
+	assert.NoError(t, err)
 
 	defer func() {
 		_ = lvdb1.Close()

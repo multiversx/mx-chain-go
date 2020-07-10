@@ -30,7 +30,6 @@ type deployProcessor struct {
 	*baseDeploy
 	pubkeyConv     core.PubkeyConverter
 	scQueryService process.SCQueryService
-	emptyAddress   []byte
 }
 
 // NewDeployProcessor returns a new instance of deploy processor able to deploy SC

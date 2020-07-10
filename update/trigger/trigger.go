@@ -28,14 +28,14 @@ var log = logger.GetOrCreate("update/trigger")
 
 // ArgHardforkTrigger contains the
 type ArgHardforkTrigger struct {
-	TriggerPubKeyBytes        []byte
-	SelfPubKeyBytes           []byte
 	Enabled                   bool
 	EnabledAuthenticated      bool
+	CloseAfterExportInMinutes uint32
+	TriggerPubKeyBytes        []byte
+	SelfPubKeyBytes           []byte
 	ArgumentParser            process.ArgumentsParser
 	EpochProvider             update.EpochHandler
 	ExportFactoryHandler      update.ExportFactoryHandler
-	CloseAfterExportInMinutes uint32
 	ChanStopNodeProcess       chan endProcess.ArgEndProcess
 	EpochConfirmedNotifier    update.EpochChangeConfirmedNotifier
 	ImportStartHandler        update.ImportStartHandler
@@ -44,28 +44,27 @@ type ArgHardforkTrigger struct {
 // trigger implements a hardfork trigger that is able to notify a set list of handlers if this instance gets triggered
 // by external events
 type trigger struct {
-	triggerPubKey                []byte
-	selfPubKey                   []byte
-	enabled                      bool
-	enabledAuthenticated         bool
-	isTriggerSelf                bool
-	mutTriggered                 sync.RWMutex
-	triggerReceived              bool
-	triggerExecuting             bool
-	shouldTriggerFromEpochChange bool
-	recordedTriggerMessage       []byte
-	epoch                        uint32
-	getTimestampHandler          func() int64
-	argumentParser               process.ArgumentsParser
-	epochProvider                update.EpochHandler
-	exportFactoryHandler         update.ExportFactoryHandler
-	closeAfterInMinutes          uint32
-	chanStopNodeProcess          chan endProcess.ArgEndProcess
-	epochConfirmedNotifier       update.EpochChangeConfirmedNotifier
-	mutClosers                   sync.RWMutex
-	closers                      []update.Closer
-	chanTriggerReceived          chan struct{}
-	importStartHandler           update.ImportStartHandler
+	enabled                bool
+	enabledAuthenticated   bool
+	isTriggerSelf          bool
+	triggerReceived        bool
+	triggerExecuting       bool
+	epoch                  uint32
+	closeAfterInMinutes    uint32
+	triggerPubKey          []byte
+	selfPubKey             []byte
+	mutTriggered           sync.RWMutex
+	recordedTriggerMessage []byte
+	getTimestampHandler    func() int64
+	argumentParser         process.ArgumentsParser
+	epochProvider          update.EpochHandler
+	exportFactoryHandler   update.ExportFactoryHandler
+	chanStopNodeProcess    chan endProcess.ArgEndProcess
+	epochConfirmedNotifier update.EpochChangeConfirmedNotifier
+	mutClosers             sync.RWMutex
+	closers                []update.Closer
+	chanTriggerReceived    chan struct{}
+	importStartHandler     update.ImportStartHandler
 }
 
 // NewTrigger returns the trigger instance
