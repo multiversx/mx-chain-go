@@ -214,7 +214,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 	}
 
 	if accType == DataTrie {
-		return se.exportDataTries(leaves, accType, shId, fileName)
+		return se.exportDataTries(leaves, accType, shId, identifier)
 	}
 
 	return se.exportAccountLeafs(leaves, accType, shId, identifier)

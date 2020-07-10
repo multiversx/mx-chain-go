@@ -93,11 +93,11 @@ func (si *stateImport) ImportAll() error {
 		var err error
 		switch identifier {
 		case MetaBlockIdentifier:
-			err = si.importMetaBlock(keys)
+			err = si.importMetaBlock(identifier, keys)
 		case MiniBlocksIdentifier:
-			err = si.importMiniBlocks(keys)
+			err = si.importMiniBlocks(identifier, keys)
 		case TransactionsIdentifier:
-			err = si.importTransactions(keys)
+			err = si.importTransactions(identifier, keys)
 		default:
 			splitString := strings.Split(identifier, atSep)
 			canImportState := len(splitString) > 1 && splitString[0] == TrieIdentifier
@@ -119,11 +119,11 @@ func (si *stateImport) ImportAll() error {
 	return err
 }
 
-func (si *stateImport) importMetaBlock(keys [][]byte) error {
+func (si *stateImport) importMetaBlock(identifier string, keys [][]byte) error {
 	if len(keys) != 1 {
 		return update.ErrExpectedOneMetablock
 	}
-	object, err := si.createElement(string(keys[0]))
+	object, err := si.createElement(identifier, string(keys[0]))
 	if err != nil {
 		return err
 	}
@@ -138,11 +138,11 @@ func (si *stateImport) importMetaBlock(keys [][]byte) error {
 	return nil
 }
 
-func (si *stateImport) importTransactions(keys [][]byte) error {
+func (si *stateImport) importTransactions(identifier string, keys [][]byte) error {
 	var err error
 	var object interface{}
 	for _, key := range keys {
-		object, err = si.createElement(string(key))
+		object, err = si.createElement(identifier, string(key))
 		if err != nil {
 			break
 		}
@@ -169,7 +169,7 @@ func (si *stateImport) importTransactions(keys [][]byte) error {
 	return nil
 }
 
-func (si *stateImport) createElement(key string) (interface{}, error) {
+func (si *stateImport) createElement(identifier string, key string) (interface{}, error) {
 	objType, _, err := GetKeyTypeAndHash(key)
 	if err != nil {
 		return nil, err
@@ -180,7 +180,7 @@ func (si *stateImport) createElement(key string) (interface{}, error) {
 		return nil, err
 	}
 
-	value, err := si.hardforkStorer.Get([]byte(key))
+	value, err := si.hardforkStorer.Get(identifier, []byte(key))
 	if err != nil {
 		return nil, fmt.Errorf("%w, key not found for %s, error: %s",
 			update.ErrImportingData, hex.EncodeToString([]byte(key)), err.Error())
@@ -194,11 +194,11 @@ func (si *stateImport) createElement(key string) (interface{}, error) {
 	return object, nil
 }
 
-func (si *stateImport) importMiniBlocks(keys [][]byte) error {
+func (si *stateImport) importMiniBlocks(identifier string, keys [][]byte) error {
 	var err error
 	var object interface{}
 	for _, key := range keys {
-		object, err = si.createElement(string(key))
+		object, err = si.createElement(identifier, string(key))
 		if err != nil {
 			break
 		}
@@ -269,7 +269,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w missing original root hash", update.ErrImportingData)
 	}
 
-	originalRootHash, err = si.hardforkStorer.Get(keys[0])
+	originalRootHash, err = si.hardforkStorer.Get(identifier, keys[0])
 	if err != nil {
 		return err
 	}
@@ -298,8 +298,9 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return nil
 	}
 
-	for _, key := range keys {
-		value, err = si.hardforkStorer.Get(key)
+	for i := 1; i < len(keys); i++ {
+		key := keys[i]
+		value, err = si.hardforkStorer.Get(identifier, key)
 		if err != nil {
 			break
 		}
@@ -309,7 +310,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 			break
 		}
 		if keyType != DataTrie {
-			err = update.ErrKeyTypeMissMatch
+			err = update.ErrKeyTypeMismatch
 			break
 		}
 
@@ -397,7 +398,7 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 	}
 
 	// read root hash - that is the first saved in the file
-	rootHash, err := si.hardforkStorer.Get(keys[0])
+	rootHash, err := si.hardforkStorer.Get(identifier, keys[0])
 	if err != nil {
 		return err
 	}
@@ -417,8 +418,9 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 
 	var marshalledData []byte
 	var address []byte
-	for _, key := range keys {
-		marshalledData, err = si.hardforkStorer.Get(key)
+	for i := 1; i < len(keys); i++ {
+		key := keys[i]
+		marshalledData, err = si.hardforkStorer.Get(identifier, key)
 		if err != nil {
 			break
 		}
@@ -428,7 +430,7 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 			break
 		}
 		if keyType != accType {
-			err = update.ErrKeyTypeMissMatch
+			err = update.ErrKeyTypeMismatch
 			break
 		}
 

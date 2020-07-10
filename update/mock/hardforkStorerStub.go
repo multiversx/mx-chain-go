@@ -5,7 +5,7 @@ type HardforkStorerStub struct {
 	WriteCalled              func(identifier string, key []byte, value []byte) error
 	FinishedIdentifierCalled func(identifier string) error
 	RangeKeysCalled          func(handler func(identifier string, keys [][]byte))
-	GetCalled                func(key []byte) ([]byte, error)
+	GetCalled                func(identifier string, key []byte) ([]byte, error)
 	CloseCalled              func() error
 }
 
@@ -35,9 +35,9 @@ func (hss *HardforkStorerStub) RangeKeys(handler func(identifier string, keys []
 }
 
 // Get -
-func (hss *HardforkStorerStub) Get(key []byte) ([]byte, error) {
+func (hss *HardforkStorerStub) Get(identifier string, key []byte) ([]byte, error) {
 	if hss.GetCalled != nil {
-		return hss.GetCalled(key)
+		return hss.GetCalled(identifier, key)
 	}
 
 	return make([]byte, 0), nil

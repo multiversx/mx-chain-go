@@ -223,7 +223,7 @@ type HardforkStorer interface {
 	Write(identifier string, key []byte, value []byte) error
 	FinishedIdentifier(identifier string) error
 	RangeKeys(handler func(identifier string, keys [][]byte))
-	Get(key []byte) ([]byte, error)
+	Get(identifier string, key []byte) ([]byte, error)
 	Close() error
 	IsInterfaceNil() bool
 }

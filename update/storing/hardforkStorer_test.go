@@ -1,7 +1,9 @@
 package storing
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 
@@ -125,15 +127,21 @@ func TestHardforkStorer_Get(t *testing.T) {
 	getCalled := 0
 	expectedResult := []byte("expected result")
 	arg := createDefaultArg()
+	providedKey := []byte("key")
+	identifier := "identifier"
 	arg.KeyValue = &mock.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			getCalled++
-			return expectedResult, nil
+			if bytes.Equal(key, append([]byte(identifier), providedKey...)) {
+				getCalled++
+				return expectedResult, nil
+			}
+
+			return nil, fmt.Errorf("unexpected error")
 		},
 	}
 	hs, _ := NewHardforkStorer(arg)
 
-	val, err := hs.Get([]byte("key"))
+	val, err := hs.Get(identifier, providedKey)
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResult, val)
@@ -196,7 +204,7 @@ func TestHardforkStorer_RangeKeysNilHandlerShouldWork(t *testing.T) {
 	arg := createDefaultArg()
 	iterateCalled := false
 	arg.KeysStore = &mock.StorerStub{
-		IterateCalled: func() chan core.KeyValHolder {
+		IterateCalled: func() chan core.KeyValueHolder {
 			iterateCalled = true
 			return nil
 		},

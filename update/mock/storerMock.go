@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 )
 
 // StorerMock -
@@ -92,10 +93,7 @@ func (sm *StorerMock) Iterate() chan core.KeyValueHolder {
 		defer sm.mut.Unlock()
 
 		for k, v := range sm.data {
-			ch <- &core.KeyValStorage{
-				KeyField: []byte(k),
-				ValField: v,
-			}
+			ch <- keyValStorage.NewKeyValStorage([]byte(k), v)
 		}
 
 		close(ch)

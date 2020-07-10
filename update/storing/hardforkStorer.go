@@ -64,7 +64,7 @@ func (hs *hardforkStorer) Write(identifier string, key []byte, value []byte) err
 		"value", value,
 	)
 
-	return hs.keyValue.Put(key, value)
+	return hs.keyValue.Put(hs.getFullKey(identifier, key), value)
 }
 
 // FinishedIdentifier prepares and writes the identifier along with its set of keys. It does so as to
@@ -103,7 +103,7 @@ func (hs *hardforkStorer) RangeKeys(handler func(identifier string, keys [][]byt
 	chIterate := hs.keysStore.Iterate()
 	for kv := range chIterate {
 		b := &batch.Batch{}
-		err := hs.marshalizer.Unmarshal(b, kv.Val())
+		err := hs.marshalizer.Unmarshal(b, kv.Value())
 		if err != nil {
 			log.Warn("error reading identifiers",
 				"key", string(kv.Key()),
@@ -117,8 +117,12 @@ func (hs *hardforkStorer) RangeKeys(handler func(identifier string, keys [][]byt
 }
 
 // Get returns the value of a provided key from the state storer
-func (hs *hardforkStorer) Get(key []byte) ([]byte, error) {
-	return hs.keyValue.Get(key)
+func (hs *hardforkStorer) Get(identifier string, key []byte) ([]byte, error) {
+	return hs.keyValue.Get(hs.getFullKey(identifier, key))
+}
+
+func (hs *hardforkStorer) getFullKey(identifier string, key []byte) []byte {
+	return append([]byte(identifier), key...)
 }
 
 // Close tryies to close both storers
