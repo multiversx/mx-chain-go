@@ -55,7 +55,10 @@ func (ts *TrieStub) GetAllLeavesOnChannel() chan core.KeyValueHolder {
 		return ts.GetAllLeavesOnChannelCalled()
 	}
 
-	return nil
+	ch := make(chan core.KeyValueHolder)
+	close(ch)
+
+	return ch
 }
 
 // IsPruningEnabled -

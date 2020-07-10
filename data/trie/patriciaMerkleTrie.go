@@ -613,7 +613,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel() chan core.KeyValueHolder {
 		tr.mutOperation.RUnlock()
 		close(leavesChannel)
 
-		return nil
+		return leavesChannel
 	}
 	tr.mutOperation.RUnlock()
 

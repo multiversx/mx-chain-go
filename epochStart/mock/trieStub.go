@@ -123,7 +123,10 @@ func (ts *TrieStub) GetAllLeavesOnChannel() chan core.KeyValueHolder {
 		return ts.GetAllLeavesOnChannelCalled()
 	}
 
-	return nil
+	ch := make(chan core.KeyValueHolder)
+	close(ch)
+
+	return ch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
