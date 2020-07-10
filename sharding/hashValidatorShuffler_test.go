@@ -1614,9 +1614,6 @@ func TestRandHashShuffler_UpdateNodeLists_WithUnstakeLeaving_EnoughRemaining(t *
 
 	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
 	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
-
-	eligibleMap = generateValidatorMap(eligiblePerShard, nbShards)
-	waitingMap = generateValidatorMap(waitingPerShard, nbShards)
 	currentShardId := uint32(1)
 	unstakeLeaving := eligibleMap[currentShardId]                  // unstake 100
 	eligibleMap[currentShardId] = eligibleMap[currentShardId][:70] // eligible - 70
