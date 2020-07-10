@@ -1801,7 +1801,7 @@ func createNodesCoordinator(
 	}
 	maxDurationBeforeStopProcess := int64(nodesConfig.RoundDuration) * epochConfig.RoundsPerEpoch
 	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
-	maxDurationInterval := time.Second * time.Duration(maxDurationBeforeStopProcess)
+	maxDurationInterval := time.Millisecond * time.Duration(maxDurationBeforeStopProcess)
 	minDurationInterval := maxDurationInterval / 2
 	//waiting interval will be [maxDuration/2 and maxDuration]
 
