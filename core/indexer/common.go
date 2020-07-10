@@ -344,7 +344,6 @@ func prepareSerializedDataForATransaction(
 		// update transaction
 		meta, serializedData = prepareTxUpdate(tx)
 	} else {
-		// write tx
 		// insert transaction in database
 		meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
 		serializedData, err = json.Marshal(tx)
