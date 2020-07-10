@@ -109,7 +109,6 @@ func createMetaGenesisAfterHardFork(
 	arg ArgsGenesisBlockCreator,
 ) (data.HeaderHandler, error) {
 	tmpArg := arg
-	tmpArg.ValidatorAccounts = arg.importHandler.GetValidatorAccountsDB()
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
 	processors, err := createProcessorsForMetaGenesisBlock(tmpArg)
 	if err != nil {
@@ -117,10 +116,11 @@ func createMetaGenesisAfterHardFork(
 	}
 
 	argsNewMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardfork{
-		ImportHandler:    arg.importHandler,
-		Marshalizer:      arg.Marshalizer,
-		Hasher:           arg.Hasher,
-		ShardCoordinator: arg.ShardCoordinator,
+		ImportHandler:     arg.importHandler,
+		Marshalizer:       arg.Marshalizer,
+		Hasher:            arg.Hasher,
+		ShardCoordinator:  arg.ShardCoordinator,
+		ValidatorAccounts: tmpArg.ValidatorAccounts,
 	}
 	metaBlockCreator, err := hardForkProcess.NewMetaBlockCreatorAfterHardfork(argsNewMetaBlockCreatorAfterHardFork)
 	if err != nil {

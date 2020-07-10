@@ -47,8 +47,8 @@ func (MockDB) DestroyClosed() error {
 }
 
 // Iterate -
-func (MockDB) Iterate() chan core.KeyValHolder {
-	ch := make(chan core.KeyValHolder)
+func (MockDB) Iterate() chan core.KeyValueHolder {
+	ch := make(chan core.KeyValueHolder)
 	close(ch)
 
 	return ch

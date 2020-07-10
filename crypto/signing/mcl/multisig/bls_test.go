@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testMessage = "message"
+
 func createMockSuite(innerSuite interface{}) crypto.Suite {
 	validSuite := mcl.NewSuiteBLS12()
 
@@ -85,7 +87,7 @@ func sigBytesToPointG1(sig []byte) (*mcl.PointG1, error) {
 
 func TestMultiSignerBLS_SignShareNilPrivateKeyShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	_, _, _, lls := genSigParamsBLS()
 
 	sig, err := lls.SignShare(nil, msg)
@@ -96,7 +98,7 @@ func TestMultiSignerBLS_SignShareNilPrivateKeyShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_SignShareInvalidPrivateKeyShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	_, _, _, lls := genSigParamsBLS()
 	pk := &mock.PrivateKeyStub{
 		ScalarStub: func() crypto.Scalar {
@@ -121,7 +123,7 @@ func TestMultiSignerBLS_SignShareNilMsgShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_SignShareOK(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	privKey, _, _, lls := genSigParamsBLS()
 	sig, err := lls.SignShare(privKey, msg)
 
@@ -131,7 +133,7 @@ func TestMultiSignerBLS_SignShareOK(t *testing.T) {
 
 func TestMultiSignerBLS_VerifySigShareNilPubKeyShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	privKey, _, _, lls := genSigParamsBLS()
 	sig, _ := lls.SignShare(privKey, msg)
 	err := lls.VerifySigShare(nil, msg, sig)
@@ -141,7 +143,7 @@ func TestMultiSignerBLS_VerifySigShareNilPubKeyShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_VerifySigShareInvalidPubKeyShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	privKey, _, _, lls := genSigParamsBLS()
 	sig, _ := lls.SignShare(privKey, msg)
 
@@ -164,7 +166,7 @@ func TestMultiSignerBLS_VerifySigShareInvalidPubKeyShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_VerifySigShareNilMsgShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	privKey, pubKey, _, lls := genSigParamsBLS()
 	sig, _ := lls.SignShare(privKey, msg)
 	err := lls.VerifySigShare(pubKey, nil, sig)
@@ -174,7 +176,7 @@ func TestMultiSignerBLS_VerifySigShareNilMsgShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_VerifySigShareNilSigShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	_, pubKey, _, lls := genSigParamsBLS()
 	err := lls.VerifySigShare(pubKey, msg, nil)
 
@@ -183,7 +185,7 @@ func TestMultiSignerBLS_VerifySigShareNilSigShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_VerifySigShareInvalidSigShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	privKey, pubKey, _, lls := genSigParamsBLS()
 	sig, _ := lls.SignShare(privKey, msg)
 	// change the message so signature becomes invalid
@@ -195,7 +197,7 @@ func TestMultiSignerBLS_VerifySigShareInvalidSigShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_VerifySigShareOK(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	privKey, pubKey, _, lls := genSigParamsBLS()
 	sig, _ := lls.SignShare(privKey, msg)
 	err := lls.VerifySigShare(pubKey, msg, sig)
@@ -205,7 +207,7 @@ func TestMultiSignerBLS_VerifySigShareOK(t *testing.T) {
 
 func TestMultiSignerBLS_AggregateSignaturesNilSuiteShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
@@ -216,7 +218,7 @@ func TestMultiSignerBLS_AggregateSignaturesNilSuiteShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_AggregateSignaturesInvalidSuiteShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
@@ -228,7 +230,7 @@ func TestMultiSignerBLS_AggregateSignaturesInvalidSuiteShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_AggregateSignaturesNilSigsShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, _ := createSigSharesBLS(20, msg)
@@ -239,7 +241,7 @@ func TestMultiSignerBLS_AggregateSignaturesNilSigsShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_AggregateSignaturesEmptySigsShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, _ := createSigSharesBLS(20, msg)
@@ -250,7 +252,7 @@ func TestMultiSignerBLS_AggregateSignaturesEmptySigsShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_AggregateSignaturesInvalidSigsShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
@@ -264,7 +266,7 @@ func TestMultiSignerBLS_AggregateSignaturesInvalidSigsShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_AggregateSignaturesEmptyPubKeysShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
@@ -275,7 +277,7 @@ func TestMultiSignerBLS_AggregateSignaturesEmptyPubKeysShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_AggregateSignaturesOK(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
@@ -286,7 +288,7 @@ func TestMultiSignerBLS_AggregateSignaturesOK(t *testing.T) {
 
 func TestMultiSignerBLS_VerifyAggregatedSigNilSuiteShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
@@ -298,7 +300,7 @@ func TestMultiSignerBLS_VerifyAggregatedSigNilSuiteShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_VerifyAggregatedSigInvalidSuiteShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
@@ -311,7 +313,7 @@ func TestMultiSignerBLS_VerifyAggregatedSigInvalidSuiteShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_VerifyAggregatedSigNilPubKeysShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
@@ -323,7 +325,7 @@ func TestMultiSignerBLS_VerifyAggregatedSigNilPubKeysShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_VerifyAggregatedSigNilAggSigBytesShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, _ := createSigSharesBLS(20, msg)
@@ -334,7 +336,7 @@ func TestMultiSignerBLS_VerifyAggregatedSigNilAggSigBytesShouldErr(t *testing.T)
 
 func TestMultiSignerBLS_VerifyAggregatedSigInvalidAggSigBytesShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, _ := createSigSharesBLS(20, msg)
@@ -349,7 +351,7 @@ func TestMultiSignerBLS_VerifyAggregatedSigInvalidAggSigBytesShouldErr(t *testin
 
 func TestMultiSignerBLS_VerifyAggregatedSigNilMsgShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
@@ -361,7 +363,7 @@ func TestMultiSignerBLS_VerifyAggregatedSigNilMsgShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_VerifyAggregatedSigInvalidPubKeyInListShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
@@ -374,7 +376,7 @@ func TestMultiSignerBLS_VerifyAggregatedSigInvalidPubKeyInListShouldErr(t *testi
 
 func TestMultiSignerBLS_VerifyAggregatedSigInvalidForMessageShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	msg2 := []byte("message2")
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
@@ -389,7 +391,7 @@ func TestMultiSignerBLS_VerifyAggregatedSigInvalidForMessageShouldErr(t *testing
 
 func TestMultiSignerBLS_VerifyAggregatedSigOK(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 	pubKeys, sigShares := createSigSharesBLS(20, msg)
@@ -403,7 +405,7 @@ func TestMultiSignerBLS_VerifyAggregatedSigOK(t *testing.T) {
 
 func TestMultiSignerBLS_ScalarMulSigNilScalarShouldErr(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	privKey, pubKey, _, llSig := genSigParamsBLS()
 	sig, _ := llSig.SignShare(privKey, msg)
 	bmsSigner := llSig.(*multisig.BlsMultiSigner)
@@ -432,7 +434,7 @@ func TestMultiSignerBLS_ScalarMulSigNilSigShouldErr(t *testing.T) {
 func TestBlsMultiSigner_ScalarMulSigNilSuiteShouldErr(t *testing.T) {
 	t.Parallel()
 	privKey, pubKey, _, llSig := genSigParamsBLS()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	sig, _ := llSig.SignShare(privKey, msg)
 
 	scalar, _ := pubKey.Suite().CreateScalar().Pick()
@@ -457,7 +459,7 @@ func TestBlsMultiSigner_ScalarMulSigNilSuiteShouldErr(t *testing.T) {
 
 func TestMultiSignerBLS_ScalarMulSigOK(t *testing.T) {
 	t.Parallel()
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	privKey, pubKey, _, llSig := genSigParamsBLS()
 	sig, _ := llSig.SignShare(privKey, msg)
 	scalar, _ := pubKey.Suite().CreateScalar().Pick()
@@ -521,7 +523,7 @@ func TestBlsMultiSigner_VerifySigBytesInvalidSigShouldErr(t *testing.T) {
 func Test_PreparePublicKeysNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	pubKeys, _ := createSigSharesBLS(20, msg)
 	prepPubKeys, err := multisig.PreparePublicKeys(pubKeys, nil, pubKeys[0].Suite())
 	require.Equal(t, crypto.ErrNilHasher, err)
@@ -532,7 +534,7 @@ func Test_PreparePublicKeysNilSuiteShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hasher := &mock.HasherSpongeMock{}
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	pubKeys, _ := createSigSharesBLS(20, msg)
 	prepPubKeys, err := multisig.PreparePublicKeys(pubKeys, hasher, nil)
 	require.Equal(t, crypto.ErrNilSuite, err)
@@ -543,7 +545,7 @@ func Test_PreparePublicKeysOK(t *testing.T) {
 	t.Parallel()
 
 	hasher := &mock.HasherSpongeMock{}
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	pubKeys, _ := createSigSharesBLS(20, msg)
 	prepPubKeys, err := multisig.PreparePublicKeys(pubKeys, hasher, pubKeys[0].Suite())
 	require.Nil(t, err)
@@ -556,7 +558,7 @@ func Test_PrepareSignaturesNilSignaturesShouldErr(t *testing.T) {
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	pubKeys, _ := createSigSharesBLS(20, msg)
 	prepSignatures, err := llSig.PrepareSignatures(pubKeys[0].Suite(), nil, pubKeys)
 	require.Equal(t, crypto.ErrNilSignaturesList, err)
@@ -569,7 +571,7 @@ func TestBlsMultiSigner_PrepareSignaturesNilSignatureInListShouldErr(t *testing.
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	pubKeys, signatures := createSigSharesBLS(20, msg)
 	signatures[1] = nil
 	prepSignatures, err := llSig.PrepareSignatures(pubKeys[0].Suite(), signatures, pubKeys)
@@ -582,7 +584,7 @@ func TestBlsMultiSigner_PrepareSignaturesInvalidSignatureInSignaturesShouldErr(t
 
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	pubKeys, signatures := createSigSharesBLS(20, msg)
 
 	p1 := mcl.NewPointG1()
@@ -601,7 +603,7 @@ func TestBlsMultiSigner_PrepareSignaturesNilPubKeysShouldErr(t *testing.T) {
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	pubKeys, signatures := createSigSharesBLS(20, msg)
 	prepSignatures, err := llSig.PrepareSignatures(pubKeys[0].Suite(), signatures, nil)
 	require.Equal(t, crypto.ErrNilPublicKeys, err)
@@ -614,7 +616,7 @@ func TestBlsMultiSigner_PrepareSignaturesNilPubKeyInKeysShouldErr(t *testing.T) 
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
 
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	pubKeys, signatures := createSigSharesBLS(20, msg)
 	pubKeys[1] = nil
 	prepSignatures, err := llSig.PrepareSignatures(pubKeys[0].Suite(), signatures, pubKeys)
@@ -627,7 +629,7 @@ func TestBlsMultiSigner_PrepareSignaturesInvalidPubKeyInKeysShouldErr(t *testing
 
 	hasher := &mock.HasherSpongeMock{}
 	llSig := &multisig.BlsMultiSigner{Hasher: hasher}
-	msg := []byte("message")
+	msg := []byte(testMessage)
 	pubKeys, signatures := createSigSharesBLS(20, msg)
 	pubKeys[1] = &mock.PublicKeyStub{
 		ToByteArrayStub: func() (bytes []byte, err error) {
@@ -710,7 +712,7 @@ func Test_ScalarMulPkOK(t *testing.T) {
 func Test_HashPublicKeyPointsNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	msg := "message"
+	msg := testMessage
 	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
 	concatPubKeys, err := multisig.ConcatPubKeys(pubKeys)
 	require.Nil(t, err)
@@ -724,7 +726,7 @@ func Test_HashPublicKeyPointsNilPubKeyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hasher := &mock.HasherSpongeMock{}
-	msg := "message"
+	msg := testMessage
 	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
 	concatPubKeys, err := multisig.ConcatPubKeys(pubKeys)
 	require.Nil(t, err)
@@ -738,7 +740,7 @@ func Test_HashPublicKeyPointsWrongSizeHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hasher := &mock.HasherMock{}
-	msg := "message"
+	msg := testMessage
 	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
 	concatPubKeys, err := multisig.ConcatPubKeys(pubKeys)
 	require.Nil(t, err)
@@ -752,7 +754,7 @@ func Test_HashPublicKeyPointsNilConcatPubKeysShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hasher := &mock.HasherMock{}
-	msg := "message"
+	msg := testMessage
 	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
 	hash, err := multisig.HashPublicKeyPoints(hasher, pubKeys[0].Point(), nil)
 	require.Equal(t, crypto.ErrNilParam, err)
@@ -763,7 +765,7 @@ func Test_HashPublicKeyPointsOK(t *testing.T) {
 	t.Parallel()
 
 	hasher := &mock.HasherSpongeMock{}
-	msg := "message"
+	msg := testMessage
 	pubKeys, _ := createSigSharesBLS(20, []byte(msg))
 	concatPubKeys, err := multisig.ConcatPubKeys(pubKeys)
 	require.Nil(t, err)

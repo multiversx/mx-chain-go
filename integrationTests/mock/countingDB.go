@@ -71,7 +71,7 @@ func (cdb *countingDB) GetCounter() int {
 }
 
 // Iterate will return all (key, value) pairs
-func (cdb *countingDB) Iterate() chan core.KeyValHolder {
+func (cdb *countingDB) Iterate() chan core.KeyValueHolder {
 	return cdb.db.Iterate()
 }
 

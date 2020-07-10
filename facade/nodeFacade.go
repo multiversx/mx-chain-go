@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -66,8 +67,9 @@ type nodeFacade struct {
 	syncer                 ntp.SyncTimer
 	tpsBenchmark           *statistics.TpsBenchmark
 	config                 config.FacadeConfig
-	wsAntifloodConfig      config.WebServerAntifloodConfig
 	apiRoutesConfig        config.ApiRoutesConfig
+	endpointsThrottlers    map[string]core.Throttler
+	wsAntifloodConfig      config.WebServerAntifloodConfig
 	restAPIServerDebugMode bool
 }
 
@@ -92,6 +94,8 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		return nil, fmt.Errorf("%w, SameSourceResetIntervalInSec should not be 0", ErrInvalidValue)
 	}
 
+	throttlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
+
 	return &nodeFacade{
 		node:                   arg.Node,
 		apiResolver:            arg.ApiResolver,
@@ -99,7 +103,26 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		wsAntifloodConfig:      arg.WsAntifloodConfig,
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
+		endpointsThrottlers:    throttlersMap,
 	}, nil
+}
+
+func computeEndpointsNumGoRoutinesThrottlers(webServerAntiFloodConfig config.WebServerAntifloodConfig) map[string]core.Throttler {
+	throttlersMap := make(map[string]core.Throttler)
+	for _, endpointSetting := range webServerAntiFloodConfig.EndpointsThrottlers {
+		newThrottler, err := throttler.NewNumGoRoutinesThrottler(endpointSetting.MaxNumGoRoutines)
+		if err != nil {
+			log.Warn("error when setting the maximum go routines throttler for endpoint",
+				"endpoint", endpointSetting.Endpoint,
+				"max go routines", endpointSetting.MaxNumGoRoutines,
+				"error", err,
+			)
+			continue
+		}
+		throttlersMap[endpointSetting.Endpoint] = newThrottler
+	}
+
+	return throttlersMap
 }
 
 // SetSyncer sets the current syncer
@@ -310,6 +333,14 @@ func (nf *nodeFacade) GetQueryHandler(name string) (debug.QueryHandler, error) {
 // GetPeerInfo returns the peer info of a provided pid
 func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return nf.node.GetPeerInfo(pid)
+}
+
+// GetThrottlerForEndpoint returns the throttler for a given endpoint if found
+func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool) {
+	throttlerForEndpoint, ok := nf.endpointsThrottlers[endpoint]
+	isThrottlerOk := ok && throttlerForEndpoint != nil
+
+	return throttlerForEndpoint, isThrottlerOk
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

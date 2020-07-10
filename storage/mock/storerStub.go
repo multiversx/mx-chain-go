@@ -14,7 +14,7 @@ type StorerStub struct {
 	SearchFirstCalled  func(key []byte) ([]byte, error)
 	RemoveCalled       func(key []byte) error
 	ClearCacheCalled   func()
-	IterateCalled      func() chan core.KeyValHolder
+	IterateCalled      func() chan core.KeyValueHolder
 	DestroyUnitCalled  func() error
 }
 
@@ -69,12 +69,12 @@ func (ss *StorerStub) DestroyUnit() error {
 }
 
 // Iterate -
-func (ss *StorerStub) Iterate() chan core.KeyValHolder {
+func (ss *StorerStub) Iterate() chan core.KeyValueHolder {
 	if ss.IterateCalled != nil {
 		return ss.IterateCalled()
 	}
 
-	ch := make(chan core.KeyValHolder)
+	ch := make(chan core.KeyValueHolder)
 	close(ch)
 
 	return ch

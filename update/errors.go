@@ -226,3 +226,6 @@ var ErrExpectedOneMetablock = errors.New("expected one metablock")
 
 // ErrImportingData signals that an import error occurred
 var ErrImportingData = errors.New("error importing data")
+
+// ErrKeyTypeMismatch signals that key type was mismatch during import
+var ErrKeyTypeMismatch = errors.New("key type mismatch while importing")

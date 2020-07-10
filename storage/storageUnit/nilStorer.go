@@ -62,8 +62,8 @@ func (ns *nilStorer) DestroyUnit() error {
 }
 
 // Iterate will return a closed channel
-func (ns *nilStorer) Iterate() chan core.KeyValHolder {
-	ch := make(chan core.KeyValHolder)
+func (ns *nilStorer) Iterate() chan core.KeyValueHolder {
+	ch := make(chan core.KeyValueHolder)
 	close(ch)
 
 	return ch

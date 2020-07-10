@@ -309,7 +309,8 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 			break
 		}
 		if keyType != DataTrie {
-			log.Error("only data trie type should have been in this file")
+			err = update.ErrKeyTypeMissMatch
+			break
 		}
 
 		err = dataTrie.Update(address, value)
@@ -377,6 +378,11 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 		return err
 	}
 
+	// no need to import validator account trie
+	if accType == ValidatorAccount {
+		return nil
+	}
+
 	if accType == DataTrie {
 		return si.importDataTrie(identifier, shId, keys)
 	}
@@ -422,7 +428,8 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 			break
 		}
 		if keyType != accType {
-			log.Error("only account type is allowed here")
+			err = update.ErrKeyTypeMissMatch
+			break
 		}
 
 		err = mainTrie.Update(address, marshalledData)

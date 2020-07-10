@@ -31,7 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
@@ -94,7 +93,6 @@ const (
 	notSetDestinationShardID     = "disabled"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
-	maxNumGoRoutinesTxsByHashApi = 10
 	maxTimeToClose               = 10 * time.Second
 	maxMachineIDLen              = 10
 )
@@ -705,7 +703,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	var shardId = core.GetShardIdString(genesisShardCoordinator.SelfId())
+	var shardId = core.GetShardIDString(genesisShardCoordinator.SelfId())
 
 	log.Trace("creating crypto components")
 	cryptoArgs := mainFactory.CryptoComponentsFactoryArgs{
@@ -964,7 +962,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		storerEpoch = 0
 	}
 
-	var shardIdString = core.GetShardIdString(shardCoordinator.SelfId())
+	var shardIdString = core.GetShardIDString(shardCoordinator.SelfId())
 	logger.SetCorrelationShard(shardIdString)
 
 	log.Trace("initializing stats file")
@@ -1801,7 +1799,7 @@ func createNodesCoordinator(
 	}
 	maxDurationBeforeStopProcess := int64(nodesConfig.RoundDuration) * epochConfig.RoundsPerEpoch
 	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
-	maxDurationInterval := time.Second * time.Duration(maxDurationBeforeStopProcess)
+	maxDurationInterval := time.Millisecond * time.Duration(maxDurationBeforeStopProcess)
 	minDurationInterval := maxDurationInterval / 2
 	//waiting interval will be [maxDuration/2 and maxDuration]
 
@@ -2075,11 +2073,6 @@ func createNode(
 
 	factory.PrepareOpenTopics(network.InputAntifloodHandler, shardCoordinator)
 
-	apiTxsByHashThrottler, err := throttler.NewNumGoRoutinesThrottler(maxNumGoRoutinesTxsByHashApi)
-	if err != nil {
-		return nil, err
-	}
-
 	alarmScheduler := alarm.NewAlarmScheduler()
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, chanStopNodeProcess)
 	if err != nil {
@@ -2165,7 +2158,6 @@ func createNode(
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
-		node.WithApiTransactionByHashThrottler(apiTxsByHashThrottler),
 		node.WithPeerHonestyHandler(peerHonestyHandler),
 		node.WithWatchdogTimer(watchdogTimer),
 	)

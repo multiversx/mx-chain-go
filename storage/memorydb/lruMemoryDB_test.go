@@ -159,7 +159,7 @@ func TestLruDB_Iterate(t *testing.T) {
 
 	ch := mdb.Iterate()
 	for kv := range ch {
-		recovered[string(kv.Key())] = kv.Val()
+		recovered[string(kv.Key())] = kv.Value()
 	}
 
 	assert.Equal(t, keysVals, recovered)

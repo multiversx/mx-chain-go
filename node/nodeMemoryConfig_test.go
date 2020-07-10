@@ -13,9 +13,9 @@ import (
 func TestMemoryConfig(t *testing.T) {
 	nodeConfig := config.Config{}
 
-	tomlString, err := ioutil.ReadFile("../cmd/node/config/config.toml")
+	tomlBytes, err := ioutil.ReadFile("../cmd/node/config/config.toml")
 	require.Nil(t, err)
-	err = toml.Unmarshal([]byte(tomlString), &nodeConfig)
+	err = toml.Unmarshal(tomlBytes, &nodeConfig)
 	require.Nil(t, err)
 
 	numShards := 2

@@ -2,6 +2,7 @@ package memorydb
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -83,8 +84,8 @@ func (l *lruDB) DestroyClosed() error {
 }
 
 // Iterate will iterate over all contained (key, value) pairs
-func (l *lruDB) Iterate() chan core.KeyValHolder {
-	ch := make(chan core.KeyValHolder)
+func (l *lruDB) Iterate() chan core.KeyValueHolder {
+	ch := make(chan core.KeyValueHolder)
 
 	go func() {
 		keys := l.cacher.Keys()
@@ -100,10 +101,7 @@ func (l *lruDB) Iterate() chan core.KeyValHolder {
 				continue
 			}
 
-			ch <- &core.KeyValStorage{
-				KeyField: k,
-				ValField: vBuff,
-			}
+			ch <- keyValStorage.NewKeyValStorage(k, vBuff)
 		}
 
 		close(ch)
