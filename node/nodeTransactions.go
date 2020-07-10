@@ -24,13 +24,6 @@ const (
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and
 // will return the transaction in a format which can be respected by all types of transactions (normal, reward or unsigned)
 func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult, error) {
-	if !n.apiTransactionByHashThrottler.CanProcess() {
-		return nil, ErrSystemBusyTxHash
-	}
-
-	n.apiTransactionByHashThrottler.StartProcessing()
-	defer n.apiTransactionByHashThrottler.EndProcessing()
-
 	hash, err := hex.DecodeString(txHash)
 	if err != nil {
 		return nil, err
