@@ -40,7 +40,7 @@ func NewStorageServiceFactory(
 	if config == nil {
 		return nil, storage.ErrNilConfig
 	}
-	if config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && !config.StoragePruning.CleanOldEpochsData {
+	if config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && config.StoragePruning.CleanOldEpochsData {
 		return nil, storage.ErrInvalidNumberOfEpochsToSave
 	}
 	if config.StoragePruning.NumActivePersisters < minimumNumberOfActivePersisters {
