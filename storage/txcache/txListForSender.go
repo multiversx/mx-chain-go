@@ -15,21 +15,21 @@ var _ maps.BucketSortedMapItem = (*txListForSender)(nil)
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
 	copyDetectedGap     bool
+	lastComputedScore   atomic.Uint32
+	accountNonceKnown   atomic.Flag
+	sweepable           atomic.Flag
 	copyPreviousNonce   uint64
 	sender              string
 	items               *list.List
 	copyBatchIndex      *list.Element
 	constraints         *senderConstraints
 	scoreChunk          *maps.MapChunk
-	accountNonceKnown   atomic.Flag
-	lastComputedScore   atomic.Uint32
 	accountNonce        atomic.Uint64
 	totalBytes          atomic.Counter
 	totalGas            atomic.Counter
 	totalFee            atomic.Counter
 	numFailedSelections atomic.Counter
 	onScoreChange       scoreChangeCallback
-	sweepable           atomic.Flag
 
 	scoreChunkMutex sync.RWMutex
 	mutex           sync.RWMutex

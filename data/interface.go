@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // TriePruningIdentifier is the type for trie pruning identifiers
@@ -161,6 +162,7 @@ type Trie interface {
 	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetAllLeaves() (map[string][]byte, error)
+	GetAllLeavesOnChannel() chan core.KeyValueHolder
 	GetAllHashes() ([][]byte, error)
 	IsPruningEnabled() bool
 	EnterSnapshotMode()

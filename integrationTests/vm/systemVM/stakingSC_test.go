@@ -303,8 +303,6 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.AuctionSCAddress, txData)
 	}
 
-	round = uint64(1)
-	nonce = uint64(1)
 	nbBlocksToProduce := roundsPerEpoch * 3
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 

@@ -701,7 +701,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	var shardId = core.GetShardIdString(genesisShardCoordinator.SelfId())
+	var shardId = core.GetShardIDString(genesisShardCoordinator.SelfId())
 
 	log.Trace("creating crypto components")
 	cryptoArgs := mainFactory.CryptoComponentsFactoryArgs{
@@ -960,7 +960,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		storerEpoch = 0
 	}
 
-	var shardIdString = core.GetShardIdString(shardCoordinator.SelfId())
+	var shardIdString = core.GetShardIDString(shardCoordinator.SelfId())
 	logger.SetCorrelationShard(shardIdString)
 
 	log.Trace("initializing stats file")

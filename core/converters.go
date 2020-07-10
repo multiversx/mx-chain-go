@@ -81,13 +81,13 @@ func SecondsToHourMinSec(input int) string {
 	return result
 }
 
-// GetShardIdString will return the string representation of the shard id
-func GetShardIdString(shardId uint32) string {
-	if shardId == math.MaxUint32 {
+// GetShardIDString will return the string representation of the shard id
+func GetShardIDString(shardID uint32) string {
+	if shardID == math.MaxUint32 {
 		return "metachain"
 	}
 
-	return fmt.Sprintf("%d", shardId)
+	return fmt.Sprintf("%d", shardID)
 }
 
 // EpochStartIdentifier returns the string for the epoch start identifier
@@ -161,12 +161,4 @@ func ConvertToEvenHexBigInt(value *big.Int) string {
 	}
 
 	return str
-}
-
-// BooleanToInt takes a bool argument and returns 0 for false, 1 for true
-func BooleanToInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }

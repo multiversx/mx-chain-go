@@ -75,6 +75,7 @@ type ComponentsNeededForBootstrap struct {
 // epochStartBootstrap will handle requesting the needed data to start when joining late the network
 type epochStartBootstrap struct {
 	// should come via arguments
+	destinationShardAsObserver uint32
 	publicKey                  crypto.PublicKey
 	marshalizer                marshal.Marshalizer
 	txSignMarshalizer          marshal.Marshalizer
@@ -94,7 +95,6 @@ type epochStartBootstrap struct {
 	defaultDBPath              string
 	defaultEpochString         string
 	defaultShardString         string
-	destinationShardAsObserver uint32
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
 	trieStorageManagers        map[string]data.StorageManager
@@ -127,10 +127,10 @@ type epochStartBootstrap struct {
 	userAccountTries   map[string]data.Trie
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
-	startEpoch         uint32
 	startRound         int64
-	shuffledOut        bool
 	nodeType           core.NodeType
+	startEpoch         uint32
+	shuffledOut        bool
 }
 
 type baseDataInStorage struct {
@@ -841,7 +841,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 
 	userStorageManager, userAccountTrie, err := trieFactory.Create(
 		e.generalConfig.AccountsTrieStorage,
-		core.GetShardIdString(shardId),
+		core.GetShardIDString(shardId),
 		e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 	)
@@ -854,7 +854,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 
 	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
 		e.generalConfig.PeerAccountsTrieStorage,
-		core.GetShardIdString(shardId),
+		core.GetShardIDString(shardId),
 		e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
 		e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 	)
