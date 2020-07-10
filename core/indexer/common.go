@@ -247,18 +247,6 @@ func serializeBulkMiniBlocks(
 	var err error
 	var buff bytes.Buffer
 
-	//mbsHashes := make([]string, len(bulkMbs))
-	//for idx := range bulkMbs {
-	//	mbsHashes[idx] = bulkMbs[idx].Hash
-	//}
-	//
-	//existsInDb, err := getAlreadyIndexedItems(mbsHashes, miniblocksIndex)
-	//if err != nil {
-	//	log.Warn("indexer get indexed items miniblocks",
-	//		"error", err.Error())
-	//	return buff
-	//}
-
 	for _, mb := range bulkMbs {
 		var meta, serializedData []byte
 		if hdrShardID == mb.SenderShardID {
@@ -311,18 +299,6 @@ func serializeTransactions(
 		txsHashes[idx] = transactions[idx].Hash
 	}
 
-	//existsInDb := make(map[string]bool)
-	//bulksTxsHashes := buildBulksOfHashes(txsHashes)
-	//for i := 0; i < len(bulksTxsHashes); i++ {
-	//	exitsInDbBulk, errGet := getAlreadyIndexedItems(bulksTxsHashes[i], txIndex)
-	//	if errGet != nil {
-	//		log.Warn("indexer get indexed items", "error", errGet.Error())
-	//		continue
-	//	}
-	//
-	//	mergeMaps(existsInDb, exitsInDbBulk)
-	//}
-
 	var buff bytes.Buffer
 	buffSlice := make([]bytes.Buffer, 0)
 	for _, tx := range transactions {
@@ -358,26 +334,6 @@ func serializeTransactions(
 
 	return buffSlice
 }
-
-//func buildBulksOfHashes(hashes []string) [][]string {
-//	bulks := make([][]string, (len(hashes)/maxNumberOfDocumentsGet)+1)
-//	for i := 0; i < len(bulks); i++ {
-//		if i == len(bulks)-1 {
-//			bulks[i] = append(bulks[i], hashes[i*maxNumberOfDocumentsGet:]...)
-//			continue
-//		}
-//
-//		bulks[i] = append(bulks[i], hashes[i*maxNumberOfDocumentsGet:(i+1)*maxNumberOfDocumentsGet]...)
-//	}
-//
-//	return bulks
-//}
-//
-//func mergeMaps(m1, m2 map[string]bool) {
-//	for key, value := range m2 {
-//		m1[key] = value
-//	}
-//}
 
 func prepareSerializedDataForATransaction(
 	tx *Transaction,
