@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,7 +29,14 @@ func (gt *globalThrottler) MiddlewareHandlerFunc() gin.HandlerFunc {
 		select {
 		case gt.queue <- struct{}{}:
 		default:
-			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"error": "too many requests to observer"})
+			c.AbortWithStatusJSON(
+				http.StatusTooManyRequests,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: "too many requests to observer",
+					Code:  shared.ReturnCodeSystemBusy,
+				},
+			)
 			return
 		}
 
