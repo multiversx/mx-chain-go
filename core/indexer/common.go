@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -198,7 +199,7 @@ func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.
 		Code:          string(sc.Code),
 		Data:          decodedData,
 		PreTxHash:     hex.EncodeToString(sc.PrevTxHash),
-		CallType:      string(rune(sc.CallType)),
+		CallType:      strconv.Itoa(int(sc.CallType)),
 		CodeMetadata:  string(sc.CodeMetadata),
 		ReturnMessage: string(sc.ReturnMessage),
 	}
