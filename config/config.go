@@ -165,7 +165,7 @@ type Config struct {
 // StoragePruningConfig will hold settings relates to storage pruning
 type StoragePruningConfig struct {
 	Enabled             bool
-	FullArchive         bool
+	CleanOldEpochsData  bool
 	NumEpochsToKeep     uint64
 	NumActivePersisters uint64
 }

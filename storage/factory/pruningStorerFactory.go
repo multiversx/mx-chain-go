@@ -40,7 +40,7 @@ func NewStorageServiceFactory(
 	if config == nil {
 		return nil, storage.ErrNilConfig
 	}
-	if config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && !config.StoragePruning.FullArchive {
+	if config.StoragePruning.NumEpochsToKeep < minimumNumberOfEpochsToKeep && config.StoragePruning.CleanOldEpochsData {
 		return nil, storage.ErrInvalidNumberOfEpochsToSave
 	}
 	if config.StoragePruning.NumActivePersisters < minimumNumberOfActivePersisters {
@@ -154,7 +154,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	successfullyCreatedStorers = append(successfullyCreatedStorers, shardHdrHashNonceUnit)
 
 	heartbeatDbConfig := GetDBFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.DB)
-	shardId := core.GetShardIdString(psf.shardCoordinator.SelfId())
+	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
 	dbPath := psf.pathManager.PathForStatic(shardId, psf.generalConfig.Heartbeat.HeartbeatStorage.DB.FilePath)
 	heartbeatDbConfig.FilePath = dbPath
 	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
@@ -167,7 +167,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	successfullyCreatedStorers = append(successfullyCreatedStorers, heartbeatStorageUnit)
 
 	statusMetricsDbConfig := GetDBFromConfig(psf.generalConfig.StatusMetricsStorage.DB)
-	shardId = core.GetShardIdString(psf.shardCoordinator.SelfId())
+	shardId = core.GetShardIDString(psf.shardCoordinator.SelfId())
 	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.StatusMetricsStorage.DB.FilePath)
 	statusMetricsDbConfig.FilePath = dbPath
 	statusMetricsStorageUnit, err := storageUnit.NewStorageUnitFromConf(
@@ -279,7 +279,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		successfullyCreatedStorers = append(successfullyCreatedStorers, shardHdrHashNonceUnits[i])
 	}
 
-	shardId := core.GetShardIdString(psf.shardCoordinator.SelfId())
+	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
 	heartbeatDbConfig := GetDBFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.DB)
 	dbPath := psf.pathManager.PathForStatic(shardId, psf.generalConfig.Heartbeat.HeartbeatStorage.DB.FilePath)
 	heartbeatDbConfig.FilePath = dbPath
@@ -293,7 +293,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	successfullyCreatedStorers = append(successfullyCreatedStorers, heartbeatStorageUnit)
 
 	statusMetricsDbConfig := GetDBFromConfig(psf.generalConfig.StatusMetricsStorage.DB)
-	shardId = core.GetShardIdString(psf.shardCoordinator.SelfId())
+	shardId = core.GetShardIDString(psf.shardCoordinator.SelfId())
 	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.StatusMetricsStorage.DB.FilePath)
 	statusMetricsDbConfig.FilePath = dbPath
 	statusMetricsStorageUnit, err := storageUnit.NewStorageUnitFromConf(
@@ -392,17 +392,17 @@ func (psf *StorageServiceFactory) createHistoryStorerIfNeeded() (*pruning.Prunin
 }
 
 func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.StorageConfig) *pruning.StorerArgs {
-	fullArchiveMode := psf.generalConfig.StoragePruning.FullArchive
+	cleanOldEpochsData := psf.generalConfig.StoragePruning.CleanOldEpochsData
 	numOfEpochsToKeep := uint32(psf.generalConfig.StoragePruning.NumEpochsToKeep)
 	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
 	pruningEnabled := psf.generalConfig.StoragePruning.Enabled
-	shardId := core.GetShardIdString(psf.shardCoordinator.SelfId())
+	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
 	dbPath := filepath.Join(psf.pathManager.PathForEpoch(shardId, psf.currentEpoch, storageConfig.DB.FilePath))
 	args := &pruning.StorerArgs{
 		Identifier:            storageConfig.DB.FilePath,
 		PruningEnabled:        pruningEnabled,
 		StartingEpoch:         psf.currentEpoch,
-		FullArchive:           fullArchiveMode,
+		CleanOldEpochsData:    cleanOldEpochsData,
 		ShardCoordinator:      psf.shardCoordinator,
 		CacheConf:             GetCacherFromConfig(storageConfig.Cache),
 		PathManager:           psf.pathManager,

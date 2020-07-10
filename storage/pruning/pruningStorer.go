@@ -67,7 +67,7 @@ type PruningStorer struct {
 	numOfEpochsToKeep     uint32
 	numOfActivePersisters uint32
 	epochForPutOperation  uint32
-	fullArchive           bool
+	cleanOldEpochsData    bool
 	pruningEnabled        bool
 }
 
@@ -79,16 +79,16 @@ func NewPruningStorer(args *StorerArgs) (*PruningStorer, error) {
 // NewShardedPruningStorer will return a new instance of PruningStorer with sharded directories' naming scheme
 func NewShardedPruningStorer(
 	args *StorerArgs,
-	shardId uint32,
+	shardID uint32,
 ) (*PruningStorer, error) {
-	shardIdStr := fmt.Sprintf("%d", shardId)
+	shardIdStr := fmt.Sprintf("%d", shardID)
 	return initPruningStorer(args, shardIdStr)
 }
 
 // initPruningStorer will create a PruningStorer with or without sharded directories' naming scheme
 func initPruningStorer(
 	args *StorerArgs,
-	shardIdStr string,
+	shardIDStr string,
 ) (*PruningStorer, error) {
 	var cache storage.Cacher
 	var db storage.Persister
@@ -125,20 +125,20 @@ func initPruningStorer(
 		return nil, err
 	}
 
-	persisters, persistersMapByEpoch, err := initPersistersInEpoch(args, shardIdStr)
+	persisters, persistersMapByEpoch, err := initPersistersInEpoch(args, shardIDStr)
 	if err != nil {
 		return nil, err
 	}
 
 	identifier := args.Identifier
-	if len(shardIdStr) > 0 {
-		identifier += shardIdStr
+	if len(shardIDStr) > 0 {
+		identifier += shardIDStr
 	}
 
 	pdb := &PruningStorer{
 		pruningEnabled:        args.PruningEnabled,
 		identifier:            identifier,
-		fullArchive:           args.FullArchive,
+		cleanOldEpochsData:    args.CleanOldEpochsData,
 		activePersisters:      persisters,
 		persisterFactory:      args.PersisterFactory,
 		shardCoordinator:      args.ShardCoordinator,
@@ -169,13 +169,13 @@ func initPruningStorer(
 
 func initPersistersInEpoch(
 	args *StorerArgs,
-	shardIdStr string,
+	shardIDStr string,
 ) ([]*persisterData, map[uint32]*persisterData, error) {
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
 	if !args.PruningEnabled {
-		p, err := createPersisterDataForEpoch(args, 0, shardIdStr)
+		p, err := createPersisterDataForEpoch(args, 0, shardIDStr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -197,7 +197,7 @@ func initPersistersInEpoch(
 	}
 
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
-		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIdStr)
+		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -587,8 +587,8 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		return nil
 	}
 
-	shardId := core.GetShardIdString(ps.shardCoordinator.SelfId())
-	filePath := ps.pathManager.PathForEpoch(shardId, epoch, ps.identifier)
+	shardID := core.GetShardIDString(ps.shardCoordinator.SelfId())
+	filePath := ps.pathManager.PathForEpoch(shardID, epoch, ps.identifier)
 	db, err := ps.persisterFactory.Create(filePath)
 	if err != nil {
 		log.Warn("change epoch", "persister", ps.identifier, "error", err.Error())
@@ -763,7 +763,7 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 		}
 	}
 
-	if !ps.fullArchive && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
+	if ps.cleanOldEpochsData && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		idxToRemove := epoch - ps.numOfEpochsToKeep
 		for {
 			//epochToRemove := epoch - ps.numOfEpochsToKeep
@@ -807,7 +807,7 @@ func (ps *PruningStorer) IsInterfaceNil() bool {
 func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shardIdStr string) (*persisterData, error) {
 	// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
 	// e.g. determined from directories in persister path or taken from boot storer
-	filePath := args.PathManager.PathForEpoch(core.GetShardIdString(args.ShardCoordinator.SelfId()), epoch, args.Identifier)
+	filePath := args.PathManager.PathForEpoch(core.GetShardIDString(args.ShardCoordinator.SelfId()), epoch, args.Identifier)
 	if len(shardIdStr) > 0 {
 		filePath += shardIdStr
 	}
