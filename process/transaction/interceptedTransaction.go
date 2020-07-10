@@ -31,14 +31,14 @@ type InterceptedTransaction struct {
 	pubkeyConv             core.PubkeyConverter
 	coordinator            sharding.Coordinator
 	hash                   []byte
-	rcvShard               uint32
-	sndShard               uint32
-	isForCurrentShard      bool
 	feeHandler             process.FeeHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
 	argsParser             process.ArgumentsParser
 	chainID                []byte
 	minTransactionVersion  uint32
+	rcvShard               uint32
+	sndShard               uint32
+	isForCurrentShard      bool
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -196,7 +196,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 		return nil
 	}
 
-	funcName, userTxArgs, err = inTx.argsParser.ParseCallData(string(userTx.Data))
+	funcName, _, err = inTx.argsParser.ParseCallData(string(userTx.Data))
 	if err != nil {
 		return nil
 	}

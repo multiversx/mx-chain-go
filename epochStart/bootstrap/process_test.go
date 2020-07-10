@@ -483,3 +483,40 @@ func TestRequestAndProcessing(t *testing.T) {
 	assert.Equal(t, Parameters{}, params)
 	assert.Equal(t, storage.ErrInvalidNumberOfEpochsToSave, err)
 }
+
+func TestEpochStartBootstrap_WithDisabledShardIDAsOBserver(t *testing.T) {
+	t.Parallel()
+
+	args := createMockEpochStartBootstrapArgs()
+	args.DestinationShardAsObserver = core.DisabledShardIDAsObserver
+	args.GenesisNodesConfig = getNodesConfigMock(2)
+
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	assert.Nil(t, err)
+	assert.False(t, check.IfNil(epochStartProvider))
+
+	epochStartProvider.dataPool = &testscommon.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
+		},
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
+		TrieNodesCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
+	}
+	epochStartProvider.requestHandler = &mock.RequestHandlerStub{}
+	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 0}
+	err = epochStartProvider.processNodesConfig([]byte("something"))
+	assert.Nil(t, err)
+}

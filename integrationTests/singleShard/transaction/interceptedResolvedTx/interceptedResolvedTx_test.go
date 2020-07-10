@@ -75,7 +75,7 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 	txHash := integrationTests.TestHasher.Compute(string(signedTxBuff))
 
 	//step 2. wire up a received handler for requester
-	nRequester.DataPool.Transactions().RegisterHandler(func(key []byte, value interface{}) {
+	nRequester.DataPool.Transactions().RegisterOnAdded(func(key []byte, value interface{}) {
 		txStored, _ := nRequester.DataPool.Transactions().ShardDataStore(
 			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
 		).Get(key)
@@ -152,7 +152,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	txHash := integrationTests.TestHasher.Compute(string(marshaledTxBuff))
 
 	//step 2. wire up a received handler for requester
-	nRequester.DataPool.RewardTransactions().RegisterHandler(func(key []byte, value interface{}) {
+	nRequester.DataPool.RewardTransactions().RegisterOnAdded(func(key []byte, value interface{}) {
 		rewardTxStored, _ := nRequester.DataPool.RewardTransactions().ShardDataStore(
 			process.ShardCacherIdentifier(core.MetachainShardId, nRequester.ShardCoordinator.SelfId()),
 		).Get(key)

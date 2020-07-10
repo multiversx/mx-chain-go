@@ -540,10 +540,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 	t.Parallel()
 	dataPool := testscommon.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &testscommon.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
-			},
-		}
+		return &testscommon.ShardedDataStub{}
 	}
 	dataPool.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
@@ -581,22 +578,13 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 	dataPool := testscommon.NewPoolsHolderStub()
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &testscommon.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
-			},
-		}
+		return &testscommon.ShardedDataStub{}
 	}
 	dataPool.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &testscommon.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
-			},
-		}
+		return &testscommon.ShardedDataStub{}
 	}
 	dataPool.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-		return &testscommon.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
-			},
-		}
+		return &testscommon.ShardedDataStub{}
 	}
 
 	ppcm, err := NewPreProcessorsContainerFactory(
