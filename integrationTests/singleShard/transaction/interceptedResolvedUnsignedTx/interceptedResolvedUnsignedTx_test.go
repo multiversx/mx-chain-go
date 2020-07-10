@@ -60,7 +60,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	scrHash := integrationTests.TestHasher.Compute(string(scrBuff))
 
 	//step 2. wire up a received handler for requester
-	nRequester.DataPool.UnsignedTransactions().RegisterHandler(func(key []byte, value interface{}) {
+	nRequester.DataPool.UnsignedTransactions().RegisterOnAdded(func(key []byte, value interface{}) {
 		selfId := nRequester.ShardCoordinator.SelfId()
 		scrStored, _ := nRequester.DataPool.UnsignedTransactions().ShardDataStore(
 			process.ShardCacherIdentifier(selfId, selfId),

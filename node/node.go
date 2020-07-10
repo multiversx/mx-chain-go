@@ -97,7 +97,6 @@ type Node struct {
 	validatorsProvider            process.ValidatorsProvider
 	whiteListRequest              process.WhiteListHandler
 	whiteListerVerifiedTxs        process.WhiteListHandler
-	apiTransactionByHashThrottler Throttler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey

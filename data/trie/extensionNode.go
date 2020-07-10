@@ -7,6 +7,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -586,6 +587,26 @@ func (en *extensionNode) getAllLeaves(leaves map[string][]byte, key []byte, db d
 
 	childKey := append(key, en.Key...)
 	err = en.child.getAllLeaves(leaves, childKey, db, marshalizer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (en *extensionNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("getAllLeavesOnChannel error: %w", err)
+	}
+
+	err = resolveIfCollapsed(en, 0, db)
+	if err != nil {
+		return err
+	}
+
+	childKey := append(key, en.Key...)
+	err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer)
 	if err != nil {
 		return err
 	}

@@ -1497,9 +1497,9 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 			atomic.AddInt32(&tpn.CounterMbRecv, 1)
 		}
 
-		tpn.DataPool.UnsignedTransactions().RegisterHandler(txHandler)
-		tpn.DataPool.Transactions().RegisterHandler(txHandler)
-		tpn.DataPool.RewardTransactions().RegisterHandler(txHandler)
+		tpn.DataPool.UnsignedTransactions().RegisterOnAdded(txHandler)
+		tpn.DataPool.Transactions().RegisterOnAdded(txHandler)
+		tpn.DataPool.RewardTransactions().RegisterOnAdded(txHandler)
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
 		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers, core.UniqueIdentifier())
 	}

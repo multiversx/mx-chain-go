@@ -81,7 +81,7 @@ func NewPendingTransactionsSyncer(args ArgsNewPendingTransactionsSyncer) (*pendi
 	p.storage[block.RewardsBlock] = args.Storages.GetStorer(dataRetriever.RewardTransactionUnit)
 
 	for _, pool := range p.txPools {
-		pool.RegisterHandler(p.receivedTransaction)
+		pool.RegisterOnAdded(p.receivedTransaction)
 	}
 
 	return p, nil

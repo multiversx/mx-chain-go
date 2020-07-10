@@ -205,12 +205,6 @@ type IntRandomizer interface {
 // StorageType defines the storage levels on a node
 type StorageType uint8
 
-// Notifier defines a way to register funcs that get called when something useful happens
-type Notifier interface {
-	RegisterHandler(func(key []byte, value interface{}))
-	IsInterfaceNil() bool
-}
-
 // PeerListCreator is used to create a peer list
 type PeerListCreator interface {
 	PeerList() []core.PeerID
@@ -220,8 +214,7 @@ type PeerListCreator interface {
 
 // ShardedDataCacherNotifier defines what a sharded-data structure can perform
 type ShardedDataCacherNotifier interface {
-	Notifier
-
+	RegisterOnAdded(func(key []byte, value interface{}))
 	ShardDataStore(cacheId string) (c storage.Cacher)
 	AddData(key []byte, data interface{}, sizeInBytes int, cacheId string)
 	SearchFirstData(key []byte) (value interface{}, ok bool)
@@ -233,6 +226,7 @@ type ShardedDataCacherNotifier interface {
 	Clear()
 	ClearShardStore(cacheId string)
 	GetCounts() counting.CountsWithSize
+	IsInterfaceNil() bool
 }
 
 // ShardIdHashMap represents a map for shardId and hash
