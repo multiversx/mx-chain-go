@@ -1,6 +1,6 @@
 #Economics config of the node
 [GlobalSettings]
-    GenesisTotalSupply = "20000000000000000000000000" #20BILERD
+    GenesisTotalSupply = "20000000000000000000000000" #20MILERD
     MinimumInflation   = 0.0
     YearSettings = [
         {Year = 1, MaximumInflation = 10.845},
@@ -27,16 +27,16 @@
 [FeeSettings]
     MaxGasLimitPerBlock     = "1500000000"
     MaxGasLimitPerMetaBlock = "15000000000"
-    MinGasPrice = "500000000" #will yield min tx fee of 0.01ERD
+    MinGasPrice = "100000000" #will yield min tx fee of 0.00005ERD
     MinGasLimit = "50000"
     GasPerDataByte = "1500"
     DataLimitForBaseCalc = "10000"
 
 [ValidatorSettings]
-    GenesisNodePrice = "2500000000000000000000" #2.5MILERD
+    GenesisNodePrice = "2500000000000000000000" #2.5KERD
     UnBondPeriod = "400"
     MinStepValue = "10000000000000000000"
-    TotalSupply = "20000000000000000000000000" #20BIL ERD
+    TotalSupply = "20000000000000000000000000" #20MIL ERD
     AuctionEnableNonce = "100000000000"
     StakeEnableNonce = "0"
     NumRoundsWithoutBleed = "100"

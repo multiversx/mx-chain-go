@@ -192,8 +192,8 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 func (e *economics) computeInflationRate(currentRound uint64) float64 {
 	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
-	yearsPassed := uint32(currentRound/roundsPerYear) + 1
-	return e.rewardsHandler.MaxInflationRate(yearsPassed)
+	yearsIndex := uint32(currentRound/roundsPerYear) + 1
+	return e.rewardsHandler.MaxInflationRate(yearsIndex)
 }
 
 // compute rewards per block from according to inflation rate and total supply from previous block and maxBlocksPerEpoch
