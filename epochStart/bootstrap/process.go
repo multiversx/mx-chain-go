@@ -291,7 +291,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			}
 
 			return Parameters{
-				Epoch:       0,
+				Epoch:       e.startEpoch,
 				SelfShardId: e.genesisShardCoordinator.SelfId(),
 				NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 			}, nil
