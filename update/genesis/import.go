@@ -301,7 +301,8 @@ func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
 			break
 		}
 		if keyType != DataTrie {
-			log.Error("only data trie type should have been in this file")
+			err = update.ErrKeyTypeMissMatch
+			break
 		}
 
 		err = dataTrie.Update(address, value)
@@ -416,7 +417,8 @@ func (si *stateImport) importState(fileName string) error {
 			break
 		}
 		if keyType != accType {
-			log.Error("only account type is allowed here")
+			err = update.ErrKeyTypeMissMatch
+			break
 		}
 
 		err = mainTrie.Update(address, marshalledData)

@@ -232,3 +232,6 @@ var ErrNilTimeCache = errors.New("nil time cache")
 
 // ErrMissingFile signals that a file is missing
 var ErrMissingFile = errors.New("missing file")
+
+// ErrKeyTypeMissMatch signals that key type was missmatch during import
+var ErrKeyTypeMissMatch = errors.New("key type missmatch while importing")

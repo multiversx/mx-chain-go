@@ -769,7 +769,6 @@ func (ihgs *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
 	}
 
 	if isValidator(nodesConfig, ihgs.selfPubKey) {
-		log.Debug("node is validator shuffle out process called")
 		err := ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
 		if err != nil {
 			log.Warn("shuffle out process failed", "err", err)
@@ -887,7 +886,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	selfShard := ihgs.shardIDAsObserver
 	epNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
 	if ok {
-		log.Debug("computeShardForSelfPublicKey found existing config",
+		log.Trace("computeShardForSelfPublicKey found existing config",
 			"shard", epNodesConfig.shardID,
 		)
 		selfShard = epNodesConfig.shardID
@@ -895,7 +894,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 
 	found, shardId := searchInMap(nodesConfig.eligibleMap, pubKey)
 	if found {
-		log.Debug("computeShardForSelfPublicKey found validator in eligible",
+		log.Trace("computeShardForSelfPublicKey found validator in eligible",
 			"epoch", ihgs.currentEpoch,
 			"shard", shardId,
 			"validator PK", pubKey,
@@ -905,7 +904,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 
 	found, shardId = searchInMap(nodesConfig.waitingMap, pubKey)
 	if found {
-		log.Debug("computeShardForSelfPublicKey found validator in waiting",
+		log.Trace("computeShardForSelfPublicKey found validator in waiting",
 			"epoch", ihgs.currentEpoch,
 			"shard", shardId,
 			"validator PK", pubKey,
@@ -915,7 +914,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 
 	found, shardId = searchInMap(nodesConfig.leavingMap, pubKey)
 	if found {
-		log.Debug("computeShardForSelfPublicKey found validator in leaving",
+		log.Trace("computeShardForSelfPublicKey found validator in leaving",
 			"epoch", ihgs.currentEpoch,
 			"shard", shardId,
 			"validator PK", pubKey,
@@ -923,7 +922,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		return shardId
 	}
 
-	log.Debug("computeShardForSelfPublicKey returned default",
+	log.Trace("computeShardForSelfPublicKey returned default",
 		"shard", selfShard,
 	)
 	return selfShard
