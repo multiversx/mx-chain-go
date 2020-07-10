@@ -345,9 +345,9 @@ VERSION:
 		Value: "",
 	}
 
-	isNodefullArchive = cli.BoolFlag{
-		Name: "full-archive",
-		Usage: "Boolean option for enabling a node to have full archive. If set, the node won't remove any database " +
+	keepOldEpochsData = cli.BoolFlag{
+		Name: "keep-old-epochs-data",
+		Usage: "Boolean option for enabling a node to keep old epochs data. If set, the node won't remove any database " +
 			"and will have a full history over epochs.",
 	}
 
@@ -443,7 +443,7 @@ func main() {
 		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
-		isNodefullArchive,
+		keepOldEpochsData,
 		numEpochsToSave,
 		numActivePersisters,
 		startInEpoch,
@@ -1020,8 +1020,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating nodes coordinator")
-	if ctx.IsSet(isNodefullArchive.Name) {
-		generalConfig.StoragePruning.FullArchive = ctx.GlobalBool(isNodefullArchive.Name)
+	if ctx.IsSet(keepOldEpochsData.Name) {
+		generalConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
 	}
 	if ctx.IsSet(numEpochsToSave.Name) {
 		generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)

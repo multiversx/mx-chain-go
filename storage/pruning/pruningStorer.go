@@ -67,7 +67,7 @@ type PruningStorer struct {
 	numOfEpochsToKeep     uint32
 	numOfActivePersisters uint32
 	epochForPutOperation  uint32
-	fullArchive           bool
+	cleanOldEpochsData    bool
 	pruningEnabled        bool
 }
 
@@ -138,7 +138,7 @@ func initPruningStorer(
 	pdb := &PruningStorer{
 		pruningEnabled:        args.PruningEnabled,
 		identifier:            identifier,
-		fullArchive:           args.FullArchive,
+		cleanOldEpochsData:    args.CleanOldEpochsData,
 		activePersisters:      persisters,
 		persisterFactory:      args.PersisterFactory,
 		shardCoordinator:      args.ShardCoordinator,
@@ -763,7 +763,7 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 		}
 	}
 
-	if !ps.fullArchive && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
+	if ps.cleanOldEpochsData && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
 		idxToRemove := epoch - ps.numOfEpochsToKeep
 		for {
 			//epochToRemove := epoch - ps.numOfEpochsToKeep
