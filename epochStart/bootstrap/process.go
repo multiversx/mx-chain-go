@@ -309,7 +309,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		epochToStart := e.baseData.lastEpoch
 		if shuffledOut {
-			epochToStart = 0
+			epochToStart = e.startEpoch
 		}
 
 		newShardId = e.applyShardIDAsObserverIfNeeded(newShardId)
@@ -527,7 +527,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		return nil, err
 	}
 
-	if meta.Epoch == 1 {
+	if meta.Epoch == e.startEpoch {
 		syncedHeaders[string(meta.EpochStart.Economics.PrevEpochStartHash)] = &block.MetaBlock{}
 	}
 

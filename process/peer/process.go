@@ -292,8 +292,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	epoch := computeEpoch(header)
 
 	var err error
-	isFirstBlockAfterHardFork := previousHeader.GetNonce() == vs.genesisNonce && vs.genesisNonce > 0
-	if previousHeader.IsStartOfEpochBlock() || isFirstBlockAfterHardFork {
+	if previousHeader.IsStartOfEpochBlock() {
 		err = vs.saveNodesCoordinatorUpdates(previousHeader.GetEpoch())
 		if err != nil {
 			log.Warn("could not update info from nodesCoordinator")

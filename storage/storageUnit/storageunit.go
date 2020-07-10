@@ -145,7 +145,7 @@ func (u *Unit) Close() error {
 	return nil
 }
 
-// Iterate ca iterate over the persisted (key, value) pairs
+// Iterate can iterate over the persisted (key, value) pairs
 func (u *Unit) Iterate() chan core.KeyValHolder {
 	return u.persister.Iterate()
 }
