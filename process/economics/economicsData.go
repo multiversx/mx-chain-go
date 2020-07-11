@@ -3,6 +3,7 @@ package economics
 import (
 	"math/big"
 	"strconv"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -29,7 +30,6 @@ type EconomicsData struct {
 	developerPercentage      float64
 	genesisTotalSupply       *big.Int
 	minInflation             float64
-	maxInflation             float64
 	minStep                  *big.Int
 	unJailPrice              *big.Int
 	auctionEnableNonce       uint64
@@ -37,6 +37,8 @@ type EconomicsData struct {
 	numRoundsWithoutBleed    uint64
 	bleedPercentagePerRound  float64
 	maximumPercentageToBleed float64
+	yearSettings             map[uint32]*config.YearSetting
+	mutYearSettings          sync.RWMutex
 }
 
 // NewEconomicsData will create and object with information about economics parameters
@@ -55,7 +57,7 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
 
-	return &EconomicsData{
+	ed := &EconomicsData{
 		leaderPercentage:         economics.RewardsSettings.LeaderPercentage,
 		communityPercentage:      economics.RewardsSettings.CommunityPercentage,
 		communityAddress:         economics.RewardsSettings.CommunityAddress,
@@ -69,7 +71,6 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 		dataLimitForBaseCalc:     data.dataLimitForBaseCalc,
 		developerPercentage:      economics.RewardsSettings.DeveloperPercentage,
 		minInflation:             economics.GlobalSettings.MinimumInflation,
-		maxInflation:             economics.GlobalSettings.MaximumInflation,
 		genesisTotalSupply:       data.genesisTotalSupply,
 		minStep:                  data.minStep,
 		auctionEnableNonce:       data.auctionEnableNonce,
@@ -78,7 +79,17 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 		bleedPercentagePerRound:  data.bleedPercentagePerRound,
 		maximumPercentageToBleed: data.maximumPercentageToBleed,
 		unJailPrice:              data.unJailPrice,
-	}, nil
+	}
+
+	ed.yearSettings = make(map[uint32]*config.YearSetting)
+	for _, yearSetting := range economics.GlobalSettings.YearSettings {
+		ed.yearSettings[yearSetting.Year] = &config.YearSetting{
+			Year:             yearSetting.Year,
+			MaximumInflation: yearSetting.MaximumInflation,
+		}
+	}
+
+	return ed, nil
 }
 
 func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
@@ -127,7 +138,7 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 	}
 
 	genesisTotalSupply := new(big.Int)
-	genesisTotalSupply, ok = genesisTotalSupply.SetString(economics.GlobalSettings.TotalSupply, conversionBase)
+	genesisTotalSupply, ok = genesisTotalSupply.SetString(economics.GlobalSettings.GenesisTotalSupply, conversionBase)
 	if !ok {
 		return nil, process.ErrInvalidGenesisTotalSupply
 	}
@@ -193,9 +204,14 @@ func checkValues(economics *config.EconomicsConfig) error {
 	if isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.CommunityPercentage) ||
-		isPercentageInvalid(economics.GlobalSettings.MaximumInflation) ||
 		isPercentageInvalid(economics.GlobalSettings.MinimumInflation) {
 		return process.ErrInvalidRewardsPercentages
+	}
+
+	for _, yearSetting := range economics.GlobalSettings.YearSettings {
+		if isPercentageInvalid(yearSetting.MaximumInflation) {
+			return process.ErrInvalidInflationPercentages
+		}
 	}
 
 	if len(economics.RewardsSettings.CommunityAddress) == 0 {
@@ -225,8 +241,16 @@ func (ed *EconomicsData) MinInflationRate() float64 {
 }
 
 // MaxInflationRate will return the maximum inflation rate
-func (ed *EconomicsData) MaxInflationRate() float64 {
-	return ed.maxInflation
+func (ed *EconomicsData) MaxInflationRate(year uint32) float64 {
+	ed.mutYearSettings.RLock()
+	yearSetting, ok := ed.yearSettings[year]
+	ed.mutYearSettings.RUnlock()
+
+	if !ok {
+		return ed.minInflation
+	}
+
+	return yearSetting.MaximumInflation
 }
 
 // GenesisTotalSupply will return the genesis total supply
@@ -349,11 +373,6 @@ func (ed *EconomicsData) MinStepValue() *big.Int {
 // UnJailValue returns the unjail value which is considered the price to bail out of jail
 func (ed *EconomicsData) UnJailValue() *big.Int {
 	return ed.unJailPrice
-}
-
-// TotalSupply returns the total supply of the protocol
-func (ed *EconomicsData) TotalSupply() *big.Int {
-	return ed.genesisTotalSupply
 }
 
 // AuctionEnableNonce returns the nonce from which the auction process is enabled

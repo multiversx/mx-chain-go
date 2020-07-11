@@ -491,6 +491,9 @@ var ErrInvalidUnBondPeriod = errors.New("invalid unbond period")
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 
+// ErrInvalidInflationPercentages signals that inflation percentages are not correct
+var ErrInvalidInflationPercentages = errors.New("invalid inflation percentages")
+
 // ErrInvalidNonceRequest signals that invalid nonce was requested
 var ErrInvalidNonceRequest = errors.New("invalid nonce request")
 

@@ -599,9 +599,14 @@ func CreateEconomicsData() *economics.EconomicsData {
 	economicsData, _ := economics.NewEconomicsData(
 		&config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
-				TotalSupply:      "2000000000000000000000",
-				MinimumInflation: 0,
-				MaximumInflation: 0.05,
+				GenesisTotalSupply: "2000000000000000000000",
+				MinimumInflation:   0,
+				YearSettings: []*config.YearSetting{
+					{
+						Year:             0,
+						MaximumInflation: 0.01,
+					},
+				},
 			},
 			RewardsSettings: config.RewardsSettings{
 				LeaderPercentage:    0.1,
@@ -1290,12 +1295,13 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
 		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
-			Marshalizer:      TestMarshalizer,
-			Hasher:           TestHasher,
-			Store:            tpn.Storage,
-			ShardCoordinator: tpn.ShardCoordinator,
-			RewardsHandler:   tpn.EconomicsData,
-			RoundTime:        tpn.Rounder,
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			Store:              tpn.Storage,
+			ShardCoordinator:   tpn.ShardCoordinator,
+			RewardsHandler:     tpn.EconomicsData,
+			RoundTime:          tpn.Rounder,
+			GenesisTotalSupply: tpn.EconomicsData.GenesisTotalSupply(),
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 

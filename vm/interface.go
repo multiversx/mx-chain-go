@@ -71,7 +71,7 @@ type ValidatorSettingsHandler interface {
 	GenesisNodePrice() *big.Int
 	MinStepValue() *big.Int
 	UnJailValue() *big.Int
-	TotalSupply() *big.Int
+	GenesisTotalSupply() *big.Int
 	AuctionEnableNonce() uint64
 	StakeEnableNonce() uint64
 	NumRoundsWithoutBleed() uint64
