@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/gin-gonic/gin"
 )
+
+var log = logger.GetOrCreate("api/middleware")
 
 // ElrondHandler interface defines methods that can be used from `elrondFacade` context variable
 //TODO rename ElrondHandler (take out Elrond part)
@@ -26,6 +30,10 @@ type middleWare struct {
 	mutRequests    sync.Mutex
 	sourceRequests map[string]uint32
 	maxNumRequests uint32
+
+	//TODO remove this debug data before merging the PR
+	mutDebug  sync.RWMutex
+	debugInfo map[string]int
 }
 
 // NewMiddleware creates a new instance of a gin middleware
@@ -50,6 +58,7 @@ func NewMiddleware(
 		mutRequests:    sync.Mutex{},
 		sourceRequests: make(map[string]uint32),
 		maxNumRequests: maxNumRequestsPerAddress,
+		debugInfo:      make(map[string]int),
 	}, nil
 }
 
@@ -73,6 +82,9 @@ func (m *middleWare) MiddlewareHandlerFunc() gin.HandlerFunc {
 
 		select {
 		case m.queue <- struct{}{}:
+			m.mutDebug.Lock()
+			m.debugInfo[c.Request.URL.Path]++
+			m.mutDebug.Unlock()
 		default:
 			c.AbortWithStatusJSON(
 				http.StatusTooManyRequests,
@@ -82,10 +94,27 @@ func (m *middleWare) MiddlewareHandlerFunc() gin.HandlerFunc {
 					Code:  shared.ReturnCodeSystemBusy,
 				},
 			)
+
+			output := make([]string, 0)
+			m.mutDebug.Lock()
+			for route, num := range m.debugInfo {
+				output = append(output, fmt.Sprintf("%s: %d", route, num))
+			}
+			m.mutDebug.Unlock()
+
+			log.Warn("system busy\n" + strings.Join(output, "\n"))
+
 			return
 		}
 
 		c.Next()
+
+		m.mutDebug.Lock()
+		m.debugInfo[c.Request.URL.Path]--
+		if m.debugInfo[c.Request.URL.Path] == 0 {
+			delete(m.debugInfo, c.Request.URL.Path)
+		}
+		m.mutDebug.Unlock()
 
 		<-m.queue
 	}
