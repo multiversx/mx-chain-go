@@ -536,7 +536,7 @@ type RewardsHandler interface {
 	CommunityPercentage() float64
 	CommunityAddress() string
 	MinInflationRate() float64
-	MaxInflationRate() float64
+	MaxInflationRate(year uint32) float64
 	IsInterfaceNil() bool
 }
 

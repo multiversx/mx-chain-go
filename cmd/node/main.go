@@ -30,7 +30,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -82,7 +81,6 @@ import (
 
 const (
 	notSetDestinationShardID     = "disabled"
-	maxNumGoRoutinesTxsByHashApi = 10
 	maxTimeToClose               = 10 * time.Second
 	maxMachineIDLen              = 10
 )
@@ -335,9 +333,9 @@ VERSION:
 		Value: "",
 	}
 
-	isNodefullArchive = cli.BoolFlag{
-		Name: "full-archive",
-		Usage: "Boolean option for enabling a node to have full archive. If set, the node won't remove any database " +
+	keepOldEpochsData = cli.BoolFlag{
+		Name: "keep-old-epochs-data",
+		Usage: "Boolean option for enabling a node to keep old epochs data. If set, the node won't remove any database " +
 			"and will have a full history over epochs.",
 	}
 
@@ -425,7 +423,7 @@ func main() {
 		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
-		isNodefullArchive,
+		keepOldEpochsData,
 		numEpochsToSave,
 		numActivePersisters,
 		startInEpoch,
@@ -569,10 +567,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	//TODO when refactoring main, maybe initialize economics data before this line
-	totalSupply, ok := big.NewInt(0).SetString(economicsConfig.GlobalSettings.TotalSupply, 10)
+	totalSupply, ok := big.NewInt(0).SetString(economicsConfig.GlobalSettings.GenesisTotalSupply, 10)
 	if !ok {
 		return fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
-			economicsConfig.GlobalSettings.TotalSupply)
+			economicsConfig.GlobalSettings.GenesisTotalSupply)
 	}
 
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
@@ -658,7 +656,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	var shardId = core.GetShardIdString(genesisShardCoordinator.SelfId())
+	var shardId = core.GetShardIDString(genesisShardCoordinator.SelfId())
 
 	accountsParser, err := parsing.NewAccountsParser(
 		ctx.GlobalString(genesisFile.Name),
@@ -872,7 +870,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		storerEpoch = 0
 	}
 
-	var shardIdString = core.GetShardIdString(shardCoordinator.SelfId())
+	var shardIdString = core.GetShardIDString(shardCoordinator.SelfId())
 	logger.SetCorrelationShard(shardIdString)
 
 	log.Trace("initializing stats file")
@@ -965,8 +963,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating nodes coordinator")
-	if ctx.IsSet(isNodefullArchive.Name) {
-		generalConfig.StoragePruning.FullArchive = ctx.GlobalBool(isNodefullArchive.Name)
+	if ctx.IsSet(keepOldEpochsData.Name) {
+		generalConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
 	}
 	if ctx.IsSet(numEpochsToSave.Name) {
 		generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
@@ -1920,11 +1918,6 @@ func createNode(
 
 	factory.PrepareOpenTopics(network.InputAntiFloodHandler(), shardCoordinator)
 
-	apiTxsByHashThrottler, err := throttler.NewNumGoRoutinesThrottler(maxNumGoRoutinesTxsByHashApi)
-	if err != nil {
-		return nil, err
-	}
-
 	alarmScheduler := alarm.NewAlarmScheduler()
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, chanStopNodeProcess)
 	if err != nil {
@@ -2010,7 +2003,6 @@ func createNode(
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
-		node.WithApiTransactionByHashThrottler(apiTxsByHashThrottler),
 		node.WithPeerHonestyHandler(peerHonestyHandler),
 		node.WithWatchdogTimer(watchdogTimer),
 	)

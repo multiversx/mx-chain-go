@@ -37,6 +37,16 @@ type Facade struct {
 	GetQueryHandlerCalled             func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled              func(address string, key string) (string, error)
 	GetPeerInfoCalled                 func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetThrottlerForEndpointCalled     func(endpoint string) (core.Throttler, bool)
+}
+
+// GetThrottlerForEndpoint -
+func (f *Facade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool) {
+	if f.GetThrottlerForEndpointCalled != nil {
+		return f.GetThrottlerForEndpointCalled(endpoint)
+	}
+
+	return nil, false
 }
 
 // RestApiInterface -

@@ -131,7 +131,7 @@ func createMockArgument(
 	arg.Economics = ted.EconomicsData
 	arg.AccountsParser, err = parsing.NewAccountsParser(
 		genesisFilename,
-		arg.Economics.TotalSupply(),
+		arg.Economics.GenesisTotalSupply(),
 		arg.Core.AddressPubKeyConverter(),
 		&mock.KeyGeneratorStub{},
 	)

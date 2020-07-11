@@ -186,7 +186,7 @@ func TestShardedData_RegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T
 
 	sd, _ := NewShardedData("", defaultTestConfig)
 
-	sd.RegisterHandler(nil)
+	sd.RegisterOnAdded(nil)
 
 	assert.Equal(t, 0, len(sd.addedDataHandlers))
 }
@@ -213,7 +213,7 @@ func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
 
 	sd, _ := NewShardedData("", defaultTestConfig)
 
-	sd.RegisterHandler(f)
+	sd.RegisterOnAdded(f)
 	sd.AddData([]byte("aaaa"), "bbbb", 4, "0")
 
 	select {
@@ -232,7 +232,7 @@ func TestShardedData_RegisterAddedDataHandlerReallyAddsAhandler(t *testing.T) {
 
 	sd, _ := NewShardedData("", defaultTestConfig)
 
-	sd.RegisterHandler(f)
+	sd.RegisterOnAdded(f)
 
 	assert.Equal(t, 1, len(sd.addedDataHandlers))
 }
@@ -257,7 +257,7 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 
 	//first add, no call
 	sd.AddData([]byte("aaaa"), "bbbb", 4, "0")
-	sd.RegisterHandler(f)
+	sd.RegisterOnAdded(f)
 	//second add, should not call as the data was found
 	sd.AddData([]byte("aaaa"), "bbbb", 4, "0")
 

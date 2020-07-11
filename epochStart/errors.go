@@ -226,3 +226,6 @@ var ErrNilImportStartHandler = errors.New("nil import start handler")
 
 // ErrCommunityAddressInMetachain signals that community address is in metachain which is not allowed
 var ErrCommunityAddressInMetachain = errors.New("community address in metachain")
+
+// ErrNilGenesisTotalSupply signals that nil genesis total supply has been provided
+var ErrNilGenesisTotalSupply = errors.New("nil genesis total supply")

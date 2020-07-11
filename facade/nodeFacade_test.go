@@ -578,3 +578,52 @@ func TestNodeFacade_GetPeerInfo(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []core.QueryP2PPeerInfo{pinfo}, val)
 }
+
+func TestNodeFacade_GetThrottlerForEndpointNoConfigShouldReturnNilAndFalse(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{} //ensure it is empty
+	nf, _ := NewNodeFacade(arg)
+
+	thr, ok := nf.GetThrottlerForEndpoint("any-endpoint")
+
+	assert.Nil(t, thr)
+	assert.False(t, ok)
+}
+
+func TestNodeFacade_GetThrottlerForEndpointNotFoundShouldReturnNilAndFalse(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{
+		{
+			Endpoint:         "endpoint",
+			MaxNumGoRoutines: 10,
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	thr, ok := nf.GetThrottlerForEndpoint("different-endpoint")
+
+	assert.Nil(t, thr)
+	assert.False(t, ok)
+}
+
+func TestNodeFacade_GetThrottlerForEndpointShouldFindAndReturn(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{
+		{
+			Endpoint:         "endpoint",
+			MaxNumGoRoutines: 10,
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	thr, ok := nf.GetThrottlerForEndpoint("endpoint")
+
+	assert.NotNil(t, thr)
+	assert.True(t, ok)
+}

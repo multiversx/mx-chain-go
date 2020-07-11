@@ -172,7 +172,7 @@ func (chunk *immunityChunk) addItemNoLock(item *cacheItem) {
 }
 
 func (chunk *immunityChunk) immunizeItemOnAddNoLock(item *cacheItem) {
-	if _, immunize := chunk.immuneKeys[string(item.key)]; immunize {
+	if _, immunize := chunk.immuneKeys[item.key]; immunize {
 		item.immunizeAgainstEviction()
 		// We do not remove the key from "immuneKeys", we hold it there until item's removal.
 	}

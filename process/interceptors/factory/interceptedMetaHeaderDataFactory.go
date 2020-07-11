@@ -17,7 +17,6 @@ type interceptedMetaHeaderDataFactory struct {
 	shardCoordinator        sharding.Coordinator
 	headerSigVerifier       process.InterceptedHeaderSigVerifier
 	headerIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
-	chainID                 []byte
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
 }

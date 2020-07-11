@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testAlarm = "alarm1"
+
 func TestNewAlarmScheduler(t *testing.T) {
 	t.Parallel()
 
@@ -28,7 +30,7 @@ func TestAlarmScheduler_Add(t *testing.T) {
 		nbCalls.Increment()
 	}
 
-	alarmID := "alarm1"
+	alarmID := testAlarm
 	alarmExpiry := time.Millisecond * 50
 	alarmScheduler := alarm.NewAlarmScheduler()
 
@@ -81,7 +83,7 @@ func TestAlarmScheduler_CancelBeforeExpiry(t *testing.T) {
 		nbCalls.Increment()
 	}
 
-	alarmID := "alarm1"
+	alarmID := testAlarm
 	alarmExpiry := time.Millisecond * 50
 	alarmScheduler := alarm.NewAlarmScheduler()
 
@@ -105,7 +107,7 @@ func TestAlarmScheduler_CancelTwice(t *testing.T) {
 		nbCalls.Increment()
 	}
 
-	alarmID := "alarm1"
+	alarmID := testAlarm
 	alarmExpiry := time.Millisecond * 50
 	alarmScheduler := alarm.NewAlarmScheduler()
 
@@ -130,7 +132,7 @@ func TestAlarmScheduler_CancelAfterCanceledFinished(t *testing.T) {
 		nbCalls.Increment()
 	}
 
-	alarmID := "alarm1"
+	alarmID := testAlarm
 	alarmExpiry := time.Millisecond * 50
 	alarmScheduler := alarm.NewAlarmScheduler()
 
@@ -156,7 +158,7 @@ func TestAlarmScheduler_CancelAfterAddImmediately(t *testing.T) {
 		nbCalls.Increment()
 	}
 
-	alarmID := "alarm1"
+	alarmID := testAlarm
 	alarmExpiry := time.Millisecond * 50
 	alarmScheduler := alarm.NewAlarmScheduler()
 
@@ -249,7 +251,7 @@ func TestAlarmScheduler_Reset(t *testing.T) {
 	}
 
 	numResets := 5
-	alarmID := "alarm1"
+	alarmID := testAlarm
 	alarmExpiry := time.Millisecond * 50
 	alarmScheduler := alarm.NewAlarmScheduler()
 
