@@ -15,22 +15,22 @@
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = false
 
-   # If this flag is set to true, the node won't delete any database between epochs
-   FullArchive = false
+   # If this flag is set to false, the node won't delete any database between epochs
+   CleanOldEpochsData = true
 
-   # NumEpochsToKeep - if the flag above is set to false, this will set the number of epochs to keep in the storage.
+   # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
    NumEpochsToKeep = 4
 
-   # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works for both
-   # full archive or not nodes. In case of a node which doesn't have a full archive, it has to be smaller or equal
-   # to the NumOfEpochsToKeep flag
+   # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works even if
+   # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
+   # smaller or equal to the NumOfEpochsToKeep flag
    NumActivePersisters = 3
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Name = "MiniBlocksStorage"
-        Capacity = 300
+        Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 104857600 #100MB
     [MiniBlocksStorage.DB]
@@ -70,7 +70,8 @@
     [BootstrapStorage.Cache]
         Name = "BootstrapStorage"
         Capacity = 1000
-        Type = "LRU"
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
     [BootstrapStorage.DB]
         FilePath = "BootstrapData"
         Type = "LvlDBSerial"
@@ -94,14 +95,14 @@
 [TxStorage]
     [TxStorage.Cache]
         Name = "TxStorage"
-        Capacity = 75000
+        Capacity = 500000
         Type = "SizeLRU"
         SizeInBytes = 209715200 #200MB
     [TxStorage.DB]
         FilePath = "Transactions"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 20000
+        MaxBatchSize = 30000
         MaxOpenFiles = 10
 
 [TxLogsStorage]
@@ -120,7 +121,7 @@
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
         Name = "UnsignedTransactionStorage"
-        Capacity = 75000
+        Capacity = 250000
         Type = "SizeLRU"
         SizeInBytes = 104857600 #100MB
     [UnsignedTransactionStorage.DB]
@@ -184,7 +185,7 @@
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
         Name = "AccountsTrieStorage"
-        Capacity = 75000
+        Capacity = 500000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
     [AccountsTrieStorage.DB]

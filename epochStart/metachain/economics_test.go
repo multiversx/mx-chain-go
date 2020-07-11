@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -23,12 +24,13 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 
 	argsNewEpochEconomics := ArgsNewEpochEconomics{
-		Hasher:           &mock.HasherMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		Store:            createMetaStore(),
-		ShardCoordinator: shardCoordinator,
-		RewardsHandler:   &mock.RewardsHandlerStub{},
-		RoundTime:        &mock.RoundTimeDurationHandler{},
+		Hasher:             &mock.HasherMock{},
+		Marshalizer:        &mock.MarshalizerMock{},
+		Store:              createMetaStore(),
+		ShardCoordinator:   shardCoordinator,
+		RewardsHandler:     &mock.RewardsHandlerStub{},
+		RoundTime:          &mock.RoundTimeDurationHandler{},
+		GenesisTotalSupply: big.NewInt(2000000),
 	}
 	return argsNewEpochEconomics
 }
@@ -272,6 +274,52 @@ func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.
 	assert.Equal(t, epochStart.ErrNotEpochStartBlock, err)
 }
 
+func TestEconomics_ComputeInflationRate(t *testing.T) {
+	args := getArguments()
+	errNotGoodYear := errors.New("not good year")
+	var errFound error
+	year1inflation := 1.0
+	year2inflation := 0.5
+	lateYearInflation := 2.0
+
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		MaxInflationRateCalled: func(year uint32) float64 {
+			switch year {
+			case 0:
+				errFound = errNotGoodYear
+				return 0.0
+			case 1:
+				return year1inflation
+			case 2:
+				return year2inflation
+			default:
+				return lateYearInflation
+			}
+		},
+	}
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	rate := ec.computeInflationRate(1)
+	assert.Nil(t, errFound)
+	assert.Equal(t, rate, year1inflation)
+
+	rate = ec.computeInflationRate(50000)
+	assert.Nil(t, errFound)
+	assert.Equal(t, rate, year1inflation)
+
+	rate = ec.computeInflationRate(7884000)
+	assert.Nil(t, errFound)
+	assert.Equal(t, rate, year2inflation)
+
+	rate = ec.computeInflationRate(8884000)
+	assert.Nil(t, errFound)
+	assert.Equal(t, rate, year2inflation)
+
+	rate = ec.computeInflationRate(38884000)
+	assert.Nil(t, errFound)
+	assert.Equal(t, rate, lateYearInflation)
+}
+
 func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 	t.Parallel()
 
@@ -327,7 +375,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	roundDur := 4
 	args := getArguments()
 	args.RewardsHandler = &mock.RewardsHandlerStub{
-		MaxInflationRateCalled: func() float64 {
+		MaxInflationRateCalled: func(_ uint32) float64 {
 			return 0.1
 		},
 		CommunityAddressCalled: func() string {
@@ -484,7 +532,7 @@ func createArgsForComputeEndOfEpochEconomics(
 
 	args := getArguments()
 	args.RewardsHandler = &mock.RewardsHandlerStub{
-		MaxInflationRateCalled: func() float64 {
+		MaxInflationRateCalled: func(_ uint32) float64 {
 			return 0.1
 		},
 		CommunityAddressCalled: func() string {
@@ -602,11 +650,12 @@ func denomination(value *big.Int) string {
 
 func getArguments() ArgsNewEpochEconomics {
 	return ArgsNewEpochEconomics{
-		Marshalizer:      &mock.MarshalizerMock{},
-		Hasher:           mock.HasherMock{},
-		Store:            &mock.ChainStorerStub{},
-		ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
-		RewardsHandler:   &mock.RewardsHandlerStub{},
-		RoundTime:        &mock.RoundTimeDurationHandler{},
+		Marshalizer:        &mock.MarshalizerMock{},
+		Hasher:             mock.HasherMock{},
+		Store:              &mock.ChainStorerStub{},
+		ShardCoordinator:   mock.NewMultipleShardsCoordinatorMock(),
+		RewardsHandler:     &mock.RewardsHandlerStub{},
+		RoundTime:          &mock.RoundTimeDurationHandler{},
+		GenesisTotalSupply: big.NewInt(200000000),
 	}
 }

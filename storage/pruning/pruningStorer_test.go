@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/stretchr/testify/require"
 
@@ -51,7 +52,7 @@ func getDefaultArgs() *pruning.StorerArgs {
 	return &pruning.StorerArgs{
 		PruningEnabled:        true,
 		Identifier:            "id",
-		FullArchive:           false,
+		CleanOldEpochsData:    false,
 		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
 		PathManager:           &mock.PathManagerStub{},
 		CacheConf:             cacheConf,
@@ -73,12 +74,15 @@ func getDefaultArgsSerialDB() *pruning.StorerArgs {
 			return leveldb.NewSerialDB(path, 1, 20, 10)
 		},
 	}
+	pathManager := &mock.PathManagerStub{PathForEpochCalled: func(shardId string, epoch uint32, identifier string) string {
+		return fmt.Sprintf("TestOnly-Epoch_%d/Shard_%s/%s", epoch, shardId, identifier)
+	}}
 	return &pruning.StorerArgs{
 		PruningEnabled:        true,
 		Identifier:            "id",
-		FullArchive:           false,
+		CleanOldEpochsData:    false,
 		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
-		PathManager:           &mock.PathManagerStub{},
+		PathManager:           pathManager,
 		CacheConf:             cacheConf,
 		DbPath:                dbConf.FilePath,
 		PersisterFactory:      persisterFactory,
@@ -356,6 +360,7 @@ func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
 		},
 	}
 	args.NumOfActivePersisters = 1
+	args.CleanOldEpochsData = true
 	args.NumOfEpochsToKeep = 2
 	ps, _ := pruning.NewPruningStorer(args)
 
@@ -510,12 +515,24 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 	t.Parallel()
 
 	args := getDefaultArgsSerialDB()
-	args.DbPath = "Epoch_0"
+	args.DbPath = "TestOnly-Epoch_0"
 	args.PruningEnabled = true
 	ps, err := pruning.NewPruningStorer(args)
 	require.Nil(t, err)
 	ps.SetEpochForPutOperation(0)
 	ctx, cancel := context.WithCancel(context.Background())
+
+	defer func() {
+		dr := factory.NewDirectoryReader()
+		directories, err := dr.ListDirectoriesAsString(".")
+		assert.NoError(t, err)
+		for _, dir := range directories {
+			if strings.HasPrefix(dir, "TestOnly-") {
+				err = os.RemoveAll(dir)
+				assert.NoError(t, err)
+			}
+		}
+	}()
 
 	go func(ctx context.Context) {
 		cnt := 0
@@ -537,6 +554,7 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 		for {
 			select {
 			case <-ctx.Done():
+				fmt.Println("destroy called")
 				_ = ps.DestroyUnit()
 				return
 			default:

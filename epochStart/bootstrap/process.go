@@ -291,7 +291,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			}
 
 			return Parameters{
-				Epoch:       0,
+				Epoch:       e.startEpoch,
 				SelfShardId: e.genesisShardCoordinator.SelfId(),
 				NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 			}, nil
@@ -510,7 +510,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		shardIds = append(shardIds, epochStartData.ShardID)
 	}
 
-	if meta.Epoch > 1 { // no need to request genesis block
+	if meta.Epoch > e.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.EpochStart.Economics.PrevEpochStartHash)
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
@@ -527,7 +527,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		return nil, err
 	}
 
-	if meta.Epoch == e.startEpoch {
+	if meta.Epoch == e.startEpoch+1 {
 		syncedHeaders[string(meta.EpochStart.Economics.PrevEpochStartHash)] = &block.MetaBlock{}
 	}
 
