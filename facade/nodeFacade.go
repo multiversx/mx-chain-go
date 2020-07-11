@@ -173,10 +173,14 @@ func (nf *nodeFacade) startRest() {
 	case DefaultRestPortOff:
 		log.Debug("web server is off")
 	default:
-		log.Debug("creating web server limiters")
-		limiters, err := nf.createMiddlewareLimiters()
+		log.Debug("creating web server middleware limiter")
+		limiter, err := middleware.NewMiddleware(
+			nf,
+			nf.wsAntifloodConfig.SimultaneousRequests,
+			nf.wsAntifloodConfig.SameSourceRequests,
+		)
 		if err != nil {
-			log.Error("error creating web server limiters",
+			log.Error("error creating web server limiter",
 				"error", err.Error(),
 			)
 			log.Error("web server is off")
@@ -189,28 +193,13 @@ func (nf *nodeFacade) startRest() {
 			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
 		)
 
-		err = api.Start(nf, nf.apiRoutesConfig, limiters...)
+		err = api.Start(nf, nf.apiRoutesConfig, limiter)
 		if err != nil {
 			log.Error("could not start webserver",
 				"error", err.Error(),
 			)
 		}
 	}
-}
-
-func (nf *nodeFacade) createMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
-	sourceLimiter, err := middleware.NewSourceThrottler(nf.wsAntifloodConfig.SameSourceRequests)
-	if err != nil {
-		return nil, err
-	}
-	go nf.sourceLimiterReset(sourceLimiter)
-
-	globalLimiter, err := middleware.NewGlobalThrottler(nf.wsAntifloodConfig.SimultaneousRequests)
-	if err != nil {
-		return nil, err
-	}
-
-	return []api.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
 }
 
 func (nf *nodeFacade) sourceLimiterReset(reset resetHandler) {
