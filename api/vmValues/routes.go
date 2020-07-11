@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -128,9 +129,23 @@ func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery,
 
 func returnBadRequest(context *gin.Context, errScope string, err error) {
 	message := fmt.Sprintf("%s: %s", errScope, err)
-	context.JSON(http.StatusBadRequest, gin.H{"error": message})
+	context.JSON(
+		http.StatusBadRequest,
+		shared.GenericAPIResponse{
+			Data:  nil,
+			Error: message,
+			Code:  shared.ReturnCodeRequestError,
+		},
+	)
 }
 
 func returnOkResponse(context *gin.Context, data interface{}) {
-	context.JSON(http.StatusOK, gin.H{"data": data})
+	context.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"data": data},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
 }

@@ -12,14 +12,15 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh            marshal.Marshalizer
-	TxMarsh             marshal.Marshalizer
-	Hash                hashing.Hasher
-	UInt64ByteSliceConv typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv      core.PubkeyConverter
-	PathHdl             storage.PathManagerHandler
-	ChainIdCalled       func() string
-	mutIntMarshalizer   sync.RWMutex
+	IntMarsh                    marshal.Marshalizer
+	TxMarsh                     marshal.Marshalizer
+	Hash                        hashing.Hasher
+	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv              core.PubkeyConverter
+	PathHdl                     storage.PathManagerHandler
+	ChainIdCalled               func() string
+	MinTransactionVersionCalled func() uint32
+	mutIntMarshalizer           sync.RWMutex
 }
 
 // InternalMarshalizer -
@@ -70,6 +71,14 @@ func (ccm *CoreComponentsMock) ChainID() string {
 		return ccm.ChainIdCalled()
 	}
 	return "undefined"
+}
+
+// MinTransactionVersion -
+func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
+	if ccm.MinTransactionVersionCalled != nil {
+		return ccm.MinTransactionVersionCalled()
+	}
+	return 1
 }
 
 // IsInterfaceNil -

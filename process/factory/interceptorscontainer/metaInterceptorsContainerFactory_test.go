@@ -96,6 +96,34 @@ func TestNewMetaInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *tes
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
+func TestNewMetaInterceptorsContainerFactory_InvalidChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.ChainIdCalled = func() string {
+		return ""
+	}
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestNewMetaInterceptorsContainerFactory_InvalidMinTransactionVersionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.MinTransactionVersionCalled = func() uint32 {
+		return 0
+	}
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
+}
+
 func TestNewMetaInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -286,7 +314,7 @@ func TestNewMetaInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *tes
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilBlackListHandler, err)
+	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
@@ -506,5 +534,6 @@ func getArgumentsMeta(
 		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		ArgumentsParser:         &mock.ArgumentParserMock{},
 	}
 }

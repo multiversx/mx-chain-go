@@ -165,7 +165,7 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 		return err
 	}
 
-	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, 0)
+	go scm.BroadcastBlockData(metaMiniBlocks, metaTransactions, core.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 
@@ -175,14 +175,16 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 	_ map[uint32][]byte,
 	_ map[string][][]byte,
 	idx int,
-) error {
+) {
 	if check.IfNil(header) {
-		return spos.ErrNilHeader
+		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", spos.ErrNilHeader)
+		return
 	}
 
 	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
 	if err != nil {
-		return err
+		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+		return
 	}
 
 	vData := &validatorHeaderBroadcastData{
@@ -191,7 +193,10 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 		order:      uint32(idx),
 	}
 
-	return scm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
+	err = scm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
+	if err != nil {
+		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+	}
 }
 
 // PrepareBroadcastBlockDataValidator prepares the validator block data broadcast in case leader broadcast fails
@@ -200,17 +205,19 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 	idx int,
-) error {
+) {
 	if check.IfNil(header) {
-		return spos.ErrNilHeader
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", spos.ErrNilHeader)
+		return
 	}
 	if len(miniBlocks) == 0 {
-		return nil
+		return
 	}
 
 	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
 	if err != nil {
-		return err
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", err)
+		return
 	}
 
 	broadcastData := &delayedBroadcastData{
@@ -221,7 +228,10 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 		order:          uint32(idx),
 	}
 
-	return scm.delayedBlockBroadcaster.SetValidatorData(broadcastData)
+	err = scm.delayedBlockBroadcaster.SetValidatorData(broadcastData)
+	if err != nil {
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", err)
+	}
 }
 
 // Close closes all the started infinite looping goroutines and subcomponents

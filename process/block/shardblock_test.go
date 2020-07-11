@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -29,7 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/gin-gonic/gin/json"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -457,8 +458,8 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return process.ErrHigherNonceInTransaction
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, process.ErrHigherNonceInTransaction
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -667,8 +668,8 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	}
 
 	err := errors.New("process block transaction error")
-	txProcess := func(transaction *transaction.Transaction) error {
-		return err
+	txProcess := func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+		return 0, err
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
@@ -2773,7 +2774,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	tx3ExecutionResult := uint64(0)
 
 	txProcessorMock := &mock.TxProcessorMock{
-		ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
+		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 			//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 			if bytes.Equal(transaction.Data, txHash1) {
 				tx1ExecutionResult = transaction.Nonce
@@ -2785,7 +2786,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 				tx3ExecutionResult = transaction.Nonce
 			}
 
-			return nil
+			return 0, nil
 		},
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
@@ -4498,4 +4499,101 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 	err := sp.CheckEpochCorrectnessCrossChain()
 	assert.Equal(t, process.ErrEpochDoesNotMatch, err)
 	assert.Equal(t, nonceCalled, prevHeader.Nonce)
+}
+
+func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnNilWhenNoSelfNotarizedHeadersExists(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	bootstrapHeaderInfos := sp.GetBootstrapHeadersInfo(nil, nil)
+
+	assert.Nil(t, bootstrapHeaderInfos)
+}
+
+func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenFinalNonceIsHigherThanGenesis(t *testing.T) {
+	t.Parallel()
+
+	finalNonce := uint64(1)
+	finalHash := []byte("final hash")
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return finalNonce
+		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return finalHash
+		},
+	}
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	bootstrapHeaderInfos := sp.GetBootstrapHeadersInfo(nil, nil)
+
+	require.Equal(t, 1, len(bootstrapHeaderInfos))
+	assert.Equal(t, finalHash, bootstrapHeaderInfos[0].Hash)
+}
+
+func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenFinalNonceIsNotHigherThanSelfNotarizedNonce(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 0
+		},
+	}
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	hash := []byte("hash")
+	header := &block.Header{}
+
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
+	selfNotarizedHeadersHashes := make([][]byte, 0)
+
+	selfNotarizedHeaders = append(selfNotarizedHeaders, header)
+	selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, hash)
+
+	bootstrapHeaderInfos := sp.GetBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes)
+
+	require.Equal(t, 1, len(bootstrapHeaderInfos))
+	assert.Equal(t, hash, bootstrapHeaderInfos[0].Hash)
+}
+
+func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnTwoItemsWhenFinalNonceIsHigherThanSelfNotarizedNonce(t *testing.T) {
+	t.Parallel()
+
+	finalNonce := uint64(2)
+	finalHash := []byte("final hash")
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return finalNonce
+		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return finalHash
+		},
+	}
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	hash := []byte("hash")
+	header := &block.Header{Nonce: 1}
+
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
+	selfNotarizedHeadersHashes := make([][]byte, 0)
+
+	selfNotarizedHeaders = append(selfNotarizedHeaders, header)
+	selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, hash)
+
+	bootstrapHeaderInfos := sp.GetBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes)
+
+	require.Equal(t, 2, len(bootstrapHeaderInfos))
+	assert.Equal(t, hash, bootstrapHeaderInfos[0].Hash)
+	assert.Equal(t, finalHash, bootstrapHeaderInfos[1].Hash)
 }

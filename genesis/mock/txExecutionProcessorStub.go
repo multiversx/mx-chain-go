@@ -1,6 +1,10 @@
 package mock
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data/state"
+)
 
 // TxExecutionProcessorStub -
 type TxExecutionProcessorStub struct {
@@ -20,13 +24,13 @@ func (teps *TxExecutionProcessorStub) ExecuteTransaction(nonce uint64, sndAddr [
 	return nil
 }
 
-// AccountExists -
-func (teps *TxExecutionProcessorStub) AccountExists(address []byte) bool {
+// GetAccount -
+func (teps *TxExecutionProcessorStub) GetAccount(address []byte) (state.UserAccountHandler, bool) {
 	if teps.AccountExistsCalled != nil {
-		return teps.AccountExistsCalled(address)
+		return nil, teps.AccountExistsCalled(address)
 	}
 
-	return false
+	return nil, false
 }
 
 // GetNonce -

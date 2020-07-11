@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -143,14 +144,29 @@ func (sdp *standardDelegationProcessor) getDelegationScOnCurrentShard() ([]genes
 	return smartContracts, nil
 }
 
+func getDeployedSCAddress(sc genesis.InitialSmartContractHandler) string {
+	if len(sc.Addresses()) != 1 {
+		return ""
+	}
+	return sc.Addresses()[0]
+}
+
+func getDeployedSCAddressBytes(sc genesis.InitialSmartContractHandler) []byte {
+	if len(sc.AddressesBytes()) != 1 {
+		return nil
+	}
+	return sc.AddressesBytes()[0]
+}
+
 func (sdp *standardDelegationProcessor) setDelegationStartParameters(smartContracts []genesis.InitialSmartContractHandler) error {
 	for _, sc := range smartContracts {
-		delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(sc.AddressBytes())
+
+		delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(getDeployedSCAddressBytes(sc))
 		numNodes := len(delegatedNodes)
 
 		log.Trace("setDelegationStartParameters",
 			"SC owner", sc.GetOwner(),
-			"SC address", sc.Address(),
+			"SC address", getDeployedSCAddress(sc),
 			"num delegated nodes", numNodes,
 			"node price", sdp.nodePrice.String(),
 			"shard ID", sdp.shardCoordinator.SelfId(),
@@ -166,7 +182,7 @@ func (sdp *standardDelegationProcessor) setDelegationStartParameters(smartContra
 }
 
 func (sdp *standardDelegationProcessor) executeSetNodePrice(sc genesis.InitialSmartContractHandler) error {
-	setStakePerNodeTxData := fmt.Sprintf("%s@%x", setStakePerNodeFunction, sdp.nodePrice)
+	setStakePerNodeTxData := fmt.Sprintf("%s@%s", setStakePerNodeFunction, core.ConvertToEvenHexBigInt(sdp.nodePrice))
 
 	nonce, err := sdp.GetNonce(sc.OwnerBytes())
 	if err != nil {
@@ -176,7 +192,7 @@ func (sdp *standardDelegationProcessor) executeSetNodePrice(sc genesis.InitialSm
 	return sdp.ExecuteTransaction(
 		nonce,
 		sc.OwnerBytes(),
-		sc.AddressBytes(),
+		getDeployedSCAddressBytes(sc),
 		zero,
 		[]byte(setStakePerNodeTxData),
 	)
@@ -186,11 +202,11 @@ func (sdp *standardDelegationProcessor) executeStake(smartContracts []genesis.In
 	stakedOnDelegation := 0
 
 	for _, sc := range smartContracts {
-		accounts := sdp.accuntsParser.GetInitialAccountsForDelegated(sc.AddressBytes())
+		accounts := sdp.accuntsParser.GetInitialAccountsForDelegated(getDeployedSCAddressBytes(sc))
 		if len(accounts) == 0 {
 			log.Debug("genesis delegation SC was not delegated by any account",
 				"SC owner", sc.GetOwner(),
-				"SC address", sc.Address(),
+				"SC address", getDeployedSCAddress(sc),
 			)
 			continue
 		}
@@ -207,7 +223,7 @@ func (sdp *standardDelegationProcessor) executeStake(smartContracts []genesis.In
 
 		log.Trace("executeStake",
 			"SC owner", sc.GetOwner(),
-			"SC address", sc.Address(),
+			"SC address", getDeployedSCAddress(sc),
 			"num accounts", len(accounts),
 			"total delegated", totalDelegated,
 		)
@@ -218,7 +234,7 @@ func (sdp *standardDelegationProcessor) executeStake(smartContracts []genesis.In
 }
 
 func (sdp *standardDelegationProcessor) stake(ac genesis.InitialAccountHandler, sc genesis.InitialSmartContractHandler) error {
-	isIntraShardCall := sdp.shardCoordinator.SameShard(ac.AddressBytes(), sc.AddressBytes())
+	isIntraShardCall := sdp.shardCoordinator.SameShard(ac.AddressBytes(), getDeployedSCAddressBytes(sc))
 
 	dh := ac.GetDelegationHandler()
 	if check.IfNil(dh) {
@@ -238,11 +254,11 @@ func (sdp *standardDelegationProcessor) stake(ac genesis.InitialAccountHandler, 
 		}
 	}
 
-	stakeData := fmt.Sprintf("%s@%s", stakeFunction, dh.GetValue().Text(16))
+	stakeData := fmt.Sprintf("%s@%s", stakeFunction, core.ConvertToEvenHexBigInt(dh.GetValue()))
 	err = sdp.ExecuteTransaction(
 		nonce,
 		ac.AddressBytes(),
-		sc.AddressBytes(),
+		getDeployedSCAddressBytes(sc),
 		zero,
 		[]byte(stakeData),
 	)
@@ -265,13 +281,13 @@ func (sdp *standardDelegationProcessor) executeManageBlsKeys(
 
 	totalDelegated := 0
 	for _, sc := range smartContracts {
-		delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(sc.AddressBytes())
+		delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(getDeployedSCAddressBytes(sc))
 
 		lenDelegated := len(delegatedNodes)
 		if lenDelegated == 0 {
 			log.Debug("genesis delegation SC does not have staked nodes",
 				"SC owner", sc.GetOwner(),
-				"SC address", sc.Address(),
+				"SC address", getDeployedSCAddress(sc),
 				"function", addNodesFunction,
 			)
 			continue
@@ -280,7 +296,7 @@ func (sdp *standardDelegationProcessor) executeManageBlsKeys(
 
 		log.Trace("executeAddNode",
 			"SC owner", sc.GetOwner(),
-			"SC address", sc.Address(),
+			"SC address", getDeployedSCAddress(sc),
 			"num nodes", lenDelegated,
 			"shard ID", sdp.shardCoordinator.SelfId(),
 			"function", addNodesFunction,
@@ -301,7 +317,7 @@ func (sdp *standardDelegationProcessor) executeManageBlsKeys(
 		err = sdp.ExecuteTransaction(
 			nonce,
 			sc.OwnerBytes(),
-			sc.AddressBytes(),
+			getDeployedSCAddressBytes(sc),
 			big.NewInt(0),
 			[]byte(strings.Join(arguments, "@")),
 		)
@@ -324,7 +340,7 @@ func (sdp *standardDelegationProcessor) executeActivation(smartContracts []genes
 	for _, sc := range smartContracts {
 		log.Trace("executeActivation",
 			"SC owner", sc.GetOwner(),
-			"SC address", sc.Address(),
+			"SC address", getDeployedSCAddress(sc),
 			"shard ID", sdp.shardCoordinator.SelfId(),
 			"function", activateFunction,
 		)
@@ -337,7 +353,7 @@ func (sdp *standardDelegationProcessor) executeActivation(smartContracts []genes
 		err = sdp.ExecuteTransaction(
 			nonce,
 			sc.OwnerBytes(),
-			sc.AddressBytes(),
+			getDeployedSCAddressBytes(sc),
 			big.NewInt(0),
 			[]byte(activateFunction),
 		)
@@ -353,7 +369,7 @@ func (sdp *standardDelegationProcessor) executeVerify(smartContracts []genesis.I
 	for _, sc := range smartContracts {
 		err := sdp.verify(sc)
 		if err != nil {
-			return fmt.Errorf("%w for contract %s, owner %s", err, sc.Address(), sc.GetOwner())
+			return fmt.Errorf("%w for contract %s, owner %s", err, getDeployedSCAddress(sc), sc.GetOwner())
 		}
 	}
 
@@ -376,7 +392,7 @@ func (sdp *standardDelegationProcessor) verify(sc genesis.InitialSmartContractHa
 
 func (sdp *standardDelegationProcessor) verifyStakedValue(sc genesis.InitialSmartContractHandler) error {
 	providedStakedValue := big.NewInt(0)
-	providedDelegators := sdp.accuntsParser.GetInitialAccountsForDelegated(sc.AddressBytes())
+	providedDelegators := sdp.accuntsParser.GetInitialAccountsForDelegated(getDeployedSCAddressBytes(sc))
 
 	for _, delegator := range providedDelegators {
 		if check.IfNil(delegator) {
@@ -406,7 +422,7 @@ func (sdp *standardDelegationProcessor) checkDelegator(
 	sc genesis.InitialSmartContractHandler,
 ) error {
 	scQueryStakeValue := &process.SCQuery{
-		ScAddress: sc.AddressBytes(),
+		ScAddress: getDeployedSCAddressBytes(sc),
 		FuncName:  "getUserStake",
 		Arguments: [][]byte{delegator.AddressBytes()},
 	}
@@ -429,11 +445,11 @@ func (sdp *standardDelegationProcessor) checkDelegator(
 }
 
 func (sdp *standardDelegationProcessor) verifyRegisteredNodes(sc genesis.InitialSmartContractHandler) error {
-	delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(sc.AddressBytes())
+	delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(getDeployedSCAddressBytes(sc))
 	if len(delegatedNodes) == 0 {
 		log.Debug("genesis delegation SC does not have staked nodes",
 			"SC owner", sc.GetOwner(),
-			"SC address", sc.Address(),
+			"SC address", getDeployedSCAddress(sc),
 			"function", addNodesFunction,
 		)
 
@@ -457,7 +473,7 @@ func (sdp *standardDelegationProcessor) verifyOneNode(
 
 	function := "getNodeSignature"
 	scQueryBlsKeys := &process.SCQuery{
-		ScAddress: sc.AddressBytes(),
+		ScAddress: getDeployedSCAddressBytes(sc),
 		FuncName:  function,
 		Arguments: [][]byte{node.PubKeyBytes()},
 	}
@@ -469,14 +485,14 @@ func (sdp *standardDelegationProcessor) verifyOneNode(
 
 	if len(vmOutput.ReturnData) == 0 {
 		return fmt.Errorf("%w for SC %s, owner %s, function %s, node %s",
-			genesis.ErrEmptyReturnData, sc.Address(), sc.GetOwner(), function,
+			genesis.ErrEmptyReturnData, getDeployedSCAddress(sc), sc.GetOwner(), function,
 			hex.EncodeToString(node.PubKeyBytes()),
 		)
 	}
 
 	if !bytes.Equal(vmOutput.ReturnData[0], genesisSignature) {
 		return fmt.Errorf("%w for SC %s, owner %s, function %s, node %s",
-			genesis.ErrSignatureMismatch, sc.Address(), sc.GetOwner(), function,
+			genesis.ErrSignatureMismatch, getDeployedSCAddress(sc), sc.GetOwner(), function,
 			hex.EncodeToString(node.PubKeyBytes()),
 		)
 	}

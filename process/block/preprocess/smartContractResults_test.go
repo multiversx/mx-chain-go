@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -838,8 +839,8 @@ func TestScrsPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{
-			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) error {
-				return nil
+			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		mock.NewMultiShardsCoordinatorMock(3),
@@ -910,8 +911,8 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{
-			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) error {
-				return nil
+			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		mock.NewMultiShardsCoordinatorMock(3),

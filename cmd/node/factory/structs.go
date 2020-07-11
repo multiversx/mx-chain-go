@@ -11,6 +11,7 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -58,10 +59,10 @@ func PrepareNetworkShardingCollector(
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
-	epochShard uint32,
+	epochStart uint32,
 ) (*networksharding.PeerShardMapper, error) {
 
-	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochStartRegistrationHandler, epochShard)
+	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochStartRegistrationHandler, epochStart)
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +71,11 @@ func PrepareNetworkShardingCollector(
 	networkShardingCollector.UpdatePeerIdShardId(localID, coordinator.SelfId())
 
 	err = network.NetworkMessenger().SetPeerShardResolver(networkShardingCollector)
+	if err != nil {
+		return nil, err
+	}
+
+	err = network.InputAntiFloodHandler().SetPeerValidatorMapper(networkShardingCollector)
 	if err != nil {
 		return nil, err
 	}
@@ -176,4 +182,20 @@ func CreateUnitOpener(
 	}
 
 	return storageFactory.NewStorageUnitOpenHandler(argsStorageUnitOpener)
+}
+
+// PrepareOpenTopics will set to the anti flood handler the topics for which
+// the node can receive messages from others than validators
+func PrepareOpenTopics(
+	antiflood mainFactory.P2PAntifloodHandler,
+	shardCoordinator sharding.Coordinator,
+) {
+	selfID := shardCoordinator.SelfId()
+	if selfID == core.MetachainShardId {
+		antiflood.SetTopicsForAll(core.HeartbeatTopic)
+		return
+	}
+
+	selfShardTxTopic := factory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
+	antiflood.SetTopicsForAll(core.HeartbeatTopic, selfShardTxTopic)
 }

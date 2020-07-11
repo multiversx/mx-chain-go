@@ -96,8 +96,20 @@ func (mnc *managedNetworkComponents) OutputAntiFloodHandler() P2PAntifloodHandle
 	return mnc.outputAntifloodHandler
 }
 
+// PubKeyCacher returns the public keys time cacher
+func (mnc *managedNetworkComponents) PubKeyCacher() process.TimeCacher {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.pubKeyTimeCacher
+}
+
 // PeerBlackListHandler returns the blacklist handler
-func (mnc *managedNetworkComponents) PeerBlackListHandler() process.PeerBlackListHandler {
+func (mnc *managedNetworkComponents) PeerBlackListHandler() process.PeerBlackListCacher {
 	mnc.mutNetworkComponents.RLock()
 	defer mnc.mutNetworkComponents.RUnlock()
 

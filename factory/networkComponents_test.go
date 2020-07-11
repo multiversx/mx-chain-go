@@ -1,6 +1,7 @@
 package factory_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -18,6 +19,16 @@ func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 	ncf, err := factory.NewNetworkComponentsFactory(args)
 	require.Nil(t, ncf)
 	require.Equal(t, factory.ErrNilStatusHandler, err)
+}
+
+func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getNetworkArgs()
+	args.Marshalizer = nil
+	ncf, err := factory.NewNetworkComponentsFactory(args)
+	require.Nil(t, ncf)
+	require.True(t, errors.Is(err, factory.ErrNilMarshalizer))
 }
 
 func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
@@ -85,11 +96,6 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 	}
 
 	mainConfig := config.Config{
-		P2PMessageIDAdditionalCache: config.CacheConfig{
-			Type:     "LRU",
-			Capacity: 100,
-			Shards:   16,
-		},
 		Debug: config.DebugConfig{
 			Antiflood: config.AntifloodDebugConfig{
 				Enabled:                    true,
@@ -105,5 +111,6 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 		P2pConfig:     p2pConfig,
 		MainConfig:    mainConfig,
 		StatusHandler: appStatusHandler,
+		Marshalizer:   &mock.MarshalizerMock{},
 	}
 }

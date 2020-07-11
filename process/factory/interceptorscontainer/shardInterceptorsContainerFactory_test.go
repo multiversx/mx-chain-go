@@ -280,11 +280,11 @@ func TestNewShardInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *te
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	args := getArgumentsShard(coreComp, cryptoComp)
-	args.BlackList = nil
+	args.BlockBlackList = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilBlackListHandler, err)
+	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
 func TestNewShardInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
@@ -297,6 +297,34 @@ func TestNewShardInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *te
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilValidityAttester, err)
+}
+
+func TestNewShardInterceptorsContainerFactory_InvalidChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.ChainIdCalled = func() string {
+		return ""
+	}
+	args := getArgumentsShard(coreComp, cryptoComp)
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestNewShardInterceptorsContainerFactory_InvalidMinTransactionVersionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.MinTransactionVersionCalled = func() uint32 {
+		return 0
+	}
+	args := getArgumentsShard(coreComp, cryptoComp)
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
 }
 
 func TestNewShardInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t *testing.T) {
@@ -546,6 +574,9 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		ChainIdCalled: func() string {
 			return chainID
 		},
+		MinTransactionVersionCalled: func() uint32 {
+			return 1
+		},
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: &mock.SignerMock{},
@@ -573,7 +604,7 @@ func getArgumentsShard(
 		DataPool:                createShardDataPools(),
 		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
 		TxFeeHandler:            &mock.FeeHandlerStub{},
-		BlackList:               &mock.BlackListHandlerStub{},
+		BlockBlackList:          &mock.BlackListHandlerStub{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		SizeCheckDelta:          0,
@@ -582,5 +613,6 @@ func getArgumentsShard(
 		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		ArgumentsParser:         &mock.ArgumentParserMock{},
 	}
 }

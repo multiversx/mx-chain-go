@@ -13,7 +13,6 @@
     StartRating = 5000001
     MaxRating = 10000000
     MinRating = 1
-    HoursToMaxRatingFromStartRating = 72
     SignedBlocksThreshold = 0.01
     SelectionChances = [
         { MaxThreshold = 0, ChancePercent = 5},
@@ -30,13 +29,25 @@
     ]
 
 [ShardChain.RatingSteps]
+    HoursToMaxRatingFromStartRating = 72
     ProposerValidatorImportance = 1.0
     ProposerDecreaseFactor = -4.0
     ValidatorDecreaseFactor = -4.0
     ConsecutiveMissedBlocksPenalty = 1.10
 
 [MetaChain.RatingSteps]
+    HoursToMaxRatingFromStartRating = 60
     ProposerValidatorImportance = 1.0
     ProposerDecreaseFactor = -4.0
     ValidatorDecreaseFactor = -4.0
     ConsecutiveMissedBlocksPenalty = 1.10
+
+[PeerHonesty]
+    #this value will be multiplied with the current value for a public key each DecayUpdateIntervalInSeconds seconds
+    #for the current settings, a pk will reach to value 0 after maximum 2h (if it stopped misbehaving or stopped sending good messages)
+    DecayCoefficient             = 0.9779
+    DecayUpdateIntervalInSeconds = 10
+    MaxScore                     = 100
+    MinScore                     = -100
+    BadPeerThreshold             = -80
+    UnitValue                    = 1.0

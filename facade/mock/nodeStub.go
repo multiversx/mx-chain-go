@@ -19,7 +19,7 @@ type NodeStub struct {
 	GetBalanceHandler          func(address string) (*big.Int, error)
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data string, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	GetTransactionHandler                          func(hash string) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
@@ -32,7 +32,6 @@ type NodeStub struct {
 	DirectTriggerCalled                            func(epoch uint32) error
 	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
-	GetTransactionStatusCalled                     func(hash string) (string, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
 }
@@ -44,15 +43,6 @@ func (ns *NodeStub) GetValueForKey(address string, key string) (string, error) {
 	}
 
 	return "", nil
-}
-
-// GetTransactionStatus -
-func (ns *NodeStub) GetTransactionStatus(hash string) (string, error) {
-	if ns.GetTransactionStatusCalled != nil {
-		return ns.GetTransactionStatusCalled(hash)
-	}
-
-	return "unknown", nil
 }
 
 // EncodeAddressPubkey -
@@ -77,9 +67,9 @@ func (ns *NodeStub) GetBalance(address string) (*big.Int, error) {
 
 // CreateTransaction -
 func (ns *NodeStub) CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-	gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error) {
+	gasLimit uint64, data string, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error) {
 
-	return ns.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex)
+	return ns.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, chainID, version)
 }
 
 //ValidateTransaction --

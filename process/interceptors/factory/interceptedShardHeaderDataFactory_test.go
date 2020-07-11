@@ -92,18 +92,6 @@ func TestNewInterceptedShardHeaderDataFactory_NilValidityAttesterShouldErr(t *te
 	assert.Equal(t, process.ErrNilValidityAttester, err)
 }
 
-func TestNewInterceptedShardHeaderDataFactory_NilNonceConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, cryptoComponents := createMockComponentHolders()
-	coreComponents.UInt64ByteSliceConv = nil
-	arg := createMockArgument(coreComponents, cryptoComponents)
-
-	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.True(t, check.IfNil(imh))
-	assert.Equal(t, process.ErrNilUint64Converter, err)
-}
-
 func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	t.Parallel()
 

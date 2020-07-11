@@ -82,9 +82,7 @@ type ValidatorSettingsHandler interface {
 
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
-	GetFunctionArguments() ([][]byte, error)
-	GetFunction() (string, error)
-	ParseData(data string) error
+	ParseData(data string) (string, [][]byte, error)
 	IsInterfaceNil() bool
 }
 

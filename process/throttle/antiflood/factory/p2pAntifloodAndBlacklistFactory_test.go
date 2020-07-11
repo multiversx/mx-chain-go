@@ -39,9 +39,11 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 	assert.Nil(t, err)
 
 	_, ok1 := components.AntiFloodHandler.(*disabled.AntiFlood)
-	_, ok2 := components.BlacklistHandler.(*disabled.PeerBlacklistHandler)
+	_, ok2 := components.BlacklistHandler.(*disabled.PeerBlacklistCacher)
+	_, ok3 := components.PubKeysCacher.(*disabled.TimeCache)
 	assert.True(t, ok1)
 	assert.True(t, ok2)
+	assert.True(t, ok3)
 }
 
 func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *testing.T) {
@@ -70,6 +72,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 	assert.Nil(t, err)
 	assert.NotNil(t, components.AntiFloodHandler)
 	assert.NotNil(t, components.BlacklistHandler)
+	assert.NotNil(t, components.PubKeysCacher)
 }
 
 func createFloodPreventerConfig() config.FloodPreventerConfig {

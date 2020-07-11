@@ -53,6 +53,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		ChainID:                 ChainID,
 		NodesSetup:              nodeSetup,
 		RatingsData:             ratingsData,
+		MinTransactionVersion:   MinTransactionVersion,
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -233,6 +234,7 @@ func CreateNodeWithBLSAndTxKeys(
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
 		RatingsData:             ratingsData,
+		MinTransactionVersion:   MinTransactionVersion,
 	}
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
@@ -700,6 +702,11 @@ func AllShardsProposeBlock(
 	consensusNodes := make(map[uint32][]*TestProcessorNode)
 	newRandomness := make(map[uint32][]byte)
 
+	nodesList := make([]*TestProcessorNode, 0)
+	for shardID := range nodesMap {
+		nodesList = append(nodesList, nodesMap[shardID]...)
+	}
+
 	// propose blocks
 	for i := range nodesMap {
 		currentBlockHeader := nodesMap[i][0].BlockChain.GetCurrentBlockHeader()
@@ -713,6 +720,7 @@ func AllShardsProposeBlock(
 		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(
 			i, nodesMap, round, nonce, prevRandomness, epoch,
 		)
+		nodesMap[i][0].WhiteListBody(nodesList, body[i])
 		newRandomness[i] = header[i].GetRandSeed()
 	}
 

@@ -1,13 +1,21 @@
 package genesis
 
 import (
+	"bytes"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // DelegationType defines the constant used when checking if a smart contract is of delegation type
 const DelegationType = "delegation"
+
+// DNSType defines the constant used when checking if a smart contract is of dns type
+const DNSType = "dns"
+
+// InitialDNSAddress defines the initial address from where the DNS contracts are deployed
+var InitialDNSAddress = bytes.Repeat([]byte{1}, 32)
 
 // DelegationResult represents the DTO that contains the delegation results metrics
 type DelegationResult struct {
@@ -60,10 +68,10 @@ type InitialSmartContractHandler interface {
 	GetInitParameters() string
 	GetType() string
 	VmTypeBytes() []byte
-	SetAddressBytes(addressBytes []byte)
-	AddressBytes() []byte
-	SetAddress(address string)
-	Address() string
+	AddAddressBytes(addressBytes []byte)
+	AddressesBytes() [][]byte
+	AddAddress(address string)
+	Addresses() []string
 	GetVersion() string
 	IsInterfaceNil() bool
 }
@@ -72,6 +80,7 @@ type InitialSmartContractHandler interface {
 //json file and has some functionality regarding processed data
 type InitialSmartContractParser interface {
 	InitialSmartContractsSplitOnOwnersShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialSmartContractHandler, error)
+	GetDeployedSCAddresses(scType string) (map[string]struct{}, error)
 	InitialSmartContracts() []InitialSmartContractHandler
 	IsInterfaceNil() bool
 }
@@ -79,7 +88,7 @@ type InitialSmartContractParser interface {
 // TxExecutionProcessor represents a transaction builder and executor containing also related helper functions
 type TxExecutionProcessor interface {
 	ExecuteTransaction(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error
-	AccountExists(address []byte) bool
+	GetAccount(address []byte) (state.UserAccountHandler, bool)
 	GetNonce(senderBytes []byte) (uint64, error)
 	AddBalance(senderBytes []byte, value *big.Int) error
 	AddNonce(senderBytes []byte, nonce uint64) error

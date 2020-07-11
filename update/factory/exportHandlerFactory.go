@@ -389,7 +389,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		DataPool:                e.dataPool,
 		MaxTxNonceDeltaAllowed:  math.MaxInt32,
 		TxFeeHandler:            &disabled.FeeHandler{},
-		BlackList:               timecache.NewTimeCache(time.Second),
+		BlockBlackList:          timecache.NewTimeCache(time.Second),
 		HeaderSigVerifier:       e.headerSigVerifier,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		SizeCheckDelta:          math.MaxUint32,

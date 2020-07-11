@@ -87,6 +87,7 @@ func createMockArgument(
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		ArgsParser:              &mock.ArgumentParserMock{},
 	}
 }
 
@@ -194,18 +195,6 @@ func TestNewInterceptedMetaHeaderDataFactory_NilValidityAttesterShouldErr(t *tes
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilValidityAttester, err)
-}
-
-func TestNewInterceptedMetaHeaderDataFactory_NilNonceConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createMockComponentHolders()
-	coreComp.UInt64ByteSliceConv = nil
-	arg := createMockArgument(coreComp, cryptoComp)
-
-	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.True(t, check.IfNil(imh))
-	assert.Equal(t, process.ErrNilUint64Converter, err)
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {

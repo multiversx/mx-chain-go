@@ -14,6 +14,9 @@
    # ChainID identifies the blockChain
    ChainID = "undefined"
 
+   # MinTransactionVersion represents the minimum transaction version accepted
+   MinTransactionVersion = 1
+
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = false
@@ -216,7 +219,7 @@
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
-    MaxSnapshots = 2
+    MaxSnapshots = 3
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
@@ -309,6 +312,11 @@
 [PeerIdShardId]
     Name = "PeerIdShardId"
     Capacity = 30000
+    Type = "LRU"
+
+[PeerHonesty]
+    Name = "PeerHonesty"
+    Capacity = 5000
     Type = "LRU"
 
 [Antiflood]
@@ -500,11 +508,6 @@
         MessagesMarshalizer = "json"
         MaxLoopTime = 1000
 
-[P2PMessageIDAdditionalCache]
-    Capacity = 100000
-    Type = "FIFOSharded"
-    Shards = 100
-
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true
@@ -565,10 +568,10 @@
         IntervalAutoPrintInSeconds = 20
 
 [Health]
-    IntervalVerifyMemoryInSeconds = 1
-    IntervalDiagnoseComponentsInSeconds = 10
-    IntervalDiagnoseComponentsDeeplyInSeconds = 30
-    MemoryUsageToCreateProfiles = 2147483648 # 2GB
+    IntervalVerifyMemoryInSeconds = 5
+    IntervalDiagnoseComponentsInSeconds = 30
+    IntervalDiagnoseComponentsDeeplyInSeconds = 120
+    MemoryUsageToCreateProfiles = 2415919104 # 2.25GB
     NumMemoryUsageRecordsToKeep = 100
     FolderPath = "health-records"
 

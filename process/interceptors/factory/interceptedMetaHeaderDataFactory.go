@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -21,7 +20,6 @@ type interceptedMetaHeaderDataFactory struct {
 	chainID                 []byte
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
-	nonceConverter          typeConverters.Uint64ByteSliceConverter
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -59,9 +57,6 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
-	if check.IfNil(argument.CoreComponents.Uint64ByteSliceConverter()) {
-		return nil, process.ErrNilUint64Converter
-	}
 
 	return &interceptedMetaHeaderDataFactory{
 		marshalizer:             argument.CoreComponents.InternalMarshalizer(),
@@ -72,7 +67,6 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 		chainID:                 []byte(argument.CoreComponents.ChainID()),
 		validityAttester:        argument.ValidityAttester,
 		epochStartTrigger:       argument.EpochStartTrigger,
-		nonceConverter:          argument.CoreComponents.Uint64ByteSliceConverter(),
 	}, nil
 }
 
@@ -87,7 +81,6 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		HeaderIntegrityVerifier: imhdf.headerIntegrityVerifier,
 		ValidityAttester:        imhdf.validityAttester,
 		EpochStartTrigger:       imhdf.epochStartTrigger,
-		NonceConverter:          imhdf.nonceConverter,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

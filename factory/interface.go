@@ -48,8 +48,11 @@ type P2PAntifloodHandler interface {
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	SetDebugger(debugger process.AntifloodDebugger) error
+	SetPeerValidatorMapper(validatorMapper process.PeerValidatorMapper) error
+	SetTopicsForAll(topics ...string)
 	ApplyConsensusSize(size int)
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
+	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
 	IsInterfaceNil() bool
 }
 
@@ -84,6 +87,7 @@ type CoreComponentsHolder interface {
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	PathHandler() storage.PathManagerHandler
 	ChainID() string
+	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
 }
 
@@ -142,7 +146,8 @@ type NetworkComponentsHolder interface {
 	NetworkMessenger() p2p.Messenger
 	InputAntiFloodHandler() P2PAntifloodHandler
 	OutputAntiFloodHandler() P2PAntifloodHandler
-	PeerBlackListHandler() process.PeerBlackListHandler
+	PubKeyCacher() process.TimeCacher
+	PeerBlackListHandler() process.PeerBlackListCacher
 	IsInterfaceNil() bool
 }
 
@@ -162,7 +167,7 @@ type ProcessComponentsHolder interface {
 	EpochStartNotifier() EpochStartNotifier
 	ForkDetector() process.ForkDetector
 	BlockProcessor() process.BlockProcessor
-	BlackListHandler() process.BlackListHandler
+	BlackListHandler() process.TimeCacher
 	BootStorer() process.BootStorer
 	HeaderSigVerifier() process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier() process.HeaderIntegrityVerifier

@@ -574,7 +574,7 @@ func IsInProperRound(index int64) bool {
 }
 
 // AddHeaderToBlackList adds a hash to black list handler. Logs if the operation did not succeed
-func AddHeaderToBlackList(blackListHandler BlackListHandler, hash []byte) {
+func AddHeaderToBlackList(blackListHandler TimeCacher, hash []byte) {
 	blackListHandler.Sweep()
 	err := blackListHandler.Add(string(hash))
 	if err != nil {

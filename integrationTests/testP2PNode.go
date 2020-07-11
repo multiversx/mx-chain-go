@@ -18,11 +18,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ShardTopic is the topic string generator for sharded topics
@@ -120,7 +120,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		TriggerPubKeyBytes:        []byte("invalid trigger public key"),
 		Enabled:                   false,
 		EnabledAuthenticated:      false,
-		ArgumentParser:            vmcommon.NewAtArgumentParser(),
+		ArgumentParser:            smartContract.NewArgumentParser(),
 		EpochProvider:             &mock.EpochStartTriggerStub{},
 		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
 		CloseAfterExportInMinutes: 5,
@@ -159,7 +159,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 			},
 		}),
 		node.WithHardforkTrigger(hardforkTrigger),
-		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{}),
+		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
 		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
 		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),

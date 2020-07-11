@@ -9,6 +9,15 @@ import (
 type SmartContractParserStub struct {
 	InitialSmartContractsSplitOnOwnersShardsCalled func(shardCoordinator sharding.Coordinator) (map[uint32][]genesis.InitialSmartContractHandler, error)
 	InitialSmartContractsCalled                    func() []genesis.InitialSmartContractHandler
+	GetDeployedSCAddressesCalled                   func(scType string) (map[string]struct{}, error)
+}
+
+// GetDeployedSCAddresses -
+func (scps *SmartContractParserStub) GetDeployedSCAddresses(scType string) (map[string]struct{}, error) {
+	if scps.GetDeployedSCAddressesCalled != nil {
+		return scps.GetDeployedSCAddressesCalled(scType)
+	}
+	return make(map[string]struct{}), nil
 }
 
 // InitialSmartContractsSplitOnOwnersShards -

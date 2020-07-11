@@ -51,7 +51,7 @@ var ErrLowerNonceInTransaction = errors.New("lower nonce in transaction")
 var ErrInsufficientFunds = errors.New("insufficient funds")
 
 // ErrInsufficientFee signals that the current balance doesn't have the required transaction fee
-var ErrInsufficientFee = errors.New("insufficient fees")
+var ErrInsufficientFee = errors.New("insufficient balance for fees")
 
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
@@ -443,9 +443,6 @@ var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshInterv
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
-// ErrVMTypeLengthInvalid signals that vm type length is too long
-var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
-
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
 
@@ -524,8 +521,11 @@ var ErrNilSCToProtocol = errors.New("nil sc to protocol")
 // ErrNilNodesSetup signals that nil nodes setup has been provided
 var ErrNilNodesSetup = errors.New("nil nodes setup")
 
-// ErrNilBlackListHandler signals that a nil black list handler was provided
-var ErrNilBlackListHandler = errors.New("nil black list handler")
+// ErrNilBlackListCacher signals that a nil black list cacher was provided
+var ErrNilBlackListCacher = errors.New("nil black list cacher")
+
+// ErrNilPeerShardMapper signals that a nil peer shard mapper has been provided
+var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
 
 // ErrNilBlockTracker signals that a nil block tracker was provided
 var ErrNilBlockTracker = errors.New("nil block tracker")
@@ -803,8 +803,23 @@ var ErrOriginatorIsBlacklisted = errors.New("originator is blacklisted")
 // ErrShardIsStuck signals that a shard is stuck
 var ErrShardIsStuck = errors.New("shard is stuck")
 
+// ErrRelayedTxBeneficiaryDoesNotMatchReceiver signals that an invalid address was provided in the relayed tx
+var ErrRelayedTxBeneficiaryDoesNotMatchReceiver = errors.New("invalid address in relayed tx")
+
+// ErrInvalidVMType signals that invalid vm type was provided
+var ErrInvalidVMType = errors.New("invalid VM type")
+
+// ErrRecursiveRelayedTxIsNotAllowed signals that recursive relayed tx is not allowed
+var ErrRecursiveRelayedTxIsNotAllowed = errors.New("recursive relayed tx is not allowed")
+
+// ErrRelayedTxValueHigherThenUserTxValue signals that relayed tx value is higher then user tx value
+var ErrRelayedTxValueHigherThenUserTxValue = errors.New("relayed tx value is higher than user tx value")
+
 // ErrNilInterceptorContainer signals that nil interceptor container has been provided
 var ErrNilInterceptorContainer = errors.New("nil interceptor container")
+
+// ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
+var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 
 // ErrTxValueTooBig signals that transaction value is too big
 var ErrTxValueTooBig = errors.New("tx value is too big")
@@ -814,3 +829,36 @@ var ErrInvalidUserNameLength = errors.New("invalid user name length")
 
 // ErrTxValueOutOfBounds signals that transaction value is out of bounds
 var ErrTxValueOutOfBounds = errors.New("tx value is out of bounds")
+
+// ErrNilBlackListedPkCache signals that a nil black listed public key cache has been provided
+var ErrNilBlackListedPkCache = errors.New("nil black listed public key cache")
+
+// ErrInvalidDecayCoefficient signals that the provided decay coefficient is invalid
+var ErrInvalidDecayCoefficient = errors.New("decay coefficient is invalid")
+
+// ErrInvalidDecayIntervalInSeconds signals that an invalid interval in seconds was provided
+var ErrInvalidDecayIntervalInSeconds = errors.New("invalid decay interval in seconds")
+
+// ErrInvalidMinScore signals that an invalid minimum score was provided
+var ErrInvalidMinScore = errors.New("invalid minimum score")
+
+// ErrInvalidMaxScore signals that an invalid maximum score was provided
+var ErrInvalidMaxScore = errors.New("invalid maximum score")
+
+// ErrInvalidUnitValue signals that an invalid unit value was provided
+var ErrInvalidUnitValue = errors.New("invalid unit value")
+
+// ErrInvalidBadPeerThreshold signals that an invalid bad peer threshold has been provided
+var ErrInvalidBadPeerThreshold = errors.New("invalid bad peer threshold")
+
+// ErrNilPeerValidatorMapper signals that nil peer validator mapper has been provided
+var ErrNilPeerValidatorMapper = errors.New("nil peer validator mapper")
+
+// ErrOnlyValidatorsCanUseThisTopic signals that topic can be used by validator only
+var ErrOnlyValidatorsCanUseThisTopic = errors.New("only validators can use this topic")
+
+// ErrTransactionIsNotWhitelisted signals that a transaction is not whitelisted
+var ErrTransactionIsNotWhitelisted = errors.New("transaction is not whitelisted")
+
+// ErrInterceptedDataNotForCurrentShard signals that intercepted data is not for current shard
+var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for current shard")

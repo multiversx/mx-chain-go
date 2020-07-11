@@ -91,14 +91,14 @@ func (sw *StopWatch) GetMeasurementsMap() map[string]float64 {
 	return output
 }
 
-// GetMeasurement returns the measurement (duration in seconds) by identifier
-func (sw *StopWatch) GetMeasurement(identifier string) float64 {
+// GetMeasurement returns the measurement by identifier
+func (sw *StopWatch) GetMeasurement(identifier string) time.Duration {
 	sw.mut.RLock()
 	defer sw.mut.RUnlock()
 
 	duration, ok := sw.elapsed[identifier]
 	if ok {
-		return duration.Seconds()
+		return duration
 	}
 
 	return 0

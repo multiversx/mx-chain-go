@@ -15,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const numGoRoutines = 2000
+const numGoRoutines = 100
 
 type baseInterceptorsContainerFactory struct {
 	container              process.InterceptorsContainer
@@ -25,7 +25,7 @@ type baseInterceptorsContainerFactory struct {
 	dataPool               dataRetriever.PoolsHolder
 	messenger              process.TopicHandler
 	nodesCoordinator       sharding.NodesCoordinator
-	blackList              process.BlackListHandler
+	blockBlackList         process.TimeCacher
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
@@ -44,7 +44,7 @@ func checkBaseParams(
 	dataPool dataRetriever.PoolsHolder,
 	messenger process.TopicHandler,
 	nodesCoordinator sharding.NodesCoordinator,
-	blackList process.BlackListHandler,
+	blackList process.TimeCacher,
 	antifloodHandler process.P2PAntifloodHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
@@ -73,6 +73,9 @@ func checkBaseParams(
 	if len(coreComponents.ChainID()) == 0 {
 		return process.ErrInvalidChainID
 	}
+	if coreComponents.MinTransactionVersion() == 0 {
+		return process.ErrInvalidTransactionVersion
+	}
 	if check.IfNil(cryptoComponents.MultiSigner()) {
 		return process.ErrNilMultiSigVerifier
 	}
@@ -98,7 +101,7 @@ func checkBaseParams(
 		return process.ErrNilAccountsAdapter
 	}
 	if check.IfNil(blackList) {
-		return process.ErrNilBlackListHandler
+		return process.ErrNilBlackListCacher
 	}
 	if check.IfNil(antifloodHandler) {
 		return process.ErrNilAntifloodHandler
@@ -323,9 +326,9 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      bicf.dataPool.Headers(),
-		HdrValidator: hdrValidator,
-		BlackList:    bicf.blackList,
+		Headers:        bicf.dataPool.Headers(),
+		HdrValidator:   hdrValidator,
+		BlockBlackList: bicf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -452,9 +455,9 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      bicf.dataPool.Headers(),
-		HdrValidator: hdrValidator,
-		BlackList:    bicf.blackList,
+		Headers:        bicf.dataPool.Headers(),
+		HdrValidator:   hdrValidator,
+		BlockBlackList: bicf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

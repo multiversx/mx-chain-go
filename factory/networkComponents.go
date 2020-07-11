@@ -8,12 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
@@ -21,6 +20,7 @@ type NetworkComponentsFactoryArgs struct {
 	P2pConfig     config.P2PConfig
 	MainConfig    config.Config
 	StatusHandler core.AppStatusHandler
+	Marshalizer   marshal.Marshalizer
 }
 
 type networkComponentsFactory struct {
@@ -28,6 +28,7 @@ type networkComponentsFactory struct {
 	mainConfig    config.Config
 	statusHandler core.AppStatusHandler
 	listenAddress string
+	marshalizer   marshal.Marshalizer
 }
 
 // networkComponents struct holds the network components
@@ -35,9 +36,10 @@ type networkComponents struct {
 	netMessenger           p2p.Messenger
 	inputAntifloodHandler  P2PAntifloodHandler
 	outputAntifloodHandler P2PAntifloodHandler
+	pubKeyTimeCacher       process.TimeCacher
 	topicFloodPreventer    process.TopicFloodPreventer
 	floodPreventers        []process.FloodPreventer
-	peerBlackListHandler   process.PeerBlackListHandler
+	peerBlackListHandler   process.PeerBlackListCacher
 	antifloodConfig        config.AntifloodConfig
 	closeFunc              context.CancelFunc
 }
@@ -49,9 +51,13 @@ func NewNetworkComponentsFactory(
 	if check.IfNil(args.StatusHandler) {
 		return nil, ErrNilStatusHandler
 	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, fmt.Errorf("%w in NewNetworkComponentsFactory", ErrNilMarshalizer)
+	}
 
 	return &networkComponentsFactory{
 		p2pConfig:     args.P2pConfig,
+		marshalizer:   args.Marshalizer,
 		mainConfig:    args.MainConfig,
 		statusHandler: args.StatusHandler,
 		listenAddress: libp2p.ListenAddrWithIp4AndTcp,
@@ -61,6 +67,7 @@ func NewNetworkComponentsFactory(
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	arg := libp2p.ArgsNetworkMessenger{
+		Marshalizer:   ncf.marshalizer,
 		ListenAddress: ncf.listenAddress,
 		P2pConfig:     ncf.p2pConfig,
 	}
@@ -109,21 +116,6 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
 	}
 
-	err = netMessenger.SetPeerBlackListHandler(antiFloodComponents.BlacklistHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	cache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(ncf.mainConfig.P2PMessageIDAdditionalCache))
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating p2p cacher", err)
-	}
-
-	err = netMessenger.SetMessageIdsCacher(cache)
-	if err != nil {
-		return nil, fmt.Errorf("%w while setting p2p cacher", err)
-	}
-
 	return &networkComponents{
 		netMessenger:           netMessenger,
 		inputAntifloodHandler:  inputAntifloodHandler,
@@ -131,6 +123,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		topicFloodPreventer:    antiFloodComponents.TopicPreventer,
 		floodPreventers:        antiFloodComponents.FloodPreventers,
 		peerBlackListHandler:   antiFloodComponents.BlacklistHandler,
+		pubKeyTimeCacher:       antiFloodComponents.PubKeysCacher,
 		antifloodConfig:        ncf.mainConfig.Antiflood,
 		closeFunc:              cancelFunc,
 	}, nil

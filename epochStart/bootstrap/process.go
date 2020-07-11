@@ -101,6 +101,7 @@ type epochStartBootstrap struct {
 	whiteListerVerifiedTxs    update.WhiteListHandler
 	storageOpenerHandler      storage.UnitOpenerHandler
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
+	argumentsParser           process.ArgumentsParser
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -110,9 +111,10 @@ type epochStartBootstrap struct {
 	userAccountTries   map[string]data.Trie
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
-	shuffledOut        bool
 	startEpoch         uint32
 	startRound         int64
+	shuffledOut        bool
+	nodeType           core.NodeType
 }
 
 type baseDataInStorage struct {
@@ -139,6 +141,7 @@ type ArgsEpochStartBootstrap struct {
 	Rater                      sharding.ChanceComputer
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
+	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
 	ImportStartHandler         epochStart.ImportStartHandler
 }
@@ -166,7 +169,9 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		shuffledOut:                false,
 		statusHandler:              args.StatusHandler,
+		nodeType:                   core.NodeTypeObserver,
 		importStartHandler:         args.ImportStartHandler,
+		argumentsParser:            args.ArgumentsParser,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -217,9 +222,10 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 		return Parameters{}, err
 	}
 
+	shardIDToReturn := e.applyShardIDAsObserverIfNeeded(e.genesisShardCoordinator.SelfId())
 	parameters := Parameters{
 		Epoch:       e.startEpoch,
-		SelfShardId: e.genesisShardCoordinator.SelfId(),
+		SelfShardId: shardIDToReturn,
 		NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 	}
 	return parameters, nil
@@ -264,6 +270,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			epochToStart = 0
 		}
 
+		newShardId = e.applyShardIDAsObserverIfNeeded(newShardId)
 		return Parameters{
 			Epoch:       epochToStart,
 			SelfShardId: newShardId,
@@ -297,7 +304,10 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	if e.isStartInEpochZero() || e.computeIfCurrentEpochIsSaved() {
+	isStartInEpochZero := e.isStartInEpochZero()
+	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
+
+	if isStartInEpochZero || isCurrentEpochSaved {
 		if e.baseData.lastEpoch == e.startEpoch {
 			return e.prepareEpochZero()
 		}
@@ -399,6 +409,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		DataPool:               e.dataPool,
 		WhiteListHandler:       e.whiteListHandler,
 		WhiteListerVerifiedTxs: e.whiteListerVerifiedTxs,
+		ArgumentsParser:        e.argumentsParser,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -565,6 +576,8 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 	}
 
 	e.nodesConfig, e.baseData.shardId, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
+	e.baseData.shardId = e.applyShardIDAsObserverIfNeeded(e.baseData.shardId)
+
 	return err
 }
 
@@ -877,6 +890,17 @@ func (e *epochStartBootstrap) setEpochStartMetrics() {
 		e.statusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, e.epochStartMeta.Nonce)
 		e.statusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, e.epochStartMeta.Round)
 	}
+}
+
+func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uint32) uint32 {
+	if e.nodeType == core.NodeTypeObserver &&
+		e.destinationShardAsObserver != core.DisabledShardIDAsObserver &&
+		e.destinationShardAsObserver != receivedShardID {
+		log.Debug("shard id as observer applied", "destination shard ID", e.destinationShardAsObserver, "computed", receivedShardID)
+		receivedShardID = e.destinationShardAsObserver
+	}
+
+	return receivedShardID
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -211,6 +211,18 @@ func (mcc *managedCoreComponents) ChainID() string {
 	return mcc.coreComponents.chainID
 }
 
+// MinTransactionVersion returns the minimum transaction version
+func (mcc *managedCoreComponents) MinTransactionVersion() uint32 {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return 0
+	}
+
+	return mcc.coreComponents.minTransactionVersion
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil

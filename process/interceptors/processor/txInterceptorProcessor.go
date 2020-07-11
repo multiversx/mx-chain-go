@@ -50,6 +50,18 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 		return process.ErrWrongTypeAssertion
 	}
 
+	err := txip.txValidator.CheckTxWhiteList(data)
+	if err != nil {
+		log.Trace(
+			"TxInterceptorProcessor.Save: not whitelisted cross transactions will not be added in pool",
+			"nonce", interceptedTx.Nonce(),
+			"sender address", interceptedTx.SenderAddress(),
+			"sender shard", interceptedTx.SenderShardId(),
+			"receiver shard", interceptedTx.ReceiverShardId(),
+		)
+		return nil
+	}
+
 	cacherIdentifier := process.ShardCacherIdentifier(interceptedTx.SenderShardId(), interceptedTx.ReceiverShardId())
 	txip.shardedPool.AddData(
 		data.Hash(),

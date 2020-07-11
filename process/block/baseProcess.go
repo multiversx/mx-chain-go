@@ -950,6 +950,7 @@ func (bp *baseProcessor) saveBody(body *block.Body) {
 	if errNotCritical != nil {
 		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
 	}
+	log.Trace("saveBody.SaveBlockDataToStorage", "time", time.Since(startTime))
 
 	var marshalizedMiniBlock []byte
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -964,6 +965,7 @@ func (bp *baseProcessor) saveBody(body *block.Body) {
 		if errNotCritical != nil {
 			log.Warn("saveBody.Put -> MiniBlockUnit", "error", errNotCritical.Error())
 		}
+		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime))
 	}
 
 	elapsedTime := time.Since(startTime)

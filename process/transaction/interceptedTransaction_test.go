@@ -2,16 +2,19 @@ package transaction_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -62,7 +65,7 @@ func createFreeTxFeeHandler() *mock.FeeHandlerStub {
 	}
 }
 
-func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandler process.FeeHandler) (*transaction.InterceptedTransaction, error) {
+func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandler process.FeeHandler, chainID []byte, minTxVersion uint32) (*transaction.InterceptedTransaction, error) {
 	marshalizer := &mock.MarshalizerMock{}
 	txBuff, err := marshalizer.Marshal(tx)
 	if err != nil {
@@ -93,6 +96,46 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		shardCoordinator,
 		txFeeHandler,
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		chainID,
+		minTxVersion,
+	)
+}
+
+func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction) (*transaction.InterceptedTransaction, error) {
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, err := marshalizer.Marshal(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	shardCoordinator.CurrentShard = 0
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, senderAddress) {
+			return senderShard
+		}
+		if bytes.Equal(address, recvAddress) {
+			return recvShard
+		}
+
+		return shardCoordinator.CurrentShard
+	}
+
+	return transaction.NewInterceptedTransaction(
+		txBuff,
+		marshalizer,
+		marshalizer,
+		mock.HasherMock{},
+		createKeyGenMock(),
+		createDummySigner(),
+		&mock.PubkeyConverterStub{},
+		shardCoordinator,
+		createFreeTxFeeHandler(),
+		&mock.WhiteListHandlerStub{},
+		smartContract.NewArgumentParser(),
+		tx.ChainID,
+		tx.Version,
 	)
 }
 
@@ -112,6 +155,9 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
 	)
 
 	assert.Nil(t, txi)
@@ -132,6 +178,9 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
 	)
 
 	assert.Nil(t, txi)
@@ -152,6 +201,9 @@ func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
 	)
 
 	assert.Nil(t, txi)
@@ -172,6 +224,9 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
 	)
 
 	assert.Nil(t, txi)
@@ -192,6 +247,9 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
 	)
 
 	assert.Nil(t, txi)
@@ -212,6 +270,9 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
 	)
 
 	assert.Nil(t, txi)
@@ -232,6 +293,9 @@ func TestNewInterceptedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
 	)
 
 	assert.Nil(t, txi)
@@ -252,6 +316,9 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 		nil,
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
 	)
 
 	assert.Nil(t, txi)
@@ -272,6 +339,9 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
 	)
 
 	assert.Nil(t, txi)
@@ -292,10 +362,59 @@ func TestNewInterceptedTransaction_NilWhiteListerVerifiedTxsShouldErr(t *testing
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		nil,
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
 	)
 
 	assert.Nil(t, txi)
 	assert.Equal(t, process.ErrNilWhiteListHandler, err)
+}
+
+func TestNewInterceptedTransaction_InvalidChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txi, err := transaction.NewInterceptedTransaction(
+		make([]byte, 0),
+		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
+		mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		createMockPubkeyConverter(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.FeeHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		nil,
+		1,
+	)
+
+	assert.Nil(t, txi)
+	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestNewInterceptedTransaction_InvalidVersionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txi, err := transaction.NewInterceptedTransaction(
+		make([]byte, 0),
+		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
+		mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		createMockPubkeyConverter(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.FeeHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		0,
+	)
+
+	assert.Nil(t, txi)
+	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
 }
 
 func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
@@ -318,6 +437,9 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
 	)
 
 	assert.Nil(t, txi)
@@ -327,6 +449,8 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
@@ -336,9 +460,11 @@ func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
 
-	txi, err := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, err := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	assert.False(t, check.IfNil(txi))
 	assert.Nil(t, err)
@@ -350,6 +476,8 @@ func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 func TestInterceptedTransaction_CheckValidityNilSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
@@ -359,8 +487,10 @@ func TestInterceptedTransaction_CheckValidityNilSignatureShouldErr(t *testing.T)
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: nil,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	err := txi.CheckValidity()
 
@@ -370,6 +500,8 @@ func TestInterceptedTransaction_CheckValidityNilSignatureShouldErr(t *testing.T)
 func TestInterceptedTransaction_CheckValidityNilRecvAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
@@ -379,8 +511,10 @@ func TestInterceptedTransaction_CheckValidityNilRecvAddressShouldErr(t *testing.
 		RcvAddr:   nil,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	err := txi.CheckValidity()
 
@@ -390,6 +524,8 @@ func TestInterceptedTransaction_CheckValidityNilRecvAddressShouldErr(t *testing.
 func TestInterceptedTransaction_CheckValidityNilSenderAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
@@ -399,8 +535,10 @@ func TestInterceptedTransaction_CheckValidityNilSenderAddressShouldErr(t *testin
 		RcvAddr:   recvAddress,
 		SndAddr:   nil,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	err := txi.CheckValidity()
 
@@ -410,6 +548,8 @@ func TestInterceptedTransaction_CheckValidityNilSenderAddressShouldErr(t *testin
 func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     nil,
@@ -419,8 +559,10 @@ func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
-	txi, err := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, err := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 	assert.Nil(t, err)
 
 	err = txi.CheckValidity()
@@ -431,6 +573,8 @@ func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
 func TestInterceptedTransaction_CheckValidityInvalidUserNameLength(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:       1,
 		Value:       big.NewInt(2),
@@ -441,21 +585,23 @@ func TestInterceptedTransaction_CheckValidityInvalidUserNameLength(t *testing.T)
 		SndAddr:     senderAddress,
 		Signature:   sigOk,
 		RcvUserName: []byte("username"),
+		ChainID:     chainID,
+		Version:     minTxVersion,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	err := txi.CheckValidity()
 	assert.Equal(t, process.ErrInvalidUserNameLength, err)
 
 	tx.RcvUserName = nil
 	tx.SndUserName = []byte("username")
-	txi, _ = createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ = createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 	err = txi.CheckValidity()
 	assert.Equal(t, process.ErrInvalidUserNameLength, err)
 
 	tx.RcvUserName = []byte("12345678901234567890123456789012")
 	tx.SndUserName = []byte("12345678901234567890123456789012")
-	txi, _ = createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ = createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 	err = txi.CheckValidity()
 	assert.Nil(t, err)
 }
@@ -463,6 +609,8 @@ func TestInterceptedTransaction_CheckValidityInvalidUserNameLength(t *testing.T)
 func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(-2),
@@ -472,8 +620,10 @@ func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testin
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	err := txi.CheckValidity()
 
@@ -483,6 +633,8 @@ func TestInterceptedTransaction_CheckValidityNilNegativeValueShouldErr(t *testin
 func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	gasLimit := uint64(3)
 	gasPrice := uint64(4)
 	tx := &dataTransaction.Transaction{
@@ -494,6 +646,8 @@ func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
 	errExpected := errors.New("insufficient fee")
 	feeHandler := &mock.FeeHandlerStub{
@@ -501,7 +655,7 @@ func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 			return errExpected
 		},
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx, feeHandler)
+	txi, _ := createInterceptedTxFromPlainTx(tx, feeHandler, chainID, minTxVersion)
 
 	err := txi.CheckValidity()
 
@@ -511,6 +665,8 @@ func TestNewInterceptedTransaction_InsufficientFeeShouldErr(t *testing.T) {
 func TestInterceptedTransaction_CheckValidityInvalidSenderShouldErr(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
@@ -520,8 +676,10 @@ func TestInterceptedTransaction_CheckValidityInvalidSenderShouldErr(t *testing.T
 		RcvAddr:   recvAddress,
 		SndAddr:   []byte(""),
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	err := txi.CheckValidity()
 
@@ -531,6 +689,8 @@ func TestInterceptedTransaction_CheckValidityInvalidSenderShouldErr(t *testing.T
 func TestInterceptedTransaction_CheckValidityVerifyFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
@@ -540,17 +700,21 @@ func TestInterceptedTransaction_CheckValidityVerifyFailsShouldErr(t *testing.T) 
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: []byte("wrong sig"),
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	err := txi.CheckValidity()
 
 	assert.Equal(t, errSignerMockVerifySigFails, err)
 }
 
-func TestInterceptedTransaction_CheckValidityOkValsShouldWork(t *testing.T) {
+func TestInterceptedTransaction_CheckValidityWrongChainIDShouldErr(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	wrongChainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
@@ -560,8 +724,84 @@ func TestInterceptedTransaction_CheckValidityOkValsShouldWork(t *testing.T) {
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   wrongChainID,
+		Version:   minTxVersion,
 	}
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+
+	correctChainID := []byte("correct")
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), correctChainID, minTxVersion)
+
+	err := txi.CheckValidity()
+	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestInterceptedTransaction_CheckValidityInvalidVersionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(2)
+	wrongChainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   wrongChainID,
+		Version:   1,
+	}
+
+	correctChainID := []byte("correct")
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), correctChainID, minTxVersion)
+
+	err := txi.CheckValidity()
+	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
+}
+
+func TestInterceptedTransaction_TransactionWithNilChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   nil,
+		Version:   minTxVersion,
+	}
+
+	chainID := []byte("chain")
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
+
+	err := txi.CheckValidity()
+	assert.Equal(t, process.ErrInvalidChainID, err)
+}
+
+func TestInterceptedTransaction_CheckValidityOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	err := txi.CheckValidity()
 
@@ -571,6 +811,8 @@ func TestInterceptedTransaction_CheckValidityOkValsShouldWork(t *testing.T) {
 func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
@@ -580,9 +822,11 @@ func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
 
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	assert.Equal(t, senderShard, txi.SenderShardId())
 	assert.Equal(t, recvShard, txi.ReceiverShardId())
@@ -596,8 +840,9 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 	senderAddressInShard1 := make([]byte, 32)
 	senderAddressInShard1[31] = 1
 
+	minTxVersion := uint32(1)
 	recvAddressDeploy := make([]byte, 32)
-
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     1,
 		Value:     big.NewInt(2),
@@ -607,6 +852,8 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		RcvAddr:   recvAddressDeploy,
 		SndAddr:   senderAddressInShard1,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
 	marshalizer := &mock.MarshalizerMock{}
 	txBuff, _ := marshalizer.Marshal(tx)
@@ -635,6 +882,9 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		chainID,
+		minTxVersion,
 	)
 
 	assert.Nil(t, err)
@@ -647,6 +897,8 @@ func TestInterceptedTransaction_GetNonce(t *testing.T) {
 
 	nonce := uint64(1)
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     nonce,
 		Value:     big.NewInt(2),
@@ -656,9 +908,11 @@ func TestInterceptedTransaction_GetNonce(t *testing.T) {
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
 
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	result := txi.Nonce()
 	assert.Equal(t, nonce, result)
@@ -667,6 +921,8 @@ func TestInterceptedTransaction_GetNonce(t *testing.T) {
 func TestInterceptedTransaction_SenderShardId(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
 		Value:     big.NewInt(2),
@@ -676,9 +932,11 @@ func TestInterceptedTransaction_SenderShardId(t *testing.T) {
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
 
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 
 	result := txi.SenderShardId()
 	assert.Equal(t, senderShard, result)
@@ -687,6 +945,8 @@ func TestInterceptedTransaction_SenderShardId(t *testing.T) {
 func TestInterceptedTransaction_FeeCallsTxFeeHandler(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
 		Value:     big.NewInt(2),
@@ -696,11 +956,13 @@ func TestInterceptedTransaction_FeeCallsTxFeeHandler(t *testing.T) {
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
 
 	computeFeeCalled := false
 	txFeeHandler := createFreeTxFeeHandler()
-	txi, _ := createInterceptedTxFromPlainTx(tx, txFeeHandler)
+	txi, _ := createInterceptedTxFromPlainTx(tx, txFeeHandler, chainID, minTxVersion)
 	txFeeHandler.ComputeFeeCalled = func(tx process.TransactionWithFeeHandler) *big.Int {
 		computeFeeCalled = true
 
@@ -715,6 +977,8 @@ func TestInterceptedTransaction_FeeCallsTxFeeHandler(t *testing.T) {
 func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
 		Value:     big.NewInt(2),
@@ -724,9 +988,11 @@ func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
 
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 	result := txi.SenderAddress()
 	assert.NotNil(t, result)
 }
@@ -734,6 +1000,8 @@ func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
 func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testing.T) {
 	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
 		Value:     big.NewInt(2),
@@ -743,6 +1011,8 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		RcvAddr:   recvAddress,
 		SndAddr:   senderAddress,
 		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
 	}
 
 	var sigVerified bool
@@ -777,6 +1047,9 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		whiteListerVerifiedTxs,
+		&mock.ArgumentParserMock{},
+		chainID,
+		minTxVersion,
 	)
 	require.Nil(t, err)
 
@@ -793,8 +1066,86 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 	require.False(t, sigVerified)
 }
 
-//------- IsInterfaceNil
+func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
+	t.Parallel()
 
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("relayedTx"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+	txi, _ := createInterceptedTxFromPlainTxWithArgParser(tx)
+	err := txi.CheckValidity()
+	assert.Equal(t, err, process.ErrInvalidArguments)
+
+	tx.Data = []byte("relayedTx@00@11")
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, err, process.ErrInvalidArguments)
+
+	tx.Data = []byte("relayedTx@0011")
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.NotNil(t, err)
+
+	userTx := &dataTransaction.Transaction{
+		SndAddr:   recvAddress,
+		RcvAddr:   senderAddress,
+		Data:      []byte("hello"),
+		GasLimit:  3,
+		GasPrice:  4,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	userTxData, _ := marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrNilValue, err)
+
+	userTx.Value = big.NewInt(0)
+	userTxData, _ = marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Nil(t, err)
+
+	userTx.Signature = []byte("notOk")
+	userTxData, _ = marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, errSignerMockVerifySigFails, err)
+
+	userTx.Signature = sigOk
+	userTx.SndAddr = []byte("otherAddress")
+	userTxData, _ = marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, err, process.ErrRelayedTxBeneficiaryDoesNotMatchReceiver)
+
+	userTx.SndAddr = recvAddress
+	userTx.Data = []byte(core.RelayedTransaction)
+	userTxData, _ = marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
+}
+
+//------- IsInterfaceNil
 func TestInterceptedTransaction_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 

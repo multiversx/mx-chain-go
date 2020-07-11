@@ -109,30 +109,33 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		message.SeqNo(),
 	)
 	if err != nil {
+		mdi.throttler.EndProcessing()
 		return err
 	}
 
-	lastErrEncountered := error(nil)
-	// TODO: might think of a way to gracefully close the goroutine which waits for the wait group
-	wgProcess := &sync.WaitGroup{}
-	wgProcess.Add(len(multiDataBuff))
+	listInterceptedData := make([]process.InterceptedData, len(multiDataBuff))
+	errOriginator := mdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), mdi.topic)
 
-	go func() {
-		wgProcess.Wait()
-		mdi.throttler.EndProcessing()
-	}()
-
-	for _, dataBuff := range multiDataBuff {
+	for index, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
 		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
+		listInterceptedData[index] = interceptedData
 		if err != nil {
-			lastErrEncountered = err
-			wgProcess.Done()
-			continue
+			mdi.throttler.EndProcessing()
+			return err
+		}
+
+		isWhiteListed := mdi.whiteListRequest.IsWhiteListed(interceptedData)
+		if !isWhiteListed && errOriginator != nil {
+			mdi.throttler.EndProcessing()
+			log.Trace("got message from peer on topic only for validators", "originator",
+				p2p.PeerIdToShortString(message.Peer()),
+				"topic", mdi.topic,
+				"err", errOriginator)
+			return errOriginator
 		}
 
 		isForCurrentShard := interceptedData.IsForCurrentShard()
-		isWhiteListed := mdi.whiteListRequest.IsWhiteListed(interceptedData)
 		shouldProcess := isForCurrentShard || isWhiteListed
 		if !shouldProcess {
 			log.Trace("intercepted data should not be processed",
@@ -143,21 +146,25 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 				"is for this shard", isForCurrentShard,
 				"is white listed", isWhiteListed,
 			)
-			wgProcess.Done()
-			continue
+			mdi.throttler.EndProcessing()
+			return process.ErrInterceptedDataNotForCurrentShard
 		}
-
-		go processInterceptedData(
-			mdi.processor,
-			mdi.interceptedDebugHandler,
-			interceptedData,
-			mdi.topic,
-			wgProcess,
-			message,
-		)
 	}
 
-	return lastErrEncountered
+	go func() {
+		for _, interceptedData := range listInterceptedData {
+			processInterceptedData(
+				mdi.processor,
+				mdi.interceptedDebugHandler,
+				interceptedData,
+				mdi.topic,
+				message,
+			)
+		}
+		mdi.throttler.EndProcessing()
+	}()
+
+	return nil
 }
 
 func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {
@@ -176,6 +183,15 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 	err = interceptedData.CheckValidity()
 	if err != nil {
 		processDebugInterceptedData(mdi.interceptedDebugHandler, interceptedData, mdi.topic, err)
+
+		isWrongVersion := err == process.ErrInvalidTransactionVersion || err == process.ErrInvalidChainID
+		if isWrongVersion {
+			//this situation is so severe that we need to black list de peers
+			reason := "wrong version of received intercepted data, topic " + mdi.topic + ", error " + err.Error()
+			mdi.antifloodHandler.BlacklistPeer(originator, reason, core.InvalidMessageBlacklistDuration)
+			mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+		}
+
 		return nil, err
 	}
 

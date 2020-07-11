@@ -16,12 +16,14 @@ type miniBlockTrack struct {
 	unsignedTransactionsPool dataRetriever.ShardedDataCacherNotifier
 	miniBlocksPool           storage.Cacher
 	shardCoordinator         sharding.Coordinator
+	whitelistHandler         process.WhiteListHandler
 }
 
 // NewMiniBlockTrack creates an object for tracking the received mini blocks
 func NewMiniBlockTrack(
 	dataPool dataRetriever.PoolsHolder,
 	shardCoordinator sharding.Coordinator,
+	whitelistHandler process.WhiteListHandler,
 ) (*miniBlockTrack, error) {
 
 	if check.IfNil(dataPool) {
@@ -42,6 +44,9 @@ func NewMiniBlockTrack(
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(whitelistHandler) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	mbt := miniBlockTrack{
 		blockTransactionsPool:    dataPool.Transactions(),
@@ -49,6 +54,7 @@ func NewMiniBlockTrack(
 		unsignedTransactionsPool: dataPool.UnsignedTransactions(),
 		miniBlocksPool:           dataPool.MiniBlocks(),
 		shardCoordinator:         shardCoordinator,
+		whitelistHandler:         whitelistHandler,
 	}
 
 	mbt.miniBlocksPool.RegisterHandler(mbt.receivedMiniBlock, core.UniqueIdentifier())
@@ -78,10 +84,13 @@ func (mbt *miniBlockTrack) receivedMiniBlock(key []byte, value interface{}) {
 		return
 	}
 
+	// TODO - stop reusing miniBlock.TxHashes for peer changes, add new fields
 	transactionPool := mbt.getTransactionPool(miniBlock.Type)
-	if transactionPool == nil {
+	if check.IfNil(transactionPool) {
 		return
 	}
+
+	mbt.whitelistHandler.Add(miniBlock.TxHashes)
 
 	strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 	transactionPool.ImmunizeSetOfDataAgainstEviction(miniBlock.TxHashes, strCache)

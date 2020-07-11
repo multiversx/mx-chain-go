@@ -155,7 +155,7 @@ func (as *alarmScheduler) updateAlarms(elapsed time.Duration) time.Duration {
 
 	for alarmID, alarm := range as.scheduledAlarms {
 		if alarm.remainingDuration <= elapsed+toleranceExpiry {
-			alarm.callback(alarmID)
+			go alarm.callback(alarmID)
 			delete(as.scheduledAlarms, alarmID)
 		} else {
 			alarm.remainingDuration -= elapsed
@@ -171,6 +171,30 @@ func (as *alarmScheduler) updateAlarms(elapsed time.Duration) time.Duration {
 // Close closes the alarm scheduler stopping the process loop
 func (as *alarmScheduler) Close() {
 	as.cancelFunc()
+}
+
+// Reset resets the alarm with the given id
+func (as *alarmScheduler) Reset(alarmID string) {
+	as.mutScheduledAlarms.RLock()
+	alarm, ok := as.scheduledAlarms[alarmID]
+	if !ok {
+		as.mutScheduledAlarms.RUnlock()
+		return
+	}
+
+	callback := alarm.callback
+	duration := alarm.initialDuration
+	as.mutScheduledAlarms.RUnlock()
+
+	evt := alarmEvent{
+		alarmID: alarmID,
+		alarm:   nil,
+		event:   cancel,
+	}
+
+	as.event <- evt
+
+	as.Add(callback, duration, alarmID)
 }
 
 // IsInterfaceNil returns true if interface is nil

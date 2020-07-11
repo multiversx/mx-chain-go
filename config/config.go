@@ -139,10 +139,10 @@ type Config struct {
 	VmMarshalizer               TypeConfig
 	TxSignMarshalizer           TypeConfig
 
-	PublicKeyShardId            CacheConfig
-	PublicKeyPeerId             CacheConfig
-	PeerIdShardId               CacheConfig
-	P2PMessageIDAdditionalCache CacheConfig
+	PublicKeyShardId CacheConfig
+	PublicKeyPeerId  CacheConfig
+	PeerIdShardId    CacheConfig
+	PeerHonesty      CacheConfig
 
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
@@ -200,6 +200,7 @@ type GeneralSettingsConfig struct {
 	MaxComputableRounds      uint64
 	StartInEpochEnabled      bool
 	ChainID                  string
+	MinTransactionVersion    uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade

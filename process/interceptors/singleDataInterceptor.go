@@ -93,11 +93,28 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.throttler.EndProcessing()
 		processDebugInterceptedData(sdi.interceptedDebugHandler, interceptedData, sdi.topic, err)
 
+		isWrongVersion := err == process.ErrInvalidTransactionVersion || err == process.ErrInvalidChainID
+		if isWrongVersion {
+			//this situation is so severe that we need to black list de peers
+			reason := "wrong version of received intercepted data, topic " + sdi.topic + ", error " + err.Error()
+			sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, core.InvalidMessageBlacklistDuration)
+			sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+		}
+
 		return err
 	}
 
-	isForCurrentShard := interceptedData.IsForCurrentShard()
+	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
 	isWhiteListed := sdi.whiteListRequested.IsWhiteListed(interceptedData)
+	if !isWhiteListed && errOriginator != nil {
+		log.Debug("got message from peer on topic only for validators",
+			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",
+			sdi.topic, "err", errOriginator)
+		sdi.throttler.EndProcessing()
+		return errOriginator
+	}
+
+	isForCurrentShard := interceptedData.IsForCurrentShard()
 	shouldProcess := isForCurrentShard || isWhiteListed
 	if !shouldProcess {
 		sdi.throttler.EndProcessing()
@@ -113,22 +130,16 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return nil
 	}
 
-	// TODO: might think of a way to gracefully close the goroutine which waits for the wait group
-	wgProcess := &sync.WaitGroup{}
-	wgProcess.Add(1)
 	go func() {
-		wgProcess.Wait()
+		processInterceptedData(
+			sdi.processor,
+			sdi.interceptedDebugHandler,
+			interceptedData,
+			sdi.topic,
+			message,
+		)
 		sdi.throttler.EndProcessing()
 	}()
-
-	go processInterceptedData(
-		sdi.processor,
-		sdi.interceptedDebugHandler,
-		interceptedData,
-		sdi.topic,
-		wgProcess,
-		message,
-	)
 
 	return nil
 }

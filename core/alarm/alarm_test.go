@@ -236,3 +236,30 @@ func TestAlarmScheduler_Close(t *testing.T) {
 	require.Equal(t, "", calledString.Get())
 	require.Equal(t, int64(0), nbCalls.Get())
 }
+
+func TestAlarmScheduler_Reset(t *testing.T) {
+	t.Parallel()
+
+	var calledString atomic.String
+	var nbCalls atomic.Counter
+
+	cb := func(alarmID string) {
+		calledString.Set(alarmID)
+		nbCalls.Increment()
+	}
+
+	numResets := 5
+	alarmID := "alarm1"
+	alarmExpiry := time.Millisecond * 50
+	alarmScheduler := alarm.NewAlarmScheduler()
+
+	alarmScheduler.Add(cb, alarmExpiry, alarmID)
+	for i := 0; i < numResets; i++ {
+		time.Sleep(alarmExpiry / 2)
+		alarmScheduler.Reset(alarmID)
+	}
+	alarmScheduler.Cancel(alarmID)
+
+	require.Equal(t, "", calledString.Get())
+	require.Equal(t, int64(0), nbCalls.Get())
+}

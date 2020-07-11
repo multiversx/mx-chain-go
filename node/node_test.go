@@ -200,7 +200,7 @@ func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey)
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
 
@@ -212,7 +212,7 @@ func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", &mock.PrivateKeyStub{})
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", &mock.PrivateKeyStub{}, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
 
@@ -225,7 +225,7 @@ func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", nil)
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", nil, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
 
@@ -240,7 +240,7 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
 		node.WithAccountsAdapter(accAdapter),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey)
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
 
@@ -260,7 +260,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSingleSigner(&mock.SinglesignMock{}),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
 
@@ -283,7 +283,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSingleSigner(singleSigner),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.Nil(t, err)
 }
 
@@ -302,7 +302,7 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSingleSigner(singleSigner),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.Nil(t, err)
 }
 
@@ -324,7 +324,7 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSingleSigner(singleSigner),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey)
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
 
@@ -343,7 +343,7 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSingleSigner(singleSigner),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
 
@@ -364,7 +364,7 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 		node.WithTxSingleSigner(singleSigner),
 	)
 
-	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
+	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.Nil(t, err)
 	assert.Equal(t, signature, tx.Signature)
 }
@@ -395,7 +395,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 		node.WithTxSingleSigner(singleSigner),
 	)
 
-	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
+	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, tx.Nonce)
 }
@@ -415,7 +415,7 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithTxSingleSigner(singleSigner),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey)
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code", privateKey, []byte("chainID"), 1)
 	assert.Nil(t, err)
 }
 
@@ -439,7 +439,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	txData := "-"
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -471,7 +471,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	txData := "-"
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -505,11 +505,83 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	txData := "-"
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
 	assert.NotNil(t, err)
+}
+
+func TestCreateTransaction_InvalidChainIDShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedHash := []byte("expected hash")
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithTxSignMarshalizer(getMarshalizer()),
+		node.WithHasher(
+			mock.HasherMock{
+				ComputeCalled: func(s string) []byte {
+					return expectedHash
+				},
+			},
+		),
+		node.WithAddressPubkeyConverter(
+			&mock.PubkeyConverterStub{
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
+				},
+			}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+	)
+
+	nonce := uint64(0)
+	value := new(big.Int).SetInt64(10)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := "-"
+	signature := "617eff4f"
+	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "", 1)
+	assert.Equal(t, node.ErrInvalidChainID, err)
+}
+
+func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedHash := []byte("expected hash")
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithTxSignMarshalizer(getMarshalizer()),
+		node.WithHasher(
+			mock.HasherMock{
+				ComputeCalled: func(s string) []byte {
+					return expectedHash
+				},
+			},
+		),
+		node.WithAddressPubkeyConverter(
+			&mock.PubkeyConverterStub{
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
+				},
+			}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+	)
+
+	nonce := uint64(0)
+	value := new(big.Int).SetInt64(10)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := "-"
+	signature := "617eff4f"
+	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "", 0)
+	assert.Equal(t, node.ErrInvalidTransactionVersion, err)
 }
 
 func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
@@ -545,7 +617,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	txData := "-"
 	signature := "617eff4f"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
@@ -953,6 +1025,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithDataStore(&mock.ChainStorerMock{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1002,6 +1075,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1048,6 +1122,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1076,6 +1151,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithDataStore(&mock.ChainStorerMock{}),
 		node.WithDataPool(testscommon.NewPoolsHolderStub()),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1132,7 +1208,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
@@ -1147,7 +1223,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 			},
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
@@ -1159,6 +1235,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1215,7 +1292,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
@@ -1230,7 +1307,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 			},
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
@@ -1241,6 +1318,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1304,7 +1382,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 				return 0
 			},
 		}),
-		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
@@ -1328,7 +1406,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 			},
 		}),
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
 		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
 		node.WithPubKey(&mock.PublicKeyMock{
 			ToByteArrayHandler: func() (i []byte, err error) {
@@ -1351,9 +1429,10 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
-		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
+		node.WithPeerHonestyHandler(&testscommon.PeerHonestyHandlerStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
+		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1934,8 +2013,8 @@ func TestNode_ShouldWork(t *testing.T) {
 			},
 		}),
 		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(32)),
-		node.WithPeerBlackListHandler(&mock.PeerBlackListHandlerStub{
-			HasCalled: func(pid core.PeerID) bool {
+		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{
+			IsDeniedCalled: func(pid core.PeerID) bool {
 				return pid == core.PeerID(pid1)
 			},
 		}),

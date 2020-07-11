@@ -131,6 +131,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		Rounder:                    &mock.RounderStub{},
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
+		ArgumentsParser:            &mock.ArgumentParserMock{},
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		ImportStartHandler:         &mock.ImportStartHandlerStub{},
 	}
@@ -403,9 +404,6 @@ func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {
 		},
 		GetRoundDurationCalled: func() uint64 {
 			return 4000
-		},
-		GetChainIdCalled: func() string {
-			return "chainId"
 		},
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return 1

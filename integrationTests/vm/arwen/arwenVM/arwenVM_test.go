@@ -21,8 +21,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,7 +54,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
-	err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -96,7 +97,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		gasLimit,
 		"")
 
-	err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -115,7 +116,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		arwen.CreateDeployTxData(scCode),
 	)
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -184,7 +185,7 @@ func runWASMVMBenchmark(
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
-	err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(tb, err)
 	require.Nil(tb, testContext.GetLatestError())
 
@@ -209,7 +210,7 @@ func runWASMVMBenchmark(
 	for i := 0; i < numRun; i++ {
 		tx.Nonce = aliceNonce
 
-		_ = testContext.TxProcessor.ProcessTransaction(tx)
+		_, _ = testContext.TxProcessor.ProcessTransaction(tx)
 
 		aliceNonce++
 	}
@@ -266,7 +267,7 @@ func TestWASMNamespacing(t *testing.T) {
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
-	err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -293,7 +294,7 @@ func TestWASMNamespacing(t *testing.T) {
 		Signature: nil,
 	}
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 }
@@ -325,7 +326,7 @@ func TestWASMMetering(t *testing.T) {
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
-	err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -352,7 +353,7 @@ func TestWASMMetering(t *testing.T) {
 		Signature: nil,
 	}
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -408,7 +409,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
@@ -423,7 +424,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, initAlice, scAddress, ownerAddressBytes, alice)
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -432,7 +433,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	for i := 0; i < numRun; i++ {
 		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, bob)
 
-		err = testContext.TxProcessor.ProcessTransaction(tx)
+		_, err = testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
 		require.Nil(t, testContext.GetLatestError())
 		aliceNonce++
@@ -495,7 +496,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		arwen.CreateDeployTxData(scCode)+"@00"+hex.EncodeToString(ownerBalance.Bytes()),
 	)
 
-	err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
@@ -513,7 +514,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, initAlice, scAddress, ownerAddressBytes, alice)
 
-	err = testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -523,7 +524,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		for i := 0; i < 1000; i++ {
 			tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, testAddresses[j*1000+i])
 
-			err = testContext.TxProcessor.ProcessTransaction(tx)
+			_, err = testContext.TxProcessor.ProcessTransaction(tx)
 			require.Nil(t, err)
 			require.Nil(t, testContext.GetLatestError())
 			aliceNonce++
@@ -543,7 +544,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	for i := 0; i < numRun; i++ {
 		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, testAddresses[i])
 
-		err = testContext.TxProcessor.ProcessTransaction(tx)
+		_, err = testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
 		require.Nil(t, testContext.GetLatestError())
 
@@ -570,7 +571,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: make(map[string]struct{}),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &mock.FeeHandlerStub{
@@ -590,12 +591,15 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		testHasher,
 		pubkeyConv,
 		testMarshalizer,
+		testMarshalizer,
 		shardCoordinator,
 		&mock.SCProcessorMock{},
 		&mock.UnsignedTxHandlerMock{},
 		txTypeHandler,
 		feeHandler,
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		smartContract.NewArgumentParser(),
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -613,7 +617,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	initAlice := big.NewInt(100000)
 	tx := vm.CreateMoveBalanceTx(ownerNonce, initAlice, ownerAddressBytes, alice, gasLimit)
 
-	err := txProc.ProcessTransaction(tx)
+	_, err := txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	for j := 0; j < 20; j++ {
@@ -622,7 +626,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		for i := 0; i < 1000; i++ {
 			tx = vm.CreateMoveBalanceTx(aliceNonce, transferOnCalls, alice, testAddresses[j*1000+i], gasLimit)
 
-			err = txProc.ProcessTransaction(tx)
+			_, err = txProc.ProcessTransaction(tx)
 			if err != nil {
 				assert.Nil(t, err)
 			}
@@ -646,7 +650,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	for i := 0; i < numRun; i++ {
 		tx = vm.CreateMoveBalanceTx(aliceNonce, transferOnCalls, alice, testAddresses[i], gasLimit)
 
-		err = txProc.ProcessTransaction(tx)
+		_, err = txProc.ProcessTransaction(tx)
 		if err != nil {
 			assert.Nil(t, err)
 		}
@@ -690,7 +694,7 @@ func TestAndCatchTrieError(t *testing.T) {
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
@@ -710,7 +714,7 @@ func TestAndCatchTrieError(t *testing.T) {
 		tx = vm.CreateTransferTokenTx(ownerNonce, erc20value, scAddress, ownerAddressBytes, testAddress)
 		ownerNonce++
 
-		err = testContext.TxProcessor.ProcessTransaction(tx)
+		_, err = testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
 		require.Nil(t, testContext.GetLatestError())
 	}
@@ -729,7 +733,7 @@ func TestAndCatchTrieError(t *testing.T) {
 			tx = vm.CreateTransferTokenTx(transferNonce, erc20value, scAddress, testAddress, receiverAddresses[index])
 
 			snapShot := testContext.Accounts.JournalLen()
-			_ = testContext.TxProcessor.ProcessTransaction(tx)
+			_, _ = testContext.TxProcessor.ProcessTransaction(tx)
 			require.Nil(t, testContext.GetLatestError())
 
 			if index%5 == 0 {
@@ -754,7 +758,7 @@ func TestAndCatchTrieError(t *testing.T) {
 			tx = vm.CreateTransferTokenTx(transferNonce, erc20value, scAddress, testAddress, testAddresses[index])
 
 			snapShot := testContext.Accounts.JournalLen()
-			_ = testContext.TxProcessor.ProcessTransaction(tx)
+			_, _ = testContext.TxProcessor.ProcessTransaction(tx)
 			require.Nil(t, testContext.GetLatestError())
 
 			if index%5 == 0 {

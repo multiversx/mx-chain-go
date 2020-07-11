@@ -349,3 +349,10 @@ func (sp *shardProcessor) CreateBlockBody(shardHdr *block.Header, haveTime func(
 func (sp *shardProcessor) CheckEpochCorrectnessCrossChain() error {
 	return sp.checkEpochCorrectnessCrossChain()
 }
+
+func (sp *shardProcessor) GetBootstrapHeadersInfo(
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+) []bootstrapStorage.BootstrapHeaderInfo {
+	return sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes)
+}

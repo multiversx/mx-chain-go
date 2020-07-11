@@ -615,6 +615,26 @@ func TestPatriciaMerkleTrie_GetSerializedNodesShouldCheckFirstInSnapshotsDB(t *t
 	assert.True(t, getSnapshotCalled)
 }
 
+func TestPatriciaMerkleTrie_GetAllHashesSetsHashes(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+
+	hashes, err := tr.GetAllHashes()
+	assert.Nil(t, err)
+	assert.Equal(t, 6, len(hashes))
+}
+
+func TestPatriciaMerkleTrie_GetAllHashesEmtyTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+
+	hashes, err := tr.GetAllHashes()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(hashes))
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}

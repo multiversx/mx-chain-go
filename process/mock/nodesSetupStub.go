@@ -8,7 +8,6 @@ type NodesSetupStub struct {
 	InitialNodesInfoCalled           func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
 	GetStartTimeCalled               func() int64
 	GetRoundDurationCalled           func() uint64
-	GetChainIdCalled                 func() string
 	GetShardConsensusGroupSizeCalled func() uint32
 	GetMetaConsensusGroupSizeCalled  func() uint32
 	NumberOfShardsCalled             func() uint32
@@ -39,26 +38,17 @@ func (n *NodesSetupStub) GetRoundDuration() uint64 {
 	return 0
 }
 
-// GetChainId -
-func (n *NodesSetupStub) GetChainId() string {
-	if n.GetChainIdCalled != nil {
-		return n.GetChainIdCalled()
-	}
-	return "chainID"
-}
-
-// GetShardConsensusGroupSize -
-func (n *NodesSetupStub) GetShardConsensusGroupSize() uint32 {
-	if n.GetShardConsensusGroupSizeCalled != nil {
-		return n.GetShardConsensusGroupSizeCalled()
-	}
-	return 0
-}
-
 // GetMetaConsensusGroupSize -
 func (n *NodesSetupStub) GetMetaConsensusGroupSize() uint32 {
 	if n.GetMetaConsensusGroupSizeCalled != nil {
 		return n.GetMetaConsensusGroupSizeCalled()
+	}
+	return 0
+}
+
+func (n *NodesSetupStub) GetShardConsensusGroupSize() uint32 {
+	if n.GetMetaConsensusGroupSizeCalled != nil {
+		return n.GetShardConsensusGroupSizeCalled()
 	}
 	return 0
 }

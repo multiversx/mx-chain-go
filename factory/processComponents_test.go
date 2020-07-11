@@ -88,6 +88,13 @@ func getProcessArgs(
 				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",
 			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				ProposalCost:     "500",
+				NumNodes:         100,
+				MinQuorum:        50,
+				MinPassThreshold: 50,
+				MinVetoThreshold: 50,
+			},
 		},
 		Version: "v1.0.0",
 	}
@@ -149,6 +156,11 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["UnJail"] = value
 	gasMap["ESDTIssue"] = value
 	gasMap["ESDTOperations"] = value
+	gasMap["Proposal"] = value
+	gasMap["Vote"] = value
+	gasMap["DelegateVote"] = value
+	gasMap["RevokeVote"] = value
+	gasMap["CloseProposal"] = value
 
 	return gasMap
 }

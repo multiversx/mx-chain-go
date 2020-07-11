@@ -10,15 +10,22 @@ import (
 // CoreComponentsMock -
 type CoreComponentsMock struct {
 	IntMarsh            marshal.Marshalizer
+	TxMarsh             marshal.Marshalizer
 	Hash                hashing.Hasher
 	UInt64ByteSliceConv typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv      core.PubkeyConverter
 	Chain               string
+	MinTxVersion        uint32
 }
 
 // InternalMarshalizer -
 func (ccm *CoreComponentsMock) InternalMarshalizer() marshal.Marshalizer {
 	return ccm.IntMarsh
+}
+
+// TxMarshalizer -
+func (ccm *CoreComponentsMock) TxMarshalizer() marshal.Marshalizer {
+	return ccm.TxMarsh
 }
 
 // Hasher -
@@ -39,6 +46,11 @@ func (ccm *CoreComponentsMock) AddressPubKeyConverter() core.PubkeyConverter {
 // ChainID -
 func (ccm *CoreComponentsMock) ChainID() string {
 	return ccm.Chain
+}
+
+// MinTransactionVersion -
+func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
+	return ccm.MinTxVersion
 }
 
 // IsInterfaceNil -

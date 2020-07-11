@@ -31,7 +31,7 @@ func NewShardInterceptorsContainerFactory(
 		args.DataPool,
 		args.Messenger,
 		args.NodesCoordinator,
-		args.BlackList,
+		args.BlockBlackList,
 		args.AntifloodHandler,
 		args.WhiteListHandler,
 		args.WhiteListerVerifiedTxs,
@@ -75,6 +75,7 @@ func NewShardInterceptorsContainerFactory(
 		ValidityAttester:        args.ValidityAttester,
 		EpochStartTrigger:       args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		ArgsParser:              args.ArgumentsParser,
 	}
 
 	container := containers.NewInterceptorsContainer()
@@ -87,7 +88,7 @@ func NewShardInterceptorsContainerFactory(
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
 		argInterceptorFactory:  argInterceptorFactory,
-		blackList:              args.BlackList,
+		blockBlackList:         args.BlockBlackList,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		antifloodHandler:       args.AntifloodHandler,
 		whiteListHandler:       args.WhiteListHandler,
