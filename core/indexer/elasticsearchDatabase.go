@@ -208,9 +208,10 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
 	selfShardID uint32,
+	mbsHashInDB map[string]bool,
 ) {
 	txs := esd.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
-	buffSlice := serializeTransactions(txs, selfShardID, esd.foundedObjMap)
+	buffSlice := serializeTransactions(txs, selfShardID, esd.foundedObjMap, mbsHashInDB)
 
 	for idx := range buffSlice {
 		err := esd.dbClient.DoBulkRequest(&buffSlice[idx], txIndex)
@@ -228,21 +229,23 @@ func (esd *elasticSearchDatabase) SetTxLogsProcessor(txLogsProc process.Transact
 }
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
-func (esd *elasticSearchDatabase) SaveMiniblocks(header data.HeaderHandler, body *block.Body) {
+func (esd *elasticSearchDatabase) SaveMiniblocks(header data.HeaderHandler, body *block.Body) map[string]bool {
 	miniblocks := esd.getMiniblocks(header, body)
 	if miniblocks == nil {
 		log.Warn("indexer: could not index miniblocks")
-		return
+		return make(map[string]bool)
 	}
 	if len(miniblocks) == 0 {
-		return
+		return make(map[string]bool)
 	}
 
-	buff := serializeBulkMiniBlocks(header.GetShardID(), miniblocks, esd.foundedObjMap)
+	buff, mbHashDb := serializeBulkMiniBlocks(header.GetShardID(), miniblocks, esd.foundedObjMap)
 	err := esd.dbClient.DoBulkRequest(&buff, miniblocksIndex)
 	if err != nil {
 		log.Warn("indexing bulk of miniblocks", "error", err.Error())
 	}
+
+	return mbHashDb
 }
 
 func (esd *elasticSearchDatabase) getMiniblocks(header data.HeaderHandler, body *block.Body) []*Miniblock {
