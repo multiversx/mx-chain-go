@@ -1601,14 +1601,15 @@ func newMetaBlockProcessor(
 	}
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:      core.InternalMarshalizer,
-		Hasher:           core.Hasher,
-		Store:            data.Store,
-		ShardCoordinator: shardCoordinator,
-		RewardsHandler:   economicsData,
-		RoundTime:        rounder,
-		GenesisNonce:     genesisHdr.GetNonce(),
-		GenesisEpoch:     genesisHdr.GetEpoch(),
+		Marshalizer:        core.InternalMarshalizer,
+		Hasher:             core.Hasher,
+		Store:              data.Store,
+		ShardCoordinator:   shardCoordinator,
+		RewardsHandler:     economicsData,
+		RoundTime:          rounder,
+		GenesisNonce:       genesisHdr.GetNonce(),
+		GenesisEpoch:       genesisHdr.GetEpoch(),
+		GenesisTotalSupply: economicsData.GenesisTotalSupply(),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
