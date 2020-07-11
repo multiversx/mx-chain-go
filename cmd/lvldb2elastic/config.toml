@@ -1,5 +1,5 @@
 [general]
-    dbPath = "../../db"
+    dbPath = "../../db/testnet-vali"
     timeout = 200 #number of seconds to wait for indexing all the data
 
 [elasticSearch]

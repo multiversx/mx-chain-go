@@ -9,18 +9,21 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/lvldb2elastic/config"
+	"github.com/ElrondNetwork/elrond-go/cmd/lvldb2elastic/databasereader"
 	"github.com/ElrondNetwork/elrond-go/cmd/lvldb2elastic/elastic"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/urfave/cli"
 )
 
 type flags struct {
 	dbPath         string
 	configFilePath string
+	numShards      int
 	timeout        int
 }
 
@@ -40,6 +43,7 @@ VERSION:
    {{.Version}}
    {{end}}
 `
+	// configFilePathFlag defines a flag which holds the configuration file path
 	configFilePathFlag = cli.StringFlag{
 		Name:        "config",
 		Usage:       "This string file specifies the `filepath` for the toml configuration file",
@@ -53,6 +57,14 @@ VERSION:
 		Usage:       "This string flag specifies the path for the database directory",
 		Value:       "../../db",
 		Destination: &flagsValues.dbPath,
+	}
+
+	// numOfShardsFlag defines the flag which holds the number of shards
+	numOfShardsFlag = cli.IntFlag{
+		Name:        "num-shards",
+		Usage:       "This int flag specifies the number of shards",
+		Value:       2,
+		Destination: &flagsValues.numShards,
 	}
 
 	// logLevelPatterns defines the logger levels and patterns
@@ -69,6 +81,7 @@ VERSION:
 	cliApp                   *cli.App
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
+	shardCoordinator         sharding.Coordinator
 	addressPubKeyConverter   core.PubkeyConverter
 	validatorPubKeyConverter core.PubkeyConverter
 )
@@ -100,6 +113,7 @@ func initCliFlags() {
 	cliApp.Flags = []cli.Flag{
 		dbPathFlag,
 		configFilePathFlag,
+		numOfShardsFlag,
 		timeoutFlag,
 	}
 	cliApp.Authors = []cli.Author{
@@ -110,13 +124,24 @@ func initCliFlags() {
 	}
 }
 
-func startLvlDb2Elastic(_ *cli.Context) error {
+func startLvlDb2Elastic(ctx *cli.Context) error {
 	log.Info("lvldb2elastic application started", "version", cliApp.Version)
 
+	var err error
+	shardCoordinator, err = sharding.NewMultiShardCoordinator(uint32(flagsValues.numShards), 0)
+	if err != nil {
+		panic("cannot create shard coordinator: " + err.Error())
+	}
 	configuration := &config.Config{}
-	err := core.LoadTomlFile(configuration, flagsValues.configFilePath)
+	err = core.LoadTomlFile(configuration, flagsValues.configFilePath)
 	if err != nil {
 		return err
+	}
+	if ctx.IsSet(dbPathFlag.Name) {
+		configuration.General.DBPath = ctx.GlobalString(dbPathFlag.Name)
+	}
+	if ctx.IsSet(timeoutFlag.Name) {
+		configuration.General.Timeout = ctx.GlobalInt(timeoutFlag.Name)
 	}
 
 	elasticConnectorFactoryArgs := elastic.ConnectorFactoryArgs{
@@ -132,11 +157,41 @@ func startLvlDb2Elastic(_ *cli.Context) error {
 		return err
 	}
 
-	_, err = elasticConnectorFactory.Create()
+	_, _ = elasticConnectorFactory.Create()
+	//if err != nil {
+	//	return fmt.Errorf("error connecting to elastic: %w", err)
+	//}
+
+	dbReader, err := databasereader.NewDatabaseReader(configuration.General.DBPath, marshalizer)
 	if err != nil {
-		return fmt.Errorf("error connecting to elastic: %w", err)
+		return err
 	}
 
+	records, err := dbReader.GetDatabaseInfos()
+	if err != nil {
+		return err
+	}
+
+	for _, db := range records {
+		log.Info("database info", "epoch", db.Epoch, "shard", db.Shard)
+	}
+
+	hdrs, err := dbReader.GetHeaders(records[0])
+	if err != nil {
+		return err
+	}
+	for _, hdr := range hdrs {
+		fmt.Println(hdr.GetEpoch())
+	}
+
+	fmt.Println("mini blocks")
+	mbs, err := dbReader.GetMiniBlocks(records[0])
+	if err != nil {
+		return err
+	}
+	for _, mb := range mbs {
+		fmt.Println(mb.Type)
+	}
 	waitForUserToTerminateApp()
 
 	return nil

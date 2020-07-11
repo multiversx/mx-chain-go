@@ -23,7 +23,7 @@ var log = logger.GetOrCreate("storage/leveldb")
 
 // DB holds a pointer to the leveldb database and the path to where it is stored.
 type DB struct {
-	*baseLevelDb
+	*BaseLevelDb
 	path              string
 	maxBatchSize      int
 	batchDelaySeconds int
@@ -56,12 +56,12 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
 
-	bldb := &baseLevelDb{
-		db: db,
+	bldb := &BaseLevelDb{
+		DB: db,
 	}
 
 	dbStore := &DB{
-		baseLevelDb:       bldb,
+		BaseLevelDb:       bldb,
 		path:              path,
 		maxBatchSize:      maxBatchSize,
 		batchDelaySeconds: batchDelaySeconds,
@@ -143,7 +143,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 		return data, nil
 	}
 
-	data, err := s.db.Get(key, nil)
+	data, err := s.DB.Get(key, nil)
 	if err == leveldb.ErrNotFound {
 		return nil, storage.ErrKeyNotFound
 	}
@@ -164,7 +164,7 @@ func (s *DB) Has(key []byte) error {
 		return nil
 	}
 
-	has, err := s.db.Has(key, nil)
+	has, err := s.DB.Has(key, nil)
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func (s *DB) putBatch(b storage.Batcher) error {
 		Sync: true,
 	}
 
-	return s.db.Write(dbBatch.batch, wopt)
+	return s.DB.Write(dbBatch.batch, wopt)
 }
 
 // Close closes the files/resources associated to the storage medium
@@ -213,7 +213,7 @@ func (s *DB) Close() error {
 	default:
 	}
 
-	return s.db.Close()
+	return s.DB.Close()
 }
 
 // Remove removes the data associated to the given key
@@ -233,7 +233,7 @@ func (s *DB) Destroy() error {
 	s.mutBatch.Unlock()
 
 	s.dbClosed <- struct{}{}
-	err := s.db.Close()
+	err := s.DB.Close()
 	if err != nil {
 		return err
 	}

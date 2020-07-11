@@ -34,12 +34,12 @@ func (p *putBatchAct) request(s *SerialDB) {
 		Sync: true,
 	}
 
-	err := s.db.Write(p.batch.batch, wopt)
+	err := s.DB.Write(p.batch.batch, wopt)
 	p.resChan <- err
 }
 
 func (g *getAct) request(s *SerialDB) {
-	data, err := s.db.Get(g.key, nil)
+	data, err := s.DB.Get(g.key, nil)
 
 	res := &pairResult{
 		value: data,
@@ -49,7 +49,7 @@ func (g *getAct) request(s *SerialDB) {
 }
 
 func (h *hasAct) request(s *SerialDB) {
-	has, err := s.db.Has(h.key, nil)
+	has, err := s.DB.Has(h.key, nil)
 
 	if err != nil {
 		h.resChan <- err

@@ -25,7 +25,7 @@ func openLevelDB(path string, options *opt.Options) (*leveldb.DB, error) {
 			return nil, err
 		}
 
-		log.Debug("error opening db",
+		log.Debug("error opening DB",
 			"error", err,
 			"path", path,
 			"retry", retries,
@@ -69,15 +69,15 @@ func openOneTime(path string, options *opt.Options) (*leveldb.DB, error) {
 	return nil, errOpen
 }
 
-type baseLevelDb struct {
-	db *leveldb.DB
+type BaseLevelDb struct {
+	DB *leveldb.DB
 }
 
 // Iterate will return a channel on which will be put all keys and values.
-func (bldb *baseLevelDb) Iterate() chan core.KeyValHolder {
+func (bldb *BaseLevelDb) Iterate() chan core.KeyValHolder {
 	ch := make(chan core.KeyValHolder)
 
-	iterator := bldb.db.NewIterator(nil, nil)
+	iterator := bldb.DB.NewIterator(nil, nil)
 	go func() {
 		for {
 			if !iterator.Next() {
