@@ -268,7 +268,7 @@ func displayEconomicsData(economics block.Economics) []*display.LineData {
 			economics.RewardsPerBlock.String()}),
 		display.NewLineData(false, []string{
 			"",
-			"TotalSupply",
+			"GenesisTotalSupply",
 			economics.TotalSupply.String()}),
 		display.NewLineData(false, []string{
 			"",
