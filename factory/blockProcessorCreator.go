@@ -550,14 +550,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Hasher:           pcf.coreData.Hasher(),
-		Store:            pcf.data.StorageService(),
-		ShardCoordinator: pcf.shardCoordinator,
-		RewardsHandler:   pcf.economicsData,
-		RoundTime:        pcf.rounder,
-		GenesisNonce:     genesisHdr.GetNonce(),
-		GenesisEpoch:     genesisHdr.GetEpoch(),
+		Marshalizer:        pcf.coreData.InternalMarshalizer(),
+		Hasher:             pcf.coreData.Hasher(),
+		Store:              pcf.data.StorageService(),
+		ShardCoordinator:   pcf.shardCoordinator,
+		RewardsHandler:     pcf.economicsData,
+		RoundTime:          pcf.rounder,
+		GenesisNonce:       genesisHdr.GetNonce(),
+		GenesisEpoch:       genesisHdr.GetEpoch(),
+		GenesisTotalSupply: pcf.economicsData.GenesisTotalSupply(),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {

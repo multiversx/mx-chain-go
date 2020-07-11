@@ -80,9 +80,9 @@ import (
 )
 
 const (
-	notSetDestinationShardID     = "disabled"
-	maxTimeToClose               = 10 * time.Second
-	maxMachineIDLen              = 10
+	notSetDestinationShardID = "disabled"
+	maxTimeToClose           = 10 * time.Second
+	maxMachineIDLen          = 10
 )
 
 var (

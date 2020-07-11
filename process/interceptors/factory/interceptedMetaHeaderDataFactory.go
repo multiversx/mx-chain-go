@@ -63,7 +63,6 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 		shardCoordinator:        argument.ShardCoordinator,
 		headerSigVerifier:       argument.HeaderSigVerifier,
 		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,
-		chainID:                 []byte(argument.CoreComponents.ChainID()),
 		validityAttester:        argument.ValidityAttester,
 		epochStartTrigger:       argument.EpochStartTrigger,
 	}, nil
