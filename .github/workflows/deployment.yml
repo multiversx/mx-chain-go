@@ -58,10 +58,10 @@ jobs:
           export NUM_NODES_METACHAIN=9
           export CONSENSUS_GROUP_SIZE=4
           export METACHAIN_CONSENSUS_GROUP_SIZE=7
-          export hysteresisMul=$(expr 1+$HYSTERESIS)
-          export numValidatorsOnAShard=($NUM_NODES_SHARD + $hysteresisMul - 1) * $hysteresisMul
-          export NUM_SHARD_VALIDATORS=$NUM_OF_SHARDS * $numValidatorsOnAShard
-          export NUM_META_VALIDATORS=($NUM_NODES_METACHAIN + $hysteresisMul - 1) * $hysteresisMul
+#          export hysteresisMul=$(expr 1+$HYSTERESIS)
+          export numValidatorsOnAShard=12 #($NUM_NODES_SHARD + $hysteresisMul - 1) * $hysteresisMul
+          export NUM_SHARD_VALIDATORS=24 #$NUM_OF_SHARDS * $numValidatorsOnAShard
+          export NUM_META_VALIDATORS=24 #($NUM_NODES_METACHAIN + $hysteresisMul - 1) * $hysteresisMul
           docker run \
             -v "/home/runner/work/elrond-go/elrond-go/filegenConfig/:/data/" \
             elrondnetwork/elrond-go-filegen \
@@ -85,6 +85,7 @@ jobs:
       # Build the Docker image
       - name: Build
         run: |
+          cd elrond-k8s-testnet
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_NODE":"$GITHUB_SHA" \
             -f elrond-k8s-testnet/docker/elrond/Dockerfile \
             --build-arg GITHUB_SHA="$GITHUB_SHA" \
@@ -93,6 +94,7 @@ jobs:
                       -f elrond-k8s-testnet/docker/seednode/Dockerfile \
                       --build-arg GITHUB_SHA="$GITHUB_SHA" \
                       --build-arg GITHUB_REF="$GITHUB_REF" .
+          cd ..
 
       # Push the Docker image to Google Container Registry
       - name: Publish
@@ -110,6 +112,7 @@ jobs:
       - name: Deploy
         run: |
           gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_REGION --project $GKE_PROJECT
+          sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfig/nodesSetup.json > $BASE_PATH/filegenConfig/nodesSetupUpdated.json
           #regex for namepsace evaluation '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
           export NAMESPACE=$( echo ${{ github.ref }}/${{ github.sha }} | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
           kubectl create namespace $NAMESPACE
@@ -122,7 +125,7 @@ jobs:
                       --from-file=$BASE_PATH/filegenConfig/genesisSmartContracts.json \
                       --from-file=nodesSetup.json=$BASE_PATH/filegenConfig/nodesSetupUpdated.json \
                       --from-file=$BASE_PATH/filegenConfig/walletKey.pem
-
+          cd elrond-k8s-testnet
           ./kustomize edit set image $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:${GITHUB_SHA}
           ./kustomize edit set image $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:${GITHUB_SHA}
           ./kustomize edit set replicas elrond-node=($NUM_SHARD_VALIDATORS + $NUM_META_VALIDATORS) observer-shard=$NUM_OF_SHARDS
