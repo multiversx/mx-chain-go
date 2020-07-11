@@ -187,6 +187,8 @@ func (nf *nodeFacade) startRest() {
 			return
 		}
 
+		nf.sourceLimiterReset(limiter)
+
 		log.Debug("starting web server",
 			"SimultaneousRequests", nf.wsAntifloodConfig.SimultaneousRequests,
 			"SameSourceRequests", nf.wsAntifloodConfig.SameSourceRequests,

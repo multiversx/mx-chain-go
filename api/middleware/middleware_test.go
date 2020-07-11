@@ -246,3 +246,43 @@ func TestNewMiddleware_LimitOfConcurrentRequestsOverShouldError(t *testing.T) {
 	assert.Equal(t, numBatches*(numRequests-1), responses[http.StatusTooManyRequests])
 	mutResponses.Unlock()
 }
+
+// Reset watchdog
+
+func TestNewMiddleware_ResetFailedShouldSignal(t *testing.T) {
+	t.Parallel()
+
+	maxSeconds := int64(1)
+	middleware.SetMaxSecondsBetweenReset(maxSeconds)
+
+	ws := gin.New()
+	ws.Use(cors.Default())
+
+	numResetFailedCalled := int32(0)
+	mw := middleware.NewTestMiddleware(
+		&mock.Facade{
+			BalanceHandler: func(s string) (i *big.Int, e error) {
+				return big.NewInt(10), nil
+			},
+		},
+		1,
+		1,
+		func(lastResetTimestamp int64, maxSecondsBetweenReset int64) {
+			atomic.AddInt32(&numResetFailedCalled, 1)
+		},
+	)
+
+	ws.Use(mw.MiddlewareHandlerFunc())
+	ginAddressRoutes := ws.Group("/address")
+	addressRoutes, _ := wrapper.NewRouterWrapper("address", ginAddressRoutes, getRoutesConfig())
+	address.Routes(addressRoutes)
+
+	time.Sleep(time.Second * time.Duration(maxSeconds+2))
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/address/balance"), nil)
+	req.RemoteAddr = "127.0.0.1:8080"
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	assert.Equal(t, int32(1), atomic.LoadInt32(&numResetFailedCalled))
+}
