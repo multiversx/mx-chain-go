@@ -12,7 +12,7 @@
         {Year = 7, MaximumInflation = 0.02701},
         {Year = 8, MaximumInflation = 0.01878},
         {Year = 9, MaximumInflation = 0.01106},
-        {Year = 10, MaximumInflation = 0.365},
+        {Year = 10, MaximumInflation = 0.00365},
         {Year = 11, MaximumInflation = 0.0},
     ]
     Denomination = 18 # represents the smallest erd subdivision (10^-X ERD for a denomination of X)
