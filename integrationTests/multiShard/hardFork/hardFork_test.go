@@ -239,7 +239,7 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		node.EpochStartTrigger.SetEpoch(hardForkEpoch)
 	}
 
-	_ = logger.SetLogLevel("*:DEBUG")
+	_ = logger.SetLogLevel("*:DEBUG,p2p:TRACE")
 
 	round = nodes[0].GenesisBlocks[0].GetRound() + 1
 	nonce = nodes[0].GenesisBlocks[0].GetNonce() + 1

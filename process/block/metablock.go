@@ -855,20 +855,10 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		"num shard headers", len(orderedHdrs),
 	)
 
-	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	lastShardHdr := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
-	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		lastCrossNotarizedHeaderForShard, hash, errBlockTracker := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
-		if errBlockTracker != nil {
-			mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
-			return nil, 0, 0, errBlockTracker
-		}
-
-		lastShardHdr[shardID] = lastCrossNotarizedHeaderForShard
-		usedInBlock := mp.isGenesisShardBlockAndFirstMeta(lastCrossNotarizedHeaderForShard.GetNonce())
-		mp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: lastCrossNotarizedHeaderForShard, usedInBlock: usedInBlock}
+	lastShardHdr, err := mp.getLastCrossNotarizedShardHdrs()
+	if err != nil {
+		return nil, 0, 0, err
 	}
-	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	maxShardHeadersFromSameShard := process.MaxShardHeadersAllowedInOneMetaBlock / mp.shardCoordinator.NumberOfShards()
 	hdrsAddedForShard := make(map[uint32]uint32)
@@ -1461,15 +1451,14 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 	return nil
 }
 
-// check if shard headers were signed and constructed correctly and returns headers which has to be
-// checked for finality
-func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (map[uint32]data.HeaderHandler, error) {
+func (mp *metaProcessor) getLastCrossNotarizedShardHdrs() (map[uint32]data.HeaderHandler, error) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
 	lastCrossNotarizedHeader := make(map[uint32]data.HeaderHandler, mp.shardCoordinator.NumberOfShards())
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
 		lastCrossNotarizedHeaderForShard, hash, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
 		if err != nil {
-			mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 			return nil, err
 		}
 
@@ -1477,7 +1466,17 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		usedInBlock := mp.isGenesisShardBlockAndFirstMeta(lastCrossNotarizedHeaderForShard.GetNonce())
 		mp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: lastCrossNotarizedHeaderForShard, usedInBlock: usedInBlock}
 	}
-	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
+	return lastCrossNotarizedHeader, nil
+}
+
+// check if shard headers were signed and constructed correctly and returns headers which has to be
+// checked for finality
+func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (map[uint32]data.HeaderHandler, error) {
+	lastCrossNotarizedHeader, err := mp.getLastCrossNotarizedShardHdrs()
+	if err != nil {
+		return nil, err
+	}
 
 	usedShardHdrs := mp.sortHeadersForCurrentBlockByNonce(true)
 	highestNonceHdrs := make(map[uint32]data.HeaderHandler, len(usedShardHdrs))
