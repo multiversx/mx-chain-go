@@ -170,12 +170,38 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	return nil
 }
 
+func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
+	genesisEpoch := uint32(0)
+	if arg.HardForkConfig.AfterHardFork == true {
+		genesisEpoch = arg.HardForkConfig.StartEpoch
+	}
+
+	if arg.StartEpochNum != genesisEpoch {
+		return false
+	}
+
+	return true
+}
+
+func createEmptyGenesisBlocks(numOfShards uint32) map[uint32]data.HeaderHandler {
+	mapEmptyGenesisBlocks := make(map[uint32]data.HeaderHandler)
+	mapEmptyGenesisBlocks[core.MetachainShardId] = &block.MetaBlock{}
+	for i := uint32(0); i < numOfShards; i++ {
+		mapEmptyGenesisBlocks[i] = &block.Header{}
+	}
+	return mapEmptyGenesisBlocks
+}
+
 // CreateGenesisBlocks will try to create the genesis blocks for all shards
 func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	var err error
 	var genesisBlock data.HeaderHandler
 	var newArgument ArgsGenesisBlockCreator
+
+	if !mustDoGenesisProcess(gbc.arg) {
+		return createEmptyGenesisBlocks(gbc.arg.ShardCoordinator.NumberOfShards()), nil
+	}
 
 	if mustDoHardForkImportProcess(gbc.arg) {
 		err = gbc.arg.importHandler.ImportAll()

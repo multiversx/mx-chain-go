@@ -234,8 +234,11 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)
 
+	_ = logger.SetLogLevel("*:DEBUG")
+
 	round = nodes[0].GenesisBlocks[0].GetRound() + 1
 	nonce = nodes[0].GenesisBlocks[0].GetNonce() + 1
+	startEpoch := nodes[0].GenesisBlocks[0].GetEpoch()
 	for i := uint64(0); i < roundsPerEpoch+nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
@@ -260,7 +263,7 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	}
 	time.Sleep(time.Second)
 
-	verifyIfNodesHaveCorrectEpoch(t, epoch+nodes[0].GenesisBlocks[0].GetEpoch(), nodes)
+	verifyIfNodesHaveCorrectEpoch(t, epoch+startEpoch, nodes)
 	verifyIfNodesHaveCorrectNonce(t, nonce-1, nodes)
 	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 }
