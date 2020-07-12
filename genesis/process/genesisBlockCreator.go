@@ -183,13 +183,19 @@ func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 	return true
 }
 
-func createEmptyGenesisBlocks(numOfShards uint32) map[uint32]data.HeaderHandler {
+func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
 	mapEmptyGenesisBlocks := make(map[uint32]data.HeaderHandler)
 	mapEmptyGenesisBlocks[core.MetachainShardId] = &block.MetaBlock{}
-	for i := uint32(0); i < numOfShards; i++ {
+	for i := uint32(0); i < gbc.arg.ShardCoordinator.NumberOfShards(); i++ {
 		mapEmptyGenesisBlocks[i] = &block.Header{}
 	}
-	return mapEmptyGenesisBlocks
+
+	err := gbc.computeDNSAddresses()
+	if err != nil {
+		return nil, err
+	}
+
+	return mapEmptyGenesisBlocks, nil
 }
 
 // CreateGenesisBlocks will try to create the genesis blocks for all shards
@@ -200,7 +206,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	var newArgument ArgsGenesisBlockCreator
 
 	if !mustDoGenesisProcess(gbc.arg) {
-		return createEmptyGenesisBlocks(gbc.arg.ShardCoordinator.NumberOfShards()), nil
+		return gbc.createEmptyGenesisBlocks()
 	}
 
 	if mustDoHardForkImportProcess(gbc.arg) {
@@ -209,7 +215,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 			return nil, err
 		}
 
-		err = gbc.computeDNSAddressesIfHardFork()
+		err = gbc.computeDNSAddresses()
 		if err != nil {
 			return nil, err
 		}
@@ -288,7 +294,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
-func (gbc *genesisBlockCreator) computeDNSAddressesIfHardFork() error {
+func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 	var dnsSC genesis.InitialSmartContractHandler
 	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
 		if sc.GetType() == genesis.DNSType {

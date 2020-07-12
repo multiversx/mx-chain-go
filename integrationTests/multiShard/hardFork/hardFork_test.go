@@ -35,9 +35,9 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
-	nodesPerShard := 1
-	numMetachainNodes := 1
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
@@ -110,9 +110,9 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
-	nodesPerShard := 1
-	numMetachainNodes := 1
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
@@ -232,7 +232,45 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	}
 
 	hardForkImport(t, nodes, exportStorageConfigs)
+	hardForkEpoch := nodes[0].GenesisBlocks[0].GetEpoch()
 	checkGenesisBlocksStateIsEqual(t, nodes)
+	for _, node := range nodes {
+		node.InitializeProcessors()
+		node.EpochStartTrigger.SetEpoch(hardForkEpoch)
+	}
+
+	_ = logger.SetLogLevel("*:DEBUG")
+
+	round = nodes[0].GenesisBlocks[0].GetRound() + 1
+	nonce = nodes[0].GenesisBlocks[0].GetNonce() + 1
+	for i := uint64(0); i <= roundsPerEpoch+nrRoundsToPropagateMultiShard; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+		for _, node := range nodes {
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "")
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "")
+		}
+
+		for _, player := range players {
+			integrationTests.CreateAndSendTransactionWithGasLimit(
+				ownerNode,
+				big.NewInt(0),
+				1000000,
+				scAddress,
+				[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(transferToken.Bytes())),
+				integrationTests.ChainID,
+				integrationTests.MinTransactionVersion,
+			)
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	time.Sleep(time.Second)
+
+	verifyIfNodesHaveCorrectEpoch(t, hardForkEpoch+1, nodes)
+	verifyIfNodesHaveCorrectNonce(t, nonce-1, nodes)
+	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 }
 
 func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode, epoch uint32) []*config.StorageConfig {
@@ -279,7 +317,7 @@ func hardForkImport(
 
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:              0,
-			StartEpochNum:            0,
+			StartEpochNum:            1000,
 			Accounts:                 node.AccntState,
 			PubkeyConv:               integrationTests.TestAddressPubkeyConverter,
 			InitialNodesSetup:        node.NodesSetup,
@@ -302,6 +340,7 @@ func hardForkImport(
 				StartNonce:               1000,
 				StartRound:               1000,
 				ImportStateStorageConfig: *importStorageConfigs[id],
+				AfterHardFork:            true,
 			},
 			TrieStorageManagers: node.TrieStorageManagers,
 			ChainID:             string(node.ChainID),
@@ -337,6 +376,11 @@ func hardForkImport(
 		node.GenesisBlocks = genesisBlocks
 		for _, genesisBlock := range genesisBlocks {
 			log.Info("hardfork genesisblock roothash", "shardID", genesisBlock.GetShardID(), "rootHash", genesisBlock.GetRootHash())
+			if node.ShardCoordinator.SelfId() == genesisBlock.GetShardID() {
+				_ = node.BlockChain.SetGenesisHeader(genesisBlock)
+				hash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, genesisBlock)
+				node.BlockChain.SetGenesisHeaderHash(hash)
+			}
 		}
 	}
 }

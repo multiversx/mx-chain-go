@@ -496,6 +496,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		MaxComputableRounds: 1000,
 		RewardsHandler:      tpn.EconomicsData,
 		NodesSetup:          tpn.NodesSetup,
+		GenesisNonce:        tpn.BlockChain.GetGenesisHeader().GetNonce(),
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -531,6 +532,29 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
+	tpn.initInnerProcessors()
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
+	tpn.initBlockProcessor(stateCheckpointModulus)
+	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
+		TestMarshalizer,
+		TestHasher,
+		tpn.Messenger,
+		tpn.ShardCoordinator,
+		tpn.OwnAccount.SkTxSign,
+		tpn.OwnAccount.SingleSigner,
+		tpn.DataPool.Headers(),
+		tpn.InterceptorsContainer,
+	)
+	tpn.setGenesisBlock()
+	tpn.initNode()
+	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
+}
+
+// InitializeProcessors will reinitialize processors
+func (tpn *TestProcessorNode) InitializeProcessors() {
+	tpn.initValidatorStatistics()
+	tpn.initBlockTracker()
 	tpn.initInnerProcessors()
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -1525,7 +1549,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
-	maxTime := time.Second * 2
+	maxTime := time.Second * 200000
 
 	haveTime := func() bool {
 		elapsedTime := time.Since(startTime)
@@ -1746,7 +1770,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 5
+			return time.Second * 50000
 		},
 	)
 	if err != nil {
@@ -1776,7 +1800,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 2
+			return time.Second * 20000
 		},
 	)
 	if err != nil {
