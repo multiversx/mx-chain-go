@@ -184,15 +184,27 @@ func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 }
 
 func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	mapEmptyGenesisBlocks := make(map[uint32]data.HeaderHandler)
-	mapEmptyGenesisBlocks[core.MetachainShardId] = &block.MetaBlock{}
-	for i := uint32(0); i < gbc.arg.ShardCoordinator.NumberOfShards(); i++ {
-		mapEmptyGenesisBlocks[i] = &block.Header{}
-	}
-
 	err := gbc.computeDNSAddresses()
 	if err != nil {
 		return nil, err
+	}
+
+	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(gbc.arg)
+
+	mapEmptyGenesisBlocks := make(map[uint32]data.HeaderHandler)
+	mapEmptyGenesisBlocks[core.MetachainShardId] = &block.MetaBlock{
+		Round:     round,
+		Nonce:     nonce,
+		Epoch:     epoch,
+		TimeStamp: gbc.arg.GenesisTime,
+	}
+	for i := uint32(0); i < gbc.arg.ShardCoordinator.NumberOfShards(); i++ {
+		mapEmptyGenesisBlocks[i] = &block.Header{
+			Round:     round,
+			Nonce:     nonce,
+			Epoch:     epoch,
+			TimeStamp: gbc.arg.GenesisTime,
+		}
 	}
 
 	return mapEmptyGenesisBlocks, nil
