@@ -2564,27 +2564,36 @@ func TestBaseBlockTrack_IsHeaderOutOfRangeShouldWork(t *testing.T) {
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
+	round := uint64(10)
+	nonce := uint64(8)
+	crossNotarizedHeader := &block.MetaBlock{
+		Round: round,
+		Nonce: nonce,
+	}
+
+	sbt.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
+
 	metaHdr := &block.MetaBlock{
-		Round: 1,
-		Nonce: 0,
+		Round: round + 1,
+		Nonce: nonce,
 	}
 	assert.True(t, sbt.IsHeaderOutOfRange(metaHdr))
 
 	metaHdr = &block.MetaBlock{
-		Round: 0,
-		Nonce: 1,
+		Round: round,
+		Nonce: nonce + 1,
 	}
 	assert.True(t, sbt.IsHeaderOutOfRange(metaHdr))
 
 	metaHdr = &block.MetaBlock{
-		Round: process.MaxHeadersToRequestInAdvance + 1,
-		Nonce: process.MaxHeadersToRequestInAdvance + 1,
+		Round: round + process.MaxHeadersToRequestInAdvance + 1,
+		Nonce: nonce + process.MaxHeadersToRequestInAdvance + 1,
 	}
 	assert.True(t, sbt.IsHeaderOutOfRange(metaHdr))
 
 	metaHdr = &block.MetaBlock{
-		Round: process.MaxHeadersToRequestInAdvance,
-		Nonce: process.MaxHeadersToRequestInAdvance,
+		Round: round + process.MaxHeadersToRequestInAdvance,
+		Nonce: nonce + process.MaxHeadersToRequestInAdvance,
 	}
 	assert.False(t, sbt.IsHeaderOutOfRange(metaHdr))
 }
