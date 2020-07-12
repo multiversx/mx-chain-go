@@ -329,9 +329,9 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 	}
 	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
 	for _, address := range initialAddresses {
-		scResultingAddress, err := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
-		if err != nil {
-			return err
+		scResultingAddress, errNewAddress := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
+		if errNewAddress != nil {
+			return errNewAddress
 		}
 
 		dnsSC.AddAddressBytes(scResultingAddress)
