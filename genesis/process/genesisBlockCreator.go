@@ -170,28 +170,6 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	return nil
 }
 
-func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
-	genesisEpoch := uint32(0)
-	if arg.HardForkConfig.AfterHardFork == true {
-		genesisEpoch = arg.HardForkConfig.StartEpoch
-	}
-
-	if arg.StartEpochNum != genesisEpoch {
-		return false
-	}
-
-	return true
-}
-
-func createEmptyGenesisBlocks(numOfShards uint32) map[uint32]data.HeaderHandler {
-	mapEmptyGenesisBlocks := make(map[uint32]data.HeaderHandler)
-	mapEmptyGenesisBlocks[core.MetachainShardId] = &block.MetaBlock{}
-	for i := uint32(0); i < numOfShards; i++ {
-		mapEmptyGenesisBlocks[i] = &block.Header{}
-	}
-	return mapEmptyGenesisBlocks
-}
-
 // CreateGenesisBlocks will try to create the genesis blocks for all shards
 func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -285,6 +263,28 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	//TODO call here trie pruning on all roothashes not from current shard
 
 	return genesisBlocks, nil
+}
+
+func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
+	genesisEpoch := uint32(0)
+	if arg.HardForkConfig.AfterHardFork == true {
+		genesisEpoch = arg.HardForkConfig.StartEpoch
+	}
+
+	if arg.StartEpochNum != genesisEpoch {
+		return false
+	}
+
+	return true
+}
+
+func createEmptyGenesisBlocks(numOfShards uint32) map[uint32]data.HeaderHandler {
+	mapEmptyGenesisBlocks := make(map[uint32]data.HeaderHandler)
+	mapEmptyGenesisBlocks[core.MetachainShardId] = &block.MetaBlock{}
+	for i := uint32(0); i < numOfShards; i++ {
+		mapEmptyGenesisBlocks[i] = &block.Header{}
+	}
+	return mapEmptyGenesisBlocks
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
