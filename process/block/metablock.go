@@ -1462,6 +1462,7 @@ func (mp *metaProcessor) getLastCrossNotarizedShardHdrs() (map[uint32]data.Heade
 			return nil, err
 		}
 
+		log.Debug("lastCrossNotarizedHeader for shard", "shardID", shardID, "hash", hash)
 		lastCrossNotarizedHeader[shardID] = lastCrossNotarizedHeaderForShard
 		usedInBlock := mp.isGenesisShardBlockAndFirstMeta(lastCrossNotarizedHeaderForShard.GetNonce())
 		mp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: lastCrossNotarizedHeaderForShard, usedInBlock: usedInBlock}
@@ -1672,6 +1673,20 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 
 	for _, shardData := range metaBlock.ShardInfo {
 		if shardData.Nonce == mp.genesisNonce {
+			lastCrossNotarizedHeaderForShard, hash, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardData.ShardID)
+			if err != nil {
+				log.Debug("computeExistingAndRequestMissingShardHeaders.GetLastCrossNotarizedHeader", "error", err.Error())
+			}
+			if bytes.Compare(hash, shardData.HeaderHash) != 0 {
+				log.Warn("genesis hash missmatch",
+					"last notarized hash", hash,
+					"genesis hash", shardData.HeaderHash)
+			}
+			if lastCrossNotarizedHeaderForShard.GetNonce() != mp.genesisNonce {
+				log.Warn("genesis nonce missmatch",
+					"last notarized nonce", lastCrossNotarizedHeaderForShard.GetNonce(),
+					"genesis nonce", mp.genesisNonce)
+			}
 			continue
 		}
 
