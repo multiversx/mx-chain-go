@@ -38,7 +38,11 @@ func createPkBytes(numShards uint32) map[uint32][]byte {
 
 func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 	return ArgsEpochStartBootstrap{
-		PublicKey:         &mock.PublicKeyStub{},
+		PublicKey: &mock.PublicKeyStub{
+			ToByteArrayStub: func() ([]byte, error) {
+				return []byte("pubKey"), nil
+			},
+		},
 		Marshalizer:       &mock.MarshalizerMock{},
 		TxSignMarshalizer: &mock.MarshalizerMock{},
 		Hasher:            &mock.HasherMock{},
@@ -218,6 +222,68 @@ func TestPrepareForEpochZero(t *testing.T) {
 	params, err := epochStartProvider.prepareEpochZero()
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), params.Epoch)
+}
+
+func TestPrepareForEpochZero_NodeInGenesisShouldNotAlterShardID(t *testing.T) {
+	shardIDAsValidator := uint32(1)
+
+	args := createMockEpochStartBootstrapArgs()
+	args.GenesisShardCoordinator = &mock.ShardCoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return shardIDAsValidator
+		},
+	}
+	args.DestinationShardAsObserver = uint32(7)
+	args.PublicKey = &mock.PublicKeyStub{
+		ToByteArrayStub: func() ([]byte, error) {
+			return []byte("pubKey11"), nil
+		},
+	}
+	args.GenesisNodesConfig = &mock.NodesSetupStub{
+		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+			eligibleMap := map[uint32][]sharding.GenesisNodeInfoHandler{
+				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1)},
+			}
+			return eligibleMap, nil
+		},
+	}
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+	params, err := epochStartProvider.prepareEpochZero()
+	assert.NoError(t, err)
+	assert.Equal(t, shardIDAsValidator, params.SelfShardId)
+}
+
+func TestPrepareForEpochZero_NodeNotInGenesisShouldAlterShardID(t *testing.T) {
+	desiredShardAsObserver := uint32(7)
+
+	args := createMockEpochStartBootstrapArgs()
+	args.GenesisShardCoordinator = &mock.ShardCoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return uint32(1)
+		},
+	}
+	args.DestinationShardAsObserver = desiredShardAsObserver
+	args.PublicKey = &mock.PublicKeyStub{
+		ToByteArrayStub: func() ([]byte, error) {
+			return []byte("pubKeyNotInGenesis"), nil
+		},
+	}
+	args.GenesisNodesConfig = &mock.NodesSetupStub{
+		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+			eligibleMap := map[uint32][]sharding.GenesisNodeInfoHandler{
+				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1)},
+			}
+			return eligibleMap, nil
+		},
+	}
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+	params, err := epochStartProvider.prepareEpochZero()
+	assert.NoError(t, err)
+	assert.Equal(t, desiredShardAsObserver, params.SelfShardId)
 }
 
 func TestCreateSyncers(t *testing.T) {
