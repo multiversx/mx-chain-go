@@ -113,6 +113,10 @@ func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader *block
 	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
 }
 
+func (bbt *baseBlockTrack) IsHeaderOutOfRange(headerHandler data.HeaderHandler) bool {
+	return bbt.isHeaderOutOfRange(headerHandler)
+}
+
 // blockNotifier
 
 func (bn *blockNotifier) GetNotarizedHeadersHandlers() []func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
