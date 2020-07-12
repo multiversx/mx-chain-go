@@ -243,14 +243,26 @@ func canInterpretAsString(bytes []byte) bool {
 func serializeBulkMiniBlocks(
 	hdrShardID uint32,
 	bulkMbs []*Miniblock,
-	_ func(hashes []string, index string) (map[string]bool, error),
-) bytes.Buffer {
+	getAlreadyIndexedItems func(hashes []string, index string) (map[string]bool, error),
+) (bytes.Buffer, map[string]bool) {
 	var err error
 	var buff bytes.Buffer
 
+	mbsHashes := make([]string, len(bulkMbs))
+	for idx := range bulkMbs {
+		mbsHashes[idx] = bulkMbs[idx].Hash
+	}
+
+	existsInDb, err := getAlreadyIndexedItems(mbsHashes, miniblocksIndex)
+	if err != nil {
+		log.Warn("indexer get indexed items miniblocks",
+			"error", err.Error())
+		return buff, make(map[string]bool)
+	}
+
 	for _, mb := range bulkMbs {
 		var meta, serializedData []byte
-		if hdrShardID == mb.SenderShardID {
+		if !existsInDb[mb.Hash] {
 			//insert miniblock in database
 			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, mb.Hash, "_doc", "\n"))
 			serializedData, err = json.Marshal(mb)
@@ -263,13 +275,19 @@ func serializeBulkMiniBlocks(
 		} else {
 			// update miniblock
 			meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s" } }%s`, mb.Hash, "\n"))
-			serializedData = []byte(fmt.Sprintf(`{ "doc" : { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
+			if hdrShardID == mb.SenderShardID {
+				// update sender block hash
+				serializedData = []byte(fmt.Sprintf(`{ "doc" : { "senderBlockHash" : "%s" } }`, mb.SenderBlockHash))
+			} else {
+				// update receiver block hash
+				serializedData = []byte(fmt.Sprintf(`{ "doc" : { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
+			}
 		}
 
 		buff = prepareBufferMiniblocks(buff, meta, serializedData)
 	}
 
-	return buff
+	return buff, existsInDb
 }
 
 func prepareBufferMiniblocks(buff bytes.Buffer, meta, serializedData []byte) bytes.Buffer {
@@ -292,18 +310,15 @@ func serializeTransactions(
 	transactions []*Transaction,
 	selfShardID uint32,
 	_ func(hashes []string, index string) (map[string]bool, error),
+	mbsHashInDB map[string]bool,
 ) []bytes.Buffer {
 	var err error
-
-	txsHashes := make([]string, len(transactions))
-	for idx := range transactions {
-		txsHashes[idx] = transactions[idx].Hash
-	}
 
 	var buff bytes.Buffer
 	buffSlice := make([]bytes.Buffer, 0)
 	for _, tx := range transactions {
-		meta, serializedData := prepareSerializedDataForATransaction(tx, selfShardID)
+		isMBOfTxInDB := mbsHashInDB[tx.MBHash]
+		meta, serializedData := prepareSerializedDataForATransaction(tx, selfShardID, isMBOfTxInDB)
 		if len(meta) == 0 {
 			continue
 		}
@@ -339,14 +354,18 @@ func serializeTransactions(
 func prepareSerializedDataForATransaction(
 	tx *Transaction,
 	selfShardID uint32,
+	isMBOfTxInDB bool,
 ) (meta []byte, serializedData []byte) {
 	var err error
-	if isCrossShardDstMe(tx, selfShardID) && tx.Status != txStatusInvalid {
+	if isMBOfTxInDB {
+		if !isCrossShardDstMe(tx, selfShardID) || tx.Status == txStatusInvalid {
+			return
+		}
 		// update transaction
 		meta, serializedData = prepareTxUpdate(tx)
 	} else {
 		// insert transaction in database
-		meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
+		meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, tx.Hash, "\n"))
 		serializedData, err = json.Marshal(tx)
 		if err != nil {
 			log.Debug("indexer: marshal",
