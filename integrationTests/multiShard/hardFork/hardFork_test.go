@@ -110,9 +110,9 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 2
-	numMetachainNodes := 2
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
@@ -220,13 +220,6 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	}()
 
 	exportStorageConfigs := hardForkExport(t, nodes, epoch)
-
-	nodes = integrationTests.CreateNodes(
-		numOfShards,
-		nodesPerShard,
-		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser))
-
 	for id, node := range nodes {
 		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
 	}
@@ -238,8 +231,6 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		node.InitializeProcessors()
 		node.EpochStartTrigger.SetEpoch(hardForkEpoch)
 	}
-
-	_ = logger.SetLogLevel("*:DEBUG")
 
 	round = nodes[0].GenesisBlocks[0].GetRound() + 1
 	nonce = nodes[0].GenesisBlocks[0].GetNonce() + 1
@@ -317,7 +308,7 @@ func hardForkImport(
 
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:              0,
-			StartEpochNum:            1000,
+			StartEpochNum:            100,
 			Accounts:                 node.AccntState,
 			PubkeyConv:               integrationTests.TestAddressPubkeyConverter,
 			InitialNodesSetup:        node.NodesSetup,
@@ -336,9 +327,9 @@ func hardForkImport(
 			VirtualMachineConfig:     config.VirtualMachineConfig{},
 			HardForkConfig: config.HardforkConfig{
 				ImportFolder:             node.ExportFolder,
-				StartEpoch:               1000,
-				StartNonce:               1000,
-				StartRound:               1000,
+				StartEpoch:               100,
+				StartNonce:               100,
+				StartRound:               100,
 				ImportStateStorageConfig: *importStorageConfigs[id],
 				AfterHardFork:            true,
 			},
