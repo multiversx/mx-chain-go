@@ -239,7 +239,30 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	for i := uint64(0); i < roundsPerEpoch+nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+		for _, node := range nodes {
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "")
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "")
+		}
+
+		for _, player := range players {
+			integrationTests.CreateAndSendTransactionWithGasLimit(
+				ownerNode,
+				big.NewInt(0),
+				1000000,
+				scAddress,
+				[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(transferToken.Bytes())),
+				integrationTests.ChainID,
+				integrationTests.MinTransactionVersion,
+			)
+		}
+
+		time.Sleep(time.Second)
 	}
+	time.Sleep(time.Second)
+
+	verifyIfNodesHaveCorrectEpoch(t, epoch+nodes[0].GenesisBlocks[0].GetEpoch(), nodes)
+	verifyIfNodesHaveCorrectNonce(t, nonce-1, nodes)
+	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 }
 
 func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode, epoch uint32) []*config.StorageConfig {

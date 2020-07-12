@@ -313,8 +313,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 	var err error
 
 	isCurrentShard := shardID == gbc.arg.ShardCoordinator.SelfId()
-	shouldRecreate := !isCurrentShard || gbc.arg.StartEpochNum != 0
-	if !shouldRecreate {
+	if isCurrentShard {
 		return gbc.arg, nil
 	}
 
