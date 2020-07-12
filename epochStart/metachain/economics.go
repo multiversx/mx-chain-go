@@ -70,14 +70,15 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	}
 
 	e := &economics{
-		marshalizer:      args.Marshalizer,
-		hasher:           args.Hasher,
-		store:            args.Store,
-		shardCoordinator: args.ShardCoordinator,
-		rewardsHandler:   args.RewardsHandler,
-		roundTime:        args.RoundTime,
-		genesisEpoch:     args.GenesisEpoch,
-		genesisNonce:     args.GenesisNonce,
+		marshalizer:        args.Marshalizer,
+		hasher:             args.Hasher,
+		store:              args.Store,
+		shardCoordinator:   args.ShardCoordinator,
+		rewardsHandler:     args.RewardsHandler,
+		roundTime:          args.RoundTime,
+		genesisEpoch:       args.GenesisEpoch,
+		genesisNonce:       args.GenesisNonce,
+		genesisTotalSupply: big.NewInt(0).Set(args.GenesisTotalSupply),
 	}
 
 	return e, nil
@@ -116,7 +117,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
 	inflationRate := e.computeInflationRate(metaBlock.GetRound())
-	rwdPerBlock := e.computeRewardsPerBlock(prevEpochEconomics.TotalSupply, maxBlocksInEpoch, inflationRate)
+	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate)
 	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 
 	newTokens := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.AccumulatedFeesInEpoch)
