@@ -243,6 +243,15 @@ func checkGenesisBlocksStateIsEqual(t *testing.T, nodes []*integrationTests.Test
 			}
 		}
 	}
+
+	for _, node := range nodes {
+		for _, genesisBlock := range node.GenesisBlocks {
+			if genesisBlock.GetShardID() == node.ShardCoordinator.SelfId() {
+				rootHash, _ := node.AccntState.RootHash()
+				assert.True(t, bytes.Equal(genesisBlock.GetRootHash(), rootHash))
+			}
+		}
+	}
 }
 
 func hardForkImport(
