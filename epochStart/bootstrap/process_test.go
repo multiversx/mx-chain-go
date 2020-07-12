@@ -38,7 +38,11 @@ func createPkBytes(numShards uint32) map[uint32][]byte {
 
 func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 	return ArgsEpochStartBootstrap{
-		PublicKey:         &mock.PublicKeyStub{},
+		PublicKey: &mock.PublicKeyStub{
+			ToByteArrayStub: func() ([]byte, error) {
+				return []byte("pubKey"), nil
+			},
+		},
 		Marshalizer:       &mock.MarshalizerMock{},
 		TxSignMarshalizer: &mock.MarshalizerMock{},
 		Hasher:            &mock.HasherMock{},
