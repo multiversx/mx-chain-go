@@ -297,9 +297,9 @@ func (gbc *genesisBlockCreator) computeDNSAddressesIfHardFork() error {
 	}
 	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
 	for _, address := range initialAddresses {
-		scResultingAddress, err := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
-		if err != nil {
-			return err
+		scResultingAddress, errNewAddress := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
+		if errNewAddress != nil {
+			return errNewAddress
 		}
 
 		dnsSC.AddAddressBytes(scResultingAddress)
@@ -313,8 +313,8 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 	var err error
 
 	isCurrentShard := shardID == gbc.arg.ShardCoordinator.SelfId()
-	shouldRecreate := !isCurrentShard || gbc.arg.StartEpochNum != 0
-	if !shouldRecreate {
+	shouldUseProvidedAccountsDB := isCurrentShard && (gbc.arg.StartEpochNum == 0 || mustDoHardForkImportProcess(gbc.arg))
+	if shouldUseProvidedAccountsDB {
 		return gbc.arg, nil
 	}
 
