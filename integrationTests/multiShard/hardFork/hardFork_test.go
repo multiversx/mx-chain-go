@@ -227,6 +227,10 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser))
 
+	for id, node := range nodes {
+		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
+	}
+
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)
 
