@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -35,10 +34,6 @@ type middleWare struct {
 	maxNumRequests      uint32
 	lastResetTimestamp  int64
 	resetFailedActionFn func(lastResetTimestamp int64, maxSecondsBetweenReset int64)
-
-	//TODO remove this debug data before merging the PR
-	mutDebug  sync.RWMutex
-	debugInfo map[string]int
 }
 
 // NewMiddleware creates a new instance of a gin middleware
@@ -63,7 +58,6 @@ func NewMiddleware(
 		mutRequests:        sync.Mutex{},
 		sourceRequests:     make(map[string]uint32),
 		maxNumRequests:     maxNumRequestsPerAddress,
-		debugInfo:          make(map[string]int),
 		lastResetTimestamp: time.Now().Unix(),
 	}
 	mw.resetFailedActionFn = mw.resetFailedAction
@@ -97,9 +91,6 @@ func (m *middleWare) MiddlewareHandlerFunc() gin.HandlerFunc {
 
 		select {
 		case m.queue <- struct{}{}:
-			m.mutDebug.Lock()
-			m.debugInfo[c.Request.URL.Path]++
-			m.mutDebug.Unlock()
 		default:
 			c.AbortWithStatusJSON(
 				http.StatusTooManyRequests,
@@ -110,26 +101,10 @@ func (m *middleWare) MiddlewareHandlerFunc() gin.HandlerFunc {
 				},
 			)
 
-			output := make([]string, 0)
-			m.mutDebug.Lock()
-			for route, num := range m.debugInfo {
-				output = append(output, fmt.Sprintf("%s: %d", route, num))
-			}
-			m.mutDebug.Unlock()
-
-			log.Warn("system busy\n" + strings.Join(output, "\n"))
-
 			return
 		}
 
 		c.Next()
-
-		m.mutDebug.Lock()
-		m.debugInfo[c.Request.URL.Path]--
-		if m.debugInfo[c.Request.URL.Path] == 0 {
-			delete(m.debugInfo, c.Request.URL.Path)
-		}
-		m.mutDebug.Unlock()
 
 		<-m.queue
 	}

@@ -22,7 +22,6 @@ func NewTestMiddleware(
 		mutRequests:        sync.Mutex{},
 		sourceRequests:     make(map[string]uint32),
 		maxNumRequests:     maxNumRequestsPerAddress,
-		debugInfo:          make(map[string]int),
 		lastResetTimestamp: time.Now().Unix(),
 	}
 	mw.resetFailedActionFn = resetFailedActionFn
