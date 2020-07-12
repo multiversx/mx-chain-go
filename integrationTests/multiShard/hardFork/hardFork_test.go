@@ -117,11 +117,13 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
-	nodes := integrationTests.CreateNodes(
+	genesisFile := "testdata/smartcontracts.json"
+	nodes := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser),
+		genesisFile,
 	)
 
 	roundsPerEpoch := uint64(10)
@@ -218,6 +220,17 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	}()
 
 	exportStorageConfigs := hardForkExport(t, nodes, epoch)
+
+	nodes = integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser))
+
+	for id, node := range nodes {
+		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
+	}
+
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)
 }

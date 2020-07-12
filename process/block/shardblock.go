@@ -1065,7 +1065,7 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {
 }
 
 func (sp *shardProcessor) getLastSelfNotarizedHeaderByMetachain() (data.HeaderHandler, []byte) {
-	if sp.forkDetector.GetHighestFinalBlockNonce() == 0 {
+	if sp.forkDetector.GetHighestFinalBlockNonce() == sp.genesisNonce {
 		return sp.blockChain.GetGenesisHeader(), sp.blockChain.GetGenesisHeaderHash()
 	}
 
