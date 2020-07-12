@@ -1,6 +1,7 @@
 package facade
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"time"
@@ -71,6 +72,8 @@ type nodeFacade struct {
 	endpointsThrottlers    map[string]core.Throttler
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	restAPIServerDebugMode bool
+	ctx                    context.Context
+	cancelFunc             func()
 }
 
 // NewNodeFacade creates a new Facade with a NodeWrapper
@@ -96,7 +99,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 
 	throttlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
 
-	return &nodeFacade{
+	nf := &nodeFacade{
 		node:                   arg.Node,
 		apiResolver:            arg.ApiResolver,
 		restAPIServerDebugMode: arg.RestAPIServerDebugMode,
@@ -104,7 +107,10 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
 		endpointsThrottlers:    throttlersMap,
-	}, nil
+	}
+	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
+
+	return nf, nil
 }
 
 func computeEndpointsNumGoRoutinesThrottlers(webServerAntiFloodConfig config.WebServerAntifloodConfig) map[string]core.Throttler {
@@ -187,7 +193,7 @@ func (nf *nodeFacade) startRest() {
 			return
 		}
 
-		nf.sourceLimiterReset(limiter)
+		go nf.sourceLimiterReset(limiter)
 
 		log.Debug("starting web server",
 			"SimultaneousRequests", nf.wsAntifloodConfig.SimultaneousRequests,
@@ -195,6 +201,7 @@ func (nf *nodeFacade) startRest() {
 			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
 		)
 
+		// TODO figure out a way to close the api engine
 		err = api.Start(nf, nf.apiRoutesConfig, limiter)
 		if err != nil {
 			log.Error("could not start webserver",
@@ -205,11 +212,16 @@ func (nf *nodeFacade) startRest() {
 }
 
 func (nf *nodeFacade) sourceLimiterReset(reset resetHandler) {
+	betweenResetDuration := time.Second * time.Duration(nf.wsAntifloodConfig.SameSourceResetIntervalInSec)
 	for {
-		time.Sleep(time.Second * time.Duration(nf.wsAntifloodConfig.SameSourceResetIntervalInSec))
-
-		log.Trace("calling reset on WS source limiter")
-		reset.Reset()
+		select {
+		case <-time.After(betweenResetDuration):
+			log.Trace("calling reset on WS source limiter")
+			reset.Reset()
+		case <-nf.ctx.Done():
+			log.Debug("closing nodeFacade.sourceLimiterReset go routine")
+			return
+		}
 	}
 }
 
@@ -332,6 +344,14 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 	isThrottlerOk := ok && throttlerForEndpoint != nil
 
 	return throttlerForEndpoint, isThrottlerOk
+}
+
+// Close will cleanup started go routines
+// TODO use this close method
+func (nf *nodeFacade) Close() error {
+	nf.cancelFunc()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
