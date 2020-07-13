@@ -70,7 +70,7 @@ jobs:
             -chain-id k8s-testnet \
             -hysteresis $HYSTERESIS \
             -stake-type delegated
-          chmod u+x $BASE_PATH/filegenConfig/*
+          sudo chmod u+x $BASE_PATH/filegenConfig/*
 
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
