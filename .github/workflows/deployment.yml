@@ -80,7 +80,6 @@ jobs:
       # Build the Docker image
       - name: Build
         run: |
-          cd elrond-k8s-testnet
           ls -lh
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_NODE":"$GITHUB_SHA" \
             -f ./docker/elrond/Dockerfile \
