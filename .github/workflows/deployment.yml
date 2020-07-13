@@ -17,7 +17,7 @@ env:
   IMAGE_NODE: elrond-go-node
   IMAGE_SEEDNODE: elrond-go-seednode
   REGISTRY_HOSTNAME: gcr.io
-  BASE_PATH: /home/runner/work/elrond-go/elrond-go/
+  BASE_PATH: /home/runner/work/elrond-go/elrond-go
 
 jobs:
   setup-build-publish-deploy:
@@ -98,6 +98,8 @@ jobs:
 
       - name: Prepare Configs
         run: |
+          ls -lh
+          ls -lh $BASE_PATH/filegenConfig/
           chmod u+x $BASE_PATH/filegenConfig/nodesSetup.json
           sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfig/nodesSetup.json > $BASE_PATH/filegenConfig/nodesSetupUpdated.json
         shell: bash
