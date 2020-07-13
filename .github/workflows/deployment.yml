@@ -75,7 +75,7 @@ jobs:
             -chain-id ${{ github.sha }} \
             -hysteresis $HYSTERESIS \
             -stake-type delegated
-          cat /home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/nodesSetupUpdated.json
+          cat /home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/nodesSetup.json
 
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
