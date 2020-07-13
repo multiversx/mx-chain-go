@@ -75,6 +75,8 @@ const (
 	TxLogsUnit UnitType = 11
 	// TransactionHistoryUnit is the transactions history storage unit identifier
 	TransactionHistoryUnit UnitType = 12
+	// HashEpochUnit is the hash epoch storage unit identifier
+	HashEpochUnit UnitType = 13
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

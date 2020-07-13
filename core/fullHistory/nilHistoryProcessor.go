@@ -20,7 +20,7 @@ func (nhs *nilHistoryProcessor) PutTransactionsData(_ *HistoryTransactionsData) 
 }
 
 // GetTransaction -
-func (nhs *nilHistoryProcessor) GetTransaction(_ []byte) (*HistoryTransaction, error) {
+func (nhs *nilHistoryProcessor) GetTransaction(_ []byte) (*HistoryTransactionWithEpoch, error) {
 	return nil, errNilHistoryProcessorImplementation
 }
 

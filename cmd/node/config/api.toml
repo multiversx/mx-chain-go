@@ -94,7 +94,3 @@
          { Name = "/:txhash", Open = true },
 	]
 
-[APIPackages.history]
-	Routes = [
-	    { Name = "/transaction/:txhash", Open = false },
-	]

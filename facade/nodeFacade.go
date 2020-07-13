@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
-	"github.com/ElrondNetwork/elrond-go/api/history"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
@@ -256,11 +255,6 @@ func (nf *nodeFacade) CreateTransaction(
 // ValidateTransaction will validate a transaction
 func (nf *nodeFacade) ValidateTransaction(tx *transaction.Transaction) error {
 	return nf.node.ValidateTransaction(tx)
-}
-
-// GetHistoryTransaction -
-func (nf *nodeFacade) GetHistoryTransaction(hash string) (*history.HistoryTransaction, error) {
-	return nf.node.GetHistoryTransaction(hash)
 }
 
 // ValidatorStatisticsApi will return the statistics for all validators

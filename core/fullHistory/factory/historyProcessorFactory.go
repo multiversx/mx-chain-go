@@ -10,29 +10,32 @@ import (
 // ArgsHistoryProcessorFactory holds all dependencies required by the history processor factory in order to create
 // new instances
 type ArgsHistoryProcessorFactory struct {
-	IsEnabled   bool
-	SelfShardID uint32
-	Store       storage.Storer
-	Marshalizer marshal.Marshalizer
-	Hasher      hashing.Hasher
+	IsEnabled       bool
+	SelfShardID     uint32
+	HistoryStorer   storage.Storer
+	HashEpochStorer storage.Storer
+	Marshalizer     marshal.Marshalizer
+	Hasher          hashing.Hasher
 }
 
 type historyProcessorFactory struct {
-	IsEnabled   bool
-	SelfShardID uint32
-	Store       storage.Storer
-	Marshalizer marshal.Marshalizer
-	Hasher      hashing.Hasher
+	IsEnabled       bool
+	SelfShardID     uint32
+	HistoryStorer   storage.Storer
+	Marshalizer     marshal.Marshalizer
+	Hasher          hashing.Hasher
+	HashEpochStorer storage.Storer
 }
 
 // NewHistoryProcessorFactory creates an instance of historyProcessorFactory
 func NewHistoryProcessorFactory(args *ArgsHistoryProcessorFactory) (fullHistory.HistoryProcessorFactory, error) {
 	return &historyProcessorFactory{
-		IsEnabled:   args.IsEnabled,
-		SelfShardID: args.SelfShardID,
-		Store:       args.Store,
-		Marshalizer: args.Marshalizer,
-		Hasher:      args.Hasher,
+		IsEnabled:       args.IsEnabled,
+		SelfShardID:     args.SelfShardID,
+		HistoryStorer:   args.HistoryStorer,
+		Marshalizer:     args.Marshalizer,
+		Hasher:          args.Hasher,
+		HashEpochStorer: args.HashEpochStorer,
 	}, nil
 }
 
@@ -43,10 +46,11 @@ func (hpf *historyProcessorFactory) Create() (fullHistory.HistoryHandler, error)
 	}
 
 	historyProcArgs := fullHistory.HistoryProcessorArguments{
-		Hasher:      hpf.Hasher,
-		Marshalizer: hpf.Marshalizer,
-		Store:       hpf.Store,
-		SelfShardID: hpf.SelfShardID,
+		Hasher:          hpf.Hasher,
+		Marshalizer:     hpf.Marshalizer,
+		HistoryStorer:   hpf.HistoryStorer,
+		SelfShardID:     hpf.SelfShardID,
+		HashEpochStorer: hpf.HashEpochStorer,
 	}
 	return fullHistory.NewHistoryProcessor(historyProcArgs)
 }

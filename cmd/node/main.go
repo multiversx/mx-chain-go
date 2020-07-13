@@ -1180,11 +1180,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	historyProcFactoryArgs := &historyFactory.ArgsHistoryProcessorFactory{
-		Hasher:      coreComponents.Hasher,
-		Marshalizer: coreComponents.InternalMarshalizer,
-		Store:       dataComponents.Store.GetStorer(dataRetriever.TransactionHistoryUnit),
-		SelfShardID: shardCoordinator.SelfId(),
-		IsEnabled:   generalConfig.FullHistory.EnableHistoryNode,
+		Hasher:          coreComponents.Hasher,
+		Marshalizer:     coreComponents.InternalMarshalizer,
+		HistoryStorer:   dataComponents.Store.GetStorer(dataRetriever.TransactionHistoryUnit),
+		HashEpochStorer: dataComponents.Store.GetStorer(dataRetriever.HashEpochUnit),
+		SelfShardID:     shardCoordinator.SelfId(),
+		IsEnabled:       generalConfig.FullHistory.EnableHistoryNode,
 	}
 	historyProcessorFactory, err := historyFactory.NewHistoryProcessorFactory(historyProcFactoryArgs)
 	if err != nil {

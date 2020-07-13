@@ -29,6 +29,9 @@ func (hp *HistoryProcessorStub) GetTransaction(hash []byte) (*fullHistory.Histor
 
 // IsEnabled will always return true because this is implementation of a history processor
 func (hp *HistoryProcessorStub) IsEnabled() bool {
+	if hp.IsEnabledCalled != nil {
+		return hp.IsEnabledCalled()
+	}
 	return true
 }
 

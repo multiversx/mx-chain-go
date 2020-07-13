@@ -331,6 +331,7 @@ type HardforkConfig struct {
 type FullHistoryConfig struct {
 	EnableHistoryNode               bool
 	HistoryTransactionStorageConfig StorageConfig
+	HashEpochStorageConfig          StorageConfig
 }
 
 // DebugConfig will hold debugging configuration

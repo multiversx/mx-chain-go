@@ -3,7 +3,7 @@ package node
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/api/history"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	rewardTxData "github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -29,6 +29,14 @@ func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult,
 		return nil, err
 	}
 
+	if n.historyProcessor.IsEnabled() {
+		return n.getFullHistoryTransaction(hash)
+	}
+
+	return n.getTransaction(hash)
+}
+
+func (n *Node) getTransaction(hash []byte) (*transaction.ApiTransactionResult, error) {
 	txObj, txType, found := n.getTxObjFromDataPool(hash)
 	if found {
 		return n.castObjToTransaction(txObj, txType)
@@ -42,27 +50,28 @@ func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult,
 	return nil, fmt.Errorf("transaction not found")
 }
 
-// GetHistoryTransaction will return from storage a history transaction
-func (n *Node) GetHistoryTransaction(txHash string) (*history.HistoryTransaction, error) {
-	hash, err := hex.DecodeString(txHash)
+func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransactionResult, error) {
+	tx, err := n.getTransaction(hash)
 	if err != nil {
 		return nil, err
 	}
 
 	historyTx, err := n.historyProcessor.GetTransaction(hash)
 	if err != nil {
-		return nil, err
+		// do not return error because is possible transaction to be in pool
+		// return transaction from first get
+		return tx, nil
 	}
 
-	return &history.HistoryTransaction{
-		MBHash:     hex.EncodeToString(historyTx.MbHash),
-		BlockHash:  hex.EncodeToString(historyTx.HeaderHash),
-		RcvShard:   historyTx.RcvShardID,
-		SndShard:   historyTx.SndShardID,
-		Round:      historyTx.Round,
-		BlockNonce: historyTx.HeaderNonce,
-		Status:     string(historyTx.Status),
-	}, nil
+	tx.Epoch = historyTx.Epoch
+	tx.MBHash = hex.EncodeToString(historyTx.MbHash)
+	tx.BlockHash = hex.EncodeToString(historyTx.HeaderHash)
+	tx.RcvShard = historyTx.RcvShardID
+	tx.SndShard = historyTx.SndShardID
+	tx.Round = historyTx.Round
+	tx.BlockNonce = historyTx.HeaderNonce
+
+	return tx, nil
 }
 
 func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transactionType, bool) {
