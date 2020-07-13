@@ -20,13 +20,13 @@ type metric struct {
 	topic string
 
 	incomingSize         uint64
-	incomingNum          uint32
 	incomingRejectedSize uint64
+	incomingNum          uint32
 	incomingRejectedNum  uint32
 
 	outgoingSize         uint64
-	outgoingNum          uint32
 	outgoingRejectedSize uint64
+	outgoingNum          uint32
 	outgoingRejectedNum  uint32
 }
 

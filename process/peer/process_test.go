@@ -49,9 +49,14 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 	economicsData, _ := economics.NewEconomicsData(
 		&config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
-				TotalSupply:      "2000000000000000000000",
-				MinimumInflation: 0,
-				MaximumInflation: 0.05,
+				GenesisTotalSupply: "2000000000000000000000",
+				MinimumInflation:   0,
+				YearSettings: []*config.YearSetting{
+					{
+						Year:             0,
+						MaximumInflation: 0.01,
+					},
+				},
 			},
 			RewardsSettings: config.RewardsSettings{
 				LeaderPercentage:    0.1,

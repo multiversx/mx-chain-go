@@ -31,7 +31,7 @@ func TestRequestResolveRewardsByHashRequestingShardResolvingOtherShard(t *testin
 	nResolver.DataPool.RewardTransactions().AddData(hash, reward, reward.Size(), cacheId)
 
 	//setup header received event
-	nRequester.DataPool.RewardTransactions().RegisterHandler(
+	nRequester.DataPool.RewardTransactions().RegisterOnAdded(
 		func(key []byte, value interface{}) {
 			if bytes.Equal(key, hash) {
 				resolvers.Log.Info("received reward tx", "hash", key)

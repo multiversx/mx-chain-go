@@ -58,10 +58,10 @@ func TestGetShardIdString(t *testing.T) {
 	t.Parallel()
 
 	shardIdMeta := uint32(math.MaxUint32)
-	assert.Equal(t, "metachain", core.GetShardIdString(shardIdMeta))
+	assert.Equal(t, "metachain", core.GetShardIDString(shardIdMeta))
 
 	shardId37 := uint32(37)
-	assert.Equal(t, "37", core.GetShardIdString(shardId37))
+	assert.Equal(t, "37", core.GetShardIDString(shardId37))
 }
 
 func TestEpochStartIdentifier(t *testing.T) {

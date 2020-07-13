@@ -15,11 +15,11 @@ type ArgQuotaFloodPreventer struct {
 	Name                      string
 	Cacher                    storage.Cacher
 	StatusHandlers            []QuotaStatusHandler
-	BaseMaxNumMessagesPerPeer uint32
 	MaxTotalSizePerPeer       uint64
 	PercentReserved           float32
-	IncreaseThreshold         uint32
 	IncreaseFactor            float32
+	IncreaseThreshold         uint32
+	BaseMaxNumMessagesPerPeer uint32
 }
 
 var _ process.FloodPreventer = (*quotaFloodPreventer)(nil)

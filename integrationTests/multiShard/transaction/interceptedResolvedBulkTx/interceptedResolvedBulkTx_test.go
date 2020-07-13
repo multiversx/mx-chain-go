@@ -255,7 +255,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	//wire a new hook for generated txs on a node in sender shard to populate tx hashes generated
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() == firstSkInShard {
-			n.DataPool.Transactions().RegisterHandler(func(key []byte, value interface{}) {
+			n.DataPool.Transactions().RegisterOnAdded(func(key []byte, value interface{}) {
 				mutGeneratedTxHashes.Lock()
 				generatedTxHashes = append(generatedTxHashes, key)
 				mutGeneratedTxHashes.Unlock()

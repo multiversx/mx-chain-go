@@ -17,6 +17,7 @@ const execBroadcastTrigger = "executed, trigger is affecting current node and wi
 type TriggerHardforkHandler interface {
 	Trigger(epoch uint32) error
 	IsSelfTrigger() bool
+	IsInterfaceNil() bool
 }
 
 // HarforkRequest represents the structure on which user input for triggering a hardfork will validate against

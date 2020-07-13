@@ -18,32 +18,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNode_GetTransaction_ThrottlerCannotProcessShouldErr(t *testing.T) {
-	t.Parallel()
-
-	throttler := &mock.ThrottlerStub{
-		CanProcessCalled: func() bool {
-			return false
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithApiTransactionByHashThrottler(throttler),
-	)
-	_, err := n.GetTransaction("aaa")
-	assert.Equal(t, node.ErrSystemBusyTxHash, err)
-}
-
 func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	throttler := &mock.ThrottlerStub{
-		CanProcessCalled: func() bool {
-			return true
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithApiTransactionByHashThrottler(throttler),
-	)
+	n, _ := node.NewNode()
 	_, err := n.GetTransaction("zzz")
 	assert.Error(t, err)
 }
@@ -51,16 +29,10 @@ func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
 func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
 	t.Parallel()
 
-	throttler := &mock.ThrottlerStub{
-		CanProcessCalled: func() bool {
-			return true
-		},
-	}
 	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: getCacherHandler(true, ""),
 	}
 	n, _ := node.NewNode(
-		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataPool(dataPool),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
@@ -75,17 +47,11 @@ func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
 func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
 	t.Parallel()
 
-	throttler := &mock.ThrottlerStub{
-		CanProcessCalled: func() bool {
-			return true
-		},
-	}
 	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:       getCacherHandler(false, ""),
 		RewardTransactionsCalled: getCacherHandler(true, "reward"),
 	}
 	n, _ := node.NewNode(
-		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataPool(dataPool),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
@@ -100,18 +66,12 @@ func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
 func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) {
 	t.Parallel()
 
-	throttler := &mock.ThrottlerStub{
-		CanProcessCalled: func() bool {
-			return true
-		},
-	}
 	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
 		UnsignedTransactionsCalled: getCacherHandler(true, "unsigned"),
 	}
 	n, _ := node.NewNode(
-		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataPool(dataPool),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
@@ -126,11 +86,6 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) 
 func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 	t.Parallel()
 
-	throttler := &mock.ThrottlerStub{
-		CanProcessCalled: func() bool {
-			return true
-		},
-	}
 	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
@@ -142,7 +97,6 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 		},
 	}
 	n, _ := node.NewNode(
-		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
@@ -158,11 +112,6 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 	t.Parallel()
 
-	throttler := &mock.ThrottlerStub{
-		CanProcessCalled: func() bool {
-			return true
-		},
-	}
 	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
@@ -178,7 +127,6 @@ func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 		},
 	}
 	n, _ := node.NewNode(
-		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
@@ -194,11 +142,6 @@ func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T) {
 	t.Parallel()
 
-	throttler := &mock.ThrottlerStub{
-		CanProcessCalled: func() bool {
-			return true
-		},
-	}
 	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
@@ -215,7 +158,6 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T
 		},
 	}
 	n, _ := node.NewNode(
-		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
@@ -233,11 +175,6 @@ func TestNode_GetTransaction_ShouldFindInStorageButErrorUnmarshaling(t *testing.
 
 	expectedErr := errors.New("error unmarshalling")
 
-	throttler := &mock.ThrottlerStub{
-		CanProcessCalled: func() bool {
-			return true
-		},
-	}
 	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
@@ -254,7 +191,6 @@ func TestNode_GetTransaction_ShouldFindInStorageButErrorUnmarshaling(t *testing.
 		},
 	}
 	n, _ := node.NewNode(
-		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{
@@ -272,11 +208,6 @@ func TestNode_GetTransaction_ShouldFindInStorageButErrorUnmarshaling(t *testing.
 func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
 	t.Parallel()
 
-	throttler := &mock.ThrottlerStub{
-		CanProcessCalled: func() bool {
-			return true
-		},
-	}
 	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled:         getCacherHandler(false, ""),
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
@@ -288,7 +219,6 @@ func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
 		},
 	}
 	n, _ := node.NewNode(
-		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
 	)
@@ -300,11 +230,6 @@ func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
 func TestNode_ComputeTransactionStatus(t *testing.T) {
 	t.Parallel()
 
-	throttler := &mock.ThrottlerStub{
-		CanProcessCalled: func() bool {
-			return true
-		},
-	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return getStorerStub(false)
@@ -323,7 +248,6 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 	}
 
 	n, _ := node.NewNode(
-		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataStore(storer),
 		node.WithShardCoordinator(shardCoordinator),
 	)

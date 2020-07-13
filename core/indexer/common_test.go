@@ -44,7 +44,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 		Data:       []byte(""),
 		SndAddr:    sndAddr,
 		RcvAddr:    rcvAddr,
-		CallType:   vmcommon.CallType(0),
+		CallType:   vmcommon.CallType(1),
 	}
 
 	scRes := cp.convertScResultInDatabaseScr(smartContractRes)
@@ -56,7 +56,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 		Sender:    cp.addressPubkeyConverter.Encode(sndAddr),
 		Receiver:  cp.addressPubkeyConverter.Encode(rcvAddr),
 		Value:     "<nil>",
-		CallType:  "\x00",
+		CallType:  "1",
 	}
 
 	require.Equal(t, expectedTx, scRes)
