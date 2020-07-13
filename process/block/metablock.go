@@ -1504,11 +1504,16 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	for _, shardData := range metaHdr.ShardInfo {
-		actualHdr := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)].hdr
+		hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
+		if !ok {
+			return nil, fmt.Errorf("%w : checkShardHeadersValidity -> hash not found %s ", process.ErrHeaderShardDataMismatch, shardData.HeaderHash)
+		}
+		actualHdr := hdrInfo.hdr
 		shardHdr, ok := actualHdr.(*block.Header)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}
+
 		if len(shardData.ShardMiniBlockHeaders) != len(shardHdr.MiniBlockHeaders) {
 			return nil, process.ErrHeaderShardDataMismatch
 		}
@@ -1675,17 +1680,18 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 		if shardData.Nonce == mp.genesisNonce {
 			lastCrossNotarizedHeaderForShard, hash, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardData.ShardID)
 			if err != nil {
-				log.Debug("computeExistingAndRequestMissingShardHeaders.GetLastCrossNotarizedHeader", "error", err.Error())
+				log.Warn("computeExistingAndRequestMissingShardHeaders.GetLastCrossNotarizedHeader", "error", err.Error())
+				continue
 			}
-			if bytes.Compare(hash, shardData.HeaderHash) != 0 {
+			if bytes.Compare(hash, shardData.HeaderHash) == 0 {
+				continue
+			}
+			if !check.IfNil(lastCrossNotarizedHeaderForShard) {
 				log.Warn("genesis hash missmatch",
-					"last notarized hash", hash,
-					"genesis hash", shardData.HeaderHash)
-			}
-			if lastCrossNotarizedHeaderForShard.GetNonce() != mp.genesisNonce {
-				log.Warn("genesis nonce missmatch",
 					"last notarized nonce", lastCrossNotarizedHeaderForShard.GetNonce(),
-					"genesis nonce", mp.genesisNonce)
+					"last notarized hash", hash,
+					"genesis nonce", mp.genesisNonce,
+					"genesis hash", shardData.HeaderHash)
 			}
 			continue
 		}

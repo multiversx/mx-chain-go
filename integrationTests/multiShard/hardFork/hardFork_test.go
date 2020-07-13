@@ -225,43 +225,7 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	}
 
 	hardForkImport(t, nodes, exportStorageConfigs)
-	hardForkEpoch := nodes[0].GenesisBlocks[0].GetEpoch()
 	checkGenesisBlocksStateIsEqual(t, nodes)
-	for _, node := range nodes {
-		node.InitializeProcessors()
-		node.EpochStartTrigger.SetEpoch(hardForkEpoch)
-	}
-
-	round = nodes[0].GenesisBlocks[0].GetRound() + 1
-	nonce = nodes[0].GenesisBlocks[0].GetNonce() + 1
-	for i := uint64(0); i <= roundsPerEpoch+nrRoundsToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "")
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "")
-		}
-
-		for _, player := range players {
-			integrationTests.CreateAndSendTransactionWithGasLimit(
-				ownerNode,
-				big.NewInt(0),
-				1000000,
-				scAddress,
-				[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(transferToken.Bytes())),
-				integrationTests.ChainID,
-				integrationTests.MinTransactionVersion,
-			)
-		}
-
-		time.Sleep(time.Second)
-	}
-
-	time.Sleep(time.Second)
-
-	verifyIfNodesHaveCorrectEpoch(t, hardForkEpoch+1, nodes)
-	verifyIfNodesHaveCorrectNonce(t, nonce-1, nodes)
-	verifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 }
 
 func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode, epoch uint32) []*config.StorageConfig {
