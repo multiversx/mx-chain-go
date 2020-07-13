@@ -799,13 +799,6 @@ func (bbt *baseBlockTrack) isHeaderOutOfRange(headerHandler data.HeaderHandler) 
 		return true
 	}
 
-	if headerHandler.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
-		return true
-	}
-	if headerHandler.GetRound() <= lastCrossNotarizedHeader.GetRound() {
-		return true
-	}
-
-	isHeaderOutOfRange := headerHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
+	isHeaderOutOfRange := headerHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToWhitelistInAdvance
 	return isHeaderOutOfRange
 }

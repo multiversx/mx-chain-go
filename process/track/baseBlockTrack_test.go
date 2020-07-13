@@ -2452,8 +2452,8 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededIsHeaderOutOfRangeShould
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
 	metaHdr := &block.MetaBlock{
-		Round: process.MaxHeadersToRequestInAdvance + 1,
-		Nonce: process.MaxHeadersToRequestInAdvance + 1,
+		Round: process.MaxHeadersToWhitelistInAdvance + 1,
+		Nonce: process.MaxHeadersToWhitelistInAdvance + 1,
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{Hash: []byte("shardHash0"), SenderShardID: 1, ReceiverShardID: 0},
 		},
@@ -2483,8 +2483,8 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededIsHeaderOutOfRangeShou
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
 	shardHdr := &block.Header{
-		Round: process.MaxHeadersToRequestInAdvance + 1,
-		Nonce: process.MaxHeadersToRequestInAdvance + 1,
+		Round: process.MaxHeadersToWhitelistInAdvance + 1,
+		Nonce: process.MaxHeadersToWhitelistInAdvance + 1,
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{Hash: []byte("shardHash0"), SenderShardID: 0, ReceiverShardID: core.MetachainShardId},
 		},
@@ -2574,26 +2574,14 @@ func TestBaseBlockTrack_IsHeaderOutOfRangeShouldWork(t *testing.T) {
 	sbt.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
 
 	metaHdr := &block.MetaBlock{
-		Round: round + 1,
-		Nonce: nonce,
+		Round: round + process.MaxHeadersToWhitelistInAdvance + 1,
+		Nonce: nonce + process.MaxHeadersToWhitelistInAdvance + 1,
 	}
 	assert.True(t, sbt.IsHeaderOutOfRange(metaHdr))
 
 	metaHdr = &block.MetaBlock{
-		Round: round,
-		Nonce: nonce + 1,
-	}
-	assert.True(t, sbt.IsHeaderOutOfRange(metaHdr))
-
-	metaHdr = &block.MetaBlock{
-		Round: round + process.MaxHeadersToRequestInAdvance + 1,
-		Nonce: nonce + process.MaxHeadersToRequestInAdvance + 1,
-	}
-	assert.True(t, sbt.IsHeaderOutOfRange(metaHdr))
-
-	metaHdr = &block.MetaBlock{
-		Round: round + process.MaxHeadersToRequestInAdvance,
-		Nonce: nonce + process.MaxHeadersToRequestInAdvance,
+		Round: round + process.MaxHeadersToWhitelistInAdvance,
+		Nonce: nonce + process.MaxHeadersToWhitelistInAdvance,
 	}
 	assert.False(t, sbt.IsHeaderOutOfRange(metaHdr))
 }
