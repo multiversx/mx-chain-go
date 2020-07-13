@@ -35,9 +35,9 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 2
-	numMetachainNodes := 2
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
@@ -102,6 +102,9 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 
 	log.Info("doing hardfork...")
 	exportStorageConfigs := hardForkExport(t, nodes, epoch)
+	for id, node := range nodes {
+		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
+	}
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)
 }
