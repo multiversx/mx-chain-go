@@ -7,7 +7,7 @@ import (
 // HistoryProcessorStub -
 type HistoryProcessorStub struct {
 	PutTransactionsDataCalled func(htd *fullHistory.HistoryTransactionsData) error
-	GetTransactionCalled      func(hash []byte) (*fullHistory.HistoryTransaction, error)
+	GetTransactionCalled      func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error)
 	IsEnabledCalled           func() bool
 }
 
@@ -20,7 +20,7 @@ func (hp *HistoryProcessorStub) PutTransactionsData(historyTxsData *fullHistory.
 }
 
 // GetTransaction will return a history transaction with give hash from storage
-func (hp *HistoryProcessorStub) GetTransaction(hash []byte) (*fullHistory.HistoryTransaction, error) {
+func (hp *HistoryProcessorStub) GetTransaction(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
 	if hp.GetTransactionCalled != nil {
 		return hp.GetTransactionCalled(hash)
 	}
