@@ -158,7 +158,7 @@ func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler
 	}
 
 	baseLvlDb := leveldb.BaseLevelDb{DB: lvlDb}
-	records := make([]core.KeyValHolder, 0)
+	records := make([]core.KeyValueHolder, 0)
 	recordsChannel := baseLvlDb.Iterate()
 
 	for rec := range recordsChannel {
@@ -167,7 +167,7 @@ func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler
 
 	hdrs := make([]data.HeaderHandler, 0)
 	for _, rec := range records {
-		hdrBytes := rec.Val()
+		hdrBytes := rec.Value()
 		var hdr data.HeaderHandler
 		var errUmarshal error
 		if hdrStorer == shardBlocksStorer {
@@ -228,7 +228,7 @@ func (dr *databaseReader) GetMiniBlocks(dbInfo *DatabaseInfo) ([]*block.MiniBloc
 	}
 
 	baseLvlDb := leveldb.BaseLevelDb{DB: lvlDb}
-	records := make([]core.KeyValHolder, 0)
+	records := make([]core.KeyValueHolder, 0)
 	recordsChannel := baseLvlDb.Iterate()
 
 	for rec := range recordsChannel {
@@ -238,7 +238,7 @@ func (dr *databaseReader) GetMiniBlocks(dbInfo *DatabaseInfo) ([]*block.MiniBloc
 	miniBlocks := make([]*block.MiniBlock, 0)
 	for _, rec := range records {
 		mb := &block.MiniBlock{}
-		err := dr.marshalizer.Unmarshal(mb, rec.Val())
+		err := dr.marshalizer.Unmarshal(mb, rec.Value())
 		if err != nil {
 			log.Warn("cannot unmarshal miniblock", "error", err)
 			continue
