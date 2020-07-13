@@ -33,7 +33,7 @@ jobs:
         run: '(test -f .github/workflows/env && echo ::set-env name=BUILD_ENV::true) || echo ENV testnet config does not exist'
 
       # https://github.com/actions/checkout#Checkout-multiple-repos-side-by-side
-      - if: {{ $BUILD_ENV }}
+      - if: ${{ $BUILD_ENV }}
         name: Checkout deployment config repo
         uses: actions/checkout@v2
         with:
@@ -42,7 +42,7 @@ jobs:
           path: elrond-k8s-testnet
 
       # Setup gcloud CLI
-      - if: {{ $BUILD_ENV }}
+      - if: ${{ $BUILD_ENV }}
         name: Setup gcloud CLI
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
@@ -50,7 +50,7 @@ jobs:
           service_account_email: ${{ secrets.GKE_EMAIL }}
           service_account_key: ${{ secrets.GKE_KEY }}
 
-      - if: {{ $BUILD_ENV }}
+      - if: ${{ $BUILD_ENV }}
         name: Create Configs
         run: |
           export HYSTERESIS=0.21
@@ -78,14 +78,14 @@ jobs:
           cat /home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/nodesSetup.json
 
       # Configure docker to use the gcloud command-line tool as a credential helper
-      - if: {{ $BUILD_ENV }}
+      - if: ${{ $BUILD_ENV }}
         run: |
           # Set up docker to authenticate
           # via gcloud command-line tool.
           gcloud auth configure-docker
 
       # Build the Docker image
-      - if: {{ $BUILD_ENV }}
+      - if: ${{ $BUILD_ENV }}
         name: Build
         run: |
           ls -lh
@@ -93,13 +93,13 @@ jobs:
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_SEEDNODE":"$GITHUB_SHA" -f ./docker/seednode/Dockerfile .
 
       # Push the Docker image to Google Container Registry
-      - if: {{ $BUILD_ENV }}
+      - if: ${{ $BUILD_ENV }}
         name: Publish
         run: |
           docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
           docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
 
-      - if: {{ $BUILD_ENV }}
+      - if: ${{ $BUILD_ENV }}
         name: Prepare Configs
         run: |
           cp -r $BASE_PATH/elrond-k8s-testnet/filegenConfig/ $BASE_PATH/filegenConfigLocal/
@@ -110,7 +110,7 @@ jobs:
         shell: bash
 
       # Deploy the Docker image to the GKE cluster
-      - if: {{ $BUILD_ENV }}
+      - if: ${{ $BUILD_ENV }}
         name: Deploy
         run: |
           cd $BASE_PATH/elrond-k8s-testnet/kube/
