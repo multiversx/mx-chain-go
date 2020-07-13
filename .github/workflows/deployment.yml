@@ -58,7 +58,7 @@ jobs:
           export NUM_META_VALIDATORS=24 #($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL
           source $BASE_PATH/.github/workflows/env
           docker run \
-            -v "/home/runner/work/elrond-go/elrond-go/filegenConfig/:/data/" \
+            -v "/home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/:/data/" \
             elrondnetwork/elrond-go-filegen \
             -num-of-shards $NUM_OF_SHARDS \
             -num-of-nodes-in-each-shard $NUM_NODES_SHARD \
@@ -81,10 +81,8 @@ jobs:
       - name: Build
         run: |
           ls -lh
-          docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_NODE":"$GITHUB_SHA" \
-            -f ./docker/elrond/Dockerfile .
-          docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_SEEDNODE":"$GITHUB_SHA" \
-            -f ./docker/seednode/Dockerfile .
+          docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_NODE":"$GITHUB_SHA" -f ./docker/elrond/Dockerfile .
+          docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_SEEDNODE":"$GITHUB_SHA" -f ./docker/seednode/Dockerfile .
 
       # Push the Docker image to Google Container Registry
       - name: Publish
@@ -94,7 +92,7 @@ jobs:
 
       - name: Prepare Configs
         run: |
-          cp -r $BASE_PATH/filegenConfig/ $BASE_PATH/filegenConfigLocal/
+          cp -r $BASE_PATH/elrond-k8s-testnet/filegenConfig/ $BASE_PATH/filegenConfigLocal/
           ls -lh
           ls -lh $BASE_PATH/filegenConfigLocal/
           sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfigLocal/nodesSetup.json > $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
