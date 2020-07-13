@@ -1,12 +1,4 @@
 # This workflows will build a docker container, publish it to Google Container Registry, and deploy it to GKE when a release is created
-#
-# To configure this workflows:
-#
-# 1. Ensure that your repository contains the necessary configuration for your Google Kubernetes Engine cluster, including deployment.yml, kustomization.yml, service.yml, etc.
-#
-# 2. Set up secrets in your workspace: GKE_PROJECT with the name of the project, GKE_EMAIL with the service account email, GKE_KEY with the Base64 encoded JSON service account key (https://github.com/GoogleCloudPlatform/github-actions/tree/docs/service-account-key/setup-gcloud#inputs).
-#
-# 3. Change the values for the GKE_ZONE, GKE_CLUSTER, IMAGE, REGISTRY_HOSTNAME and DEPLOYMENT_NAME environment variables (below).
 
 name: Build and Deploy Testnet
 
@@ -58,10 +50,10 @@ jobs:
           export NUM_NODES_METACHAIN=9
           export CONSENSUS_GROUP_SIZE=4
           export METACHAIN_CONSENSUS_GROUP_SIZE=7
-#          export hysteresisMul=$(expr 1+$HYSTERESIS)
-          export numValidatorsOnAShard=12 #($NUM_NODES_SHARD + $hysteresisMul - 1) * $hysteresisMul
+          export HYSTERESISMUL=`echo 1 + $HYSTERESIS | bc`
+          export numValidatorsOnAShard=12 #($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL
           export NUM_SHARD_VALIDATORS=24 #$NUM_OF_SHARDS * $numValidatorsOnAShard
-          export NUM_META_VALIDATORS=24 #($NUM_NODES_METACHAIN + $hysteresisMul - 1) * $hysteresisMul
+          export NUM_META_VALIDATORS=24 #($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL
           docker run \
             -v "/home/runner/work/elrond-go/elrond-go/filegenConfig/:/data/" \
             elrondnetwork/elrond-go-filegen \
@@ -94,7 +86,6 @@ jobs:
                       -f elrond-k8s-testnet/docker/seednode/Dockerfile \
                       --build-arg GITHUB_SHA="$GITHUB_SHA" \
                       --build-arg GITHUB_REF="$GITHUB_REF" .
-          cd ..
 
       # Push the Docker image to Google Container Registry
       - name: Publish
@@ -102,31 +93,36 @@ jobs:
           docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
           docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
 
+      - name: Prepare Configs
+        run: |
+          sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfig/nodesSetup.json > $BASE_PATH/filegenConfig/nodesSetupUpdated.json
+        shell: bash
+
       # Set up kustomize
       - name: Set up Kustomize
         run: |
-          curl -o kustomize --location https://github.com/kubernetes-sigs/kustomize/releases/download/v3.8.0/kustomize_3.8.0_linux_amd64
+          cd ./kube
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
           chmod u+x ./kustomize
+          cd ..
 
       # Deploy the Docker image to the GKE cluster
       - name: Deploy
         run: |
-          gcloud container clusters get-credentials $GKE_CLUSTER --region $GKE_REGION --project $GKE_PROJECT
-          sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfig/nodesSetup.json > $BASE_PATH/filegenConfig/nodesSetupUpdated.json
+          gcloud container clusters get-credentials "$GKE_CLUSTER" --region "$GKE_REGION" --project "$GKE_PROJECT"
           #regex for namepsace evaluation '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
           export NAMESPACE=$( echo ${{ github.ref }}/${{ github.sha }} | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
-          kubectl create namespace $NAMESPACE
+          kubectl create namespace "$NAMESPACE"
           kubectl -n $NAMESPACE create configmap elrond-node-config \
-                      --from-file=$BASE_PATH/filegenConfig/validatorKey.pem \
-                      --from-file=$BASE_PATH/filegenConfig/observerKey.pem \
-                      --from-file=$BASE_PATH/filegenConfig/p2p.toml \
-                      --from-file=$BASE_PATH/filegenConfig/delegationWalletKey.pem \
-                      --from-file=$BASE_PATH/filegenConfig/genesis.json \
-                      --from-file=$BASE_PATH/filegenConfig/genesisSmartContracts.json \
-                      --from-file=nodesSetup.json=$BASE_PATH/filegenConfig/nodesSetupUpdated.json \
-                      --from-file=$BASE_PATH/filegenConfig/walletKey.pem
-          cd elrond-k8s-testnet
-          ./kustomize edit set image $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:${GITHUB_SHA}
-          ./kustomize edit set image $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:${GITHUB_SHA}
-          ./kustomize edit set replicas elrond-node=($NUM_SHARD_VALIDATORS + $NUM_META_VALIDATORS) observer-shard=$NUM_OF_SHARDS
-          ./kustomize build ./$BASE_PATH/kube/ | kubectl -n $NAMESPACE apply -f -
+            --from-file=$BASE_PATH/filegenConfig/validatorKey.pem \
+            --from-file=$BASE_PATH/filegenConfig/observerKey.pem \
+            --from-file=$BASE_PATH/filegenConfig/p2p.toml \
+            --from-file=$BASE_PATH/filegenConfig/delegationWalletKey.pem \
+            --from-file=$BASE_PATH/filegenConfig/genesis.json \
+            --from-file=$BASE_PATH/filegenConfig/genesisSmartContracts.json \
+            --from-file=nodesSetup.json=$BASE_PATH/filegenConfig/nodesSetupUpdated.json \
+            --from-file=$BASE_PATH/filegenConfig/walletKey.pem
+          cd ./kube
+          ./kustomize edit set replicas elrond-node=24 observer-shard=2
+          ./kustomize edit set namespace "$NAMESPACE"
+          ./kustomize build ./ | kubectl -n "$NAMESPACE" apply -f -
