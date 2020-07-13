@@ -98,6 +98,7 @@ jobs:
 
       - name: Prepare Configs
         run: |
+          chmod u+x $BASE_PATH/filegenConfig/nodesSetup.json
           sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfig/nodesSetup.json > $BASE_PATH/filegenConfig/nodesSetupUpdated.json
         shell: bash
 
@@ -127,5 +128,7 @@ jobs:
             --from-file=$BASE_PATH/filegenConfig/walletKey.pem
           cd ./kube
           ./kustomize edit set replicas elrond-node=24 observer-shard=2
+          ./kustomize edit set namespace "$NAMESPACE"
+          ./kustomize edit set namespace "$NAMESPACE"
           ./kustomize edit set namespace "$NAMESPACE"
           ./kustomize build ./ | kubectl -n "$NAMESPACE" apply -f -
