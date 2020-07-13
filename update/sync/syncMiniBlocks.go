@@ -95,7 +95,7 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart *block.Meta
 	}
 
 	for _, val := range epochStart.MiniBlockHeaders {
-		if val.SenderShardID != core.MetachainShardId {
+		if val.SenderShardID != core.MetachainShardId || val.Type == block.PeerBlock {
 			continue
 		}
 		listPendingMiniBlocks = append(listPendingMiniBlocks, val)

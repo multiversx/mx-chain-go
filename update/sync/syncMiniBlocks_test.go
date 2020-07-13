@@ -180,6 +180,9 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T)
 				Hash:            rwdMBHash,
 				Type:            block.RewardsBlock,
 			},
+			{
+				Type: block.PeerBlock,
+			},
 		},
 	}
 	unFinished := make(map[string]*block.MetaBlock)
@@ -193,6 +196,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T)
 	miniBlocks, err := pendingMiniBlocksSyncer.GetMiniBlocks()
 	require.Equal(t, mb, miniBlocks[string(mbHash)])
 	require.Equal(t, rwdMB, miniBlocks[string(rwdMBHash)])
+	require.Equal(t, 2, len(miniBlocks))
 	require.Nil(t, err)
 }
 
