@@ -34,9 +34,9 @@ type DatabaseInfo struct {
 }
 
 type databaseReader struct {
-	directoryReader storage.DirectoryReaderHandler
-	marshalizer     marshal.Marshalizer
-	dbFilePath      string
+	directoryReader   storage.DirectoryReaderHandler
+	marshalizer       marshal.Marshalizer
+	dbPathWithChainID string
 }
 
 // NewDatabaseReader will return a new instance of databaseReader
@@ -49,15 +49,15 @@ func NewDatabaseReader(dbFilePath string, marshalizer marshal.Marshalizer) (*dat
 	}
 
 	return &databaseReader{
-		directoryReader: factory.NewDirectoryReader(),
-		marshalizer:     marshalizer,
-		dbFilePath:      dbFilePath,
+		directoryReader:   factory.NewDirectoryReader(),
+		marshalizer:       marshalizer,
+		dbPathWithChainID: dbFilePath,
 	}, nil
 }
 
-func (dr *databaseReader) GetDatabaseInfos() ([]*DatabaseInfo, error) {
+func (dr *databaseReader) GetDatabaseInfo() ([]*DatabaseInfo, error) {
 	dbs := make([]*DatabaseInfo, 0)
-	epochsDirectories, err := dr.directoryReader.ListDirectoriesAsString(dr.dbFilePath)
+	epochsDirectories, err := dr.directoryReader.ListDirectoriesAsString(dr.dbPathWithChainID)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (dr *databaseReader) GetDatabaseInfos() ([]*DatabaseInfo, error) {
 			continue
 		}
 
-		shardDirectories, err := dr.getShardDirectoriesForEpoch(filepath.Join(dr.dbFilePath, dirname))
+		shardDirectories, err := dr.getShardDirectoriesForEpoch(filepath.Join(dr.dbPathWithChainID, dirname))
 		if err != nil {
 			log.Warn("cannot parse shard directories for epoch", "epoch directory name", dirname)
 			continue
@@ -146,7 +146,7 @@ func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler
 	if shardIDStr == fmt.Sprintf("%d", core.MetachainShardId) {
 		shardIDStr = "metachain"
 	}
-	persisterPath := filepath.Join(dr.dbFilePath, fmt.Sprintf("Epoch_%d", dbInfo.Epoch), fmt.Sprintf("Shard_%s", shardIDStr), hdrStorer)
+	persisterPath := filepath.Join(dr.dbPathWithChainID, fmt.Sprintf("Epoch_%d", dbInfo.Epoch), fmt.Sprintf("Shard_%s", shardIDStr), hdrStorer)
 	options := &opt.Options{
 		// disable internal cache
 		BlockCacheCapacity:     -1,
@@ -216,7 +216,7 @@ func (dr *databaseReader) GetMiniBlocks(dbInfo *DatabaseInfo) ([]*block.MiniBloc
 	if shardIDStr == fmt.Sprintf("%d", core.MetachainShardId) {
 		shardIDStr = "metachain"
 	}
-	persisterPath := filepath.Join(dr.dbFilePath, fmt.Sprintf("Epoch_%d", dbInfo.Epoch), fmt.Sprintf("Shard_%s", shardIDStr), hdrStorer)
+	persisterPath := filepath.Join(dr.dbPathWithChainID, fmt.Sprintf("Epoch_%d", dbInfo.Epoch), fmt.Sprintf("Shard_%s", shardIDStr), hdrStorer)
 	options := &opt.Options{
 		// disable internal cache
 		BlockCacheCapacity:     -1,

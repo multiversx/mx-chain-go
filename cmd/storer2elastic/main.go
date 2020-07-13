@@ -8,9 +8,9 @@ import (
 	"syscall"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/cmd/lvldb2elastic/config"
-	"github.com/ElrondNetwork/elrond-go/cmd/lvldb2elastic/databasereader"
-	"github.com/ElrondNetwork/elrond-go/cmd/lvldb2elastic/elastic"
+	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/config"
+	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
+	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/elastic"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -21,10 +21,10 @@ import (
 )
 
 type flags struct {
-	dbPath         string
-	configFilePath string
-	numShards      int
-	timeout        int
+	dbPathWithChainID string
+	configFilePath    string
+	numShards         int
+	timeout           int
 }
 
 var (
@@ -52,11 +52,11 @@ VERSION:
 	}
 
 	// address defines a flag for setting the address and port on which the node will listen for connections
-	dbPathFlag = cli.StringFlag{
+	dbPathWithChainIDFlag = cli.StringFlag{
 		Name:        "db-path",
-		Usage:       "This string flag specifies the path for the database directory",
+		Usage:       "This string flag specifies the path for the database directory, the chain ID directory",
 		Value:       "../../db",
-		Destination: &flagsValues.dbPath,
+		Destination: &flagsValues.dbPathWithChainID,
 	}
 
 	// numOfShardsFlag defines the flag which holds the number of shards
@@ -77,7 +77,7 @@ VERSION:
 
 	flagsValues = &flags{}
 
-	log                      = logger.GetOrCreate("lvldb2elastic")
+	log                      = logger.GetOrCreate("storer2elastic")
 	cliApp                   *cli.App
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
@@ -109,9 +109,9 @@ func initCliFlags() {
 	cli.AppHelpTemplate = nodeHelpTemplate
 	cliApp.Name = "Elrond LevelDB to Elastic Search App"
 	cliApp.Version = fmt.Sprintf("%s/%s/%s-%s", "1.0.0", runtime.Version(), runtime.GOOS, runtime.GOARCH)
-	cliApp.Usage = "Elrond lvldb2elastic application is used to index all data inside serial level DBs to elastic search"
+	cliApp.Usage = "Elrond storer2elastic application is used to index all data inside storers to elastic search"
 	cliApp.Flags = []cli.Flag{
-		dbPathFlag,
+		dbPathWithChainIDFlag,
 		configFilePathFlag,
 		numOfShardsFlag,
 		timeoutFlag,
@@ -125,7 +125,7 @@ func initCliFlags() {
 }
 
 func startLvlDb2Elastic(ctx *cli.Context) error {
-	log.Info("lvldb2elastic application started", "version", cliApp.Version)
+	log.Info("storer2elastic application started", "version", cliApp.Version)
 
 	var err error
 	shardCoordinator, err = sharding.NewMultiShardCoordinator(uint32(flagsValues.numShards), 0)
@@ -137,8 +137,8 @@ func startLvlDb2Elastic(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if ctx.IsSet(dbPathFlag.Name) {
-		configuration.General.DBPath = ctx.GlobalString(dbPathFlag.Name)
+	if ctx.IsSet(dbPathWithChainIDFlag.Name) {
+		configuration.General.DBPathWithChainID = ctx.GlobalString(dbPathWithChainIDFlag.Name)
 	}
 	if ctx.IsSet(timeoutFlag.Name) {
 		configuration.General.Timeout = ctx.GlobalInt(timeoutFlag.Name)
@@ -162,12 +162,12 @@ func startLvlDb2Elastic(ctx *cli.Context) error {
 	//	return fmt.Errorf("error connecting to elastic: %w", err)
 	//}
 
-	dbReader, err := databasereader.NewDatabaseReader(configuration.General.DBPath, marshalizer)
+	dbReader, err := databasereader.NewDatabaseReader(configuration.General.DBPathWithChainID, marshalizer)
 	if err != nil {
 		return err
 	}
 
-	records, err := dbReader.GetDatabaseInfos()
+	records, err := dbReader.GetDatabaseInfo()
 	if err != nil {
 		return err
 	}
@@ -203,9 +203,9 @@ func waitForUserToTerminateApp() {
 
 	<-sigs
 
-	log.Info("terminating lvldb2elastic app at user's signal...")
+	log.Info("terminating storer2elastic app at user's signal...")
 
 	// TODO : close opened DBs here
 
-	log.Info("lvldb2elastic application stopped")
+	log.Info("storer2elastic application stopped")
 }

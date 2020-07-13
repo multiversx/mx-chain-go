@@ -3,7 +3,7 @@ package elastic
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/cmd/lvldb2elastic/config"
+	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"

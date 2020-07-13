@@ -8,8 +8,8 @@ type Config struct {
 
 // GeneralConfig holds basic configuration
 type GeneralConfig struct {
-	DBPath  string `toml:"dbPath"`
-	Timeout int    `toml:"timeout"`
+	DBPathWithChainID string `toml:"dbPathWithChainID"`
+	Timeout           int    `toml:"timeout"`
 }
 
 // ElasticSearchConfig holds the elastic search configuration
