@@ -57,6 +57,14 @@ jobs:
           export CONSENSUS_GROUP_SIZE=4
           export METACHAIN_CONSENSUS_GROUP_SIZE=7
           source .github/workflows/env
+
+          export HYSTERESISMUL=`echo 1 + $HYSTERESIS | bc`
+          export NVS=$(bc <<< "($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
+          export NUM_VALIDATORS_ON_SHARD=$(bc <<< "($NVS+1)/1")
+          export NVM=$(bc <<< "($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
+          export NUM_VALIDATORS_ON_META=$(bc <<< "($NVM+1)/1")
+          export NUM_NODES_TOTAL=$(bc <<< "($NUM_VALIDATORS_ON_SHARD + $NUM_VALIDATORS_ON_META)")
+
           docker run \
             -v "/home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/:/data/" \
             elrondnetwork/elrond-go-filegen \
@@ -123,15 +131,8 @@ jobs:
             --from-file=nodesSetup.json=$BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json \
             --from-file=$BASE_PATH/filegenConfigLocal/walletKey.pem
 
-
-          export HYSTERESISMUL=`echo 1 + $HYSTERESIS | bc`
-          export NVS=$(bc <<< "($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
-          export NUM_VALIDATORS_ON_SHARD=$(bc <<< "($NVS+1)/1")
-          export NVM=$(bc <<< "($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
-          export NUM_VALIDATORS_ON_META=$(bc <<< "($NVM+1)/1")
-          export NUM_NODES_TOTAL=$(bc <<< "($NUM_VALIDATORS_ON_SHARD + $NUM_VALIDATORS_ON_META)")
-
-          ./kustomize edit set replicas elrond-node=$NUM_NODES_TOTAL observer-shard=$NUM_OF_SHARDS
+          echo elrond-node="$NUM_NODES_TOTAL" observer-shard="$NUM_OF_SHARDS"
+          ./kustomize edit set replicas elrond-node="$NUM_NODES_TOTAL" observer-shard="$NUM_OF_SHARDS"
           ./kustomize edit set namespace "$NAMESPACE"
           ./kustomize edit set image elrondnetwork/elrond-go-node=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
           ./kustomize edit set image elrondnetwork/elrond-go-seednode=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
