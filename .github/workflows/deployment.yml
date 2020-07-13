@@ -33,7 +33,7 @@ jobs:
         run: '(test -f .github/workflows/env && echo ::set-env name=BUILD_ENV::true) || echo ENV testnet config does not exist'
 
       # https://github.com/actions/checkout#Checkout-multiple-repos-side-by-side
-      - if: ${{ $BUILD_ENV }}
+      - if: ${{ "$BUILD_ENV"==true }}
         name: Checkout deployment config repo
         uses: actions/checkout@v2
         with:
