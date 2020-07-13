@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - deployment_configuration
+      - prometheus-style-metrics-endpoint
 
 # Environment variables available to all jobs and steps in this workflows
 env:
