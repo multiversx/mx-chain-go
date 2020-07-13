@@ -70,6 +70,7 @@ jobs:
             -chain-id k8s-testnet \
             -hysteresis $HYSTERESIS \
             -stake-type delegated
+          chmod u+x $BASE_PATH/filegenConfig/*
 
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
@@ -82,13 +83,9 @@ jobs:
         run: |
           ls -lh
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_NODE":"$GITHUB_SHA" \
-            -f ./docker/elrond/Dockerfile \
-            --build-arg GITHUB_SHA="$GITHUB_SHA" \
-            --build-arg GITHUB_REF="$GITHUB_REF" .
+            -f ./docker/elrond/Dockerfile .
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_SEEDNODE":"$GITHUB_SHA" \
-            -f ./docker/seednode/Dockerfile \
-            --build-arg GITHUB_SHA="$GITHUB_SHA" \
-            --build-arg GITHUB_REF="$GITHUB_REF" .
+            -f ./docker/seednode/Dockerfile .
 
       # Push the Docker image to Google Container Registry
       - name: Publish
@@ -100,7 +97,6 @@ jobs:
         run: |
           ls -lh
           ls -lh $BASE_PATH/filegenConfig/
-          chmod u+x $BASE_PATH/filegenConfig/nodesSetup.json
           sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfig/nodesSetup.json > $BASE_PATH/filegenConfig/nodesSetupUpdated.json
         shell: bash
 
