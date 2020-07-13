@@ -36,7 +36,7 @@ func createKadDhtPeerDiscoverer(
 		Host:                 host,
 		KddSharder:           sharder,
 		PeersRefreshInterval: time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
-		RandezVous:           p2pConfig.KadDhtPeerDiscovery.RandezVous,
+		ProtocolID:           p2pConfig.KadDhtPeerDiscovery.ProtocolID,
 		InitialPeersList:     p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
 		BucketSize:           p2pConfig.KadDhtPeerDiscovery.BucketSize,
 		RoutingTableRefresh:  time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RoutingTableRefreshIntervalInSec),
