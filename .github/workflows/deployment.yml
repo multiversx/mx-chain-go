@@ -73,9 +73,6 @@ jobs:
             -hysteresis $HYSTERESIS \
             -stake-type delegated
 
-  -stake-type delegated
-  -node-price 2500000000000000000000 -total-supply 20000000000000000000000000 -num-of-shards 5 -num-of-nodes-in-each-shard 21 -consensus-group-size 15 -num-of-observers-in-each-shard 1 -num-of-metachain-nodes 21 -metachain-consensus-group-size 15 -num-of-observers-in-metachain 1 -chain-id testnet -hysteresis 0.0
-
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
           # Set up docker to authenticate
