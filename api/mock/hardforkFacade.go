@@ -23,3 +23,8 @@ func (hf *HardforkFacade) IsSelfTrigger() bool {
 
 	return false
 }
+
+// IsInterfaceNil -
+func (hf *HardforkFacade) IsInterfaceNil() bool {
+	return hf == nil
+}

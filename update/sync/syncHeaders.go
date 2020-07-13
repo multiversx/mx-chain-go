@@ -148,7 +148,6 @@ func (h *headersToSync) receivedUnFinishedMetaBlocks(headerHandler data.HeaderHa
 	}
 
 	delete(h.missingMetaNonces, meta.GetNonce())
-	log.Debug("writing to unFinished")
 	h.unFinishedMetaBlocks[string(hash)] = meta
 
 	if len(h.missingMetaNonces) > 0 {
@@ -329,7 +328,6 @@ func (h *headersToSync) computeMissingNonce(lowestNonce uint64, epochStartNonce 
 			h.missingMetaNonces[nonce] = struct{}{}
 			continue
 		}
-		log.Debug("writing to unFinished")
 		h.unFinishedMetaBlocks[string(metaHash)] = metaHdr
 	}
 }
@@ -360,7 +358,6 @@ func (h *headersToSync) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
 // GetUnfinishedMetaBlocks returns the synced metablock
 func (h *headersToSync) GetUnfinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
 	h.mutMeta.Lock()
-	log.Debug("getting unFinished")
 	unFinished := h.unFinishedMetaBlocks
 	h.mutMeta.Unlock()
 

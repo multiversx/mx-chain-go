@@ -94,6 +94,13 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart *block.Meta
 		listPendingMiniBlocks = append(listPendingMiniBlocks, computedPending...)
 	}
 
+	for _, val := range epochStart.MiniBlockHeaders {
+		if val.SenderShardID != core.MetachainShardId || val.Type == block.PeerBlock {
+			continue
+		}
+		listPendingMiniBlocks = append(listPendingMiniBlocks, val)
+	}
+
 	return p.syncMiniBlocks(listPendingMiniBlocks, ctx)
 }
 
@@ -192,7 +199,6 @@ func (p *pendingMiniBlocks) computePendingMiniBlocksFromUnFinished(
 			return nil, update.ErrWrongUnfinishedMetaHdrsMap
 		}
 
-		log.Debug("unFinished access")
 		meta, exists := unFinished[metaHash]
 		if !exists {
 			return nil, update.ErrWrongUnfinishedMetaHdrsMap

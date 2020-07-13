@@ -148,10 +148,6 @@ func createMetaGenesisAfterHardFork(
 		return nil, err
 	}
 
-	err = arg.ValidatorAccounts.RecreateTrie(hdrHandler.GetValidatorStatsRootHash())
-	if err != nil {
-		return nil, err
-	}
 	saveGenesisBodyToStorage(processors.txCoordinator, bodyHandler)
 
 	err = saveGenesisMetaToStorage(arg.Store, arg.Marshalizer, metaHdr)
