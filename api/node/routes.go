@@ -64,6 +64,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, "/statistics", Statistics)
 	router.RegisterHandler(http.MethodGet, "/status", StatusMetrics)
 	router.RegisterHandler(http.MethodGet, "/p2pstatus", P2pStatusMetrics)
+	router.RegisterHandler(http.MethodGet, "/metrics", PrometheusMetrics)
 	router.RegisterHandler(http.MethodPost, "/debug", QueryDebug)
 	router.RegisterHandler(http.MethodGet, "/peerinfo", PeerInfo)
 	// placeholder for custom routes
@@ -308,5 +309,27 @@ func PeerInfo(c *gin.Context) {
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
+	)
+}
+
+// PrometheusMetric is the endpoint which will return the data in the way that prometheus expects them
+func PrometheusMetrics(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	metrics := ef.StatusMetrics().StatusMetricsWithoutP2PPrometheusString()
+	c.String(
+		http.StatusOK,
+		metrics,
 	)
 }

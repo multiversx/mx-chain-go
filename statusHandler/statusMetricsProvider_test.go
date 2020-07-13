@@ -1,6 +1,8 @@
 package statusHandler_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -106,4 +108,19 @@ func TestStatusMetricsProvider_AddUint64Value(t *testing.T) {
 
 	retMap := sm.StatusMetricsMap()
 	assert.Equal(t, value+value, retMap[key])
+}
+
+func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusString(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+	key1, value1 := "test-key7", uint64(100)
+	key2, value2 := "test-key8", "value8"
+	sm.SetUInt64Value(key1, value1)
+	sm.SetStringValue(key2, value2)
+
+	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
+
+	assert.True(t, strings.Contains(strRes, fmt.Sprintf("%s=%v", key1, value1)))
+	assert.True(t, strings.Contains(strRes, fmt.Sprintf("%s=%v", key2, value2)))
 }
