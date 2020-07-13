@@ -81,12 +81,13 @@ jobs:
       - name: Build
         run: |
           cd elrond-k8s-testnet
+          ls -lh
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_NODE":"$GITHUB_SHA" \
-            -f $BASE_PATH/elrond-k8s-testnet/docker/elrond/Dockerfile \
+            -f ./docker/elrond/Dockerfile \
             --build-arg GITHUB_SHA="$GITHUB_SHA" \
             --build-arg GITHUB_REF="$GITHUB_REF" .
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_SEEDNODE":"$GITHUB_SHA" \
-            -f $BASE_PATH/elrond-k8s-testnet/docker/seednode/Dockerfile \
+            -f ./docker/seednode/Dockerfile \
             --build-arg GITHUB_SHA="$GITHUB_SHA" \
             --build-arg GITHUB_REF="$GITHUB_REF" .
 
