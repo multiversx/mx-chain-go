@@ -1,11 +1,13 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -126,6 +128,71 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 
 	miniBlocks, err := pendingMiniBlocksSyncer.GetMiniBlocks()
 	require.Equal(t, mb, miniBlocks[string(mbHash)])
+	require.Nil(t, err)
+}
+
+func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T) {
+	t.Parallel()
+
+	miniBlockInPool := false
+	mbHash := []byte("mbHash")
+	rwdMBHash := []byte("rwdMBHash")
+	mb := &block.MiniBlock{}
+	rwdMB := &block.MiniBlock{Type: block.RewardsBlock}
+	args := ArgsNewPendingMiniBlocksSyncer{
+		Storage: &mock.StorerStub{},
+		Cache: &testscommon.CacherStub{
+			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
+				miniBlockInPool = true
+				if bytes.Equal(key, mbHash) {
+					return mb, true
+				}
+				if bytes.Equal(key, rwdMBHash) {
+					return rwdMB, true
+				}
+				return nil, false
+			},
+		},
+		Marshalizer:    &mock.MarshalizerFake{},
+		RequestHandler: &mock.RequestHandlerStub{},
+	}
+
+	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
+	require.Nil(t, err)
+
+	metaBlock := &block.MetaBlock{
+		Nonce: 1, Epoch: 1, RootHash: []byte("metaRootHash"),
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					ShardID:                 0,
+					RootHash:                []byte("shardDataRootHash"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{{Hash: mbHash}},
+					FirstPendingMetaBlock:   []byte("firstPending"),
+				},
+			},
+		},
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+				Hash:            rwdMBHash,
+				Type:            block.RewardsBlock,
+			},
+		},
+	}
+	unFinished := make(map[string]*block.MetaBlock)
+	unFinished["firstPending"] = metaBlock
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	cancel()
+	require.Nil(t, err)
+	require.True(t, miniBlockInPool)
+
+	miniBlocks, err := pendingMiniBlocksSyncer.GetMiniBlocks()
+	require.Equal(t, mb, miniBlocks[string(mbHash)])
+	require.Equal(t, rwdMB, miniBlocks[string(rwdMBHash)])
 	require.Nil(t, err)
 }
 
