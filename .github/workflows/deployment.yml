@@ -48,6 +48,11 @@ jobs:
           service_account_email: ${{ secrets.GKE_EMAIL }}
           service_account_key: ${{ secrets.GKE_KEY }}
 
+      - name: Prep Ubunut
+        run: |
+          sudo apt update
+          sudo apt install bc -y
+
       - name: Create Configs
         run: |
           export HYSTERESIS=0.21
@@ -68,6 +73,8 @@ jobs:
           echo '::set-env name=NUM_VALIDATORS_ON_SHARD::$NUM_VALIDATORS_ON_SHARD'
           echo '::set-env name=NUM_VALIDATORS_ON_META::$NUM_VALIDATORS_ON_META'
           echo '::set-env name=NUM_NODES_TOTAL::$NUM_NODES_TOTAL'
+
+          echo elrond-node="$NUM_NODES_TOTAL" observer-shard="$NUM_OF_SHARDS"
 
           docker run \
             -v "/home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/:/data/" \
@@ -108,11 +115,6 @@ jobs:
           cp -r $BASE_PATH/elrond-k8s-testnet/filegenConfig/ $BASE_PATH/filegenConfigLocal/
           sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfigLocal/nodesSetup.json > $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
         shell: bash
-
-      - name: Prep Ubunut
-        run: |
-          sudo apt update
-          sudo apt install bc -y
 
       # Deploy the Docker image to the GKE cluster
       - name: Deploy
