@@ -13,10 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 //TODO remove this
@@ -50,82 +48,6 @@ func CreateSoftwareVersionChecker(
 	}
 
 	return softwareVersionChecker, nil
-}
-
-// PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger
-func PrepareNetworkShardingCollector(
-	network mainFactory.NetworkComponentsHolder,
-	config *config.Config,
-	nodesCoordinator sharding.NodesCoordinator,
-	coordinator sharding.Coordinator,
-	epochStartRegistrationHandler epochStart.RegistrationHandler,
-	epochStart uint32,
-) (*networksharding.PeerShardMapper, error) {
-
-	networkShardingCollector, err := createNetworkShardingCollector(config, nodesCoordinator, epochStartRegistrationHandler, epochStart)
-	if err != nil {
-		return nil, err
-	}
-
-	localID := network.NetworkMessenger().ID()
-	networkShardingCollector.UpdatePeerIdShardId(localID, coordinator.SelfId())
-
-	err = network.NetworkMessenger().SetPeerShardResolver(networkShardingCollector)
-	if err != nil {
-		return nil, err
-	}
-
-	err = network.InputAntiFloodHandler().SetPeerValidatorMapper(networkShardingCollector)
-	if err != nil {
-		return nil, err
-	}
-
-	return networkShardingCollector, nil
-}
-
-func createNetworkShardingCollector(
-	config *config.Config,
-	nodesCoordinator sharding.NodesCoordinator,
-	epochStartRegistrationHandler epochStart.RegistrationHandler,
-	epochStart uint32,
-) (*networksharding.PeerShardMapper, error) {
-
-	cacheConfig := config.PublicKeyPeerId
-	cachePkPid, err := createCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	cacheConfig = config.PublicKeyShardId
-	cachePkShardID, err := createCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	cacheConfig = config.PeerIdShardId
-	cachePidShardID, err := createCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	psm, err := networksharding.NewPeerShardMapper(
-		cachePkPid,
-		cachePkShardID,
-		cachePidShardID,
-		nodesCoordinator,
-		epochStart,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	epochStartRegistrationHandler.RegisterHandler(psm)
-
-	return psm, nil
-}
-
-func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
-	return storageUnit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
 }
 
 // CreateLatestStorageDataProvider will create a latest storage data provider handler

@@ -1,0 +1,112 @@
+package factory
+
+import (
+	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
+)
+
+var _ ComponentHandler = (*managedHeartbeatComponents)(nil)
+var _ HeartbeatComponentsHolder = (*managedHeartbeatComponents)(nil)
+var _ HeartbeatComponentsHandler = (*managedHeartbeatComponents)(nil)
+
+type managedHeartbeatComponents struct {
+	*heartbeatComponents
+	heartbeatComponentsFactory *heartbeatComponentsFactory
+	mutHeartbeatComponents     sync.RWMutex
+}
+
+// NewManagedHeartbeatComponents creates a new heartbeat components handler
+func NewManagedHeartbeatComponents(args HeartbeatComponentsFactoryArgs) (*managedHeartbeatComponents, error) {
+	hcf, err := NewHeartbeatComponentsFactory(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return &managedHeartbeatComponents{
+		heartbeatComponents:        nil,
+		heartbeatComponentsFactory: hcf,
+	}, nil
+}
+
+// Create creates the heartbeat components
+func (mhc *managedHeartbeatComponents) Create() error {
+	hc, err := mhc.heartbeatComponentsFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	mhc.mutHeartbeatComponents.Lock()
+	mhc.heartbeatComponents = hc
+	mhc.mutHeartbeatComponents.Unlock()
+
+	return nil
+}
+
+// Close closes the heartbeat components
+func (mhc *managedHeartbeatComponents) Close() error {
+	mhc.mutHeartbeatComponents.Lock()
+	defer mhc.mutHeartbeatComponents.Unlock()
+
+	if mhc.heartbeatComponents == nil {
+		return nil
+	}
+
+	mhc.heartbeatComponents.Close()
+	mhc.heartbeatComponents = nil
+
+	return nil
+}
+
+// MessageHandler returns the heartbeat message handler
+func (mhc *managedHeartbeatComponents) MessageHandler() heartbeat.MessageHandler {
+	mhc.mutHeartbeatComponents.RLock()
+	defer mhc.mutHeartbeatComponents.RUnlock()
+
+	if mhc.heartbeatComponents == nil {
+		return nil
+	}
+
+	return mhc.messageHandler
+}
+
+// Monitor returns the heartbeat monitor
+func (mhc *managedHeartbeatComponents) Monitor() HeartbeatMonitor {
+	mhc.mutHeartbeatComponents.RLock()
+	defer mhc.mutHeartbeatComponents.RUnlock()
+
+	if mhc.heartbeatComponents == nil {
+		return nil
+	}
+
+	return mhc.monitor
+}
+
+// Sender returns the heartbeat sender
+func (mhc *managedHeartbeatComponents) Sender() HeartbeatSender {
+	mhc.mutHeartbeatComponents.RLock()
+	defer mhc.mutHeartbeatComponents.RUnlock()
+
+	if mhc.heartbeatComponents == nil {
+		return nil
+	}
+
+	return mhc.sender
+}
+
+// Storer returns the heartbeat storer
+func (mhc *managedHeartbeatComponents) Storer() HeartbeatStorer {
+	mhc.mutHeartbeatComponents.RLock()
+	defer mhc.mutHeartbeatComponents.RUnlock()
+
+	if mhc.heartbeatComponents == nil {
+		return nil
+	}
+
+	return mhc.storer
+}
+
+// IsInterfaceNil returns true if the underlying object is nil
+func (mhc *managedHeartbeatComponents) IsInterfaceNil() bool {
+	return mhc == nil
+}

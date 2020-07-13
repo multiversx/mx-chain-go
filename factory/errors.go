@@ -104,6 +104,9 @@ var ErrNilStateComponents = errors.New("nil state components")
 // ErrNilNetworkComponentsHolder signals that a nil network components holder has been provided
 var ErrNilNetworkComponentsHolder = errors.New("nil network components holder")
 
+// ErrNilMessenger signals a nil messenger was provided
+var ErrNilMessenger = errors.New("nil messenger")
+
 // ErrNilProcessComponentsHolder signals that a nil process components holder was provided
 var ErrNilProcessComponentsHolder = errors.New("nil process components holder")
 

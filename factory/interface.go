@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/heartbeat"
+	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -160,6 +162,7 @@ type NetworkComponentsHandler interface {
 // ProcessComponentsHolder holds the process components
 type ProcessComponentsHolder interface {
 	NodesCoordinator() sharding.NodesCoordinator
+	ShardCoordinator() sharding.Coordinator
 	InterceptorsContainer() process.InterceptorsContainer
 	ResolversFinder() dataRetriever.ResolversFinder
 	Rounder() consensus.Rounder
@@ -178,6 +181,7 @@ type ProcessComponentsHolder interface {
 	RequestHandler() process.RequestHandler
 	TxLogsProcessor() process.TransactionLogProcessorDatabase
 	HeaderConstructionValidator() process.HeaderConstructionValidator
+	PeerShardMapper() process.PeerShardMapper
 	IsInterfaceNil() bool
 }
 
@@ -226,4 +230,38 @@ type StatusComponentsHandler interface {
 	// SetForkDetector should be set before starting Polling for updates
 	SetForkDetector(forkDetector process.ForkDetector)
 	StartPolling() error
+}
+
+// HeartbeatSender sends heartbeat messages
+type HeartbeatSender interface {
+	SendHeartbeat() error
+}
+
+// HeartbeatMonitor monitors the received heartbeat messages
+type HeartbeatMonitor interface {
+	SetAppStatusHandler(ash core.AppStatusHandler) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
+	IsInterfaceNil() bool
+}
+
+type HeartbeatStorer interface {
+	UpdateGenesisTime(genesisTime time.Time) error
+	LoadGenesisTime() (time.Time, error)
+	SaveKeys(peersSlice [][]byte) error
+	LoadKeys() ([][]byte, error)
+	IsInterfaceNil() bool
+}
+
+type HeartbeatComponentsHolder interface {
+	MessageHandler() heartbeat.MessageHandler
+	Monitor() HeartbeatMonitor
+	Sender() HeartbeatSender
+	Storer() HeartbeatStorer
+	IsInterfaceNil() bool
+}
+
+type HeartbeatComponentsHandler interface {
+	ComponentHandler
+	HeartbeatComponentsHolder
 }

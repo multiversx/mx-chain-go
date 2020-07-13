@@ -1546,18 +1546,6 @@ func createNode(
 		return nil, err
 	}
 
-	networkShardingCollector, err := factory.PrepareNetworkShardingCollector(
-		network,
-		config,
-		nodesCoordinator,
-		shardCoordinator,
-		epochStartRegistrationHandler,
-		process.EpochStartTrigger().MetaEpoch(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	factory.PrepareOpenTopics(network.InputAntiFloodHandler(), shardCoordinator)
 
 	alarmScheduler := alarm.NewAlarmScheduler()
@@ -1569,7 +1557,7 @@ func createNode(
 	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
 		network.PeerBlackListHandler(),
 		network.PubKeyCacher(),
-		networkShardingCollector,
+		process.PeerShardMapper(),
 	)
 	if err != nil {
 		return nil, err
@@ -1626,7 +1614,7 @@ func createNode(
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBlockBlackListHandler(process.BlackListHandler()),
 		node.WithPeerDenialEvaluator(peerDenialEvaluator),
-		node.WithNetworkShardingCollector(networkShardingCollector),
+		node.WithNetworkShardingCollector(process.PeerShardMapper()),
 		node.WithBootStorer(process.BootStorer()),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier()),
