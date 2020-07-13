@@ -14,7 +14,7 @@ type StorerStub struct {
 	ClearCacheCalled   func()
 	CloseCalled        func() error
 	DestroyUnitCalled  func() error
-	IterateCalled      func() chan core.KeyValHolder
+	IterateCalled      func() chan core.KeyValueHolder
 }
 
 // GetFromEpoch -
@@ -71,12 +71,12 @@ func (ss *StorerStub) DestroyUnit() error {
 }
 
 // Iterate -
-func (ss *StorerStub) Iterate() chan core.KeyValHolder {
+func (ss *StorerStub) Iterate() chan core.KeyValueHolder {
 	if ss.IterateCalled != nil {
 		return ss.IterateCalled()
 	}
 
-	ch := make(chan core.KeyValHolder)
+	ch := make(chan core.KeyValueHolder)
 	close(ch)
 
 	return ch

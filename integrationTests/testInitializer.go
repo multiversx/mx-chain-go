@@ -1659,8 +1659,6 @@ func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sy
 
 			txMap[string(key)] = struct{}{}
 		},
-		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
-		},
 	})
 }
 
@@ -1737,27 +1735,6 @@ func generateValidTx(
 	txHash := TestHasher.Compute(string(txBuff))
 
 	return tx, txHash
-}
-
-// GetNumTxsWithDst returns the total number of transactions that have a certain destination shard
-func GetNumTxsWithDst(dstShardId uint32, dataPool dataRetriever.PoolsHolder, nrShards uint32) int {
-	txPool := dataPool.Transactions()
-	if txPool == nil {
-		return 0
-	}
-
-	sumTxs := 0
-
-	for i := uint32(0); i < nrShards; i++ {
-		strCache := process.ShardCacherIdentifier(i, dstShardId)
-		txStore := txPool.ShardDataStore(strCache)
-		if txStore == nil {
-			continue
-		}
-		sumTxs += txStore.Len()
-	}
-
-	return sumTxs
 }
 
 // ProposeAndSyncOneBlock proposes a block, syncs the block and then increments the round

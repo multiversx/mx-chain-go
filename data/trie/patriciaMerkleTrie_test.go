@@ -635,6 +635,38 @@ func TestPatriciaMerkleTrie_GetAllHashesEmtyTrie(t *testing.T) {
 	assert.Equal(t, 0, len(hashes))
 }
 
+func TestPatriciaMerkleTrie_GetAllLeavesOnChannelNilTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+
+	leavesChannel := tr.GetAllLeavesOnChannel()
+	assert.NotNil(t, leavesChannel)
+
+	_, ok := <-leavesChannel
+	assert.False(t, ok)
+}
+
+func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	leaves := map[string][]byte{
+		"doe":  []byte("reindeer"),
+		"dog":  []byte("puppy"),
+		"ddog": []byte("cat"),
+	}
+
+	leavesChannel := tr.GetAllLeavesOnChannel()
+	assert.NotNil(t, leavesChannel)
+
+	recovered := make(map[string][]byte)
+	for leaf := range leavesChannel {
+		recovered[string(leaf.Key())] = leaf.Value()
+	}
+	assert.Equal(t, leaves, recovered)
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}

@@ -75,6 +75,7 @@ type ComponentsNeededForBootstrap struct {
 // epochStartBootstrap will handle requesting the needed data to start when joining late the network
 type epochStartBootstrap struct {
 	// should come via arguments
+	destinationShardAsObserver uint32
 	publicKey                  crypto.PublicKey
 	marshalizer                marshal.Marshalizer
 	txSignMarshalizer          marshal.Marshalizer
@@ -94,7 +95,6 @@ type epochStartBootstrap struct {
 	defaultDBPath              string
 	defaultEpochString         string
 	defaultShardString         string
-	destinationShardAsObserver uint32
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
 	trieStorageManagers        map[string]data.StorageManager
@@ -127,10 +127,10 @@ type epochStartBootstrap struct {
 	userAccountTries   map[string]data.Trie
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
-	startEpoch         uint32
 	startRound         int64
-	shuffledOut        bool
 	nodeType           core.NodeType
+	startEpoch         uint32
+	shuffledOut        bool
 }
 
 type baseDataInStorage struct {
@@ -291,7 +291,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			}
 
 			return Parameters{
-				Epoch:       0,
+				Epoch:       e.startEpoch,
 				SelfShardId: e.genesisShardCoordinator.SelfId(),
 				NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 			}, nil
@@ -309,7 +309,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		epochToStart := e.baseData.lastEpoch
 		if shuffledOut {
-			epochToStart = 0
+			epochToStart = e.startEpoch
 		}
 
 		newShardId = e.applyShardIDAsObserverIfNeeded(newShardId)
@@ -510,7 +510,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		shardIds = append(shardIds, epochStartData.ShardID)
 	}
 
-	if meta.Epoch > 1 { // no need to request genesis block
+	if meta.Epoch > e.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.EpochStart.Economics.PrevEpochStartHash)
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
@@ -527,7 +527,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		return nil, err
 	}
 
-	if meta.Epoch == 1 {
+	if meta.Epoch == e.startEpoch+1 {
 		syncedHeaders[string(meta.EpochStart.Economics.PrevEpochStartHash)] = &block.MetaBlock{}
 	}
 
@@ -618,6 +618,10 @@ func (e *epochStartBootstrap) saveSelfShardId() {
 
 func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 	var err error
+	shardId := e.destinationShardAsObserver
+	if shardId > e.baseData.numberOfShards && shardId != core.MetachainShardId {
+		shardId = e.genesisShardCoordinator.SelfId()
+	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
 		DataPool:           e.dataPool,
 		Marshalizer:        e.marshalizer,
@@ -627,7 +631,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		NodeShuffler:       e.nodeShuffler,
 		Hasher:             e.hasher,
 		PubKey:             pubKey,
-		ShardIdAsObserver:  e.destinationShardAsObserver,
+		ShardIdAsObserver:  shardId,
 	}
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
@@ -837,7 +841,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 
 	userStorageManager, userAccountTrie, err := trieFactory.Create(
 		e.generalConfig.AccountsTrieStorage,
-		core.GetShardIdString(shardId),
+		core.GetShardIDString(shardId),
 		e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 	)
@@ -850,7 +854,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 
 	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
 		e.generalConfig.PeerAccountsTrieStorage,
-		core.GetShardIdString(shardId),
+		core.GetShardIDString(shardId),
 		e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
 		e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 	)

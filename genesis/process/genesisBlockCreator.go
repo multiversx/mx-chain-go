@@ -86,11 +86,12 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		return fmt.Errorf("%w while creating keys-values storer", err)
 	}
 
-	hs, err := storing.NewHardforkStorer(
-		keysStorer,
-		keysVals,
-		gbc.arg.Marshalizer,
-	)
+	arg := storing.ArgHardforkStorer{
+		KeysStore:   keysStorer,
+		KeyValue:    keysVals,
+		Marshalizer: gbc.arg.Marshalizer,
+	}
+	hs, err := storing.NewHardforkStorer(arg)
 
 	argsHardForkImport := hardfork.ArgsNewStateImport{
 		HardforkStorer:      hs,
@@ -112,7 +113,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := factory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
-	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
+	store, err := storageUnit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
 		factory.GetBloomFromConfig(storageConfig.Bloom),
@@ -121,7 +122,7 @@ func createStorer(storageConfig config.StorageConfig, folder string) (storage.St
 		return nil, err
 	}
 
-	return accountsTrieStorage, nil
+	return store, nil
 }
 
 func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {

@@ -6,7 +6,7 @@ type RewardsHandlerStub struct {
 	CommunityPercentageCalled func() float64
 	CommunityAddressCalled    func() string
 	MinInflationRateCalled    func() float64
-	MaxInflationRateCalled    func() float64
+	MaxInflationRateCalled    func(year uint32) float64
 }
 
 // LeaderPercentage -
@@ -46,9 +46,9 @@ func (r *RewardsHandlerStub) MinInflationRate() float64 {
 }
 
 // MaxInflationRate -
-func (r *RewardsHandlerStub) MaxInflationRate() float64 {
+func (r *RewardsHandlerStub) MaxInflationRate(year uint32) float64 {
 	if r.MaxInflationRateCalled != nil {
-		return r.MaxInflationRateCalled()
+		return r.MaxInflationRateCalled(year)
 	}
 
 	return 1000000

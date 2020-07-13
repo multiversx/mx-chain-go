@@ -182,12 +182,18 @@ func (se *stateExport) exportMeta() error {
 func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 	identifier := TrieIdentifier + atSep + key
 
-	leaves, err := trie.GetAllLeaves()
+	accType, shId, err := GetTrieTypeAndShId(identifier)
 	if err != nil {
 		return err
 	}
 
-	accType, shId, err := GetTrieTypeAndShId(identifier)
+	// no need to export validator account
+	// TODO: export validatorAccount trie to nodeSetup.json with all ratings
+	if accType == ValidatorAccount {
+		return nil
+	}
+
+	leaves, err := trie.GetAllLeaves()
 	if err != nil {
 		return err
 	}

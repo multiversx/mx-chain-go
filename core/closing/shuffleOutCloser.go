@@ -65,6 +65,11 @@ func (soc *shuffleOutCloser) writeOnChanDelayed(event endProcess.ArgEndProcess) 
 	randDurationBeforeStop := soc.randomizer.Intn(int(delta))
 	timeToWait := soc.minWaitDuration + time.Duration(randDurationBeforeStop)
 
+	log.Info("the application will stop in",
+		"waiting time", fmt.Sprintf("%v", timeToWait),
+		"description", event.Description,
+		"reason", event.Reason)
+
 	select {
 	case <-time.After(timeToWait):
 	case <-soc.ctx.Done():
@@ -72,7 +77,7 @@ func (soc *shuffleOutCloser) writeOnChanDelayed(event endProcess.ArgEndProcess) 
 		return
 	}
 
-	log.Info("the application will stop",
+	log.Info("the application will stop now after",
 		"waiting time", fmt.Sprintf("%v", timeToWait),
 		"description", event.Description,
 		"reason", event.Reason,

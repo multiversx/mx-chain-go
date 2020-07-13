@@ -108,7 +108,6 @@ type UserAccountHandler interface {
 type DataTrieTracker interface {
 	ClearDataCaches()
 	DirtyData() map[string][]byte
-	OriginalValue(key []byte) []byte
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte)
 	SetDataTrie(tr data.Trie)
