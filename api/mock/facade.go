@@ -17,15 +17,16 @@ import (
 
 // Facade is the mock implementation of a node router handler
 type Facade struct {
-	ShouldErrorStart                  bool
-	ShouldErrorStop                   bool
-	TpsBenchmarkHandler               func() *statistics.TpsBenchmark
-	GetHeartbeatsHandler              func() ([]data.PubKeyHeartbeat, error)
-	BalanceHandler                    func(string) (*big.Int, error)
-	GetAccountHandler                 func(address string) (state.UserAccountHandler, error)
-	GenerateTransactionHandler        func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler             func(hash string) (*transaction.ApiTransactionResult, error)
-	CreateTransactionHandler          func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
+	ShouldErrorStart           bool
+	ShouldErrorStop            bool
+	TpsBenchmarkHandler        func() *statistics.TpsBenchmark
+	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
+	BalanceHandler             func(string) (*big.Int, error)
+	GetAccountHandler          func(address string) (state.UserAccountHandler, error)
+	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
+	GetTransactionHandler      func(hash string) (*transaction.ApiTransactionResult, error)
+	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+		gasLimit uint64, data string, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler        func(tx *transaction.Transaction) error
 	SendBulkTransactionsHandler       func(txs []*transaction.Transaction) (uint64, error)
 	ExecuteSCQueryHandler             func(query *process.SCQuery) (*vmcommon.VMOutput, error)
@@ -36,6 +37,16 @@ type Facade struct {
 	GetQueryHandlerCalled             func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled              func(address string, key string) (string, error)
 	GetPeerInfoCalled                 func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetThrottlerForEndpointCalled     func(endpoint string) (core.Throttler, bool)
+}
+
+// GetThrottlerForEndpoint -
+func (f *Facade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool) {
+	if f.GetThrottlerForEndpointCalled != nil {
+		return f.GetThrottlerForEndpointCalled(endpoint)
+	}
+
+	return nil, false
 }
 
 // RestApiInterface -
@@ -95,8 +106,10 @@ func (f *Facade) CreateTransaction(
 	gasLimit uint64,
 	data string,
 	signatureHex string,
+	chainID string,
+	version uint32,
 ) (*transaction.Transaction, []byte, error) {
-	return f.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex)
+	return f.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, chainID, version)
 }
 
 // GetTransaction is the mock implementation of a handler's GetTransaction method

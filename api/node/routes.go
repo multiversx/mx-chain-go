@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -25,13 +26,6 @@ type FacadeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 	IsInterfaceNil() bool
-}
-
-// TODO remove this struct, use shared.GenericAPIResponse
-type genericApiResponse struct {
-	Data  interface{} `json:"data"`
-	Error string      `json:"error"`
-	Code  string      `json:"code"`
 }
 
 // QueryDebugRequest represents the structure on which user input for querying a debug info will validate against
@@ -79,52 +73,115 @@ func Routes(router *wrapper.RouterWrapper) {
 func HeartbeatStatus(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
 		return
 	}
 
 	hbStatus, err := ef.GetHeartbeats()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": hbStatus})
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"heartbeats": hbStatus},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
 }
 
 // Statistics returns the blockchain statistics
 func Statistics(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"statistics": statsFromTpsBenchmark(ef.TpsBenchmark())})
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"statistics": statsFromTpsBenchmark(ef.TpsBenchmark())},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
 }
 
 // StatusMetrics returns the node statistics exported by an StatusMetricsHandler without p2p statistics
 func StatusMetrics(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
 		return
 	}
 
 	details := ef.StatusMetrics().StatusMetricsMapWithoutP2P()
-	c.JSON(http.StatusOK, gin.H{"details": details})
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"metrics": details},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
 }
 
 // P2pStatusMetrics returns the node's p2p statistics exported by a StatusMetricsHandler
 func P2pStatusMetrics(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
 		return
 	}
 
 	details := ef.StatusMetrics().StatusP2pMetricsMap()
-	c.JSON(http.StatusOK, gin.H{"details": details})
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"metrics": details},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
 }
 
 func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResponse {
@@ -161,24 +218,52 @@ func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResp
 func QueryDebug(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
 		return
 	}
 
 	var gtx = QueryDebugRequest{}
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
 		return
 	}
 
 	qh, err := ef.GetQueryHandler(gtx.Name)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrQueryError.Error(), err.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrQueryError.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"result": qh.Query(gtx.Search)})
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"result": qh.Query(gtx.Search)},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
 }
 
 // PeerInfo returns the information of a provided p2p peer ID
@@ -187,10 +272,10 @@ func PeerInfo(c *gin.Context) {
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
-			genericApiResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: "invalid app context", //TODO replace with errors.ErrInvalidAppContext.Error()
-				Code:  "internal_issue",      //TODO replace with shared.ReturnCodeInternalError
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -207,10 +292,10 @@ func PeerInfo(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			genericApiResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrGetPidInfo.Error(), err.Error()),
-				Code:  "internal error", //TODO return shared.ReturnCodeInternalError
+				Code:  shared.ReturnCodeInternalError,
 			},
 		)
 		return
@@ -218,10 +303,10 @@ func PeerInfo(c *gin.Context) {
 
 	c.JSON(
 		http.StatusOK,
-		genericApiResponse{
+		shared.GenericAPIResponse{
 			Data:  gin.H{"info": info},
 			Error: "",
-			Code:  "successful", //TODO replace with shared.ReturnCodeSuccess,
+			Code:  shared.ReturnCodeSuccess,
 		},
 	)
 }

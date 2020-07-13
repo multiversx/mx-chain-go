@@ -14,12 +14,12 @@ const millisecondsInSecond = 1000
 type messageProcessor struct {
 	antiflooder                     process.P2PAntifloodHandler
 	messenger                       p2p.Messenger
-	numMessagesProcessed            uint32
 	sizeMessagesProcessed           uint64
-	numMessagesReceived             uint32
 	sizeMessagesReceived            uint64
-	numMessagesReceivedPerInterval  uint32
 	sizeMessagesReceivedPerInterval uint64
+	numMessagesProcessed            uint32
+	numMessagesReceivedPerInterval  uint32
+	numMessagesReceived             uint32
 }
 
 // NewMessageProcessor creates a new p2p message processor implementation used in the long test

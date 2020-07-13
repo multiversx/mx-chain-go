@@ -14,6 +14,7 @@ import (
 
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -275,7 +276,17 @@ func doPost(facade interface{}, url string, request interface{}, response interf
 	responseRecorder := httptest.NewRecorder()
 	server.ServeHTTP(responseRecorder, httpRequest)
 
-	parseResponse(responseRecorder.Body, &response)
+	responseI := shared.GenericAPIResponse{}
+	parseResponse(responseRecorder.Body, &responseI)
+	if responseI.Error == "" {
+		responseDataMap := responseI.Data.(map[string]interface{})
+		responseDataMapBytes, _ := json.Marshal(responseDataMap)
+		_ = json.Unmarshal(responseDataMapBytes, response)
+	} else {
+		resp := response.(*simpleResponse)
+		resp.Error = responseI.Error
+	}
+
 	return responseRecorder.Code
 }
 

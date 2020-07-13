@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -75,6 +76,7 @@ type ComponentsNeededForBootstrap struct {
 // epochStartBootstrap will handle requesting the needed data to start when joining late the network
 type epochStartBootstrap struct {
 	// should come via arguments
+	destinationShardAsObserver uint32
 	publicKey                  crypto.PublicKey
 	marshalizer                marshal.Marshalizer
 	txSignMarshalizer          marshal.Marshalizer
@@ -94,7 +96,6 @@ type epochStartBootstrap struct {
 	defaultDBPath              string
 	defaultEpochString         string
 	defaultShardString         string
-	destinationShardAsObserver uint32
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
 	trieStorageManagers        map[string]data.StorageManager
@@ -127,9 +128,10 @@ type epochStartBootstrap struct {
 	userAccountTries   map[string]data.Trie
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
-	shuffledOut        bool
-	startEpoch         uint32
 	startRound         int64
+	nodeType           core.NodeType
+	startEpoch         uint32
+	shuffledOut        bool
 }
 
 type baseDataInStorage struct {
@@ -210,6 +212,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
 		statusHandler:              args.StatusHandler,
 		shuffledOut:                false,
+		nodeType:                   core.NodeTypeObserver,
 		importStartHandler:         args.ImportStartHandler,
 		argumentsParser:            args.ArgumentsParser,
 	}
@@ -262,12 +265,43 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 		return Parameters{}, err
 	}
 
+	shardIDToReturn := e.genesisShardCoordinator.SelfId()
+	if !e.isNodeInGenesisNodesConfig() {
+		shardIDToReturn = e.applyShardIDAsObserverIfNeeded(e.genesisShardCoordinator.SelfId())
+	}
 	parameters := Parameters{
 		Epoch:       e.startEpoch,
-		SelfShardId: e.genesisShardCoordinator.SelfId(),
+		SelfShardId: shardIDToReturn,
 		NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 	}
 	return parameters, nil
+}
+
+func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
+	ownPubKey, err := e.publicKey.ToByteArray()
+	if err != nil {
+		return false
+	}
+
+	eligibleList, waitingList := e.genesisNodesConfig.InitialNodesInfo()
+
+	for _, nodesInShard := range eligibleList {
+		for _, eligibleNode := range nodesInShard {
+			if bytes.Equal(eligibleNode.PubKeyBytes(), ownPubKey) {
+				return true
+			}
+		}
+	}
+
+	for _, nodesInShard := range waitingList {
+		for _, waitingNode := range nodesInShard {
+			if bytes.Equal(waitingNode.PubKeyBytes(), ownPubKey) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // GetTriesComponents returns the created tries components according to the shardID for the current epoch
@@ -309,6 +343,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			epochToStart = 0
 		}
 
+		newShardId = e.applyShardIDAsObserverIfNeeded(newShardId)
 		return Parameters{
 			Epoch:       epochToStart,
 			SelfShardId: newShardId,
@@ -464,6 +499,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		NonceConverter:         e.uint64Converter,
 		ChainID:                []byte(e.genesisNodesConfig.GetChainId()),
 		ArgumentsParser:        e.argumentsParser,
+		MinTransactionVersion:  e.genesisNodesConfig.GetMinTransactionVersion(),
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -613,6 +649,10 @@ func (e *epochStartBootstrap) saveSelfShardId() {
 
 func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 	var err error
+	shardId := e.destinationShardAsObserver
+	if shardId > e.baseData.numberOfShards && shardId != core.MetachainShardId {
+		shardId = e.genesisShardCoordinator.SelfId()
+	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
 		DataPool:           e.dataPool,
 		Marshalizer:        e.marshalizer,
@@ -622,7 +662,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		NodeShuffler:       e.nodeShuffler,
 		Hasher:             e.hasher,
 		PubKey:             pubKey,
-		ShardIdAsObserver:  e.destinationShardAsObserver,
+		ShardIdAsObserver:  shardId,
 	}
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
@@ -630,6 +670,8 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 	}
 
 	e.nodesConfig, e.baseData.shardId, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
+	e.baseData.shardId = e.applyShardIDAsObserverIfNeeded(e.baseData.shardId)
+
 	return err
 }
 
@@ -830,7 +872,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 
 	userStorageManager, userAccountTrie, err := trieFactory.Create(
 		e.generalConfig.AccountsTrieStorage,
-		core.GetShardIdString(shardId),
+		core.GetShardIDString(shardId),
 		e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 	)
@@ -843,7 +885,7 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 
 	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
 		e.generalConfig.PeerAccountsTrieStorage,
-		core.GetShardIdString(shardId),
+		core.GetShardIDString(shardId),
 		e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
 		e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 	)
@@ -942,6 +984,17 @@ func (e *epochStartBootstrap) setEpochStartMetrics() {
 		e.statusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, e.epochStartMeta.Nonce)
 		e.statusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, e.epochStartMeta.Round)
 	}
+}
+
+func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uint32) uint32 {
+	if e.nodeType == core.NodeTypeObserver &&
+		e.destinationShardAsObserver != core.DisabledShardIDAsObserver &&
+		e.destinationShardAsObserver != receivedShardID {
+		log.Debug("shard id as observer applied", "destination shard ID", e.destinationShardAsObserver, "computed", receivedShardID)
+		receivedShardID = e.destinationShardAsObserver
+	}
+
+	return receivedShardID
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

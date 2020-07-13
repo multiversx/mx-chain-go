@@ -71,6 +71,8 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 		uint64(txToSend),
 		nodes[idxSender].OwnAccount.SkTxSign,
 		nil,
+		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 
 	time.Sleep(time.Second * 10)
@@ -164,6 +166,8 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 		uint64(txToSend),
 		nodes[idxSender].OwnAccount.SkTxSign,
 		nil,
+		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 
 	//display, can be removed
@@ -251,7 +255,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	//wire a new hook for generated txs on a node in sender shard to populate tx hashes generated
 	for _, n := range nodes {
 		if n.ShardCoordinator.SelfId() == firstSkInShard {
-			n.DataPool.Transactions().RegisterHandler(func(key []byte, value interface{}) {
+			n.DataPool.Transactions().RegisterOnAdded(func(key []byte, value interface{}) {
 				mutGeneratedTxHashes.Lock()
 				generatedTxHashes = append(generatedTxHashes, key)
 				mutGeneratedTxHashes.Unlock()
@@ -284,6 +288,8 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 		uint64(txToSend),
 		nodes[0].OwnAccount.SkTxSign,
 		whiteListTxs,
+		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
 	)
 
 	fmt.Println("Waiting for senders to fetch generated transactions...")

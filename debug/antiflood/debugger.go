@@ -31,8 +31,8 @@ type event struct {
 	pid           core.PeerID
 	sequences     map[uint64]struct{}
 	topic         string
-	numRejected   uint32
 	sizeRejected  uint64
+	numRejected   uint32
 	isBlackListed bool
 }
 
@@ -55,7 +55,7 @@ func (ev *event) String() string {
 		sequences = append([]string{moreSequencesPresent}, sequences[len(sequences)-maxSequencesToPrint:]...)
 	}
 
-	return fmt.Sprintf("pid: %s; topic: %s; num rejected: %d; size rejected: %d; seqences: %s; is blacklisted: %v",
+	return fmt.Sprintf("pid: %s; topic: %s; num rejected: %d; size rejected: %d; sequences: %s; is blacklisted: %v",
 		ev.pid.Pretty(), ev.topic, ev.numRejected, ev.sizeRejected, strings.Join(sequences, ", "), ev.isBlackListed)
 }
 

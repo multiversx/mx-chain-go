@@ -96,7 +96,6 @@ type Node struct {
 	validatorsProvider            process.ValidatorsProvider
 	whiteListRequest              process.WhiteListHandler
 	whiteListerVerifiedTxs        process.WhiteListHandler
-	apiTransactionByHashThrottler Throttler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -129,18 +128,18 @@ type Node struct {
 	headerSigVerifier       spos.RandSeedVerifier
 	headerIntegrityVerifier spos.HeaderIntegrityVerifier
 
-	chainID                  []byte
+	chainID               []byte
+	minTransactionVersion uint32
+
+	sizeCheckDelta        uint32
+	txSentCounter         uint32
+	inputAntifloodHandler P2PAntifloodHandler
+	txAcumulator          Accumulator
+
 	blockTracker             process.BlockTracker
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
-	txStorageSize  uint32
-	sizeCheckDelta uint32
-
 	requestHandler process.RequestHandler
-
-	inputAntifloodHandler P2PAntifloodHandler
-	txAcumulator          Accumulator
-	txSentCounter         uint32
 
 	signatureSize int
 	publicKeySize int
@@ -829,6 +828,8 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.feeHandler,
 		n.whiteListerVerifiedTxs,
 		argumentParser,
+		n.chainID,
+		n.minTransactionVersion,
 	)
 	if err != nil {
 		return err
@@ -895,8 +896,15 @@ func (n *Node) CreateTransaction(
 	gasLimit uint64,
 	dataField string,
 	signatureHex string,
+	chainID string,
+	version uint32,
 ) (*transaction.Transaction, []byte, error) {
-
+	if version == 0 {
+		return nil, nil, ErrInvalidTransactionVersion
+	}
+	if chainID == "" {
+		return nil, nil, ErrInvalidChainID
+	}
 	if check.IfNil(n.addressPubkeyConverter) {
 		return nil, nil, ErrNilPubkeyConverter
 	}
@@ -933,6 +941,8 @@ func (n *Node) CreateTransaction(
 		GasLimit:  gasLimit,
 		Data:      []byte(dataField),
 		Signature: signatureBytes,
+		ChainID:   []byte(chainID),
+		Version:   version,
 	}
 
 	var txHash []byte

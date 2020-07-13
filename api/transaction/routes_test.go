@@ -12,36 +12,59 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	errors2 "github.com/ElrondNetwork/elrond-go/api/errors"
+	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	tr "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
-type GeneralResponse struct {
-	Message string `json:"message"`
-	Error   string `json:"error"`
-}
-
-type TransactionResponse struct {
-	GeneralResponse
+type transactionResponseData struct {
 	TxResp *transaction.TxResponse `json:"transaction,omitempty"`
 }
 
-type TransactionHashResponse struct {
-	GeneralResponse
-	TxHash string `json:"txHash,omitempty"`
+type transactionResponse struct {
+	Data  transactionResponseData `json:"data"`
+	Error string                  `json:"error"`
+	Code  string                  `json:"code"`
 }
 
-type TransactionCostResponse struct {
-	GeneralResponse
+type sendMultipleTxsResponseData struct {
+	TxsSent   int      `json:"txsSent"`
+	TxsHashes []string `json:"txsHashes"`
+}
+
+type sendMultipleTxsResponse struct {
+	Data  sendMultipleTxsResponseData `json:"data"`
+	Error string                      `json:"error"`
+	Code  string                      `json:"code"`
+}
+
+type sendSingleTxResponseData struct {
+	TxHash string `json:"txHash"`
+}
+
+type sendSingleTxResponse struct {
+	Data  sendSingleTxResponseData `json:"data"`
+	Error string                   `json:"error"`
+	Code  string                   `json:"code"`
+}
+
+type transactionCostResponseData struct {
 	Cost uint64 `json:"txGasUnits"`
+}
+
+type transactionCostResponse struct {
+	Data  transactionCostResponseData `json:"data"`
+	Error string                      `json:"error"`
+	Code  string                      `json:"code"`
 }
 
 func init() {
@@ -70,11 +93,10 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	response := transactionResponse{}
+	loadResponse(resp.Body, &response)
 
-	txResp := transactionResponse.TxResp
-
+	txResp := response.Data.TxResp
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, sender, txResp.Sender)
 	assert.Equal(t, receiver, txResp.Receiver)
@@ -87,12 +109,11 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	receiver := "receiver"
 	value := "10"
 	txData := "data"
-	hs := "hash"
 	wrongHash := "wronghash"
 	facade := mock.Facade{
-		GetTransactionHandler: func(hash string) (i *tr.ApiTransactionResult, e error) {
-			if hash != hs {
-				return nil, errors.New("invalid hash")
+		GetTransactionHandler: func(hash string) (*tr.ApiTransactionResult, error) {
+			if hash == wrongHash {
+				return nil, errors.New("local error")
 			}
 			return &tr.ApiTransactionResult{
 				Sender:   sender,
@@ -108,11 +129,11 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	txResp := transactionResponse{}
+	loadResponse(resp.Body, &txResp)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Nil(t, transactionResponse.TxResp)
+	assert.Empty(t, txResp.Data)
 }
 
 func TestGetTransaction_FailsWithWrongFacadeTypeConversion(t *testing.T) {
@@ -123,10 +144,36 @@ func TestGetTransaction_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	txResp := transactionResponse{}
+	loadResponse(resp.Body, &txResp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, transactionResponse.Error, errors2.ErrInvalidAppContext.Error())
+	assert.Equal(t, txResp.Error, apiErrors.ErrInvalidAppContext.Error())
+}
+
+func TestGetTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{
+		GetThrottlerForEndpointCalled: func(_ string) (core.Throttler, bool) {
+			return &mock.ThrottlerStub{
+				CanProcessCalled: func() bool { return false },
+			}, true
+		},
+	}
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", "/transaction/eeee", nil)
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	txResp := transactionResponse{}
+	loadResponse(resp.Body, &txResp)
+
+	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
+	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), txResp.Error)
+	assert.Equal(t, string(shared.ReturnCodeSystemBusy), txResp.Code)
+	assert.Empty(t, txResp.Data)
 }
 
 func TestSendTransaction_ErrorWithWrongFacade(t *testing.T) {
@@ -137,10 +184,39 @@ func TestSendTransaction_ErrorWithWrongFacade(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	txResp := sendSingleTxResponse{}
+	loadResponse(resp.Body, &txResp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, transactionResponse.Error, errors2.ErrInvalidAppContext.Error())
+	assert.Equal(t, apiErrors.ErrInvalidAppContext.Error(), txResp.Error)
+}
+
+func TestSendTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{
+		GetThrottlerForEndpointCalled: func(_ string) (core.Throttler, bool) {
+			return &mock.ThrottlerStub{
+				CanProcessCalled: func() bool { return false },
+			}, true
+		},
+	}
+	ws := startNodeServer(&facade)
+
+	tx := transaction.SendTxRequest{}
+
+	jsonBytes, _ := json.Marshal(tx)
+	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer(jsonBytes))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	txResp := sendSingleTxResponse{}
+	loadResponse(resp.Body, &txResp)
+
+	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
+	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), txResp.Error)
+	assert.Equal(t, string(shared.ReturnCodeSystemBusy), txResp.Code)
+	assert.Empty(t, txResp.Data)
 }
 
 func TestSendTransaction_WrongParametersShouldErrorOnValidation(t *testing.T) {
@@ -165,12 +241,12 @@ func TestSendTransaction_WrongParametersShouldErrorOnValidation(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	txResp := sendSingleTxResponse{}
+	loadResponse(resp.Body, &txResp)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, transactionResponse.Error, errors2.ErrValidation.Error())
-	assert.Empty(t, transactionResponse.TxResp)
+	assert.Contains(t, txResp.Error, apiErrors.ErrValidation.Error())
+	assert.Empty(t, txResp.Data)
 }
 
 func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
@@ -183,7 +259,8 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	errorString := "send transaction error"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string) (t *tr.Transaction, i []byte, err error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		) (*tr.Transaction, []byte, error) {
 			return nil, nil, nil
 		},
 		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, err error) {
@@ -208,12 +285,12 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	txResp := sendSingleTxResponse{}
+	loadResponse(resp.Body, &txResp)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Contains(t, transactionResponse.Error, errorString)
-	assert.Empty(t, transactionResponse.TxResp)
+	assert.Contains(t, txResp.Error, errorString)
+	assert.Empty(t, txResp.Data)
 }
 
 func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
@@ -227,8 +304,8 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	hexTxHash := "deadbeef"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-			gasLimit uint64, data string, signatureHex string) (t *tr.Transaction, i []byte, err error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		) (*tr.Transaction, []byte, error) {
 			txHash, _ := hex.DecodeString(hexTxHash)
 			return nil, txHash, nil
 		},
@@ -256,12 +333,12 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	txHashResponse := TransactionHashResponse{}
-	loadResponse(resp.Body, &txHashResponse)
+	response := sendSingleTxResponse{}
+	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Empty(t, txHashResponse.Error)
-	assert.Equal(t, hexTxHash, txHashResponse.TxHash)
+	assert.Empty(t, response.Error)
+	assert.Equal(t, hexTxHash, response.Data.TxHash)
 }
 
 func TestSendMultipleTransactions_ErrorWithWrongFacade(t *testing.T) {
@@ -272,10 +349,40 @@ func TestSendMultipleTransactions_ErrorWithWrongFacade(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	txResp := sendMultipleTxsResponse{}
+	loadResponse(resp.Body, &txResp)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Equal(t, transactionResponse.Error, errors2.ErrInvalidAppContext.Error())
+	assert.Equal(t, apiErrors.ErrInvalidAppContext.Error(), txResp.Error)
+}
+
+func TestSendMultipleTransactions_ErrorWithExceededNumGoRoutines(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{
+		GetThrottlerForEndpointCalled: func(_ string) (core.Throttler, bool) {
+			return &mock.ThrottlerStub{
+				CanProcessCalled: func() bool { return false },
+			}, true
+		},
+	}
+	ws := startNodeServer(&facade)
+
+	tx0 := transaction.SendTxRequest{}
+	txs := []*transaction.SendTxRequest{&tx0}
+
+	jsonBytes, _ := json.Marshal(txs)
+	req, _ := http.NewRequest("POST", "/transaction/send-multiple", bytes.NewBuffer(jsonBytes))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	txResp := sendMultipleTxsResponse{}
+	loadResponse(resp.Body, &txResp)
+
+	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
+	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), txResp.Error)
+	assert.Equal(t, string(shared.ReturnCodeSystemBusy), txResp.Code)
+	assert.Empty(t, txResp.Data)
 }
 
 func TestSendMultipleTransactions_WrongPayloadShouldErrorOnValidation(t *testing.T) {
@@ -291,12 +398,12 @@ func TestSendMultipleTransactions_WrongPayloadShouldErrorOnValidation(t *testing
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	txResp := sendMultipleTxsResponse{}
+	loadResponse(resp.Body, &txResp)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, transactionResponse.Error, errors2.ErrValidation.Error())
-	assert.Empty(t, transactionResponse.TxResp)
+	assert.Contains(t, txResp.Error, apiErrors.ErrValidation.Error())
+	assert.Empty(t, txResp.Data)
 }
 
 func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
@@ -306,8 +413,8 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	sendBulkTxsWasCalled := false
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-			gasLimit uint64, data string, signatureHex string) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		) (*tr.Transaction, []byte, error) {
 			createTxWasCalled = true
 			return &tr.Transaction{}, make([]byte, 0), nil
 		},
@@ -342,8 +449,8 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	txCostResp := sendMultipleTxsResponse{}
+	loadResponse(resp.Body, &txCostResp)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.True(t, createTxWasCalled)
@@ -356,7 +463,8 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 	expectedGasLimit := uint64(37)
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, nil, nil
 		},
 		ComputeTransactionGasLimitHandler: func(tx *tr.Transaction) (uint64, error) {
@@ -383,11 +491,11 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	transactionCostResponse := TransactionCostResponse{}
-	loadResponse(resp.Body, &transactionCostResponse)
+	txCostResp := transactionCostResponse{}
+	loadResponse(resp.Body, &txCostResp)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, expectedGasLimit, transactionCostResponse.Cost)
+	assert.Equal(t, expectedGasLimit, txCostResp.Data.Cost)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {
@@ -409,7 +517,7 @@ func startNodeServer(handler transaction.TxService) *gin.Engine {
 	ws.Use(cors.Default())
 	ginTransactionRoute := ws.Group("/transaction")
 	if handler != nil {
-		ginTransactionRoute.Use(middleware.WithElrondFacade(handler))
+		ginTransactionRoute.Use(middleware.WithTestingElrondFacade(handler))
 	}
 	transactionRoute, _ := wrapper.NewRouterWrapper("transaction", ginTransactionRoute, getRoutesConfig())
 	transaction.Routes(transactionRoute)

@@ -76,6 +76,12 @@ func NewMetaInterceptorsContainerFactory(
 	if check.IfNil(args.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
+	if len(args.ChainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
+	if args.MinTransactionVersion == 0 {
+		return nil, process.ErrInvalidTransactionVersion
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		ProtoMarshalizer:        args.ProtoMarshalizer,
@@ -96,6 +102,8 @@ func NewMetaInterceptorsContainerFactory(
 		EpochStartTrigger:       args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		ArgsParser:              args.ArgumentsParser,
+		ChainID:                 args.ChainID,
+		MinTransactionVersion:   args.MinTransactionVersion,
 	}
 
 	container := containers.NewInterceptorsContainer()

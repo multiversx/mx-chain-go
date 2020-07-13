@@ -41,19 +41,19 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 
 	// With larger memory footprint
 
-	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 300}, memoryAssertion{95, 110}))
-	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 300}, memoryAssertion{120, 130}))
-	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 300}, memoryAssertion{170, 190}))
-	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 300}, memoryAssertion{60, 70}))
-	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 300}, memoryAssertion{60, 70}))
+	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 310}, memoryAssertion{95, 110}))
+	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 310}, memoryAssertion{120, 130}))
+	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 310}, memoryAssertion{170, 190}))
+	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 310}, memoryAssertion{60, 70}))
+	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 310}, memoryAssertion{60, 70}))
 
 	// Scenarios where destination == me
 
 	journals = append(journals, runScenario(t, newScenario(100, 1, core.MegabyteSize, "1_0"), memoryAssertion{90, 100}, memoryAssertion{0, 1}))
 	journals = append(journals, runScenario(t, newScenario(10000, 1, 10240, "1_0"), memoryAssertion{96, 128}, memoryAssertion{0, 4}))
 	journals = append(journals, runScenario(t, newScenario(10, 10000, 1000, "1_0"), memoryAssertion{96, 128}, memoryAssertion{16, 24}))
-	journals = append(journals, runScenario(t, newScenario(150000, 1, 128, "1_0"), memoryAssertion{50, 60}, memoryAssertion{30, 36}))
-	journals = append(journals, runScenario(t, newScenario(1, 150000, 128, "1_0"), memoryAssertion{50, 60}, memoryAssertion{30, 36}))
+	journals = append(journals, runScenario(t, newScenario(150000, 1, 128, "1_0"), memoryAssertion{50, 65}, memoryAssertion{30, 36}))
+	journals = append(journals, runScenario(t, newScenario(1, 150000, 128, "1_0"), memoryAssertion{50, 65}, memoryAssertion{30, 36}))
 
 	for _, journal := range journals {
 		journal.displayFootprintsSummary()
@@ -177,11 +177,11 @@ func createTxWithPayload(senderTag int, nonce int, payloadLength int) *dummyTx {
 
 	return &dummyTx{
 		Transaction: transaction.Transaction{
-			SndAddr: []byte(sender),
+			SndAddr: sender,
 			Nonce:   uint64(nonce),
 			Data:    make([]byte, payloadLength),
 		},
-		hash: []byte(hash),
+		hash: hash,
 	}
 }
 
@@ -217,7 +217,10 @@ func pprofHeap(scenario *scenario, step string) {
 		panic(fmt.Sprintf("pprofHeap: %s", err))
 	}
 
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		panic(fmt.Sprintf("cannot close file: %s", err.Error()))
+	}()
 
 	err = pprof.WriteHeapProfile(file)
 	if err != nil {

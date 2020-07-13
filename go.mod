@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/ElrondNetwork/arwen-wasm-vm v0.3.26
-	github.com/ElrondNetwork/concurrent-map v0.1.2
+	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
 	github.com/ElrondNetwork/elrond-vm-common v0.1.21
 	github.com/beevik/ntp v0.2.0
@@ -13,7 +13,7 @@ require (
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/elastic/go-elasticsearch/v7 v7.1.0
 	github.com/gin-contrib/cors v0.0.0-20190301062745-f9e10995c85a
-	github.com/gin-contrib/pprof v1.2.0
+	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-gonic/gin v1.6.3
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gogo/protobuf v1.3.1

@@ -183,6 +183,15 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 	err = interceptedData.CheckValidity()
 	if err != nil {
 		processDebugInterceptedData(mdi.interceptedDebugHandler, interceptedData, mdi.topic, err)
+
+		isWrongVersion := err == process.ErrInvalidTransactionVersion || err == process.ErrInvalidChainID
+		if isWrongVersion {
+			//this situation is so severe that we need to black list de peers
+			reason := "wrong version of received intercepted data, topic " + mdi.topic + ", error " + err.Error()
+			mdi.antifloodHandler.BlacklistPeer(originator, reason, core.InvalidMessageBlacklistDuration)
+			mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
+		}
+
 		return nil, err
 	}
 

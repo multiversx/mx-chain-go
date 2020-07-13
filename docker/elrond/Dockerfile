@@ -7,12 +7,16 @@ RUN GO111MODULE=on go mod vendor
 #Elrond node
 WORKDIR /go/elrond-go/cmd/node
 RUN go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
-
+RUN cp /go/pkg/mod/github.com/!elrond!network/arwen-wasm-vm@$(cat /go/elrond-go/go.mod | grep arwen-wasm-vm | sed 's/.* //')/wasmer/libwasmer_linux_amd64.so /lib/libwasmer_linux_amd64.so
+WORKDIR /go/elrond-go
+RUN go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@$(cat /go/elrond-go/go.mod | grep arwen-wasm-vm | sed 's/.* //')
+RUN go build -o ./arwen github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen
+RUN cp /go/elrond-go/arwen /go/elrond-go/cmd/node/
+WORKDIR /go/elrond-go/cmd/node
 # ===== SECOND STAGE ======
 FROM ubuntu:18.04
 COPY --from=builder "/go/elrond-go/cmd/node" "/go/elrond-go/cmd/node/"
-#TODO: make copy independent from specific arwen-wasm-wm version
-COPY --from=builder "/go/pkg/mod/github.com/!elrond!network/arwen-wasm-vm@v0.3.26/wasmer/libwasmer_linux_amd64.so" "/go/pkg/mod/github.com/!elrond!network/arwen-wasm-vm@v0.3.26/wasmer/libwasmer_linux_amd64.so"
+COPY --from=builder "/lib/libwasmer_linux_amd64.so" "/lib/libwasmer_linux_amd64.so"
 WORKDIR /go/elrond-go/cmd/node/
 EXPOSE 8080
 ENTRYPOINT ["/go/elrond-go/cmd/node/node"]

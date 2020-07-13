@@ -138,6 +138,9 @@ const roundDuration = 5 * time.Second
 // ChainID is the chain ID identifier used in integration tests, processing nodes
 var ChainID = []byte("integration tests chain ID")
 
+// MinTransactionVersion is the minimum transaction version used in integration testes, processing nodes
+var MinTransactionVersion = uint32(999)
+
 // SoftwareVersion is the software version identifier used in integration tests, processing nodes
 var SoftwareVersion = []byte("intT")
 
@@ -244,7 +247,8 @@ type TestProcessorNode struct {
 
 	InitialNodes []*sharding.InitialNode
 
-	ChainID []byte
+	ChainID               []byte
+	MinTransactionVersion uint32
 
 	ExportHandler update.ExportHandler
 	WaitTime      time.Duration
@@ -328,6 +332,7 @@ func newBaseTestProcessorNode(
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
 		ChainID:                 ChainID,
+		MinTransactionVersion:   MinTransactionVersion,
 		NodesSetup:              nodesSetup,
 	}
 
@@ -358,7 +363,7 @@ func NewTestProcessorNode(
 	return tpn
 }
 
-// NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger and a full genesis deploy
+// NewTestProcessorNodeWithFullGenesis returns a new TestProcessorNode instance with a libp2p messenger and a full genesis deploy
 func NewTestProcessorNodeWithFullGenesis(
 	maxShards uint32,
 	nodeShardId uint32,
@@ -436,6 +441,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                 ChainID,
 		NodesSetup:              &mock.NodesSetupStub{},
+		MinTransactionVersion:   MinTransactionVersion,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -590,9 +596,14 @@ func CreateEconomicsData() *economics.EconomicsData {
 	economicsData, _ := economics.NewEconomicsData(
 		&config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
-				TotalSupply:      "2000000000000000000000",
-				MinimumInflation: 0,
-				MaximumInflation: 0.05,
+				GenesisTotalSupply: "2000000000000000000000",
+				MinimumInflation:   0,
+				YearSettings: []*config.YearSetting{
+					{
+						Year:             0,
+						MaximumInflation: 0.01,
+					},
+				},
 			},
 			RewardsSettings: config.RewardsSettings{
 				LeaderPercentage:    0.1,
@@ -763,6 +774,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
+			ChainID:                 tpn.ChainID,
+			MinTransactionVersion:   tpn.MinTransactionVersion,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -822,6 +835,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
+			ChainID:                 tpn.ChainID,
+			MinTransactionVersion:   tpn.MinTransactionVersion,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1276,12 +1291,13 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
 		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
-			Marshalizer:      TestMarshalizer,
-			Hasher:           TestHasher,
-			Store:            tpn.Storage,
-			ShardCoordinator: tpn.ShardCoordinator,
-			RewardsHandler:   tpn.EconomicsData,
-			RoundTime:        tpn.Rounder,
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			Store:              tpn.Storage,
+			ShardCoordinator:   tpn.ShardCoordinator,
+			RewardsHandler:     tpn.EconomicsData,
+			RoundTime:          tpn.Rounder,
+			GenesisTotalSupply: tpn.EconomicsData.GenesisTotalSupply(),
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
@@ -1412,6 +1428,8 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithChainID(tpn.ChainID),
+		node.WithMinTransactionVersion(tpn.MinTransactionVersion),
 	)
 	log.LogIfError(err)
 
@@ -1443,6 +1461,8 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		tx.GasLimit,
 		string(tx.Data),
 		hex.EncodeToString(tx.Signature),
+		string(tx.ChainID),
+		tx.Version,
 	)
 	if err != nil {
 		return "", err
@@ -1478,9 +1498,9 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 			atomic.AddInt32(&tpn.CounterMbRecv, 1)
 		}
 
-		tpn.DataPool.UnsignedTransactions().RegisterHandler(txHandler)
-		tpn.DataPool.Transactions().RegisterHandler(txHandler)
-		tpn.DataPool.RewardTransactions().RegisterHandler(txHandler)
+		tpn.DataPool.UnsignedTransactions().RegisterOnAdded(txHandler)
+		tpn.DataPool.Transactions().RegisterOnAdded(txHandler)
+		tpn.DataPool.RewardTransactions().RegisterOnAdded(txHandler)
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
 		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers, core.UniqueIdentifier())
 	}

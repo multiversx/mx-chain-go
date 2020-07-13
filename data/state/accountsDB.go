@@ -20,6 +20,8 @@ type AccountsDB struct {
 	marshalizer    marshal.Marshalizer
 	accountFactory AccountFactory
 
+	obsoleteDataTrieHashes map[string][][]byte
+
 	lastRootHash []byte
 	dataTries    TriesHolder
 	entries      []JournalEntry
@@ -49,13 +51,14 @@ func NewAccountsDB(
 	}
 
 	return &AccountsDB{
-		mainTrie:       trie,
-		hasher:         hasher,
-		marshalizer:    marshalizer,
-		accountFactory: accountFactory,
-		entries:        make([]JournalEntry, 0),
-		mutOp:          sync.RWMutex{},
-		dataTries:      NewDataTriesHolder(),
+		mainTrie:               trie,
+		hasher:                 hasher,
+		marshalizer:            marshalizer,
+		accountFactory:         accountFactory,
+		entries:                make([]JournalEntry, 0),
+		mutOp:                  sync.RWMutex{},
+		dataTries:              NewDataTriesHolder(),
+		obsoleteDataTrieHashes: make(map[string][][]byte),
 	}, nil
 }
 
@@ -295,7 +298,6 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	oldValues := make(map[string][]byte)
 
 	for k, v := range trackableDataTrie.DirtyData() {
-		//TODO use trackableDataTrie.originalData() instead of getting from the trie
 		val, err := dataTrie.Get([]byte(k))
 		if err != nil {
 			return err
@@ -369,7 +371,7 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 	}
 	adb.journalize(entry)
 
-	err = adb.removeCode(acnt)
+	err = adb.removeCodeAndDataTrie(acnt)
 	if err != nil {
 		return err
 	}
@@ -381,12 +383,53 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 	return adb.mainTrie.Update(address, make([]byte, 0))
 }
 
-func (adb *AccountsDB) removeCode(acnt AccountHandler) error {
+func (adb *AccountsDB) removeCodeAndDataTrie(acnt AccountHandler) error {
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if !ok {
 		return nil
 	}
 
+	err := adb.removeCode(baseAcc)
+	if err != nil {
+		return err
+	}
+
+	err = adb.removeDataTrie(baseAcc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
+	rootHash := baseAcc.GetRootHash()
+	if len(rootHash) == 0 {
+		return nil
+	}
+
+	dataTrie, err := adb.mainTrie.Recreate(rootHash)
+	if err != nil {
+		return err
+	}
+
+	hashes, err := dataTrie.GetAllHashes()
+	if err != nil {
+		return err
+	}
+
+	adb.obsoleteDataTrieHashes[string(rootHash)] = hashes
+
+	entry, err := NewJournalEntryDataTrieRemove(rootHash, adb.obsoleteDataTrieHashes)
+	if err != nil {
+		return err
+	}
+	adb.journalize(entry)
+
+	return nil
+}
+
+func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	oldCodeHash := baseAcc.GetCodeHash()
 	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
 	if err != nil {
@@ -613,6 +656,10 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		newHashes[hash] = struct{}{}
 	}
 
+	for _, hashes := range adb.obsoleteDataTrieHashes {
+		oldHashes = append(oldHashes, hashes...)
+	}
+
 	//Step 2. commit main trie
 	adb.mainTrie.SetNewHashes(newHashes)
 	adb.mainTrie.AppendToOldHashes(oldHashes)
@@ -627,6 +674,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		return nil, err
 	}
 	adb.lastRootHash = root
+	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 
 	log.Trace("accountsDB.Commit ended", "root hash", root)
 
@@ -667,6 +715,7 @@ func (adb *AccountsDB) recreateTrie(rootHash []byte) error {
 		log.Trace("accountsDB.RecreateTrie ended")
 	}()
 
+	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 	adb.dataTries.Reset()
 	adb.entries = make([]JournalEntry, 0)
 	newTrie, err := adb.mainTrie.Recreate(rootHash)

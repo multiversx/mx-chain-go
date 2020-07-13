@@ -491,6 +491,9 @@ var ErrInvalidUnBondPeriod = errors.New("invalid unbond period")
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 
+// ErrInvalidInflationPercentages signals that inflation percentages are not correct
+var ErrInvalidInflationPercentages = errors.New("invalid inflation percentages")
+
 // ErrInvalidNonceRequest signals that invalid nonce was requested
 var ErrInvalidNonceRequest = errors.New("invalid nonce request")
 
@@ -808,6 +811,9 @@ var ErrNilInterceptorContainer = errors.New("nil interceptor container")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID")
+
+// ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
+var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 
 // ErrTxValueTooBig signals that transaction value is too big
 var ErrTxValueTooBig = errors.New("tx value is too big")

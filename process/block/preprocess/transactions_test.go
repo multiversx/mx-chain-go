@@ -22,8 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,7 +42,6 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 
 func shardedDataCacherNotifier() dataRetriever.ShardedDataCacherNotifier {
 	return &testscommon.ShardedDataStub{
-		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -86,7 +85,6 @@ func initDataPool() *testscommon.PoolsHolderStub {
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &testscommon.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -632,8 +630,6 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 					return &transaction.Transaction{}, true
 				},
 			}
-		},
-		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 		},
 	}
 

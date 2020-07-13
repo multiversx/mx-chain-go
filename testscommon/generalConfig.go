@@ -20,7 +20,7 @@ func GetGeneralConfig() config.Config {
 		WhiteListerVerifiedTxs: getLRUCacheConfig(),
 		StoragePruning: config.StoragePruningConfig{
 			Enabled:             false,
-			FullArchive:         true,
+			CleanOldEpochsData:  false,
 			NumEpochsToKeep:     3,
 			NumActivePersisters: 3,
 		},

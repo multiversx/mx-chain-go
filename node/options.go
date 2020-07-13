@@ -529,6 +529,18 @@ func WithChainID(chainID []byte) Option {
 	}
 }
 
+// WithMinTransactionVersion sets up the minimum transaction version on which the current node is supposed to work on
+func WithMinTransactionVersion(minTransactionVersion uint32) Option {
+	return func(n *Node) error {
+		if minTransactionVersion == 0 {
+			return ErrInvalidTransactionVersion
+		}
+		n.minTransactionVersion = minTransactionVersion
+
+		return nil
+	}
+}
+
 // WithBlockTracker sets up the block tracker for the Node
 func WithBlockTracker(blockTracker process.BlockTracker) Option {
 	return func(n *Node) error {
@@ -662,17 +674,6 @@ func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 		}
 		n.chanStopNodeProcess = channel
 
-		return nil
-	}
-}
-
-// WithApiTransactionByHashThrottler sets up the api transaction by hash throttler
-func WithApiTransactionByHashThrottler(throttler Throttler) Option {
-	return func(n *Node) error {
-		if throttler == nil {
-			return ErrNilApiTransactionByHashThrottler
-		}
-		n.apiTransactionByHashThrottler = throttler
 		return nil
 	}
 }

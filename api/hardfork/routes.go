@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +17,7 @@ const execBroadcastTrigger = "executed, trigger is affecting current node and wi
 type TriggerHardforkHandler interface {
 	Trigger(epoch uint32) error
 	IsSelfTrigger() bool
+	IsInterfaceNil() bool
 }
 
 // HarforkRequest represents the structure on which user input for triggering a hardfork will validate against
@@ -32,20 +34,41 @@ func Routes(router *wrapper.RouterWrapper) {
 func Trigger(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(TriggerHardforkHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
 		return
 	}
 
 	var hr = HarforkRequest{}
 	err := c.ShouldBindJSON(&hr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
 		return
 	}
 
 	err = ef.Trigger(hr.Epoch)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
 		return
 	}
 
@@ -54,5 +77,12 @@ func Trigger(c *gin.Context) {
 		status = execBroadcastTrigger
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": status})
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"status": status},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
 }
