@@ -73,6 +73,7 @@ jobs:
             -chain-id ${{ github.sha }} \
             -hysteresis $HYSTERESIS \
             -stake-type delegated
+
         env:
           HYSTERESISMUL: ${{ `echo 1 + $HYSTERESIS | bc` }}
           NVS: ${{ $(bc <<< "($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL") }}
