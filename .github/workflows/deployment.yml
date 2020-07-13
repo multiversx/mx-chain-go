@@ -58,6 +58,7 @@ jobs:
           export numValidatorsOnAShard=12 #($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL
           export NUM_SHARD_VALIDATORS=24 #$NUM_OF_SHARDS * $numValidatorsOnAShard
           export NUM_META_VALIDATORS=24 #($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL
+          source $BASE_PATH/.github/workflows/env
           docker run \
             -v "/home/runner/work/elrond-go/elrond-go/filegenConfig/:/data/" \
             elrondnetwork/elrond-go-filegen \
