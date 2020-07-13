@@ -58,13 +58,6 @@ jobs:
           export METACHAIN_CONSENSUS_GROUP_SIZE=7
           source .github/workflows/env
 
-          export HYSTERESISMUL=`echo 1 + $HYSTERESIS | bc`
-          export NVS=$(bc <<< "($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
-          export NUM_VALIDATORS_ON_SHARD=$(bc <<< "($NVS+1)/1")
-          export NVM=$(bc <<< "($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
-          export NUM_VALIDATORS_ON_META=$(bc <<< "($NVM+1)/1")
-          export NUM_NODES_TOTAL=$(bc <<< "($NUM_VALIDATORS_ON_SHARD + $NUM_VALIDATORS_ON_META)")
-
           docker run \
             -v "/home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/:/data/" \
             elrondnetwork/elrond-go-filegen \
@@ -80,6 +73,13 @@ jobs:
             -chain-id ${{ github.sha }} \
             -hysteresis $HYSTERESIS \
             -stake-type delegated
+        env:
+          HYSTERESISMUL: ${{ `echo 1 + $HYSTERESIS | bc` }}
+          NVS: ${{ $(bc <<< "($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL") }}
+          NUM_VALIDATORS_ON_SHARD: ${{ $(bc <<< "($NVS+1)/1") }}
+          NVM: ${{ $(bc <<< "($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL") }}
+          NUM_VALIDATORS_ON_META: ${{ $(bc <<< "($NVM+1)/1") }}
+          NUM_NODES_TOTAL: ${{ $(bc <<< "($NUM_VALIDATORS_ON_SHARD + $NUM_VALIDATORS_ON_META)") }}
 
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
