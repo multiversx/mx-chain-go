@@ -28,6 +28,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+#      https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#set-an-output-parameter-set-output
+      - name: Build decission
+        run: '(test -f .github/workflows/env && echo ::set-env name=BUILD_ENV::true) || echo ENV testnet config does not exist'
+
       # https://github.com/actions/checkout#Checkout-multiple-repos-side-by-side
       - name: Checkout deployment config repo
         uses: actions/checkout@v2
@@ -46,9 +50,9 @@ jobs:
 
       - name: Create Configs
         run: |
-          export HYSTERESIS=0.21
-          export NUM_NODES_SHARD=9
+          export HYSTERESIS=0
           export NUM_OF_SHARDS=2
+          export NUM_NODES_SHARD=9
           export NUM_NODES_METACHAIN=9
           export CONSENSUS_GROUP_SIZE=4
           export METACHAIN_CONSENSUS_GROUP_SIZE=7
@@ -56,7 +60,6 @@ jobs:
           export numValidatorsOnAShard=12 #($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL
           export NUM_SHARD_VALIDATORS=24 #$NUM_OF_SHARDS * $numValidatorsOnAShard
           export NUM_META_VALIDATORS=24 #($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL
-          source $BASE_PATH/.github/workflows/env
           docker run \
             -v "/home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/:/data/" \
             elrondnetwork/elrond-go-filegen \
@@ -72,6 +75,7 @@ jobs:
             -chain-id ${{ github.sha }} \
             -hysteresis $HYSTERESIS \
             -stake-type delegated
+          cat /home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/nodesSetupUpdated.json
 
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
@@ -111,6 +115,7 @@ jobs:
           #regex for namepsace evaluation '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
           export NAMESPACE=$( echo ${{ github.ref }}/${{ github.sha }} | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
           kubectl create namespace "$NAMESPACE"
+          cat $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
           kubectl -n $NAMESPACE create configmap elrond-node-config \
             --from-file=$BASE_PATH/filegenConfigLocal/validatorKey.pem \
             --from-file=$BASE_PATH/filegenConfigLocal/observerKey.pem \
