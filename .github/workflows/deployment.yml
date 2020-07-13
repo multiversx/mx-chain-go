@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v2
 
       # https://github.com/actions/checkout#Checkout-multiple-repos-side-by-side
-      - if: test -f .github/workflows/deployment.yml
+      - if: ${{ test -f .github/workflows/deployment.yml }}
         name: Checkout deployment config repo
         uses: actions/checkout@v2
         with:
@@ -38,7 +38,7 @@ jobs:
           path: elrond-k8s-testnet
 
       # Setup gcloud CLI
-      - if: test -f .github/workflows/deployment.yml
+      - if: ${{ test -f .github/workflows/deployment.yml }}
         name: Setup gcloud CLI
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
@@ -46,7 +46,7 @@ jobs:
           service_account_email: ${{ secrets.GKE_EMAIL }}
           service_account_key: ${{ secrets.GKE_KEY }}
 
-      - if: test -f .github/workflows/deployment.yml
+      - if: ${{ test -f .github/workflows/deployment.yml }}
         name: Create Configs
         run: |
           export HYSTERESIS=0.21
@@ -75,14 +75,14 @@ jobs:
             -stake-type delegated
 
       # Configure docker to use the gcloud command-line tool as a credential helper
-      - if: test -f .github/workflows/deployment.yml
+      - if: ${{ test -f .github/workflows/deployment.yml }}
         run: |
           # Set up docker to authenticate
           # via gcloud command-line tool.
           gcloud auth configure-docker
 
       # Build the Docker image
-      - if: test -f .github/workflows/deployment.yml
+      - if: ${{ test -f .github/workflows/deployment.yml }}
         name: Build
         run: |
           cd elrond-k8s-testnet
@@ -96,20 +96,20 @@ jobs:
                       --build-arg GITHUB_REF="$GITHUB_REF" .
 
       # Push the Docker image to Google Container Registry
-      - if: test -f .github/workflows/deployment.yml
+      - if: ${{ test -f .github/workflows/deployment.yml }}
         name: Publish
         run: |
           docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
           docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
 
-      - if: test -f .github/workflows/deployment.yml
+      - if: ${{ test -f .github/workflows/deployment.yml }}
         name: Prepare Configs
         run: |
           sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfig/nodesSetup.json > $BASE_PATH/filegenConfig/nodesSetupUpdated.json
         shell: bash
 
       # Set up kustomize
-      - if: test -f .github/workflows/deployment.yml
+      - if: ${{ test -f .github/workflows/deployment.yml }}
         name: Set up Kustomize
         run: |
           cd ./kube
@@ -118,7 +118,7 @@ jobs:
           cd ..
 
       # Deploy the Docker image to the GKE cluster
-      - if: test -f .github/workflows/deployment.yml
+      - if: ${{ test -f .github/workflows/deployment.yml }}
         name: Deploy
         run: |
           gcloud container clusters get-credentials "$GKE_CLUSTER" --region "$GKE_REGION" --project "$GKE_PROJECT"
