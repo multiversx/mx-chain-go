@@ -82,13 +82,13 @@ jobs:
         run: |
           cd elrond-k8s-testnet
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_NODE":"$GITHUB_SHA" \
-            -f elrond-k8s-testnet/docker/elrond/Dockerfile \
+            -f $BASE_PATH/elrond-k8s-testnet/docker/elrond/Dockerfile \
             --build-arg GITHUB_SHA="$GITHUB_SHA" \
             --build-arg GITHUB_REF="$GITHUB_REF" .
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_SEEDNODE":"$GITHUB_SHA" \
-                      -f elrond-k8s-testnet/docker/seednode/Dockerfile \
-                      --build-arg GITHUB_SHA="$GITHUB_SHA" \
-                      --build-arg GITHUB_REF="$GITHUB_REF" .
+            -f $BASE_PATH/elrond-k8s-testnet/docker/seednode/Dockerfile \
+            --build-arg GITHUB_SHA="$GITHUB_SHA" \
+            --build-arg GITHUB_REF="$GITHUB_REF" .
 
       # Push the Docker image to Google Container Registry
       - name: Publish
