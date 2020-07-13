@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/api/history"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -35,7 +34,6 @@ type NodeStub struct {
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetHistoryTransactionCalled                    func(hash string) (*history.HistoryTransaction, error)
 }
 
 // GetValueForKey -
@@ -45,11 +43,6 @@ func (ns *NodeStub) GetValueForKey(address string, key string) (string, error) {
 	}
 
 	return "", nil
-}
-
-// GetHistoryTransaction -
-func (ns *NodeStub) GetHistoryTransaction(hash string) (*history.HistoryTransaction, error) {
-	return ns.GetHistoryTransactionCalled(hash)
 }
 
 // EncodeAddressPubkey -
