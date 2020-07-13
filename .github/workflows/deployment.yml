@@ -138,7 +138,7 @@ jobs:
             --from-file=$BASE_PATH/filegenConfigLocal/walletKey.pem
 
           echo $NUM_NODES_TOTAL $NUM_OF_SHARDS
-          ./kustomize edit set replicas elrond-node=$NUM_NODES_TOTAL observer-shard=$NUM_OF_SHARDS
+          ./kustomize edit set replicas elrond-node=24 observer-shard=2
           ./kustomize edit set namespace "$NAMESPACE"
           ./kustomize edit set image elrondnetwork/elrond-go-node=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
           ./kustomize edit set image elrondnetwork/elrond-go-seednode=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
