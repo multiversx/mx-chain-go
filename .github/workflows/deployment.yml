@@ -70,7 +70,6 @@ jobs:
             -chain-id k8s-testnet \
             -hysteresis $HYSTERESIS \
             -stake-type delegated
-          sudo chown runner:docker $BASE_PATH/filegenConfig/*
 
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
@@ -95,9 +94,10 @@ jobs:
 
       - name: Prepare Configs
         run: |
+          cp -r $BASE_PATH/filegenConfig/ $BASE_PATH/filegenConfigLocal/
           ls -lh
-          ls -lh $BASE_PATH/filegenConfig/
-          sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfig/nodesSetup.json > $BASE_PATH/filegenConfig/nodesSetupUpdated.json
+          ls -lh $BASE_PATH/filegenConfigLocal/
+          sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfigLocal/nodesSetup.json > $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
         shell: bash
 
       # Set up kustomize
