@@ -127,6 +127,6 @@ jobs:
           cd ./kube
           ./kustomize edit set replicas elrond-node=24 observer-shard=2
           ./kustomize edit set namespace "$NAMESPACE"
-          ./kustomize edit set image elrondnetwork/elrond-go-node=$IMAGE_NODE:$GITHUB_SHA
-          ./kustomize edit set image elrondnetwork/elrond-go-seednode=$IMAGE_SEEDNODE:$GITHUB_SHA
+          ./kustomize edit set image elrondnetwork/elrond-go-node=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
+          ./kustomize edit set image elrondnetwork/elrond-go-seednode=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
           ./kustomize build ./ | kubectl -n "$NAMESPACE" apply -f -
