@@ -390,13 +390,14 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 			return time.Duration(roundDur) * time.Second
 		},
 	}
+	newTotalSupply := big.NewInt(0).Add(totalSupply, totalSupply)
 	hdrPrevEpochStart := block.MetaBlock{
 		Round: 0,
 		Nonce: 0,
 		Epoch: 0,
 		EpochStart: block.EpochStart{
 			Economics: block.Economics{
-				TotalSupply:         totalSupply,
+				TotalSupply:         newTotalSupply,
 				TotalToDistribute:   big.NewInt(10),
 				TotalNewlyMinted:    big.NewInt(10),
 				RewardsPerBlock:     big.NewInt(10),
@@ -418,6 +419,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 			}}
 		},
 	}
+	args.GenesisTotalSupply = totalSupply
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
 	expRwdPerBlock := 84 // based on 0.1 inflation
@@ -436,7 +438,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	for _, numBlocksInEpoch := range numBlocksInEpochSlice {
 		expectedTotalToDistribute := big.NewInt(int64(expRwdPerBlock * numBlocksInEpoch * 3)) // 2 shards + meta
 		expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, accFeesInEpoch)
-		expectedTotalSupply := big.NewInt(0).Add(totalSupply, expectedTotalNewlyMinted)
+		expectedTotalSupply := big.NewInt(0).Add(newTotalSupply, expectedTotalNewlyMinted)
 		expectedCommunityRewards := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(10))
 		commRewardPerBlock := big.NewInt(0).Div(expectedCommunityRewards, big.NewInt(int64(numBlocksInEpoch*3)))
 		adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(int64(expRwdPerBlock)), commRewardPerBlock)
@@ -578,6 +580,7 @@ func createArgsForComputeEndOfEpochEconomics(
 			}}
 		},
 	}
+	args.GenesisTotalSupply = totalSupply
 
 	return args
 }

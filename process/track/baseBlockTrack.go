@@ -721,6 +721,9 @@ func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock *block.Met
 	if metablock == nil {
 		return
 	}
+	if bbt.isHeaderOutOfRange(metablock) {
+		return
+	}
 
 	miniBlockHdrs := metablock.GetMiniBlockHeaders()
 	keys := make([][]byte, 0)
@@ -750,6 +753,9 @@ func (bbt *baseBlockTrack) doWhitelistWithShardHeaderIfNeeded(shardHeader *block
 		return
 	}
 	if shardHeader == nil {
+		return
+	}
+	if bbt.isHeaderOutOfRange(shardHeader) {
 		return
 	}
 
@@ -782,4 +788,24 @@ func getCrossShardMiniblockKeys(miniBlockHdrs []block.MiniBlockHeader, selfShard
 		}
 	}
 	return keys
+}
+
+func (bbt *baseBlockTrack) isHeaderOutOfRange(headerHandler data.HeaderHandler) bool {
+	lastCrossNotarizedHeader, _, err := bbt.GetLastCrossNotarizedHeader(headerHandler.GetShardID())
+	if err != nil {
+		log.Debug("isHeaderOutOfRange.GetLastCrossNotarizedHeader",
+			"shard", headerHandler.GetShardID(),
+			"error", err.Error())
+		return true
+	}
+
+	if headerHandler.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
+		return true
+	}
+	if headerHandler.GetRound() <= lastCrossNotarizedHeader.GetRound() {
+		return true
+	}
+
+	isHeaderOutOfRange := headerHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
+	return isHeaderOutOfRange
 }
