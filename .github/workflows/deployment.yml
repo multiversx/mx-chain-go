@@ -33,7 +33,8 @@ jobs:
         run: '(test -f .github/workflows/env && echo ::set-env name=BUILD_ENV::true) || echo ENV testnet config does not exist'
 
       # https://github.com/actions/checkout#Checkout-multiple-repos-side-by-side
-      - name: Checkout deployment config repo
+      - if: {{ $BUILD_ENV }}
+        name: Checkout deployment config repo
         uses: actions/checkout@v2
         with:
           repository: elrondnetwork/elrond-k8s-testnet
@@ -41,25 +42,24 @@ jobs:
           path: elrond-k8s-testnet
 
       # Setup gcloud CLI
-      - name: Setup gcloud CLI
+      - if: {{ $BUILD_ENV }}
+        name: Setup gcloud CLI
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
           version: '299.0.0'
           service_account_email: ${{ secrets.GKE_EMAIL }}
           service_account_key: ${{ secrets.GKE_KEY }}
 
-      - name: Create Configs
+      - if: {{ $BUILD_ENV }}
+        name: Create Configs
         run: |
-          export HYSTERESIS=0
+          export HYSTERESIS=0.21
           export NUM_OF_SHARDS=2
           export NUM_NODES_SHARD=9
           export NUM_NODES_METACHAIN=9
           export CONSENSUS_GROUP_SIZE=4
           export METACHAIN_CONSENSUS_GROUP_SIZE=7
-          export HYSTERESISMUL=`echo 1 + $HYSTERESIS | bc`
-          export numValidatorsOnAShard=12 #($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL
-          export NUM_SHARD_VALIDATORS=24 #$NUM_OF_SHARDS * $numValidatorsOnAShard
-          export NUM_META_VALIDATORS=24 #($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL
+          source .github/workflows/env
           docker run \
             -v "/home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/:/data/" \
             elrondnetwork/elrond-go-filegen \
@@ -78,34 +78,40 @@ jobs:
           cat /home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/nodesSetup.json
 
       # Configure docker to use the gcloud command-line tool as a credential helper
-      - run: |
+      - if: {{ $BUILD_ENV }}
+        run: |
           # Set up docker to authenticate
           # via gcloud command-line tool.
           gcloud auth configure-docker
 
       # Build the Docker image
-      - name: Build
+      - if: {{ $BUILD_ENV }}
+        name: Build
         run: |
           ls -lh
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_NODE":"$GITHUB_SHA" -f ./docker/elrond/Dockerfile .
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_SEEDNODE":"$GITHUB_SHA" -f ./docker/seednode/Dockerfile .
 
       # Push the Docker image to Google Container Registry
-      - name: Publish
+      - if: {{ $BUILD_ENV }}
+        name: Publish
         run: |
           docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
           docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
 
-      - name: Prepare Configs
+      - if: {{ $BUILD_ENV }}
+        name: Prepare Configs
         run: |
           cp -r $BASE_PATH/elrond-k8s-testnet/filegenConfig/ $BASE_PATH/filegenConfigLocal/
           ls -lh
           ls -lh $BASE_PATH/filegenConfigLocal/
           sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfigLocal/nodesSetup.json > $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
+          cat $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
         shell: bash
 
       # Deploy the Docker image to the GKE cluster
-      - name: Deploy
+      - if: {{ $BUILD_ENV }}
+        name: Deploy
         run: |
           cd $BASE_PATH/elrond-k8s-testnet/kube/
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
@@ -126,7 +132,15 @@ jobs:
             --from-file=nodesSetup.json=$BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json \
             --from-file=$BASE_PATH/filegenConfigLocal/walletKey.pem
 
-          ./kustomize edit set replicas elrond-node=24 observer-shard=2
+
+          export HYSTERESISMUL=`echo 1 + $HYSTERESIS | bc`
+          export NVS=$(bc <<< "scale=0;($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
+          export NUM_VALIDATORS_ON_SHARD=$(bc <<< "($NVS+1)/1")
+          export NVM=$(bc <<< "scale=0;($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
+          export NUM_VALIDATORS_ON_META=$(bc <<< "($NVM+1)/1")
+          export NUM_NODES_TOTAL=$(bc <<< ("$NUM_VALIDATORS_ON_SHARD + $NUM_VALIDATORS_ON_META"))
+
+          ./kustomize edit set replicas elrond-node=$NUM_NODES_TOTAL observer-shard=$NUM_OF_SHARDS
           ./kustomize edit set namespace "$NAMESPACE"
           ./kustomize edit set image elrondnetwork/elrond-go-node=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
           ./kustomize edit set image elrondnetwork/elrond-go-seednode=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
