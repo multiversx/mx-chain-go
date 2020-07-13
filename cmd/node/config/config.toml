@@ -13,10 +13,10 @@
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
-   Enabled = false
+   Enabled = true
 
    # If this flag is set to false, the node won't delete any database between epochs
-   CleanOldEpochsData = true
+   CleanOldEpochsData = false
 
    # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
@@ -436,8 +436,8 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 200
-    RoundsPerEpoch         = 200
+    MinRoundsBetweenEpochs = 50
+    RoundsPerEpoch         = 50
     # ShuffledOutRestartThreshold represents the maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     ShuffledOutRestartThreshold = 0.25
