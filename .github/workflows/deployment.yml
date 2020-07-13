@@ -103,10 +103,9 @@ jobs:
       # Set up kustomize
       - name: Set up Kustomize
         run: |
-          cd ./kube
+          cd $BASE_PATH/elrond-k8s-testnet/kube/
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
           chmod u+x ./kustomize
-          cd ..
 
       # Deploy the Docker image to the GKE cluster
       - name: Deploy
@@ -116,15 +115,15 @@ jobs:
           export NAMESPACE=$( echo ${{ github.ref }}/${{ github.sha }} | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
           kubectl create namespace "$NAMESPACE"
           kubectl -n $NAMESPACE create configmap elrond-node-config \
-            --from-file=$BASE_PATH/filegenConfig/validatorKey.pem \
-            --from-file=$BASE_PATH/filegenConfig/observerKey.pem \
-            --from-file=$BASE_PATH/filegenConfig/p2p.toml \
-            --from-file=$BASE_PATH/filegenConfig/delegationWalletKey.pem \
-            --from-file=$BASE_PATH/filegenConfig/genesis.json \
-            --from-file=$BASE_PATH/filegenConfig/genesisSmartContracts.json \
-            --from-file=nodesSetup.json=$BASE_PATH/filegenConfig/nodesSetupUpdated.json \
-            --from-file=$BASE_PATH/filegenConfig/walletKey.pem
-          cd ./kube
+            --from-file=$BASE_PATH/filegenConfigLocal/validatorKey.pem \
+            --from-file=$BASE_PATH/filegenConfigLocal/observerKey.pem \
+            --from-file=$BASE_PATH/filegenConfigLocal/p2p.toml \
+            --from-file=$BASE_PATH/filegenConfigLocal/delegationWalletKey.pem \
+            --from-file=$BASE_PATH/filegenConfigLocal/genesis.json \
+            --from-file=$BASE_PATH/filegenConfigLocal/genesisSmartContracts.json \
+            --from-file=nodesSetup.json=$BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json \
+            --from-file=$BASE_PATH/filegenConfigLocal/walletKey.pem
+
           ./kustomize edit set replicas elrond-node=24 observer-shard=2
           ./kustomize edit set namespace "$NAMESPACE"
           ./kustomize edit set image elrondnetwork/elrond-go-node=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
