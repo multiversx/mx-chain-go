@@ -67,9 +67,10 @@ jobs:
             -metachain-consensus-group-size $METACHAIN_CONSENSUS_GROUP_SIZE \
             -num-of-observers-in-each-shard 1  \
             -num-of-observers-in-metachain 1 \
-            -chain-id k8s-testnet \
+            -chain-id ${{ github.sha }} \
             -hysteresis $HYSTERESIS \
             -stake-type delegated
+          ls -lh /home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/
 
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
