@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
@@ -58,7 +59,7 @@ type processComponents struct {
 	EpochStartNotifier          EpochStartNotifier
 	ForkDetector                process.ForkDetector
 	BlockProcessor              process.BlockProcessor
-	BlackListHandler            process.BlackListHandler
+	BlackListHandler            process.TimeCacher
 	BootStorer                  process.BootStorer
 	HeaderSigVerifier           process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier     HeaderIntegrityVerifierHandler
@@ -350,6 +351,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	txsPoolsCleaner.StartCleaning()
+
+	_, err = track.NewMiniBlockTrack(pcf.data.Datapool(), pcf.shardCoordinator, pcf.whiteListHandler)
+	if err != nil {
+		return nil, err
+	}
 
 	interceptorContainerFactory, blackListHandler, err := pcf.newInterceptorContainerFactory(
 		headerSigVerifier,
@@ -724,7 +730,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
-) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
+) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
 		return pcf.newShardInterceptorContainerFactory(
 			headerSigVerifier,
@@ -750,7 +756,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
-) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
+) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
 		CoreComponents:          pcf.coreData,
@@ -763,7 +769,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		DataPool:                pcf.data.Datapool(),
 		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:            pcf.economicsData,
-		BlackList:               headerBlackList,
+		BlockBlackList:          headerBlackList,
 		HeaderSigVerifier:       headerSigVerifier,
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
 		SizeCheckDelta:          pcf.sizeCheckDelta,
@@ -772,6 +778,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		WhiteListHandler:        pcf.whiteListHandler,
 		WhiteListerVerifiedTxs:  pcf.whiteListerVerifiedTxs,
 		AntifloodHandler:        pcf.network.InputAntiFloodHandler(),
+		ArgumentsParser:         smartContract.NewArgumentParser(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -786,7 +793,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
-) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
+) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
 		CoreComponents:          pcf.coreData,
@@ -808,6 +815,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		WhiteListHandler:        pcf.whiteListHandler,
 		WhiteListerVerifiedTxs:  pcf.whiteListerVerifiedTxs,
 		AntifloodHandler:        pcf.network.InputAntiFloodHandler(),
+		ArgumentsParser:         smartContract.NewArgumentParser(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -818,7 +826,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 }
 
 func (pcf *processComponentsFactory) newForkDetector(
-	headerBlackList process.BlackListHandler,
+	headerBlackList process.TimeCacher,
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {

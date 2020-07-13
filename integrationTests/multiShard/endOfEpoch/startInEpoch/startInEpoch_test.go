@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -154,6 +155,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		NumberOfShardsCalled: func() uint32 {
 			return uint32(numOfShards)
 		},
+		GetMinTransactionVersionCalled: func() uint32 {
+			return integrationTests.MinTransactionVersion
+		},
 	}
 
 	defer func() {
@@ -202,6 +206,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		DestinationShardAsObserver: shardID,
 		NodeShuffler:               &mock.NodeShufflerMock{},
 		Rounder:                    rounder,
+		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		ImportStartHandler:         &mock.ImportStartHandlerStub{},
 	}

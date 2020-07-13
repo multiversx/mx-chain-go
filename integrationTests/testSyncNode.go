@@ -41,6 +41,9 @@ func NewTestSyncNode(
 			list = append(list, mock.NewNodeInfo(address, pkBytes, 0))
 			return list, nil, nil
 		},
+		GetMinTransactionVersionCalled: func() uint32 {
+			return MinTransactionVersion
+		},
 	}
 
 	nodesCoordinator := &mock.NodesCoordinatorMock{
@@ -77,6 +80,7 @@ func NewTestSyncNode(
 		ChainID:                 ChainID,
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		NodesSetup:              nodesSetup,
+		MinTransactionVersion:   MinTransactionVersion,
 	}
 
 	kg := &mock.KeyGenMock{}

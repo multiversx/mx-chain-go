@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -23,6 +25,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/files"
 	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 )
+
+const accountStartNonce = uint64(0)
 
 type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error)
 
@@ -165,6 +169,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.ImportStartHandler) {
 		return update.ErrNilImportStartHandler
 	}
+	if check.IfNil(arg.Core.TxMarshalizer()) {
+		return process.ErrNilMarshalizer
+	}
 
 	return nil
 }
@@ -178,6 +185,11 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 
 	if mustDoHardForkImportProcess(gbc.arg) {
 		err = gbc.arg.importHandler.ImportAll()
+		if err != nil {
+			return nil, err
+		}
+
+		err = gbc.computeDNSAddressesIfHardFork()
 		if err != nil {
 			return nil, err
 		}
@@ -237,6 +249,54 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	//TODO call here trie pruning on all roothashes not from current shard
 
 	return genesisBlocks, nil
+}
+
+// in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
+func (gbc *genesisBlockCreator) computeDNSAddressesIfHardFork() error {
+	var dnsSC genesis.InitialSmartContractHandler
+	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
+		if sc.GetType() == genesis.DNSType {
+			dnsSC = sc
+			break
+		}
+	}
+
+	if dnsSC == nil || check.IfNil(dnsSC) {
+		return nil
+	}
+
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         gbc.arg.Accounts,
+		PubkeyConv:       gbc.arg.Core.AddressPubKeyConverter(),
+		StorageService:   gbc.arg.Data.StorageService(),
+		BlockChain:       gbc.arg.Data.Blockchain(),
+		ShardCoordinator: gbc.arg.ShardCoordinator,
+		Marshalizer:      gbc.arg.Core.InternalMarshalizer(),
+		Uint64Converter:  gbc.arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions: builtInFuncs,
+	}
+	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
+	if err != nil {
+		return err
+	}
+
+	isForCurrentShard := func([]byte) bool {
+		// after hardfork we are interested only in the smart contract addresses, as they are already deployed
+		return true
+	}
+	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
+	for _, address := range initialAddresses {
+		scResultingAddress, err := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
+		if err != nil {
+			return err
+		}
+
+		dnsSC.AddAddressBytes(scResultingAddress)
+		dnsSC.AddAddress(gbc.arg.Core.AddressPubKeyConverter().Encode(scResultingAddress))
+	}
+
+	return nil
 }
 
 func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBlockCreator, error) {

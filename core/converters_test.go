@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"math/big"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -56,10 +58,10 @@ func TestGetShardIdString(t *testing.T) {
 	t.Parallel()
 
 	shardIdMeta := uint32(math.MaxUint32)
-	assert.Equal(t, "metachain", core.GetShardIdString(shardIdMeta))
+	assert.Equal(t, "metachain", core.GetShardIDString(shardIdMeta))
 
 	shardId37 := uint32(37)
-	assert.Equal(t, "37", core.GetShardIdString(shardId37))
+	assert.Equal(t, "37", core.GetShardIDString(shardId37))
 }
 
 func TestEpochStartIdentifier(t *testing.T) {
@@ -185,4 +187,33 @@ func TestCommunicationIdentifierBetweenShards_Metachain(t *testing.T) {
 		core.MetachainShardId,
 		core.MetachainShardId,
 	))
+}
+
+func TestConvertToEvenHex(t *testing.T) {
+	t.Parallel()
+
+	numCompares := 100000
+	for i := 0; i < numCompares; i++ {
+		str := core.ConvertToEvenHex(i)
+
+		assert.True(t, len(str)%2 == 0)
+		recovered, err := strconv.ParseInt(str, 16, 32)
+		assert.Nil(t, err)
+		assert.Equal(t, i, int(recovered))
+	}
+}
+
+func TestConvertToEvenHexBigInt(t *testing.T) {
+	t.Parallel()
+
+	numCompares := 100000
+	for i := 0; i < numCompares; i++ {
+		bigInt := big.NewInt(int64(i))
+		str := core.ConvertToEvenHexBigInt(bigInt)
+
+		assert.True(t, len(str)%2 == 0)
+		recovered, err := strconv.ParseInt(str, 16, 32)
+		assert.Nil(t, err, str)
+		assert.Equal(t, i, int(recovered))
+	}
 }

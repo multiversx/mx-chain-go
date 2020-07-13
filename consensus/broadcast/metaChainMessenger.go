@@ -138,27 +138,29 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 	idx int,
-) error {
+) {
 	if check.IfNil(header) {
-		return spos.ErrNilHeader
+		log.Error("metaChainMessenger.PrepareBroadcastHeaderValidator", "error", spos.ErrNilHeader)
 	}
 
 	headerHash, err := core.CalculateHash(mcm.marshalizer, mcm.hasher, header)
 	if err != nil {
-		return err
+		log.Error("metaChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+		return
 	}
-
-	metaMiniBlocksData, metaTransactionsData := mcm.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
 
 	vData := &validatorHeaderBroadcastData{
 		headerHash:           headerHash,
 		header:               header,
-		metaMiniBlocksData:   metaMiniBlocksData,
-		metaTransactionsData: metaTransactionsData,
+		metaMiniBlocksData:   miniBlocks,
+		metaTransactionsData: transactions,
 		order:                uint32(idx),
 	}
 
-	return mcm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
+	err = mcm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
+	if err != nil {
+		log.Error("metaChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+	}
 }
 
 // PrepareBroadcastBlockDataValidator prepares the validator fallback broadcast in case leader broadcast fails
@@ -167,8 +169,7 @@ func (mcm *metaChainMessenger) PrepareBroadcastBlockDataValidator(
 	_ map[uint32][]byte,
 	_ map[string][][]byte,
 	_ int,
-) error {
-	return nil
+) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

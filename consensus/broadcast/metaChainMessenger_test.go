@@ -202,7 +202,10 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 
 	err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions)
 	require.Nil(t, err)
-	time.Sleep(core.ExtraDelayForBroadcastBlockInfo + time.Millisecond*100)
+	sleepTime := core.ExtraDelayBetweenBroadcastMbsAndTxs +
+		core.ExtraDelayForBroadcastBlockInfo +
+		time.Millisecond*100
+	time.Sleep(sleepTime)
 
 	mutCounters.Lock()
 	defer mutCounters.Unlock()

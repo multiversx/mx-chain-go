@@ -50,6 +50,13 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 				BaseIssuingCost: "100000000",
 				OwnerAddress:    "aaaaaa",
 			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				ProposalCost:     "500",
+				NumNodes:         100,
+				MinQuorum:        50,
+				MinPassThreshold: 50,
+				MinVetoThreshold: 50,
+			},
 		},
 		&mock.AccountsStub{},
 	)
@@ -65,9 +72,14 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	economicsData, _ := economics.NewEconomicsData(
 		&config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
-				TotalSupply:      "2000000000000000000000",
-				MinimumInflation: 0,
-				MaximumInflation: 0.05,
+				GenesisTotalSupply: "2000000000000000000000",
+				MinimumInflation:   0,
+				YearSettings: []*config.YearSetting{
+					{
+						Year:             0,
+						MaximumInflation: 0.01,
+					},
+				},
 			},
 			RewardsSettings: config.RewardsSettings{
 				LeaderPercentage:    0.1,
@@ -109,6 +121,13 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "100000000",
 				OwnerAddress:    "aaaaaa",
+			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				ProposalCost:     "500",
+				NumNodes:         100,
+				MinQuorum:        50,
+				MinPassThreshold: 50,
+				MinVetoThreshold: 50,
 			},
 		},
 		&mock.AccountsStub{},
@@ -170,6 +189,11 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["UnJail"] = value
 	gasMap["ESDTIssue"] = value
 	gasMap["ESDTOperations"] = value
+	gasMap["Proposal"] = value
+	gasMap["Vote"] = value
+	gasMap["DelegateVote"] = value
+	gasMap["RevokeVote"] = value
+	gasMap["CloseProposal"] = value
 
 	return gasMap
 }

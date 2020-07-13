@@ -45,6 +45,10 @@ const NodeTypeObserver NodeType = "observer"
 // NodeTypeValidator signals that a node is running as validator node
 const NodeTypeValidator NodeType = "validator"
 
+// DisabledShardIDAsObserver defines the uint32 identifier which tells that the node hasn't configured any preferred
+// shard to start in as observer
+const DisabledShardIDAsObserver = uint32(0xFFFFFFFF) - 7
+
 // pkPrefixSize specifies the max numbers of chars to be displayed from one publc key
 const pkPrefixSize = 12
 
@@ -140,11 +144,17 @@ const MetricMemLoadPercent = "erd_mem_load_percent"
 // MetricMemTotal is the metric for monitoring total memory bytes
 const MetricMemTotal = "erd_mem_total"
 
-// MetricMemUsedGolang is the metric that stores the total memory used by golang in bytes
+// MetricMemUsedGolang is a metric for monitoring the memory ("total")
 const MetricMemUsedGolang = "erd_mem_used_golang"
 
-// MetricMemUsedSystem is the metric that stores the total memory used by the system in bytes
+// MetricMemUsedSystem is a metric for monitoring the memory ("sys mem")
 const MetricMemUsedSystem = "erd_mem_used_sys"
+
+// MetricMemHeapInUse is a metric for monitoring the memory ("heap in use")
+const MetricMemHeapInUse = "erd_mem_heap_inuse"
+
+// MetricMemStackInUse is a metric for monitoring the memory ("stack in use")
+const MetricMemStackInUse = "erd_mem_stack_inuse"
 
 // MetricNetworkRecvPercent is the metric for monitoring network receive load [%]
 const MetricNetworkRecvPercent = "erd_network_recv_percent"
@@ -251,8 +261,8 @@ const MetricPeerType = "erd_peer_type"
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_leader_percentage"
 
-//MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
-const MetricDenominationCoefficient = "erd_denomination_coefficient"
+//MetricDenomination is the metric for exposing the denomination
+const MetricDenomination = "erd_denomination"
 
 // MetricRoundAtEpochStart is the metric for storing the first round of the current epoch
 const MetricRoundAtEpochStart = "erd_round_at_epoch_start"
@@ -289,6 +299,9 @@ const MetricMinGasPrice = "erd_min_gas_price"
 
 // MetricMinGasLimit is the metric that specifies the minimum gas limit
 const MetricMinGasLimit = "erd_min_gas_limit"
+
+// MetricMinTransactionVersion is the metric that specifies the minimum transaction version
+const MetricMinTransactionVersion = "erd_min_transaction_version"
 
 // MetricGasPerDataByte is the metric that specifies the required gas for a data byte
 const MetricGasPerDataByte = "erd_gas_per_data_byte"
@@ -338,10 +351,10 @@ type TransactionStatus string
 const (
 	// TxStatusReceived represents the status of a transaction which was received but not yet executed
 	TxStatusReceived TransactionStatus = "received"
+	// TxStatusPartiallyExecuted represent the status of a transaction which was received and executed on source shard
+	TxStatusPartiallyExecuted TransactionStatus = "partially-executed"
 	// TxStatusExecuted represents the status of a transaction which was received and executed
 	TxStatusExecuted TransactionStatus = "executed"
-	// TxStatusUnknown represents the status returned for a missing transaction
-	TxStatusUnknown TransactionStatus = "unknown"
 )
 
 const (
@@ -417,6 +430,9 @@ const BuiltInFunctionSaveKeyValue = "SaveKeyValue"
 // BuiltInFunctionESDTTransfer is the key for the elrond standard digital token transfer built-in function
 const BuiltInFunctionESDTTransfer = "ESDTTransfer"
 
+// RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
+const RelayedTransaction = "relayedTx"
+
 // SCDeployInitFunctionName is the key for the function which is called at smart contract deploy time
 const SCDeployInitFunctionName = "_init"
 
@@ -463,9 +479,13 @@ const MaxSoftwareVersionLengthInBytes = 10
 // moment when its components, like mini blocks and transactions, would be broadcast too
 const ExtraDelayForBroadcastBlockInfo = 1 * time.Second
 
+// ExtraDelayBetweenBroadcastMbsAndTxs represents the number of seconds to wait since miniblocks have been broadcast
+// and the moment when theirs transactions would be broadcast too
+const ExtraDelayBetweenBroadcastMbsAndTxs = 1 * time.Second
+
 // ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
 // moment when its components, like mini blocks and transactions, would be requested too if they are still missing
-const ExtraDelayForRequestBlockInfo = 2 * time.Second
+const ExtraDelayForRequestBlockInfo = ExtraDelayForBroadcastBlockInfo + ExtraDelayBetweenBroadcastMbsAndTxs + time.Second
 
 // CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
 const CommitMaxTime = 3 * time.Second
@@ -479,3 +499,14 @@ const DefaultUnstakedEpoch = math.MaxUint32
 // InvalidMessageBlacklistDuration represents the time to keep a peer in the black list if it sends a message that
 // does not follow the protocol: example not useing the same marshaler as the other peers
 const InvalidMessageBlacklistDuration = time.Second * 3600
+
+// MaxNumShards represents the maximum number of shards possible in the system
+const MaxNumShards = 256
+
+// PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
+// rating to a minimum threshold due to improper messages
+const PublicKeyBlacklistDuration = time.Second * 7200
+
+// WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
+// do not follow this protocol
+const WrongP2PMessageBlacklistDuration = time.Second * 7200

@@ -37,6 +37,9 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 			list = append(list, mock.NewNodeInfo(address, pkBytes, 0))
 			return list, nil, nil
 		},
+		GetMinTransactionVersionCalled: func() uint32 {
+			return MinTransactionVersion
+		},
 	}
 
 	nodesCoordinator := &mock.NodesCoordinatorMock{
@@ -64,6 +67,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                 ChainID,
+		MinTransactionVersion:   MinTransactionVersion,
 	}
 	tpn.NodesSetup = nodesSetup
 

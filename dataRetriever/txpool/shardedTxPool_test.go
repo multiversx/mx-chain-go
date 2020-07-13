@@ -101,8 +101,8 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	require.Equal(t, 200, int(pool.configPrototypeSourceMe.MinGasPriceNanoErd))
 	require.Equal(t, 300000, int(pool.configPrototypeSourceMe.CountThreshold))
 
-	require.Equal(t, 150000, int(pool.configPrototypeDestinationMe.MaxNumItems))
-	require.Equal(t, 104857600, int(pool.configPrototypeDestinationMe.MaxNumBytes))
+	require.Equal(t, 300000, int(pool.configPrototypeDestinationMe.MaxNumItems))
+	require.Equal(t, 209715200, int(pool.configPrototypeDestinationMe.MaxNumBytes))
 }
 
 func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {
@@ -178,7 +178,7 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 
 	numAdded := uint32(0)
-	pool.RegisterHandler(func(key []byte, value interface{}) {
+	pool.RegisterOnAdded(func(key []byte, value interface{}) {
 		atomic.AddUint32(&numAdded, 1)
 	})
 
@@ -291,14 +291,14 @@ func Test_ClearShardStore(t *testing.T) {
 	require.Equal(t, 1, pool.getTxCache("5").Len())
 }
 
-func Test_RegisterHandler(t *testing.T) {
+func Test_RegisterOnAdded(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.RegisterHandler(func(key []byte, value interface{}) {})
+	pool.RegisterOnAdded(func(key []byte, value interface{}) {})
 	require.Equal(t, 1, len(pool.onAddCallbacks))
 
-	pool.RegisterHandler(nil)
+	pool.RegisterOnAdded(nil)
 	require.Equal(t, 1, len(pool.onAddCallbacks))
 }
 

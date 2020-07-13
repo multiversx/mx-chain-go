@@ -31,11 +31,14 @@ type InterceptedTransaction struct {
 	pubkeyConv             core.PubkeyConverter
 	coordinator            sharding.Coordinator
 	hash                   []byte
+	feeHandler             process.FeeHandler
+	whiteListerVerifiedTxs process.WhiteListHandler
+	argsParser             process.ArgumentsParser
+	chainID                []byte
+	minTransactionVersion  uint32
 	rcvShard               uint32
 	sndShard               uint32
 	isForCurrentShard      bool
-	feeHandler             process.FeeHandler
-	whiteListerVerifiedTxs process.WhiteListHandler
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -50,6 +53,9 @@ func NewInterceptedTransaction(
 	coordinator sharding.Coordinator,
 	feeHandler process.FeeHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
+	argsParser process.ArgumentsParser,
+	chainID []byte,
+	minTxVersion uint32,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -82,6 +88,15 @@ func NewInterceptedTransaction(
 	if check.IfNil(whiteListerVerifiedTxs) {
 		return nil, process.ErrNilWhiteListHandler
 	}
+	if check.IfNil(argsParser) {
+		return nil, process.ErrNilArgumentParser
+	}
+	if len(chainID) == 0 {
+		return nil, process.ErrInvalidChainID
+	}
+	if minTxVersion == 0 {
+		return nil, process.ErrInvalidTransactionVersion
+	}
 
 	tx, err := createTx(protoMarshalizer, txBuff)
 	if err != nil {
@@ -99,6 +114,9 @@ func NewInterceptedTransaction(
 		coordinator:            coordinator,
 		feeHandler:             feeHandler,
 		whiteListerVerifiedTxs: whiteListerVerifiedTxs,
+		argsParser:             argsParser,
+		chainID:                chainID,
+		minTransactionVersion:  minTxVersion,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -121,17 +139,71 @@ func createTx(marshalizer marshal.Marshalizer, txBuff []byte) (*transaction.Tran
 
 // CheckValidity checks if the received transaction is valid (not nil fields, valid sig and so on)
 func (inTx *InterceptedTransaction) CheckValidity() error {
-	err := inTx.integrity()
+	err := inTx.integrity(inTx.tx)
 	if err != nil {
 		return err
 	}
 
 	whiteListedVerified := inTx.whiteListerVerifiedTxs.IsWhiteListed(inTx)
 	if !whiteListedVerified {
-		err = inTx.verifySig()
+		err = inTx.verifySig(inTx.tx)
 		if err != nil {
 			return err
 		}
+
+		err = inTx.verifyIfRelayedTx(inTx.tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transaction) error {
+	funcName, userTxArgs, err := inTx.argsParser.ParseCallData(string(tx.Data))
+	if err != nil {
+		return nil
+	}
+	if core.RelayedTransaction != funcName {
+		return nil
+	}
+
+	if len(userTxArgs) != 1 {
+		return process.ErrInvalidArguments
+	}
+
+	userTx, err := createTx(inTx.signMarshalizer, userTxArgs[0])
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(userTx.SndAddr, tx.RcvAddr) {
+		return process.ErrRelayedTxBeneficiaryDoesNotMatchReceiver
+	}
+
+	err = inTx.integrity(userTx)
+	if err != nil {
+		return err
+	}
+
+	err = inTx.verifySig(userTx)
+	if err != nil {
+		return err
+	}
+
+	if len(userTx.Data) == 0 {
+		return nil
+	}
+
+	funcName, _, err = inTx.argsParser.ParseCallData(string(userTx.Data))
+	if err != nil {
+		return nil
+	}
+
+	// recursive relayed transactions are not allowed
+	if core.RelayedTransaction == funcName {
+		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 
 	return nil
@@ -155,20 +227,26 @@ func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 }
 
 // integrity checks for not nil fields and negative value
-func (inTx *InterceptedTransaction) integrity() error {
-	if inTx.tx.Signature == nil {
+func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error {
+	if tx.Version < inTx.minTransactionVersion {
+		return process.ErrInvalidTransactionVersion
+	}
+	if !bytes.Equal(tx.ChainID, inTx.chainID) {
+		return process.ErrInvalidChainID
+	}
+	if tx.Signature == nil {
 		return process.ErrNilSignature
 	}
-	if inTx.tx.RcvAddr == nil {
+	if tx.RcvAddr == nil {
 		return process.ErrNilRcvAddr
 	}
-	if inTx.tx.SndAddr == nil {
+	if tx.SndAddr == nil {
 		return process.ErrNilSndAddr
 	}
-	if inTx.tx.Value == nil {
+	if tx.Value == nil {
 		return process.ErrNilValue
 	}
-	if inTx.tx.Value.Sign() < 0 {
+	if tx.Value.Sign() < 0 {
 		return process.ErrNegativeValue
 	}
 	if len(inTx.tx.RcvUserName) > 0 && len(inTx.tx.RcvUserName) != inTx.hasher.Size() {
@@ -178,22 +256,22 @@ func (inTx *InterceptedTransaction) integrity() error {
 		return process.ErrInvalidUserNameLength
 	}
 
-	return inTx.feeHandler.CheckValidityTxValues(inTx.tx)
+	return inTx.feeHandler.CheckValidityTxValues(tx)
 }
 
 // verifySig checks if the tx is correctly signed
-func (inTx *InterceptedTransaction) verifySig() error {
-	buffCopiedTx, err := inTx.tx.GetDataForSigning(inTx.pubkeyConv, inTx.signMarshalizer)
+func (inTx *InterceptedTransaction) verifySig(tx *transaction.Transaction) error {
+	buffCopiedTx, err := tx.GetDataForSigning(inTx.pubkeyConv, inTx.signMarshalizer)
 	if err != nil {
 		return err
 	}
 
-	senderPubKey, err := inTx.keyGen.PublicKeyFromByteArray(inTx.tx.SndAddr)
+	senderPubKey, err := inTx.keyGen.PublicKeyFromByteArray(tx.SndAddr)
 	if err != nil {
 		return err
 	}
 
-	err = inTx.singleSigner.Verify(senderPubKey, buffCopiedTx, inTx.tx.Signature)
+	err = inTx.singleSigner.Verify(senderPubKey, buffCopiedTx, tx.Signature)
 	if err != nil {
 		return err
 	}

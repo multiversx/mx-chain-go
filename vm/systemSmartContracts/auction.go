@@ -4,7 +4,6 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -37,6 +37,7 @@ type stakingAuctionSC struct {
 	auctionSCAddress   []byte
 	enableStakingNonce uint64
 	gasCost            vm.GasCost
+	marshalizer        marshal.Marshalizer
 }
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
@@ -48,6 +49,7 @@ type ArgsStakingAuctionSmartContract struct {
 	StakingSCAddress    []byte
 	AuctionSCAddress    []byte
 	GasCost             vm.GasCost
+	Marshalizer         marshal.Marshalizer
 }
 
 // NewStakingAuctionSmartContract creates an auction smart contract
@@ -78,12 +80,15 @@ func NewStakingAuctionSmartContract(
 	if args.NodesConfigProvider.MinNumberOfNodes() < 1 {
 		return nil, vm.ErrInvalidMinNumberOfNodes
 	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, vm.ErrNilMarshalizer
+	}
 
 	// TODO: max numNodes as well when enabling auction
 	baseConfig := AuctionConfig{
 		MinStakeValue: big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
 		NumNodes:      args.NodesConfigProvider.MinNumberOfNodes(),
-		TotalSupply:   big.NewInt(0).Set(args.ValidatorSettings.TotalSupply()),
+		TotalSupply:   big.NewInt(0).Set(args.ValidatorSettings.GenesisTotalSupply()),
 		MinStep:       big.NewInt(0).Set(args.ValidatorSettings.MinStepValue()),
 		NodePrice:     big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
 		UnJailPrice:   big.NewInt(0).Set(args.ValidatorSettings.UnJailValue()),
@@ -99,6 +104,7 @@ func NewStakingAuctionSmartContract(
 		stakingSCAddress:   args.StakingSCAddress,
 		auctionSCAddress:   args.AuctionSCAddress,
 		gasCost:            args.GasCost,
+		marshalizer:        args.Marshalizer,
 	}
 	return reg, nil
 }
@@ -343,9 +349,8 @@ func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.Return
 		s.eei.AddReturnMessage("transaction value must be zero")
 		return vmcommon.UserError
 	}
-
-	if len(args.Arguments) < 1 {
-		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
+	if len(args.Arguments) != 1 {
+		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected exactly %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 
@@ -374,7 +379,7 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 		return vmcommon.UserError
 	}
 
-	config := AuctionConfig{
+	config := &AuctionConfig{
 		MinStakeValue: big.NewInt(0).SetBytes(args.Arguments[0]),
 		NumNodes:      uint32(big.NewInt(0).SetBytes(args.Arguments[1]).Uint64()),
 		TotalSupply:   big.NewInt(0).SetBytes(args.Arguments[2]),
@@ -383,7 +388,7 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 		UnJailPrice:   big.NewInt(0).SetBytes(args.Arguments[5]),
 	}
 
-	configData, err := json.Marshal(config)
+	configData, err := s.marshalizer.Marshal(config)
 	if err != nil {
 		s.eei.AddReturnMessage("setConfig marshal config error")
 		return vmcommon.UserError
@@ -402,7 +407,7 @@ func (s *stakingAuctionSC) checkConfigCorrectness(config AuctionConfig) error {
 		return fmt.Errorf("%w for NodePrice", vm.ErrIncorrectConfig)
 	}
 	if config.TotalSupply == nil {
-		return fmt.Errorf("%w for TotalSupply", vm.ErrIncorrectConfig)
+		return fmt.Errorf("%w for GenesisTotalSupply", vm.ErrIncorrectConfig)
 	}
 	if config.MinStep == nil {
 		return fmt.Errorf("%w for MinStep", vm.ErrIncorrectConfig)
@@ -420,8 +425,8 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 		return s.baseConfig
 	}
 
-	config := AuctionConfig{}
-	err := json.Unmarshal(configData, &config)
+	config := &AuctionConfig{}
+	err := s.marshalizer.Unmarshal(config, configData)
 	if err != nil {
 		log.Warn("unmarshal error on getConfig function, returning baseConfig",
 			"error", err.Error(),
@@ -429,8 +434,8 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 		return s.baseConfig
 	}
 
-	if s.checkConfigCorrectness(config) != nil {
-		baseConfigData, err := json.Marshal(s.baseConfig)
+	if s.checkConfigCorrectness(*config) != nil {
+		baseConfigData, err := s.marshalizer.Marshal(&s.baseConfig)
 		if err != nil {
 			log.Warn("marshal error on getConfig function, returning baseConfig")
 			return s.baseConfig
@@ -439,7 +444,7 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 		return s.baseConfig
 	}
 
-	return config
+	return *config
 }
 
 func (s *stakingAuctionSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -737,7 +742,7 @@ func (s *stakingAuctionSC) executeOnStakingSC(data []byte) (*vmcommon.VMOutput, 
 
 func (s *stakingAuctionSC) getOrCreateRegistrationData(key []byte) (*AuctionData, error) {
 	data := s.eei.GetStorage(key)
-	registrationData := AuctionData{
+	registrationData := &AuctionData{
 		RewardAddress:   nil,
 		RegisterNonce:   0,
 		Epoch:           0,
@@ -748,7 +753,7 @@ func (s *stakingAuctionSC) getOrCreateRegistrationData(key []byte) (*AuctionData
 	}
 
 	if len(data) > 0 {
-		err := json.Unmarshal(data, &registrationData)
+		err := s.marshalizer.Unmarshal(registrationData, data)
 		if err != nil {
 			log.Debug("unmarshal error on staking SC stake function",
 				"error", err.Error(),
@@ -757,11 +762,11 @@ func (s *stakingAuctionSC) getOrCreateRegistrationData(key []byte) (*AuctionData
 		}
 	}
 
-	return &registrationData, nil
+	return registrationData, nil
 }
 
 func (s *stakingAuctionSC) saveRegistrationData(key []byte, auction *AuctionData) error {
-	data, err := json.Marshal(*auction)
+	data, err := s.marshalizer.Marshal(auction)
 	if err != nil {
 		log.Debug("marshal error on staking SC stake function ",
 			"error", err.Error(),
@@ -784,7 +789,7 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 		return nil, vm.ErrOnExecutionAtStakingSC
 	}
 
-	stakedData := StakedData{
+	stakedData := &StakedData{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
@@ -794,12 +799,12 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 	}
 
 	if len(vmOutput.ReturnData) == 0 {
-		return &stakedData, nil
+		return stakedData, nil
 	}
 
 	data := vmOutput.ReturnData[0]
 	if len(data) > 0 {
-		err := json.Unmarshal(data, &stakedData)
+		err := s.marshalizer.Unmarshal(stakedData, data)
 		if err != nil {
 			log.Debug("unmarshal error on staking SC stake function",
 				"error", err.Error(),
@@ -808,7 +813,7 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 		}
 	}
 
-	return &stakedData, nil
+	return stakedData, nil
 }
 
 func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

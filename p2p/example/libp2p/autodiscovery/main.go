@@ -10,10 +10,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 	return libp2p.ArgsNetworkMessenger{
+		Marshalizer:   &testscommon.ProtoMarshalizerMock{},
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{

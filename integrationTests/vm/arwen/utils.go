@@ -149,7 +149,7 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		Data:     []byte(txData),
 	}
 
-	err := context.TxProcessor.ProcessTransaction(tx)
+	_, err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 		Data:     []byte(txData),
 	}
 
-	err := context.TxProcessor.ProcessTransaction(tx)
+	_, err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func (context *TestContext) executeSCWithValue(sender *testParticipant, txData s
 		Data:     []byte(txData),
 	}
 
-	err := context.TxProcessor.ProcessTransaction(tx)
+	_, err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}

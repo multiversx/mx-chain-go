@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/node"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -43,13 +44,6 @@ type StatusResponse struct {
 type QueryResponse struct {
 	GeneralResponse
 	Result []string `json:"result"`
-}
-
-// TODO remove this struct, use shared.GenericAPIResponse
-type genericApiResponse struct {
-	Data  interface{} `json:"data"`
-	Error string      `json:"error"`
-	Code  string      `json:"code"`
 }
 
 type StatisticsResponse struct {
@@ -203,8 +197,14 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
 	statisticsRsp := StatisticsResponse{}
-	loadResponse(resp.Body, &statisticsRsp)
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &statisticsRsp)
+
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.Equal(t, statisticsRsp.Statistics.NrOfShards, nrOfShards)
 }
@@ -316,8 +316,13 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	queryResponse := &QueryResponse{}
-	loadResponse(resp.Body, queryResponse)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	queryResponse := QueryResponse{}
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &queryResponse)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Contains(t, queryResponse.Result, str1)
@@ -333,11 +338,11 @@ func TestPeerInfo_WrongFacadeShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := &genericApiResponse{}
+	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, "invalid app context")) //TODO replace with errors.ErrInvalidAppContext.Error()
+	assert.Equal(t, response.Error, errors.ErrInvalidAppContext.Error())
 }
 
 func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
@@ -355,7 +360,7 @@ func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := &genericApiResponse{}
+	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
@@ -384,7 +389,7 @@ func TestPeerInfo_PeerInfoShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := &genericApiResponse{}
+	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
 	assert.Equal(t, http.StatusOK, resp.Code)

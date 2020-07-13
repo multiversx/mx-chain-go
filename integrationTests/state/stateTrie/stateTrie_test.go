@@ -6,9 +6,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"math/rand"
 	"runtime"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -1076,7 +1078,7 @@ func createAndExecTxs(
 		}
 
 		startTime := time.Now()
-		err := txProcessor.ProcessTransaction(tx)
+		_, err := txProcessor.ProcessTransaction(tx)
 		duration := time.Since(startTime)
 		totalTime += int64(duration)
 		assert.Nil(b, err)
@@ -1324,7 +1326,16 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	assert.Equal(t, uint64(1), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
 	fmt.Println("Generating transactions...")
-	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 1000, 1000)
+	integrationTests.GenerateAndDisseminateTxs(
+		shardNode,
+		sendersPrivateKeys,
+		receiversPublicKeys,
+		valToTransferPerTx,
+		1000,
+		1000,
+		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
+	)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
 
@@ -1484,7 +1495,16 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	rootHashOfFirstBlock, _ := shardNode.AccntState.RootHash()
 
 	fmt.Println("Generating transactions...")
-	integrationTests.GenerateAndDisseminateTxs(shardNode, sendersPrivateKeys, receiversPublicKeys, valToTransferPerTx, 1000, 1000)
+	integrationTests.GenerateAndDisseminateTxs(
+		shardNode,
+		sendersPrivateKeys,
+		receiversPublicKeys,
+		valToTransferPerTx,
+		1000,
+		1000,
+		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
+	)
 	fmt.Println("Delaying for disseminating transactions...")
 	time.Sleep(time.Second * 5)
 
@@ -1663,5 +1683,314 @@ func testNodeStateCheckpointSnapshotAndPruning(
 		}
 		assert.Nil(t, tr)
 		assert.NotNil(t, err)
+	}
+}
+
+func TestContinuouslyAccountCodeChanges(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+	senderShard := uint32(0)
+	round := uint64(0)
+	nonce := uint64(0)
+	valMinting := big.NewInt(1000000000)
+
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+
+	fmt.Println("Generating private keys for senders...")
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
+	nrAccounts := 20
+
+	sendersPrivateKeys := make([]crypto.PrivateKey, nrAccounts)
+	for i := 0; i < nrAccounts; i++ {
+		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
+	}
+
+	accounts := make([][]byte, len(sendersPrivateKeys))
+	for i := range sendersPrivateKeys {
+		accounts[i], _ = sendersPrivateKeys[i].GeneratePublic().ToByteArray()
+	}
+
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	numCodes := 10
+	codeMap := getCodeMap(numCodes)
+	codeArray := make([][]byte, 0)
+	for code := range codeMap {
+		codeArray = append(codeArray, []byte(code))
+	}
+
+	maxCodeUpdates := 10
+	maxCodeDeletes := 10
+
+	shardNode := nodes[0]
+	roundsToWait := 50
+	for i := 0; i < roundsToWait; i++ {
+		numCodeUpdates := rand.Intn(maxCodeUpdates)
+		numCodeDeletes := rand.Intn(maxCodeDeletes)
+
+		for j := 0; j < numCodeUpdates; j++ {
+			accountIndex := rand.Intn(nrAccounts)
+			account, _ := shardNode.AccntState.LoadAccount(accounts[accountIndex])
+
+			updateCode(t, shardNode.AccntState, codeArray, codeMap, account, numCodes)
+		}
+
+		for j := 0; j < numCodeDeletes; j++ {
+			accountIndex := rand.Intn(nrAccounts)
+			account, _ := shardNode.AccntState.LoadAccount(accounts[accountIndex])
+
+			removeCode(t, shardNode.AccntState, codeMap, account)
+		}
+		_, _ = shardNode.AccntState.Commit()
+
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+		for j := range codeArray {
+			fmt.Printf("%v - %v \n", codeArray[j], codeMap[string(codeArray[j])])
+		}
+
+		checkCodeConsistency(t, shardNode, codeMap)
+	}
+}
+
+func shouldRevert() bool {
+	return (rand.Intn(10) % 3) == 0
+}
+
+func getCodeMap(numCodes int) map[string]int {
+	codeMap := make(map[string]int)
+	for i := 0; i < numCodes; i++ {
+		code := "code" + strconv.Itoa(i)
+		codeMap[code] = 0
+	}
+
+	return codeMap
+}
+
+func updateCode(
+	t *testing.T,
+	AccntState state.AccountsAdapter,
+	codeArray [][]byte,
+	codeMap map[string]int,
+	account state.AccountHandler,
+	numCodes int,
+) {
+	snapshot := AccntState.JournalLen()
+	codeIndex := rand.Intn(numCodes)
+	code := codeArray[codeIndex]
+
+	oldCode := account.(state.UserAccountHandler).GetCode()
+	account.(state.UserAccountHandler).SetCode(code)
+	_ = AccntState.SaveAccount(account)
+
+	if shouldRevert() && snapshot != 0 {
+		err := AccntState.RevertToSnapshot(snapshot)
+		assert.Nil(t, err)
+		fmt.Printf("updated code %v to account %v and reverted\n", code, hex.EncodeToString(account.AddressBytes()))
+		return
+	}
+
+	codeMap[string(code)]++
+	if len(oldCode) != 0 {
+		codeMap[string(oldCode)]--
+	}
+
+	fmt.Printf("updated code %v to account %v \n", code, hex.EncodeToString(account.AddressBytes()))
+}
+
+func removeCode(
+	t *testing.T,
+	AccntState state.AccountsAdapter,
+	codeMap map[string]int,
+	account state.AccountHandler,
+) {
+	snapshot := AccntState.JournalLen()
+	code := account.(state.UserAccountHandler).GetCode()
+	account.(state.UserAccountHandler).SetCode(nil)
+	_ = AccntState.SaveAccount(account)
+
+	if shouldRevert() && snapshot != 0 {
+		err := AccntState.RevertToSnapshot(snapshot)
+		assert.Nil(t, err)
+		fmt.Printf("removed old code %v from account %v and reverted\n", code, hex.EncodeToString(account.AddressBytes()))
+		return
+	}
+
+	if len(code) != 0 {
+		codeMap[string(code)]--
+	}
+
+	fmt.Printf("removed old code %v from account %v \n", code, hex.EncodeToString(account.AddressBytes()))
+}
+func checkCodeConsistency(
+	t *testing.T,
+	shardNode *integrationTests.TestProcessorNode,
+	codeMap map[string]int,
+) {
+	for code := range codeMap {
+		codeHash := integrationTests.TestHasher.Compute(code)
+		tr := shardNode.TrieContainer.Get([]byte(factory2.UserAccountTrie))
+
+		if codeMap[code] != 0 {
+			val, err := tr.Get(codeHash)
+			assert.Nil(t, err)
+			assert.NotNil(t, val)
+
+			var codeEntry state.CodeEntry
+			err = integrationTests.TestMarshalizer.Unmarshal(&codeEntry, val)
+			assert.Nil(t, err)
+
+			assert.Equal(t, uint32(codeMap[code]), codeEntry.NumReferences)
+		}
+	}
+}
+
+func TestAccountRemoval(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+	senderShard := uint32(0)
+	round := uint64(0)
+	nonce := uint64(0)
+	valMinting := big.NewInt(1000000000)
+
+	nodes, advertiser, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(nodesPerShard, numMetachainNodes)
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer integrationTests.CloseProcessorNodes(nodes, advertiser)
+
+	fmt.Println("Generating private keys for senders...")
+	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 0)
+	nrAccounts := 10000
+
+	sendersPrivateKeys := make([]crypto.PrivateKey, nrAccounts)
+	for i := 0; i < nrAccounts; i++ {
+		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
+	}
+
+	accounts := make([][]byte, len(sendersPrivateKeys))
+	for i := range sendersPrivateKeys {
+		accounts[i], _ = sendersPrivateKeys[i].GeneratePublic().ToByteArray()
+	}
+
+	fmt.Println("Minting sender addresses...")
+	integrationTests.CreateMintingForSenders(nodes, senderShard, sendersPrivateKeys, valMinting)
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	shardNode := nodes[0]
+
+	dataTriesRootHashes, codeMap := generateAccounts(shardNode, accounts)
+
+	_, _ = shardNode.AccntState.Commit()
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
+	numAccountsToRemove := 2
+	roundsToWait := 50
+
+	removedAccounts := make(map[int]struct{})
+	for i := 0; i < roundsToWait; i++ {
+		for j := 0; j < numAccountsToRemove; j++ {
+			accountIndex := rand.Intn(nrAccounts)
+			removedAccounts[accountIndex] = struct{}{}
+			account, err := shardNode.AccntState.GetExistingAccount(accounts[accountIndex])
+			if err != nil {
+				continue
+			}
+			code := account.(state.UserAccountHandler).GetCode()
+
+			_ = shardNode.AccntState.RemoveAccount(account.AddressBytes())
+
+			codeMap[string(code)]--
+		}
+
+		_, _ = shardNode.AccntState.Commit()
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		checkCodeConsistency(t, shardNode, codeMap)
+	}
+
+	delayRounds := 5
+	for i := 0; i < delayRounds; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
+	checkDataTrieConsistency(t, shardNode.AccntState, removedAccounts, dataTriesRootHashes)
+}
+
+func generateAccounts(
+	shardNode *integrationTests.TestProcessorNode,
+	accounts [][]byte,
+) ([][]byte, map[string]int) {
+	numCodes := 100
+	codeMap := getCodeMap(numCodes)
+	codeArray := make([][]byte, 0)
+	for code := range codeMap {
+		codeArray = append(codeArray, []byte(code))
+	}
+
+	dataTriesRootHashes := make([][]byte, 0)
+	dataTrieSize := 5
+	for i := 0; i < len(accounts); i++ {
+		account, _ := shardNode.AccntState.LoadAccount(accounts[i])
+
+		code := codeArray[rand.Intn(numCodes)]
+		account.(state.UserAccountHandler).SetCode(code)
+		codeMap[string(code)]++
+
+		for j := 0; j < dataTrieSize; j++ {
+			account.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(getDataTrieEntry())
+		}
+
+		_ = shardNode.AccntState.SaveAccount(account)
+
+		rootHash := account.(state.UserAccountHandler).GetRootHash()
+		dataTriesRootHashes = append(dataTriesRootHashes, rootHash)
+	}
+
+	return dataTriesRootHashes, codeMap
+}
+
+func getDataTrieEntry() ([]byte, []byte) {
+	index := strconv.Itoa(rand.Intn(math.MaxInt32))
+	key := []byte("key" + index)
+	value := []byte("value" + index)
+
+	return key, value
+}
+
+func checkDataTrieConsistency(
+	t *testing.T,
+	adb state.AccountsAdapter,
+	removedAccounts map[int]struct{},
+	dataTriesRootHashes [][]byte,
+) {
+	for i, rootHash := range dataTriesRootHashes {
+		_, ok := removedAccounts[i]
+		if ok {
+			err := adb.RecreateTrie(rootHash)
+			assert.NotNil(t, err)
+		} else {
+			err := adb.RecreateTrie(rootHash)
+			assert.Nil(t, err)
+		}
 	}
 }

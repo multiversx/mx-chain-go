@@ -43,13 +43,13 @@ type baseForkDetector struct {
 	fork       forkInfo
 	mutFork    sync.RWMutex
 
-	blackListHandler   process.BlackListHandler
+	blackListHandler   process.TimeCacher
 	genesisTime        int64
 	blockTracker       process.BlockTracker
 	forkDetector       forkDetector
-	maxForkHeaderEpoch uint32
 	genesisNonce       uint64
 	genesisRound       uint64
+	maxForkHeaderEpoch uint32
 	genesisEpoch       uint32
 }
 

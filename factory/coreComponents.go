@@ -42,6 +42,7 @@ type coreComponents struct {
 	statusHandler            core.AppStatusHandler
 	pathHandler              storage.PathManagerHandler
 	chainID                  string
+	minTransactionVersion    uint32
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -102,6 +103,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		statusHandler:            statusHandler.NewNilStatusHandler(),
 		pathHandler:              pathHandler,
 		chainID:                  ccf.config.GeneralSettings.ChainID,
+		minTransactionVersion:    ccf.config.GeneralSettings.MinTransactionVersion,
 	}, nil
 }
 

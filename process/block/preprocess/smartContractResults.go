@@ -109,7 +109,7 @@ func NewSmartContractResultPreprocessor(
 	}
 
 	scr.chRcvAllScrs = make(chan bool)
-	scr.scrPool.RegisterHandler(scr.receivedSmartContractResult)
+	scr.scrPool.RegisterOnAdded(scr.receivedSmartContractResult)
 	scr.scrForBlock.txHashAndInfo = make(map[string]*txInfo)
 
 	return scr, nil
@@ -251,7 +251,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 
 			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
 
-			err := scr.scrProcessor.ProcessSmartContractResult(currScr)
+			_, err := scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
 				return err
 			}
@@ -490,7 +490,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 
 		scr.saveAccountBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
 
-		err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
+		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
 		if err != nil {
 			return processedTxHashes, err
 		}

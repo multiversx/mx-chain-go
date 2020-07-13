@@ -393,7 +393,7 @@ func (m *EpochStartShardData) GetPendingMiniBlockHeaders() []MiniBlockHeader {
 
 // Economics holds the block information for total supply and rewards
 type Economics struct {
-	TotalSupply         *math_big.Int `protobuf:"bytes,1,opt,name=TotalSupply,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalSupply,omitempty"`
+	TotalSupply         *math_big.Int `protobuf:"bytes,1,opt,name=GenesisTotalSupply,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"GenesisTotalSupply,omitempty"`
 	TotalToDistribute   *math_big.Int `protobuf:"bytes,2,opt,name=TotalToDistribute,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalToDistribute,omitempty"`
 	TotalNewlyMinted    *math_big.Int `protobuf:"bytes,3,opt,name=TotalNewlyMinted,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalNewlyMinted,omitempty"`
 	RewardsPerBlock     *math_big.Int `protobuf:"bytes,4,opt,name=RewardsPerBlock,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"RewardsPerBlock,omitempty"`
@@ -1314,7 +1314,7 @@ func (this *Economics) GoString() string {
 	}
 	s := make([]string, 0, 12)
 	s = append(s, "&block.Economics{")
-	s = append(s, "TotalSupply: "+fmt.Sprintf("%#v", this.TotalSupply)+",\n")
+	s = append(s, "GenesisTotalSupply: "+fmt.Sprintf("%#v", this.TotalSupply)+",\n")
 	s = append(s, "TotalToDistribute: "+fmt.Sprintf("%#v", this.TotalToDistribute)+",\n")
 	s = append(s, "TotalNewlyMinted: "+fmt.Sprintf("%#v", this.TotalNewlyMinted)+",\n")
 	s = append(s, "RewardsPerBlock: "+fmt.Sprintf("%#v", this.RewardsPerBlock)+",\n")
@@ -2449,7 +2449,7 @@ func (this *Economics) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&Economics{`,
-		`TotalSupply:` + fmt.Sprintf("%v", this.TotalSupply) + `,`,
+		`GenesisTotalSupply:` + fmt.Sprintf("%v", this.TotalSupply) + `,`,
 		`TotalToDistribute:` + fmt.Sprintf("%v", this.TotalToDistribute) + `,`,
 		`TotalNewlyMinted:` + fmt.Sprintf("%v", this.TotalNewlyMinted) + `,`,
 		`RewardsPerBlock:` + fmt.Sprintf("%v", this.RewardsPerBlock) + `,`,
@@ -3507,7 +3507,7 @@ func (m *Economics) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TotalSupply", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field GenesisTotalSupply", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {

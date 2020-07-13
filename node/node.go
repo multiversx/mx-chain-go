@@ -43,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -88,14 +89,13 @@ type Node struct {
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer         process.InterceptorsContainer
 	resolversFinder               dataRetriever.ResolversFinder
-	peerBlackListHandler          process.PeerBlackListHandler
+	peerDenialEvaluator           p2p.PeerDenialEvaluator
 	appStatusHandler              core.AppStatusHandler
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
 	validatorsProvider            process.ValidatorsProvider
 	whiteListRequest              process.WhiteListHandler
 	whiteListerVerifiedTxs        process.WhiteListHandler
-	apiTransactionByHashThrottler Throttler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -122,24 +122,24 @@ type Node struct {
 	bootstrapRoundIndex      uint64
 
 	indexer                 indexer.Indexer
-	blocksBlackListHandler  process.BlackListHandler
+	blocksBlackListHandler  process.TimeCacher
 	bootStorer              process.BootStorer
 	requestedItemsHandler   dataRetriever.RequestedItemsHandler
 	headerSigVerifier       spos.HeaderSigVerifier
 	headerIntegrityVerifier process.HeaderIntegrityVerifier
 
-	chainID                  []byte
+	chainID               []byte
+	minTransactionVersion uint32
+
+	sizeCheckDelta        uint32
+	txSentCounter         uint32
+	inputAntifloodHandler P2PAntifloodHandler
+	txAcumulator          Accumulator
+
 	blockTracker             process.BlockTracker
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
-	txStorageSize  uint32
-	sizeCheckDelta uint32
-
 	requestHandler process.RequestHandler
-
-	inputAntifloodHandler P2PAntifloodHandler
-	txAcumulator          Accumulator
-	txSentCounter         uint32
 
 	signatureSize int
 	publicKeySize int
@@ -151,6 +151,8 @@ type Node struct {
 
 	heartbeatHandler   *componentHandler.HeartbeatHandler
 	peerHonestyHandler consensus.PeerHonestyHandler
+
+	watchdog core.WatchdogTimer
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -219,7 +221,11 @@ func (n *Node) StartConsensus() error {
 		return ErrGenesisBlockNotInitialized
 	}
 
-	chronologyHandler, err := n.createChronologyHandler(n.rounder, n.appStatusHandler)
+	chronologyHandler, err := n.createChronologyHandler(
+		n.rounder,
+		n.appStatusHandler,
+		n.watchdog,
+	)
 	if err != nil {
 		return err
 	}
@@ -440,11 +446,16 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 }
 
 // createChronologyHandler method creates a chronology object
-func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandler core.AppStatusHandler) (consensus.ChronologyHandler, error) {
+func (n *Node) createChronologyHandler(
+	rounder consensus.Rounder,
+	appStatusHandler core.AppStatusHandler,
+	watchdog core.WatchdogTimer,
+) (consensus.ChronologyHandler, error) {
 	chr, err := chronology.NewChronology(
 		n.genesisTime,
 		rounder,
 		n.syncTimer,
+		watchdog,
 	)
 	if err != nil {
 		return nil, err
@@ -804,6 +815,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
+	argumentParser := smartContract.NewArgumentParser()
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
 		n.internalMarshalizer,
@@ -815,6 +827,9 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.shardCoordinator,
 		n.feeHandler,
 		n.whiteListerVerifiedTxs,
+		argumentParser,
+		n.chainID,
+		n.minTransactionVersion,
 	)
 	if err != nil {
 		return err
@@ -881,8 +896,15 @@ func (n *Node) CreateTransaction(
 	gasLimit uint64,
 	dataField string,
 	signatureHex string,
+	chainID string,
+	version uint32,
 ) (*transaction.Transaction, []byte, error) {
-
+	if version == 0 {
+		return nil, nil, ErrInvalidTransactionVersion
+	}
+	if chainID == "" {
+		return nil, nil, ErrInvalidChainID
+	}
 	if check.IfNil(n.addressPubkeyConverter) {
 		return nil, nil, ErrNilPubkeyConverter
 	}
@@ -919,6 +941,8 @@ func (n *Node) CreateTransaction(
 		GasLimit:  gasLimit,
 		Data:      []byte(dataField),
 		Signature: signatureBytes,
+		ChainID:   []byte(chainID),
+		Version:   version,
 	}
 
 	var txHash []byte
@@ -1121,7 +1145,7 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 	result := core.QueryP2PPeerInfo{
 		Pid:           p.Pretty(),
 		Addresses:     n.messenger.PeerAddresses(p),
-		IsBlacklisted: n.peerBlackListHandler.Has(p),
+		IsBlacklisted: n.peerDenialEvaluator.IsDenied(p),
 	}
 
 	peerInfo := n.networkShardingCollector.GetPeerInfo(p)

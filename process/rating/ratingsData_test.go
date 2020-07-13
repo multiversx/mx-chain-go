@@ -47,11 +47,10 @@ func createDymmyRatingsData() RatingsDataArg {
 func createDummyRatingsConfig() config.RatingsConfig {
 	return config.RatingsConfig{
 		General: config.General{
-			StartRating:                     4000,
-			MaxRating:                       10000,
-			MinRating:                       1,
-			SignedBlocksThreshold:           signedBlocksThreshold,
-			HoursToMaxRatingFromStartRating: 2,
+			StartRating:           4000,
+			MaxRating:             10000,
+			MinRating:             1,
+			SignedBlocksThreshold: signedBlocksThreshold,
 			SelectionChances: []*config.SelectionChance{
 				{MaxThreshold: 0, ChancePercent: 5},
 				{MaxThreshold: 25, ChancePercent: 19},
@@ -61,18 +60,20 @@ func createDummyRatingsConfig() config.RatingsConfig {
 		},
 		ShardChain: config.ShardChain{
 			RatingSteps: config.RatingSteps{
-				ProposerValidatorImportance:    1,
-				ProposerDecreaseFactor:         -4,
-				ValidatorDecreaseFactor:        -4,
-				ConsecutiveMissedBlocksPenalty: consecutiveMissedBlocksPenalty,
+				HoursToMaxRatingFromStartRating: 2,
+				ProposerValidatorImportance:     1,
+				ProposerDecreaseFactor:          -4,
+				ValidatorDecreaseFactor:         -4,
+				ConsecutiveMissedBlocksPenalty:  consecutiveMissedBlocksPenalty,
 			},
 		},
 		MetaChain: config.MetaChain{
 			RatingSteps: config.RatingSteps{
-				ProposerValidatorImportance:    1,
-				ProposerDecreaseFactor:         -4,
-				ValidatorDecreaseFactor:        -4,
-				ConsecutiveMissedBlocksPenalty: consecutiveMissedBlocksPenalty,
+				HoursToMaxRatingFromStartRating: 2,
+				ProposerValidatorImportance:     1,
+				ProposerDecreaseFactor:          -4,
+				ValidatorDecreaseFactor:         -4,
+				ConsecutiveMissedBlocksPenalty:  consecutiveMissedBlocksPenalty,
 			},
 		},
 	}
@@ -185,12 +186,12 @@ func TestRatingsData_HoursToMaxRatingFromStartRatingZeroErr(t *testing.T) {
 
 	ratingsDataArg := createDymmyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
-	ratingsConfig.General.HoursToMaxRatingFromStartRating = 0
+	ratingsConfig.MetaChain.HoursToMaxRatingFromStartRating = 0
 	ratingsDataArg.Config = ratingsConfig
 	ratingsData, err := NewRatingsData(ratingsDataArg)
 
 	require.Nil(t, ratingsData)
-	require.Equal(t, process.ErrHoursToMaxRatingFromStartRatingZero, err)
+	require.True(t, errors.Is(err, process.ErrHoursToMaxRatingFromStartRatingZero))
 }
 
 func TestRatingsData_PositiveDecreaseRatingsStepsShouldErr(t *testing.T) {
@@ -336,7 +337,7 @@ func TestRatingsData_IncreaseLowerThanZeroErr(t *testing.T) {
 	ratingsDataArg := createDymmyRatingsData()
 	ratingsConfig := createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
-	ratingsDataArg.Config.General.HoursToMaxRatingFromStartRating = math.MaxUint32
+	ratingsDataArg.Config.MetaChain.HoursToMaxRatingFromStartRating = math.MaxUint32
 	ratingsData, err := NewRatingsData(ratingsDataArg)
 
 	require.Nil(t, ratingsData)
@@ -346,7 +347,7 @@ func TestRatingsData_IncreaseLowerThanZeroErr(t *testing.T) {
 	ratingsDataArg = createDymmyRatingsData()
 	ratingsConfig = createDummyRatingsConfig()
 	ratingsDataArg.Config = ratingsConfig
-	ratingsDataArg.Config.General.HoursToMaxRatingFromStartRating = 2
+	ratingsDataArg.Config.MetaChain.HoursToMaxRatingFromStartRating = 2
 	ratingsDataArg.Config.MetaChain.ProposerValidatorImportance = math.MaxUint32
 	ratingsData, err = NewRatingsData(ratingsDataArg)
 
@@ -372,7 +373,8 @@ func TestRatingsData_RatingsCorrectValues(t *testing.T) {
 	ratingsConfig.General.MinRating = minRating
 	ratingsConfig.General.MaxRating = maxRating
 	ratingsConfig.General.StartRating = startRating
-	ratingsConfig.General.HoursToMaxRatingFromStartRating = hoursToMaxRatingFromStartRating
+	ratingsConfig.MetaChain.HoursToMaxRatingFromStartRating = hoursToMaxRatingFromStartRating
+	ratingsConfig.ShardChain.HoursToMaxRatingFromStartRating = hoursToMaxRatingFromStartRating
 	ratingsConfig.General.SignedBlocksThreshold = signedBlocksThreshold
 	ratingsConfig.ShardChain.ConsecutiveMissedBlocksPenalty = shardConsecutivePenalty
 	ratingsConfig.ShardChain.ProposerDecreaseFactor = decreaseFactor

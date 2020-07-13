@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -66,9 +67,12 @@ func TestVmContext_GetBalance(t *testing.T) {
 
 	addr := []byte("addr")
 	balance := big.NewInt(10)
-	blockChainHook := &mock.BlockChainHookStub{GetBalanceCalled: func(address []byte) (i *big.Int, e error) {
+	account, _ := state.NewUserAccount([]byte("123"))
+	_ = account.AddToBalance(balance)
+
+	blockChainHook := &mock.BlockChainHookStub{GetUserAccountCalled: func(address []byte) (a vmcommon.UserAccountHandler, e error) {
 		if bytes.Equal(address, addr) {
-			return balance, nil
+			return account, nil
 		}
 		return nil, errors.New("get balance error")
 	},

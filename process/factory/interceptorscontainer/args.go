@@ -19,15 +19,16 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	DataPool                dataRetriever.PoolsHolder
 	MaxTxNonceDeltaAllowed  int
 	TxFeeHandler            process.FeeHandler
-	BlackList               process.BlackListHandler
+	BlockBlackList          process.TimeCacher
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
-	SizeCheckDelta          uint32
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	WhiteListHandler        process.WhiteListHandler
 	WhiteListerVerifiedTxs  process.WhiteListHandler
 	AntifloodHandler        process.P2PAntifloodHandler
+	ArgumentsParser         process.ArgumentsParser
+	SizeCheckDelta          uint32
 }
 
 // MetaInterceptorsContainerFactoryArgs holds the arguments needed for MetaInterceptorsContainerFactory
@@ -42,13 +43,14 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	Accounts                state.AccountsAdapter
 	MaxTxNonceDeltaAllowed  int
 	TxFeeHandler            process.FeeHandler
-	BlackList               process.BlackListHandler
+	BlackList               process.TimeCacher
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
-	SizeCheckDelta          uint32
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	WhiteListHandler        process.WhiteListHandler
 	WhiteListerVerifiedTxs  process.WhiteListHandler
 	AntifloodHandler        process.P2PAntifloodHandler
+	ArgumentsParser         process.ArgumentsParser
+	SizeCheckDelta          uint32
 }

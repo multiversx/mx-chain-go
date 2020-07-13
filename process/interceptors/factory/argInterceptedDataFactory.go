@@ -18,6 +18,7 @@ type interceptedDataCoreComponentsHolder interface {
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverter() core.PubkeyConverter
 	ChainID() string
+	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
 }
 
@@ -45,4 +46,5 @@ type ArgInterceptedDataFactory struct {
 	ValidityAttester        process.ValidityAttester
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	EpochStartTrigger       process.EpochStartTriggerHandler
+	ArgsParser              process.ArgumentsParser
 }

@@ -34,9 +34,10 @@ var durationSweepP2PBlacklist = time.Second * 5
 // AntiFloodComponents holds the handlers for the anti-flood and blacklist mechanisms
 type AntiFloodComponents struct {
 	AntiFloodHandler process.P2PAntifloodHandler
-	BlacklistHandler process.PeerBlackListHandler
+	BlacklistHandler process.PeerBlackListCacher
 	FloodPreventers  []process.FloodPreventer
 	TopicPreventer   process.TopicFloodPreventer
+	PubKeysCacher    process.TimeCacher
 }
 
 // NewP2PAntiFloodComponents will return instances of antiflood and blacklist, based on the config
@@ -55,9 +56,10 @@ func NewP2PAntiFloodComponents(
 
 	return &AntiFloodComponents{
 		AntiFloodHandler: &disabled.AntiFlood{},
-		BlacklistHandler: &disabled.PeerBlacklistHandler{},
+		BlacklistHandler: &disabled.PeerBlacklistCacher{},
 		FloodPreventers:  make([]process.FloodPreventer, 0),
 		TopicPreventer:   disabled.NewNilTopicFloodPreventer(),
+		PubKeysCacher:    &disabled.TimeCache{},
 	}, nil
 }
 
@@ -72,6 +74,8 @@ func initP2PAntiFloodComponents(
 	if err != nil {
 		return nil, err
 	}
+
+	publicKeysCache := timecache.NewTimeCache(defaultSpan)
 
 	fastReactingFloodPreventer, err := createFloodPreventer(
 		mainConfig.Antiflood.FastReacting,
@@ -129,11 +133,12 @@ func initP2PAntiFloodComponents(
 	}
 
 	startResettingTopicFloodPreventer(topicFloodPreventer, topicMaxMessages, ctx)
-	startSweepingP2PPeerBlackList(p2pPeerBlackList, ctx)
+	startSweepingTimeCaches(p2pPeerBlackList, publicKeysCache, ctx)
 
 	return &AntiFloodComponents{
 		AntiFloodHandler: p2pAntiflood,
 		BlacklistHandler: p2pPeerBlackList,
+		PubKeysCacher:    publicKeysCache,
 		FloodPreventers: []process.FloodPreventer{
 			fastReactingFloodPreventer,
 			slowReactingFloodPreventer,
@@ -178,7 +183,7 @@ func startResettingTopicFloodPreventer(
 	}()
 }
 
-func startSweepingP2PPeerBlackList(p2pPeerBlackList process.PeerBlackListHandler, ctx context.Context) {
+func startSweepingTimeCaches(p2pPeerBlackList process.PeerBlackListCacher, publicKeysCache process.TimeCacher, ctx context.Context) {
 	go func() {
 		for {
 			select {
@@ -189,6 +194,7 @@ func startSweepingP2PPeerBlackList(p2pPeerBlackList process.PeerBlackListHandler
 			}
 
 			p2pPeerBlackList.Sweep()
+			publicKeysCache.Sweep()
 		}
 	}()
 }
@@ -198,7 +204,7 @@ func createFloodPreventer(
 	antifloodCacheConfig config.CacheConfig,
 	statusHandler core.AppStatusHandler,
 	quotaIdentifier string,
-	blackListHandler process.PeerBlackListHandler,
+	blackListHandler process.PeerBlackListCacher,
 	selfPid core.PeerID,
 ) (process.FloodPreventer, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(antifloodCacheConfig)

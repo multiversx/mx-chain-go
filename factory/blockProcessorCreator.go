@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
@@ -23,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 func (pcf *processComponentsFactory) newBlockProcessor(
@@ -44,6 +45,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			bootStorer,
 			headerValidator,
 			blockTracker,
+			pcf.smartContractParser,
 		)
 	}
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -69,12 +71,18 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	bootStorer process.BootStorer,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
+	smartContractParser genesis.InitialSmartContractParser,
 ) (process.BlockProcessor, error) {
-	argsParser := vmcommon.NewAtArgumentParser()
+	argsParser := smartContract.NewArgumentParser()
+
+	mapDNSAddresses, err := smartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+	if err != nil {
+		return nil, err
+	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          pcf.gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
+		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     pcf.coreData.InternalMarshalizer(),
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -143,7 +151,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		PubkeyConverter:  pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator: pcf.shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -196,6 +204,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.coreData.Hasher(),
 		pcf.coreData.AddressPubKeyConverter(),
 		pcf.coreData.InternalMarshalizer(),
+		pcf.coreData.TxMarshalizer(),
 		pcf.shardCoordinator,
 		scProcessor,
 		txFeeHandler,
@@ -203,6 +212,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.economicsData,
 		receiptTxInterim,
 		badTxInterim,
+		argsParser,
+		scForwarder,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
@@ -351,7 +362,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsParser := vmcommon.NewAtArgumentParser()
+	argsParser := smartContract.NewArgumentParser()
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
@@ -384,7 +395,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		PubkeyConverter:  pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator: pcf.shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
@@ -506,16 +517,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:       pcf.coreData.ValidatorPubKeyConverter(),
-		Hasher:           pcf.coreData.Hasher(),
-		ProtoMarshalizer: pcf.coreData.InternalMarshalizer(),
-		VmMarshalizer:    pcf.coreData.VmMarshalizer(),
-		PeerState:        pcf.state.PeerAccounts(),
-		BaseState:        pcf.state.AccountsAdapter(),
-		ArgParser:        argsParser,
-		CurrTxs:          pcf.data.Datapool().CurrentBlockTxs(),
-		ScQuery:          scDataGetter,
-		RatingsData:      pcf.ratingsData,
+		PubkeyConv:  pcf.coreData.ValidatorPubKeyConverter(),
+		Hasher:      pcf.coreData.Hasher(),
+		Marshalizer: pcf.coreData.InternalMarshalizer(),
+		PeerState:   pcf.state.PeerAccounts(),
+		BaseState:   pcf.state.AccountsAdapter(),
+		ArgParser:   argsParser,
+		CurrTxs:     pcf.data.Datapool().CurrentBlockTxs(),
+		ScQuery:     scDataGetter,
+		RatingsData: pcf.ratingsData,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
@@ -540,14 +550,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Hasher:           pcf.coreData.Hasher(),
-		Store:            pcf.data.StorageService(),
-		ShardCoordinator: pcf.shardCoordinator,
-		RewardsHandler:   pcf.economicsData,
-		RoundTime:        pcf.rounder,
-		GenesisNonce:     genesisHdr.GetNonce(),
-		GenesisEpoch:     genesisHdr.GetEpoch(),
+		Marshalizer:        pcf.coreData.InternalMarshalizer(),
+		Hasher:             pcf.coreData.Hasher(),
+		Store:              pcf.data.StorageService(),
+		ShardCoordinator:   pcf.shardCoordinator,
+		RewardsHandler:     pcf.economicsData,
+		RoundTime:          pcf.rounder,
+		GenesisNonce:       genesisHdr.GetNonce(),
+		GenesisEpoch:       genesisHdr.GetEpoch(),
+		GenesisTotalSupply: pcf.economicsData.GenesisTotalSupply(),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {

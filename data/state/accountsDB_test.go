@@ -8,14 +8,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -257,10 +259,10 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	trieStub := &mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
-			return marsh.Marshal(mock.AccountWrapMock{})
+			return marshalizer.Marshal(mock.AccountWrapMock{})
 		},
 		UpdateCalled: func(key, value []byte) error {
 			wasCalled = true
@@ -274,7 +276,7 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 	err := adb.RemoveAccount(adr)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
-	assert.Equal(t, 1, adb.JournalLen())
+	assert.Equal(t, 2, adb.JournalLen())
 }
 
 //------- LoadAccount
@@ -321,14 +323,15 @@ func TestAccountsDB_LoadAccountExistingShouldLoadCodeAndDataTrie(t *testing.T) {
 	acc.SetCodeHash(codeHash)
 	code := []byte("code")
 	dataTrie := &mock.TrieStub{}
+	marshalizer := &mock.MarshalizerMock{}
 
 	trieStub := &mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			if bytes.Equal(key, acc.AddressBytes()) {
-				return (&mock.MarshalizerMock{}).Marshal(acc)
+				return marshalizer.Marshal(acc)
 			}
 			if bytes.Equal(key, codeHash) {
-				return code, nil
+				return marshalizer.Marshal(state.CodeEntry{Code: code})
 			}
 			return nil, nil
 		},
@@ -387,14 +390,15 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	acc.SetCodeHash(codeHash)
 	code := []byte("code")
 	dataTrie := &mock.TrieStub{}
+	marshalizer := &mock.MarshalizerMock{}
 
 	trieStub := &mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
 			if bytes.Equal(key, acc.AddressBytes()) {
-				return (&mock.MarshalizerMock{}).Marshal(acc)
+				return marshalizer.Marshal(acc)
 			}
 			if bytes.Equal(key, codeHash) {
-				return code, nil
+				return marshalizer.Marshal(state.CodeEntry{Code: code})
 			}
 			return nil, nil
 		},
@@ -480,13 +484,15 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr, account, _ := generateAddressAccountAccountsDB(&mock.TrieStub{})
-
-	trieStub := mock.TrieStub{}
-	trieStub.GetCalled = func(key []byte) (bytes []byte, e error) {
-		//will return adr.Bytes() so its hash will correspond to adr.Hash()
-		return adr, nil
-	}
 	marshalizer := mock.MarshalizerMock{}
+
+	trieStub := mock.TrieStub{
+		GetCalled: func(key []byte) (bytes []byte, e error) {
+			//will return adr.Bytes() so its hash will correspond to adr.Hash()
+			return marshalizer.Marshal(&state.CodeEntry{Code: adr})
+		},
+	}
+
 	adb, _ := state.NewAccountsDB(&trieStub, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address), nil
@@ -606,8 +612,8 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 	t.Parallel()
 
 	commitCalled := 0
-	marsh := &mock.MarshalizerMock{}
-	serializedAccount, _ := marsh.Marshal(mock.AccountWrapMock{})
+	marshalizer := &mock.MarshalizerMock{}
+	serializedAccount, _ := marshalizer.Marshal(mock.AccountWrapMock{})
 	trieStub := mock.TrieStub{
 		CommitCalled: func() error {
 			commitCalled++
@@ -806,14 +812,14 @@ func TestAccountsDB_RevertToSnapshotOutOfBounds(t *testing.T) {
 func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
 	accFactory := factory.NewAccountCreator()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
 
-	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
 
 	acc, _ := adb.LoadAccount(make([]byte, 32))
 	acc.(state.UserAccountHandler).SetCode([]byte("code"))
@@ -831,13 +837,13 @@ func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
 func TestAccountsDB_RevertToSnapshotWithoutLastRootHashSet(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
 	accFactory := factory.NewAccountCreator()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
 
 	err := adb.RevertToSnapshot(0)
 	assert.Nil(t, err)
@@ -850,13 +856,13 @@ func TestAccountsDB_RevertToSnapshotWithoutLastRootHashSet(t *testing.T) {
 func TestAccountsDB_RecreateTrieInvalidatesJournalEntries(t *testing.T) {
 	t.Parallel()
 
-	marsh := &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
 	hsh := mock.HasherMock{}
 	accFactory := factory.NewAccountCreator()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
 
 	address := make([]byte, 32)
 	key := []byte("key")
@@ -939,4 +945,401 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, recreateCalled)
 	assert.True(t, getAllLeavesCalled)
+}
+
+func getTestAccountsDbAndTrie(marshalizer marshal.Marshalizer, hsh hashing.Hasher) (*state.AccountsDB, data.Trie) {
+	accFactory := factory.NewAccountCreator()
+	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, accFactory)
+
+	return adb, tr
+}
+
+func checkCodeEntry(
+	codeHash []byte,
+	expectedCode []byte,
+	expectedNumReferences uint32,
+	marshalizer marshal.Marshalizer,
+	tr data.Trie,
+	t *testing.T,
+) {
+	val, err := tr.Get(codeHash)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+
+	var codeEntry state.CodeEntry
+	err = marshalizer.Unmarshal(&codeEntry, val)
+	assert.Nil(t, err)
+
+	assert.Equal(t, expectedCode, codeEntry.Code)
+	assert.Equal(t, expectedNumReferences, codeEntry.NumReferences)
+}
+
+func TestAccountsDB_SaveAccountSavesCodeIfCodeHashIsSet(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+
+	code := []byte("code")
+	userAcc.SetCode(code)
+	codeHash := hsh.Compute(string(code))
+	userAcc.SetCodeHash(codeHash)
+
+	_ = adb.SaveAccount(acc)
+
+	checkCodeEntry(codeHash, code, 1, marshalizer, tr, t)
+}
+
+func TestAccountsDB_saveCode_OldCodeAndNewCodeAreNil(t *testing.T) {
+	t.Parallel()
+
+	adb, _ := getTestAccountsDbAndTrie(&mock.MarshalizerMock{}, mock.HasherMock{})
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+
+	err := adb.SaveAccount(userAcc)
+	assert.Nil(t, err)
+	assert.Nil(t, userAcc.GetCodeHash())
+}
+
+func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+
+	code := []byte("code")
+	userAcc.SetCode(code)
+	expectedCodeHash := hsh.Compute(string(code))
+
+	err := adb.SaveAccount(userAcc)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCodeHash, userAcc.GetCodeHash())
+
+	checkCodeEntry(userAcc.GetCodeHash(), code, 1, marshalizer, tr, t)
+
+	err = adb.RevertToSnapshot(1)
+	assert.Nil(t, err)
+
+	val, err := tr.Get(expectedCodeHash)
+	assert.Nil(t, err)
+	assert.Nil(t, val)
+}
+
+func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeAlreadyExistsAndRevert(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+
+	code := []byte("code")
+	userAcc.SetCode(code)
+	expectedCodeHash := hsh.Compute(string(code))
+	_ = adb.SaveAccount(userAcc)
+
+	journalLen := adb.JournalLen()
+
+	addr1 := make([]byte, 32)
+	addr1[0] = 1
+	acc, _ = adb.LoadAccount(addr1)
+	userAcc = acc.(state.UserAccountHandler)
+	userAcc.SetCode(code)
+
+	err := adb.SaveAccount(userAcc)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCodeHash, userAcc.GetCodeHash())
+
+	checkCodeEntry(userAcc.GetCodeHash(), code, 2, marshalizer, tr, t)
+
+	err = adb.RevertToSnapshot(journalLen)
+	assert.Nil(t, err)
+
+	checkCodeEntry(expectedCodeHash, code, 1, marshalizer, tr, t)
+}
+
+func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeIsNilAndRevert(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+
+	code := []byte("code")
+	userAcc.SetCode(code)
+	oldCodeHash := hsh.Compute(string(code))
+	_ = adb.SaveAccount(userAcc)
+
+	journalLen := adb.JournalLen()
+
+	acc, _ = adb.LoadAccount(addr)
+	userAcc = acc.(state.UserAccountHandler)
+	userAcc.SetCode(nil)
+
+	err := adb.SaveAccount(userAcc)
+	assert.Nil(t, err)
+	assert.Nil(t, userAcc.GetCodeHash())
+
+	val, err := tr.Get(oldCodeHash)
+	assert.Nil(t, err)
+	assert.Nil(t, val)
+
+	err = adb.RevertToSnapshot(journalLen)
+	assert.Nil(t, err)
+
+	checkCodeEntry(oldCodeHash, code, 1, marshalizer, tr, t)
+}
+
+func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+	oldCode := []byte("code1")
+	userAcc.SetCode(oldCode)
+	oldCodeHash := hsh.Compute(string(oldCode))
+	_ = adb.SaveAccount(userAcc)
+
+	addr1 := make([]byte, 32)
+	addr1[0] = 1
+	acc, _ = adb.LoadAccount(addr1)
+	userAcc = acc.(state.UserAccountHandler)
+	newCode := []byte("code2")
+	userAcc.SetCode(newCode)
+	newCodeHash := hsh.Compute(string(newCode))
+	_ = adb.SaveAccount(userAcc)
+
+	journalLen := adb.JournalLen()
+
+	acc, _ = adb.LoadAccount(addr)
+	userAcc = acc.(state.UserAccountHandler)
+	userAcc.SetCode(newCode)
+	err := adb.SaveAccount(userAcc)
+	assert.Nil(t, err)
+	assert.Equal(t, newCodeHash, userAcc.GetCodeHash())
+
+	val, err := tr.Get(oldCodeHash)
+	assert.Nil(t, err)
+	assert.Nil(t, val)
+
+	checkCodeEntry(newCodeHash, newCode, 2, marshalizer, tr, t)
+
+	err = adb.RevertToSnapshot(journalLen)
+	assert.Nil(t, err)
+
+	checkCodeEntry(oldCodeHash, oldCode, 1, marshalizer, tr, t)
+	checkCodeEntry(newCodeHash, newCode, 1, marshalizer, tr, t)
+}
+
+func TestAccountsDB_saveCode_OldCodeIsReferencedMultipleTimesAndNewCodeIsNilAndRevert(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+
+	code := []byte("code")
+	userAcc.SetCode(code)
+	oldCodeHash := hsh.Compute(string(code))
+	_ = adb.SaveAccount(userAcc)
+
+	addr1 := make([]byte, 32)
+	addr1[0] = 1
+	acc, _ = adb.LoadAccount(addr1)
+	userAcc = acc.(state.UserAccountHandler)
+	userAcc.SetCode(code)
+	_ = adb.SaveAccount(userAcc)
+
+	journalLen := adb.JournalLen()
+
+	acc, _ = adb.LoadAccount(addr1)
+	userAcc = acc.(state.UserAccountHandler)
+	userAcc.SetCode(nil)
+	err := adb.SaveAccount(userAcc)
+	assert.Nil(t, err)
+	assert.Nil(t, userAcc.GetCodeHash())
+
+	checkCodeEntry(oldCodeHash, code, 1, marshalizer, tr, t)
+
+	err = adb.RevertToSnapshot(journalLen)
+	assert.Nil(t, err)
+
+	checkCodeEntry(oldCodeHash, code, 2, marshalizer, tr, t)
+}
+
+func TestAccountsDB_RemoveAccountAlsoRemovesCodeAndRevertsCorrectly(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	adb, tr := getTestAccountsDbAndTrie(marshalizer, hsh)
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+
+	code := []byte("code")
+	userAcc.SetCode(code)
+	oldCodeHash := hsh.Compute(string(code))
+	_ = adb.SaveAccount(userAcc)
+
+	snapshot := adb.JournalLen()
+
+	val, err := tr.Get(oldCodeHash)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+
+	err = adb.RemoveAccount(addr)
+	assert.Nil(t, err)
+
+	val, err = tr.Get(oldCodeHash)
+	assert.Nil(t, err)
+	assert.Nil(t, val)
+
+	_ = adb.RevertToSnapshot(snapshot)
+
+	val, err = tr.Get(oldCodeHash)
+	assert.Nil(t, err)
+	assert.NotNil(t, val)
+}
+
+func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	db := mock.NewMemDbMock()
+	ewl, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hsh, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator())
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+
+	code := []byte("code")
+	userAcc.SetCode(code)
+	_ = adb.SaveAccount(userAcc)
+	rootHash, _ := adb.Commit()
+
+	rootHash1 := append(rootHash, byte(data.NewRoot))
+	hashesForEviction := ewl.Cache[string(rootHash1)]
+	assert.Equal(t, 3, len(hashesForEviction))
+
+	acc, _ = adb.LoadAccount(addr)
+	userAcc = acc.(state.UserAccountHandler)
+	userAcc.SetCode(nil)
+	_ = adb.SaveAccount(userAcc)
+	_, _ = adb.Commit()
+
+	rootHash2 := append(rootHash, byte(data.OldRoot))
+	hashesForEviction = ewl.Cache[string(rootHash2)]
+	assert.Equal(t, 3, len(hashesForEviction))
+}
+
+func TestAccountsDB_RemoveAccountSetsObsoleteHashes(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	adb, _ := getTestAccountsDbAndTrie(marshalizer, hsh)
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+	userAcc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
+
+	_ = adb.SaveAccount(userAcc)
+	_, _ = adb.Commit()
+
+	acc, _ = adb.LoadAccount(addr)
+	userAcc = acc.(state.UserAccountHandler)
+	userAcc.SetCode([]byte("code"))
+	snapshot := adb.JournalLen()
+	hashes, _ := userAcc.DataTrieTracker().DataTrie().GetAllHashes()
+	dataTrieRootHash := string(hashes[0])
+
+	err := adb.RemoveAccount(addr)
+	obsoleteHashes := adb.GetObsoleteHashes()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(obsoleteHashes))
+	assert.Equal(t, hashes, obsoleteHashes[dataTrieRootHash])
+
+	err = adb.RevertToSnapshot(snapshot)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(adb.GetObsoleteHashes()))
+}
+
+func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
+	t.Parallel()
+
+	maxTrieLevelInMemory := uint(5)
+	marshalizer := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	db := mock.NewMemDbMock()
+
+	ewl, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hsh, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marshalizer, factory.NewAccountCreator())
+
+	addr := make([]byte, 32)
+	acc, _ := adb.LoadAccount(addr)
+	userAcc := acc.(state.UserAccountHandler)
+	userAcc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
+	_ = adb.SaveAccount(userAcc)
+
+	addr1 := make([]byte, 32)
+	addr1[0] = 1
+	acc, _ = adb.LoadAccount(addr1)
+	_ = adb.SaveAccount(acc)
+
+	rootHash, _ := adb.Commit()
+	hashes, _ := userAcc.DataTrieTracker().DataTrie().GetAllHashes()
+	dataTrieRootHash := string(hashes[0])
+
+	err := adb.RemoveAccount(addr)
+	obsoleteHashes := adb.GetObsoleteHashes()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(obsoleteHashes))
+	assert.Equal(t, hashes, obsoleteHashes[dataTrieRootHash])
+
+	_, _ = adb.Commit()
+	rootHash = append(rootHash, byte(data.OldRoot))
+	oldHashes := ewl.Cache[string(rootHash)]
+	assert.Equal(t, 5, len(oldHashes))
 }

@@ -171,7 +171,10 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		big.NewInt(0),
 		integrationTests.MaxGasLimitPerBlock-1,
 		make([]byte, 32),
-		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply))
+		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
+		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
+	)
 	time.Sleep(time.Second)
 	/////////----- wait for epoch end period
 	epoch := uint32(2)
@@ -190,7 +193,10 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 				big.NewInt(0),
 				1000000,
 				scAddress,
-				[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(transferToken.Bytes())))
+				[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(transferToken.Bytes())),
+				integrationTests.ChainID,
+				integrationTests.MinTransactionVersion,
+			)
 		}
 
 		time.Sleep(time.Second)
@@ -249,11 +255,15 @@ func hardForkImport(
 
 		coreComponents := &mock.CoreComponentsMock{
 			IntMarsh:            integrationTests.TestMarshalizer,
+			TxMarsh:             integrationTests.TestMarshalizer,
 			Hash:                integrationTests.TestHasher,
 			UInt64ByteSliceConv: integrationTests.TestUint64Converter,
 			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
 			ChainIdCalled: func() string {
 				return string(node.ChainID)
+			},
+			MinTransactionVersionCalled: func() uint32 {
+				return integrationTests.MinTransactionVersion
 			},
 		}
 
@@ -288,6 +298,13 @@ func hardForkImport(
 				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 					BaseIssuingCost: "1000",
 					OwnerAddress:    "aaaaaa",
+				},
+				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+					ProposalCost:     "500",
+					NumNodes:         100,
+					MinQuorum:        50,
+					MinPassThreshold: 50,
+					MinVetoThreshold: 50,
 				},
 			},
 			AccountsParser:      &mock.AccountsParserStub{},

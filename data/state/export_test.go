@@ -19,6 +19,6 @@ func (adb *AccountsDB) GetAccount(address []byte) (AccountHandler, error) {
 	return adb.getAccount(address)
 }
 
-func (tdaw *TrackableDataTrie) OriginalData() map[string][]byte {
-	return tdaw.originalData
+func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
+	return adb.obsoleteDataTrieHashes
 }

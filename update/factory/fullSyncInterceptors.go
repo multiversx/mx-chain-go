@@ -14,6 +14,7 @@ import (
 	interceptorFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -31,7 +32,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	dataPool               dataRetriever.PoolsHolder
 	messenger              process.TopicHandler
 	nodesCoordinator       sharding.NodesCoordinator
-	blackList              process.BlackListHandler
+	blockBlackList         process.TimeCacher
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
 	globalThrottler        process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
@@ -53,7 +54,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	DataPool                dataRetriever.PoolsHolder
 	MaxTxNonceDeltaAllowed  int
 	TxFeeHandler            process.FeeHandler
-	BlackList               process.BlackListHandler
+	BlockBlackList          process.TimeCacher
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	SizeCheckDelta          uint32
@@ -78,7 +79,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		args.DataPool,
 		args.Messenger,
 		args.NodesCoordinator,
-		args.BlackList,
+		args.BlockBlackList,
 		args.WhiteListerVerifiedTxs,
 	)
 	if err != nil {
@@ -128,6 +129,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		ValidityAttester:        args.ValidityAttester,
 		EpochStartTrigger:       args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		ArgsParser:              smartContract.NewArgumentParser(),
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
@@ -139,7 +141,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
 		argInterceptorFactory:  argInterceptorFactory,
-		blackList:              args.BlackList,
+		blockBlackList:         args.BlockBlackList,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		whiteListHandler:       args.WhiteListHandler,
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
@@ -203,7 +205,7 @@ func checkBaseParams(
 	dataPool dataRetriever.PoolsHolder,
 	messenger process.TopicHandler,
 	nodesCoordinator sharding.NodesCoordinator,
-	blackList process.BlackListHandler,
+	blockBlackList process.TimeCacher,
 	whiteListerVerifiedTxs update.WhiteListHandler,
 ) error {
 	if check.IfNil(coreComponents) {
@@ -260,8 +262,8 @@ func checkBaseParams(
 	if check.IfNil(accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(blackList) {
-		return process.ErrNilBlackListHandler
+	if check.IfNil(blockBlackList) {
+		return update.ErrNilTimeCache
 	}
 	if check.IfNil(whiteListerVerifiedTxs) {
 		return process.ErrNilWhiteListHandler
@@ -316,9 +318,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      ficf.dataPool.Headers(),
-		HdrValidator: hdrValidator,
-		BlackList:    ficf.blackList,
+		Headers:        ficf.dataPool.Headers(),
+		HdrValidator:   hdrValidator,
+		BlockBlackList: ficf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -674,9 +676,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:      ficf.dataPool.Headers(),
-		HdrValidator: hdrValidator,
-		BlackList:    ficf.blackList,
+		Headers:        ficf.dataPool.Headers(),
+		HdrValidator:   hdrValidator,
+		BlockBlackList: ficf.blockBlackList,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,7 +42,6 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 
 func shardedDataCacherNotifier() dataRetriever.ShardedDataCacherNotifier {
 	return &testscommon.ShardedDataStub{
-		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -85,7 +85,6 @@ func initDataPool() *testscommon.PoolsHolderStub {
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &testscommon.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -632,8 +631,6 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 				},
 			}
 		},
-		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
-		},
 	}
 
 	dataPool.SetTransactions(shardedDataStub)
@@ -765,8 +762,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-			return nil
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			return 0, nil
 		}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
@@ -835,8 +832,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-			return nil
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			return 0, nil
 		}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
@@ -910,8 +907,8 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		&mock.ChainStorerMock{},
 		hasher,
 		marshalizer,
-		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-			return nil
+		&mock.TxProcessorMock{ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			return 0, nil
 		}},
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.AccountsStub{},
@@ -1103,8 +1100,8 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		shardCoordinatorMock,

@@ -2,8 +2,10 @@ package hooks
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math/big"
 	"sync"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -23,7 +25,9 @@ import (
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
 var _ process.TemporaryAccountsHandler = (*BlockChainHookImpl)(nil)
 
-var log = logger.GetOrCreate("process/smartContract/blockChainHook")
+var log = logger.GetOrCreate("process/smartcontract/blockchainhook")
+
+const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
@@ -110,65 +114,31 @@ func checkForNil(args ArgBlockChainHook) error {
 	return nil
 }
 
-// AccountExists checks if an account exists in provided AccountAdapter
-func (bh *BlockChainHookImpl) AccountExists(address []byte) (bool, error) {
-	_, err := bh.getAccountFromAddressBytes(address)
-	if err != nil {
-		if err == state.ErrAccNotFound {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
+// GetUserAccount returns the balance of a shard account
+func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error) {
+	defer stopMeasure(startMeasure("GetUserAccount"))
 
-// GetBalance returns the balance of a shard account
-func (bh *BlockChainHookImpl) GetBalance(address []byte) (*big.Int, error) {
-	exists, err := bh.AccountExists(address)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return big.NewInt(0), nil
-	}
-
-	shardAccount, err := bh.getShardAccountFromAddressBytes(address)
+	account, err := bh.getAccountFromAddressBytes(address)
 	if err != nil {
 		return nil, err
 	}
 
-	return shardAccount.GetBalance(), nil
-}
-
-// GetNonce returns the nonce of a shard account
-func (bh *BlockChainHookImpl) GetNonce(address []byte) (uint64, error) {
-	exists, err := bh.AccountExists(address)
-	if err != nil {
-		return 0, err
-	}
-	if !exists {
-		return 0, nil
+	shardAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, state.ErrWrongTypeAssertion
 	}
 
-	shardAccount, err := bh.getShardAccountFromAddressBytes(address)
-	if err != nil {
-		return 0, err
-	}
-
-	return shardAccount.GetNonce(), nil
+	return shardAccount, nil
 }
 
 // GetStorageData returns the storage value of a variable held in account's data trie
 func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte) ([]byte, error) {
-	exists, err := bh.AccountExists(accountAddress)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
+	defer stopMeasure(startMeasure("GetStorageData"))
+
+	account, err := bh.GetUserAccount(accountAddress)
+	if err == state.ErrAccNotFound {
 		return make([]byte, 0), nil
 	}
-
-	account, err := bh.getAccountFromAddressBytes(accountAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -193,52 +163,10 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	return value, err
 }
 
-// IsCodeEmpty returns if the code is empty
-func (bh *BlockChainHookImpl) IsCodeEmpty(address []byte) (bool, error) {
-	exists, err := bh.AccountExists(address)
-	if err != nil {
-		return false, err
-	}
-	if !exists {
-		return true, nil
-	}
-
-	account, err := bh.getAccountFromAddressBytes(address)
-	if err != nil {
-		return false, err
-	}
-
-	userAcc, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return false, process.ErrWrongTypeAssertion
-	}
-
-	isCodeEmpty := len(userAcc.GetCode()) == 0
-	return isCodeEmpty, nil
-}
-
-// GetCode retrieves the account's code
-func (bh *BlockChainHookImpl) GetCode(address []byte) ([]byte, error) {
-	account, err := bh.getAccountFromAddressBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
-	userAcc, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	code := userAcc.GetCode()
-	if len(code) == 0 {
-		return nil, ErrEmptyCode
-	}
-
-	return code, nil
-}
-
 // GetBlockhash returns the header hash for a requested nonce delta
 func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
+	defer stopMeasure(startMeasure("GetBlockhash"))
+
 	hdr := bh.blockChain.GetCurrentBlockHeader()
 
 	if check.IfNil(hdr) {
@@ -376,6 +304,8 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 
 // ProcessBuiltInFunction is the hook through which a smart contract can execute a built in function
 func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	defer stopMeasure(startMeasure("ProcessBuiltInFunction"))
+
 	if input == nil {
 		return nil, process.ErrNilVmInput
 	}
@@ -396,18 +326,30 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	}
 
 	if !check.IfNil(sndAccount) {
-		errSave := bh.accounts.SaveAccount(sndAccount)
-		if errSave != nil {
-			return nil, errSave
+		err = bh.accounts.SaveAccount(sndAccount)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	err = bh.accounts.SaveAccount(dstAccount)
-	if err != nil {
-		return nil, err
+	if !check.IfNil(dstAccount) {
+		err = bh.accounts.SaveAccount(dstAccount)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return vmOutput, nil
+}
+
+// GetShardOfAddress is the hook that returns the shard of a given address
+func (bh *BlockChainHookImpl) GetShardOfAddress(address []byte) uint32 {
+	return bh.shardCoordinator.ComputeId(address)
+}
+
+// IsSmartContract returns whether the address points to a smart contract
+func (bh *BlockChainHookImpl) IsSmartContract(address []byte) bool {
+	return core.IsSmartContractAddress(address)
 }
 
 func (bh *BlockChainHookImpl) getUserAccounts(
@@ -458,6 +400,8 @@ func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
 
 // GetAllState returns the underlying state of a given account
 func (bh *BlockChainHookImpl) GetAllState(address []byte) (map[string][]byte, error) {
+	defer stopMeasure(startMeasure("GetAllState"))
+
 	dstShardId := bh.shardCoordinator.ComputeId(address)
 	if dstShardId != bh.shardCoordinator.SelfId() {
 		return nil, process.ErrDestinationNotInSelfShard
@@ -503,20 +447,6 @@ func (bh *BlockChainHookImpl) getAccountFromAddressBytes(address []byte) (state.
 	}
 
 	return bh.accounts.GetExistingAccount(address)
-}
-
-func (bh *BlockChainHookImpl) getShardAccountFromAddressBytes(address []byte) (state.UserAccountHandler, error) {
-	account, err := bh.getAccountFromAddressBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
-	shardAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, state.ErrWrongTypeAssertion
-	}
-
-	return shardAccount, nil
 }
 
 func (bh *BlockChainHookImpl) getAccountFromTemporaryAccounts(address []byte) (state.AccountHandler, bool) {
@@ -577,4 +507,21 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
 	return bh == nil
+}
+
+func startMeasure(hook string) (string, *core.StopWatch) {
+	sw := core.NewStopWatch()
+	sw.Start(hook)
+	return hook, sw
+}
+
+func stopMeasure(hook string, sw *core.StopWatch) {
+	sw.Stop(hook)
+
+	duration := sw.GetMeasurement(hook)
+	if duration > executeDurationAlarmThreshold {
+		log.Debug(fmt.Sprintf("%s took > %s", hook, executeDurationAlarmThreshold), "duration", duration)
+	} else {
+		log.Trace(hook, "duration", duration)
+	}
 }

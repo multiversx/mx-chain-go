@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -18,10 +17,8 @@ type interceptedShardHeaderDataFactory struct {
 	shardCoordinator        sharding.Coordinator
 	headerSigVerifier       process.InterceptedHeaderSigVerifier
 	headerIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
-	chainID                 []byte
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
-	nonceConverter          typeConverters.Uint64ByteSliceConverter
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -59,9 +56,6 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
-	if check.IfNil(argument.CoreComponents.Uint64ByteSliceConverter()) {
-		return nil, process.ErrNilUint64Converter
-	}
 
 	return &interceptedShardHeaderDataFactory{
 		marshalizer:             argument.CoreComponents.InternalMarshalizer(),
@@ -71,7 +65,6 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,
 		validityAttester:        argument.ValidityAttester,
 		epochStartTrigger:       argument.EpochStartTrigger,
-		nonceConverter:          argument.CoreComponents.Uint64ByteSliceConverter(),
 	}, nil
 }
 
@@ -86,7 +79,6 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		HeaderIntegrityVerifier: ishdf.headerIntegrityVerifier,
 		ValidityAttester:        ishdf.validityAttester,
 		EpochStartTrigger:       ishdf.epochStartTrigger,
-		NonceConverter:          ishdf.nonceConverter,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

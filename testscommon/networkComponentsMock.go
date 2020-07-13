@@ -9,7 +9,7 @@ type NetworkComponentsMock struct {
 	Messenger       p2p.Messenger
 	InputAntiFlood  process.P2PAntifloodHandler
 	OutputAntiFlood process.P2PAntifloodHandler
-	PeerBlackList   process.PeerBlackListHandler
+	PeerBlackList   process.PeerBlackListCacher
 }
 
 // NetworkMessenger -
@@ -28,7 +28,7 @@ func (ncm *NetworkComponentsMock) OutputAntiFloodHandler() process.P2PAntifloodH
 }
 
 // PeerBlackListHandler -
-func (ncm *NetworkComponentsMock) PeerBlackListHandler() process.PeerBlackListHandler {
+func (ncm *NetworkComponentsMock) PeerBlackListHandler() process.PeerBlackListCacher {
 	return ncm.PeerBlackList
 }
 

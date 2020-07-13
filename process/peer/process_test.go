@@ -49,9 +49,14 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 	economicsData, _ := economics.NewEconomicsData(
 		&config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
-				TotalSupply:      "2000000000000000000000",
-				MinimumInflation: 0,
-				MaximumInflation: 0.05,
+				GenesisTotalSupply: "2000000000000000000000",
+				MinimumInflation:   0,
+				YearSettings: []*config.YearSetting{
+					{
+						Year:             0,
+						MaximumInflation: 0.01,
+					},
+				},
 			},
 			RewardsSettings: config.RewardsSettings{
 				LeaderPercentage:    0.1,
@@ -1400,7 +1405,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
 			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
@@ -1459,7 +1464,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
 			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
@@ -1661,7 +1666,7 @@ func DoComputeMissingBlocks(
 		ConsensusGroupSizeCalled: func(uint32) int {
 			return consensusGroupSize
 		},
-		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
+		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
 			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},

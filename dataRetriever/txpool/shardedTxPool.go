@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -59,8 +60,9 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		MinGasPriceNanoErd:            uint32(args.MinGasPrice / oneBillion),
 	}
 
-	//  NumberOfShards - 1 (for self shard) + 1 (for metachain)
-	numCrossTxCaches := args.NumberOfShards
+	// We do not reserve cross tx cache capacity for [metachain] -> [me] (no transactions), [me] -> me (already reserved above).
+	// Note: in the case of a 1-shard network, a reservation is made - though not actually needed.
+	numCrossTxCaches := core.MaxUint32(1, args.NumberOfShards-1)
 
 	configPrototypeDestinationMe := txcache.ConfigDestinationMe{
 		NumChunks:                   args.Config.Shards,
@@ -198,7 +200,7 @@ func (txPool *shardedTxPool) onAdded(key []byte, value interface{}) {
 	defer txPool.mutexAddCallbacks.RUnlock()
 
 	for _, handler := range txPool.onAddCallbacks {
-		go handler(key, value)
+		handler(key, value)
 	}
 }
 
@@ -299,8 +301,8 @@ func (txPool *shardedTxPool) ClearShardStore(cacheID string) {
 	shard.Cache.Clear()
 }
 
-// RegisterHandler registers a new handler to be called when a new transaction is added
-func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte, value interface{})) {
+// RegisterOnAdded registers a new handler to be called when a new transaction is added
+func (txPool *shardedTxPool) RegisterOnAdded(handler func(key []byte, value interface{})) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler")
 		return

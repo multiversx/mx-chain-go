@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testAlarm = "alarm1"
+
 func TestNewAlarmScheduler(t *testing.T) {
 	t.Parallel()
 
@@ -28,7 +30,7 @@ func TestAlarmScheduler_Add(t *testing.T) {
 		nbCalls.Increment()
 	}
 
-	alarmID := "alarm1"
+	alarmID := testAlarm
 	alarmExpiry := time.Millisecond * 50
 	alarmScheduler := alarm.NewAlarmScheduler()
 
@@ -81,7 +83,7 @@ func TestAlarmScheduler_CancelBeforeExpiry(t *testing.T) {
 		nbCalls.Increment()
 	}
 
-	alarmID := "alarm1"
+	alarmID := testAlarm
 	alarmExpiry := time.Millisecond * 50
 	alarmScheduler := alarm.NewAlarmScheduler()
 
@@ -105,7 +107,7 @@ func TestAlarmScheduler_CancelTwice(t *testing.T) {
 		nbCalls.Increment()
 	}
 
-	alarmID := "alarm1"
+	alarmID := testAlarm
 	alarmExpiry := time.Millisecond * 50
 	alarmScheduler := alarm.NewAlarmScheduler()
 
@@ -130,7 +132,7 @@ func TestAlarmScheduler_CancelAfterCanceledFinished(t *testing.T) {
 		nbCalls.Increment()
 	}
 
-	alarmID := "alarm1"
+	alarmID := testAlarm
 	alarmExpiry := time.Millisecond * 50
 	alarmScheduler := alarm.NewAlarmScheduler()
 
@@ -156,7 +158,7 @@ func TestAlarmScheduler_CancelAfterAddImmediately(t *testing.T) {
 		nbCalls.Increment()
 	}
 
-	alarmID := "alarm1"
+	alarmID := testAlarm
 	alarmExpiry := time.Millisecond * 50
 	alarmScheduler := alarm.NewAlarmScheduler()
 
@@ -232,6 +234,33 @@ func TestAlarmScheduler_Close(t *testing.T) {
 	time.Sleep(deltaAlarmExpiry / 2)
 	alarmScheduler.Close()
 	time.Sleep(deltaAlarmExpiry * time.Duration(nbAlarms))
+
+	require.Equal(t, "", calledString.Get())
+	require.Equal(t, int64(0), nbCalls.Get())
+}
+
+func TestAlarmScheduler_Reset(t *testing.T) {
+	t.Parallel()
+
+	var calledString atomic.String
+	var nbCalls atomic.Counter
+
+	cb := func(alarmID string) {
+		calledString.Set(alarmID)
+		nbCalls.Increment()
+	}
+
+	numResets := 5
+	alarmID := testAlarm
+	alarmExpiry := time.Millisecond * 50
+	alarmScheduler := alarm.NewAlarmScheduler()
+
+	alarmScheduler.Add(cb, alarmExpiry, alarmID)
+	for i := 0; i < numResets; i++ {
+		time.Sleep(alarmExpiry / 2)
+		alarmScheduler.Reset(alarmID)
+	}
+	alarmScheduler.Cancel(alarmID)
 
 	require.Equal(t, "", calledString.Get())
 	require.Equal(t, int64(0), nbCalls.Get())

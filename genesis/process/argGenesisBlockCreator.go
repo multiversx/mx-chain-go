@@ -19,6 +19,7 @@ import (
 
 type coreComponentsHandler interface {
 	InternalMarshalizer() marshal.Marshalizer
+	TxMarshalizer() marshal.Marshalizer
 	Hasher() hashing.Hasher
 	AddressPubKeyConverter() core.PubkeyConverter
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter

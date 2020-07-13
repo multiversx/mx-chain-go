@@ -945,6 +945,10 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
 	for _, hdr := range headers {
+		if sp.forkDetector.GetHighestFinalBlockNonce() < hdr.GetNonce() {
+			break
+		}
+
 		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(hdr.GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
 			log.Debug("could not get shard header from storage")
@@ -1526,7 +1530,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 			break
 		}
 
-		if hdrsAdded > process.MaxMetaHeadersAllowedInOneShardBlock {
+		if hdrsAdded >= process.MaxMetaHeadersAllowedInOneShardBlock {
 			log.Debug("maximum meta headers allowed to be included in one shard block has been reached",
 				"meta headers added", hdrsAdded,
 			)
@@ -1824,17 +1828,39 @@ func (sp *shardProcessor) getBootstrapHeadersInfo(
 	selfNotarizedHeadersHashes [][]byte,
 ) []bootstrapStorage.BootstrapHeaderInfo {
 
-	if len(selfNotarizedHeaders) == 0 {
+	numSelfNotarizedHeaders := len(selfNotarizedHeaders)
+
+	highestNonceInSelfNotarizedHeaders := uint64(0)
+	if numSelfNotarizedHeaders > 0 {
+		highestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[numSelfNotarizedHeaders-1].GetNonce()
+	}
+
+	isFinalNonceHigherThanSelfNotarized := sp.forkDetector.GetHighestFinalBlockNonce() > highestNonceInSelfNotarizedHeaders
+	if isFinalNonceHigherThanSelfNotarized {
+		numSelfNotarizedHeaders++
+	}
+
+	if numSelfNotarizedHeaders == 0 {
 		return nil
 	}
 
-	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, len(selfNotarizedHeaders))
+	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, numSelfNotarizedHeaders)
 
 	for index := range selfNotarizedHeaders {
 		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
 			ShardId: selfNotarizedHeaders[index].GetShardID(),
 			Nonce:   selfNotarizedHeaders[index].GetNonce(),
 			Hash:    selfNotarizedHeadersHashes[index],
+		}
+
+		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
+	}
+
+	if isFinalNonceHigherThanSelfNotarized {
+		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: sp.shardCoordinator.SelfId(),
+			Nonce:   sp.forkDetector.GetHighestFinalBlockNonce(),
+			Hash:    sp.forkDetector.GetHighestFinalBlockHash(),
 		}
 
 		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)

@@ -18,11 +18,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
@@ -33,7 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -174,12 +174,12 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return vm, nil
 		}}
-	argsParser := vmcommon.NewAtArgumentParser()
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   argsParser,
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
@@ -187,7 +187,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:  vmContainer,
-		ArgsParser:   argsParser,
+		ArgsParser:   smartContract.NewArgumentParser(),
 		Hasher:       testHasher,
 		Marshalizer:  testMarshalizer,
 		AccountsDB:   accnts,
@@ -215,12 +215,15 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		testHasher,
 		pubkeyConv,
 		testMarshalizer,
+		testMarshalizer,
 		oneShardCoordinator,
 		scProcessor,
 		&mock.UnsignedTxHandlerMock{},
 		txTypeHandler,
 		&mock.FeeHandlerStub{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		smartContract.NewArgumentParser(),
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -243,15 +246,6 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
 
 	return vm
-}
-
-func createAndAddIeleVM(
-	vmContainer process.VirtualMachinesContainer,
-	blockChainHook vmcommon.BlockchainHook,
-) {
-	cryptoHook := hooks.NewVMCryptoHook()
-	ieleVM := endpoint.NewElrondIeleVM(factory.IELEVirtualMachine, endpoint.ElrondTestnet, blockChainHook, cryptoHook)
-	_ = vmContainer.Add(factory.IELEVirtualMachine, ieleVM)
 }
 
 // CreateVMAndBlockchainHook -
@@ -289,7 +283,7 @@ func CreateVMAndBlockchainHook(
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	vmFactory, err := shard.NewVMContainerFactory(
 		config.VirtualMachineConfig{
-			OutOfProcessEnabled: true,
+			OutOfProcessEnabled: false,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		},
 		maxGasLimitPerBlock,
@@ -306,7 +300,6 @@ func CreateVMAndBlockchainHook(
 	}
 
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	createAndAddIeleVM(vmContainer, blockChainHook)
 
 	return vmContainer, blockChainHook
 }
@@ -317,12 +310,12 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	vmContainer process.VirtualMachinesContainer,
 	blockChainHook *hooks.BlockChainHookImpl,
 ) (process.TransactionProcessor, process.SmartContractProcessor) {
-	argsParser := vmcommon.NewAtArgumentParser()
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: blockChainHook.GetBuiltInFunctions().Keys(),
-		ArgumentParser:   argsParser,
+		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
@@ -330,7 +323,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:  vmContainer,
-		ArgsParser:   argsParser,
+		ArgsParser:   smartContract.NewArgumentParser(),
 		Hasher:       testHasher,
 		Marshalizer:  testMarshalizer,
 		AccountsDB:   accnts,
@@ -359,12 +352,15 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		testHasher,
 		pubkeyConv,
 		testMarshalizer,
+		testMarshalizer,
 		oneShardCoordinator,
 		scProcessor,
 		&mock.UnsignedTxHandlerMock{},
 		txTypeHandler,
 		&mock.FeeHandlerStub{},
 		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		smartContract.NewArgumentParser(),
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
@@ -407,7 +403,7 @@ func TestDeployedContractContents(
 	}
 }
 
-// AccountExists -
+// GetAccount -
 func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 	accnt, _ := accnts.GetExistingAccount(addressBytes)
 
@@ -541,14 +537,6 @@ func ComputeExpectedBalance(
 	return expectedSenderBalance
 }
 
-// GetAccountsBalance -
-func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int {
-	accnt, _ := accnts.GetExistingAccount(addrBytes)
-	shardAccnt, _ := accnt.(state.UserAccountHandler)
-
-	return shardAccnt.GetBalance()
-}
-
 // GetIntValueFromSC -
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
@@ -594,6 +582,7 @@ func CreateTransferTokenTx(
 		GasPrice: 0,
 		GasLimit: 5000000,
 		Data:     []byte("transferToken@" + hex.EncodeToString(rcvAddress) + "@00" + hex.EncodeToString(value.Bytes())),
+		ChainID:  integrationTests.ChainID,
 	}
 }
 

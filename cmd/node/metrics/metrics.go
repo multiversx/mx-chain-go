@@ -21,6 +21,7 @@ func InitMetrics(
 	version string,
 	economicsConfig *config.EconomicsConfig,
 	roundsPerEpoch int64,
+	minTransactionVersion uint32,
 ) error {
 	if check.IfNil(appStatusHandler) {
 		return fmt.Errorf("nil AppStatusHandler when initializing metrics")
@@ -73,7 +74,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricRoundsPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNoncesPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
-	appStatusHandler.SetStringValue(core.MetricDenominationCoefficient, economicsConfig.RewardsSettings.DenominationCoefficientForView)
+	appStatusHandler.SetUInt64Value(core.MetricDenomination, uint64(economicsConfig.GlobalSettings.Denomination))
 	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, initString)
 	appStatusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, initString)
@@ -91,6 +92,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumMetachainNodes, uint64(nodesConfig.MetaChainMinNodes))
 	appStatusHandler.SetUInt64Value(core.MetricStartTime, uint64(nodesConfig.StartTime))
 	appStatusHandler.SetUInt64Value(core.MetricRoundDuration, nodesConfig.RoundDuration)
+	appStatusHandler.SetUInt64Value(core.MetricMinTransactionVersion, uint64(minTransactionVersion))
 
 	var consensusGroupSize uint32
 	switch {

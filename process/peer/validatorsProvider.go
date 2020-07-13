@@ -24,23 +24,23 @@ type validatorsProvider struct {
 	cache                        map[string]*state.ValidatorApiResponse
 	cacheRefreshIntervalDuration time.Duration
 	refreshCache                 chan uint32
-	currentEpoch                 uint32
 	lastCacheUpdate              time.Time
 	lock                         sync.RWMutex
 	cancelFunc                   func()
-	maxRating                    uint32
 	pubkeyConverter              core.PubkeyConverter
+	maxRating                    uint32
+	currentEpoch                 uint32
 }
 
 // ArgValidatorsProvider contains all parameters needed for creating a validatorsProvider
 type ArgValidatorsProvider struct {
 	NodesCoordinator                  process.NodesCoordinator
-	StartEpoch                        uint32
 	EpochStartEventNotifier           process.EpochStartEventNotifier
 	CacheRefreshIntervalDurationInSec time.Duration
 	ValidatorStatistics               process.ValidatorStatisticsProcessor
-	MaxRating                         uint32
 	PubKeyConverter                   core.PubkeyConverter
+	StartEpoch                        uint32
+	MaxRating                         uint32
 }
 
 // NewValidatorsProvider instantiates a new validatorsProvider structure responsible of keeping account of

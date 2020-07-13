@@ -42,6 +42,11 @@ func (a *antiFloodHandler) SetDebugger(_ process.AntifloodDebugger) error {
 func (a *antiFloodHandler) BlacklistPeer(_ core.PeerID, _ string, _ time.Duration) {
 }
 
+// IsOriginatorEligibleForTopic returns nil
+func (a *antiFloodHandler) IsOriginatorEligibleForTopic(_ core.PeerID, _ string) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (a *antiFloodHandler) IsInterfaceNil() bool {
 	return a == nil

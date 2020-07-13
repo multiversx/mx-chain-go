@@ -37,58 +37,79 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 	_, acntDst state.UserAccountHandler,
 	input *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
-	if input == nil {
-		return nil, process.ErrNilVmInput
-	}
-	if len(input.Arguments) != 2 {
-		return nil, process.ErrInvalidArguments
-	}
-	if input.CallValue.Cmp(zero) != 0 {
-		return nil, process.ErrBuiltInFunctionCalledWithValue
-	}
-	if check.IfNil(acntDst) {
-		return nil, process.ErrNilSCDestAccount
-	}
-	if !bytes.Equal(input.CallerAddr, input.RecipientAddr) {
-		return nil, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
-	}
-	if core.IsSmartContractAddress(input.CallerAddr) {
-		return nil, fmt.Errorf("%w key-value builtin function not allowed for smart contracts", process.ErrOperationNotPermitted)
+	err := checkArgumentsForSaveKeyValue(acntDst, input)
+	if err != nil {
+		return nil, err
 	}
 
-	value := input.Arguments[1]
-	length := uint64(len(value))
-	useGas := k.funcGasCost + length*(k.gasConfig.DataCopyPerByte+k.gasConfig.PersistPerByte)
-	vmOutput := &vmcommon.VMOutput{GasRemaining: input.GasProvided - useGas}
-
-	key := input.Arguments[0]
-	if !process.IsAllowedToSaveUnderKey(key) {
-		return nil, fmt.Errorf("%w it is not allowed to save under key %s", process.ErrOperationNotPermitted, key)
+	vmOutput := &vmcommon.VMOutput{
+		GasRemaining: input.GasProvided,
+		GasRefund:    big.NewInt(0),
 	}
 
-	oldValue, _ := acntDst.DataTrieTracker().RetrieveValue(key)
-	if bytes.Equal(oldValue, value) {
-		return vmOutput, nil
+	useGas := k.funcGasCost
+	for i := 0; i < len(input.Arguments); i += 2 {
+		key := input.Arguments[i]
+		value := input.Arguments[i+1]
+		length := uint64(len(value))
+		useGas += length * (k.gasConfig.DataCopyPerByte + k.gasConfig.PersistPerByte)
+
+		if !process.IsAllowedToSaveUnderKey(key) {
+			return nil, fmt.Errorf("%w it is not allowed to save under key %s", process.ErrOperationNotPermitted, key)
+		}
+
+		oldValue, _ := acntDst.DataTrieTracker().RetrieveValue(key)
+		if bytes.Equal(oldValue, value) {
+			continue
+		}
+
+		lengthChange := uint64(0)
+		lengthOldValue := uint64(len(oldValue))
+		if lengthOldValue < length {
+			lengthChange = length - lengthOldValue
+		} else {
+			releaseLength := lengthOldValue - length
+			refundValue := big.NewInt(0).Mul(big.NewInt(0).SetUint64(releaseLength), big.NewInt(0).SetUint64(k.gasConfig.ReleasePerByte))
+			vmOutput.GasRefund.Add(vmOutput.GasRefund, refundValue)
+		}
+
+		useGas += k.gasConfig.StorePerByte * lengthChange
+		if input.GasProvided < useGas {
+			return nil, process.ErrNotEnoughGas
+		}
+
+		acntDst.DataTrieTracker().SaveKeyValue(key, value)
 	}
 
-	lengthChange := uint64(0)
-	lengthOldValue := uint64(len(oldValue))
-	if lengthOldValue < length {
-		lengthChange = length - lengthOldValue
-	} else {
-		releaseLength := lengthOldValue - length
-		vmOutput.GasRefund = big.NewInt(0).Mul(big.NewInt(0).SetUint64(releaseLength), big.NewInt(0).SetUint64(k.gasConfig.ReleasePerByte))
-	}
-
-	useGas += k.gasConfig.StorePerByte * lengthChange
-	if input.GasProvided < useGas {
-		return nil, process.ErrNotEnoughGas
-	}
-
-	vmOutput.GasRemaining = input.GasProvided - useGas
-	acntDst.DataTrieTracker().SaveKeyValue(key, value)
+	vmOutput.GasRemaining -= useGas
 
 	return vmOutput, nil
+}
+
+func checkArgumentsForSaveKeyValue(acntDst state.UserAccountHandler, input *vmcommon.ContractCallInput) error {
+	if input == nil {
+		return process.ErrNilVmInput
+	}
+	if len(input.Arguments) < 2 {
+		return process.ErrInvalidArguments
+	}
+	if len(input.Arguments)%2 != 0 {
+		return process.ErrInvalidArguments
+	}
+	if input.CallValue.Cmp(zero) != 0 {
+		return process.ErrBuiltInFunctionCalledWithValue
+	}
+	if check.IfNil(acntDst) {
+		return process.ErrNilSCDestAccount
+	}
+	if !bytes.Equal(input.CallerAddr, input.RecipientAddr) {
+		return fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
+	}
+	if core.IsSmartContractAddress(input.CallerAddr) {
+		return fmt.Errorf("%w key-value builtin function not allowed for smart contracts", process.ErrOperationNotPermitted)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil return true if underlying object in nil

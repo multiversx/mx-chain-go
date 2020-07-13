@@ -25,7 +25,7 @@ func TestNewP2PAntiflood_NilBlacklistHandlerShouldErr(t *testing.T) {
 		&mock.FloodPreventerStub{},
 	)
 	assert.True(t, check.IfNil(afm))
-	assert.True(t, errors.Is(err, process.ErrNilBlackListHandler))
+	assert.True(t, errors.Is(err, process.ErrNilBlackListCacher))
 }
 
 func TestNewP2PAntiflood_EmptyFloodPreventerListShouldErr(t *testing.T) {
@@ -385,7 +385,7 @@ func TestP2pAntiflood_BlacklistPeerErrShouldDoNothing(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.PeerBlackListHandlerStub{
-			AddWithSpanCalled: func(pid core.PeerID, span time.Duration) error {
+			UpsertCalled: func(pid core.PeerID, span time.Duration) error {
 				atomic.AddInt32(&numCalls, 1)
 
 				return expectedErr
@@ -406,7 +406,7 @@ func TestP2pAntiflood_BlacklistPeerShouldWork(t *testing.T) {
 	numCalls := int32(0)
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.PeerBlackListHandlerStub{
-			AddWithSpanCalled: func(pid core.PeerID, span time.Duration) error {
+			UpsertCalled: func(pid core.PeerID, span time.Duration) error {
 				atomic.AddInt32(&numCalls, 1)
 
 				return nil
@@ -419,4 +419,47 @@ func TestP2pAntiflood_BlacklistPeerShouldWork(t *testing.T) {
 	afm.BlacklistPeer("pid", "reason", time.Second)
 
 	assert.Equal(t, int32(1), atomic.LoadInt32(&numCalls))
+}
+
+func TestP2pAntiflood_IsOriginatorEligibleForTopic(t *testing.T) {
+	t.Parallel()
+
+	afm, err := antiflood.NewP2PAntiflood(
+		&mock.PeerBlackListHandlerStub{},
+		&mock.TopicAntiFloodStub{},
+		&mock.FloodPreventerStub{},
+	)
+
+	assert.False(t, check.IfNil(afm))
+	assert.Nil(t, err)
+
+	err = afm.SetPeerValidatorMapper(nil)
+	assert.Equal(t, err, process.ErrNilPeerValidatorMapper)
+
+	peerValidatorMapper := &mock.PeerShardResolverStub{
+		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+			return core.P2PPeerInfo{PeerType: core.UnknownPeer}
+		}}
+	err = afm.SetPeerValidatorMapper(peerValidatorMapper)
+	assert.Nil(t, err)
+
+	err = afm.IsOriginatorEligibleForTopic("test", "topic")
+	assert.Equal(t, err, process.ErrOnlyValidatorsCanUseThisTopic)
+
+	afm.SetTopicsForAll("topicForAll1", "topicForAll2")
+	err = afm.IsOriginatorEligibleForTopic("test", "topicForAll1")
+	assert.Nil(t, err)
+
+	validatorPID := "validator"
+	peerValidatorMapper.GetPeerInfoCalled = func(pid core.PeerID) core.P2PPeerInfo {
+		if string(pid) == validatorPID {
+			return core.P2PPeerInfo{PeerType: core.ValidatorPeer}
+		}
+		return core.P2PPeerInfo{PeerType: core.UnknownPeer}
+	}
+
+	err = afm.IsOriginatorEligibleForTopic(core.PeerID(validatorPID), "topicForAll1")
+	assert.Nil(t, err)
+	err = afm.IsOriginatorEligibleForTopic(core.PeerID(validatorPID), "topic")
+	assert.Nil(t, err)
 }

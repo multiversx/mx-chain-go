@@ -39,7 +39,7 @@ export NODE_NICENESS=10
 export SEEDNODE_DELAY=5
 export GENESIS_DELAY=30
 export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
-export NODE_DELAY=10
+export NODE_DELAY=60
 
 # Types of keys to generate
 export TX_SIGN_FORMAT="bech32"
@@ -103,7 +103,7 @@ export LOGLEVEL="*:INFO"
 
 if [ "$TESTNETMODE" == "debug" ]; then
   NODETERMUI=0
-  LOGLEVEL="*:DEBUG"
+  LOGLEVEL="*:DEBUG,api:INFO"
 fi
 
 if [ "$TESTNETMODE" == "trace" ]; then

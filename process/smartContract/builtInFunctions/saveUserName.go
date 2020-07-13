@@ -1,6 +1,9 @@
 package builtInFunctions
 
 import (
+	"encoding/hex"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -53,18 +56,26 @@ func (s *saveUserName) ProcessBuiltinFunction(
 	if vmInput.GasProvided < s.gasCost {
 		return nil, process.ErrNotEnoughGas
 	}
-	if check.IfNil(acntDst) {
-		// cross-shard call, in sender shard only the gas is taken out
-		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
-	}
-
 	_, ok := s.mapDnsAddresses[string(vmInput.CallerAddr)]
 	if !ok {
 		return nil, process.ErrCallerIsNotTheDNSAddress
 	}
-
-	if len(vmInput.Arguments) == 0 || len(vmInput.Arguments[0]) != userNameHashLength {
+	if len(vmInput.Arguments) != 1 || len(vmInput.Arguments[0]) != userNameHashLength {
 		return nil, process.ErrInvalidArguments
+	}
+
+	if check.IfNil(acntDst) {
+		// cross-shard call, in sender shard only the gas is taken out
+		vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}
+		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
+		setUserNameTxData := core.BuiltInFunctionSetUserName + "@" + hex.EncodeToString(vmInput.Arguments[0])
+		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
+			Address:  vmInput.RecipientAddr,
+			Data:     []byte(setUserNameTxData),
+			CallType: vmcommon.AsynchronousCall,
+			GasLimit: vmInput.GasProvided,
+		}
+		return vmOutput, nil
 	}
 
 	currentUserName := acntDst.GetUserName()

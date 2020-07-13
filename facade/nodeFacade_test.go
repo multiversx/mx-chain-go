@@ -465,8 +465,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 
 	nodeCreateTxWasCalled := false
 	node := &mock.NodeStub{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string,
-			gasPrice uint64, gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32) (*transaction.Transaction, []byte, error) {
 			nodeCreateTxWasCalled = true
 			return nil, nil, nil
 		},
@@ -475,7 +474,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	_, _, _ = nf.CreateTransaction(0, "0", "0", "0", 0, 0, "0", "0")
+	_, _, _ = nf.CreateTransaction(0, "0", "0", "0", 0, 0, "0", "0", "chainID", 1)
 
 	assert.True(t, nodeCreateTxWasCalled)
 }
@@ -578,4 +577,53 @@ func TestNodeFacade_GetPeerInfo(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, []core.QueryP2PPeerInfo{pinfo}, val)
+}
+
+func TestNodeFacade_GetThrottlerForEndpointNoConfigShouldReturnNilAndFalse(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{} //ensure it is empty
+	nf, _ := NewNodeFacade(arg)
+
+	thr, ok := nf.GetThrottlerForEndpoint("any-endpoint")
+
+	assert.Nil(t, thr)
+	assert.False(t, ok)
+}
+
+func TestNodeFacade_GetThrottlerForEndpointNotFoundShouldReturnNilAndFalse(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{
+		{
+			Endpoint:         "endpoint",
+			MaxNumGoRoutines: 10,
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	thr, ok := nf.GetThrottlerForEndpoint("different-endpoint")
+
+	assert.Nil(t, thr)
+	assert.False(t, ok)
+}
+
+func TestNodeFacade_GetThrottlerForEndpointShouldFindAndReturn(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.WsAntifloodConfig.EndpointsThrottlers = []config.EndpointsThrottlersConfig{
+		{
+			Endpoint:         "endpoint",
+			MaxNumGoRoutines: 10,
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	thr, ok := nf.GetThrottlerForEndpoint("endpoint")
+
+	assert.NotNil(t, thr)
+	assert.True(t, ok)
 }

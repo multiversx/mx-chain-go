@@ -61,8 +61,8 @@ func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopW
 }
 
 type batchSelectionJournal struct {
-	isFirstBatch  bool
 	copied        int
+	isFirstBatch  bool
 	hasInitialGap bool
 	hasMiddleGap  bool
 	isGracePeriod bool
@@ -239,7 +239,7 @@ func (cache *TxCache) displaySendersSummary() {
 			lowestTxNonce = int(lowestTx.Tx.GetNonce())
 		}
 
-		fmt.Fprintf(&builder, "[#%d (%d)] %s [%t / %d vs %d] txs = %d, !%d\n", i, score, address, accountNonceKnown, accountNonce, lowestTxNonce, numTxs, numFailedSelections)
+		_, _ = fmt.Fprintf(&builder, "[#%d (%d)] %s [%t / %d vs %d] txs = %d, !%d\n", i, score, address, accountNonceKnown, accountNonce, lowestTxNonce, numTxs, numFailedSelections)
 	}
 
 	summary := builder.String()

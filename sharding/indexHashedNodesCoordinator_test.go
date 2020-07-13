@@ -691,7 +691,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldReturnErrNil
 	arguments := createArguments()
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	_, _, err := ihgs.GetValidatorWithPublicKey(nil, 0)
+	_, _, err := ihgs.GetValidatorWithPublicKey(nil)
 	require.Equal(t, ErrNilPubKey, err)
 }
 
@@ -701,7 +701,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldReturnErrVal
 	arguments := createArguments()
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	_, _, err := ihgs.GetValidatorWithPublicKey([]byte("pk1"), 0)
+	_, _, err := ihgs.GetValidatorWithPublicKey([]byte("pk1"))
 	require.Equal(t, ErrValidatorNotFound, err)
 }
 
@@ -749,30 +749,20 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	}
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	v, shardId, err := ihgs.GetValidatorWithPublicKey([]byte("pk0_meta"), 0)
+	v, shardId, err := ihgs.GetValidatorWithPublicKey([]byte("pk0_meta"))
 	require.Nil(t, err)
 	require.Equal(t, core.MetachainShardId, shardId)
 	require.Equal(t, []byte("pk0_meta"), v.PubKey())
 
-	v, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk1_shard0"), 0)
+	v, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk1_shard0"))
 	require.Nil(t, err)
 	require.Equal(t, uint32(0), shardId)
 	require.Equal(t, []byte("pk1_shard0"), v.PubKey())
 
-	v, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk2_shard1"), 0)
+	v, shardId, err = ihgs.GetValidatorWithPublicKey([]byte("pk2_shard1"))
 	require.Nil(t, err)
 	require.Equal(t, uint32(1), shardId)
 	require.Equal(t, []byte("pk2_shard1"), v.PubKey())
-}
-
-func TestNewIndexHashedNodesCoordinator_GetValidatorWithPublicKeyNotExistingEpoch(t *testing.T) {
-	t.Parallel()
-
-	arguments := createArguments()
-	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
-
-	_, _, err := ihgs.GetValidatorWithPublicKey(arguments.EligibleNodes[0][0].PubKey(), 1)
-	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
 }
 
 func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.T) {
@@ -1066,6 +1056,63 @@ func TestIndexHashedNodesCoordinator_EpochStartInLeaving(t *testing.T) {
 
 	computedShardId := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
 	require.Equal(t, validatorShard, computedShardId)
+}
+
+func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t *testing.T) {
+	t.Parallel()
+
+	nbShards := uint32(1)
+	eligibleMap := make(map[uint32][]Validator)
+
+	pk1 := []byte{2}
+	pk2 := []byte{1}
+
+	list := []Validator{
+		mock.NewValidatorMock(pk1, 1, 1),
+		mock.NewValidatorMock(pk2, 1, 1),
+	}
+	eligibleMap[core.MetachainShardId] = list
+
+	nodeShuffler := NewHashValidatorsShuffler(2, 2, hysteresis, adaptivity, shuffleBetweenShards)
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := mock.NewStorerMock()
+
+	arguments := ArgNodesCoordinator{
+		ShardConsensusGroupSize: 1,
+		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
+		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
+		EpochStartNotifier:      epochStartSubscriber,
+		BootStorer:              bootStorer,
+		NbShards:                nbShards,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            map[uint32][]Validator{},
+		SelfPublicKey:           []byte("test"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+	}
+
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+	epoch := uint32(1)
+
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        epoch,
+	}
+
+	ihgs.nodesConfig[epoch] = ihgs.nodesConfig[0]
+
+	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
+	ihgs.EpochStartPrepare(header, body)
+
+	newNodesConfig := ihgs.nodesConfig[1]
+
+	firstEligible := newNodesConfig.eligibleMap[core.MetachainShardId][0]
+	secondEligible := newNodesConfig.eligibleMap[core.MetachainShardId][1]
+	assert.True(t, firstEligible.Index() < secondEligible.Index())
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExistingEpoch(t *testing.T) {

@@ -162,7 +162,7 @@ func (m *managedProcessComponents) BlockProcessor() process.BlockProcessor {
 }
 
 // BlackListHandler returns the black list handler
-func (m *managedProcessComponents) BlackListHandler() process.BlackListHandler {
+func (m *managedProcessComponents) BlackListHandler() process.TimeCacher {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 

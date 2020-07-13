@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -138,7 +139,13 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 			log.LogIfError(err)
 		}
 
-		err = peers[i].SetPeerBlackListHandler(antifloodComponents.BlacklistHandler)
+		pde, _ := blackList.NewPeerDenialEvaluator(
+			antifloodComponents.BlacklistHandler,
+			antifloodComponents.PubKeysCacher,
+			&mock.PeerShardMapperStub{},
+		)
+
+		err = peers[i].SetPeerDenialEvaluator(pde)
 		log.LogIfError(err)
 
 		proc := NewMessageProcessor(antifloodComponents.AntiFloodHandler, peers[i])

@@ -249,7 +249,8 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 	return factory.CoreComponentsFactoryArgs{
 		Config: config.Config{
 			GeneralSettings: config.GeneralSettingsConfig{
-				ChainID: "undefined",
+				ChainID:               "undefined",
+				MinTransactionVersion: 1,
 			},
 			Marshalizer: config.MarshalizerConfig{
 				Type:           testMarshalizer,

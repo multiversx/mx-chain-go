@@ -27,6 +27,7 @@ type AccountFactory interface {
 
 // Updater set a new value for a key, implemented by trie
 type Updater interface {
+	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
 	IsInterfaceNil() bool
 }
@@ -107,7 +108,6 @@ type UserAccountHandler interface {
 type DataTrieTracker interface {
 	ClearDataCaches()
 	DirtyData() map[string][]byte
-	OriginalValue(key []byte) []byte
 	RetrieveValue(key []byte) ([]byte, error)
 	SaveKeyValue(key []byte, value []byte)
 	SetDataTrie(tr data.Trie)

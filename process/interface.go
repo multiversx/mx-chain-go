@@ -21,12 +21,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
-	ProcessTransaction(transaction *transaction.Transaction) error
+	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
 	IsInterfaceNil() bool
 }
 
@@ -44,7 +45,7 @@ type RewardTransactionPreProcessor interface {
 
 // SmartContractResultProcessor is the main interface for smart contract result execution engine
 type SmartContractResultProcessor interface {
-	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error
+	ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
 	IsInterfaceNil() bool
 }
 
@@ -57,6 +58,7 @@ type TxTypeHandler interface {
 // TxValidator can determine if a provided transaction handler is valid or not from the process point of view
 type TxValidator interface {
 	CheckTxValidity(txHandler TxValidatorHandler) error
+	CheckTxWhiteList(data InterceptedData) error
 	IsInterfaceNil() bool
 }
 
@@ -145,8 +147,8 @@ type TransactionCoordinator interface {
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error
-	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) error
+	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
+	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error
 	IsInterfaceNil() bool
 }
@@ -479,16 +481,29 @@ type RequestHandler interface {
 	IsInterfaceNil() bool
 }
 
+// CallArgumentsParser defines the functionality to parse transaction data into call arguments
+type CallArgumentsParser interface {
+	ParseData(data string) (string, [][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// DeployArgumentsParser defines the functionality to parse transaction data into call arguments
+type DeployArgumentsParser interface {
+	ParseData(data string) (*parsers.DeployArgs, error)
+	IsInterfaceNil() bool
+}
+
+// StorageArgumentsParser defines the functionality to parse transaction data into call arguments
+type StorageArgumentsParser interface {
+	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
+	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
+	IsInterfaceNil() bool
+}
+
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
-	GetFunctionArguments() ([][]byte, error)
-	GetConstructorArguments() ([][]byte, error)
-	GetCode() ([]byte, error)
-	GetCodeDecoded() ([]byte, error)
-	GetVMType() ([]byte, error)
-	GetCodeMetadata() (vmcommon.CodeMetadata, error)
-	GetFunction() (string, error)
-	ParseData(data string) error
+	ParseCallData(data string) (string, [][]byte, error)
+	ParseDeployData(data string) (*parsers.DeployArgs, error)
 
 	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
 	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
@@ -521,7 +536,7 @@ type RewardsHandler interface {
 	CommunityPercentage() float64
 	CommunityAddress() string
 	MinInflationRate() float64
-	MaxInflationRate() float64
+	MaxInflationRate(year uint32) float64
 	IsInterfaceNil() bool
 }
 
@@ -579,22 +594,26 @@ type PeerChangesHandler interface {
 	IsInterfaceNil() bool
 }
 
-// BlackListHandler can determine if a certain key is or not blacklisted
-type BlackListHandler interface {
+// TimeCacher defines the cache that can keep a record for a bounded time
+type TimeCacher interface {
 	Add(key string) error
-	AddWithSpan(key string, span time.Duration) error
+	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool
 }
 
-// PeerBlackListHandler can determine if a certain key is or not blacklisted
-type PeerBlackListHandler interface {
-	Add(pid core.PeerID) error
-	AddWithSpan(pid core.PeerID, span time.Duration) error
-	Update(pid core.PeerID, span time.Duration) error
+// PeerBlackListCacher can determine if a certain peer id is or not blacklisted
+type PeerBlackListCacher interface {
+	Upsert(pid core.PeerID, span time.Duration) error
 	Has(pid core.PeerID) bool
 	Sweep()
+	IsInterfaceNil() bool
+}
+
+// PeerShardMapper can return the public key of a provided peer ID
+type PeerShardMapper interface {
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 
@@ -721,6 +740,13 @@ type P2PAntifloodHandler interface {
 	ApplyConsensusSize(size int)
 	SetDebugger(debugger AntifloodDebugger) error
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
+	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
+	IsInterfaceNil() bool
+}
+
+// PeerValidatorMapper can determine the peer info from a peer id
+type PeerValidatorMapper interface {
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 
@@ -911,6 +937,7 @@ type CoreComponentsHolder interface {
 	AddressPubKeyConverter() core.PubkeyConverter
 	PathHandler() storage.PathManagerHandler
 	ChainID() string
+	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
 }
 

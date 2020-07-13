@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -728,4 +729,61 @@ func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data
 	}
 
 	return nil
+}
+
+func (bn *branchNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return fmt.Errorf("getAllLeavesOnChannel error: %w", err)
+	}
+
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), db)
+		if err != nil {
+			return err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		childKey := append(key, byte(i))
+		err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (bn *branchNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return nil, fmt.Errorf("getAllHashes error: %w", err)
+	}
+
+	var childrenHashes [][]byte
+	hashes := make([][]byte, 0)
+	for i := range bn.children {
+		err = resolveIfCollapsed(bn, byte(i), db)
+		if err != nil {
+			return nil, err
+		}
+
+		if bn.children[i] == nil {
+			continue
+		}
+
+		childrenHashes, err = bn.children[i].getAllHashes(db)
+		if err != nil {
+			return nil, err
+		}
+
+		hashes = append(hashes, childrenHashes...)
+	}
+
+	hashes = append(hashes, bn.hash)
+
+	return hashes, nil
 }

@@ -16,7 +16,6 @@ type InitialAccount struct {
 	StakingValue *big.Int        `json:"stakingvalue"`
 	Delegation   *DelegationData `json:"delegation"`
 	addressBytes []byte
-	nonceOffset  uint64
 }
 
 // MarshalJSON is the function called when trying to serialize the object using the JSON marshaler

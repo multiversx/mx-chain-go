@@ -2,18 +2,24 @@ package config
 
 // GlobalSettings will hold general economic values
 type GlobalSettings struct {
-	TotalSupply      string
-	MinimumInflation float64
+	GenesisTotalSupply string
+	MinimumInflation   float64
+	YearSettings       []*YearSetting
+	Denomination       int
+}
+
+// MaxInflationInYear will hold the maximum inflation rate for year
+type YearSetting struct {
+	Year             uint32
 	MaximumInflation float64
 }
 
 // RewardsSettings will hold economics rewards settings
 type RewardsSettings struct {
-	LeaderPercentage               float64
-	DeveloperPercentage            float64
-	CommunityPercentage            float64
-	CommunityAddress               string
-	DenominationCoefficientForView string
+	LeaderPercentage    float64
+	DeveloperPercentage float64
+	CommunityPercentage float64
+	CommunityAddress    string
 }
 
 // FeeSettings will hold economics fee settings

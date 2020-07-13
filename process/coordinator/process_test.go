@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,7 +49,7 @@ func createShardedDataChacherNotifier(
 ) func() dataRetriever.ShardedDataCacherNotifier {
 	return func() dataRetriever.ShardedDataCacherNotifier {
 		return &testscommon.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
+			RegisterOnAddedCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -524,8 +525,8 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -572,8 +573,8 @@ func createPreProcessorContainerWithDataPool(
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -931,8 +932,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -1097,7 +1098,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 	t.Parallel()
 
 	shardedCacheMock := &testscommon.ShardedDataStub{
-		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
+		RegisterOnAddedCalled: func(i func(key []byte, value interface{})) {},
 		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 			return &testscommon.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1140,8 +1141,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -1786,8 +1787,8 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return process.ErrHigherNonceInTransaction
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, process.ErrHigherNonceInTransaction
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -1930,8 +1931,8 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		accounts,
 		requestHandler,
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
-				return nil
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -2047,7 +2048,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
 				if bytes.Equal(transaction.Data, txHash1) {
 					tx1ExecutionResult = transaction.Nonce
@@ -2059,7 +2060,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 					tx3ExecutionResult = transaction.Nonce
 				}
 
-				return nil
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -2189,11 +2190,11 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
-			ProcessTransactionCalled: func(transaction *transaction.Transaction) error {
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				if bytes.Equal(transaction.Data, txHash2) {
-					return process.ErrHigherNonceInTransaction
+					return 0, process.ErrHigherNonceInTransaction
 				}
-				return nil
+				return 0, nil
 			},
 		},
 		&mock.SCProcessorMock{},
@@ -2371,7 +2372,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 
 	tdp.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &testscommon.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
+			RegisterOnAddedCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {

@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -80,13 +81,13 @@ func SecondsToHourMinSec(input int) string {
 	return result
 }
 
-// GetShardIdString will return the string representation of the shard id
-func GetShardIdString(shardId uint32) string {
-	if shardId == math.MaxUint32 {
+// GetShardIDString will return the string representation of the shard id
+func GetShardIDString(shardID uint32) string {
+	if shardID == math.MaxUint32 {
 		return "metachain"
 	}
 
-	return fmt.Sprintf("%d", shardId)
+	return fmt.Sprintf("%d", shardID)
 }
 
 // EpochStartIdentifier returns the string for the epoch start identifier
@@ -140,4 +141,24 @@ func ShardIdToString(shardId uint32) string {
 		return "_ALL"
 	}
 	return fmt.Sprintf("_%d", shardId)
+}
+
+// ConvertToEvenHex converts the provided value in a hex string, even number of characters
+func ConvertToEvenHex(value int) string {
+	str := fmt.Sprintf("%x", value)
+	if len(str)%2 != 0 {
+		str = "0" + str
+	}
+
+	return str
+}
+
+// ConvertToEvenHexBigInt converts the provided value in a hex string, even number of characters
+func ConvertToEvenHexBigInt(value *big.Int) string {
+	str := value.Text(16)
+	if len(str)%2 != 0 {
+		str = "0" + str
+	}
+
+	return str
 }
