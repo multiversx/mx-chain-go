@@ -436,8 +436,8 @@
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 50
-    RoundsPerEpoch         = 50
+    MinRoundsBetweenEpochs = 200
+    RoundsPerEpoch         = 200
     # ShuffledOutRestartThreshold represents the maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     ShuffledOutRestartThreshold = 0.25
