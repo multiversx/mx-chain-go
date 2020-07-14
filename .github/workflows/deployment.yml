@@ -116,7 +116,8 @@ jobs:
         run: |
           cp -r $BASE_PATH/elrond-k8s-testnet/filegenConfig/ $BASE_PATH/filegenConfigLocal/
           sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfigLocal/nodesSetup.json > $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
-          sed -e 's/InitialPeerList.*/InitialPeerList = [\"\/dns4\/elrond-seednode\/tcp\/10000\/p2p\/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk\"]/' $BASE_PATH/filegenConfigLocal/p2p.toml > $BASE_PATH/filegenConfigLocal/p2pUpdated.toml
+          sed -i.bak 's/Port.*/Port = \"1000\"/' $BASE_PATH/filegenConfigLocal/p2p.toml
+          sed -i.bak 's/InitialPeerList.*/InitialPeerList = [\"\/dns4\/elrond-seednode\/tcp\/10000\/p2p\/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk\"]/' $BASE_PATH/filegenConfigLocal/p2p.toml
         shell: bash
 
       # Deploy the Docker image to the GKE cluster
@@ -133,7 +134,7 @@ jobs:
           kubectl -n $NAMESPACE create configmap elrond-node-config \
             --from-file=$BASE_PATH/filegenConfigLocal/validatorKey.pem \
             --from-file=$BASE_PATH/filegenConfigLocal/observerKey.pem \
-            --from-file=p2p.toml=$BASE_PATH/filegenConfigLocal/p2pUpdated.toml \
+            --from-file=$BASE_PATH/filegenConfigLocal/p2p.toml \
             --from-file=$BASE_PATH/filegenConfigLocal/delegationWalletKey.pem \
             --from-file=$BASE_PATH/filegenConfigLocal/genesis.json \
             --from-file=$BASE_PATH/filegenConfigLocal/genesisSmartContracts.json \
