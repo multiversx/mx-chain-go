@@ -187,8 +187,10 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(*WrappedTransaction)
 
-		if bytes.Equal(value.TxHash, txToFindHash) {
-			return element
+		if value.Nonce == txToFindNonce {
+			if bytes.Equal(value.TxHash, txToFindHash) {
+				return element
+			}
 		}
 
 		// Optimization: stop search at this point, since the list is sorted by nonce
