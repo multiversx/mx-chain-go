@@ -1211,7 +1211,12 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 
 	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(lastMetaBlock.GetValidatorStatsRootHash())
 
-	prevHeader, errNotCritical := process.GetMetaHeaderFromStorage(lastMetaBlock.GetPrevHash(), mp.marshalizer, mp.store)
+	prevHeader, errNotCritical := process.GetMetaHeader(
+		lastMetaBlock.GetPrevHash(),
+		mp.dataPool.Headers(),
+		mp.marshalizer,
+		mp.store,
+	)
 	if errNotCritical != nil {
 		log.Debug("could not get meta header from storage")
 		return
@@ -1276,7 +1281,12 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 		}
 
 		for _, metaHash := range shardHeader.MetaBlockHashes {
-			metaHeader, errGet := process.GetMetaHeader(metaHash, mp.dataPool.Headers(), mp.marshalizer, mp.store)
+			metaHeader, errGet := process.GetMetaHeader(
+				metaHash,
+				mp.dataPool.Headers(),
+				mp.marshalizer,
+				mp.store,
+			)
 			if errGet != nil {
 				log.Trace("getLastSelfNotarizedHeaderByShard.GetMetaHeader", "error", errGet.Error())
 				continue
