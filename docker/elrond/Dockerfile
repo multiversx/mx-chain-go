@@ -18,5 +18,5 @@ FROM ubuntu:18.04
 COPY --from=builder "/go/elrond-go/cmd/node" "/go/elrond-go/cmd/node/"
 COPY --from=builder "/lib/libwasmer_linux_amd64.so" "/lib/libwasmer_linux_amd64.so"
 WORKDIR /go/elrond-go/cmd/node/
-EXPOSE 8080 8005
+EXPOSE 8080
 ENTRYPOINT ["/go/elrond-go/cmd/node/node"]
