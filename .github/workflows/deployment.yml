@@ -27,6 +27,11 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: fetch git info
+        run: echo $((git describe --all)| cut -c7-32)/$(git describe --tag --abbrev=32)
 
 #      https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#set-an-output-parameter-set-output
       - name: Build decission
@@ -51,7 +56,7 @@ jobs:
       - name: Prep Ubunut
         run: |
           sudo apt update
-          sudo apt install bc -y
+          sudo apt install git bc -y
 
       - name: Create Configs
         run: |
@@ -101,7 +106,6 @@ jobs:
       # Build the Docker image
       - name: Build
         run: |
-          echo $((git describe --all)| cut -c7-32)/$(git describe --tag --abbrev=32)
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_NODE":"$GITHUB_SHA" -f ./docker/elrond/Dockerfile .
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_SEEDNODE":"$GITHUB_SHA" -f ./docker/seednode/Dockerfile .
 
