@@ -213,6 +213,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	}
 
 	lastNotarizedHdrRound := prevHdr.GetRound()
+	lastNotarizedHdrNonce := prevHdr.GetNonce()
 
 	missingNonces := make([]uint64, 0)
 	isMaxLimitReached := false
@@ -231,7 +232,8 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - len(missingNonces)
 		nonces := addMissingNonces(noncesDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
 		missingNonces = append(missingNonces, nonces...)
-		if len(missingNonces) >= process.MaxHeaderRequestsAllowed {
+		if len(missingNonces) >= process.MaxHeaderRequestsAllowed ||
+			currHdr.GetNonce()-lastNotarizedHdrNonce >= process.MaxHeaderRequestsAllowed {
 			isMaxLimitReached = true
 			break
 		}
