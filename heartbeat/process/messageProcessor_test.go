@@ -254,6 +254,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 
 	updatePubKeyWasCalled := false
 	updatePidShardIdCalled := false
+	updatePkPidSigCalled := false
 	mon, err := process.NewMessageProcessor(
 		singleSigner,
 		keyGen,
@@ -264,6 +265,12 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 			},
 			UpdatePeerIdShardIdCalled: func(pid core.PeerID, shardId uint32) {
 				updatePidShardIdCalled = true
+			},
+			UpdatePublicKeyPIDSignatureCalled: func(pk []byte, pid []byte, signature []byte) {
+				updatePkPidSigCalled = true
+			},
+			GetPidAndSignatureFromPkCalled: func(pk []byte) (pid []byte, signature []byte) {
+				return nil, nil
 			},
 		},
 	)
@@ -285,6 +292,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessage(t *testing.T) {
 	assert.NotNil(t, ret)
 	assert.True(t, updatePubKeyWasCalled)
 	assert.True(t, updatePidShardIdCalled)
+	assert.True(t, updatePkPidSigCalled)
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pMessageWithNilDataShouldErr(t *testing.T) {

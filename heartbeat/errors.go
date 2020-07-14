@@ -101,3 +101,9 @@ var ErrWrongValues = errors.New("wrong values for heartbeat parameters")
 
 // ErrValidatorAlreadySet signals that a topic validator has already been set
 var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
+
+// ErrPIDMissmatch signals that the pid from the message is different from the cached pid associated to a certain pk
+var ErrPIDMissmatch = errors.New("pid mismatch")
+
+// ErrSignatureMissmatch signals that the signature from the message is different from the cached signature associated to a certain pk
+var ErrSignatureMissmatch = errors.New("signature mismatch")

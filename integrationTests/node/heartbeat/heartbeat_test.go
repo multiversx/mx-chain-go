@@ -239,8 +239,12 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		keyGen,
 		marshalizer,
 		&mock.NetworkShardingCollectorStub{
-			UpdatePeerIdPublicKeyCalled: func(pid core.PeerID, pk []byte) {},
-			UpdatePeerIdShardIdCalled:   func(pid core.PeerID, shardId uint32) {},
+			UpdatePeerIdPublicKeyCalled:       func(pid core.PeerID, pk []byte) {},
+			UpdatePeerIdShardIdCalled:         func(pid core.PeerID, shardId uint32) {},
+			UpdatePublicKeyPIDSignatureCalled: func(pk []byte, pid []byte, signature []byte) {},
+			GetPidAndSignatureFromPkCalled: func(pk []byte) (pid []byte, signature []byte) {
+				return nil, nil
+			},
 		})
 
 	argMonitor := process.ArgHeartbeatMonitor{

@@ -72,11 +72,13 @@ func NewTestP2PNode(
 	pidPk, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	pkPIDSignature, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	startInEpoch := uint32(0)
 	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(
 		pidPk,
 		pkShardId,
 		pidShardId,
+		pkPIDSignature,
 		coordinator,
 		startInEpoch,
 	)

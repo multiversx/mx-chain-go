@@ -1,6 +1,8 @@
 package process
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -85,7 +87,26 @@ func (mp *MessageProcessor) verifySignature(hbRecv *data.Heartbeat) error {
 		return err
 	}
 
-	return mp.singleSigner.Verify(senderPubKey, hbRecv.Pid, hbRecv.Signature)
+	pid, sig := mp.networkShardingCollector.GetPidAndSignatureFromPk(hbRecv.Pubkey)
+	if pid == nil || sig == nil {
+		err = mp.singleSigner.Verify(senderPubKey, hbRecv.Pid, hbRecv.Signature)
+		if err != nil {
+			return err
+		}
+
+		mp.networkShardingCollector.UpdatePublicKeyPIDSignature(hbRecv.Pubkey, hbRecv.Pid, hbRecv.Signature)
+		return nil
+	}
+
+	if !bytes.Equal(pid, hbRecv.Pid) {
+		return heartbeat.ErrPIDMissmatch
+	}
+
+	if !bytes.Equal(sig, hbRecv.Signature) {
+		return heartbeat.ErrSignatureMissmatch
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

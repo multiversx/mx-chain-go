@@ -22,6 +22,12 @@ var log = logger.GetOrCreate("sharding/networksharding")
 var _ p2p.NetworkShardingCollector = (*PeerShardMapper)(nil)
 var _ p2p.PeerShardResolver = (*PeerShardMapper)(nil)
 
+// PIDSignature holds the PID and the associated signature
+type PIDSignature struct {
+	PID       []byte
+	Signature []byte
+}
+
 // PeerShardMapper stores the mappings between peer IDs and shard IDs
 // Both public key and peer id are verified before they are appended in this cache. In time, the current node
 // will learn a large majority (or even the whole network) of the nodes that make up the network. The public key provided
@@ -35,6 +41,7 @@ type PeerShardMapper struct {
 	pkPeerId         storage.Cacher
 	fallbackPkShard  storage.Cacher
 	fallbackPidShard storage.Cacher
+	pkPIDSignature   storage.Cacher
 
 	mutUpdatePeerIdPublicKey sync.Mutex
 
@@ -48,6 +55,7 @@ func NewPeerShardMapper(
 	peerIdPk storage.Cacher,
 	fallbackPkShard storage.Cacher,
 	fallbackPidShard storage.Cacher,
+	pkPIDSignature storage.Cacher,
 	nodesCoordinator sharding.NodesCoordinator,
 	epochStart uint32,
 ) (*PeerShardMapper, error) {
@@ -64,6 +72,9 @@ func NewPeerShardMapper(
 	if check.IfNil(fallbackPidShard) {
 		return nil, sharding.ErrNilCacher
 	}
+	if check.IfNil(pkPIDSignature) {
+		return nil, sharding.ErrNilCacher
+	}
 
 	pkPeerId, err := lrucache.NewCache(peerIdPk.MaxSize())
 	if err != nil {
@@ -77,6 +88,7 @@ func NewPeerShardMapper(
 		pkPeerId:         pkPeerId,
 		fallbackPkShard:  fallbackPkShard,
 		fallbackPidShard: fallbackPidShard,
+		pkPIDSignature:   pkPIDSignature,
 		nodesCoordinator: nodesCoordinator,
 		epoch:            epochStart,
 	}, nil
@@ -281,6 +293,32 @@ func (psm *PeerShardMapper) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
 // UpdatePeerIdShardId updates the fallback search map containing peer IDs and shard IDs
 func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
 	psm.fallbackPidShard.HasOrAdd([]byte(pid), shardId, uint32Size)
+}
+
+// UpdatePublicKeyPIDSignature updates the pid-signature pair associated with a public key
+func (psm *PeerShardMapper) UpdatePublicKeyPIDSignature(pk []byte, pid []byte, signature []byte) {
+	pidSig := &PIDSignature{
+		PID:       pid,
+		Signature: signature,
+	}
+
+	entryLen := len(pid) + len(signature)
+	psm.pkPIDSignature.Put(pk, pidSig, entryLen)
+}
+
+// GetPidAndSignatureFromPk returns the pid-signature pair associated with the given public key if it is found in cache
+func (psm *PeerShardMapper) GetPidAndSignatureFromPk(pk []byte) (pid []byte, signature []byte) {
+	entry, ok := psm.pkPIDSignature.Get(pk)
+	if !ok {
+		return nil, nil
+	}
+
+	pidSig, ok := entry.(*PIDSignature)
+	if !ok {
+		return nil, nil
+	}
+
+	return pidSig.PID, pidSig.Signature
 }
 
 // EpochStartAction is the method called whenever an action needs to be undertaken in respect to the epoch change

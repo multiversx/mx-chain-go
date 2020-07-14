@@ -1814,10 +1814,17 @@ func createNetworkShardingCollector(
 		return nil, err
 	}
 
+	cacheConfig = config.PublicKeyPIDSignature
+	cachePkPIDSignature, err := createCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	psm, err := networksharding.NewPeerShardMapper(
 		cachePkPid,
 		cachePkShardID,
 		cachePidShardID,
+		cachePkPIDSignature,
 		nodesCoordinator,
 		epochStart,
 	)

@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -511,7 +512,27 @@ func (wrk *Worker) checkSignature(cnsDta *consensus.Message) error {
 	}
 
 	signature := cnsDta.Signature
-	return wrk.singleSigner.Verify(pubKey, cnsDta.OriginatorPid, signature)
+
+	pid, sig := wrk.networkShardingCollector.GetPidAndSignatureFromPk(cnsDta.PubKey)
+	if pid == nil || sig == nil {
+		err = wrk.singleSigner.Verify(pubKey, cnsDta.OriginatorPid, signature)
+		if err != nil {
+			return err
+		}
+
+		wrk.networkShardingCollector.UpdatePublicKeyPIDSignature(cnsDta.PubKey, cnsDta.OriginatorPid, cnsDta.Signature)
+		return nil
+	}
+
+	if !bytes.Equal(pid, cnsDta.OriginatorPid) {
+		return ErrPIDMissmatch
+	}
+
+	if !bytes.Equal(sig, cnsDta.Signature) {
+		return ErrSignatureMissmatch
+	}
+
+	return nil
 }
 
 func (wrk *Worker) executeReceivedMessages(cnsDta *consensus.Message) {

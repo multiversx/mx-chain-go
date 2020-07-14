@@ -6,6 +6,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
+type pidSig struct {
+	pid []byte
+	sig []byte
+}
+
 type networkShardingCollectorMock struct {
 	mutPeerIdPkMap sync.RWMutex
 	peerIdPkMap    map[core.PeerID][]byte
@@ -15,6 +20,9 @@ type networkShardingCollectorMock struct {
 
 	mutFallbackPidShardMap sync.RWMutex
 	fallbackPidShardMap    map[string]uint32
+
+	mutPkPidSignature sync.RWMutex
+	pkPidSignature    map[string]*pidSig
 }
 
 // NewNetworkShardingCollectorMock -
@@ -23,6 +31,7 @@ func NewNetworkShardingCollectorMock() *networkShardingCollectorMock {
 		peerIdPkMap:         make(map[core.PeerID][]byte),
 		fallbackPkShardMap:  make(map[string]uint32),
 		fallbackPidShardMap: make(map[string]uint32),
+		pkPidSignature:      make(map[string]*pidSig),
 	}
 }
 
@@ -45,6 +54,26 @@ func (nscm *networkShardingCollectorMock) UpdatePeerIdShardId(pid core.PeerID, s
 	nscm.mutFallbackPidShardMap.Lock()
 	nscm.fallbackPidShardMap[string(pid)] = shardId
 	nscm.mutFallbackPidShardMap.Unlock()
+}
+
+// UpdatePublicKeyPIDSignature -
+func (nscm *networkShardingCollectorMock) UpdatePublicKeyPIDSignature(pk []byte, pid []byte, sig []byte) {
+	nscm.mutPkPidSignature.Lock()
+	nscm.pkPidSignature[string(pk)] = &pidSig{pid: pid, sig: sig}
+	nscm.mutPkPidSignature.Unlock()
+}
+
+// GetPidAndSignatureFromPk -
+func (nscm *networkShardingCollectorMock) GetPidAndSignatureFromPk(pk []byte) (pid []byte, signature []byte) {
+	nscm.mutPkPidSignature.Lock()
+	entry := nscm.pkPidSignature[string(pk)]
+	nscm.mutPkPidSignature.Unlock()
+
+	if entry != nil {
+		return entry.pid, entry.sig
+	}
+
+	return nil, nil
 }
 
 // GetPeerInfo -

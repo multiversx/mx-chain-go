@@ -213,3 +213,9 @@ var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")
 
 // ErrOriginatorMismatch signals that an original consensus message has been re-broadcast manually by another peer
 var ErrOriginatorMismatch = errors.New("consensus message originator mismatch")
+
+// ErrPIDMissmatch signals that the pid from the message is different from the cached pid associated to a certain pk
+var ErrPIDMissmatch = errors.New("pid mismatch")
+
+// ErrSignatureMissmatch signals that the signature from the message is different from the cached signature associated to a certain pk
+var ErrSignatureMissmatch = errors.New("signature mismatch")
