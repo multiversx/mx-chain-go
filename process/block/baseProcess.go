@@ -216,7 +216,6 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	lastNotarizedHdrNonce := prevHdr.GetNonce()
 
 	missingNonces := make([]uint64, 0)
-	isMaxLimitReached := false
 	for i := 0; i < len(sortedHdrs); i++ {
 		currHdr := sortedHdrs[i]
 		if currHdr == nil {
@@ -228,23 +227,22 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 			continue
 		}
 
-		noncesDiff := int64(currHdr.GetNonce()) - int64(prevHdr.GetNonce())
-		maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - len(missingNonces)
-		nonces := addMissingNonces(noncesDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
-		missingNonces = append(missingNonces, nonces...)
-		if len(missingNonces) >= process.MaxHeaderRequestsAllowed ||
-			currHdr.GetNonce()-lastNotarizedHdrNonce >= process.MaxHeaderRequestsAllowed {
-			isMaxLimitReached = true
+		maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
+		if maxNumNoncesToAdd <= 0 {
 			break
 		}
+
+		noncesDiff := int64(currHdr.GetNonce()) - int64(prevHdr.GetNonce())
+		nonces := addMissingNonces(noncesDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
+		missingNonces = append(missingNonces, nonces...)
 
 		prevHdr = currHdr
 	}
 
-	if !isMaxLimitReached {
+	maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
+	if maxNumNoncesToAdd > 0 {
 		lastRound := bp.rounder.Index() - 1
 		roundsDiff := lastRound - int64(prevHdr.GetRound())
-		maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - len(missingNonces)
 		nonces := addMissingNonces(roundsDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
 		missingNonces = append(missingNonces, nonces...)
 	}

@@ -1059,8 +1059,8 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	sortedHeaders := make([]data.HeaderHandler, 0)
 
 	crossNotarizedHeader := &block.MetaBlock{
-		Nonce: 3,
-		Round: 3,
+		Nonce: 5,
+		Round: 5,
 	}
 	arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
 
@@ -1089,7 +1089,7 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	sort.Slice(requestedNonces, func(i, j int) bool {
 		return requestedNonces[i] < requestedNonces[j]
 	})
-	expectedNonces := []uint64{4, 5, 6, 7, 9, 11, 12, 13}
+	expectedNonces := []uint64{6, 7, 9, 11, 12, 13}
 	assert.Equal(t, expectedNonces, requestedNonces)
 
 	requestedNonces = make([]uint64, 0)
@@ -1099,6 +1099,6 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	sort.Slice(requestedNonces, func(i, j int) bool {
 		return requestedNonces[i] < requestedNonces[j]
 	})
-	expectedNonces = []uint64{4, 5, 6, 7, 9, 11, 12, 13, 14, 15}
+	expectedNonces = []uint64{6, 7, 9, 11, 12, 13, 14, 15}
 	assert.Equal(t, expectedNonces, requestedNonces)
 }
