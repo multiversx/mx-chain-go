@@ -101,6 +101,7 @@ jobs:
       # Build the Docker image
       - name: Build
         run: |
+          echo $((git describe --all)| cut -c7-32)/$(git describe --tag --abbrev=32)
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_NODE":"$GITHUB_SHA" -f ./docker/elrond/Dockerfile .
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_SEEDNODE":"$GITHUB_SHA" -f ./docker/seednode/Dockerfile .
 
