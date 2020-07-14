@@ -3,6 +3,7 @@ package txpool
 import (
 	"strconv"
 	"sync"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -240,7 +241,13 @@ func (txPool *shardedTxPool) removeTx(txHash []byte, cacheID string) bool {
 
 // RemoveSetOfDataFromPool removes a bunch of transactions from the pool
 func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
+	timeStart := time.Now()
 	txPool.removeTxBulk(keys, cacheID)
+	duration := time.Since(timeStart)
+
+	if duration > 300*time.Millisecond {
+		log.Warn("RemoveSetOfDataFromPool", "duration", duration.Milliseconds())
+	}
 }
 
 // removeTxBulk removes a bunch of transactions from the pool

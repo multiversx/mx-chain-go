@@ -938,12 +938,12 @@ func (sp *shardProcessor) CommitBlock(
 	sp.cleanupPools(headerHandler)
 	timing = append(timing, time.Now())
 
-	logTimings(timing)
+	logTimings("CommitBlock", timing)
 
 	return nil
 }
 
-func logTimings(timings []time.Time) {
+func logTimings(text string, timings []time.Time) {
 	totalDuration := timings[len(timings)-1].UnixNano() - timings[0].UnixNano()
 
 	if time.Duration(totalDuration) > time.Second {

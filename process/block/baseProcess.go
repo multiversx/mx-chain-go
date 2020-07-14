@@ -692,15 +692,21 @@ func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandl
 		return process.ErrWrongTypeAssertion
 	}
 
+	timing := make([]time.Time, 0)
+	timing = append(timing, time.Now())
 	err := bp.txCoordinator.RemoveBlockDataFromPool(body)
 	if err != nil {
 		return err
 	}
 
+	timing = append(timing, time.Now())
 	err = bp.blockProcessor.removeStartOfEpochBlockDataFromPools(headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
+	timing = append(timing, time.Now())
+
+	logTimings("removeBlockDataFromPools", timing)
 
 	return nil
 }
