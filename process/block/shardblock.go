@@ -949,7 +949,12 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			break
 		}
 
-		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(hdr.GetPrevHash(), sp.marshalizer, sp.store)
+		prevHeader, errNotCritical := process.GetShardHeader(
+			hdr.GetPrevHash(),
+			sp.dataPool.Headers(),
+			sp.marshalizer,
+			sp.store,
+		)
 		if errNotCritical != nil {
 			log.Debug("could not get shard header from storage")
 			return
@@ -1040,8 +1045,9 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {
 		}
 
 		shouldRevertChain = true
-		prevHeader, err := process.GetShardHeaderFromStorage(
+		prevHeader, err := process.GetShardHeader(
 			currentHeader.GetPrevHash(),
+			sp.dataPool.Headers(),
 			sp.marshalizer,
 			sp.store,
 		)
