@@ -23,7 +23,7 @@ func createTestArgument() discovery.ArgKadDht {
 		Host:                 &mock.ConnectableHostStub{},
 		KddSharder:           &mock.SharderStub{},
 		PeersRefreshInterval: time.Second,
-		RandezVous:           "/erd/test/0.0.0",
+		ProtocolID:           "/erd/test/0.0.0",
 		InitialPeersList:     []string{"peer1", "peer2"},
 		BucketSize:           100,
 		RoutingTableRefresh:  5 * time.Second,
