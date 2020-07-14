@@ -6,7 +6,7 @@ COPY . .
 RUN GO111MODULE=on go mod vendor
 #Elrond node
 WORKDIR /go/elrond-go/cmd/node
-RUN go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
+RUN go build -i -v -ldflags="-X main.appVersion=test-errors"
 RUN cp /go/pkg/mod/github.com/!elrond!network/arwen-wasm-vm@$(cat /go/elrond-go/go.mod | grep arwen-wasm-vm | sed 's/.* //')/wasmer/libwasmer_linux_amd64.so /lib/libwasmer_linux_amd64.so
 WORKDIR /go/elrond-go
 RUN go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@$(cat /go/elrond-go/go.mod | grep arwen-wasm-vm | sed 's/.* //')
