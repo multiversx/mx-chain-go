@@ -25,6 +25,11 @@ func (v *validityAttester) CheckBlockAgainstRounder(_ data.HeaderHandler) error 
 	return nil
 }
 
+// CheckBlockAgainstWhitelist -
+func (v *validityAttester) CheckBlockAgainstWhitelist(_ process.InterceptedData) bool {
+	return false
+}
+
 // IsInterfaceNil -
 func (v *validityAttester) IsInterfaceNil() bool {
 	return v == nil
