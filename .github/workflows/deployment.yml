@@ -88,7 +88,7 @@ jobs:
             -metachain-consensus-group-size $METACHAIN_CONSENSUS_GROUP_SIZE \
             -num-of-observers-in-each-shard 1  \
             -num-of-observers-in-metachain 1 \
-            -chain-id ${{ github.sha }} \
+            -chain-id test-errors \
             -hysteresis $HYSTERESIS \
             -stake-type delegated
 
