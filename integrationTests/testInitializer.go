@@ -143,13 +143,13 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 }
 
 // CreateMessengerWithKadDhtAndProtocolID creates a new libp2p messenger with kad-dht peer discovery and peer ID
-func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, ProtocolID string) p2p.Messenger {
+func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID string) p2p.Messenger {
 	initialAddresses := make([]string, 0)
 	if len(initialAddr) > 0 {
 		initialAddresses = append(initialAddresses, initialAddr)
 	}
 	p2pConfig := createP2PConfig(initialAddresses)
-	p2pConfig.KadDhtPeerDiscovery.ProtocolID = ProtocolID
+	p2pConfig.KadDhtPeerDiscovery.ProtocolID = protocolID
 	arg := libp2p.ArgsNetworkMessenger{
 		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
