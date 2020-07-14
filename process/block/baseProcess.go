@@ -205,7 +205,6 @@ func (bp *baseProcessor) getRootHash() []byte {
 func (bp *baseProcessor) requestHeadersIfMissing(
 	sortedHdrs []data.HeaderHandler,
 	shardId uint32,
-	maxRound uint64,
 ) error {
 
 	prevHdr, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(shardId)
@@ -228,38 +227,19 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 			continue
 		}
 
-		hdrTooNew := currHdr.GetRound() > maxRound
-		if hdrTooNew {
-			isMaxLimitReached = true
-		}
-
-		if !bp.blockTracker.ShouldAddHeader(currHdr) {
-			isMaxLimitReached = true
-		}
-
-		roundsDiff := int64(maxRound) - int64(prevHdr.GetRound())
 		noncesDiff := int64(currHdr.GetNonce()) - int64(prevHdr.GetNonce())
-		minDiff := core.MinInt64(roundsDiff, noncesDiff)
-
-		if minDiff > 1 {
-			numNonces := uint64(minDiff) - 1
-			startNonce := prevHdr.GetNonce() + 1
-			endNonce := startNonce + numNonces
-
-			for j := startNonce; j < endNonce; j++ {
-				missingNonces = append(missingNonces, j)
-				if len(missingNonces) >= process.MaxHeaderRequestsAllowed {
-					isMaxLimitReached = true
-					break
-				}
-			}
-		}
-
-		if isMaxLimitReached {
+		addMissingNonces(noncesDiff, prevHdr.GetNonce(), missingNonces)
+		if len(missingNonces) >= process.MaxHeaderRequestsAllowed {
+			isMaxLimitReached = true
 			break
 		}
 
 		prevHdr = currHdr
+	}
+
+	if !isMaxLimitReached {
+		roundsDiff := bp.rounder.Index() - int64(prevHdr.GetRound())
+		addMissingNonces(roundsDiff, prevHdr.GetNonce(), missingNonces)
 	}
 
 	for _, nonce := range missingNonces {
@@ -267,6 +247,23 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	}
 
 	return nil
+}
+
+func addMissingNonces(diff int64, lastNonce uint64, missingNonces []uint64) {
+	if diff <= 1 {
+		return
+	}
+
+	numNonces := uint64(diff) - 1
+	startNonce := lastNonce + 1
+	endNonce := startNonce + numNonces
+
+	for nonce := startNonce; nonce < endNonce; nonce++ {
+		missingNonces = append(missingNonces, nonce)
+		if len(missingNonces) >= process.MaxHeaderRequestsAllowed {
+			break
+		}
+	}
 }
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {

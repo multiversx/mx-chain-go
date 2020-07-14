@@ -241,8 +241,8 @@ func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr *block.Header, body *bl
 	return sp.checkHeaderBodyCorrelation(hdr.MiniBlockHeaders, body)
 }
 
-func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing(round uint64) {
-	sp.checkAndRequestIfMetaHeadersMissing(round)
+func (sp *shardProcessor) CheckAndRequestIfMetaHeadersMissing() {
+	sp.checkAndRequestIfMetaHeadersMissing()
 }
 
 func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []byte) *hashAndHdr {
