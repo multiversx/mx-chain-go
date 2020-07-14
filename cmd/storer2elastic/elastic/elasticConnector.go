@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/config"
+	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader/disabled"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -53,8 +54,8 @@ func NewConnectorFactory(args ConnectorFactoryArgs) (*elasticSearchConnectorFact
 }
 
 // Create will create and return a new indexer database handler
-func (escf *elasticSearchConnectorFactory) Create() (indexer.DatabaseHandler, error) {
-	databaseHandlerArgs := indexer.ElasticSearchDatabaseArgs{
+func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
+	indexerArgs := indexer.ElasticIndexerArgs{
 		Url:                      escf.elasticConfig.URL,
 		UserName:                 escf.elasticConfig.Username,
 		Password:                 escf.elasticConfig.Password,
@@ -62,9 +63,12 @@ func (escf *elasticSearchConnectorFactory) Create() (indexer.DatabaseHandler, er
 		Hasher:                   escf.hasher,
 		AddressPubkeyConverter:   escf.addressPubKeyConverter,
 		ValidatorPubkeyConverter: escf.validatorPubKeyConverter,
+		NodesCoordinator:         disabled.NewNodesCoordinator(),
+		EpochStartNotifier:       disabled.NewEpochStartEventNotifier(),
+		Options:                  &indexer.Options{TxIndexingEnabled: true},
 	}
 
-	return indexer.NewElasticSearchDatabase(databaseHandlerArgs)
+	return indexer.NewElasticIndexer(indexerArgs)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

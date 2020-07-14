@@ -10,21 +10,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/config"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
+	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataindexer"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/elastic"
+	nodeConfigPackage "github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/urfave/cli"
 )
 
 type flags struct {
-	dbPathWithChainID string
-	configFilePath    string
-	numShards         int
-	timeout           int
+	dbPathWithChainID  string
+	configFilePath     string
+	nodeConfigFilePath string
+	numShards          int
+	timeout            int
 }
 
 var (
@@ -59,6 +64,14 @@ VERSION:
 		Destination: &flagsValues.dbPathWithChainID,
 	}
 
+	// nodeConfigFilePathFlag defines a flag which holds the configuration file path
+	nodeConfigFilePathFlag = cli.StringFlag{
+		Name:        "node-config",
+		Usage:       "This string file specifies the `filepath` for the node's toml configuration file",
+		Value:       "../node/config/config.toml",
+		Destination: &flagsValues.nodeConfigFilePath,
+	}
+
 	// numOfShardsFlag defines the flag which holds the number of shards
 	numOfShardsFlag = cli.IntFlag{
 		Name:        "num-shards",
@@ -82,6 +95,7 @@ VERSION:
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
 	shardCoordinator         sharding.Coordinator
+	nodeConfig               nodeConfigPackage.Config
 	addressPubKeyConverter   core.PubkeyConverter
 	validatorPubKeyConverter core.PubkeyConverter
 )
@@ -107,12 +121,13 @@ func main() {
 func initCliFlags() {
 	cliApp = cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
-	cliApp.Name = "Elrond LevelDB to Elastic Search App"
+	cliApp.Name = "Elrond storer to Elastic Search App"
 	cliApp.Version = fmt.Sprintf("%s/%s/%s-%s", "1.0.0", runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	cliApp.Usage = "Elrond storer2elastic application is used to index all data inside storers to elastic search"
 	cliApp.Flags = []cli.Flag{
 		dbPathWithChainIDFlag,
 		configFilePathFlag,
+		nodeConfigFilePathFlag,
 		numOfShardsFlag,
 		timeoutFlag,
 	}
@@ -130,8 +145,9 @@ func startLvlDb2Elastic(ctx *cli.Context) error {
 	var err error
 	shardCoordinator, err = sharding.NewMultiShardCoordinator(uint32(flagsValues.numShards), 0)
 	if err != nil {
-		panic("cannot create shard coordinator: " + err.Error())
+		return err
 	}
+
 	configuration := &config.Config{}
 	err = core.LoadTomlFile(configuration, flagsValues.configFilePath)
 	if err != nil {
@@ -142,6 +158,14 @@ func startLvlDb2Elastic(ctx *cli.Context) error {
 	}
 	if ctx.IsSet(timeoutFlag.Name) {
 		configuration.General.Timeout = ctx.GlobalInt(timeoutFlag.Name)
+	}
+	if ctx.IsSet(nodeConfigFilePathFlag.Name) {
+		configuration.General.NodeConfigFilePath = ctx.GlobalString(nodeConfigFilePathFlag.Name)
+	}
+
+	err = core.LoadTomlFile(&nodeConfig, configuration.General.NodeConfigFilePath)
+	if err != nil {
+		return err
 	}
 
 	elasticConnectorFactoryArgs := elastic.ConnectorFactoryArgs{
@@ -157,41 +181,36 @@ func startLvlDb2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
-	_, _ = elasticConnectorFactory.Create()
-	//if err != nil {
-	//	return fmt.Errorf("error connecting to elastic: %w", err)
-	//}
+	elasticIndexer, err := elasticConnectorFactory.Create()
+	if err != nil {
+		return fmt.Errorf("error connecting to elastic: %w", err)
+	}
 
-	dbReader, err := databasereader.NewDatabaseReader(configuration.General.DBPathWithChainID, marshalizer)
+	// TODO: maybe use custom configs from node config instead of a general configuration
+	generalDBConfig := config.DBConfig{
+		Type:              string(storageUnit.LvlDBSerial),
+		BatchDelaySeconds: 2,
+		MaxBatchSize:      30000,
+		MaxOpenFiles:      20,
+	}
+	persisterFactory := factory.NewPersisterFactory(nodeConfigPackage.DBConfig(generalDBConfig))
+	dbReader, err := databasereader.NewDatabaseReader(configuration.General.DBPathWithChainID, marshalizer, persisterFactory)
 	if err != nil {
 		return err
 	}
 
-	records, err := dbReader.GetDatabaseInfo()
+	dataIndexer, err := dataindexer.New(elasticIndexer, dbReader, shardCoordinator, marshalizer)
 	if err != nil {
 		return err
 	}
 
-	for _, db := range records {
-		log.Info("database info", "epoch", db.Epoch, "shard", db.Shard)
-	}
-
-	hdrs, err := dbReader.GetHeaders(records[0])
+	err = dataIndexer.Index(configuration.General.Timeout)
 	if err != nil {
 		return err
-	}
-	for _, hdr := range hdrs {
-		fmt.Println(hdr.GetEpoch())
+	} else {
+		log.Info("indexing finished")
 	}
 
-	fmt.Println("mini blocks")
-	mbs, err := dbReader.GetMiniBlocks(records[0])
-	if err != nil {
-		return err
-	}
-	for _, mb := range mbs {
-		fmt.Println(mb.Type)
-	}
 	waitForUserToTerminateApp()
 
 	return nil

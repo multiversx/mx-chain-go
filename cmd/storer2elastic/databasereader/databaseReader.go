@@ -2,31 +2,24 @@ package databasereader
 
 import (
 	"errors"
-	"fmt"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
-	leveldb2 "github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 var log = logger.GetOrCreate("databasereader")
 
 const shardBlocksStorer = "BlockHeaders"
 const metaHeadersStorer = "MetaBlock"
-const miniBlockStorer = "MiniBlocks"
-const maxOpenFiles = 100
 
 type DatabaseInfo struct {
 	Epoch uint32
@@ -36,21 +29,26 @@ type DatabaseInfo struct {
 type databaseReader struct {
 	directoryReader   storage.DirectoryReaderHandler
 	marshalizer       marshal.Marshalizer
+	persisterFactory  storage.PersisterFactory
 	dbPathWithChainID string
 }
 
 // NewDatabaseReader will return a new instance of databaseReader
-func NewDatabaseReader(dbFilePath string, marshalizer marshal.Marshalizer) (*databaseReader, error) {
+func NewDatabaseReader(dbFilePath string, marshalizer marshal.Marshalizer, persisterFactory storage.PersisterFactory) (*databaseReader, error) {
 	if len(dbFilePath) == 0 {
 		return nil, ErrEmptyDbFilePath
 	}
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
+	if check.IfNil(persisterFactory) {
+		return nil, ErrNilPersisterFactory
+	}
 
 	return &databaseReader{
 		directoryReader:   factory.NewDirectoryReader(),
 		marshalizer:       marshalizer,
+		persisterFactory:  persisterFactory,
 		dbPathWithChainID: dbFilePath,
 	}, nil
 }
@@ -90,6 +88,10 @@ func (dr *databaseReader) GetDatabaseInfo() ([]*DatabaseInfo, error) {
 	if len(dbs) == 0 {
 		return nil, errors.New("no database found")
 	}
+
+	sort.Slice(dbs, func(i, j int) bool {
+		return dbs[i].Epoch < dbs[j].Epoch
+	})
 
 	return dbs, nil
 }
@@ -134,118 +136,7 @@ func (dr *databaseReader) getShardDirectoriesForEpoch(dirEpoch string) ([]uint32
 	return shardIDs, nil
 }
 
-// TODO : finish
-
-func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler, error) {
-	hdrStorer := shardBlocksStorer
-	if dbInfo.Shard == core.MetachainShardId {
-		hdrStorer = metaHeadersStorer
-	}
-
-	shardIDStr := fmt.Sprintf("%d", dbInfo.Shard)
-	if shardIDStr == fmt.Sprintf("%d", core.MetachainShardId) {
-		shardIDStr = "metachain"
-	}
-	persisterPath := filepath.Join(dr.dbPathWithChainID, fmt.Sprintf("Epoch_%d", dbInfo.Epoch), fmt.Sprintf("Shard_%s", shardIDStr), hdrStorer)
-	options := &opt.Options{
-		// disable internal cache
-		BlockCacheCapacity:     -1,
-		OpenFilesCacheCapacity: maxOpenFiles,
-	}
-	lvlDb, err := leveldb2.OpenFile(persisterPath, options)
-	if err != nil {
-		return nil, err
-	}
-
-	baseLvlDb := leveldb.BaseLevelDb{DB: lvlDb}
-	records := make([]core.KeyValueHolder, 0)
-	recordsChannel := baseLvlDb.Iterate()
-
-	for rec := range recordsChannel {
-		records = append(records, rec)
-	}
-
-	hdrs := make([]data.HeaderHandler, 0)
-	for _, rec := range records {
-		hdrBytes := rec.Value()
-		var hdr data.HeaderHandler
-		var errUmarshal error
-		if hdrStorer == shardBlocksStorer {
-			hdr, errUmarshal = dr.unmarshalShardHeader(hdrBytes)
-		} else {
-			hdr, errUmarshal = dr.unmarshalMetaBlock(hdrBytes)
-		}
-		if errUmarshal != nil {
-			log.Warn("error unmarshalling header", "error", errUmarshal)
-			continue
-		}
-
-		hdrs = append(hdrs, hdr)
-	}
-
-	if len(hdrs) == 0 {
-		return nil, errors.New("no header")
-	}
-	return hdrs, nil
-}
-
-func (dr *databaseReader) unmarshalShardHeader(hdrBytes []byte) (*block.Header, error) {
-	blck := &block.Header{}
-	err := dr.marshalizer.Unmarshal(blck, hdrBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return blck, nil
-}
-
-func (dr *databaseReader) unmarshalMetaBlock(hdrBytes []byte) (*block.MetaBlock, error) {
-	blck := &block.MetaBlock{}
-	err := dr.marshalizer.Unmarshal(blck, hdrBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return blck, nil
-}
-
-func (dr *databaseReader) GetMiniBlocks(dbInfo *DatabaseInfo) ([]*block.MiniBlock, error) {
-	hdrStorer := miniBlockStorer
-
-	shardIDStr := fmt.Sprintf("%d", dbInfo.Shard)
-	if shardIDStr == fmt.Sprintf("%d", core.MetachainShardId) {
-		shardIDStr = "metachain"
-	}
-	persisterPath := filepath.Join(dr.dbPathWithChainID, fmt.Sprintf("Epoch_%d", dbInfo.Epoch), fmt.Sprintf("Shard_%s", shardIDStr), hdrStorer)
-	options := &opt.Options{
-		// disable internal cache
-		BlockCacheCapacity:     -1,
-		OpenFilesCacheCapacity: maxOpenFiles,
-	}
-	lvlDb, err := leveldb2.OpenFile(persisterPath, options)
-	if err != nil {
-		return nil, err
-	}
-
-	baseLvlDb := leveldb.BaseLevelDb{DB: lvlDb}
-	records := make([]core.KeyValueHolder, 0)
-	recordsChannel := baseLvlDb.Iterate()
-
-	for rec := range recordsChannel {
-		records = append(records, rec)
-	}
-
-	miniBlocks := make([]*block.MiniBlock, 0)
-	for _, rec := range records {
-		mb := &block.MiniBlock{}
-		err := dr.marshalizer.Unmarshal(mb, rec.Value())
-		if err != nil {
-			log.Warn("cannot unmarshal miniblock", "error", err)
-			continue
-		}
-
-		miniBlocks = append(miniBlocks, mb)
-	}
-
-	return miniBlocks, nil
+// IsInterfaceNil returns true if there is no value under the interface
+func (dr *databaseReader) IsInterfaceNil() bool {
+	return dr == nil
 }

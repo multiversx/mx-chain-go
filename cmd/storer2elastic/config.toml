@@ -1,6 +1,8 @@
 [general]
     dbPathWithChainID = "../../db/testnet-vali"
+    nodeConfigPath = "../node/config/config.toml"
     timeout = 200 #number of seconds to wait for indexing all the data
+    numShards = 2
 
 [elasticSearch]
     url        = "http://localhost:9200"
