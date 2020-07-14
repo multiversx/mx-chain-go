@@ -354,34 +354,20 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body *block.Body) erro
 	}
 
 	separatedBodies := tc.separateBodyByType(body)
-
 	var errFound error
-	errMutex := sync.Mutex{}
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
-		go func(blockType block.Type, blockBody *block.Body) {
-			preproc := tc.getPreProcessor(blockType)
-			if check.IfNil(preproc) {
-				wg.Done()
-				return
-			}
+		preproc := tc.getPreProcessor(key)
+		if check.IfNil(preproc) {
+			continue
+		}
 
-			err := preproc.RemoveTxBlockFromPools(blockBody, tc.miniBlockPool)
-			if err != nil {
-				log.Trace("RemoveTxBlockFromPools", "error", err.Error())
-
-				errMutex.Lock()
-				errFound = err
-				errMutex.Unlock()
-			}
-			wg.Done()
-		}(key, value)
+		err := preproc.RemoveTxBlockFromPools(value, tc.miniBlockPool)
+		if err != nil {
+			log.Trace("RemoveTxBlockFromPools", "error", err.Error())
+			errFound = err
+		}
 	}
-
-	wg.Wait()
 
 	return errFound
 }

@@ -741,6 +741,8 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	timing := make([]time.Time, 0)
+	timing = append(timing, time.Now())
 	sp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 
 	log.Debug("started committing block",
@@ -749,6 +751,7 @@ func (sp *shardProcessor) CommitBlock(
 		"nonce", headerHandler.GetNonce(),
 	)
 
+	timing = append(timing, time.Now())
 	err = sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
 		return err
@@ -765,6 +768,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	timing = append(timing, time.Now())
 	if header.IsStartOfEpochBlock() {
 		sp.epochStartTrigger.SetProcessed(header, bodyHandler)
 	}
@@ -776,6 +780,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerHash := sp.hasher.Compute(string(marshalizedHeader))
 
+	timing = append(timing, time.Now())
 	sp.saveShardHeader(header, headerHash, marshalizedHeader)
 
 	body, ok := bodyHandler.(*block.Body)
@@ -784,8 +789,10 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	timing = append(timing, time.Now())
 	sp.saveBody(body)
 
+	timing = append(timing, time.Now())
 	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
 		return err
@@ -796,16 +803,19 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	timing = append(timing, time.Now())
 	selfNotarizedHeaders, selfNotarizedHeadersHashes, err := sp.getHighestHdrForOwnShardFromMetachain(processedMetaHdrs)
 	if err != nil {
 		return err
 	}
 
+	timing = append(timing, time.Now())
 	err = sp.saveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	if err != nil {
 		return err
 	}
 
+	timing = append(timing, time.Now())
 	err = sp.commitAll()
 	if err != nil {
 		return err
@@ -819,24 +829,30 @@ func (sp *shardProcessor) CommitBlock(
 		"hash", headerHash,
 	)
 
+	timing = append(timing, time.Now())
 	errNotCritical := sp.updateCrossShardInfo(processedMetaHdrs)
 	if errNotCritical != nil {
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
 	}
 
+	timing = append(timing, time.Now())
 	errNotCritical = sp.forkDetector.AddHeader(header, headerHash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	if errNotCritical != nil {
 		log.Debug("forkDetector.AddHeader", "error", errNotCritical.Error())
 	}
 
+	timing = append(timing, time.Now())
 	currentHeader, currentHeaderHash := getLastSelfNotarizedHeaderByItself(sp.blockChain)
 	sp.blockTracker.AddSelfNotarizedHeader(sp.shardCoordinator.SelfId(), currentHeader, currentHeaderHash)
 
+	timing = append(timing, time.Now())
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain()
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
+	timing = append(timing, time.Now())
 	sp.updateState(selfNotarizedHeaders, header)
 
+	timing = append(timing, time.Now())
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
 		"nonce", highestFinalBlockNonce,
@@ -845,12 +861,16 @@ func (sp *shardProcessor) CommitBlock(
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
+	timing = append(timing, time.Now())
 	err = sp.blockChain.SetCurrentBlockHeader(header)
 	if err != nil {
 		return err
 	}
 
+	timing = append(timing, time.Now())
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+
+	timing = append(timing, time.Now())
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
@@ -858,6 +878,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	timing = append(timing, time.Now())
 	saveMetricsForACommittedBlock(
 		sp.nodesCoordinator,
 		sp.appStatusHandler,
@@ -867,6 +888,7 @@ func (sp *shardProcessor) CommitBlock(
 		header,
 	)
 
+	timing = append(timing, time.Now())
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: header.GetShardID(),
 		Epoch:   header.GetEpoch(),
@@ -887,6 +909,7 @@ func (sp *shardProcessor) CommitBlock(
 		epochStartTriggerConfigKey: epochStartKey,
 	}
 
+	timing = append(timing, time.Now())
 	sp.prepareDataForBootStorer(args)
 
 	// write data to log
@@ -905,14 +928,30 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
+	timing = append(timing, time.Now())
 	errNotCritical = sp.removeBlockDataFromPools(headerHandler, bodyHandler)
 	if errNotCritical != nil {
 		log.Debug("removeBlockDataFromPools", "error", errNotCritical.Error())
 	}
 
+	timing = append(timing, time.Now())
 	sp.cleanupPools(headerHandler)
+	timing = append(timing, time.Now())
+
+	logTimings(timing)
 
 	return nil
+}
+
+func logTimings(timings []time.Time) {
+	totalDuration := timings[len(timings)-1].UnixNano() - timings[0].UnixNano()
+
+	if time.Duration(totalDuration) > time.Second {
+		for i := 1; i < len(timings); i++ {
+			delta := timings[i].UnixNano() - timings[i-1].UnixNano()
+			log.Warn("commit time", fmt.Sprintf("delta[%d]", i), delta)
+		}
+	}
 }
 
 func (sp *shardProcessor) displayPoolsInfo() {
