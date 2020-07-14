@@ -1172,13 +1172,6 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 		return
 	}
 
-	if headerHandler.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
-		return
-	}
-	if headerHandler.GetRound() <= lastCrossNotarizedHeader.GetRound() {
-		return
-	}
-
 	isHeaderOutOfRequestRange := headerHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
 	if isHeaderOutOfRequestRange {
 		return
