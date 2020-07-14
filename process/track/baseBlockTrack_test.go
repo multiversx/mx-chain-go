@@ -682,17 +682,7 @@ func TestShouldAddHeader_ShouldWork(t *testing.T) {
 	assert.False(t, sbt.ShouldAddHeader(&block.MetaBlock{Nonce: maxNumHeadersToKeepPerShard + 1}))
 }
 
-func TestShouldAddHeaderForShard_ShouldReturnFalseWhenGetFirstNotarizedHeaderErr(t *testing.T) {
-	t.Parallel()
-
-	shardArguments := CreateShardTrackerMockArguments()
-	sbt, _ := track.NewShardBlockTrack(shardArguments)
-
-	result := sbt.ShouldAddHeaderForCrossShard(&block.Header{Nonce: uint64(sbt.GetMaxNumHeadersToKeepPerShard()), ShardID: 2})
-	assert.False(t, result)
-}
-
-func TestShouldAddHeaderForShard_ShouldReturnFalseWhenGeLastNotarizedHeaderErr(t *testing.T) {
+func TestShouldAddHeaderForShard_ShouldReturnFalseWhenGetLastNotarizedHeaderErr(t *testing.T) {
 	t.Parallel()
 
 	shardArguments := CreateShardTrackerMockArguments()
