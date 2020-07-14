@@ -132,7 +132,12 @@ func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() string {
 	metrics := sm.StatusMetricsMapWithoutP2P()
 	stringBuilder := strings.Builder{}
 	for key, value := range metrics {
-		stringBuilder.WriteString(fmt.Sprintf("%s %v\n", key, value))
+		_, isUint64 := value.(uint64)
+		_, isInt64 := value.(int64)
+		isNumericValue := isUint64 || isInt64
+		if isNumericValue {
+			stringBuilder.WriteString(fmt.Sprintf("%s %v\n", key, value))
+		}
 	}
 
 	return stringBuilder.String()
