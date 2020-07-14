@@ -228,7 +228,9 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		}
 
 		noncesDiff := int64(currHdr.GetNonce()) - int64(prevHdr.GetNonce())
-		addMissingNonces(noncesDiff, prevHdr.GetNonce(), missingNonces)
+		maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - len(missingNonces)
+		nonces := addMissingNonces(noncesDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
+		missingNonces = append(missingNonces, nonces...)
 		if len(missingNonces) >= process.MaxHeaderRequestsAllowed {
 			isMaxLimitReached = true
 			break
@@ -238,8 +240,11 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	}
 
 	if !isMaxLimitReached {
-		roundsDiff := bp.rounder.Index() - int64(prevHdr.GetRound())
-		addMissingNonces(roundsDiff, prevHdr.GetNonce(), missingNonces)
+		lastRound := bp.rounder.Index() - 1
+		roundsDiff := lastRound - int64(prevHdr.GetRound())
+		maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - len(missingNonces)
+		nonces := addMissingNonces(roundsDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
+		missingNonces = append(missingNonces, nonces...)
 	}
 
 	for _, nonce := range missingNonces {
@@ -249,9 +254,11 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	return nil
 }
 
-func addMissingNonces(diff int64, lastNonce uint64, missingNonces []uint64) {
-	if diff <= 1 {
-		return
+func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uint64 {
+	missingNonces := make([]uint64, 0)
+
+	if diff < 2 {
+		return missingNonces
 	}
 
 	numNonces := uint64(diff) - 1
@@ -260,10 +267,12 @@ func addMissingNonces(diff int64, lastNonce uint64, missingNonces []uint64) {
 
 	for nonce := startNonce; nonce < endNonce; nonce++ {
 		missingNonces = append(missingNonces, nonce)
-		if len(missingNonces) >= process.MaxHeaderRequestsAllowed {
+		if len(missingNonces) >= maxNumNoncesToAdd {
 			break
 		}
 	}
+
+	return missingNonces
 }
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {

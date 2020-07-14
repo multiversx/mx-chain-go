@@ -195,6 +195,10 @@ func (bp *baseProcessor) SetHeaderValidator(validator process.HeaderConstruction
 	bp.headerValidator = validator
 }
 
+func (bp *baseProcessor) RequestHeadersIfMissing(sortedHdrs []data.HeaderHandler, shardId uint32) error {
+	return bp.requestHeadersIfMissing(sortedHdrs, shardId)
+}
+
 func (mp *metaProcessor) SetShardBlockFinality(val uint32) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	mp.shardBlockFinality = val
