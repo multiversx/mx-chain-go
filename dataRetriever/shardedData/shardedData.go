@@ -173,9 +173,9 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
 
 // ImmunizeSetOfDataAgainstEviction  marks the items as non-evictable
 func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
-	store := sd.getOrCreateShardStoreWithLock(cacheID)
-	numNow, numFuture := store.cache.ImmunizeKeys(keys)
-	log.Debug("shardedData.ImmunizeSetOfDataAgainstEviction()", "name", sd.name, "cacheID", cacheID, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
+	//store := sd.getOrCreateShardStoreWithLock(cacheID)
+	//numNow, numFuture := store.cache.ImmunizeKeys(keys)
+	//log.Debug("shardedData.ImmunizeSetOfDataAgainstEviction()", "name", sd.name, "cacheID", cacheID, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
 }
 
 // RemoveData will remove data hash from the corresponding shard store
