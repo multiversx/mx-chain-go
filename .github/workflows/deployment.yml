@@ -78,7 +78,7 @@ jobs:
 
           docker run \
             -v "/home/runner/work/elrond-go/elrond-go/elrond-k8s-testnet/filegenConfig/:/data/" \
-            elrondnetwork/elrond-go-filegen \
+            elrondnetwork/elrond-go-filegen:latest \
             -num-of-shards $NUM_OF_SHARDS \
             -num-of-nodes-in-each-shard $NUM_NODES_SHARD \
             -total-supply 20000000000000000000000000 \
@@ -139,9 +139,7 @@ jobs:
 
           echo $NUM_NODES_TOTAL $NUM_OF_SHARDS
           ./kustomize edit set replicas elrond-node=24 observer-shard=2
+          ./kustomize edit set image elrondnetwork/elrond-go-node=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
+          ./kustomize edit set image elrondnetwork/elrond-go-seednode=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
           ./kustomize edit set namespace "$NAMESPACE"
           ./kustomize build ./ | kubectl -n "$NAMESPACE" apply -f -
-
-
-#          ./kustomize edit set image elrondnetwork/elrond-go-node=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
-#          ./kustomize edit set image elrondnetwork/elrond-go-seednode=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
