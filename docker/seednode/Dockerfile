@@ -13,5 +13,5 @@ FROM ubuntu:18.04
 COPY --from=builder /go/elrond-go/cmd/seednode /go/elrond-go/cmd/seednode
 
 WORKDIR /go/elrond-go/cmd/seednode/
-EXPOSE 10000
+EXPOSE 10000 8005
 ENTRYPOINT ["./seednode"]
