@@ -30,9 +30,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: fetch git info
-        run: echo $((git describe --all)| cut -c7-32)/$(git describe --tag --abbrev=32)
-
 #      https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#set-an-output-parameter-set-output
       - name: Build decission
         run: '(test -f .github/workflows/env && echo ::set-env name=build_env::true) || echo ENV testnet config does not exist'
@@ -56,7 +53,7 @@ jobs:
       - name: Prep Ubunut
         run: |
           sudo apt update
-          sudo apt install git bc -y
+          sudo apt install bc -y
 
       - name: Create Configs
         run: |
