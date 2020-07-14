@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -156,6 +157,9 @@ func (sd *shardedData) SearchFirstData(key []byte) (value interface{}, ok bool) 
 
 // RemoveSetOfDataFromPool removes a list of keys from the corresponding pool
 func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
+	sw := core.NewStopWatch()
+	sw.Start("remove")
+
 	store := sd.shardStore(cacheID)
 	if store == nil {
 		return
@@ -168,7 +172,9 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
 		}
 	}
 
-	log.Debug("shardedData.removeTxBulk()", "name", sd.name, "cacheID", cacheID, "numToRemove", len(keys), "numRemoved", numRemoved)
+	sw.Stop("remove")
+	duration := sw.GetMeasurement("remove")
+	log.Debug("shardedData.removeTxBulk()", "name", sd.name, "cacheID", cacheID, "numToRemove", len(keys), "numRemoved", numRemoved, "duration", duration)
 }
 
 // ImmunizeSetOfDataAgainstEviction  marks the items as non-evictable
