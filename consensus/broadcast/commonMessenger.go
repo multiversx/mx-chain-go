@@ -115,12 +115,7 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 }
 
 func (cm *commonMessenger) signMessage(message *consensus.Message) ([]byte, error) {
-	buff, err := cm.marshalizer.Marshal(message)
-	if err != nil {
-		return nil, err
-	}
-
-	signature, err := cm.singleSigner.Sign(cm.privateKey, buff)
+	signature, err := cm.singleSigner.Sign(cm.privateKey, message.OriginatorPid)
 	if err != nil {
 		return nil, err
 	}

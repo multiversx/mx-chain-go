@@ -510,16 +510,8 @@ func (wrk *Worker) checkSignature(cnsDta *consensus.Message) error {
 		return err
 	}
 
-	dataNoSig := *cnsDta
 	signature := cnsDta.Signature
-	dataNoSig.Signature = nil
-	dataNoSigString, err := wrk.marshalizer.Marshal(&dataNoSig)
-	if err != nil {
-		return err
-	}
-
-	err = wrk.singleSigner.Verify(pubKey, dataNoSigString, signature)
-	return err
+	return wrk.singleSigner.Verify(pubKey, cnsDta.OriginatorPid, signature)
 }
 
 func (wrk *Worker) executeReceivedMessages(cnsDta *consensus.Message) {

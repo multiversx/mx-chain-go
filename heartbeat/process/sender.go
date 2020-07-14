@@ -131,12 +131,7 @@ func (s *Sender) SendHeartbeat() error {
 		trimLengths(hb)
 	}
 
-	hbBytes, err := s.marshalizer.Marshal(hb)
-	if err != nil {
-		return err
-	}
-
-	hb.Signature, err = s.singleSigner.Sign(s.privKey, hbBytes)
+	hb.Signature, err = s.singleSigner.Sign(s.privKey, hb.Pid)
 	if err != nil {
 		return err
 	}

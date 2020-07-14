@@ -81,31 +81,6 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestCommonMessenger_SignMessageShouldErrWhenMarshalFail(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{
-		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-			return []byte(""), nil
-		},
-	}
-	marshalizerMock.Fail = true
-
-	cm, _ := broadcast.NewCommonMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
-
-	msg := &consensus.Message{}
-	_, err := cm.SignMessage(msg)
-	assert.Equal(t, err, mock.ErrMockMarshalizer)
-}
-
 func TestCommonMessenger_SignMessageShouldErrWhenSignFail(t *testing.T) {
 	err := errors.New("sign message error")
 	marshalizerMock := &mock.MarshalizerMock{}

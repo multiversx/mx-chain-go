@@ -1158,34 +1158,6 @@ func TestWorker_CheckSignatureShouldReturnPublicKeyFromByteArrayErr(t *testing.T
 	assert.Equal(t, err, err2)
 }
 
-func TestWorker_CheckSignatureShouldReturnMarshalizerErr(t *testing.T) {
-	t.Parallel()
-	wrk := *initWorker()
-	marshalizerMock := mock.MarshalizerMock{}
-	marshalizerMock.Fail = true
-	wrk.SetMarshalizer(marshalizerMock)
-	blk := &block.Body{}
-	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := consensus.NewConsensusMessage(
-		nil,
-		nil,
-		blkStr,
-		nil,
-		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
-		int(bls.MtBlockBody),
-		0,
-		chainID,
-		nil,
-		nil,
-		nil,
-		currentPid,
-	)
-	err := wrk.CheckSignature(cnsMsg)
-
-	assert.Equal(t, mock.ErrMockMarshalizer, err)
-}
-
 func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()

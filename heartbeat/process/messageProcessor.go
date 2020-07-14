@@ -85,14 +85,7 @@ func (mp *MessageProcessor) verifySignature(hbRecv *data.Heartbeat) error {
 		return err
 	}
 
-	copiedHeartbeat := *hbRecv
-	copiedHeartbeat.Signature = nil
-	buffCopiedHeartbeat, err := mp.marshalizer.Marshal(&copiedHeartbeat)
-	if err != nil {
-		return err
-	}
-
-	return mp.singleSigner.Verify(senderPubKey, buffCopiedHeartbeat, hbRecv.Signature)
+	return mp.singleSigner.Verify(senderPubKey, hbRecv.Pid, hbRecv.Signature)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
