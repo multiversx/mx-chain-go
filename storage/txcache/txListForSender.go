@@ -124,12 +124,12 @@ func (listForSender *txListForSender) getScoreParams() senderScoreParams {
 
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTransaction) (*list.Element, error) {
-	incomingNonce := incomingTx.Tx.GetNonce()
+	incomingNonce := incomingTx.Nonce
 	incomingGasPrice := incomingTx.Tx.GetGasPrice()
 
 	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
 		currentTx := element.Value.(*WrappedTransaction)
-		currentTxNonce := currentTx.Tx.GetNonce()
+		currentTxNonce := currentTx.Nonce
 		currentTxGasPrice := currentTx.Tx.GetGasPrice()
 
 		if incomingTx.sameAs(currentTx) {
@@ -182,7 +182,7 @@ func (listForSender *txListForSender) onRemovedListElement(element *list.Element
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTransaction) *list.Element {
 	txToFindHash := txToFind.TxHash
-	txToFindNonce := txToFind.Tx.GetNonce()
+	txToFindNonce := txToFind.Nonce
 
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(*WrappedTransaction)
@@ -194,7 +194,7 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 		}
 
 		// Optimization: stop search at this point, since the list is sorted by nonce
-		if value.Tx.GetNonce() > txToFindNonce {
+		if value.Nonce > txToFindNonce {
 			break
 		}
 	}
@@ -253,7 +253,7 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 		}
 
 		value := element.Value.(*WrappedTransaction)
-		txNonce := value.Tx.GetNonce()
+		txNonce := value.Nonce
 
 		if previousNonce > 0 && txNonce > previousNonce+1 {
 			listForSender.copyDetectedGap = true
@@ -345,7 +345,7 @@ func (listForSender *txListForSender) hasInitialGap() bool {
 		return false
 	}
 
-	firstTxNonce := firstTx.Tx.GetNonce()
+	firstTxNonce := firstTx.Nonce
 	accountNonce := listForSender.accountNonce.Get()
 	hasGap := firstTxNonce > accountNonce
 	return hasGap

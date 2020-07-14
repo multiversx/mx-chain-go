@@ -236,7 +236,7 @@ func (cache *TxCache) displaySendersSummary() {
 		lowestTxNonce := -1
 		lowestTx := sender.getLowestNonceTx()
 		if lowestTx != nil {
-			lowestTxNonce = int(lowestTx.Tx.GetNonce())
+			lowestTxNonce = int(lowestTx.Nonce)
 		}
 
 		_, _ = fmt.Fprintf(&builder, "[#%d (%d)] %s [%t / %d vs %d] txs = %d, !%d\n", i, score, address, accountNonceKnown, accountNonce, lowestTxNonce, numTxs, numFailedSelections)
