@@ -135,20 +135,20 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
-	randezVous1 := "/erd/kad/1.0.0"
-	randezVous2 := "/amony/kad/0.0.0"
+	protocolID1 := "/erd/kad/1.0.0"
+	protocolID2 := "/amony/kad/0.0.0"
 
 	peer1 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
 		integrationTests.GetConnectableAddress(advertiser),
-		randezVous1,
+		protocolID1,
 	)
 	peer2 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
 		integrationTests.GetConnectableAddress(advertiser),
-		randezVous1,
+		protocolID1,
 	)
 	peer3 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
 		integrationTests.GetConnectableAddress(advertiser),
-		randezVous2,
+		protocolID2,
 	)
 
 	peers := []p2p.Messenger{peer1, peer2, peer3}
