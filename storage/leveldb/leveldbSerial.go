@@ -18,7 +18,7 @@ var _ storage.Persister = (*SerialDB)(nil)
 
 // SerialDB holds a pointer to the leveldb database and the path to where it is stored.
 type SerialDB struct {
-	*BaseLevelDb
+	*baseLevelDb
 	path              string
 	maxBatchSize      int
 	batchDelaySeconds int
@@ -54,13 +54,13 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
 
-	bldb := &BaseLevelDb{
-		DB: db,
+	bldb := &baseLevelDb{
+		db: db,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	dbStore := &SerialDB{
-		BaseLevelDb:       bldb,
+		baseLevelDb:       bldb,
 		path:              path,
 		maxBatchSize:      maxBatchSize,
 		batchDelaySeconds: batchDelaySeconds,
@@ -248,7 +248,7 @@ func (s *SerialDB) Close() error {
 
 	s.cancel()
 
-	return s.DB.Close()
+	return s.db.Close()
 }
 
 // Remove removes the data associated to the given key
@@ -275,7 +275,7 @@ func (s *SerialDB) Destroy() error {
 
 	s.mutClosed.Lock()
 	s.closed = true
-	err := s.DB.Close()
+	err := s.db.Close()
 	s.mutClosed.Unlock()
 
 	if err != nil {

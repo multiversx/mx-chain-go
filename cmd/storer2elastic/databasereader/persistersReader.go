@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -31,11 +32,12 @@ func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler
 	}()
 
 	records := make([]core.KeyValueHolder, 0)
-	recordsChannel := hdrPersister.Iterate()
-
-	for rec := range recordsChannel {
-		records = append(records, rec)
+	recordsRangeHandler := func(key []byte, value []byte) bool {
+		records = append(records, keyValStorage.NewKeyValStorage(key, value))
+		return true
 	}
+
+	hdrPersister.RangeKeys(recordsRangeHandler)
 
 	hdrs := make([]data.HeaderHandler, 0)
 	for _, rec := range records {

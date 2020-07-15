@@ -68,18 +68,18 @@ func openOneTime(path string, options *opt.Options) (*leveldb.DB, error) {
 	return nil, errOpen
 }
 
-type BaseLevelDb struct {
-	DB *leveldb.DB
+type baseLevelDb struct {
+	db *leveldb.DB
 }
 
 // RangeKeys will call the handler function for each (key, value) pair
 // If the handler returns true, the iteration will continue, otherwise will stop
-func (bldb *BaseLevelDb) RangeKeys(handler func(key []byte, value []byte) bool) {
+func (bldb *baseLevelDb) RangeKeys(handler func(key []byte, value []byte) bool) {
 	if handler == nil {
 		return
 	}
 
-	iterator := bldb.DB.NewIterator(nil, nil)
+	iterator := bldb.db.NewIterator(nil, nil)
 	for {
 		if !iterator.Next() {
 			break
