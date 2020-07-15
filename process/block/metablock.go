@@ -275,7 +275,7 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	defer func() {
-		go mp.checkAndRequestIfShardHeadersMissing(header.Round)
+		go mp.checkAndRequestIfShardHeadersMissing()
 	}()
 
 	highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
@@ -490,11 +490,11 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 	return miniBlockShardsHashes, nil
 }
 
-func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing(round uint64) {
+func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing() {
 	orderedHdrsPerShard := mp.blockTracker.GetTrackedHeadersForAllShards()
 
 	for i := uint32(0); i < mp.shardCoordinator.NumberOfShards(); i++ {
-		err := mp.requestHeadersIfMissing(orderedHdrsPerShard[i], i, round)
+		err := mp.requestHeadersIfMissing(orderedHdrsPerShard[i], i)
 		if err != nil {
 			log.Debug("checkAndRequestIfShardHeadersMissing", "error", err.Error())
 			continue
@@ -1837,7 +1837,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 
 	var err error
 	defer func() {
-		go mp.checkAndRequestIfShardHeadersMissing(metaHdr.GetRound())
+		go mp.checkAndRequestIfShardHeadersMissing()
 	}()
 
 	sw.Start("createShardInfo")
