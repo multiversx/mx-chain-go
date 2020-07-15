@@ -71,6 +71,15 @@ func (listForSender *txListForSender) getTxHashesAsStrings() []string {
 	return hashesAsStrings(hashes)
 }
 
+func getTxHashesOfTxWrappersAsStrings(txs []*WrappedTransaction) []string {
+	hashes := make([]string, 0, len(txs))
+	for _, tx := range txs {
+		hashes = append(hashes, string(tx.TxHash))
+	}
+
+	return hashes
+}
+
 func hashesAsStrings(hashes [][]byte) []string {
 	result := make([]string, len(hashes))
 	for i := 0; i < len(hashes); i++ {

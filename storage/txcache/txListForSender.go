@@ -218,11 +218,12 @@ func (listForSender *txListForSender) RemoveSortedTransactions(txsToRemove []*Wr
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
+	numRemoved := 0
 	pointerInTxsToRemove := 0
 	pointerInTxs := listForSender.items.Front()
 
 	for {
-		// End of any list, end of loop
+		// End of any of the lists, therefore end of loop
 		if pointerInTxs == nil || pointerInTxsToRemove == len(txsToRemove) {
 			break
 		}
@@ -232,7 +233,6 @@ func (listForSender *txListForSender) RemoveSortedTransactions(txsToRemove []*Wr
 		txToRemove := txsToRemove[pointerInTxsToRemove]
 		txToRemoveNonce := txToRemove.Tx.GetNonce()
 		txToRemoveHash := txToRemove.TxHash
-
 		tx := pointerInTxs.Value.(*WrappedTransaction)
 		txNonce := tx.Tx.GetNonce()
 		txHash := tx.TxHash
@@ -241,18 +241,28 @@ func (listForSender *txListForSender) RemoveSortedTransactions(txsToRemove []*Wr
 			if bytes.Equal(txHash, txToRemoveHash) {
 				listForSender.items.Remove(pointerInTxs)
 				listForSender.onRemovedListElement(pointerInTxs)
+				numRemoved++
+
+				// Advance pointers in both lists, we continue removal
 				pointerInTxsToRemove++
+				pointerInTxs = nextInTxs
+				continue
 			}
-		} else if txNonce > txToRemoveNonce {
-			// Optimization: stop search at this point, since the list is sorted by nonce.
-			break
 		}
 
-		pointerInTxs = nextInTxs
+		// Continue to search "txToRemove" in "listForSender"
+		if txNonce <= txToRemoveNonce {
+			pointerInTxs = nextInTxs
+			continue
+		}
+
+		// "txToRemove" doesn't exist in "listForSender", let's try to remove the next one
+		pointerInTxsToRemove++
 	}
 
+	// We only trigger the score change in the end
 	listForSender.triggerScoreChange()
-	return pointerInTxsToRemove
+	return numRemoved
 }
 
 // IsEmpty checks whether the list is empty
