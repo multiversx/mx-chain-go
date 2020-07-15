@@ -36,12 +36,12 @@ func NewShardChainMessenger(
 	}
 
 	cm := &commonMessenger{
-		marshalizer:      args.Marshalizer,
-		hasher:           args.Hasher,
-		messenger:        args.Messenger,
-		privateKey:       args.PrivateKey,
-		shardCoordinator: args.ShardCoordinator,
-		singleSigner:     args.SingleSigner,
+		marshalizer:          args.Marshalizer,
+		hasher:               args.Hasher,
+		messenger:            args.Messenger,
+		privateKey:           args.PrivateKey,
+		shardCoordinator:     args.ShardCoordinator,
+		peerSignatureHandler: args.PeerSignatureHandler,
 	}
 
 	dbbArgs := &ArgsDelayedBlockBroadcaster{

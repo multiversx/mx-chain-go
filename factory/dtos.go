@@ -61,13 +61,14 @@ type TriesComponents struct {
 
 // CryptoComponents struct holds the crypto components
 type CryptoComponents struct {
-	TxSingleSigner      crypto.SingleSigner
-	SingleSigner        crypto.SingleSigner
-	MultiSigner         crypto.MultiSigner
-	BlockSignKeyGen     crypto.KeyGenerator
-	TxSignKeyGen        crypto.KeyGenerator
-	InitialPubKeys      map[uint32][]string
-	MessageSignVerifier vm.MessageSignVerifier
+	TxSingleSigner       crypto.SingleSigner
+	SingleSigner         crypto.SingleSigner
+	MultiSigner          crypto.MultiSigner
+	BlockSignKeyGen      crypto.KeyGenerator
+	TxSignKeyGen         crypto.KeyGenerator
+	InitialPubKeys       map[uint32][]string
+	MessageSignVerifier  vm.MessageSignVerifier
+	PeerSignatureHandler crypto.PeerSignatureHandler
 }
 
 // NetworkComponents struct holds the network components

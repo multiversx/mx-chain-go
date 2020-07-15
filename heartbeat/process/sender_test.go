@@ -21,12 +21,8 @@ func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 		PeerMessenger: &mock.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {},
 		},
-		SingleSigner: &mock.SinglesignStub{
-			SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
-				return nil, nil
-			},
-		},
-		PrivKey: &mock.PrivateKeyStub{},
+		PeerSignatureHandler: &mock.PeerSignatureHandler{},
+		PrivKey:              &mock.PrivateKeyStub{},
 		Marshalizer: &mock.MarshalizerStub{
 			MarshalHandler: func(obj interface{}) (i []byte, e error) {
 				return nil, nil
@@ -53,15 +49,15 @@ func TestNewSender_NilP2PMessengerShouldErr(t *testing.T) {
 	assert.Equal(t, heartbeat.ErrNilMessenger, err)
 }
 
-func TestNewSender_NilSingleSignerShouldErr(t *testing.T) {
+func TestNewSender_NilPeerSignatureHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHeartbeatSender()
-	arg.SingleSigner = nil
+	arg.PeerSignatureHandler = nil
 	sender, err := process.NewSender(arg)
 
 	assert.Nil(t, sender)
-	assert.Equal(t, heartbeat.ErrNilSingleSigner, err)
+	assert.Equal(t, heartbeat.ErrNilPeerSignatureHandler, err)
 }
 
 func TestNewSender_NilShardCoordinatorShouldErr(t *testing.T) {
@@ -195,12 +191,14 @@ func testSendHeartbeat(t *testing.T, pubKeyErr, signErr, marshalErr error) {
 		},
 	}
 
-	args.SingleSigner = &mock.SinglesignStub{
+	singleSigner := &mock.SinglesignStub{
 		SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
 			expectedErr = signErr
 			return nil, signErr
 		},
 	}
+	args.PeerSignatureHandler = &mock.PeerSignatureHandler{Signer: singleSigner}
+
 	args.Marshalizer = &mock.MarshalizerStub{
 		MarshalHandler: func(obj interface{}) (i []byte, e error) {
 			expectedErr = marshalErr
@@ -241,12 +239,14 @@ func TestSender_SendHeartbeatShouldWork(t *testing.T) {
 			}
 		},
 	}
-	arg.SingleSigner = &mock.SinglesignStub{
+	singleSigner := &mock.SinglesignStub{
 		SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
 			signCalled = true
 			return signature, nil
 		},
 	}
+	arg.PeerSignatureHandler = &mock.PeerSignatureHandler{Signer: singleSigner}
+
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
 			genPubKeyClled = true
@@ -310,12 +310,14 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 			}
 		},
 	}
-	arg.SingleSigner = &mock.SinglesignStub{
+	singleSigner := &mock.SinglesignStub{
 		SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
 			signCalled = true
 			return signature, nil
 		},
 	}
+	arg.PeerSignatureHandler = &mock.PeerSignatureHandler{Signer: singleSigner}
+
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
 			genPubKeyClled = true
@@ -392,12 +394,14 @@ func TestSender_SendHeartbeatAfterTriggerWithRecorededPayloadShouldWork(t *testi
 			}
 		},
 	}
-	arg.SingleSigner = &mock.SinglesignStub{
+	singleSigner := &mock.SinglesignStub{
 		SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
 			signCalled = true
 			return signature, nil
 		},
 	}
+	arg.PeerSignatureHandler = &mock.PeerSignatureHandler{Signer: singleSigner}
+
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
 			genPubKeyClled = true
