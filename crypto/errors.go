@@ -118,8 +118,14 @@ var ErrNilCacher = errors.New("nil cacher")
 // ErrNilSingleSigner is raised when a valid singleSigner is expected but nil used
 var ErrNilSingleSigner = errors.New("singleSigner is nil")
 
-// ErrPIDMissmatch signals that the pid from the message is different from the cached pid associated to a certain pk
-var ErrPIDMissmatch = errors.New("pid mismatch")
+// ErrPIDMismatch signals that the pid from the message is different from the cached pid associated to a certain pk
+var ErrPIDMismatch = errors.New("pid mismatch")
 
-// ErrSignatureMissmatch signals that the signature from the message is different from the cached signature associated to a certain pk
-var ErrSignatureMissmatch = errors.New("signature mismatch")
+// ErrSignatureMismatch signals that the signature from the message is different from the cached signature associated to a certain pk
+var ErrSignatureMismatch = errors.New("signature mismatch")
+
+// ErrInvalidPID signals that given PID is invalid
+var ErrInvalidPID = errors.New("invalid PID")
+
+// ErrInvalidSignature signals that the given signature is invalid
+var ErrInvalidSignature = errors.New("invalid signature")

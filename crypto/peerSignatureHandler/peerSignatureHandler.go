@@ -48,13 +48,26 @@ func NewPeerSignatureHandler(
 // VerifyPeerSignature verifies the signature associated with the public key. It first checks the cache for the public key,
 // and if it is not present, it will recompute the signature.
 func (psh *peerSignatureHandler) VerifyPeerSignature(pk []byte, pid core.PeerID, signature []byte) error {
+	if len(pk) == 0 {
+		return crypto.ErrInvalidPublicKey
+	}
+	if len(pid) == 0 {
+		return crypto.ErrInvalidPID
+	}
+	if len(signature) == 0 {
+		return crypto.ErrInvalidSignature
+	}
+
 	senderPubKey, err := psh.keygen.PublicKeyFromByteArray(pk)
 	if err != nil {
 		return err
 	}
 
-	retrievedPid, retrievedSig := psh.getBufferedPIDSignature(pk)
-	if retrievedPid == "" || retrievedSig == nil {
+	retrievedPID, retrievedSig := psh.getBufferedPIDSignature(pk)
+	newPidAndSig := pid != retrievedPID && !bytes.Equal(retrievedSig, signature)
+	shouldVerify := len(retrievedPID) == 0 || len(retrievedSig) == 0 || newPidAndSig
+
+	if shouldVerify {
 		err = psh.singleSigner.Verify(senderPubKey, pid.Bytes(), signature)
 		if err != nil {
 			return err
@@ -64,12 +77,12 @@ func (psh *peerSignatureHandler) VerifyPeerSignature(pk []byte, pid core.PeerID,
 		return nil
 	}
 
-	if retrievedPid != pid {
-		return crypto.ErrPIDMissmatch
+	if retrievedPID != pid {
+		return crypto.ErrPIDMismatch
 	}
 
 	if !bytes.Equal(retrievedSig, signature) {
-		return crypto.ErrSignatureMissmatch
+		return crypto.ErrSignatureMismatch
 	}
 
 	return nil
@@ -77,8 +90,31 @@ func (psh *peerSignatureHandler) VerifyPeerSignature(pk []byte, pid core.PeerID,
 
 // GetPeerSignature checks if the needed signature is not present in the buffer, and returns it.
 // If it is not present, the signature will be computed
-func (psh *peerSignatureHandler) GetPeerSignature(key crypto.PrivateKey, pid []byte) ([]byte, error) {
-	return psh.singleSigner.Sign(key, pid)
+func (psh *peerSignatureHandler) GetPeerSignature(privateKey crypto.PrivateKey, pid []byte) ([]byte, error) {
+	privateKeyBytes, err := privateKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	retrievedPID, retrievedSig := psh.getBufferedPIDSignature(privateKeyBytes)
+	newPid := core.PeerID(pid) != retrievedPID
+	shouldVerify := len(retrievedPID) == 0 || len(retrievedSig) == 0 || newPid
+
+	if shouldVerify {
+		signature, err := psh.singleSigner.Sign(privateKey, pid)
+		if err != nil {
+			return nil, err
+		}
+
+		psh.bufferPIDSignature(privateKeyBytes, core.PeerID(pid), signature)
+		return signature, nil
+	}
+
+	if retrievedPID != core.PeerID(pid) {
+		return nil, crypto.ErrPIDMismatch
+	}
+
+	return retrievedSig, nil
 }
 
 func (psh *peerSignatureHandler) bufferPIDSignature(pk []byte, pid core.PeerID, signature []byte) {
