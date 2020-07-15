@@ -57,6 +57,7 @@ iterateOverObservers() {
     for _ in $(seq $SHARD_OBSERVERCOUNT); do
       if [ $OBSERVER_INDEX -ne $SKIP_OBSERVER_IDX ]; then
         $callback $SHARD $OBSERVER_INDEX
+        sleep 0.2
       fi
       (( OBSERVER_INDEX++ ))
     done
@@ -67,6 +68,7 @@ iterateOverObservers() {
   for META_OBSERVER in $(seq $META_OBSERVERCOUNT); do
     if [ $OBSERVER_INDEX -ne $SKIP_OBSERVER_IDX ]; then
       $callback $SHARD $OBSERVER_INDEX
+      sleep 0.2
     fi
     (( OBSERVER_INDEX++ ))
   done
@@ -129,6 +131,7 @@ iterateOverValidators() {
     for _ in $(seq $SHARD_VALIDATORCOUNT); do
       if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
         $callback $SHARD $VALIDATOR_INDEX
+        sleep 0.2
       fi
       (( VALIDATOR_INDEX++ ))
     done
@@ -139,6 +142,7 @@ iterateOverValidators() {
   for _ in $(seq $META_VALIDATORCOUNT); do
     if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
       $callback $SHARD $VALIDATOR_INDEX
+      sleep 0.2
     fi
      (( VALIDATOR_INDEX++ ))
   done

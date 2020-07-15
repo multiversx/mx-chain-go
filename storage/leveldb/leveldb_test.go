@@ -1,6 +1,7 @@
 package leveldb_test
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -259,4 +260,59 @@ func TestDB_Destroy(t *testing.T) {
 	err := ldb.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
+}
+
+func TestDB_Iterate(t *testing.T) {
+	ldb := createLevelDb(t, 1, 1, 10)
+	defer func() {
+		_ = ldb.Close()
+	}()
+
+	keysVals := map[string][]byte{
+		"key1": []byte("value1"),
+		"key2": []byte("value2"),
+		"key3": []byte("value3"),
+		"key4": []byte("value4"),
+		"key5": []byte("value5"),
+		"key6": []byte("value6"),
+		"key7": []byte("value7"),
+	}
+
+	for key, val := range keysVals {
+		_ = ldb.Put([]byte(key), val)
+	}
+
+	time.Sleep(time.Second * 2)
+
+	recovered := make(map[string][]byte)
+
+	ch := ldb.Iterate()
+	for kv := range ch {
+		recovered[string(kv.Key())] = kv.Value()
+	}
+
+	assert.Equal(t, keysVals, recovered)
+}
+
+func TestDB_PutGetLargeValue(t *testing.T) {
+	t.Parallel()
+
+	buffLargeValue := make([]byte, 32*1000000) //equivalent to ~1000000 hashes
+	key := []byte("key")
+	_, _ = rand.Read(buffLargeValue)
+
+	ldb := createLevelDb(t, 1, 1, 10)
+	defer func() {
+		_ = ldb.Close()
+	}()
+
+	err := ldb.Put(key, buffLargeValue)
+	assert.Nil(t, err)
+
+	time.Sleep(time.Second * 2)
+
+	recovered, err := ldb.Get(key)
+	assert.Nil(t, err)
+
+	assert.Equal(t, buffLargeValue, recovered)
 }

@@ -17,9 +17,6 @@ var ErrEndOfFile = errors.New("end of file")
 // ErrNilDataWriter signals that data writer is nil
 var ErrNilDataWriter = errors.New("nil data writer")
 
-// ErrNilDataReader signals that data reader is nil
-var ErrNilDataReader = errors.New("nil data reader")
-
 // ErrInvalidFolderName signals that folder name is nil
 var ErrInvalidFolderName = errors.New("invalid folder name")
 
@@ -232,3 +229,9 @@ var ErrEmptyVersionString = errors.New("empty version string")
 
 // ErrNilTimeCache signals that a nil time cache was provided
 var ErrNilTimeCache = errors.New("nil time cache")
+
+// ErrMissingFile signals that a file is missing
+var ErrMissingFile = errors.New("missing file")
+
+// ErrKeyTypeMissMatch signals that key type was missmatch during import
+var ErrKeyTypeMissMatch = errors.New("key type missmatch while importing")

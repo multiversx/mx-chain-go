@@ -162,7 +162,7 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 
 	allShardHdrList := make([][]*block.Header, e.shardCoordinator.NumberOfShards())
 	for shardID := uint32(0); shardID < e.shardCoordinator.NumberOfShards(); shardID++ {
-		lastCrossNotarizedHeaderForShard, _, err := e.blockTracker.GetLastCrossNotarizedHeader(shardID)
+		lastCrossNotarizedHeaderForShard, hdrHash, err := e.blockTracker.GetLastCrossNotarizedHeader(shardID)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -170,11 +170,6 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 		shardHeader, ok := lastCrossNotarizedHeaderForShard.(*block.Header)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
-		}
-
-		hdrHash, err := core.CalculateHash(e.marshalizer, e.hasher, lastCrossNotarizedHeaderForShard)
-		if err != nil {
-			return nil, nil, err
 		}
 
 		firstPendingMetaHash, lastFinalizedMetaHash, currShardHdrList, err := e.lastFinalizedFirstPendingListHeadersForShard(shardHeader)

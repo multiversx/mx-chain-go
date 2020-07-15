@@ -23,6 +23,12 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		return
 	}
 
+	if latestData.Epoch < e.startEpoch {
+		e.baseData.storageExists = false
+		log.Warn("data is older then start epoch", "latestEpoch", latestData.Epoch, "startEpoch", e.startEpoch)
+		return
+	}
+
 	e.baseData.storageExists = true
 	e.baseData.lastEpoch = latestData.Epoch
 	e.baseData.shardId = latestData.ShardID
