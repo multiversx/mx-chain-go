@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
@@ -171,7 +172,7 @@ func TestGetTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	loadResponse(resp.Body, &txResp)
 
 	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
-	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), txResp.Error)
+	assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrTooManyRequests.Error()))
 	assert.Equal(t, string(shared.ReturnCodeSystemBusy), txResp.Code)
 	assert.Empty(t, txResp.Data)
 }
@@ -214,7 +215,7 @@ func TestSendTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	loadResponse(resp.Body, &txResp)
 
 	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
-	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), txResp.Error)
+	assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrTooManyRequests.Error()))
 	assert.Equal(t, string(shared.ReturnCodeSystemBusy), txResp.Code)
 	assert.Empty(t, txResp.Data)
 }
@@ -380,7 +381,7 @@ func TestSendMultipleTransactions_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	loadResponse(resp.Body, &txResp)
 
 	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
-	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), txResp.Error)
+	assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrTooManyRequests.Error()))
 	assert.Equal(t, string(shared.ReturnCodeSystemBusy), txResp.Code)
 	assert.Empty(t, txResp.Data)
 }
@@ -517,7 +518,7 @@ func startNodeServer(handler transaction.TxService) *gin.Engine {
 	ws.Use(cors.Default())
 	ginTransactionRoute := ws.Group("/transaction")
 	if handler != nil {
-		ginTransactionRoute.Use(middleware.WithTestingElrondFacade(handler))
+		ginTransactionRoute.Use(middleware.WithElrondFacade(handler))
 	}
 	transactionRoute, _ := wrapper.NewRouterWrapper("transaction", ginTransactionRoute, getRoutesConfig())
 	transaction.Routes(transactionRoute)

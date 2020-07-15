@@ -116,7 +116,7 @@ func startNodeServer(handler validator.ValidatorsStatisticsApiHandler) *gin.Engi
 	ws.Use(cors.Default())
 	ginValidatorRoute := ws.Group("/validator")
 	if handler != nil {
-		ginValidatorRoute.Use(middleware.WithTestingElrondFacade(handler))
+		ginValidatorRoute.Use(middleware.WithElrondFacade(handler))
 	}
 	validatorRoute, _ := wrapper.NewRouterWrapper("validator", ginValidatorRoute, getRoutesConfig())
 	validator.Routes(validatorRoute)

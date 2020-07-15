@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -74,10 +75,25 @@ type TxResponse struct {
 
 // Routes defines transaction related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodPost, "/send", SendTransaction)
+	router.RegisterHandler(
+		http.MethodPost,
+		"/send",
+		middleware.CreateEndpointThrottler(sendTransactionEndpoint),
+		SendTransaction,
+	)
 	router.RegisterHandler(http.MethodPost, "/cost", ComputeTransactionGasLimit)
-	router.RegisterHandler(http.MethodPost, "/send-multiple", SendMultipleTransactions)
-	router.RegisterHandler(http.MethodGet, "/:txhash", GetTransaction)
+	router.RegisterHandler(
+		http.MethodPost,
+		"/send-multiple",
+		middleware.CreateEndpointThrottler(sendMultipleTransactionsEndpoint),
+		SendMultipleTransactions,
+	)
+	router.RegisterHandler(
+		http.MethodGet,
+		"/:txhash",
+		middleware.CreateEndpointThrottler(getTransactionEndpoint),
+		GetTransaction,
+	)
 }
 
 // SendTransaction will receive a transaction from the client and propagate it for processing
@@ -93,24 +109,6 @@ func SendTransaction(c *gin.Context) {
 			},
 		)
 		return
-	}
-
-	endpointThrottler, ok := ef.GetThrottlerForEndpoint(sendTransactionEndpoint)
-	if ok {
-		if !endpointThrottler.CanProcess() {
-			c.JSON(
-				http.StatusTooManyRequests,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: errors.ErrTooManyRequests.Error(),
-					Code:  shared.ReturnCodeSystemBusy,
-				},
-			)
-			return
-		}
-
-		endpointThrottler.StartProcessing()
-		defer endpointThrottler.EndProcessing()
 	}
 
 	var gtx = SendTxRequest{}
@@ -203,24 +201,6 @@ func SendMultipleTransactions(c *gin.Context) {
 		return
 	}
 
-	endpointThrottler, ok := ef.GetThrottlerForEndpoint(sendMultipleTransactionsEndpoint)
-	if ok {
-		if !endpointThrottler.CanProcess() {
-			c.JSON(
-				http.StatusTooManyRequests,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: errors.ErrTooManyRequests.Error(),
-					Code:  shared.ReturnCodeSystemBusy,
-				},
-			)
-			return
-		}
-
-		endpointThrottler.StartProcessing()
-		defer endpointThrottler.EndProcessing()
-	}
-
 	var gtx []SendTxRequest
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
@@ -307,24 +287,6 @@ func GetTransaction(c *gin.Context) {
 			},
 		)
 		return
-	}
-
-	endpointThrottler, ok := ef.GetThrottlerForEndpoint(getTransactionEndpoint)
-	if ok {
-		if !endpointThrottler.CanProcess() {
-			c.JSON(
-				http.StatusTooManyRequests,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: errors.ErrTooManyRequests.Error(),
-					Code:  shared.ReturnCodeSystemBusy,
-				},
-			)
-			return
-		}
-
-		endpointThrottler.StartProcessing()
-		defer endpointThrottler.EndProcessing()
 	}
 
 	txhash := c.Param("txhash")

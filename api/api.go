@@ -66,7 +66,7 @@ func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
 }
 
 // Start will boot up the api and appropriate routes, handlers and validators
-func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, middleware MiddlewareProcessor) error {
+func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, processors ...MiddlewareProcessor) error {
 	var ws *gin.Engine
 	if !elrondFacade.RestAPIServerDebugMode() {
 		gin.DefaultWriter = &ginWriter{}
@@ -76,8 +76,12 @@ func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, mid
 	}
 	ws = gin.Default()
 	ws.Use(cors.Default())
-	if !check.IfNil(middleware) {
-		ws.Use(middleware.MiddlewareHandlerFunc())
+	for _, proc := range processors {
+		if check.IfNil(proc) {
+			continue
+		}
+
+		ws.Use(proc.MiddlewareHandlerFunc())
 	}
 
 	err := registerValidators()

@@ -123,7 +123,7 @@ func startNodeServer(handler network.FacadeHandler) *gin.Engine {
 	ws.Use(cors.Default())
 	networkRoutes := ws.Group("/network")
 	if handler != nil {
-		networkRoutes.Use(middleware.WithTestingElrondFacade(handler))
+		networkRoutes.Use(middleware.WithElrondFacade(handler))
 	}
 	networkRouteWrapper, _ := wrapper.NewRouterWrapper("network", networkRoutes, getRoutesConfig())
 	network.Routes(networkRouteWrapper)
