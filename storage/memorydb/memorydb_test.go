@@ -98,3 +98,32 @@ func TestDestroy(t *testing.T) {
 	err := mdb.Destroy()
 	assert.Nil(t, err, "no error expected but got %s", err)
 }
+
+func Test_RangeKeys(t *testing.T) {
+	t.Parallel()
+
+	mdb := memorydb.New()
+
+	keysVals := map[string][]byte{
+		"key1": []byte("value1"),
+		"key2": []byte("value2"),
+		"key3": []byte("value3"),
+		"key4": []byte("value4"),
+		"key5": []byte("value5"),
+		"key6": []byte("value6"),
+		"key7": []byte("value7"),
+	}
+
+	for key, val := range keysVals {
+		_ = mdb.Put([]byte(key), val)
+	}
+
+	recovered := make(map[string][]byte)
+
+	mdb.RangeKeys(func(key []byte, value []byte) bool {
+		recovered[string(key)] = value
+		return true
+	})
+
+	assert.Equal(t, keysVals, recovered)
+}

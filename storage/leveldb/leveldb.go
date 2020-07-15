@@ -23,7 +23,7 @@ var log = logger.GetOrCreate("storage/leveldb")
 
 // DB holds a pointer to the leveldb database and the path to where it is stored.
 type DB struct {
-	db                *leveldb.DB
+	*baseLevelDb
 	path              string
 	maxBatchSize      int
 	batchDelaySeconds int
@@ -56,8 +56,12 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
 
+	bldb := &baseLevelDb{
+		db: db,
+	}
+
 	dbStore := &DB{
-		db:                db,
+		baseLevelDb:       bldb,
 		path:              path,
 		maxBatchSize:      maxBatchSize,
 		batchDelaySeconds: batchDelaySeconds,

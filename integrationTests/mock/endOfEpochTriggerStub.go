@@ -147,6 +147,10 @@ func (e *EpochStartTriggerStub) Close() error {
 	return nil
 }
 
+// SetEpoch -
+func (e *EpochStartTriggerStub) SetEpoch(_ uint32) {
+}
+
 // IsInterfaceNil -
 func (e *EpochStartTriggerStub) IsInterfaceNil() bool {
 	return e == nil
