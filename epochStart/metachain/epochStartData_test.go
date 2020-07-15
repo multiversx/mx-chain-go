@@ -3,7 +3,6 @@ package metachain
 import (
 	"bytes"
 	"crypto/rand"
-	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -274,31 +273,6 @@ func TestEpochStartCreator_CreateEpochStartFromMetaBlockEpochIsNotStarted(t *tes
 
 	emptyEpochStart := block.EpochStart{}
 	assert.Equal(t, emptyEpochStart, *epStart)
-}
-
-func TestEpochStartCreator_CreateEpochStartFromMetaBlockHashComputeIssueShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("err computing hash")
-
-	arguments := createMockEpochStartCreatorArguments()
-	arguments.Marshalizer = &mock.MarshalizerStub{
-		// trigger an error on the Marshal method called from core's ComputeHash
-		MarshalCalled: func(obj interface{}) (i []byte, e error) {
-			return nil, expectedErr
-		},
-	}
-	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
-		IsEpochStartCalled: func() bool {
-			return true
-		},
-	}
-
-	epoch, _ := NewEpochStartData(arguments)
-
-	epStart, err := epoch.CreateEpochStartData()
-	assert.Nil(t, epStart)
-	assert.Equal(t, expectedErr, err)
 }
 
 func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {

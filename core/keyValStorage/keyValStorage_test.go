@@ -15,6 +15,6 @@ func TestNewKeyValStorage_GetKeyAndVal(t *testing.T) {
 
 	keyVal := keyValStorage.NewKeyValStorage(key, value)
 	assert.NotNil(t, keyVal)
-	assert.Equal(t, key, keyVal.GetKey())
-	assert.Equal(t, value, keyVal.GetValue())
+	assert.Equal(t, key, keyVal.Key())
+	assert.Equal(t, value, keyVal.Value())
 }

@@ -138,9 +138,11 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
-	err = inHdr.validityAttester.CheckBlockAgainstFinal(inHdr.HeaderHandler())
-	if err != nil {
-		return err
+	if !inHdr.validityAttester.CheckBlockAgainstWhitelist(inHdr) {
+		err = inHdr.validityAttester.CheckBlockAgainstFinal(inHdr.HeaderHandler())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = inHdr.validityAttester.CheckBlockAgainstRounder(inHdr.HeaderHandler())
