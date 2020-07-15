@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -34,6 +35,9 @@ type middleWare struct {
 	maxNumRequests      uint32
 	lastResetTimestamp  int64
 	resetFailedActionFn func(lastResetTimestamp int64, maxSecondsBetweenReset int64)
+
+	mutDebugRequests sync.Mutex
+	debugRequests    map[string]int
 }
 
 // NewMiddleware creates a new instance of a gin middleware
@@ -59,6 +63,7 @@ func NewMiddleware(
 		sourceRequests:     make(map[string]uint32),
 		maxNumRequests:     maxNumRequestsPerAddress,
 		lastResetTimestamp: time.Now().Unix(),
+		debugRequests:      make(map[string]int),
 	}
 	mw.resetFailedActionFn = mw.resetFailedAction
 
@@ -89,8 +94,12 @@ func (m *middleWare) MiddlewareHandlerFunc() gin.HandlerFunc {
 			return
 		}
 
+		path := c.Request.URL.Path
 		select {
 		case m.queue <- struct{}{}:
+			m.mutDebugRequests.Lock()
+			m.debugRequests[path]++
+			m.mutDebugRequests.Unlock()
 		default:
 			c.AbortWithStatusJSON(
 				http.StatusTooManyRequests,
@@ -101,10 +110,26 @@ func (m *middleWare) MiddlewareHandlerFunc() gin.HandlerFunc {
 				},
 			)
 
+			m.mutDebugRequests.Lock()
+			infoLines := make([]string, 0, len(m.debugRequests))
+			for requestPath, counter := range m.debugRequests {
+				infoLines = append(infoLines, fmt.Sprintf("%s: %d", requestPath, counter))
+			}
+			m.mutDebugRequests.Unlock()
+
+			log.Debug(fmt.Sprintf("API engine stuck: \n%s", strings.Join(infoLines, "\n")))
+
 			return
 		}
 
 		c.Next()
+
+		m.mutDebugRequests.Lock()
+		m.debugRequests[path]--
+		if m.debugRequests[path] < 1 {
+			delete(m.debugRequests, path)
+		}
+		m.mutDebugRequests.Unlock()
 
 		<-m.queue
 	}

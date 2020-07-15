@@ -23,6 +23,7 @@ func NewTestMiddleware(
 		sourceRequests:     make(map[string]uint32),
 		maxNumRequests:     maxNumRequestsPerAddress,
 		lastResetTimestamp: time.Now().Unix(),
+		debugRequests:      make(map[string]int),
 	}
 	mw.resetFailedActionFn = resetFailedActionFn
 
