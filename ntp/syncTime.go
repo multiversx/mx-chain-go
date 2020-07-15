@@ -13,12 +13,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/close"
+	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/beevik/ntp"
 )
 
 var _ SyncTimer = (*syncTime)(nil)
-var _ close.Closer = (*syncTime)(nil)
+var _ closing.Closer = (*syncTime)(nil)
 
 var log = logger.GetOrCreate("ntp")
 

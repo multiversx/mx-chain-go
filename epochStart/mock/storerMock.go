@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // StorerMock -
@@ -48,12 +50,12 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 }
 
 // Has -
-func (sm *StorerMock) Has(key []byte) error {
+func (sm *StorerMock) Has(_ []byte) error {
 	return errors.New("not implemented")
 }
 
 // HasInEpoch -
-func (sm *StorerMock) HasInEpoch(key []byte, epoch uint32) error {
+func (sm *StorerMock) HasInEpoch(_ []byte, _ uint32) error {
 	return errors.New("not implemented")
 }
 
@@ -63,7 +65,7 @@ func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
 }
 
 // Remove -
-func (sm *StorerMock) Remove(key []byte) error {
+func (sm *StorerMock) Remove(_ []byte) error {
 	return errors.New("not implemented")
 }
 
@@ -79,6 +81,14 @@ func (sm *StorerMock) DestroyUnit() error {
 // Close -
 func (sm *StorerMock) Close() error {
 	return nil
+}
+
+// Iterate -
+func (sm *StorerMock) Iterate() chan core.KeyValueHolder {
+	ch := make(chan core.KeyValueHolder)
+	close(ch)
+
+	return ch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

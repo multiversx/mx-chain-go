@@ -304,7 +304,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	}
 
 	newTr := tr.recreateFromMainDb(root)
-	if newTr != nil {
+	if !check.IfNil(newTr) {
 		return newTr, nil
 	}
 

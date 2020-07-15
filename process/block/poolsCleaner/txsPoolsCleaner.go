@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/close"
+	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
-var _ close.Closer = (*txsPoolsCleaner)(nil)
+var _ closing.Closer = (*txsPoolsCleaner)(nil)
 
 // sleepTime defines the time between each iteration made in clean...Pools methods
 const sleepTime = time.Minute

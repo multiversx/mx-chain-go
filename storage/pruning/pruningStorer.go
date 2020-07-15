@@ -799,6 +799,16 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	return nil
 }
 
+// Iterate returns a closed channel as it is unable to iterate over multiple persisters
+func (ps *PruningStorer) Iterate() chan core.KeyValueHolder {
+	ch := make(chan core.KeyValueHolder)
+	close(ch)
+
+	log.Error("improper use of PruningStorer.Iterate()")
+
+	return ch
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ps *PruningStorer) IsInterfaceNil() bool {
 	return ps == nil

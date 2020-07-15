@@ -861,7 +861,7 @@ func (adb *AccountsDB) GetAllLeaves(rootHash []byte) (map[string][]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	if newTrie == nil {
+	if check.IfNil(newTrie) {
 		return nil, ErrNilTrie
 	}
 
