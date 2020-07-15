@@ -8,15 +8,6 @@ var ErrUnknownType = errors.New("unknown type")
 // ErrNilStateSyncer signals that state syncer is nil
 var ErrNilStateSyncer = errors.New("nil state syncer")
 
-// ErrNoFileToImport signals that there are no files to import
-var ErrNoFileToImport = errors.New("no files to import")
-
-// ErrEndOfFile signals that end of file was reached
-var ErrEndOfFile = errors.New("end of file")
-
-// ErrNilDataWriter signals that data writer is nil
-var ErrNilDataWriter = errors.New("nil data writer")
-
 // ErrInvalidFolderName signals that folder name is nil
 var ErrInvalidFolderName = errors.New("invalid folder name")
 
@@ -88,9 +79,6 @@ var ErrNilTrieDataGetter = errors.New("nil trie data getter provided")
 
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
-
-// ErrNilMultiFileReader signals that nil multi file reader was provided
-var ErrNilMultiFileReader = errors.New("nil multi file reader")
 
 // ErrNilCacher signals that nil cacher was provided
 var ErrNilCacher = errors.New("nil cacher")
@@ -230,8 +218,17 @@ var ErrEmptyVersionString = errors.New("empty version string")
 // ErrNilTimeCache signals that a nil time cache was provided
 var ErrNilTimeCache = errors.New("nil time cache")
 
-// ErrMissingFile signals that a file is missing
-var ErrMissingFile = errors.New("missing file")
+// ErrNilHardforkStorer signals that a nil hardfork storer has been provided
+var ErrNilHardforkStorer = errors.New("nil hardfork storer")
 
-// ErrKeyTypeMissMatch signals that key type was missmatch during import
-var ErrKeyTypeMissMatch = errors.New("key type missmatch while importing")
+// ErrExpectedOneMetablock signals that exactly one metablock should have been used
+var ErrExpectedOneMetablock = errors.New("expected one metablock")
+
+// ErrImportingData signals that an import error occurred
+var ErrImportingData = errors.New("error importing data")
+
+// ErrKeyTypeMismatch signals that key type was mismatch during import
+var ErrKeyTypeMismatch = errors.New("key type mismatch while importing")
+
+// ErrNilRounder signals that nil rounder has been provided
+var ErrNilRounder = errors.New("nil rounder")

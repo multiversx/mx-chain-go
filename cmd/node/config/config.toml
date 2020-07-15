@@ -529,6 +529,17 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
+    [Hardfork.ExportKeysStorageConfig]
+        [Hardfork.ExportKeysStorageConfig.Cache]
+            Name = "HardFork.ExportKeysStorageConfig"
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ExportKeysStorageConfig.DB]
+            FilePath = "ExportKeysStorageConfig/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
     [Hardfork.ExportTriesStorageConfig]
         [Hardfork.ExportTriesStorageConfig.Cache]
             Name = "HardFork.ExportTriesStorageConfig"
@@ -547,6 +558,17 @@
             Type = "LRU"
         [Hardfork.ImportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+	[Hardfork.ImportKeysStorageConfig]
+	    [Hardfork.ImportKeysStorageConfig.Cache]
+            Name = "HardFork.ImportKeysStorageConfig"
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ImportKeysStorageConfig.DB]
+            FilePath = "ExportKeysStorageConfig/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
