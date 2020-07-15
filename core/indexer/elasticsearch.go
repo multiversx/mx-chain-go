@@ -110,10 +110,10 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
-	ei.database.SaveMiniblocks(headerHandler, body)
+	mbsInDb := ei.database.SaveMiniblocks(headerHandler, body)
 
 	if ei.options.TxIndexingEnabled {
-		ei.database.SaveTransactions(body, headerHandler, txPool, headerHandler.GetShardID())
+		ei.database.SaveTransactions(body, headerHandler, txPool, headerHandler.GetShardID(), mbsInDb)
 	}
 }
 

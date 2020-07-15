@@ -89,7 +89,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 func (si *stateImport) ImportAll() error {
 	var errFound error
 
-	si.hardforkStorer.RangeKeys(func(identifier string, keys [][]byte) {
+	si.hardforkStorer.RangeKeys(func(identifier string, keys [][]byte) bool {
 		var err error
 		switch identifier {
 		case MetaBlockIdentifier:
@@ -102,13 +102,16 @@ func (si *stateImport) ImportAll() error {
 			splitString := strings.Split(identifier, atSep)
 			canImportState := len(splitString) > 1 && splitString[0] == TrieIdentifier
 			if !canImportState {
-				return
+				return true
 			}
 			err = si.importState(identifier, keys)
 		}
 		if err != nil {
 			errFound = err
+			return false
 		}
+
+		return true
 	})
 
 	err := si.hardforkStorer.Close()

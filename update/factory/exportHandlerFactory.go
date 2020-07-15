@@ -321,6 +321,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		StorageService:   e.storageService,
 		Cache:            e.dataPool.Headers(),
 		Marshalizer:      e.marshalizer,
+		Hasher:           e.hasher,
 		EpochHandler:     epochHandler,
 		RequestHandler:   e.requestHandler,
 		Uint64Converter:  e.uint64Converter,

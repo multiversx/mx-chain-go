@@ -5,9 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 )
 
 // StorerMock -
@@ -84,22 +81,21 @@ func (sm *StorerMock) DestroyUnit() error {
 	return nil
 }
 
-// Iterate -
-func (sm *StorerMock) Iterate() chan core.KeyValueHolder {
-	ch := make(chan core.KeyValueHolder)
+// RangeKeys -
+func (sm *StorerMock) RangeKeys(handler func(key []byte, val []byte) bool) {
+	if handler == nil {
+		return
+	}
 
-	go func() {
-		sm.mut.Lock()
-		defer sm.mut.Unlock()
+	sm.mut.Lock()
+	defer sm.mut.Unlock()
 
-		for k, v := range sm.data {
-			ch <- keyValStorage.NewKeyValStorage([]byte(k), v)
+	for k, v := range sm.data {
+		shouldContinue := handler([]byte(k), v)
+		if !shouldContinue {
+			return
 		}
-
-		close(ch)
-	}()
-
-	return ch
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

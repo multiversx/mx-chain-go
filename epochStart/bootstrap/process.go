@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -103,7 +104,6 @@ type epochStartBootstrap struct {
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
-	importStartHandler         epochStart.ImportStartHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -172,7 +172,6 @@ type ArgsEpochStartBootstrap struct {
 	AddressPubkeyConverter     core.PubkeyConverter
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
-	ImportStartHandler         epochStart.ImportStartHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -212,7 +211,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		statusHandler:              args.StatusHandler,
 		shuffledOut:                false,
 		nodeType:                   core.NodeTypeObserver,
-		importStartHandler:         args.ImportStartHandler,
 		argumentsParser:            args.ArgumentsParser,
 	}
 
@@ -264,13 +262,43 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	shardIDToReturn := e.applyShardIDAsObserverIfNeeded(e.genesisShardCoordinator.SelfId())
+	shardIDToReturn := e.genesisShardCoordinator.SelfId()
+	if !e.isNodeInGenesisNodesConfig() {
+		shardIDToReturn = e.applyShardIDAsObserverIfNeeded(e.genesisShardCoordinator.SelfId())
+	}
 	parameters := Parameters{
 		Epoch:       e.startEpoch,
 		SelfShardId: shardIDToReturn,
 		NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 	}
 	return parameters, nil
+}
+
+func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
+	ownPubKey, err := e.publicKey.ToByteArray()
+	if err != nil {
+		return false
+	}
+
+	eligibleList, waitingList := e.genesisNodesConfig.InitialNodesInfo()
+
+	for _, nodesInShard := range eligibleList {
+		for _, eligibleNode := range nodesInShard {
+			if bytes.Equal(eligibleNode.PubKeyBytes(), ownPubKey) {
+				return true
+			}
+		}
+	}
+
+	for _, nodesInShard := range waitingList {
+		for _, waitingNode := range nodesInShard {
+			if bytes.Equal(waitingNode.PubKeyBytes(), ownPubKey) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // GetTriesComponents returns the created tries components according to the shardID for the current epoch

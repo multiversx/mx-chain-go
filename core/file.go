@@ -114,7 +114,8 @@ func CreateFile(prefix string, subfolder string, fileExtension string) (*os.File
 		return nil, err
 	}
 
-	fileName := time.Now().Format("2006-02-01-15-04-05")
+	fileName := time.Now().Format("2006-01-02T15-04-05")
+	fileName = strings.Replace(fileName, "T", "-", 1)
 	if prefix != "" {
 		fileName = prefix + "-" + fileName
 	}

@@ -7,7 +7,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
@@ -109,13 +108,15 @@ func TestHardforkStorer_WriteReadTests(t *testing.T) {
 	//load and check
 	mutRecovered := sync.Mutex{}
 	recovered := make(map[string][]string)
-	hs.RangeKeys(func(identifier string, keys [][]byte) {
+	hs.RangeKeys(func(identifier string, keys [][]byte) bool {
 		mutRecovered.Lock()
 		defer mutRecovered.Unlock()
 
 		for _, key := range keys {
 			recovered[identifier] = append(recovered[identifier], string(key))
 		}
+
+		return true
 	})
 
 	assert.Equal(t, expectedValues, recovered)
@@ -202,16 +203,15 @@ func TestHardforkStorer_RangeKeysNilHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultArg()
-	iterateCalled := false
+	rangeKeysCalled := false
 	arg.KeysStore = &mock.StorerStub{
-		IterateCalled: func() chan core.KeyValueHolder {
-			iterateCalled = true
-			return nil
+		RangeKeysCalled: func(_ func(key []byte, val []byte) bool) {
+			rangeKeysCalled = true
 		},
 	}
 	hs, _ := NewHardforkStorer(arg)
 
 	hs.RangeKeys(nil)
 
-	assert.False(t, iterateCalled)
+	assert.False(t, rangeKeysCalled)
 }

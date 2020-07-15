@@ -28,8 +28,8 @@ type Indexer interface {
 type DatabaseHandler interface {
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int)
-	SaveMiniblocks(header data.HeaderHandler, body *block.Body)
-	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32)
+	SaveMiniblocks(header data.HeaderHandler, body *block.Body) map[string]bool
+	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool)
 	SaveRoundsInfos(infos []RoundInfo)
 	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte)
 	SaveValidatorsRating(Index string, validatorsRatingInfo []ValidatorRatingInfo)
