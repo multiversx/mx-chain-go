@@ -8,9 +8,41 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
 )
+
+func generateTestCache() storage.Cacher {
+	cache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
+	return cache
+}
+
+func generateTestUnit() storage.Storer {
+	storer, _ := storageUnit.NewStorageUnit(
+		generateTestCache(),
+		memorydb.New(),
+	)
+
+	return storer
+}
+
+func initStore() dataRetriever.StorageService {
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
+	return store
+}
 
 func createMockArgsNewShardBlockCreatorAfterHardFork() ArgsNewShardBlockCreatorAfterHardFork {
 	return ArgsNewShardBlockCreatorAfterHardFork{
@@ -20,6 +52,8 @@ func createMockArgsNewShardBlockCreatorAfterHardFork() ArgsNewShardBlockCreatorA
 		ImportHandler:      &mock.ImportHandlerStub{},
 		Marshalizer:        &mock.MarshalizerMock{},
 		Hasher:             &mock.HasherMock{},
+		Storage:            initStore(),
+		DataPool:           testscommon.CreatePoolsHolder(1, 0),
 	}
 }
 

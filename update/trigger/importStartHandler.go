@@ -79,6 +79,7 @@ func (ish *importStartHandler) IsAfterExportBeforeImport() bool {
 
 // ResetStartImport removes the file that will trigger a new import start event
 func (ish *importStartHandler) ResetStartImport() error {
+	log.Debug("removing must import file", "file", ish.getFilename())
 	return os.Remove(ish.getFilename())
 }
 

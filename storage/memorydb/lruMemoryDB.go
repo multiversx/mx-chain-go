@@ -81,6 +81,31 @@ func (l *lruDB) DestroyClosed() error {
 	return l.Destroy()
 }
 
+// RangeKeys will iterate over all contained (key, value) pairs calling the provided handler
+func (l *lruDB) RangeKeys(handler func(key []byte, value []byte) bool) {
+	if handler == nil {
+		return
+	}
+
+	keys := l.cacher.Keys()
+	for _, k := range keys {
+		v, ok := l.cacher.Get(k)
+		if !ok {
+			continue
+		}
+
+		vBuff, ok := v.([]byte)
+		if !ok {
+			continue
+		}
+
+		shouldContinue := handler(k, vBuff)
+		if !shouldContinue {
+			return
+		}
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (l *lruDB) IsInterfaceNil() bool {
 	return l == nil

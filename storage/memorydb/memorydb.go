@@ -95,6 +95,23 @@ func (s *DB) Destroy() error {
 	return nil
 }
 
+// RangeKeys will iterate over all contained (key, value) pairs calling the provided handler
+func (s *DB) RangeKeys(handler func(key []byte, value []byte) bool) {
+	if handler == nil {
+		return
+	}
+
+	s.mutx.RLock()
+	defer s.mutx.RUnlock()
+
+	for k, v := range s.db {
+		shouldContinue := handler([]byte(k), v)
+		if !shouldContinue {
+			return
+		}
+	}
+}
+
 // DestroyClosed removes the storage medium stored data
 func (s *DB) DestroyClosed() error {
 	return s.Destroy()

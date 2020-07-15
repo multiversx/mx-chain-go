@@ -31,9 +31,11 @@ func (t *trigger) Epoch() uint32 {
 func (t *trigger) SetReceivedExecutingEpoch(
 	triggerReceived bool,
 	triggerExecuting bool,
+	shouldTriggerFromEpochChange bool,
 	epoch uint32,
 ) {
 	t.triggerExecuting = triggerExecuting
+	t.shouldTriggerFromEpochChange = shouldTriggerFromEpochChange
 	t.triggerReceived = triggerReceived
 	t.epoch = epoch
 }

@@ -896,7 +896,7 @@ func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
 }
 
 func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint64 {
-	currentBlockNonce := uint64(0)
+	currentBlockNonce := bp.genesisNonce
 	if !check.IfNil(headerHandler) {
 		currentBlockNonce = headerHandler.GetNonce()
 	}
@@ -1175,8 +1175,14 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 		return
 	}
 
+	waitTime := core.ExtraDelayForRequestBlockInfo
+	roundDifferences := bp.rounder.Index() - int64(headerHandler.GetRound())
+	if roundDifferences > 1 {
+		waitTime = 0
+	}
+
 	// waiting for late broadcast of mini blocks and transactions to be done and received
-	time.Sleep(core.ExtraDelayForRequestBlockInfo)
+	time.Sleep(waitTime)
 
 	bp.txCoordinator.RequestMiniBlocks(headerHandler)
 }
