@@ -180,14 +180,23 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 
 // RemoveTxBulk removes a bulk of transactions
 func (cache *TxCache) RemoveTxBulk(keys [][]byte) int {
-	numRemoved := 0
-	for _, key := range keys {
-		if cache.RemoveTxByHash(key) {
-			numRemoved++
-		}
-	}
+	// First, fetch the transactions from the "txByHash" map.
+	txs := cache.txByHash.getTxs(keys)
 
-	return numRemoved
+	// Then do an in-place group by sender, sort by nonce (equivalent to sort by sender, then by nonce)
+	SortTransactionsBySenderAndNonce(txs)
+
+	// numRemoved := 0
+	// for _, key := range keys {
+	// 	if cache.RemoveTxByHash(key) {
+	// 		numRemoved++
+	// 	}
+	// }
+
+	numRemovedTxByHash := cache.txByHash.RemoveTxsBulk(keys)
+
+	// TODO: If num removed differ, log.debug
+	return int(numRemovedTxByHash)
 }
 
 // NumBytes gets the approximate number of bytes stored in the cache

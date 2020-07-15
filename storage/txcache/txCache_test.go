@@ -172,6 +172,20 @@ func Test_RemoveByTxHash(t *testing.T) {
 	require.Nil(t, foundTx)
 }
 
+func Test_RemoveTxBulk(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+
+	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
+	cache.AddTx(createTx([]byte("hash-3"), "alice", 2))
+	cache.AddTx(createTx([]byte("hash-4"), "alice", 2))
+
+	numRemoved := cache.RemoveTxBulk(hashesAsBytes([]string{"hash-1", "hash-2", "hash-3", "hash-4"}))
+	require.Equal(t, 4, numRemoved)
+	require.Equal(t, 0, cache.Len())
+	require.True(t, cache.areInternalMapsConsistent())
+}
+
 func Test_CountTx_And_Len(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 

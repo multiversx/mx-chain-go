@@ -213,6 +213,10 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 	return nil
 }
 
+func (listForSender *txListForSender) removeTxBulk(txs []*WrappedTransaction) {
+
+}
+
 // IsEmpty checks whether the list is empty
 func (listForSender *txListForSender) IsEmpty() bool {
 	return listForSender.countTxWithLock() == 0

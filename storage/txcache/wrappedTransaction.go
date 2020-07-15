@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"bytes"
+	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -35,4 +36,21 @@ func estimateTxFee(tx *WrappedTransaction) uint64 {
 	gasPrice := float32(tx.Tx.GetGasPrice()) / 1000
 	feeInNanoERD := gasLimit * gasPrice
 	return uint64(feeInNanoERD)
+}
+
+// SortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
+func SortTransactionsBySenderAndNonce(transactions []*WrappedTransaction) {
+	sorter := func(i, j int) bool {
+		txI := transactions[i].Tx
+		txJ := transactions[j].Tx
+
+		delta := bytes.Compare(txI.GetSndAddr(), txJ.GetSndAddr())
+		if delta == 0 {
+			delta = int(txI.GetNonce()) - int(txJ.GetNonce())
+		}
+
+		return delta < 0
+	}
+
+	sort.Slice(transactions, sorter)
 }
