@@ -999,15 +999,15 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsE
 	t.Parallel()
 
 	var requestedNonces []uint64
-	var mutRequetsedNonces sync.Mutex
+	var mutRequestedNonces sync.Mutex
 
 	arguments := CreateMockArguments()
 	rounder := &mock.RounderMock{}
 	requestHandlerStub := &mock.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
-			mutRequetsedNonces.Lock()
+			mutRequestedNonces.Lock()
 			requestedNonces = append(requestedNonces, nonce)
-			mutRequetsedNonces.Unlock()
+			mutRequestedNonces.Unlock()
 		},
 	}
 	arguments.Rounder = rounder
@@ -1020,9 +1020,11 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsE
 	rounder.RoundIndex = 15
 	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
+	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {
 		return requestedNonces[i] < requestedNonces[j]
 	})
+	mutRequestedNonces.Unlock()
 	expectedNonces := []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	assert.Equal(t, expectedNonces, requestedNonces)
 
@@ -1030,9 +1032,11 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsE
 	rounder.RoundIndex = 5
 	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
+	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {
 		return requestedNonces[i] < requestedNonces[j]
 	})
+	mutRequestedNonces.Unlock()
 	expectedNonces = []uint64{1, 2, 3}
 	assert.Equal(t, expectedNonces, requestedNonces)
 }
@@ -1041,15 +1045,15 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	t.Parallel()
 
 	var requestedNonces []uint64
-	var mutRequetsedNonces sync.Mutex
+	var mutRequestedNonces sync.Mutex
 
 	arguments := CreateMockArguments()
 	rounder := &mock.RounderMock{}
 	requestHandlerStub := &mock.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
-			mutRequetsedNonces.Lock()
+			mutRequestedNonces.Lock()
 			requestedNonces = append(requestedNonces, nonce)
-			mutRequetsedNonces.Unlock()
+			mutRequestedNonces.Unlock()
 		},
 	}
 	arguments.Rounder = rounder
@@ -1086,9 +1090,11 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	rounder.RoundIndex = 15
 	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
+	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {
 		return requestedNonces[i] < requestedNonces[j]
 	})
+	mutRequestedNonces.Unlock()
 	expectedNonces := []uint64{6, 7, 9, 11, 12, 13}
 	assert.Equal(t, expectedNonces, requestedNonces)
 
@@ -1096,9 +1102,11 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	rounder.RoundIndex = 20
 	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
+	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {
 		return requestedNonces[i] < requestedNonces[j]
 	})
+	mutRequestedNonces.Unlock()
 	expectedNonces = []uint64{6, 7, 9, 11, 12, 13, 14, 15}
 	assert.Equal(t, expectedNonces, requestedNonces)
 }
