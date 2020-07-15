@@ -213,8 +213,46 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 	return nil
 }
 
-func (listForSender *txListForSender) removeTxBulk(txs []*WrappedTransaction) {
+// RemoveSortedTransactions removes the provided list of transactions, assuming the list is given sorted by nonce
+func (listForSender *txListForSender) RemoveSortedTransactions(txsToRemove []*WrappedTransaction) int {
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
 
+	pointerInTxsToRemove := 0
+	pointerInTxs := listForSender.items.Front()
+
+	for {
+		// End of any list, end of loop
+		if pointerInTxs == nil || pointerInTxsToRemove == len(txsToRemove) {
+			break
+		}
+
+		nextInTxs := pointerInTxs.Next()
+
+		txToRemove := txsToRemove[pointerInTxsToRemove]
+		txToRemoveNonce := txToRemove.Tx.GetNonce()
+		txToRemoveHash := txToRemove.TxHash
+
+		tx := pointerInTxs.Value.(*WrappedTransaction)
+		txNonce := tx.Tx.GetNonce()
+		txHash := tx.TxHash
+
+		if txNonce == txToRemoveNonce {
+			if bytes.Equal(txHash, txToRemoveHash) {
+				listForSender.items.Remove(pointerInTxs)
+				listForSender.onRemovedListElement(pointerInTxs)
+				pointerInTxsToRemove++
+			}
+		} else if txNonce > txToRemoveNonce {
+			// Optimization: stop search at this point, since the list is sorted by nonce.
+			break
+		}
+
+		pointerInTxs = nextInTxs
+	}
+
+	listForSender.triggerScoreChange()
+	return pointerInTxsToRemove
 }
 
 // IsEmpty checks whether the list is empty

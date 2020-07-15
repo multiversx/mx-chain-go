@@ -101,8 +101,14 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	return isFound
 }
 
-func (txMap *txListBySenderMap) removeTxBulk(txs []*WrappedTransaction) int {
-	return 0
+func (txMap *txListBySenderMap) removeGroupOfTxs(group groupOfTxs) int {
+	listForSender, ok := txMap.getListForSender(string(group.sender))
+	if !ok {
+		log.Trace("txListBySenderMap.removeSortedTxBulk() detected slight inconsistency: sender not in cache", "len(txs)", len(group.transactions), "sender", []byte(group.sender))
+		return 0
+	}
+
+	return listForSender.RemoveSortedTransactions(group.transactions)
 }
 
 func (txMap *txListBySenderMap) removeSender(sender string) bool {

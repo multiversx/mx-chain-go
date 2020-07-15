@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"bytes"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
@@ -182,37 +181,30 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 // RemoveTxBulk removes a bulk of transactions
 func (cache *TxCache) RemoveTxBulk(keys [][]byte) int {
 	// First, fetch the transactions from the "txByHash" map.
-	txs := cache.txByHash.getTxs(keys)
+	txsToRemove := cache.txByHash.getTxs(keys)
 
-	if len(txs) == 0 {
+	if len(txsToRemove) == 0 {
 		return 0
 	}
 
-	// Then do an in-place group by sender, sort by nonce (equivalent to sort by sender, then by nonce)
-	SortTransactionsBySenderAndNonce(txs)
-
-	groupStart := 0
-	groupSender := txs[0].Tx.GetSndAddr()
-
-	for index, tx := range txs {
-		txSender := tx.Tx.GetSndAddr()
-		if bytes.Equal(groupSender, txSender) {
-			continue
-		}
-
+	// Remove from the "bySender" structure
+	numRemovedFromBySender := 0
+	groups := GroupSortedTransactionsBySender(txsToRemove)
+	for _, group := range groups {
+		numRemovedFromBySender += cache.txListBySender.removeGroupOfTxs(group)
 	}
 
-	// numRemoved := 0
-	// for _, key := range keys {
-	// 	if cache.RemoveTxByHash(key) {
-	// 		numRemoved++
-	// 	}
-	// }
+	// Remove from the "byHash" structure
+	numRemovedFromByHash := cache.txByHash.RemoveTxsBulk(keys)
+	if int(numRemovedFromByHash) != numRemovedFromBySender {
+		// This could happen at high load and high concurrency, since RemoveTxBulk() does not execute within a critical section
+		log.Trace("TxCache.RemoveTxBulk(): slight inconsistency detected",
+			"numRemovedFromBySender", numRemovedFromBySender,
+			"numRemovedFromByHash", numRemovedFromByHash,
+		)
+	}
 
-	numRemovedTxByHash := cache.txByHash.RemoveTxsBulk(keys)
-
-	// TODO: If num removed differ, log.debug
-	return int(numRemovedTxByHash)
+	return numRemovedFromBySender
 }
 
 // NumBytes gets the approximate number of bytes stored in the cache

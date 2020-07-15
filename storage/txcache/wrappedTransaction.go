@@ -54,3 +54,39 @@ func SortTransactionsBySenderAndNonce(transactions []*WrappedTransaction) {
 
 	sort.Slice(transactions, sorter)
 }
+
+// GroupSortedTransactionsBySender sorts in-line by sender, then by nonce, then splits the slice into groups (one group per sender)
+func GroupSortedTransactionsBySender(transactions []*WrappedTransaction) []groupOfTxs {
+	groups := make([]groupOfTxs, 0)
+
+	if len(transactions) == 0 {
+		return groups
+	}
+
+	// First, obtain a sorted slice, then split into groups
+	SortTransactionsBySenderAndNonce(transactions)
+
+	firstTx := transactions[0]
+	groupSender := firstTx.Tx.GetSndAddr()
+	groupStart := 0
+
+	for index, tx := range transactions {
+		txSender := tx.Tx.GetSndAddr()
+		if bytes.Equal(groupSender, txSender) {
+			continue
+		}
+
+		groups = append(groups, groupOfTxs{groupSender, transactions[groupStart:index]})
+		groupSender = txSender
+		groupStart = index
+	}
+
+	// Handle last group
+	groups = append(groups, groupOfTxs{groupSender, transactions[groupStart:]})
+	return groups
+}
+
+type groupOfTxs struct {
+	sender       []byte
+	transactions []*WrappedTransaction
+}
