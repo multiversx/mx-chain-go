@@ -248,7 +248,7 @@ func (cache *TxCache) displaySendersSummary() {
 
 func (cache *txListForSender) monitorOnFoundInsertionPlace(iterations *int, incomingTx *WrappedTransaction) {
 	if *iterations > numIterationsSuboptimalListTraversal {
-		log.Debug("txListForSender.monitorOnFoundInsertionPlace: suboptimal", "iterations", *iterations, "nonce", incomingTx.Tx.GetNonce(), "sender", incomingTx.Tx.GetSndAddr())
+		log.Trace("txListForSender.monitorOnFoundInsertionPlace: suboptimal", "iterations", *iterations, "nonce", incomingTx.Tx.GetNonce(), "sender", incomingTx.Tx.GetSndAddr())
 	}
 }
 
