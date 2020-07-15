@@ -206,6 +206,11 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 				// Element found, cache it
 				listForSender.hintLastFound = element.Next()
 				listForSender.hintLastFoundNonce = nonce
+
+				if steps > 10 {
+					log.Debug("findListElementWithTx", "steps", steps, "src", txToFind.SenderShardID, "nonce", txToFindNonce, "dst", txToFind.ReceiverShardID, "sender", txToFind.Tx.GetSndAddr())
+				}
+
 				return element
 			}
 		} else {
@@ -218,6 +223,11 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 
 	listForSender.hintLastFound = nil
 	listForSender.hintLastFoundNonce = 0
+
+	if steps > 10 {
+		log.Debug("findListElementWithTx NOT FOUND", "steps", steps, "src", txToFind.SenderShardID, "nonce", txToFindNonce, "dst", txToFind.ReceiverShardID, "sender", txToFind.Tx.GetSndAddr())
+	}
+
 	return nil
 }
 
