@@ -245,17 +245,12 @@ func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID stri
 
 // removeTxBulk removes a bunch of transactions from the pool
 func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
+	cache := txPool.getOrCreateShard(cacheID).Cache
+
 	sw := core.NewStopWatch()
 	sw.Start("remove")
 
-	cache := txPool.getOrCreateShard(cacheID).Cache
-
-	numRemoved := 0
-	for _, key := range txHashes {
-		if cache.RemoveTxByHash(key) {
-			numRemoved++
-		}
-	}
+	numRemoved := cache.RemoveTxBulk(txHashes)
 
 	sw.Stop("remove")
 	duration := sw.GetMeasurement("remove")

@@ -178,6 +178,18 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 	return true
 }
 
+// RemoveTxBulk removes a bulk of transactions
+func (cache *TxCache) RemoveTxBulk(keys [][]byte) int {
+	numRemoved := 0
+	for _, key := range keys {
+		if cache.RemoveTxByHash(key) {
+			numRemoved++
+		}
+	}
+
+	return numRemoved
+}
+
 // NumBytes gets the approximate number of bytes stored in the cache
 func (cache *TxCache) NumBytes() int {
 	return int(cache.txByHash.numBytes.GetUint64())
