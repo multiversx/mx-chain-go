@@ -248,9 +248,11 @@ func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 	sw := core.NewStopWatch()
 	sw.Start("remove")
 
+	cache := txPool.getOrCreateShard(cacheID).Cache
+
 	numRemoved := 0
 	for _, key := range txHashes {
-		if txPool.removeTx(key, cacheID) {
+		if cache.RemoveTxByHash(key) {
 			numRemoved++
 		}
 	}
