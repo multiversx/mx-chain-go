@@ -1378,7 +1378,7 @@ func TestWithWatchdogTimer_OkWatchdogShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithWatchdogTimer_NilPeerSignatureHandlerShouldErr(t *testing.T) {
+func TestWithPeerSignatureHandler_NilPeerSignatureHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
@@ -1389,7 +1389,7 @@ func TestWithWatchdogTimer_NilPeerSignatureHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, ErrNilPeerSignatureHandler, err)
 }
 
-func TestWithWatchdogTimer_OkPeerSignatureHandlerShouldWork(t *testing.T) {
+func TestWithPeerSignatureHandler_OkPeerSignatureHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()

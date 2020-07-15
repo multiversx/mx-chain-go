@@ -66,7 +66,6 @@ func (psh *peerSignatureHandler) VerifyPeerSignature(pk []byte, pid core.PeerID,
 	retrievedPID, retrievedSig := psh.getBufferedPIDSignature(pk)
 	newPidAndSig := pid != retrievedPID && !bytes.Equal(retrievedSig, signature)
 	shouldVerify := len(retrievedPID) == 0 || len(retrievedSig) == 0 || newPidAndSig
-
 	if shouldVerify {
 		err = psh.singleSigner.Verify(senderPubKey, pid.Bytes(), signature)
 		if err != nil {
@@ -88,8 +87,8 @@ func (psh *peerSignatureHandler) VerifyPeerSignature(pk []byte, pid core.PeerID,
 	return nil
 }
 
-// GetPeerSignature checks if the needed signature is not present in the buffer, and returns it.
-// If it is not present, the signature will be computed
+// GetPeerSignature returns the needed signature if it is already cached.
+// Otherwise, the signature will be computed.
 func (psh *peerSignatureHandler) GetPeerSignature(privateKey crypto.PrivateKey, pid []byte) ([]byte, error) {
 	privateKeyBytes, err := privateKey.ToByteArray()
 	if err != nil {
@@ -97,24 +96,18 @@ func (psh *peerSignatureHandler) GetPeerSignature(privateKey crypto.PrivateKey, 
 	}
 
 	retrievedPID, retrievedSig := psh.getBufferedPIDSignature(privateKeyBytes)
-	newPid := core.PeerID(pid) != retrievedPID
-	shouldVerify := len(retrievedPID) == 0 || len(retrievedSig) == 0 || newPid
-
-	if shouldVerify {
-		signature, err := psh.singleSigner.Sign(privateKey, pid)
-		if err != nil {
-			return nil, err
-		}
-
-		psh.bufferPIDSignature(privateKeyBytes, core.PeerID(pid), signature)
-		return signature, nil
+	isValidPID := len(retrievedPID) > 0 && retrievedPID == core.PeerID(pid)
+	if isValidPID {
+		return retrievedSig, nil
 	}
 
-	if retrievedPID != core.PeerID(pid) {
-		return nil, crypto.ErrPIDMismatch
+	signature, err := psh.singleSigner.Sign(privateKey, pid)
+	if err != nil {
+		return nil, err
 	}
 
-	return retrievedSig, nil
+	psh.bufferPIDSignature(privateKeyBytes, core.PeerID(pid), signature)
+	return signature, nil
 }
 
 func (psh *peerSignatureHandler) bufferPIDSignature(pk []byte, pid core.PeerID, signature []byte) {
