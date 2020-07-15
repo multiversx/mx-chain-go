@@ -4,14 +4,23 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
+// MiniBlockProvider defines what a miniblock data provider should do
+type MiniBlockProvider interface {
+	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	IsInterfaceNil() bool
+}
+
 type DataComponentsMock struct {
-	Storage       dataRetriever.StorageService
-	DataPool      dataRetriever.PoolsHolder
-	BlockChain    data.ChainHandler
-	mutBlockchain sync.RWMutex
+	Storage           dataRetriever.StorageService
+	DataPool          dataRetriever.PoolsHolder
+	BlockChain        data.ChainHandler
+	MiniBlockProvider MiniBlockProvider
+	mutBlockchain     sync.RWMutex
 }
 
 // StorageService -
@@ -30,6 +39,14 @@ func (dcm *DataComponentsMock) Blockchain() data.ChainHandler {
 	defer dcm.mutBlockchain.RUnlock()
 
 	return dcm.BlockChain
+}
+
+// MiniBlocksProvider -
+func (dcm *DataComponentsMock) MiniBlocksProvider() MiniBlockProvider {
+	dcm.mutBlockchain.RLock()
+	defer dcm.mutBlockchain.RUnlock()
+
+	return dcm.MiniBlockProvider
 }
 
 // Clone -

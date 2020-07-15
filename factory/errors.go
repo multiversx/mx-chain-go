@@ -89,8 +89,8 @@ var ErrNilRounder = errors.New("nil rounder")
 // ErrNilNodesCoordinator signals that nil nodes coordinator has been provided
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 
-// ErrNilDataComponents signals that nil data components have been provided
-var ErrNilDataComponents = errors.New("nil data components")
+// ErrNilDataComponentsHolder signals that a nil data components holder has been provided
+var ErrNilDataComponentsHolder = errors.New("nil data components holder")
 
 // ErrNilCoreComponentsHolder signals that a nil core components holder has been provided
 var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
@@ -98,8 +98,8 @@ var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
 // ErrNilCryptoComponentsHolder signals that a nil crypto components holder has been provided
 var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
 
-// ErrNilStateComponents signals that nil state components have been provided
-var ErrNilStateComponents = errors.New("nil state components")
+// ErrNilStateComponentsHolder signals that a nil data components holder has been provided
+var ErrNilStateComponentsHolder = errors.New("nil state components holder")
 
 // ErrNilNetworkComponentsHolder signals that a nil network components holder has been provided
 var ErrNilNetworkComponentsHolder = errors.New("nil network components holder")
@@ -145,3 +145,6 @@ var ErrNilElasticOptions = errors.New("nil elastic options")
 
 // ErrNilStatusHandlersUtils signals that a nil status handlers utils has been provided
 var ErrNilStatusHandlersUtils = errors.New("nil status handlers utils")
+
+// ErrValidatorAlreadySet signals that a topic validator has already been set
+var ErrValidatorAlreadySet = errors.New("topic validator has already been set")

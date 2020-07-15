@@ -896,12 +896,6 @@ type AntifloodDebugger interface {
 	IsInterfaceNil() bool
 }
 
-// MiniblockAndHash holds the info related to a miniblock and its hash
-type MiniblockAndHash struct {
-	Miniblock *block.MiniBlock
-	Hash      []byte
-}
-
 // PoolsCleaner defines the functionality to clean pools for old records
 type PoolsCleaner interface {
 	Close() error

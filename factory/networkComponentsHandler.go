@@ -120,6 +120,18 @@ func (mnc *managedNetworkComponents) PeerBlackListHandler() process.PeerBlackLis
 	return mnc.networkComponents.peerBlackListHandler
 }
 
+// PeerHonestyHandler returns the blacklist handler
+func (mnc *managedNetworkComponents) PeerHonestyHandler() PeerHonestyHandler {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.networkComponents.peerHonestyHandler
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (mnc *managedNetworkComponents) IsInterfaceNil() bool {
 	return mnc == nil

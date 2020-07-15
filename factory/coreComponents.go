@@ -3,9 +3,13 @@ package factory
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/alarm"
+	"github.com/ElrondNetwork/elrond-go/core/watchdog"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
@@ -13,6 +17,7 @@ import (
 	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
+	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
@@ -20,14 +25,18 @@ import (
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
-	Config           config.Config
-	WorkingDirectory string
+	Config              config.Config
+	WorkingDirectory    string
+	GenesisTime         time.Time
+	ChanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
 // coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
-	config     config.Config
-	workingDir string
+	config              config.Config
+	workingDir          string
+	genesisTime         time.Time
+	chanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
 // coreComponents is the DTO used for core components
@@ -41,6 +50,10 @@ type coreComponents struct {
 	validatorPubKeyConverter core.PubkeyConverter
 	statusHandler            core.AppStatusHandler
 	pathHandler              storage.PathManagerHandler
+	syncTimer                ntp.SyncTimer
+	alarmScheduler           core.TimersScheduler
+	watchdog                 core.WatchdogTimer
+	genesisTime              time.Time
 	chainID                  string
 	minTransactionVersion    uint32
 }
@@ -48,8 +61,9 @@ type coreComponents struct {
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *coreComponentsFactory {
 	return &coreComponentsFactory{
-		config:     args.Config,
-		workingDir: args.WorkingDirectory,
+		config:              args.Config,
+		workingDir:          args.WorkingDirectory,
+		chanStopNodeProcess: args.ChanStopNodeProcess,
 	}
 }
 
@@ -92,6 +106,16 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil)
+	syncer.StartSyncingTime()
+	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
+
+	alarmScheduler := alarm.NewAlarmScheduler()
+	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess)
+	if err != nil {
+		return nil, err
+	}
+
 	return &coreComponents{
 		hasher:                   hasher,
 		internalMarshalizer:      internalMarshalizer,
@@ -102,6 +126,10 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		validatorPubKeyConverter: validatorPubkeyConverter,
 		statusHandler:            statusHandler.NewNilStatusHandler(),
 		pathHandler:              pathHandler,
+		syncTimer:                syncer,
+		alarmScheduler:           alarmScheduler,
+		watchdog:                 watchdogTimer,
+		genesisTime:              ccf.genesisTime,
 		chainID:                  ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:    ccf.config.GeneralSettings.MinTransactionVersion,
 	}, nil
@@ -125,4 +153,10 @@ func (ccf *coreComponentsFactory) createStorerTemplatePaths() (string, string) {
 		core.PathIdentifierPlaceholder)
 
 	return pathTemplateForPruningStorer, pathTemplateForStaticStorer
+}
+
+// Close closes the coreComponents
+func (cc *coreComponents) Close() error {
+	cc.alarmScheduler.Close()
+	return cc.syncTimer.Close()
 }

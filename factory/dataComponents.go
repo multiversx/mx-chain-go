@@ -10,6 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dataRetrieverFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -36,9 +38,10 @@ type dataComponentsFactory struct {
 
 // DataComponents struct holds the data components
 type DataComponents struct {
-	Blkc     data.ChainHandler
-	Store    dataRetriever.StorageService
-	Datapool dataRetriever.PoolsHolder
+	Blkc               data.ChainHandler
+	Store              dataRetriever.StorageService
+	Datapool           dataRetriever.PoolsHolder
+	MiniBlocksProvider process.MiniBlockProvider
 }
 
 // NewDataComponentsFactory will return a new instance of dataComponentsFactory
@@ -92,10 +95,22 @@ func (dcf *dataComponentsFactory) Create() (*DataComponents, error) {
 		return nil, fmt.Errorf("%w: %s", ErrDataPoolCreation, err.Error())
 	}
 
+	arg := provider.ArgMiniBlockProvider{
+		MiniBlockPool:    datapool.MiniBlocks(),
+		MiniBlockStorage: store.GetStorer(dataRetriever.MiniBlockUnit),
+		Marshalizer:      dcf.core.InternalMarshalizer(),
+	}
+
+	miniBlocksProvider, err := provider.NewMiniBlockProvider(arg)
+	if err != nil {
+		return nil, err
+	}
+
 	return &DataComponents{
-		Blkc:     blkc,
-		Store:    store,
-		Datapool: datapool,
+		Blkc:               blkc,
+		Store:              store,
+		Datapool:           datapool,
+		MiniBlocksProvider: miniBlocksProvider,
 	}, nil
 }
 

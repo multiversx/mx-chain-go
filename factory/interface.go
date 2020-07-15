@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -18,10 +19,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -88,6 +91,10 @@ type CoreComponentsHolder interface {
 	StatusHandler() core.AppStatusHandler
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	PathHandler() storage.PathManagerHandler
+	Watchdog() core.WatchdogTimer
+	AlarmScheduler() core.TimersScheduler
+	SyncTimer() ntp.SyncTimer
+	GenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
@@ -127,12 +134,20 @@ type CryptoComponentsHandler interface {
 	CryptoComponentsHolder
 }
 
+// MiniBlockProvider defines what a miniblock data provider should do
+type MiniBlockProvider interface {
+	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	IsInterfaceNil() bool
+}
+
 // DataComponentsHolder holds the data components
 type DataComponentsHolder interface {
 	Blockchain() data.ChainHandler
 	SetBlockchain(chain data.ChainHandler)
 	StorageService() dataRetriever.StorageService
 	Datapool() dataRetriever.PoolsHolder
+	MiniBlocksProvider() MiniBlockProvider
 	Clone() interface{}
 	IsInterfaceNil() bool
 }
@@ -143,6 +158,13 @@ type DataComponentsHandler interface {
 	DataComponentsHolder
 }
 
+// PeerHonestyHandler defines the behaivour of a component able to handle/monitor the peer honesty of nodes which are
+// participating in consensus
+type PeerHonestyHandler interface {
+	ChangeScore(pk string, topic string, units int)
+	IsInterfaceNil() bool
+}
+
 // NetworkComponentsHolder holds the network components
 type NetworkComponentsHolder interface {
 	NetworkMessenger() p2p.Messenger
@@ -150,6 +172,7 @@ type NetworkComponentsHolder interface {
 	OutputAntiFloodHandler() P2PAntifloodHandler
 	PubKeyCacher() process.TimeCacher
 	PeerBlackListHandler() process.PeerBlackListCacher
+	PeerHonestyHandler() PeerHonestyHandler
 	IsInterfaceNil() bool
 }
 
@@ -245,6 +268,7 @@ type HeartbeatMonitor interface {
 	IsInterfaceNil() bool
 }
 
+// HeartbeatStorer provides storage functionality for the heartbeat component
 type HeartbeatStorer interface {
 	UpdateGenesisTime(genesisTime time.Time) error
 	LoadGenesisTime() (time.Time, error)
@@ -253,6 +277,7 @@ type HeartbeatStorer interface {
 	IsInterfaceNil() bool
 }
 
+// HeartbeatComponentsHolder holds the heartbeat components
 type HeartbeatComponentsHolder interface {
 	MessageHandler() heartbeat.MessageHandler
 	Monitor() HeartbeatMonitor
@@ -261,7 +286,61 @@ type HeartbeatComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
+// HeartbeatComponentsHandler defines the heartbeat components handler actions
 type HeartbeatComponentsHandler interface {
 	ComponentHandler
 	HeartbeatComponentsHolder
+}
+
+// ConsensusWorker is the consensus worker handle for the exported functionality
+type ConsensusWorker interface {
+	Close() error
+	StartWorking()
+	//AddReceivedMessageCall adds a new handler function for a received message type
+	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
+	//AddReceivedHeaderHandler adds a new handler function for a received header
+	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
+	//RemoveAllReceivedMessagesCalls removes all the functions handlers
+	RemoveAllReceivedMessagesCalls()
+	//ProcessReceivedMessage method redirects the received message to the channel which should handle it
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	//Extend does an extension for the subround with subroundId
+	Extend(subroundId int)
+	//GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
+	GetConsensusStateChangedChannel() chan bool
+	//ExecuteStoredMessages tries to execute all the messages received which are valid for execution
+	ExecuteStoredMessages()
+	//DisplayStatistics method displays statistics of worker at the end of the round
+	DisplayStatistics()
+	//ReceivedHeader method is a wired method through which worker will receive headers from network
+	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
+	//SetAppStatusHandler sets the status handler object used to collect useful metrics about consensus state machine
+	SetAppStatusHandler(ash core.AppStatusHandler) error
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
+}
+
+type HardforkTrigger interface {
+	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
+	RecordedTriggerMessage() ([]byte, bool)
+	Trigger(epoch uint32) error
+	CreateData() []byte
+	AddCloser(closer update.Closer) error
+	NotifyTriggerReceived() <-chan struct{}
+	IsSelfTrigger() bool
+	IsInterfaceNil() bool
+}
+
+// ConsensusComponentsHolder holds the consensus components
+type ConsensusComponentsHolder interface {
+	Chronology() consensus.ChronologyHandler
+	ConsensusWorker() ConsensusWorker
+	BroadcastMessenger() consensus.BroadcastMessenger
+	IsInterfaceNil() bool
+}
+
+// ConsensusComponentsHandler defines the consensus components handler actions
+type ConsensusComponentsHandler interface {
+	ComponentHandler
+	ConsensusComponentsHolder
 }

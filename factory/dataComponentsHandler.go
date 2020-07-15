@@ -105,6 +105,18 @@ func (mdc *managedDataComponents) Datapool() dataRetriever.PoolsHolder {
 	return mdc.DataComponents.Datapool
 }
 
+// MiniBlocksProvider returns the MiniBlockProvider
+func (mdc *managedDataComponents) MiniBlocksProvider() MiniBlockProvider {
+	mdc.mutDataComponents.RLock()
+	defer mdc.mutDataComponents.RUnlock()
+
+	if mdc.DataComponents == nil {
+		return nil
+	}
+
+	return mdc.DataComponents.MiniBlocksProvider
+}
+
 // Clone creates a shallow clone of a managedDataComponents
 func (mdc *managedDataComponents) Clone() interface{} {
 	dataComponents := (*DataComponents)(nil)

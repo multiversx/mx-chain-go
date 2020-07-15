@@ -2,12 +2,14 @@ package factory
 
 import (
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -221,6 +223,54 @@ func (mcc *managedCoreComponents) MinTransactionVersion() uint32 {
 	}
 
 	return mcc.coreComponents.minTransactionVersion
+}
+
+// AlarmScheduler returns the alarm scheduler
+func (mcc *managedCoreComponents) AlarmScheduler() core.TimersScheduler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.alarmScheduler
+}
+
+// SyncTimer returns the ntp synchronization timer
+func (mcc *managedCoreComponents) SyncTimer() ntp.SyncTimer {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.syncTimer
+}
+
+// GenesisTime returns the time of the genesis block
+func (mcc *managedCoreComponents) GenesisTime() time.Time {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return time.Time{}
+	}
+
+	return mcc.coreComponents.genesisTime
+}
+
+// Watchdog returns the minimum watchdog
+func (mcc *managedCoreComponents) Watchdog() core.WatchdogTimer {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.watchdog
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

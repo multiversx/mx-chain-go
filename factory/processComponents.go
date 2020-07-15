@@ -950,7 +950,7 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilNodesCoordinator)
 	}
 	if check.IfNil(args.Data) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilDataComponents)
+		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilDataComponentsHolder)
 	}
 	if check.IfNil(args.CoreData) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilCoreComponentsHolder)
@@ -959,7 +959,7 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilCryptoComponentsHolder)
 	}
 	if check.IfNil(args.State) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilStateComponents)
+		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilStateComponentsHolder)
 	}
 	if check.IfNil(args.Network) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilNetworkComponentsHolder)
