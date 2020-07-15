@@ -31,6 +31,8 @@ type txListForSender struct {
 	numFailedSelections atomic.Counter
 	onScoreChange       scoreChangeCallback
 
+	insertionHint listForSenderHint
+
 	scoreChunkMutex sync.RWMutex
 	mutex           sync.RWMutex
 }
@@ -130,12 +132,16 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 	iterations := 0
 	defer listForSender.monitorOnFoundInsertionPlace(&iterations, incomingTx)
 
-	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
+	element := listForSender.insertionHint.recallReversedTraversal(incomingNonce, listForSender.items.Back())
+
+	for ; element != nil; element = element.Prev() {
 		iterations++
 
 		currentTx := element.Value.(*WrappedTransaction)
 		currentTxNonce := currentTx.Tx.GetNonce()
 		currentTxGasPrice := currentTx.Tx.GetGasPrice()
+
+		listForSender.insertionHint.digestElement(element, currentTxNonce)
 
 		if incomingTx.sameAs(currentTx) {
 			// The incoming transaction will be discarded

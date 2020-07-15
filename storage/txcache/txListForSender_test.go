@@ -174,6 +174,8 @@ func TestListForSender_RemoveSortedTransactions(t *testing.T) {
 		list.AddTx(tx)
 	}
 
+	require.Equal(t, 4, list.items.Len())
+
 	numRemoved := list.RemoveSortedTransactions(txs)
 	require.Equal(t, 4, numRemoved)
 	require.Equal(t, 0, list.items.Len())
@@ -188,6 +190,8 @@ func TestListForSender_RemoveSortedTransactions(t *testing.T) {
 	for _, tx := range txs {
 		list.AddTx(tx)
 	}
+
+	require.Equal(t, 4, list.items.Len())
 
 	numRemoved = list.RemoveSortedTransactions([]*WrappedTransaction{txs[2]})
 	require.Equal(t, 1, numRemoved)
@@ -216,6 +220,8 @@ func TestListForSender_RemoveSortedTransactions(t *testing.T) {
 		list.AddTx(tx)
 	}
 
+	require.Equal(t, 4, list.items.Len())
+
 	foo := createTx([]byte(".5"), ".", 5)
 	bar := createTx([]byte(".6"), ".", 6)
 	numRemoved = list.RemoveSortedTransactions([]*WrappedTransaction{foo, bar})
@@ -232,6 +238,8 @@ func TestListForSender_RemoveSortedTransactions(t *testing.T) {
 	for _, tx := range txs {
 		list.AddTx(tx)
 	}
+
+	require.Equal(t, 4, list.items.Len())
 
 	foo = createTx([]byte(".5"), ".", 5)
 	bar = createTx([]byte(".6"), ".", 6)
@@ -448,3 +456,6 @@ func newListToTest(maxNumBytes uint32, maxNumTxs uint32) *txListForSender {
 		maxNumTxs:   maxNumTxs,
 	}, func(_ *txListForSender, _ senderScoreParams) {})
 }
+
+// TODO: insertion hints unit test
+// TODO: Benchmark for RemoveTxBulk()
