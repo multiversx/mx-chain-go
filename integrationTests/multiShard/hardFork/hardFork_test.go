@@ -390,6 +390,7 @@ func createHardForkExporter(
 			ValidityAttester:         node.BlockTracker,
 			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
+			Rounder:                  &mock.RounderMock{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

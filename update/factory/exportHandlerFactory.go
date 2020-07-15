@@ -65,6 +65,7 @@ type ArgsExporter struct {
 	InputAntifloodHandler    process.P2PAntifloodHandler
 	OutputAntifloodHandler   process.P2PAntifloodHandler
 	ChainID                  []byte
+	Rounder                  process.Rounder
 }
 
 type exportHandlerFactory struct {
@@ -103,6 +104,7 @@ type exportHandlerFactory struct {
 	inputAntifloodHandler    process.P2PAntifloodHandler
 	outputAntifloodHandler   process.P2PAntifloodHandler
 	chainID                  []byte
+	rounder                  process.Rounder
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -188,6 +190,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.OutputAntifloodHandler) {
 		return nil, update.ErrNilAntiFloodHandler
 	}
+	if check.IfNil(args.Rounder) {
+		return nil, update.ErrNilRounder
+	}
 
 	e := &exportHandlerFactory{
 		txSignMarshalizer:        args.TxSignMarshalizer,
@@ -223,6 +228,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
 		maxTrieLevelInMemory:     args.MaxTrieLevelInMemory,
 		chainID:                  args.ChainID,
+		rounder:                  args.Rounder,
 	}
 
 	return e, nil
@@ -251,6 +257,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Validity:             process.MetaBlockValidity,
 		Finality:             process.BlockFinality,
 		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
+		Rounder:              e.rounder,
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {

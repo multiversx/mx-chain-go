@@ -232,3 +232,6 @@ var ErrEmptyVersionString = errors.New("empty version string")
 
 // ErrNilTimeCache signals that a nil time cache was provided
 var ErrNilTimeCache = errors.New("nil time cache")
+
+// ErrNilRounder signals that nil rounder has been provided
+var ErrNilRounder = errors.New("nil rounder")

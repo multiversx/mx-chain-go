@@ -568,6 +568,7 @@ func newEpochStartTrigger(
 			Validity:             process.MetaBlockValidity,
 			Finality:             process.BlockFinality,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			Rounder:              args.rounder,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
