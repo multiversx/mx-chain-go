@@ -700,3 +700,14 @@ func WithWatchdogTimer(watchdog core.WatchdogTimer) Option {
 		return nil
 	}
 }
+
+// WithPeerSignatureHandler sets up a peerSignatureHandler for the Node
+func WithPeerSignatureHandler(peerSignatureHandler crypto.PeerSignatureHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(peerSignatureHandler) {
+			return ErrNilPeerSignatureHandler
+		}
+		n.peerSigHandler = peerSignatureHandler
+		return nil
+	}
+}

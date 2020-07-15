@@ -72,6 +72,7 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 	blsService, _ := bls.NewConsensusService()
 	poolAdder := testscommon.NewCacherMock()
 
+	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         blsService,
 		BlockChain:               blockchainMock,
@@ -80,12 +81,11 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 		BroadcastMessenger:       broadcastMessengerMock,
 		ConsensusState:           consensusState,
 		ForkDetector:             forkDetectorMock,
-		KeyGenerator:             keyGeneratorMock,
 		Marshalizer:              marshalizerMock,
 		Hasher:                   hasher,
 		Rounder:                  rounderMock,
 		ShardCoordinator:         shardCoordinatorMock,
-		SingleSigner:             singleSignerMock,
+		PeerSignatureHandler:     peerSigHandler,
 		SyncTimer:                syncTimerMock,
 		HeaderSigVerifier:        &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier:  &mock.HeaderIntegrityVerifierStub{},
@@ -214,17 +214,6 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilForkDetector, err)
 }
 
-func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
-	t.Parallel()
-
-	workerArgs := createDefaultWorkerArgs()
-	workerArgs.KeyGenerator = nil
-	wrk, err := spos.NewWorker(workerArgs)
-
-	assert.Nil(t, wrk)
-	assert.Equal(t, spos.ErrNilKeyGenerator, err)
-}
-
 func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -269,15 +258,15 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
 
-func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerPeerSignatureHandlerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs()
-	workerArgs.SingleSigner = nil
+	workerArgs.PeerSignatureHandler = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, spos.ErrNilSingleSigner, err)
+	assert.Equal(t, spos.ErrNilPeerSignatureHandler, err)
 }
 
 func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
@@ -1067,123 +1056,6 @@ func TestWorker_CheckSelfStateShouldNotErr(t *testing.T) {
 	)
 	err := wrk.CheckSelfState(cnsMsg)
 	assert.Nil(t, err)
-}
-
-func TestWorker_CheckSignatureShouldReturnErrNilConsensusData(t *testing.T) {
-	t.Parallel()
-	wrk := *initWorker()
-	err := wrk.CheckSignature(nil)
-
-	assert.Equal(t, spos.ErrNilConsensusData, err)
-}
-
-func TestWorker_CheckSignatureShouldReturnErrNilPublicKey(t *testing.T) {
-	t.Parallel()
-	wrk := *initWorker()
-	blk := &block.Body{}
-	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := consensus.NewConsensusMessage(
-		nil,
-		nil,
-		blkStr,
-		nil,
-		nil,
-		[]byte("sig"),
-		int(bls.MtBlockBody),
-		0,
-		chainID,
-		nil,
-		nil,
-		nil,
-		currentPid,
-	)
-	err := wrk.CheckSignature(cnsMsg)
-
-	assert.Equal(t, spos.ErrNilPublicKey, err)
-}
-
-func TestWorker_CheckSignatureShouldReturnErrNilSignature(t *testing.T) {
-	t.Parallel()
-	wrk := *initWorker()
-	blk := &block.Body{}
-	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := consensus.NewConsensusMessage(
-		nil,
-		nil,
-		blkStr,
-		nil,
-		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		nil,
-		int(bls.MtBlockBody),
-		0,
-		chainID,
-		nil,
-		nil,
-		nil,
-		currentPid,
-	)
-	err := wrk.CheckSignature(cnsMsg)
-
-	assert.Equal(t, spos.ErrNilSignature, err)
-}
-
-func TestWorker_CheckSignatureShouldReturnPublicKeyFromByteArrayErr(t *testing.T) {
-	t.Parallel()
-	wrk := *initWorker()
-	keyGeneratorMock, _, _ := mock.InitKeys()
-	err := errors.New("error public key from byte array")
-	keyGeneratorMock.PublicKeyFromByteArrayMock = func(b []byte) (crypto.PublicKey, error) {
-		return nil, err
-	}
-	wrk.SetKeyGenerator(keyGeneratorMock)
-	blk := &block.Body{}
-	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := consensus.NewConsensusMessage(
-		nil,
-		nil,
-		blkStr,
-		nil,
-		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
-		int(bls.MtBlockBody),
-		0,
-		chainID,
-		nil,
-		nil,
-		nil,
-		currentPid,
-	)
-	err2 := wrk.CheckSignature(cnsMsg)
-
-	assert.Equal(t, err, err2)
-}
-
-func TestWorker_CheckSignatureShouldReturnMarshalizerErr(t *testing.T) {
-	t.Parallel()
-	wrk := *initWorker()
-	marshalizerMock := mock.MarshalizerMock{}
-	marshalizerMock.Fail = true
-	wrk.SetMarshalizer(marshalizerMock)
-	blk := &block.Body{}
-	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := consensus.NewConsensusMessage(
-		nil,
-		nil,
-		blkStr,
-		nil,
-		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
-		int(bls.MtBlockBody),
-		0,
-		chainID,
-		nil,
-		nil,
-		nil,
-		currentPid,
-	)
-	err := wrk.CheckSignature(cnsMsg)
-
-	assert.Equal(t, mock.ErrMockMarshalizer, err)
 }
 
 func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {

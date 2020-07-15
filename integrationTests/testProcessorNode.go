@@ -411,7 +411,7 @@ func NewTestProcessorNodeWithFullGenesis(
 		tpn.Messenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.SingleSigner,
+		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 	)
@@ -541,7 +541,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.Messenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.SingleSigner,
+		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 	)
@@ -564,7 +564,7 @@ func (tpn *TestProcessorNode) InitializeProcessors() {
 		tpn.Messenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.SingleSigner,
+		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 	)
@@ -826,6 +826,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			Finality:             1,
 			EpochStartNotifier:   tpn.EpochStartNotifier,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			Rounder:              tpn.Rounder,
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -1383,6 +1384,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				Finality:             1,
 				EpochStartNotifier:   tpn.EpochStartNotifier,
 				PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
+				Rounder:              tpn.Rounder,
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}

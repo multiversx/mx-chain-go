@@ -84,9 +84,13 @@ func TestCryptoComponentsFactory_Create(t *testing.T) {
 func getCryptoArgs() factory.CryptoComponentsFactoryArgs {
 	return factory.CryptoComponentsFactoryArgs{
 		Config: config.Config{
-			Consensus:      config.TypeConfig{Type: "bls"},
-			MultisigHasher: config.TypeConfig{Type: "blake2b"},
 			Hasher:         config.TypeConfig{Type: "blake2b"},
+			MultisigHasher: config.TypeConfig{Type: "blake2b"},
+			PublicKeyPIDSignature: config.CacheConfig{
+				Capacity: 1000,
+				Type:     "LRU",
+			},
+			Consensus: config.TypeConfig{Type: "bls"},
 		},
 		NodesConfig:      &mock.NodesSetupStub{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
