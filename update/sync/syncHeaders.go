@@ -156,10 +156,10 @@ func (h *headersToSync) receivedUnFinishedMetaBlocks(headerHandler data.HeaderHa
 		return
 	}
 
-	attestingHash, okFound := h.foundMetaNonces[meta.GetNonce()+1]
+	attestingHash, okHash := h.foundMetaNonces[meta.GetNonce()+1]
 	attestingHdr, okHdr := h.unFinishedMetaBlocks[attestingHash]
 
-	isNeededMeta := okFound && okHdr && bytes.Equal(attestingHdr.GetPrevHash(), hash)
+	isNeededMeta := okHash && okHdr && bytes.Equal(attestingHdr.GetPrevHash(), hash)
 	if !isNeededMeta {
 		h.requestHandler.RequestMetaHeaderByNonce(meta.GetNonce())
 		h.requestHandler.RequestMetaHeaderByNonce(meta.GetNonce() + 1)
