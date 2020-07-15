@@ -128,7 +128,7 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 	incomingGasPrice := incomingTx.Tx.GetGasPrice()
 
 	iterations := 0
-	defer listForSender.onFoundInsertionPlace(&iterations, incomingTx)
+	defer listForSender.monitorOnFoundInsertionPlace(&iterations, incomingTx)
 
 	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
 		iterations++
@@ -191,7 +191,7 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 	txToFindNonce := txToFind.Tx.GetNonce()
 
 	iterations := 0
-	defer listForSender.onFoundTransaction(&iterations, txToFind)
+	defer listForSender.monitorOnFoundTransaction(&iterations, txToFind)
 
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		iterations++
