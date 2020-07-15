@@ -20,7 +20,10 @@ type Indexer interface {
 	IsNilIndexer() bool
 }
 
+// ElasticIndexer -
 type ElasticIndexer interface {
 	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int)
+	SaveMiniblocks(header data.HeaderHandler, body *block.Body)
+	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32)
 }
 

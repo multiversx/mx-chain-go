@@ -144,3 +144,12 @@ type elasticNode struct {
 type elasticNodesInfo struct {
 	Nodes map[string]elasticNode `json:"nodes"`
 }
+
+type kibanaExistsResponse struct {
+	Ok bool `json:"ok"`
+}
+
+type kibanaErrorResponse struct {
+	Ok    bool   `json:"ok"`
+	Error string `json:"error"`
+}

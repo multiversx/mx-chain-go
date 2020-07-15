@@ -1,0 +1,28 @@
+{
+  "index_patterns": ["transactions"],
+  "template": {
+    "settings": {
+      "number_of_shards": 5,
+      "number_of_replicas": 1,
+      "sort": {
+        "field": "timestamp",
+        "order": "desc"
+      }
+    },
+    "mappings": {
+      "properties": {
+        "nonce": {
+          "type": "long"
+        },
+        "timestamp": {
+          "type": "date"
+        }
+      }
+    }
+  },
+  "priority": 10,
+  "version": 3,
+  "_meta": {
+    "description": "Transactions index definition"
+  }
+}

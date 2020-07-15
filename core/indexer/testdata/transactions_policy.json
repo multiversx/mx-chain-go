@@ -1,0 +1,34 @@
+{
+  "policy": {
+    "description": "A simple default policy that changes the replica count between hot and cold states.",
+    "default_state": "hot",
+    "states": [
+      {
+        "name": "hot",
+        "actions": [],
+        "transitions": [
+          {
+            "state_name": "warm",
+            "conditions": {
+              "min_doc_count": 1
+            }
+          }
+        ]
+      },
+      {
+        "name": "warm",
+        "actions": [
+          {
+            "rollover": {
+              "min_doc_count": 1
+            },
+            "replica_count": {
+              "number_of_replicas": 1
+            }
+          }
+        ],
+        "transitions": []
+      }
+    ]
+  }
+}

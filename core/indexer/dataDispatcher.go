@@ -1,10 +1,14 @@
 package indexer
 
 import (
+	"io"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -30,11 +34,16 @@ type ElasticIndexerArgs struct {
 	NodesCoordinator         sharding.NodesCoordinator
 	AddressPubkeyConverter   core.PubkeyConverter
 	ValidatorPubkeyConverter core.PubkeyConverter
+	IndexTemplates           map[string]io.Reader
+	IndexPolicies            map[string]io.Reader
 	Options                  *Options
 }
 
 type dataDispatcher struct {
 	elasticIndexer ElasticIndexer
+
+	options     *Options
+	marshalizer marshal.Marshalizer
 }
 
 // NewDataDispatcher creates a new dataDispatcher instance, capable of selecting the correct es that will
@@ -48,6 +57,9 @@ func NewDataDispatcher(arguments ElasticIndexerArgs) (Indexer, error) {
 
 	return &dataDispatcher{
 		elasticIndexer: ei,
+
+		options:     arguments.Options,
+		marshalizer: arguments.Marshalizer,
 	}, nil
 }
 
@@ -59,7 +71,29 @@ func (d *dataDispatcher) SaveBlock(
 	signersIndexes []uint64,
 	notarizedHeadersHashes []string,
 ) {
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		log.Debug("indexer", "error", ErrBodyTypeAssertion.Error())
+		return
+	}
 
+	if check.IfNil(headerHandler) {
+		log.Debug("indexer: no header", "error", ErrNoHeader.Error())
+		return
+	}
+
+	txsSizeInBytes := computeSizeOfTxs(d.marshalizer, txPool)
+	d.elasticIndexer.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes, txsSizeInBytes)
+
+	if len(body.MiniBlocks) == 0 {
+		return
+	}
+
+	d.elasticIndexer.SaveMiniblocks(headerHandler, body)
+
+	if d.options.TxIndexingEnabled {
+		d.elasticIndexer.SaveTransactions(body, headerHandler, txPool, headerHandler.GetShardID())
+	}
 }
 
 // SaveRoundsInfos will save data about a slice of rounds on elasticsearch
