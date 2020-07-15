@@ -178,6 +178,11 @@ func (hp *historyProcessor) GetTransaction(hash []byte) (*HistoryTransactionWith
 	}, nil
 }
 
+// GetEpochForHash will return epoch for a given hash
+func (hp *historyProcessor) GetEpochForHash(hash []byte) (uint32, error) {
+	return hp.hashEpochProc.GetEpoch(hash)
+}
+
 // IsEnabled will always return true because this is implementation of a history processor
 func (hp *historyProcessor) IsEnabled() bool {
 	return true

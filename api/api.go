@@ -6,6 +6,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/logs"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
@@ -131,6 +132,12 @@ func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondF
 	wrappedHardforkRouter, err := wrapper.NewRouterWrapper("hardfork", hardforkRoutes, routesConfig)
 	if err == nil {
 		hardfork.Routes(wrappedHardforkRouter)
+	}
+
+	blockRoutes := ws.Group("/block")
+	wrappedBlockRouter, err := wrapper.NewRouterWrapper("block", blockRoutes, routesConfig)
+	if err == nil {
+		block.Routes(wrappedBlockRouter)
 	}
 
 	apiHandler, ok := elrondFacade.(MainApiHandler)

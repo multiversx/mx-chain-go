@@ -2,6 +2,7 @@ package mock
 
 import (
 	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go/api/block"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -34,6 +35,8 @@ type NodeStub struct {
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetBlockByHashCalled                           func(hash string) (*block.APIBlock, error)
+	GetBlockByNonceCalled                          func(nonce uint64) (*block.APIBlock, error)
 }
 
 // GetValueForKey -
@@ -48,6 +51,16 @@ func (ns *NodeStub) GetValueForKey(address string, key string) (string, error) {
 // EncodeAddressPubkey -
 func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 	return hex.EncodeToString(pk), nil
+}
+
+// GetBlockByHash -
+func (ns *NodeStub) GetBlockByHash(hash string) (*block.APIBlock, error) {
+	return ns.GetBlockByHashCalled(hash)
+}
+
+// GetBlockByNonce -
+func (ns *NodeStub) GetBlockByNonce(nonce uint64) (*block.APIBlock, error) {
+	return ns.GetBlockByNonceCalled(nonce)
 }
 
 // DecodeAddressPubkey -

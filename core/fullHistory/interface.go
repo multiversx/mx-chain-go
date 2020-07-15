@@ -10,6 +10,7 @@ type HistoryProcessorFactory interface {
 type HistoryHandler interface {
 	PutTransactionsData(htd *HistoryTransactionsData) error
 	GetTransaction(hash []byte) (*HistoryTransactionWithEpoch, error)
+	GetEpochForHash(hash []byte) (uint32, error)
 	IsEnabled() bool
 	IsInterfaceNil() bool
 }

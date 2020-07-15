@@ -24,6 +24,11 @@ func (nhs *nilHistoryProcessor) GetTransaction(_ []byte) (*HistoryTransactionWit
 	return nil, errNilHistoryProcessorImplementation
 }
 
+// GetEpochForHash will return epoch for a given hash
+func (nhs *nilHistoryProcessor) GetEpochForHash(_ []byte) (uint32, error) {
+	return 0, errNilHistoryProcessorImplementation
+}
+
 // IsEnabled -
 func (nhs *nilHistoryProcessor) IsEnabled() bool {
 	return false

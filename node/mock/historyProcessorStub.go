@@ -8,6 +8,7 @@ import (
 type HistoryProcessorStub struct {
 	PutTransactionsDataCalled func(htd *fullHistory.HistoryTransactionsData) error
 	GetTransactionCalled      func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error)
+	GetEpochForHashCalled     func(hash []byte) (uint32, error)
 	IsEnabledCalled           func() bool
 }
 
@@ -25,6 +26,11 @@ func (hp *HistoryProcessorStub) GetTransaction(hash []byte) (*fullHistory.Histor
 		return hp.GetTransactionCalled(hash)
 	}
 	return nil, nil
+}
+
+// GetEpochForHash will return epoch for a given hash
+func (hp *HistoryProcessorStub) GetEpochForHash(hash []byte) (uint32, error) {
+	return hp.GetEpochForHashCalled(hash)
 }
 
 // IsEnabled will always return true because this is implementation of a history processor
