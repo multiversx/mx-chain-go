@@ -30,6 +30,8 @@ type txListForSender struct {
 	totalFee            atomic.Counter
 	numFailedSelections atomic.Counter
 	onScoreChange       scoreChangeCallback
+	hintLastFound       *list.Element
+	hintLastFoundNonce  uint64
 
 	scoreChunkMutex sync.RWMutex
 	mutex           sync.RWMutex
@@ -184,21 +186,38 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 	txToFindHash := txToFind.TxHash
 	txToFindNonce := txToFind.Nonce
 
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(*WrappedTransaction)
+	steps := 0
 
-		if value.Nonce == txToFindNonce {
+	// Optimization: pick-up from last found if applicable
+	var element *list.Element
+	if txToFindNonce >= listForSender.hintLastFoundNonce && listForSender.hintLastFoundNonce != 0 && listForSender.hintLastFound != nil {
+		element = listForSender.hintLastFound
+	} else {
+		element = listForSender.items.Front()
+	}
+
+	for ; element != nil; element = element.Next() {
+		steps++
+		value := element.Value.(*WrappedTransaction)
+		nonce := value.Nonce
+
+		if nonce == txToFindNonce {
 			if bytes.Equal(value.TxHash, txToFindHash) {
+				// Element found, cache it
+				listForSender.hintLastFound = element.Next()
+				listForSender.hintLastFoundNonce = nonce
 				return element
 			}
-		}
-
-		// Optimization: stop search at this point, since the list is sorted by nonce
-		if value.Nonce > txToFindNonce {
-			break
+		} else {
+			// Optimization: stop search at this point, since the list is sorted by nonce
+			if nonce > txToFindNonce {
+				break
+			}
 		}
 	}
 
+	listForSender.hintLastFound = nil
+	listForSender.hintLastFoundNonce = 0
 	return nil
 }
 
