@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -22,6 +23,9 @@ type ArgsNewShardBlockCreatorAfterHardFork struct {
 	ImportHandler      update.ImportHandler
 	Marshalizer        marshal.Marshalizer
 	Hasher             hashing.Hasher
+	SelfShardID        uint32
+	DataPool           dataRetriever.PoolsHolder
+	Storage            dataRetriever.StorageService
 }
 
 type shardBlockCreator struct {
@@ -31,6 +35,9 @@ type shardBlockCreator struct {
 	importHandler      update.ImportHandler
 	marshalizer        marshal.Marshalizer
 	hasher             hashing.Hasher
+	selfShardID        uint32
+	dataPool           dataRetriever.PoolsHolder
+	storage            dataRetriever.StorageService
 }
 
 // NewShardBlockCreatorAfterHardFork creates a shard block processor for the first block after hardfork
@@ -53,6 +60,12 @@ func NewShardBlockCreatorAfterHardFork(args ArgsNewShardBlockCreatorAfterHardFor
 	if check.IfNil(args.PendingTxProcessor) {
 		return nil, update.ErrNilPendingTxProcessor
 	}
+	if check.IfNil(args.DataPool) {
+		return nil, update.ErrNilDataPoolHolder
+	}
+	if check.IfNil(args.Storage) {
+		return nil, update.ErrNilStorage
+	}
 
 	return &shardBlockCreator{
 		shardCoordinator:   args.ShardCoordinator,
@@ -61,6 +74,9 @@ func NewShardBlockCreatorAfterHardFork(args ArgsNewShardBlockCreatorAfterHardFor
 		importHandler:      args.ImportHandler,
 		marshalizer:        args.Marshalizer,
 		hasher:             args.Hasher,
+		selfShardID:        args.SelfShardID,
+		dataPool:           args.DataPool,
+		storage:            args.Storage,
 	}, nil
 }
 
@@ -122,6 +138,9 @@ func (s *shardBlockCreator) CreateNewBlock(
 	shardHeader.AccumulatedFees = big.NewInt(0)
 	shardHeader.DeveloperFees = big.NewInt(0)
 
+	s.saveAllCreatedDSTMeTransactionsToCache(shardHeader, blockBody)
+	s.saveAllTransactionsToStorageIfSelfShard(shardHeader, blockBody)
+
 	return shardHeader, blockBody, nil
 }
 
@@ -169,6 +188,135 @@ func (s *shardBlockCreator) createMiniBlockHeaders(body *block.Body) (int, []blo
 	}
 
 	return totalTxCount, miniBlockHeaders, nil
+}
+
+func (s *shardBlockCreator) saveAllTransactionsToStorageIfSelfShard(
+	shardHdr *block.Header,
+	body *block.Body,
+) {
+	if shardHdr.GetShardID() != s.selfShardID {
+		return
+	}
+
+	mapBlockTypesTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		if _, ok := mapBlockTypesTxs[miniBlock.Type]; !ok {
+			mapBlockTypesTxs[miniBlock.Type] = s.txCoordinator.GetAllCurrentUsedTxs(miniBlock.Type)
+		}
+
+		marshalizedMiniBlock, errNotCritical := s.marshalizer.Marshal(miniBlock)
+		if errNotCritical != nil {
+			log.Warn("saveAllTransactionsToStorageIfSelfShard.Marshal", "error", errNotCritical.Error())
+			continue
+		}
+
+		errNotCritical = s.storage.Put(dataRetriever.MiniBlockUnit, shardHdr.MiniBlockHeaders[i].Hash, marshalizedMiniBlock)
+		if errNotCritical != nil {
+			log.Warn("saveAllTransactionsToStorageIfSelfShard.Put -> MiniBlockUnit", "error", errNotCritical.Error())
+		}
+	}
+
+	mapTxs := s.importHandler.GetTransactions()
+	// save transactions from imported map
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.SenderShardID == s.selfShardID {
+			continue
+		}
+
+		for _, txHash := range miniBlock.TxHashes {
+			tx, ok := mapTxs[string(txHash)]
+			if !ok {
+				log.Warn("miniblock destination me in genesis block should contain only imported txs")
+				continue
+			}
+
+			unitType := dataRetriever.TransactionUnit
+			switch miniBlock.Type {
+			case block.TxBlock:
+				unitType = dataRetriever.TransactionUnit
+			case block.RewardsBlock:
+				unitType = dataRetriever.RewardTransactionUnit
+			case block.SmartContractResultBlock:
+				unitType = dataRetriever.UnsignedTransactionUnit
+			}
+
+			marshalledData, errNotCritical := s.marshalizer.Marshal(tx)
+			if errNotCritical != nil {
+				log.Warn("saveAllTransactionsToStorageIfSelfShard.Marshal", "error", errNotCritical.Error())
+				continue
+			}
+
+			errNotCritical = s.storage.Put(unitType, txHash, marshalledData)
+			if errNotCritical != nil {
+				log.Warn("saveAllTransactionsToStorageIfSelfShard.Put -> Transaction", "error", errNotCritical.Error())
+			}
+		}
+	}
+}
+
+func (s *shardBlockCreator) saveAllCreatedDSTMeTransactionsToCache(
+	shardHdr *block.Header,
+	body *block.Body,
+) {
+	// no need to save from me, only from other genesis blocks which has results towards me
+	if shardHdr.GetShardID() == s.selfShardID {
+		return
+	}
+
+	mapBlockTypesTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	crossMiniBlocksToMe := make([]*block.MiniBlock, 0)
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		isCrossShardDstMe := miniBlock.SenderShardID == s.shardCoordinator.SelfId() &&
+			miniBlock.ReceiverShardID == s.selfShardID
+		if !isCrossShardDstMe {
+			continue
+		}
+
+		_ = s.dataPool.MiniBlocks().Put(shardHdr.MiniBlockHeaders[i].Hash, miniBlock, miniBlock.Size())
+		crossMiniBlocksToMe = append(crossMiniBlocksToMe, miniBlock)
+
+		if _, ok := mapBlockTypesTxs[miniBlock.Type]; !ok {
+			mapBlockTypesTxs[miniBlock.Type] = s.txCoordinator.GetAllCurrentUsedTxs(miniBlock.Type)
+		}
+	}
+
+	for _, miniBlock := range crossMiniBlocksToMe {
+		for _, txHash := range miniBlock.TxHashes {
+			tx := mapBlockTypesTxs[miniBlock.Type][string(txHash)]
+			s.saveTxToCache(tx, txHash, miniBlock)
+		}
+	}
+}
+
+// with the current design only smart contract results are possible for this scenario - but wanted to leave it open,
+// to see if other scenarios are needed as well
+func (s *shardBlockCreator) saveTxToCache(
+	tx data.TransactionHandler,
+	txHash []byte,
+	miniBlock *block.MiniBlock,
+) {
+	if check.IfNil(tx) {
+		log.Warn("missing transaction in saveTxToCache shard genesis block", "hash", txHash, "type", miniBlock.Type)
+		return
+	}
+
+	var chosenCache dataRetriever.ShardedDataCacherNotifier
+	strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+	switch miniBlock.Type {
+	case block.TxBlock:
+		chosenCache = s.dataPool.Transactions()
+	case block.RewardsBlock:
+		chosenCache = s.dataPool.RewardTransactions()
+	case block.SmartContractResultBlock:
+		chosenCache = s.dataPool.UnsignedTransactions()
+	default:
+		log.Warn("invalid miniblock type to save into cache", miniBlock.Type)
+		return
+	}
+
+	chosenCache.AddData(txHash, tx, tx.Size(), strCache)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -179,16 +179,6 @@ func (bbt *baseBlockTrack) shouldAddHeaderForShard(
 	blockNotarizer blockNotarizerHandler,
 	shardForFirstNotarizedHeader uint32,
 ) bool {
-	firstNotarizedHeader, _, err := blockNotarizer.GetFirstNotarizedHeader(shardForFirstNotarizedHeader)
-	if err != nil {
-		log.Debug("shouldAddHeaderForShard.GetFirstNotarizedHeader",
-			"shard", shardForFirstNotarizedHeader,
-			"error", err.Error())
-		return false
-	}
-
-	firstNotarizedHeaderNonce := firstNotarizedHeader.GetNonce()
-
 	lastNotarizedHeader, _, err := blockNotarizer.GetLastNotarizedHeader(headerHandler.GetShardID())
 	if err != nil {
 		log.Debug("shouldAddHeaderForShard.GetLastNotarizedHeader",
@@ -199,9 +189,7 @@ func (bbt *baseBlockTrack) shouldAddHeaderForShard(
 
 	lastNotarizedHeaderNonce := lastNotarizedHeader.GetNonce()
 
-	isHeaderOutOfRange := headerHandler.GetNonce() < firstNotarizedHeaderNonce ||
-		headerHandler.GetNonce() > lastNotarizedHeaderNonce+uint64(bbt.maxNumHeadersToKeepPerShard)
-
+	isHeaderOutOfRange := headerHandler.GetNonce() > lastNotarizedHeaderNonce+uint64(bbt.maxNumHeadersToKeepPerShard)
 	return !isHeaderOutOfRange
 }
 
@@ -460,6 +448,11 @@ func (bbt *baseBlockTrack) getFinalHeader(shardID uint32) (data.HeaderHandler, [
 	}
 
 	return bbt.selfNotarizer.GetFirstNotarizedHeader(shardID)
+}
+
+// CheckBlockAgainstWhiteList returns if the provided intercepted data (blocks) is whitelisted or not
+func (bbt *baseBlockTrack) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
+	return bbt.whitelistHandler.IsWhiteListed(interceptedData)
 }
 
 // GetLastCrossNotarizedHeader returns last cross notarized header for a given shard
@@ -799,13 +792,6 @@ func (bbt *baseBlockTrack) isHeaderOutOfRange(headerHandler data.HeaderHandler) 
 		return true
 	}
 
-	if headerHandler.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
-		return true
-	}
-	if headerHandler.GetRound() <= lastCrossNotarizedHeader.GetRound() {
-		return true
-	}
-
-	isHeaderOutOfRange := headerHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
+	isHeaderOutOfRange := headerHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToWhitelistInAdvance
 	return isHeaderOutOfRange
 }

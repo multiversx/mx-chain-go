@@ -26,7 +26,7 @@ type ArgKadDht struct {
 	Context              context.Context
 	Host                 ConnectableHost
 	PeersRefreshInterval time.Duration
-	RandezVous           string
+	ProtocolID           string
 	InitialPeersList     []string
 	BucketSize           uint32
 	RoutingTableRefresh  time.Duration
@@ -43,7 +43,7 @@ type ContinuousKadDhtDiscoverer struct {
 	refreshCancel context.CancelFunc
 
 	peersRefreshInterval time.Duration
-	randezVous           string
+	protocolID           string
 	initialPeersList     []string
 	bucketSize           uint32
 	routingTableRefresh  time.Duration
@@ -84,7 +84,7 @@ func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*ContinuousKadDhtDiscoverer, 
 		host:                 arg.Host,
 		sharder:              sharder,
 		peersRefreshInterval: arg.PeersRefreshInterval,
-		randezVous:           arg.RandezVous,
+		protocolID:           arg.ProtocolID,
 		initialPeersList:     arg.InitialPeersList,
 		bucketSize:           arg.BucketSize,
 		routingTableRefresh:  arg.RoutingTableRefresh,
@@ -103,24 +103,6 @@ func (ckdd *ContinuousKadDhtDiscoverer) Bootstrap() error {
 	return ckdd.startDHT()
 }
 
-// UpdateRandezVous change the randezVous string, and restart the discovery with the new protocols
-func (ckdd *ContinuousKadDhtDiscoverer) UpdateRandezVous(s string) error {
-	ckdd.mutKadDht.Lock()
-	defer ckdd.mutKadDht.Unlock()
-
-	if s == ckdd.randezVous {
-		return nil
-	}
-
-	err := ckdd.stopDHT()
-	if err != nil {
-		log.Debug("error wile stopping kad-dht discovery, skip", "error", err)
-	}
-
-	ckdd.randezVous = s
-	return ckdd.startDHT()
-}
-
 func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
 	ctxrun, cancel := context.WithCancel(ckdd.context)
 	var err error
@@ -130,7 +112,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
 		return err
 	}
 
-	protocolID := protocol.ID(ckdd.randezVous)
+	protocolID := protocol.ID(ckdd.protocolID)
 	kademliaDHT, err := dht.New(
 		ckdd.context,
 		ckdd.hostConnManagement,
@@ -158,7 +140,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) stopDHT() error {
 	ckdd.refreshCancel()
 	ckdd.refreshCancel = nil
 
-	protocolID := protocol.ID(ckdd.randezVous)
+	protocolID := protocol.ID(ckdd.protocolID)
 	ckdd.host.RemoveStreamHandler(protocolID)
 
 	err := ckdd.kadDHT.Close()

@@ -61,7 +61,7 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
 			RefreshIntervalInSec:             10,
-			RandezVous:                       "erd/kad/1.0.0",
+			ProtocolID:                       "erd/kad/1.0.0",
 			InitialPeerList:                  []string{"peer0", "peer1"},
 			BucketSize:                       10,
 			RoutingTableRefreshIntervalInSec: 5,

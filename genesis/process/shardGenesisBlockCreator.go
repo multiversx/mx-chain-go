@@ -38,9 +38,9 @@ type deployedScMetrics struct {
 }
 
 // CreateShardGenesisBlock will create a shard genesis block
-func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error) {
+func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, selfShardID uint32) (data.HeaderHandler, error) {
 	if mustDoHardForkImportProcess(arg) {
-		return createShardGenesisAfterHardFork(arg)
+		return createShardGenesisAfterHardFork(arg, selfShardID)
 	}
 
 	processors, err := createProcessorsForShard(arg)
@@ -123,7 +123,7 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 	return header, nil
 }
 
-func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error) {
+func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId uint32) (data.HeaderHandler, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
 	processors, err := createProcessorsForShard(tmpArg)
@@ -151,13 +151,16 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 		ImportHandler:      arg.importHandler,
 		Marshalizer:        arg.Marshalizer,
 		Hasher:             arg.Hasher,
+		DataPool:           arg.DataPool,
+		Storage:            arg.Store,
+		SelfShardID:        selfShardId,
 	}
 	shardBlockCreator, err := hardForkProcess.NewShardBlockCreatorAfterHardFork(argsShardBlockAfterHardFork)
 	if err != nil {
 		return nil, err
 	}
 
-	hdrHandler, bodyHandler, err := shardBlockCreator.CreateNewBlock(
+	hdrHandler, _, err := shardBlockCreator.CreateNewBlock(
 		arg.ChainID,
 		arg.HardForkConfig.StartRound,
 		arg.HardForkConfig.StartNonce,
@@ -172,8 +175,6 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 	if err != nil {
 		return nil, err
 	}
-
-	saveGenesisBodyToStorage(processors.txCoordinator, bodyHandler)
 
 	return hdrHandler, nil
 }

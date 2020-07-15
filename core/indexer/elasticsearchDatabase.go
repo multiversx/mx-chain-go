@@ -319,7 +319,7 @@ func (esd *elasticSearchDatabase) SaveRoundsInfos(infos []RoundInfo) {
 
 func serializeRoundInfo(info RoundInfo) ([]byte, []byte) {
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%d_%d", "_type" : "%s" } }%s`,
-		info.ShardId, info.Index, roundIndex, "\n"))
+		info.ShardId, info.Index, "_doc", "\n"))
 
 	serializedInfo, err := json.Marshal(info)
 	if err != nil {

@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"bytes"
 	"math"
 	"sync"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -28,11 +30,13 @@ type headersToSync struct {
 	firstPendingMetaBlocks map[string]*block.MetaBlock
 	missingMetaBlocks      map[string]struct{}
 	missingMetaNonces      map[uint64]struct{}
+	foundMetaNonces        map[uint64]string
 	chReceivedAll          chan bool
 	store                  dataRetriever.StorageService
 	metaBlockPool          dataRetriever.HeadersPool
 	epochHandler           update.EpochStartVerifier
 	marshalizer            marshal.Marshalizer
+	hasher                 hashing.Hasher
 	stopSyncing            bool
 	epochToSync            uint32
 	requestHandler         process.RequestHandler
@@ -45,6 +49,7 @@ type ArgsNewHeadersSyncHandler struct {
 	StorageService   dataRetriever.StorageService
 	Cache            dataRetriever.HeadersPool
 	Marshalizer      marshal.Marshalizer
+	Hasher           hashing.Hasher
 	EpochHandler     update.EpochStartVerifier
 	RequestHandler   process.RequestHandler
 	Uint64Converter  typeConverters.Uint64ByteSliceConverter
@@ -74,6 +79,9 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, update.ErrNilShardCoordinator
 	}
+	if check.IfNil(args.Hasher) {
+		return nil, update.ErrNilHasher
+	}
 
 	h := &headersToSync{
 		mutMeta:                sync.Mutex{},
@@ -85,6 +93,7 @@ func NewHeadersSyncHandler(args ArgsNewHeadersSyncHandler) (*headersToSync, erro
 		stopSyncing:            true,
 		requestHandler:         args.RequestHandler,
 		marshalizer:            args.Marshalizer,
+		hasher:                 args.Hasher,
 		unFinishedMetaBlocks:   make(map[string]*block.MetaBlock),
 		firstPendingMetaBlocks: make(map[string]*block.MetaBlock),
 		missingMetaBlocks:      make(map[string]struct{}),
@@ -147,8 +156,20 @@ func (h *headersToSync) receivedUnFinishedMetaBlocks(headerHandler data.HeaderHa
 		return
 	}
 
+	attestingHash, okFound := h.foundMetaNonces[meta.GetNonce()+1]
+	attestingHdr, okHdr := h.unFinishedMetaBlocks[attestingHash]
+
+	isNeededMeta := okFound && okHdr && bytes.Equal(attestingHdr.GetPrevHash(), hash)
+	if !isNeededMeta {
+		h.requestHandler.RequestMetaHeaderByNonce(meta.GetNonce())
+		h.requestHandler.RequestMetaHeaderByNonce(meta.GetNonce() + 1)
+		h.mutMeta.Unlock()
+		return
+	}
+
 	delete(h.missingMetaNonces, meta.GetNonce())
 	h.unFinishedMetaBlocks[string(hash)] = meta
+	h.foundMetaNonces[meta.GetNonce()] = string(hash)
 
 	if len(h.missingMetaNonces) > 0 {
 		h.mutMeta.Unlock()
@@ -260,7 +281,7 @@ func (h *headersToSync) syncFirstPendingMetaBlocks(waitTime time.Duration) error
 		}
 
 		metaHdr, err := process.GetMetaHeader([]byte(metaHash), h.metaBlockPool, h.marshalizer, h.store)
-		if err != nil {
+		if err != nil || check.IfNil(metaHdr) {
 			h.missingMetaBlocks[metaHash] = struct{}{}
 			continue
 		}
@@ -296,8 +317,11 @@ func (h *headersToSync) syncAllNeededMetaHeaders(waitTime time.Duration) error {
 
 	h.mutMeta.Lock()
 
-	lowestPendingNonce := h.lowestPendingNonceFrom(h.firstPendingMetaBlocks)
-	h.computeMissingNonce(lowestPendingNonce, h.epochStartMetaBlock.Nonce)
+	err := h.computeMissingNonce(h.epochStartMetaBlock)
+	if err != nil {
+		h.mutMeta.Unlock()
+		return err
+	}
 
 	_ = core.EmptyChannel(h.chReceivedAll)
 	for nonce := range h.missingMetaNonces {
@@ -319,17 +343,52 @@ func (h *headersToSync) syncAllNeededMetaHeaders(waitTime time.Duration) error {
 	return nil
 }
 
-func (h *headersToSync) computeMissingNonce(lowestNonce uint64, epochStartNonce uint64) {
+func (h *headersToSync) computeMissingNonce(epochStart *block.MetaBlock) error {
 	h.missingMetaNonces = make(map[uint64]struct{})
+	h.foundMetaNonces = make(map[uint64]string)
 
-	for nonce := lowestNonce; nonce <= epochStartNonce; nonce++ {
-		metaHdr, metaHash, err := process.GetMetaHeaderWithNonce(nonce, h.metaBlockPool, h.marshalizer, h.store, h.uint64Converter)
+	epochStartNonce := epochStart.Nonce
+	hash, err := core.CalculateHash(h.marshalizer, h.hasher, epochStart)
+	if err != nil {
+		return err
+	}
+
+	h.foundMetaNonces[epochStartNonce] = string(hash)
+	h.unFinishedMetaBlocks[string(hash)] = epochStart
+
+	for hash, meta := range h.firstPendingMetaBlocks {
+		h.unFinishedMetaBlocks[hash] = meta
+		h.foundMetaNonces[meta.Nonce] = hash
+	}
+
+	lowestPendingNonce := h.lowestPendingNonceFrom(h.firstPendingMetaBlocks)
+	for nonce := epochStartNonce - 1; nonce >= lowestPendingNonce+1; nonce-- {
+		_, ok := h.foundMetaNonces[nonce]
+		if ok {
+			continue
+		}
+
+		attestingHash, ok := h.foundMetaNonces[nonce+1]
+		if !ok {
+			h.missingMetaNonces[nonce] = struct{}{}
+			continue
+		}
+		attestingMeta, ok := h.unFinishedMetaBlocks[attestingHash]
+		if !ok {
+			h.missingMetaNonces[nonce] = struct{}{}
+			continue
+		}
+		metaHdr, err := process.GetMetaHeader(attestingMeta.GetPrevHash(), h.metaBlockPool, h.marshalizer, h.store)
 		if err != nil {
 			h.missingMetaNonces[nonce] = struct{}{}
 			continue
 		}
-		h.unFinishedMetaBlocks[string(metaHash)] = metaHdr
+
+		h.foundMetaNonces[nonce] = string(attestingMeta.GetPrevHash())
+		h.unFinishedMetaBlocks[string(attestingMeta.GetPrevHash())] = metaHdr
 	}
+
+	return nil
 }
 
 func (h *headersToSync) lowestPendingNonceFrom(metaBlocks map[string]*block.MetaBlock) uint64 {
@@ -358,14 +417,13 @@ func (h *headersToSync) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
 // GetUnfinishedMetaBlocks returns the synced metablock
 func (h *headersToSync) GetUnfinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
 	h.mutMeta.Lock()
-	unFinished := h.unFinishedMetaBlocks
+	unFinished := make(map[string]*block.MetaBlock)
+	for hash, meta := range h.unFinishedMetaBlocks {
+		unFinished[hash] = meta
+	}
 	h.mutMeta.Unlock()
 
-	if len(unFinished) > 0 || h.shardCoordinator.SelfId() == core.MetachainShardId {
-		return unFinished, nil
-	}
-
-	return nil, update.ErrNotSynced
+	return unFinished, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

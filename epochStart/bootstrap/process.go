@@ -104,7 +104,6 @@ type epochStartBootstrap struct {
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
-	importStartHandler         epochStart.ImportStartHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -173,7 +172,6 @@ type ArgsEpochStartBootstrap struct {
 	AddressPubkeyConverter     core.PubkeyConverter
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
-	ImportStartHandler         epochStart.ImportStartHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -213,7 +211,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		statusHandler:              args.StatusHandler,
 		shuffledOut:                false,
 		nodeType:                   core.NodeTypeObserver,
-		importStartHandler:         args.ImportStartHandler,
 		argumentsParser:            args.ArgumentsParser,
 	}
 

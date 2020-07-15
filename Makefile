@@ -74,3 +74,6 @@ endif
 	go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@$(shell cat go.mod | grep arwen-wasm-vm | sed 's/.* //')
 	go build -o ${ARWEN_PATH} github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen
 	stat ${ARWEN_PATH}
+
+cli-docs:
+	cd ./cmd && bash ./CLI.md.sh
