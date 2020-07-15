@@ -15,34 +15,34 @@ import (
 
 // ArgHeartbeatSender represents the arguments for the heartbeat sender
 type ArgHeartbeatSender struct {
-	PeerMessenger    heartbeat.P2PMessenger
-	SingleSigner     crypto.SingleSigner
-	PrivKey          crypto.PrivateKey
-	Marshalizer      marshal.Marshalizer
-	Topic            string
-	ShardCoordinator sharding.Coordinator
-	PeerTypeProvider heartbeat.PeerTypeProviderHandler
-	StatusHandler    core.AppStatusHandler
-	VersionNumber    string
-	NodeDisplayName  string
-	KeyBaseIdentity  string
-	HardforkTrigger  heartbeat.HardforkTrigger
+	PeerMessenger        heartbeat.P2PMessenger
+	PeerSignatureHandler crypto.PeerSignatureHandler
+	PrivKey              crypto.PrivateKey
+	Marshalizer          marshal.Marshalizer
+	Topic                string
+	ShardCoordinator     sharding.Coordinator
+	PeerTypeProvider     heartbeat.PeerTypeProviderHandler
+	StatusHandler        core.AppStatusHandler
+	VersionNumber        string
+	NodeDisplayName      string
+	KeyBaseIdentity      string
+	HardforkTrigger      heartbeat.HardforkTrigger
 }
 
 // Sender periodically sends heartbeat messages on a pubsub topic
 type Sender struct {
-	peerMessenger    heartbeat.P2PMessenger
-	singleSigner     crypto.SingleSigner
-	privKey          crypto.PrivateKey
-	marshalizer      marshal.Marshalizer
-	shardCoordinator sharding.Coordinator
-	peerTypeProvider heartbeat.PeerTypeProviderHandler
-	statusHandler    core.AppStatusHandler
-	topic            string
-	versionNumber    string
-	nodeDisplayName  string
-	keyBaseIdentity  string
-	hardforkTrigger  heartbeat.HardforkTrigger
+	peerMessenger        heartbeat.P2PMessenger
+	peerSignatureHandler crypto.PeerSignatureHandler
+	privKey              crypto.PrivateKey
+	marshalizer          marshal.Marshalizer
+	shardCoordinator     sharding.Coordinator
+	peerTypeProvider     heartbeat.PeerTypeProviderHandler
+	statusHandler        core.AppStatusHandler
+	topic                string
+	versionNumber        string
+	nodeDisplayName      string
+	keyBaseIdentity      string
+	hardforkTrigger      heartbeat.HardforkTrigger
 }
 
 // NewSender will create a new sender instance
@@ -50,8 +50,8 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 	if check.IfNil(arg.PeerMessenger) {
 		return nil, heartbeat.ErrNilMessenger
 	}
-	if check.IfNil(arg.SingleSigner) {
-		return nil, heartbeat.ErrNilSingleSigner
+	if check.IfNil(arg.PeerSignatureHandler) {
+		return nil, heartbeat.ErrNilPeerSignatureHandler
 	}
 	if check.IfNil(arg.PrivKey) {
 		return nil, heartbeat.ErrNilPrivateKey
@@ -77,18 +77,18 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 	}
 
 	sender := &Sender{
-		peerMessenger:    arg.PeerMessenger,
-		singleSigner:     arg.SingleSigner,
-		privKey:          arg.PrivKey,
-		marshalizer:      arg.Marshalizer,
-		topic:            arg.Topic,
-		shardCoordinator: arg.ShardCoordinator,
-		peerTypeProvider: arg.PeerTypeProvider,
-		statusHandler:    arg.StatusHandler,
-		versionNumber:    arg.VersionNumber,
-		nodeDisplayName:  arg.NodeDisplayName,
-		keyBaseIdentity:  arg.KeyBaseIdentity,
-		hardforkTrigger:  arg.HardforkTrigger,
+		peerMessenger:        arg.PeerMessenger,
+		peerSignatureHandler: arg.PeerSignatureHandler,
+		privKey:              arg.PrivKey,
+		marshalizer:          arg.Marshalizer,
+		topic:                arg.Topic,
+		shardCoordinator:     arg.ShardCoordinator,
+		peerTypeProvider:     arg.PeerTypeProvider,
+		statusHandler:        arg.StatusHandler,
+		versionNumber:        arg.VersionNumber,
+		nodeDisplayName:      arg.NodeDisplayName,
+		keyBaseIdentity:      arg.KeyBaseIdentity,
+		hardforkTrigger:      arg.HardforkTrigger,
 	}
 
 	return sender, nil
@@ -131,12 +131,7 @@ func (s *Sender) SendHeartbeat() error {
 		trimLengths(hb)
 	}
 
-	hbBytes, err := s.marshalizer.Marshal(hb)
-	if err != nil {
-		return err
-	}
-
-	hb.Signature, err = s.singleSigner.Sign(s.privKey, hbBytes)
+	hb.Signature, err = s.peerSignatureHandler.GetPeerSignature(s.privKey, hb.Pid)
 	if err != nil {
 		return err
 	}
