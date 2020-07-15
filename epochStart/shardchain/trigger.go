@@ -50,6 +50,7 @@ type ArgsShardEpochStartTrigger struct {
 	RequestHandler       epochStart.RequestHandler
 	EpochStartNotifier   epochStart.Notifier
 	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
+	Rounder              process.Rounder
 
 	Epoch    uint32
 	Validity uint64
@@ -88,6 +89,7 @@ type trigger struct {
 
 	requestHandler     epochStart.RequestHandler
 	epochStartNotifier epochStart.Notifier
+	rounder            process.Rounder
 
 	epoch               uint32
 	metaEpoch           uint32
@@ -165,6 +167,9 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(args.Rounder) {
+		return nil, epochStart.ErrNilRounder
+	}
 
 	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
@@ -221,6 +226,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		epochStartShardHeader:       &block.Header{},
 		peerMiniBlocksSyncer:        args.PeerMiniBlocksSyncer,
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
+		rounder:                     args.Rounder,
 	}
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
@@ -458,7 +464,13 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		t.newEpochHdrReceived = true
 		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
 		// waiting for late broadcast of mini blocks and transactions to be done and received
-		time.Sleep(core.ExtraDelayForRequestBlockInfo)
+		waitTime := core.ExtraDelayForRequestBlockInfo
+		roundDifferences := t.rounder.Index() - int64(headerHandler.GetRound())
+		if roundDifferences > 1 {
+			waitTime = 0
+		}
+
+		time.Sleep(waitTime)
 	}
 
 	t.mapHashHdr[string(metaBlockHash)] = metaHdr

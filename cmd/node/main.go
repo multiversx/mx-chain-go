@@ -1967,6 +1967,7 @@ func createHardForkTrigger(
 		ExportFolder:             exportFolder,
 		ExportTriesStorageConfig: hardForkConfig.ExportTriesStorageConfig,
 		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
+		ExportStateKeysConfig:    hardForkConfig.ExportKeysStorageConfig,
 		WhiteListHandler:         whiteListRequest,
 		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
 		InterceptorsContainer:    process.InterceptorsContainer,
@@ -1984,6 +1985,7 @@ func createHardForkTrigger(
 		OutputAntifloodHandler:   network.OutputAntifloodHandler,
 		ValidityAttester:         process.BlockTracker,
 		ChainID:                  coreData.ChainID,
+		Rounder:                  process.Rounder,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {

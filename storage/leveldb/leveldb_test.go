@@ -262,7 +262,7 @@ func TestDB_Destroy(t *testing.T) {
 	assert.Nil(t, err, "no error expected but got %s", err)
 }
 
-func TestDB_Iterate(t *testing.T) {
+func TestDB_RangeKeys(t *testing.T) {
 	ldb := createLevelDb(t, 1, 1, 10)
 	defer func() {
 		_ = ldb.Close()
@@ -286,10 +286,12 @@ func TestDB_Iterate(t *testing.T) {
 
 	recovered := make(map[string][]byte)
 
-	ch := ldb.Iterate()
-	for kv := range ch {
-		recovered[string(kv.Key())] = kv.Value()
+	handler := func(key []byte, val []byte) bool {
+		recovered[string(key)] = val
+		return true
 	}
+
+	ldb.RangeKeys(handler)
 
 	assert.Equal(t, keysVals, recovered)
 }

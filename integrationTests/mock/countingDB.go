@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 )
@@ -70,9 +69,9 @@ func (cdb *countingDB) GetCounter() int {
 	return cdb.nrOfPut
 }
 
-// Iterate will return all (key, value) pairs
-func (cdb *countingDB) Iterate() chan core.KeyValueHolder {
-	return cdb.db.Iterate()
+// RangeKeys will call the handler on all (key, value) pairs
+func (cdb *countingDB) RangeKeys(handler func(key []byte, value []byte) bool) {
+	cdb.db.RangeKeys(handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
