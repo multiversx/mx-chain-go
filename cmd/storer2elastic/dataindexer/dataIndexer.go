@@ -1,6 +1,7 @@
 package dataindexer
 
 import (
+	"encoding/hex"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -123,7 +124,7 @@ func (dpi *dataPreparerAndIndexer) indexHeader(persisters *persistersHolder, dbI
 
 	// TODO: investigate how to fill these 2 fields with real values
 	singersIndexes := []uint64{1, 0}
-	notarizedHdrs := make([]string, 0)
+	notarizedHdrs := dpi.computeNotarizedHeaders(hdr)
 	dpi.elasticIndexer.SaveBlock(body, hdr, txPool, singersIndexes, notarizedHdrs)
 	log.Info("indexed header", "epoch", hdr.GetEpoch(), "shard", hdr.GetShardID(), "nonce", hdr.GetNonce())
 	return nil
@@ -288,4 +289,19 @@ func (dpi *dataPreparerAndIndexer) closePersisters(persisters *persistersHolder)
 
 	err = persisters.rewardTransactionsPersister.Close()
 	log.LogIfError(err)
+}
+
+func (dpi *dataPreparerAndIndexer) computeNotarizedHeaders(hdr data.HeaderHandler) []string {
+	metaBlock, ok := hdr.(*block.MetaBlock)
+	if !ok {
+		return []string{}
+	}
+
+	numShardInfo := len(metaBlock.ShardInfo)
+	notarizedHdrs := make([]string, 0, numShardInfo)
+	for i := 0; i < numShardInfo; i++ {
+		notarizedHdrs[i] = hex.EncodeToString(metaBlock.ShardInfo[i].HeaderHash)
+	}
+
+	return notarizedHdrs
 }
