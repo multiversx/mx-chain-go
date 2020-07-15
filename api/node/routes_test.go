@@ -209,6 +209,30 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, statisticsRsp.Statistics.NrOfShards, nrOfShards)
 }
 
+func TestPrometheusMetrics_ShouldWork(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := "test-key"
+	value := uint64(37)
+	statusMetricsProvider.SetUInt64Value(key, value)
+
+	facade := mock.Facade{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/metrics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, fmt.Sprintf("%s %d", key, value))
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
@@ -455,6 +479,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 			"node": {
 				[]config.RouteConfig{
 					{Name: "/status", Open: true},
+					{Name: "/metrics", Open: true},
 					{Name: "/statistics", Open: true},
 					{Name: "/heartbeatstatus", Open: true},
 					{Name: "/p2pstatus", Open: true},

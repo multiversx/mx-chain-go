@@ -121,6 +121,6 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusString(t *testing.T) {
 
 	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
 
-	assert.True(t, strings.Contains(strRes, fmt.Sprintf("%s=%v", key1, value1)))
-	assert.True(t, strings.Contains(strRes, fmt.Sprintf("%s=%v", key2, value2)))
+	// result should contain only numeric values
+	assert.True(t, strings.Contains(strRes, fmt.Sprintf("%s %v", key1, value1)))
 }
