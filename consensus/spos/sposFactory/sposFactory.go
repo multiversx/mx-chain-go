@@ -68,7 +68,7 @@ func GetBroadcastMessenger(
 	messenger consensus.P2PMessenger,
 	shardCoordinator sharding.Coordinator,
 	privateKey crypto.PrivateKey,
-	singleSigner crypto.SingleSigner,
+	peerSignatureHandler crypto.PeerSignatureHandler,
 	headersSubscriber consensus.HeadersPoolSubscriber,
 	interceptorsContainer process.InterceptorsContainer,
 ) (consensus.BroadcastMessenger, error) {
@@ -79,7 +79,7 @@ func GetBroadcastMessenger(
 		Messenger:                  messenger,
 		PrivateKey:                 privateKey,
 		ShardCoordinator:           shardCoordinator,
-		SingleSigner:               singleSigner,
+		PeerSignatureHandler:       peerSignatureHandler,
 		HeadersSubscriber:          headersSubscriber,
 		MaxDelayCacheSize:          maxDelayCacheSize,
 		MaxValidatorDelayCacheSize: maxDelayCacheSize,

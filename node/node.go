@@ -266,7 +266,7 @@ func (n *Node) StartConsensus() error {
 		n.messenger,
 		n.shardCoordinator,
 		n.privKey,
-		n.singleSigner,
+		n.peerSigHandler,
 		n.dataPool.Headers(),
 		n.interceptorsContainer,
 	)

@@ -40,13 +40,14 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t
 			return nil, err
 		},
 	}
+	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
 
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
 		privateKeyMock,
 		shardCoordinatorMock,
-		singleSignerMock,
+		peerSigHandler,
 	)
 
 	msg := &consensus.Message{}
@@ -67,13 +68,14 @@ func TestCommonMessenger_BroadcastConsensusMessageShouldWork(t *testing.T) {
 			return []byte(""), nil
 		},
 	}
+	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
 
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
 		privateKeyMock,
 		shardCoordinatorMock,
-		singleSignerMock,
+		peerSigHandler,
 	)
 
 	msg := &consensus.Message{}
@@ -92,13 +94,14 @@ func TestCommonMessenger_SignMessageShouldErrWhenSignFail(t *testing.T) {
 			return nil, err
 		},
 	}
+	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
 
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
 		privateKeyMock,
 		shardCoordinatorMock,
-		singleSignerMock,
+		peerSigHandler,
 	)
 
 	msg := &consensus.Message{}
@@ -146,13 +149,14 @@ func TestSubroundEndRound_ExtractMiniBlocksAndTransactionsShouldWork(t *testing.
 			return []byte(""), nil
 		},
 	}
+	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
 
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
 		privateKeyMock,
 		shardCoordinatorMock,
-		singleSignerMock,
+		peerSigHandler,
 	)
 
 	metaMiniBlocks, metaTransactions := cm.ExtractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
@@ -187,13 +191,14 @@ func TestCommonMessenger_BroadcastBlockData(t *testing.T) {
 			return []byte(""), nil
 		},
 	}
+	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
 
 	cm, _ := broadcast.NewCommonMessenger(
 		marshalizerMock,
 		messengerMock,
 		privateKeyMock,
 		shardCoordinatorMock,
-		singleSignerMock,
+		peerSigHandler,
 	)
 
 	miniBlocks := map[uint32][]byte{0: []byte("mbs data1"), 1: []byte("mbs data2")}

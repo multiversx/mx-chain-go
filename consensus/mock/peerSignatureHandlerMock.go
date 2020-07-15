@@ -28,7 +28,11 @@ func (p *PeerSignatureHandler) VerifyPeerSignature(pk []byte, pid core.PeerID, s
 }
 
 // GetPeerSignature -
-func (p *PeerSignatureHandler) GetPeerSignature(_ crypto.PrivateKey, _ []byte) ([]byte, error) {
+func (p *PeerSignatureHandler) GetPeerSignature(privateKey crypto.PrivateKey, msg []byte) ([]byte, error) {
+	if p.Signer != nil {
+		return p.Signer.Sign(privateKey, msg)
+	}
+
 	return nil, nil
 }
 

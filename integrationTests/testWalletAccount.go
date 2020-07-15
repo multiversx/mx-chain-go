@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+
+	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
+
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -20,6 +24,7 @@ type TestWalletAccount struct {
 	PkTxSignBytes     []byte
 	KeygenTxSign      crypto.KeyGenerator
 	KeygenBlockSign   crypto.KeyGenerator
+	PeerSigHandler    crypto.PeerSignatureHandler
 
 	Address []byte
 	Nonce   uint64
@@ -67,6 +72,9 @@ func (twa *TestWalletAccount) initCrypto(coordinator sharding.Coordinator, shard
 	twa.KeygenTxSign = keyGen
 	twa.KeygenBlockSign = &mock.KeyGenMock{}
 	twa.Address = twa.PkTxSignBytes
+
+	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	twa.PeerSigHandler, _ = peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, twa.SingleSigner, keyGen)
 }
 
 // LoadTxSignSkBytes alters the already generated sk/pk pair
