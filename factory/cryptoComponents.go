@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
@@ -18,6 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 )
@@ -105,14 +108,26 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 		}
 	}
 
+	cacheConfig := ccf.config.PublicKeyPIDSignature
+	cachePkPIDSignature, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
+	if err != nil {
+		return nil, err
+	}
+
+	peerSigHandler, err := peerSignatureHandler.NewPeerSignatureHandler(cachePkPIDSignature, singleSigner, ccf.keyGen)
+	if err != nil {
+		return nil, err
+	}
+
 	return &CryptoComponents{
-		TxSingleSigner:      txSingleSigner,
-		SingleSigner:        singleSigner,
-		MultiSigner:         multiSigner,
-		BlockSignKeyGen:     ccf.keyGen,
-		TxSignKeyGen:        txSignKeyGen,
-		InitialPubKeys:      initialPubKeys,
-		MessageSignVerifier: messageSignVerifier,
+		TxSingleSigner:       txSingleSigner,
+		SingleSigner:         singleSigner,
+		MultiSigner:          multiSigner,
+		BlockSignKeyGen:      ccf.keyGen,
+		TxSignKeyGen:         txSignKeyGen,
+		InitialPubKeys:       initialPubKeys,
+		MessageSignVerifier:  messageSignVerifier,
+		PeerSignatureHandler: peerSigHandler,
 	}, nil
 }
 

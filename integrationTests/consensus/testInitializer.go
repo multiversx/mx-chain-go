@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -364,6 +366,9 @@ func createConsensusOnlyNode(
 	testMultiSig := mock.NewMultiSigner(consensusSize)
 	_ = testMultiSig.Reset(inPubKeys[shardId], uint16(selfId))
 
+	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
+	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, singleBlsSigner, testKeyGen)
+
 	accntAdapter := createAccountsDB(testMarshalizer)
 	n, err := node.NewNode(
 		node.WithInitialNodesPubKeys(inPubKeys),
@@ -414,6 +419,7 @@ func createConsensusOnlyNode(
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
+		node.WithPeerSignatureHandler(peerSigHandler),
 	)
 
 	if err != nil {

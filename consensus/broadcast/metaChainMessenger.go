@@ -50,7 +50,7 @@ func NewMetaChainMessenger(
 		messenger:               args.Messenger,
 		privateKey:              args.PrivateKey,
 		shardCoordinator:        args.ShardCoordinator,
-		singleSigner:            args.SingleSigner,
+		peerSignatureHandler:    args.PeerSignatureHandler,
 		delayedBlockBroadcaster: dbb,
 	}
 

@@ -411,7 +411,7 @@ func NewTestProcessorNodeWithFullGenesis(
 		tpn.Messenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.SingleSigner,
+		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 	)
@@ -541,7 +541,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.Messenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.SingleSigner,
+		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 	)
@@ -564,7 +564,7 @@ func (tpn *TestProcessorNode) InitializeProcessors() {
 		tpn.Messenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.SingleSigner,
+		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 	)

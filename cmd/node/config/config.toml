@@ -302,6 +302,12 @@
     Capacity = 30000
     Type = "LRU"
 
+#PublicKeyPIDSignature is the cache that is used to map a public key to a peerId-signature pair.
+[PublicKeyPIDSignature]
+    Name = "PublicKeyPIDSignature"
+    Capacity = 3000
+    Type = "LRU"
+
 #PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
 # Used mainly for observers.
 [PeerIdShardId]
