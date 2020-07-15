@@ -127,7 +127,12 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 	incomingNonce := incomingTx.Tx.GetNonce()
 	incomingGasPrice := incomingTx.Tx.GetGasPrice()
 
+	iterations := 0
+	defer listForSender.onFoundInsertionPlace(&iterations, incomingTx)
+
 	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
+		iterations++
+
 		currentTx := element.Value.(*WrappedTransaction)
 		currentTxNonce := currentTx.Tx.GetNonce()
 		currentTxGasPrice := currentTx.Tx.GetGasPrice()
@@ -161,6 +166,7 @@ func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
 	defer listForSender.mutex.Unlock()
 
 	marker := listForSender.findListElementWithTx(tx)
+
 	isFound := marker != nil
 	if isFound {
 		listForSender.items.Remove(marker)
@@ -184,7 +190,12 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 	txToFindHash := txToFind.TxHash
 	txToFindNonce := txToFind.Tx.GetNonce()
 
+	iterations := 0
+	defer listForSender.onFoundTransaction(&iterations, txToFind)
+
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+		iterations++
+
 		value := element.Value.(*WrappedTransaction)
 		nonce := value.Tx.GetNonce()
 

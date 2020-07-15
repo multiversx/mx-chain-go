@@ -245,3 +245,15 @@ func (cache *TxCache) displaySendersSummary() {
 	summary := builder.String()
 	log.Info("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
 }
+
+func (cache *txListForSender) onFoundInsertionPlace(iterations *int, incomingTx *WrappedTransaction) {
+	if *iterations > numIterationsSuboptimalListTraversal {
+		log.Debug("txListForSender.onFoundInsertionPlace: suboptimal", "iterations", *iterations, "nonce", incomingTx.Tx.GetNonce(), "sender", incomingTx.Tx.GetSndAddr())
+	}
+}
+
+func (cache *txListForSender) onFoundTransaction(iterations *int, txToFind *WrappedTransaction) {
+	if *iterations > numIterationsSuboptimalListTraversal {
+		log.Debug("txListForSender.onFoundTransaction: suboptimal", "iterations", *iterations, "nonce", txToFind.Tx.GetNonce(), "sender", txToFind.Tx.GetSndAddr())
+	}
+}
