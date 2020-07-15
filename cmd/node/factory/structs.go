@@ -1715,7 +1715,7 @@ func newValidatorStatisticsProcessor(
 	hardForkConfig := processComponents.mainConfig.Hardfork
 	ratingEnabledEpoch := uint32(0)
 
-	if processComponents.importStartHandler.ShouldStartImport() {
+	if hardForkConfig.AfterHardFork {
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
