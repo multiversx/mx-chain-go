@@ -56,6 +56,9 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	singleSignerMock := &mock.SingleSignerMock{}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptorsContainer := createInterceptorContainer()
+	peerSigHandler := &mock.PeerSignatureHandler{
+		Signer: singleSignerMock,
+	}
 
 	return broadcast.ShardChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -64,7 +67,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			Messenger:                  messengerMock,
 			PrivateKey:                 privateKeyMock,
 			ShardCoordinator:           shardCoordinatorMock,
-			SingleSigner:               singleSignerMock,
+			PeerSignatureHandler:       peerSigHandler,
 			HeadersSubscriber:          headersSubscriber,
 			InterceptorsContainer:      interceptorsContainer,
 			MaxDelayCacheSize:          1,
@@ -109,13 +112,13 @@ func TestShardChainMessenger_NewShardChainMessengerNilShardCoordinatorShouldFail
 	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
 
-func TestShardChainMessenger_NewShardChainMessengerNilSingleSignerShouldFail(t *testing.T) {
+func TestShardChainMessenger_NewShardChainMessengerNilPeerSignatureHandlerShouldFail(t *testing.T) {
 	args := createDefaultShardChainArgs()
-	args.SingleSigner = nil
+	args.PeerSignatureHandler = nil
 	scm, err := broadcast.NewShardChainMessenger(args)
 
 	assert.Nil(t, scm)
-	assert.Equal(t, spos.ErrNilSingleSigner, err)
+	assert.Equal(t, spos.ErrNilPeerSignatureHandler, err)
 }
 
 func TestShardChainMessenger_NewShardChainMessengerNilInterceptorsContainerShouldFail(t *testing.T) {
