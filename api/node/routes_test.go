@@ -229,7 +229,7 @@ func TestPrometheusMetrics_ShouldWork(t *testing.T) {
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	keyAndValueFoundInResponse := strings.Contains(respStr, fmt.Sprintf("%s %d", key, value))
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
