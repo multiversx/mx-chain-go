@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 )
@@ -67,6 +68,11 @@ func (cdb *countingDB) Reset() {
 // GetCounter will return the number of times the Put method was called
 func (cdb *countingDB) GetCounter() int {
 	return cdb.nrOfPut
+}
+
+// Iterate will return all (key, value) pairs
+func (cdb *countingDB) Iterate() chan core.KeyValueHolder {
+	return cdb.db.Iterate()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
