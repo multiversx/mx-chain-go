@@ -222,7 +222,7 @@ type ImportStartHandler interface {
 type HardforkStorer interface {
 	Write(identifier string, key []byte, value []byte) error
 	FinishedIdentifier(identifier string) error
-	RangeKeys(handler func(identifier string, keys [][]byte))
+	RangeKeys(handler func(identifier string, keys [][]byte) bool)
 	Get(identifier string, key []byte) ([]byte, error)
 	Close() error
 	IsInterfaceNil() bool

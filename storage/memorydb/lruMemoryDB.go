@@ -1,8 +1,6 @@
 package memorydb
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -83,31 +81,29 @@ func (l *lruDB) DestroyClosed() error {
 	return l.Destroy()
 }
 
-// Iterate will iterate over all contained (key, value) pairs
-func (l *lruDB) Iterate() chan core.KeyValueHolder {
-	ch := make(chan core.KeyValueHolder)
+// RangeKeys will iterate over all contained (key, value) pairs calling the provided handler
+func (l *lruDB) RangeKeys(handler func(key []byte, value []byte) bool) {
+	if handler == nil {
+		return
+	}
 
-	go func() {
-		keys := l.cacher.Keys()
-
-		for _, k := range keys {
-			v, ok := l.cacher.Get(k)
-			if !ok {
-				continue
-			}
-
-			vBuff, ok := v.([]byte)
-			if !ok {
-				continue
-			}
-
-			ch <- keyValStorage.NewKeyValStorage(k, vBuff)
+	keys := l.cacher.Keys()
+	for _, k := range keys {
+		v, ok := l.cacher.Get(k)
+		if !ok {
+			continue
 		}
 
-		close(ch)
-	}()
+		vBuff, ok := v.([]byte)
+		if !ok {
+			continue
+		}
 
-	return ch
+		shouldContinue := handler(k, vBuff)
+		if !shouldContinue {
+			return
+		}
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

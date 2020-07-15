@@ -4,7 +4,7 @@ package mock
 type HardforkStorerStub struct {
 	WriteCalled              func(identifier string, key []byte, value []byte) error
 	FinishedIdentifierCalled func(identifier string) error
-	RangeKeysCalled          func(handler func(identifier string, keys [][]byte))
+	RangeKeysCalled          func(handler func(identifier string, keys [][]byte) bool)
 	GetCalled                func(identifier string, key []byte) ([]byte, error)
 	CloseCalled              func() error
 }
@@ -28,7 +28,7 @@ func (hss *HardforkStorerStub) FinishedIdentifier(identifier string) error {
 }
 
 // RangeKeys -
-func (hss *HardforkStorerStub) RangeKeys(handler func(identifier string, keys [][]byte)) {
+func (hss *HardforkStorerStub) RangeKeys(handler func(identifier string, keys [][]byte) bool) {
 	if hss.RangeKeysCalled != nil {
 		hss.RangeKeysCalled(handler)
 	}

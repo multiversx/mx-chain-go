@@ -95,25 +95,24 @@ func (hs *hardforkStorer) FinishedIdentifier(identifier string) error {
 }
 
 // RangeKeys iterates over all identifiers and its set of keys. The order is not guaranteed.
-func (hs *hardforkStorer) RangeKeys(handler func(identifier string, keys [][]byte)) {
+func (hs *hardforkStorer) RangeKeys(handler func(identifier string, keys [][]byte) bool) {
 	if handler == nil {
 		return
 	}
 
-	chIterate := hs.keysStore.Iterate()
-	for kv := range chIterate {
+	hs.keysStore.RangeKeys(func(key []byte, val []byte) bool {
 		b := &batch.Batch{}
-		err := hs.marshalizer.Unmarshal(b, kv.Value())
+		err := hs.marshalizer.Unmarshal(b, val)
 		if err != nil {
 			log.Warn("error reading identifiers",
-				"key", string(kv.Key()),
+				"key", string(key),
 				"error", err,
 			)
-			continue
+			return true
 		}
 
-		handler(string(kv.Key()), b.Data)
-	}
+		return handler(string(key), b.Data)
+	})
 }
 
 // Get returns the value of a provided key from the state storer

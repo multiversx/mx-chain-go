@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -74,31 +72,32 @@ type baseLevelDb struct {
 	db *leveldb.DB
 }
 
-// Iterate will return a channel on which will be put all keys and values.
-func (bldb *baseLevelDb) Iterate() chan core.KeyValueHolder {
-	ch := make(chan core.KeyValueHolder)
+// RangeKeys will call the handler function for each (key, value) pair
+// If the handler returns true, the iteration will continue, otherwise will stop
+func (bldb *baseLevelDb) RangeKeys(handler func(key []byte, value []byte) bool) {
+	if handler == nil {
+		return
+	}
 
 	iterator := bldb.db.NewIterator(nil, nil)
-	go func() {
-		for {
-			if !iterator.Next() {
-				break
-			}
-
-			key := iterator.Key()
-			clonedKey := make([]byte, len(key))
-			copy(clonedKey, key)
-
-			val := iterator.Value()
-			clonedVal := make([]byte, len(val))
-			copy(clonedVal, val)
-
-			ch <- keyValStorage.NewKeyValStorage(clonedKey, clonedVal)
+	for {
+		if !iterator.Next() {
+			break
 		}
 
-		iterator.Release()
-		close(ch)
-	}()
+		key := iterator.Key()
+		clonedKey := make([]byte, len(key))
+		copy(clonedKey, key)
 
-	return ch
+		val := iterator.Value()
+		clonedVal := make([]byte, len(val))
+		copy(clonedVal, val)
+
+		shouldContinue := handler(clonedKey, clonedVal)
+		if !shouldContinue {
+			break
+		}
+	}
+
+	iterator.Release()
 }
