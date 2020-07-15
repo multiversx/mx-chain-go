@@ -311,8 +311,10 @@ type VirtualMachineOutOfProcessConfig struct {
 // HardforkConfig holds the configuration for the hardfork trigger
 type HardforkConfig struct {
 	ExportStateStorageConfig     StorageConfig
+	ExportKeysStorageConfig      StorageConfig
 	ExportTriesStorageConfig     StorageConfig
 	ImportStateStorageConfig     StorageConfig
+	ImportKeysStorageConfig      StorageConfig
 	PublicKeyToListenFrom        string
 	ImportFolder                 string
 	StartRound                   uint64
