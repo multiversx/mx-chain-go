@@ -13,20 +13,11 @@ var ErrEmptyConsensusGroup = errors.New("consensusGroup is empty")
 // ErrNotFoundInConsensus is raised when self expected in consensus group but not found
 var ErrNotFoundInConsensus = errors.New("self not found in consensus group")
 
-// ErrNilPublicKey is raised when a valid public key was expected but nil was used
-var ErrNilPublicKey = errors.New("public key is nil")
-
 // ErrNilPrivateKey is raised when a valid private key was expected but nil was used
 var ErrNilPrivateKey = errors.New("private key is nil")
 
-// ErrNilConsensusData is raised when valid consensus data was expected but nil was received
-var ErrNilConsensusData = errors.New("consensus data is nil")
-
 // ErrNilSignature is raised when a valid signature was expected but nil was used
 var ErrNilSignature = errors.New("signature is nil")
-
-// ErrNilKeyGenerator is raised when a valid key generator is expected but nil was used
-var ErrNilKeyGenerator = errors.New("key generator is nil")
 
 // ErrNilSingleSigner is raised when a valid singleSigner is expected but nil used
 var ErrNilSingleSigner = errors.New("singleSigner is nil")
@@ -214,8 +205,5 @@ var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")
 // ErrOriginatorMismatch signals that an original consensus message has been re-broadcast manually by another peer
 var ErrOriginatorMismatch = errors.New("consensus message originator mismatch")
 
-// ErrPIDMissmatch signals that the pid from the message is different from the cached pid associated to a certain pk
-var ErrPIDMissmatch = errors.New("pid mismatch")
-
-// ErrSignatureMissmatch signals that the signature from the message is different from the cached signature associated to a certain pk
-var ErrSignatureMissmatch = errors.New("signature mismatch")
+// ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
+var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")

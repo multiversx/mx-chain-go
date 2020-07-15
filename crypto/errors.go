@@ -111,3 +111,15 @@ var ErrWrongPrivateKeySize = errors.New("wrong private key size")
 
 // ErrWrongPrivateKeyStructure signals that the structure of the private key is incorrect
 var ErrWrongPrivateKeyStructure = errors.New("wrong private key structure")
+
+// ErrNilCacher signals that a nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilSingleSigner is raised when a valid singleSigner is expected but nil used
+var ErrNilSingleSigner = errors.New("singleSigner is nil")
+
+// ErrPIDMissmatch signals that the pid from the message is different from the cached pid associated to a certain pk
+var ErrPIDMissmatch = errors.New("pid mismatch")
+
+// ErrSignatureMissmatch signals that the signature from the message is different from the cached signature associated to a certain pk
+var ErrSignatureMissmatch = errors.New("signature mismatch")

@@ -77,7 +77,7 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message, orig
 			cnsMsg.RoundIndex)
 	}
 
-	err = wrk.checkSignature(cnsMsg)
+	err = wrk.peerSignatureHandler.VerifyPeerSignature(cnsMsg.PubKey, core.PeerID(cnsMsg.OriginatorPid), cnsMsg.Signature)
 	if err != nil {
 		return fmt.Errorf("%w : verify signature for received message from consensus topic failed: %s",
 			ErrInvalidSignature,

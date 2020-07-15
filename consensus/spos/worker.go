@@ -1,7 +1,6 @@
 package spos
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -39,12 +38,11 @@ type Worker struct {
 	broadcastMessenger      consensus.BroadcastMessenger
 	consensusState          *ConsensusState
 	forkDetector            process.ForkDetector
-	keyGenerator            crypto.KeyGenerator
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
 	rounder                 consensus.Rounder
 	shardCoordinator        sharding.Coordinator
-	singleSigner            crypto.SingleSigner
+	peerSignatureHandler    crypto.PeerSignatureHandler
 	syncTimer               ntp.SyncTimer
 	headerSigVerifier       RandSeedVerifier
 	headerIntegrityVerifier HeaderIntegrityVerifier
@@ -86,12 +84,11 @@ type WorkerArgs struct {
 	BroadcastMessenger       consensus.BroadcastMessenger
 	ConsensusState           *ConsensusState
 	ForkDetector             process.ForkDetector
-	KeyGenerator             crypto.KeyGenerator
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	Rounder                  consensus.Rounder
 	ShardCoordinator         sharding.Coordinator
-	SingleSigner             crypto.SingleSigner
+	PeerSignatureHandler     crypto.PeerSignatureHandler
 	SyncTimer                ntp.SyncTimer
 	HeaderSigVerifier        RandSeedVerifier
 	HeaderIntegrityVerifier  HeaderIntegrityVerifier
@@ -118,12 +115,11 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		broadcastMessenger:       args.BroadcastMessenger,
 		consensusState:           args.ConsensusState,
 		forkDetector:             args.ForkDetector,
-		keyGenerator:             args.KeyGenerator,
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
 		rounder:                  args.Rounder,
 		shardCoordinator:         args.ShardCoordinator,
-		singleSigner:             args.SingleSigner,
+		peerSignatureHandler:     args.PeerSignatureHandler,
 		syncTimer:                args.SyncTimer,
 		headerSigVerifier:        args.HeaderSigVerifier,
 		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
@@ -186,9 +182,6 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	if check.IfNil(args.ForkDetector) {
 		return ErrNilForkDetector
 	}
-	if check.IfNil(args.KeyGenerator) {
-		return ErrNilKeyGenerator
-	}
 	if check.IfNil(args.Marshalizer) {
 		return ErrNilMarshalizer
 	}
@@ -201,8 +194,8 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	if check.IfNil(args.ShardCoordinator) {
 		return ErrNilShardCoordinator
 	}
-	if check.IfNil(args.SingleSigner) {
-		return ErrNilSingleSigner
+	if check.IfNil(args.PeerSignatureHandler) {
+		return ErrNilPeerSignatureHandler
 	}
 	if check.IfNil(args.SyncTimer) {
 		return ErrNilSyncTimer
@@ -490,46 +483,6 @@ func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
 
 	if wrk.consensusState.RoundCanceled && wrk.consensusState.RoundIndex == cnsDta.RoundIndex {
 		return ErrRoundCanceled
-	}
-
-	return nil
-}
-
-func (wrk *Worker) checkSignature(cnsDta *consensus.Message) error {
-	if cnsDta == nil {
-		return ErrNilConsensusData
-	}
-	if cnsDta.PubKey == nil {
-		return ErrNilPublicKey
-	}
-	if cnsDta.Signature == nil {
-		return ErrNilSignature
-	}
-
-	pubKey, err := wrk.keyGenerator.PublicKeyFromByteArray(cnsDta.PubKey)
-	if err != nil {
-		return err
-	}
-
-	signature := cnsDta.Signature
-
-	pid, sig := wrk.networkShardingCollector.GetPidAndSignatureFromPk(cnsDta.PubKey)
-	if pid == nil || sig == nil {
-		err = wrk.singleSigner.Verify(pubKey, cnsDta.OriginatorPid, signature)
-		if err != nil {
-			return err
-		}
-
-		wrk.networkShardingCollector.UpdatePublicKeyPIDSignature(cnsDta.PubKey, cnsDta.OriginatorPid, cnsDta.Signature)
-		return nil
-	}
-
-	if !bytes.Equal(pid, cnsDta.OriginatorPid) {
-		return ErrPIDMissmatch
-	}
-
-	if !bytes.Equal(sig, cnsDta.Signature) {
-		return ErrSignatureMissmatch
 	}
 
 	return nil

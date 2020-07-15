@@ -1,8 +1,7 @@
 package process
 
 import (
-	"bytes"
-
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
@@ -14,24 +13,19 @@ import (
 // MessageProcessor is the struct that will handle heartbeat message verifications and conversion between
 // heartbeatMessageInfo and HeartbeatDTO
 type MessageProcessor struct {
-	singleSigner             crypto.SingleSigner
-	keygen                   crypto.KeyGenerator
+	peerSignatureHandler     crypto.PeerSignatureHandler
 	marshalizer              marshal.Marshalizer
 	networkShardingCollector heartbeat.NetworkShardingCollector
 }
 
 // NewMessageProcessor will return a new instance of MessageProcessor
 func NewMessageProcessor(
-	singleSigner crypto.SingleSigner,
-	keygen crypto.KeyGenerator,
+	peerSignatureHandler crypto.PeerSignatureHandler,
 	marshalizer marshal.Marshalizer,
 	networkShardingCollector heartbeat.NetworkShardingCollector,
 ) (*MessageProcessor, error) {
-	if check.IfNil(singleSigner) {
-		return nil, heartbeat.ErrNilSingleSigner
-	}
-	if check.IfNil(keygen) {
-		return nil, heartbeat.ErrNilKeyGenerator
+	if check.IfNil(peerSignatureHandler) {
+		return nil, heartbeat.ErrNilPeerSignatureHandler
 	}
 	if check.IfNil(marshalizer) {
 		return nil, heartbeat.ErrNilMarshalizer
@@ -41,8 +35,7 @@ func NewMessageProcessor(
 	}
 
 	return &MessageProcessor{
-		singleSigner:             singleSigner,
-		keygen:                   keygen,
+		peerSignatureHandler:     peerSignatureHandler,
 		marshalizer:              marshalizer,
 		networkShardingCollector: networkShardingCollector,
 	}, nil
@@ -69,7 +62,7 @@ func (mp *MessageProcessor) CreateHeartbeatFromP2PMessage(message p2p.MessageP2P
 		return nil, err
 	}
 
-	err = mp.verifySignature(hbRecv)
+	err = mp.peerSignatureHandler.VerifyPeerSignature(hbRecv.Pubkey, core.PeerID(hbRecv.Pid), hbRecv.Signature)
 	if err != nil {
 		return nil, err
 	}
@@ -79,34 +72,6 @@ func (mp *MessageProcessor) CreateHeartbeatFromP2PMessage(message p2p.MessageP2P
 	mp.networkShardingCollector.UpdatePeerIdShardId(message.Peer(), hbRecv.ShardID)
 
 	return hbRecv, nil
-}
-
-func (mp *MessageProcessor) verifySignature(hbRecv *data.Heartbeat) error {
-	senderPubKey, err := mp.keygen.PublicKeyFromByteArray(hbRecv.Pubkey)
-	if err != nil {
-		return err
-	}
-
-	pid, sig := mp.networkShardingCollector.GetPidAndSignatureFromPk(hbRecv.Pubkey)
-	if pid == nil || sig == nil {
-		err = mp.singleSigner.Verify(senderPubKey, hbRecv.Pid, hbRecv.Signature)
-		if err != nil {
-			return err
-		}
-
-		mp.networkShardingCollector.UpdatePublicKeyPIDSignature(hbRecv.Pubkey, hbRecv.Pid, hbRecv.Signature)
-		return nil
-	}
-
-	if !bytes.Equal(pid, hbRecv.Pid) {
-		return heartbeat.ErrPIDMissmatch
-	}
-
-	if !bytes.Equal(sig, hbRecv.Signature) {
-		return heartbeat.ErrSignatureMissmatch
-	}
-
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

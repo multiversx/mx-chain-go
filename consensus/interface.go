@@ -80,9 +80,7 @@ type NetworkShardingCollector interface {
 	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
 	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
-	UpdatePublicKeyPIDSignature(pk []byte, pid []byte, signature []byte)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
-	GetPidAndSignatureFromPk(pk []byte) (pid []byte, signature []byte)
 	IsInterfaceNil() bool
 }
 
