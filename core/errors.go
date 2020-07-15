@@ -67,3 +67,6 @@ var ErrMinorVersionMismatch = errors.New("minor version mismatch")
 
 // ErrReleaseVersionMismatch signals that the release version mismatch
 var ErrReleaseVersionMismatch = errors.New("release version mismatch")
+
+// ErrNilSignalChan returns whenever a nil signal channel is provided
+var ErrNilSignalChan = errors.New("nil signal channel")

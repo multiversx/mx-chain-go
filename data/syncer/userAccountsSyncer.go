@@ -137,6 +137,12 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ctx context.Context) 
 	u.throttler.StartProcessing()
 
 	u.syncerMutex.Lock()
+	if _, ok := u.dataTries[string(rootHash)]; ok {
+		u.syncerMutex.Unlock()
+		u.throttler.EndProcessing()
+		return nil
+	}
+
 	dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher, u.maxTrieLevelInMemory)
 	if err != nil {
 		u.syncerMutex.Unlock()

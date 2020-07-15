@@ -22,6 +22,7 @@ type TestEpochStartTrigger interface {
 	GetRoundsPerEpoch() uint64
 	SetTrigger(triggerHandler epochStart.TriggerHandler)
 	SetRoundsPerEpoch(roundsPerEpoch uint64)
+	SetEpoch(epoch uint32)
 }
 
 // NodesCoordinatorFactory is used for creating a nodesCoordinator in the integration tests

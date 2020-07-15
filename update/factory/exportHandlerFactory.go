@@ -1,7 +1,9 @@
 package factory
 
 import (
+	"fmt"
 	"math"
+	"os"
 	"path"
 	"time"
 
@@ -26,8 +28,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/files"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
+	"github.com/ElrondNetwork/elrond-go/update/storing"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
@@ -48,6 +50,7 @@ type ArgsExporter struct {
 	ExportFolder             string
 	ExportTriesStorageConfig config.StorageConfig
 	ExportStateStorageConfig config.StorageConfig
+	ExportStateKeysConfig    config.StorageConfig
 	MaxTrieLevelInMemory     uint
 	WhiteListHandler         process.WhiteListHandler
 	WhiteListerVerifiedTxs   process.WhiteListHandler
@@ -82,6 +85,7 @@ type exportHandlerFactory struct {
 	exportFolder             string
 	exportTriesStorageConfig config.StorageConfig
 	exportStateStorageConfig config.StorageConfig
+	exportStateKeysConfig    config.StorageConfig
 	maxTrieLevelInMemory     uint
 	whiteListHandler         process.WhiteListHandler
 	whiteListerVerifiedTxs   process.WhiteListHandler
@@ -204,6 +208,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		exportFolder:             args.ExportFolder,
 		exportTriesStorageConfig: args.ExportTriesStorageConfig,
 		exportStateStorageConfig: args.ExportStateStorageConfig,
+		exportStateKeysConfig:    args.ExportStateKeysConfig,
 		interceptorsContainer:    args.InterceptorsContainer,
 		whiteListHandler:         args.WhiteListHandler,
 		whiteListerVerifiedTxs:   args.WhiteListerVerifiedTxs,
@@ -316,6 +321,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		StorageService:   e.storageService,
 		Cache:            e.dataPool.Headers(),
 		Marshalizer:      e.marshalizer,
+		Hasher:           e.hasher,
 		EpochHandler:     epochHandler,
 		RequestHandler:   e.requestHandler,
 		Uint64Converter:  e.uint64Converter,
@@ -368,25 +374,32 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	exportStore, err := createFinalExportStorage(e.exportStateStorageConfig, e.exportFolder)
+	err = e.prepareFolders(e.exportFolder)
 	if err != nil {
 		return nil, err
 	}
 
-	argsWriter := files.ArgsNewMultiFileWriter{
-		ExportFolder: e.exportFolder,
-		ExportStore:  exportStore,
-	}
-	writer, err := files.NewMultiFileWriter(argsWriter)
+	keysStorer, err := createStorer(e.exportStateKeysConfig, e.exportFolder)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w while creating keys storer", err)
 	}
+	keysVals, err := createStorer(e.exportStateStorageConfig, e.exportFolder)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating keys-values storer", err)
+	}
+
+	arg := storing.ArgHardforkStorer{
+		KeysStore:   keysStorer,
+		KeyValue:    keysVals,
+		Marshalizer: e.marshalizer,
+	}
+	hs, err := storing.NewHardforkStorer(arg)
 
 	argsExporter := genesis.ArgsNewStateExporter{
 		ShardCoordinator: e.shardCoordinator,
 		StateSyncer:      stateSyncer,
 		Marshalizer:      e.marshalizer,
-		Writer:           writer,
+		HardforkStorer:   hs,
 		Hasher:           e.hasher,
 	}
 	exportHandler, err := genesis.NewStateExporter(argsExporter)
@@ -401,6 +414,15 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	return exportHandler, nil
+}
+
+func (e *exportHandlerFactory) prepareFolders(folder string) error {
+	err := os.RemoveAll(folder)
+	if err != nil {
+		return err
+	}
+
+	return os.MkdirAll(folder, os.ModePerm)
 }
 
 func (e *exportHandlerFactory) createInterceptors() error {
@@ -449,7 +471,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 	return nil
 }
 
-func createFinalExportStorage(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
+func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(

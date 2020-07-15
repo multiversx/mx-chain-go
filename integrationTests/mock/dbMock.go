@@ -44,6 +44,10 @@ func (MockDB) DestroyClosed() error {
 	return nil
 }
 
+// RangeKeys -
+func (MockDB) RangeKeys(_ func(key []byte, val []byte) bool) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (s MockDB) IsInterfaceNil() bool {
 	return false
