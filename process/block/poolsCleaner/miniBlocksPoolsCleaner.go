@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/close"
+	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -17,7 +17,7 @@ import (
 
 var log = logger.GetOrCreate("process/block/poolsCleaner")
 
-var _ close.Closer = (*miniBlocksPoolsCleaner)(nil)
+var _ closing.Closer = (*miniBlocksPoolsCleaner)(nil)
 
 type mbInfo struct {
 	round           int64

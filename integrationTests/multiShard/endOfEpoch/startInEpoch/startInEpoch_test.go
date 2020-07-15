@@ -205,7 +205,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &mock.AppStatusHandlerStub{},
-		ImportStartHandler:         &mock.ImportStartHandlerStub{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)

@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/close"
+	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -27,7 +27,7 @@ import (
 
 var log = logger.GetOrCreate("process/sync")
 
-var _ close.Closer = (*baseBootstrap)(nil)
+var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond

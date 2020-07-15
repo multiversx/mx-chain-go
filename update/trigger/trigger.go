@@ -44,27 +44,28 @@ type ArgHardforkTrigger struct {
 // trigger implements a hardfork trigger that is able to notify a set list of handlers if this instance gets triggered
 // by external events
 type trigger struct {
-	enabled                bool
-	enabledAuthenticated   bool
-	isTriggerSelf          bool
-	triggerReceived        bool
-	triggerExecuting       bool
-	epoch                  uint32
-	closeAfterInMinutes    uint32
-	triggerPubKey          []byte
-	selfPubKey             []byte
-	mutTriggered           sync.RWMutex
-	recordedTriggerMessage []byte
-	getTimestampHandler    func() int64
-	argumentParser         process.ArgumentsParser
-	epochProvider          update.EpochHandler
-	exportFactoryHandler   update.ExportFactoryHandler
-	chanStopNodeProcess    chan endProcess.ArgEndProcess
-	epochConfirmedNotifier update.EpochChangeConfirmedNotifier
-	mutClosers             sync.RWMutex
-	closers                []update.Closer
-	chanTriggerReceived    chan struct{}
-	importStartHandler     update.ImportStartHandler
+	enabled                      bool
+	enabledAuthenticated         bool
+	shouldTriggerFromEpochChange bool
+	isTriggerSelf                bool
+	triggerReceived              bool
+	triggerExecuting             bool
+	epoch                        uint32
+	closeAfterInMinutes          uint32
+	triggerPubKey                []byte
+	selfPubKey                   []byte
+	mutTriggered                 sync.RWMutex
+	recordedTriggerMessage       []byte
+	getTimestampHandler          func() int64
+	argumentParser               process.ArgumentsParser
+	epochProvider                update.EpochHandler
+	exportFactoryHandler         update.ExportFactoryHandler
+	chanStopNodeProcess          chan endProcess.ArgEndProcess
+	epochConfirmedNotifier       update.EpochChangeConfirmedNotifier
+	mutClosers                   sync.RWMutex
+	closers                      []update.Closer
+	chanTriggerReceived          chan struct{}
+	importStartHandler           update.ImportStartHandler
 }
 
 // NewTrigger returns the trigger instance
@@ -138,7 +139,7 @@ func (t *trigger) epochConfirmed(epoch uint32) {
 		return
 	}
 
-	t.exportAll()
+	t.doTrigger()
 }
 
 func (t *trigger) computeTriggerStartOfEpoch(receivedTrigger uint32) bool {
@@ -151,7 +152,7 @@ func (t *trigger) computeTriggerStartOfEpoch(receivedTrigger uint32) bool {
 	if t.triggerExecuting {
 		return false
 	}
-	if receivedTrigger <= t.epoch {
+	if receivedTrigger < t.epoch {
 		return false
 	}
 
@@ -164,6 +165,9 @@ func (t *trigger) Trigger(epoch uint32) error {
 	if !t.enabled {
 		return update.ErrTriggerNotEnabled
 	}
+
+	log.Debug("hardfork trigger", "epoch", epoch)
+
 	if epoch < minimumEpochForHarfork {
 		return fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
@@ -173,6 +177,8 @@ func (t *trigger) Trigger(epoch uint32) error {
 		return err
 	}
 	if !shouldTrigger {
+		log.Debug("hardfork won't trigger now, will wait for epoch change")
+
 		return nil
 	}
 
@@ -196,17 +202,22 @@ func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte) (bo
 		t.recordedTriggerMessage = originalPayload
 	}
 
+	if epoch > t.epochProvider.MetaEpoch() {
+		t.shouldTriggerFromEpochChange = true
+		return false, nil
+	}
+
+	if t.shouldTriggerFromEpochChange {
+		return false, nil
+	}
+
+	t.triggerExecuting = true
+
 	//writing on the notification chan should not be blocking as to allow self to initiate the hardfork process
 	select {
 	case t.chanTriggerReceived <- struct{}{}:
 	default:
 	}
-
-	if epoch > t.epochProvider.MetaEpoch() {
-		return false, nil
-	}
-
-	t.triggerExecuting = true
 
 	return true, nil
 }
@@ -219,6 +230,8 @@ func (t *trigger) doTrigger() {
 func (t *trigger) exportAll() {
 	t.mutTriggered.Lock()
 	defer t.mutTriggered.Unlock()
+
+	log.Debug("hardfork trigger exportAll called")
 
 	epoch := t.epoch
 
