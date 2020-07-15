@@ -171,23 +171,23 @@ func TestTrigger_ComputeTriggerStartOfEpoch(t *testing.T) {
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
 
-	trig.SetReceivedExecutingEpoch(false, false, 0)
+	trig.SetReceivedExecutingEpoch(false, false, false, 0)
 	assert.False(t, trig.ComputeTriggerStartOfEpoch(0))
 	assert.False(t, trig.TriggerExecuting())
 
-	trig.SetReceivedExecutingEpoch(true, true, 0)
+	trig.SetReceivedExecutingEpoch(true, true, false, 0)
 	assert.False(t, trig.ComputeTriggerStartOfEpoch(0))
 	assert.True(t, trig.TriggerExecuting())
 
-	trig.SetReceivedExecutingEpoch(true, false, 1)
+	trig.SetReceivedExecutingEpoch(true, false, false, 1)
 	assert.False(t, trig.ComputeTriggerStartOfEpoch(0))
 	assert.False(t, trig.TriggerExecuting())
 
-	trig.SetReceivedExecutingEpoch(true, false, 1)
-	assert.False(t, trig.ComputeTriggerStartOfEpoch(1))
-	assert.False(t, trig.TriggerExecuting())
+	trig.SetReceivedExecutingEpoch(true, false, false, 1)
+	assert.True(t, trig.ComputeTriggerStartOfEpoch(1))
+	assert.True(t, trig.TriggerExecuting())
 
-	trig.SetReceivedExecutingEpoch(true, false, 1)
+	trig.SetReceivedExecutingEpoch(true, false, false, 1)
 	assert.True(t, trig.ComputeTriggerStartOfEpoch(2))
 	assert.True(t, trig.TriggerExecuting())
 }
@@ -360,7 +360,7 @@ func TestTrigger_TriggerReceivedCreatePayloadShouldWork(t *testing.T) {
 
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
-	trig.SetReceivedExecutingEpoch(false, false, trigger.MinimumEpochForHarfork)
+	trig.SetReceivedExecutingEpoch(false, false, false, trigger.MinimumEpochForHarfork)
 	data := trig.CreateData()
 	payloadReceived := []byte("original message")
 
@@ -385,7 +385,7 @@ func TestTrigger_TriggerReceivedOneCloseErrorsShouldContinueCalling(t *testing.T
 
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
-	trig.SetReceivedExecutingEpoch(false, false, trigger.MinimumEpochForHarfork)
+	trig.SetReceivedExecutingEpoch(false, false, false, trigger.MinimumEpochForHarfork)
 	data := trig.CreateData()
 	payloadReceived := []byte("original message")
 

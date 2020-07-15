@@ -28,7 +28,7 @@ import (
 
 const accountStartNonce = uint64(0)
 
-type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error)
+type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, selfShardId uint32) (data.HeaderHandler, error)
 
 type genesisBlockCreator struct {
 	arg                 ArgsGenesisBlockCreator
@@ -60,7 +60,7 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 }
 
 func mustDoHardForkImportProcess(arg ArgsGenesisBlockCreator) bool {
-	return arg.ImportStartHandler.ShouldStartImport() && arg.StartEpochNum <= arg.HardForkConfig.StartEpoch
+	return arg.HardForkConfig.AfterHardFork && arg.StartEpochNum <= arg.HardForkConfig.StartEpoch
 }
 
 func getGenesisBlocksRoundNonceEpoch(arg ArgsGenesisBlockCreator) (uint64, uint64, uint32) {
@@ -170,6 +170,46 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	return nil
 }
 
+func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
+	genesisEpoch := uint32(0)
+	if arg.HardForkConfig.AfterHardFork == true {
+		genesisEpoch = arg.HardForkConfig.StartEpoch
+	}
+
+	if arg.StartEpochNum != genesisEpoch {
+		return false
+	}
+
+	return true
+}
+
+func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
+	err := gbc.computeDNSAddresses()
+	if err != nil {
+		return nil, err
+	}
+
+	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(gbc.arg)
+
+	mapEmptyGenesisBlocks := make(map[uint32]data.HeaderHandler)
+	mapEmptyGenesisBlocks[core.MetachainShardId] = &block.MetaBlock{
+		Round:     round,
+		Nonce:     nonce,
+		Epoch:     epoch,
+		TimeStamp: gbc.arg.GenesisTime,
+	}
+	for i := uint32(0); i < gbc.arg.ShardCoordinator.NumberOfShards(); i++ {
+		mapEmptyGenesisBlocks[i] = &block.Header{
+			Round:     round,
+			Nonce:     nonce,
+			Epoch:     epoch,
+			TimeStamp: gbc.arg.GenesisTime,
+		}
+	}
+
+	return mapEmptyGenesisBlocks, nil
+}
+
 // CreateGenesisBlocks will try to create the genesis blocks for all shards
 func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -177,18 +217,23 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	var genesisBlock data.HeaderHandler
 	var newArgument ArgsGenesisBlockCreator
 
+	if !mustDoGenesisProcess(gbc.arg) {
+		return gbc.createEmptyGenesisBlocks()
+	}
+
 	if mustDoHardForkImportProcess(gbc.arg) {
 		err = gbc.arg.importHandler.ImportAll()
 		if err != nil {
 			return nil, err
 		}
 
-		err = gbc.computeDNSAddressesIfHardFork()
+		err = gbc.computeDNSAddresses()
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	selfShardId := gbc.arg.ShardCoordinator.SelfId()
 	nodesListSplitter, err := intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
 	if err != nil {
 		return nil, err
@@ -204,7 +249,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 				err, shardID)
 		}
 
-		genesisBlock, err = gbc.shardCreatorHandler(newArgument, nodesListSplitter)
+		genesisBlock, err = gbc.shardCreatorHandler(newArgument, nodesListSplitter, selfShardId)
 		if err != nil {
 			return nil, fmt.Errorf("'%w' while generating genesis block for shard %d",
 				err, shardID)
@@ -228,7 +273,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	}
 
 	newArgument.Blkc = blockchain.NewMetaChain()
-	genesisBlock, err = gbc.metaCreatorHandler(newArgument, nodesListSplitter)
+	genesisBlock, err = gbc.metaCreatorHandler(newArgument, nodesListSplitter, selfShardId)
 	if err != nil {
 		return nil, fmt.Errorf("'%w' while generating genesis block for metachain", err)
 	}
@@ -239,13 +284,30 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		return nil, fmt.Errorf("'%w' while saving genesis block for metachain", err)
 	}
 
+	for i := uint32(0); i < gbc.arg.ShardCoordinator.NumberOfShards(); i++ {
+		gb := genesisBlocks[i]
+
+		log.Info("genesis block created",
+			"shard ID", gb.GetShardID(),
+			"nonce", gb.GetNonce(),
+			"round", gb.GetRound(),
+			"root hash", gb.GetRootHash(),
+		)
+	}
+	log.Info("genesis block created",
+		"shard ID", "metachain",
+		"nonce", genesisBlock.GetNonce(),
+		"round", genesisBlock.GetRound(),
+		"root hash", genesisBlock.GetRootHash(),
+	)
+
 	//TODO call here trie pruning on all roothashes not from current shard
 
 	return genesisBlocks, nil
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
-func (gbc *genesisBlockCreator) computeDNSAddressesIfHardFork() error {
+func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 	var dnsSC genesis.InitialSmartContractHandler
 	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
 		if sc.GetType() == genesis.DNSType {
@@ -280,9 +342,9 @@ func (gbc *genesisBlockCreator) computeDNSAddressesIfHardFork() error {
 	}
 	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
 	for _, address := range initialAddresses {
-		scResultingAddress, err := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
-		if err != nil {
-			return err
+		scResultingAddress, errNewAddress := blockChainHook.NewAddress(address, accountStartNonce, dnsSC.VmTypeBytes())
+		if errNewAddress != nil {
+			return errNewAddress
 		}
 
 		dnsSC.AddAddressBytes(scResultingAddress)
@@ -296,8 +358,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 	var err error
 
 	isCurrentShard := shardID == gbc.arg.ShardCoordinator.SelfId()
-	shouldRecreate := !isCurrentShard || gbc.arg.StartEpochNum != 0
-	if !shouldRecreate {
+	if isCurrentShard {
 		return gbc.arg, nil
 	}
 
@@ -338,17 +399,4 @@ func (gbc *genesisBlockCreator) saveGenesisBlock(header data.HeaderHandler) erro
 	}
 
 	return gbc.arg.Store.Put(unitType, hash, blockBuff)
-}
-
-func saveGenesisBodyToStorage(txCoordinator process.TransactionCoordinator, bodyHandler data.BodyHandler) {
-	blockBody, ok := bodyHandler.(*block.Body)
-	if !ok {
-		log.Warn("wrong type assertion when saving genesis body to storage")
-		return
-	}
-
-	errNotCritical := txCoordinator.SaveBlockDataToStorage(blockBody)
-	if errNotCritical != nil {
-		log.Warn("could not save genesis block body to storage", "error", errNotCritical)
-	}
 }

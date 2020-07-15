@@ -86,9 +86,11 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	err = imh.validityAttester.CheckBlockAgainstFinal(imh.HeaderHandler())
-	if err != nil {
-		return err
+	if !imh.validityAttester.CheckBlockAgainstWhitelist(imh) {
+		err = imh.validityAttester.CheckBlockAgainstFinal(imh.HeaderHandler())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = imh.validityAttester.CheckBlockAgainstRounder(imh.HeaderHandler())

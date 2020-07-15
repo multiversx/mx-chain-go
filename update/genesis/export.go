@@ -175,12 +175,18 @@ func (se *stateExport) exportMeta() error {
 func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 	fileName := TrieFileName + atSep + key
 
-	leaves, err := trie.GetAllLeaves()
+	accType, shId, err := GetTrieTypeAndShId(fileName)
 	if err != nil {
 		return err
 	}
 
-	accType, shId, err := GetTrieTypeAndShId(fileName)
+	// no need to export validator account
+	// TODO: export validatorAccount trie to nodeSetup.json with all ratings
+	if accType == ValidatorAccount {
+		return nil
+	}
+
+	leaves, err := trie.GetAllLeaves()
 	if err != nil {
 		return err
 	}
@@ -223,33 +229,7 @@ func (se *stateExport) exportDataTries(leafs map[string][]byte, accType Type, sh
 func (se *stateExport) exportAccountLeafs(leafs map[string][]byte, accType Type, shId uint32, fileName string) error {
 	for address, buff := range leafs {
 		keyToExport := CreateAccountKey(accType, shId, address)
-		account, err := NewEmptyAccount(accType, []byte(address))
-		if err != nil {
-			log.Warn("error creating new account account", "address", address, "error", err)
-			continue
-		}
-		err = se.marshalizer.Unmarshal(account, buff)
-		if err != nil {
-			log.Trace("error unmarshaling account this is maybe a code error",
-				"address", hex.EncodeToString([]byte(address)),
-				"error", err,
-			)
-
-			err = se.writer.Write(fileName, keyToExport, buff)
-			if err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		jsonData, err := json.Marshal(account)
-		if err != nil {
-			log.Warn("error marshaling account", "address", address, "error", err)
-			continue
-		}
-
-		err = se.writer.Write(fileName, keyToExport, jsonData)
+		err := se.writer.Write(fileName, keyToExport, buff)
 		if err != nil {
 			return err
 		}
@@ -257,6 +237,35 @@ func (se *stateExport) exportAccountLeafs(leafs map[string][]byte, accType Type,
 
 	se.writer.CloseFile(fileName)
 	return nil
+}
+
+func (se *stateExport) marshallLeafToJson(
+	accType Type,
+	address, buff []byte,
+) ([]byte, error) {
+	account, err := NewEmptyAccount(accType, address)
+	if err != nil {
+		log.Warn("error creating new account account", "address", address, "error", err)
+		return nil, err
+	}
+
+	err = se.marshalizer.Unmarshal(account, buff)
+	if err != nil {
+		log.Trace("error unmarshaling account this is maybe a code error",
+			"key", hex.EncodeToString([]byte(address)),
+			"error", err,
+		)
+
+		return buff, nil
+	}
+
+	jsonData, err := json.Marshal(account)
+	if err != nil {
+		log.Warn("error marshaling account", "address", address, "error", err)
+		return nil, err
+	}
+
+	return jsonData, nil
 }
 
 func (se *stateExport) exportMBs(key string, mb *block.MiniBlock) error {

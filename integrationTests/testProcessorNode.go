@@ -496,6 +496,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		MaxComputableRounds: 1000,
 		RewardsHandler:      tpn.EconomicsData,
 		NodesSetup:          tpn.NodesSetup,
+		GenesisNonce:        tpn.BlockChain.GetGenesisHeader().GetNonce(),
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -541,6 +542,29 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.PeerSigHandler,
+		tpn.DataPool.Headers(),
+		tpn.InterceptorsContainer,
+	)
+	tpn.setGenesisBlock()
+	tpn.initNode()
+	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
+}
+
+// InitializeProcessors will reinitialize processors
+func (tpn *TestProcessorNode) InitializeProcessors() {
+	tpn.initValidatorStatistics()
+	tpn.initBlockTracker()
+	tpn.initInnerProcessors()
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
+	tpn.initBlockProcessor(stateCheckpointModulus)
+	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
+		TestMarshalizer,
+		TestHasher,
+		tpn.Messenger,
+		tpn.ShardCoordinator,
+		tpn.OwnAccount.SkTxSign,
+		tpn.OwnAccount.SingleSigner,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 	)
@@ -1553,7 +1577,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
 	blockHeader.SetChainID(tpn.ChainID)
 	blockHeader.SetSoftwareVersion(SoftwareVersion)
-	blockHeader.SetTimeStamp(round * uint64(tpn.Rounder.TimeDuration().Seconds()))
+
+	genesisRound := tpn.BlockChain.GetGenesisHeader().GetRound()
+	blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.Rounder.TimeDuration().Seconds()))
 
 	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {

@@ -31,3 +31,8 @@ func (t *TestTrigger) SetRoundsPerEpoch(roundsPerEpoch uint64) {
 func (t *TestTrigger) GetRoundsPerEpoch() uint64 {
 	return t.roundsPerEpoch
 }
+
+// SetEpoch sets the current epoch for the testTrigger
+func (t *TestTrigger) SetEpoch(epoch uint32) {
+	t.epoch = epoch
+}

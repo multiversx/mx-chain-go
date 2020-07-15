@@ -22,7 +22,7 @@ func createDefaultConfig() config.P2PConfig {
 			Enabled:                          true,
 			RefreshIntervalInSec:             1,
 			RoutingTableRefreshIntervalInSec: 1,
-			RandezVous:                       "/erd/kad/1.0.0",
+			ProtocolID:                       "/erd/kad/1.0.0",
 			InitialPeerList:                  nil,
 			BucketSize:                       100,
 		},

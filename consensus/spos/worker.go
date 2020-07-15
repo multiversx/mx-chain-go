@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/close"
+	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-var _ close.Closer = (*Worker)(nil)
+var _ closing.Closer = (*Worker)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in checkChannels method
 const sleepTime = 5 * time.Millisecond

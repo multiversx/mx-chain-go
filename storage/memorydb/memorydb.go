@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -93,6 +95,24 @@ func (s *DB) Destroy() error {
 	s.db = make(map[string][]byte)
 
 	return nil
+}
+
+// Iterate will iterate over all contained (key, value) pairs
+func (s *DB) Iterate() chan core.KeyValueHolder {
+	ch := make(chan core.KeyValueHolder)
+
+	go func() {
+		s.mutx.RLock()
+		defer s.mutx.RUnlock()
+
+		for k, v := range s.db {
+			ch <- keyValStorage.NewKeyValStorage([]byte(k), v)
+		}
+
+		close(ch)
+	}()
+
+	return ch
 }
 
 // DestroyClosed removes the storage medium stored data

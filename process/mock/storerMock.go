@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // StorerMock -
@@ -84,6 +86,14 @@ func (sm *StorerMock) ClearCache() {
 // DestroyUnit -
 func (sm *StorerMock) DestroyUnit() error {
 	return nil
+}
+
+// Iterate -
+func (sm *StorerMock) Iterate() chan core.KeyValueHolder {
+	ch := make(chan core.KeyValueHolder)
+	close(ch)
+
+	return ch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

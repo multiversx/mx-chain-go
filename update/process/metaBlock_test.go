@@ -18,6 +18,11 @@ func createMockBlockCreatorAfterHardFork() ArgsNewMetaBlockCreatorAfterHardfork 
 		Marshalizer:      &mock.MarshalizerMock{},
 		Hasher:           &mock.HasherMock{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		ValidatorAccounts: &mock.AccountsStub{
+			CommitCalled: func() ([]byte, error) {
+				return []byte("roothash"), nil
+			},
+		},
 	}
 }
 func TestNewMetaBlockCreatorAfterHardfork_NilImport(t *testing.T) {
@@ -78,17 +83,9 @@ func TestMetaBlockCreator_CreateNewBlock(t *testing.T) {
 	t.Parallel()
 
 	rootHash1 := []byte("rootHash1")
-	rootHash2 := []byte("rootHash2")
 	metaBlock := &block.MetaBlock{}
 	args := createMockBlockCreatorAfterHardFork()
 	args.ImportHandler = &mock.ImportHandlerStub{
-		GetValidatorAccountsDBCalled: func() state.AccountsAdapter {
-			return &mock.AccountsStub{
-				CommitCalled: func() ([]byte, error) {
-					return rootHash2, nil
-				},
-			}
-		},
 		GetAccountsDBForShardCalled: func(shardID uint32) state.AccountsAdapter {
 			return &mock.AccountsStub{
 				CommitCalled: func() ([]byte, error) {
@@ -110,13 +107,14 @@ func TestMetaBlockCreator_CreateNewBlock(t *testing.T) {
 	blockBody := &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),
 	}
+	validatorRootHash, _ := args.ValidatorAccounts.Commit()
 	metaHdr := &block.MetaBlock{
 		Nonce:                  nonce,
 		Round:                  round,
 		PrevRandSeed:           rootHash1,
 		RandSeed:               rootHash1,
 		RootHash:               rootHash1,
-		ValidatorStatsRootHash: rootHash2,
+		ValidatorStatsRootHash: validatorRootHash,
 		EpochStart:             block.EpochStart{},
 		ChainID:                []byte(chainID),
 		SoftwareVersion:        []byte(""),
