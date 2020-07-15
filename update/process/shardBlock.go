@@ -138,7 +138,7 @@ func (s *shardBlockCreator) CreateNewBlock(
 	shardHeader.AccumulatedFees = big.NewInt(0)
 	shardHeader.DeveloperFees = big.NewInt(0)
 
-	s.saveAllCreatedDSTMeTransactionsToCache(shardHeader, blockBody)
+	s.saveAllCreatedDestMeTransactionsToCache(shardHeader, blockBody)
 	s.saveAllTransactionsToStorageIfSelfShard(shardHeader, blockBody)
 
 	return shardHeader, blockBody, nil
@@ -231,16 +231,7 @@ func (s *shardBlockCreator) saveAllTransactionsToStorageIfSelfShard(
 				continue
 			}
 
-			unitType := dataRetriever.TransactionUnit
-			switch miniBlock.Type {
-			case block.TxBlock:
-				unitType = dataRetriever.TransactionUnit
-			case block.RewardsBlock:
-				unitType = dataRetriever.RewardTransactionUnit
-			case block.SmartContractResultBlock:
-				unitType = dataRetriever.UnsignedTransactionUnit
-			}
-
+			unitType := getUnitTypeFromMiniBlockType(miniBlock.Type)
 			marshalledData, errNotCritical := s.marshalizer.Marshal(tx)
 			if errNotCritical != nil {
 				log.Warn("saveAllTransactionsToStorageIfSelfShard.Marshal", "error", errNotCritical.Error())
@@ -255,7 +246,21 @@ func (s *shardBlockCreator) saveAllTransactionsToStorageIfSelfShard(
 	}
 }
 
-func (s *shardBlockCreator) saveAllCreatedDSTMeTransactionsToCache(
+func getUnitTypeFromMiniBlockType(mbType block.Type) dataRetriever.UnitType {
+	unitType := dataRetriever.TransactionUnit
+	switch mbType {
+	case block.TxBlock:
+		unitType = dataRetriever.TransactionUnit
+	case block.RewardsBlock:
+		unitType = dataRetriever.RewardTransactionUnit
+	case block.SmartContractResultBlock:
+		unitType = dataRetriever.UnsignedTransactionUnit
+	}
+
+	return unitType
+}
+
+func (s *shardBlockCreator) saveAllCreatedDestMeTransactionsToCache(
 	shardHdr *block.Header,
 	body *block.Body,
 ) {
