@@ -121,8 +121,7 @@ docker run -d -v /absolute/path/to/config/:/data/ elrondnetwork/elrond-go-node:l
 
  In the snippet above, make sure you adjust the path to a valid configuration folder and also provide the appropriate command line arguments to the Node. For more details go to [Node CLI](https://docs.elrond.com/validators/node-cli).
 
- In order to run a container using the latest **development** version instead, use the image `elrondnetwork/elrond-go-node:devlatest`.
-
+ In order to run a container using the latest **development** version instead, use the image **`elrondnetwork/elrond-go-node:devlatest`**. Furthermore, in order to use a specific release or tagged branch, use the image **`elrondnetwork/elrond-go-node:<tag>`**.
 
 
 ## Progress
