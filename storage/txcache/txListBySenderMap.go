@@ -101,6 +101,10 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	return isFound
 }
 
+func (txMap *txListBySenderMap) removeTxBulk(txs []*WrappedTransaction) int {
+	return 0
+}
+
 func (txMap *txListBySenderMap) removeSender(sender string) bool {
 	_, removed := txMap.backingMap.Remove(sender)
 	if removed {

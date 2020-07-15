@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
@@ -183,8 +184,23 @@ func (cache *TxCache) RemoveTxBulk(keys [][]byte) int {
 	// First, fetch the transactions from the "txByHash" map.
 	txs := cache.txByHash.getTxs(keys)
 
+	if len(txs) == 0 {
+		return 0
+	}
+
 	// Then do an in-place group by sender, sort by nonce (equivalent to sort by sender, then by nonce)
 	SortTransactionsBySenderAndNonce(txs)
+
+	groupStart := 0
+	groupSender := txs[0].Tx.GetSndAddr()
+
+	for index, tx := range txs {
+		txSender := tx.Tx.GetSndAddr()
+		if bytes.Equal(groupSender, txSender) {
+			continue
+		}
+
+	}
 
 	// numRemoved := 0
 	// for _, key := range keys {
