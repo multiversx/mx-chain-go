@@ -35,8 +35,7 @@ type ArgHeartbeat struct {
 	AppStatusHandler         core.AppStatusHandler
 	Storer                   storage.Storer
 	ValidatorStatistics      heartbeat.ValidatorStatisticsProcessor
-	KeyGenerator             crypto.KeyGenerator
-	SingleSigner             crypto.SingleSigner
+	PeerSignatureHandler     crypto.PeerSignatureHandler
 	PrivKey                  crypto.PrivateKey
 	HardforkTrigger          heartbeat.HardforkTrigger
 	AntifloodHandler         heartbeat.P2PAntifloodHandler
@@ -111,18 +110,18 @@ func (hbh *HeartbeatHandler) create() error {
 	}
 	hbh.peerTypeProvider = peerTypeProvider
 	argSender := process.ArgHeartbeatSender{
-		PeerMessenger:    arg.Messenger,
-		SingleSigner:     arg.SingleSigner,
-		PrivKey:          arg.PrivKey,
-		Marshalizer:      arg.Marshalizer,
-		Topic:            core.HeartbeatTopic,
-		ShardCoordinator: arg.ShardCoordinator,
-		PeerTypeProvider: peerTypeProvider,
-		StatusHandler:    arg.AppStatusHandler,
-		VersionNumber:    arg.VersionNumber,
-		NodeDisplayName:  arg.PrefsConfig.NodeDisplayName,
-		KeyBaseIdentity:  arg.PrefsConfig.Identity,
-		HardforkTrigger:  arg.HardforkTrigger,
+		PeerMessenger:        arg.Messenger,
+		PeerSignatureHandler: arg.PeerSignatureHandler,
+		PrivKey:              arg.PrivKey,
+		Marshalizer:          arg.Marshalizer,
+		Topic:                core.HeartbeatTopic,
+		ShardCoordinator:     arg.ShardCoordinator,
+		PeerTypeProvider:     peerTypeProvider,
+		StatusHandler:        arg.AppStatusHandler,
+		VersionNumber:        arg.VersionNumber,
+		NodeDisplayName:      arg.PrefsConfig.NodeDisplayName,
+		KeyBaseIdentity:      arg.PrefsConfig.Identity,
+		HardforkTrigger:      arg.HardforkTrigger,
 	}
 
 	hbh.sender, err = process.NewSender(argSender)
@@ -133,8 +132,7 @@ func (hbh *HeartbeatHandler) create() error {
 	log.Debug("heartbeat's sender component has been instantiated")
 
 	heartBeatMsgProcessor, err := process.NewMessageProcessor(
-		arg.SingleSigner,
-		arg.KeyGenerator,
+		arg.PeerSignatureHandler,
 		arg.Marshalizer,
 		arg.PeerShardMapper,
 	)

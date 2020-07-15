@@ -1377,3 +1377,27 @@ func TestWithWatchdogTimer_OkWatchdogShouldWork(t *testing.T) {
 	assert.Equal(t, watchdog, node.watchdog)
 	assert.Nil(t, err)
 }
+
+func TestWithPeerSignatureHandler_NilPeerSignatureHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithPeerSignatureHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilPeerSignatureHandler, err)
+}
+
+func TestWithPeerSignatureHandler_OkPeerSignatureHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	peerSigHandler := &mock.PeerSignatureHandler{}
+	opt := WithPeerSignatureHandler(peerSigHandler)
+	err := opt(node)
+
+	assert.Equal(t, peerSigHandler, node.peerSigHandler)
+	assert.Nil(t, err)
+}

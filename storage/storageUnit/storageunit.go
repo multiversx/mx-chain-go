@@ -145,6 +145,11 @@ func (u *Unit) Close() error {
 	return nil
 }
 
+// RangeKeys can iterate over the persisted (key, value) pairs calling the provided handler
+func (u *Unit) RangeKeys(handler func(key []byte, value []byte) bool) {
+	u.persister.RangeKeys(handler)
+}
+
 // Get searches the key in the cache. In case it is not found, it searches
 // for the key in bloom filter first and if found
 // it further searches it in the associated database.

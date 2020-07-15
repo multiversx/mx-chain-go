@@ -115,7 +115,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.Messenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.SingleSigner,
+		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 	)

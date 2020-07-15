@@ -18,7 +18,7 @@ var _ storage.Persister = (*SerialDB)(nil)
 
 // SerialDB holds a pointer to the leveldb database and the path to where it is stored.
 type SerialDB struct {
-	db                *leveldb.DB
+	*baseLevelDb
 	path              string
 	maxBatchSize      int
 	batchDelaySeconds int
@@ -54,9 +54,13 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
 
+	bldb := &baseLevelDb{
+		db: db,
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	dbStore := &SerialDB{
-		db:                db,
+		baseLevelDb:       bldb,
 		path:              path,
 		maxBatchSize:      maxBatchSize,
 		batchDelaySeconds: batchDelaySeconds,
