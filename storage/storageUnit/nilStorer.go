@@ -1,9 +1,5 @@
 package storageUnit
 
-import (
-	"github.com/ElrondNetwork/elrond-go/core"
-)
-
 type nilStorer struct {
 }
 
@@ -61,12 +57,8 @@ func (ns *nilStorer) DestroyUnit() error {
 	return nil
 }
 
-// Iterate will return a closed channel
-func (ns *nilStorer) Iterate() chan core.KeyValueHolder {
-	ch := make(chan core.KeyValueHolder)
-	close(ch)
-
-	return ch
+// RangeKeys does nothing
+func (ns *nilStorer) RangeKeys(_ func(key []byte, val []byte) bool) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

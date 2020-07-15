@@ -99,7 +99,7 @@ func TestDestroy(t *testing.T) {
 	assert.Nil(t, err, "no error expected but got %s", err)
 }
 
-func Test_Iterate(t *testing.T) {
+func Test_RangeKeys(t *testing.T) {
 	t.Parallel()
 
 	mdb := memorydb.New()
@@ -120,10 +120,10 @@ func Test_Iterate(t *testing.T) {
 
 	recovered := make(map[string][]byte)
 
-	ch := mdb.Iterate()
-	for kv := range ch {
-		recovered[string(kv.Key())] = kv.Value()
-	}
+	mdb.RangeKeys(func(key []byte, value []byte) bool {
+		recovered[string(key)] = value
+		return true
+	})
 
 	assert.Equal(t, keysVals, recovered)
 }
