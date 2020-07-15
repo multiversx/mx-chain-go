@@ -62,9 +62,6 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		return false, false
 	}
 
-	// Optimization: hold the nonce in a field at addition.
-	tx.Nonce = tx.Tx.GetNonce()
-
 	if cache.config.EvictionEnabled {
 		cache.doEviction()
 	}

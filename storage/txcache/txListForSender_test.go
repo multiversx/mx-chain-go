@@ -106,6 +106,7 @@ func TestListForSender_AddTx_AppliesSizeConstraintsForNumBytes(t *testing.T) {
 	require.Equal(t, []string{"tx4"}, hashesAsStrings(evicted))
 }
 
+// TODO: Fix implementation tested by this test
 func TestListForSender_findTx(t *testing.T) {
 	list := newUnconstrainedListToTest()
 

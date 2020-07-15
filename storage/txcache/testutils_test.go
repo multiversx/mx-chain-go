@@ -111,7 +111,6 @@ func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {
 		Tx:     tx,
 		TxHash: hash,
 		Size:   int64(estimatedSizeOfBoundedTxFields),
-		Nonce:  nonce,
 	}
 }
 
@@ -133,7 +132,6 @@ func createTxWithParams(hash []byte, sender string, nonce uint64, size uint64, g
 		Tx:     tx,
 		TxHash: hash,
 		Size:   int64(size),
-		Nonce:  nonce,
 	}
 }
 
