@@ -1985,6 +1985,7 @@ func createHardForkTrigger(
 		OutputAntifloodHandler:   network.OutputAntifloodHandler,
 		ValidityAttester:         process.BlockTracker,
 		ChainID:                  coreData.ChainID,
+		Rounder:                  process.Rounder,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
