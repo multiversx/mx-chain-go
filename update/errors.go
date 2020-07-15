@@ -229,3 +229,6 @@ var ErrImportingData = errors.New("error importing data")
 
 // ErrKeyTypeMismatch signals that key type was mismatch during import
 var ErrKeyTypeMismatch = errors.New("key type mismatch while importing")
+
+// ErrNilRounder signals that nil rounder has been provided
+var ErrNilRounder = errors.New("nil rounder")
