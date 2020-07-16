@@ -743,6 +743,15 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		}
 	}
 
+	log.Debug("rollBackOneBlock to header",
+		"shard", prevHeader.GetShardID(),
+		"epoch", prevHeader.GetEpoch(),
+		"round", prevHeader.GetRound(),
+		"nonce", prevHeader.GetNonce(),
+		"root hash", prevHeader.GetRootHash(),
+		"validator stats root hash", prevHeader.GetValidatorStatsRootHash(),
+	)
+
 	err = boot.blockProcessor.RevertStateToBlock(prevHeader)
 	if err != nil {
 		return err

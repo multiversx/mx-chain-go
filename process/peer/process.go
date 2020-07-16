@@ -272,6 +272,12 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 // UpdatePeerState takes a header, updates the peer state for all of the
 // consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
+	validatorStatsRootHashBefore, _ := vs.peerAdapter.RootHash()
+	log.Debug("validatorStatistics.UpdatePeerState",
+		"header nonce", header.GetNonce(),
+		"genesis nonce", vs.genesisNonce,
+		"root hash", validatorStatsRootHashBefore)
+
 	if header.GetNonce() == vs.genesisNonce {
 		return vs.peerAdapter.RootHash()
 	}
@@ -293,6 +299,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 
 	var err error
 	if previousHeader.IsStartOfEpochBlock() {
+		log.Debug("validatorStatistics.UpdatePeerState", "IsStartOfEpochBlock", "true")
 		err = vs.saveNodesCoordinatorUpdates(previousHeader.GetEpoch())
 		if err != nil {
 			log.Warn("could not update info from nodesCoordinator")
@@ -320,6 +327,12 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	if err != nil {
 		return nil, err
 	}
+
+	validatorStatsRootHashAfter, _ := vs.peerAdapter.RootHash()
+	log.Debug("validatorStatistics.UpdatePeerState",
+		"header nonce", header.GetNonce(),
+		"genesis nonce", vs.genesisNonce,
+		"root hash", validatorStatsRootHashAfter)
 
 	if header.GetNonce() == vs.genesisNonce+1 {
 		return vs.peerAdapter.RootHash()

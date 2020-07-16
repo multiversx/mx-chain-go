@@ -172,6 +172,15 @@ func (mp *metaProcessor) ProcessBlock(
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce())
 
+	log.Debug("genesis header info",
+		"shard", mp.blockChain.GetGenesisHeader().GetShardID(),
+		"epoch", mp.blockChain.GetGenesisHeader().GetEpoch(),
+		"round", mp.blockChain.GetGenesisHeader().GetRound(),
+		"nonce", mp.blockChain.GetGenesisHeader().GetNonce(),
+		"root hash", mp.blockChain.GetGenesisHeader().GetRootHash(),
+		"validator stats root hash", mp.blockChain.GetGenesisHeader().GetValidatorStatsRootHash(),
+	)
+
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
