@@ -71,7 +71,20 @@ func Routes(router *wrapper.RouterWrapper) {
 
 // HeartbeatStatus respond with the heartbeat status of the node
 func HeartbeatStatus(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -109,7 +122,20 @@ func HeartbeatStatus(c *gin.Context) {
 
 // Statistics returns the blockchain statistics
 func Statistics(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -134,7 +160,20 @@ func Statistics(c *gin.Context) {
 
 // StatusMetrics returns the node statistics exported by an StatusMetricsHandler without p2p statistics
 func StatusMetrics(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -160,7 +199,20 @@ func StatusMetrics(c *gin.Context) {
 
 // P2pStatusMetrics returns the node's p2p statistics exported by a StatusMetricsHandler
 func P2pStatusMetrics(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -216,7 +268,20 @@ func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResp
 
 // QueryDebug returns the debug information after the query has been interpreted
 func QueryDebug(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -268,7 +333,20 @@ func QueryDebug(c *gin.Context) {
 
 // PeerInfo returns the information of a provided p2p peer ID
 func PeerInfo(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,

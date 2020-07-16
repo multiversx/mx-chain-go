@@ -98,7 +98,20 @@ func Routes(router *wrapper.RouterWrapper) {
 
 // SendTransaction will receive a transaction from the client and propagate it for processing
 func SendTransaction(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(TxService)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(TxService)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -188,7 +201,20 @@ func SendTransaction(c *gin.Context) {
 
 // SendMultipleTransactions will receive a number of transactions and will propagate them for processing
 func SendMultipleTransactions(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(TxService)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(TxService)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -276,7 +302,20 @@ func SendMultipleTransactions(c *gin.Context) {
 
 // GetTransaction returns transaction details for a given txhash
 func GetTransaction(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(TxService)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(TxService)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -327,7 +366,20 @@ func GetTransaction(c *gin.Context) {
 
 // ComputeTransactionGasLimit returns how many gas units a transaction wil consume
 func ComputeTransactionGasLimit(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(TxService)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(TxService)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,

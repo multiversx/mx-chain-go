@@ -20,11 +20,30 @@ import (
 func startNodeServerEndpointThrottler(handler interface{}, throttlerName string) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
-	ws.Use(middleware.WithElrondFacade(handler), middleware.CreateEndpointThrottler(throttlerName))
+	if handler == nil {
+		ws.Use(middleware.CreateEndpointThrottler(throttlerName))
+	} else {
+		ws.Use(middleware.WithElrondFacade(handler), middleware.CreateEndpointThrottler(throttlerName))
+	}
 	ginAddressRoutes := ws.Group("/address")
 	addressRoutes, _ := wrapper.NewRouterWrapper("address", ginAddressRoutes, getRoutesConfig())
 	address.Routes(addressRoutes)
 	return ws
+}
+
+func TestCreateEndpointThrottler_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerEndpointThrottler(nil, "test")
+	mutResponses := sync.Mutex{}
+	responses := make(map[int]int)
+
+	makeRequestGlobalThrottler(ws, &mutResponses, responses)
+
+	mutResponses.Lock()
+	defer mutResponses.Unlock()
+
+	assert.Equal(t, 1, responses[http.StatusInternalServerError])
 }
 
 func TestCreateEndpointThrottler_WrongFacadeShouldErr(t *testing.T) {

@@ -7,8 +7,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -24,6 +26,20 @@ import (
 type ValidatorStatisticsResponse struct {
 	Result map[string]*state.ValidatorApiResponse `json:"statistics"`
 	Error  string                                 `json:"error"`
+}
+
+func TestValidatorStatistics_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/validator/statistics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestValidatorStatistics_ErrorWithWrongFacade(t *testing.T) {

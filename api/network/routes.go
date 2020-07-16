@@ -24,7 +24,20 @@ func Routes(router *wrapper.RouterWrapper) {
 
 // GetNetworkConfig returns metrics related to the network configuration (shard independent)
 func GetNetworkConfig(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -50,7 +63,20 @@ func GetNetworkConfig(c *gin.Context) {
 
 // GetNetworkStatus returns metrics related to the network status (shard specific)
 func GetNetworkStatus(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,

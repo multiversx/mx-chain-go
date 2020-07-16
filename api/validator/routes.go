@@ -23,7 +23,20 @@ func Routes(router *wrapper.RouterWrapper) {
 
 // Statistics will return the validation statistics for all validators
 func Statistics(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(ValidatorsStatisticsApiHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(ValidatorsStatisticsApiHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,

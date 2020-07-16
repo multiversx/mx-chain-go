@@ -79,7 +79,12 @@ func executeQuery(context *gin.Context) {
 }
 
 func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
-	facade, ok := context.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := context.Get("elrondFacade")
+	if !ok {
+		return nil, errors.ErrNilAppContext
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		return nil, errors.ErrInvalidAppContext
 	}
@@ -90,12 +95,12 @@ func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, errors.ErrInvalidJSONRequest
 	}
 
-	command, err := createSCQuery(facade, &request)
+	command, err := createSCQuery(ef, &request)
 	if err != nil {
 		return nil, err
 	}
 
-	vmOutput, err := facade.ExecuteSCQuery(command)
+	vmOutput, err := ef.ExecuteSCQuery(command)
 	if err != nil {
 		return nil, err
 	}

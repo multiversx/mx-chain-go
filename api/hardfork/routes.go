@@ -32,7 +32,20 @@ func Routes(router *wrapper.RouterWrapper) {
 
 // Trigger will receive a trigger request from the client and propagate it for processing
 func Trigger(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(TriggerHardforkHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(TriggerHardforkHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,

@@ -72,6 +72,20 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
+func TestGetTransaction_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/transaction/hash", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
@@ -175,6 +189,20 @@ func TestGetTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrTooManyRequests.Error()))
 	assert.Equal(t, string(shared.ReturnCodeSystemBusy), txResp.Code)
 	assert.Empty(t, txResp.Data)
+}
+
+func TestSendTransaction_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("POST", "/transaction/send", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestSendTransaction_ErrorWithWrongFacade(t *testing.T) {
@@ -342,6 +370,20 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, hexTxHash, response.Data.TxHash)
 }
 
+func TestSendMultipleTransactions_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("POST", "/transaction/send-multiple", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
 func TestSendMultipleTransactions_ErrorWithWrongFacade(t *testing.T) {
 	t.Parallel()
 
@@ -456,6 +498,20 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.True(t, createTxWasCalled)
 	assert.True(t, sendBulkTxsWasCalled)
+}
+
+func TestComputeTransactionGasLimit_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("POST", "/transaction/cost", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestComputeTransactionGasLimit(t *testing.T) {

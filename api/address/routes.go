@@ -40,7 +40,20 @@ func Routes(router *wrapper.RouterWrapper) {
 // GetAccount returns an accountResponse containing information
 //  about the account correlated with provided address
 func GetAccount(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -79,7 +92,20 @@ func GetAccount(c *gin.Context) {
 
 // GetBalance returns the balance for the address parameter
 func GetBalance(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -128,7 +154,20 @@ func GetBalance(c *gin.Context) {
 
 // GetValueForKey returns the value for the given address and key
 func GetValueForKey(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := c.Get("elrondFacade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
