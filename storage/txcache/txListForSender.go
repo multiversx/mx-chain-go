@@ -186,6 +186,7 @@ func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
 func (listForSender *txListForSender) onRemovedListElement(element *list.Element) {
 	value := element.Value.(*WrappedTransaction)
 
+	listForSender.insertionHint.notifyRemoval(element)
 	listForSender.totalBytes.Subtract(value.Size)
 	listForSender.totalGas.Subtract(int64(estimateTxGas(value)))
 	listForSender.totalFee.Subtract(int64(estimateTxFee(value)))

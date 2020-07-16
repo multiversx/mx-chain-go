@@ -13,8 +13,15 @@ type listForSenderHint struct {
 // We are interested only in nonce-changing hints, so that they do not become misleading in case of [same-nonce, different-price] transactions.
 func (hint *listForSenderHint) digestElement(element *list.Element, nonce uint64) {
 	if nonce != hint.nonce {
-		hint.element = element.Prev()
+		hint.element = element.Next()
 		hint.nonce = nonce
+	}
+}
+
+func (hint *listForSenderHint) notifyRemoval(element *list.Element) {
+	if hint.element == element {
+		hint.element = nil
+		hint.nonce = 0
 	}
 }
 
