@@ -182,7 +182,6 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 func (cache *TxCache) RemoveTxBulk(keys [][]byte) int {
 	// First, fetch the transactions from the "txByHash" map.
 	txsToRemove := cache.txByHash.getTxs(keys)
-
 	if len(txsToRemove) == 0 {
 		return 0
 	}

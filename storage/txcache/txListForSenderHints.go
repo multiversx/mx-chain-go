@@ -18,8 +18,8 @@ func (hint *listForSenderHint) digestElement(element *list.Element, nonce uint64
 	}
 }
 
-func (hint *listForSenderHint) notifyRemoval(element *list.Element) {
-	if hint.element == element {
+func (hint *listForSenderHint) notifyRemoval(removedElement *list.Element) {
+	if hint.element == removedElement {
 		hint.element = nil
 		hint.nonce = 0
 	}
