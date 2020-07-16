@@ -25,18 +25,18 @@ var maxGasLimitPerBlock = uint64(3000000)
 func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	processArgs := getProcessComponentsArgs()
 	_ = processArgs.CoreData.SetInternalMarshalizer(nil)
-	managedCoreComponents, err := factory.NewManagedProcessComponents(processArgs)
+	managedProcessComponents, err := factory.NewManagedProcessComponents(processArgs)
 	require.NoError(t, err)
-	err = managedCoreComponents.Create()
+	err = managedProcessComponents.Create()
 	require.Error(t, err)
-	require.Nil(t, managedCoreComponents.NodesCoordinator())
+	require.Nil(t, managedProcessComponents.NodesCoordinator())
 }
 
 func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	processArgs := getProcessComponentsArgs()
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	shardCoordinator.CurrentShard = core.MetachainShardId
-	processArgs.ShardCoordinator = shardCoordinator
+	//shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	//shardCoordinator.CurrentShard = core.MetachainShardId
+	//processArgs.ShardCoordinator = shardCoordinator
 	managedProcessComponents, err := factory.NewManagedProcessComponents(processArgs)
 	require.NoError(t, err)
 	require.Nil(t, managedProcessComponents.NodesCoordinator())
@@ -75,7 +75,8 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	require.NotNil(t, managedProcessComponents.ValidatorsStatistics())
 	require.NotNil(t, managedProcessComponents.ValidatorsProvider())
 	require.NotNil(t, managedProcessComponents.BlockTracker())
-	require.NotNil(t, managedProcessComponents.PendingMiniBlocksHandler())
+	//TODO: test also with metaChain in shardCoordinator
+	//	require.NotNil(t, managedProcessComponents.PendingMiniBlocksHandler())
 	require.NotNil(t, managedProcessComponents.RequestHandler())
 	require.NotNil(t, managedProcessComponents.TxLogsProcessor())
 	require.NotNil(t, managedProcessComponents.HeaderConstructionValidator())
@@ -83,44 +84,26 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedProcessComponents_Close(t *testing.T) {
-	coreArgs := getCoreArgs()
-	managedCoreComponents, _ := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
+	processArgs := getProcessComponentsArgs()
+	managedCoreComponents, _ := factory.NewManagedProcessComponents(processArgs)
 	err := managedCoreComponents.Create()
 	require.NoError(t, err)
 
-	closed := false
-	statusHandlerMock := &mock.AppStatusHandlerMock{
-		CloseCalled: func() {
-			closed = true
-		},
-	}
-	_ = managedCoreComponents.SetStatusHandler(statusHandlerMock)
 	err = managedCoreComponents.Close()
 	require.NoError(t, err)
-	require.True(t, closed)
-	require.Nil(t, managedCoreComponents.StatusHandler())
+	require.Nil(t, managedCoreComponents.NodesCoordinator())
 }
 
 // ------------ Test CoreComponents --------------------
 func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getCoreArgs()
-	ccf := factory.NewCoreComponentsFactory(args)
-	cc, _ := ccf.Create()
+	processArgs := getProcessComponentsArgs()
+	pcf, _ := factory.NewProcessComponentsFactory(processArgs)
+	pc, _ := pcf.Create()
 
-	closeCalled := false
-	statusHandler := &mock.AppStatusHandlerMock{
-		CloseCalled: func() {
-			closeCalled = true
-		},
-	}
-	cc.SetStatusHandler(statusHandler)
-
-	err := cc.Close()
-
+	err := pc.Close()
 	require.NoError(t, err)
-	require.True(t, closeCalled)
 }
 
 func getProcessComponentsArgs() factory.ProcessComponentsFactoryArgs {

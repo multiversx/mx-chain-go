@@ -73,89 +73,59 @@ func TestStateComponentsFactory_CreateTriesShouldWork(t *testing.T) {
 }
 
 // ------------ Test ManagedCoreComponents --------------------
-func TestManagedCStateComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
-	coreArgs := getCoreArgs()
-	coreArgs.Config.Marshalizer = config.MarshalizerConfig{
-		Type:           "invalid_marshalizer_type",
-		SizeCheckDelta: 0,
-	}
-	managedCoreComponents, err := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
+func TestManagedStateComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	coreComponents := getCoreComponents()
+	args := getStateArgs(coreComponents)
+	managedStateComponents, err := factory.NewManagedStateComponents(args)
 	require.NoError(t, err)
-	err = managedCoreComponents.Create()
+	_ = args.Core.SetInternalMarshalizer(nil)
+	err = managedStateComponents.Create()
 	require.Error(t, err)
-	require.Nil(t, managedCoreComponents.StatusHandler())
+	require.Nil(t, managedStateComponents.AccountsAdapter())
 }
 
-func TestStateComponents_Create_ShouldWork(t *testing.T) {
-	coreArgs := getCoreArgs()
-	managedCoreComponents, err := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
+func TestManagedStateComponents_Create_ShouldWork(t *testing.T) {
+	coreComponents := getCoreComponents()
+	args := getStateArgs(coreComponents)
+	managedStateComponents, err := factory.NewManagedStateComponents(args)
 	require.NoError(t, err)
-	require.Nil(t, managedCoreComponents.Hasher())
-	require.Nil(t, managedCoreComponents.InternalMarshalizer())
-	require.Nil(t, managedCoreComponents.VmMarshalizer())
-	require.Nil(t, managedCoreComponents.TxMarshalizer())
-	require.Nil(t, managedCoreComponents.Uint64ByteSliceConverter())
-	require.Nil(t, managedCoreComponents.AddressPubKeyConverter())
-	require.Nil(t, managedCoreComponents.ValidatorPubKeyConverter())
-	require.Nil(t, managedCoreComponents.StatusHandler())
-	require.Nil(t, managedCoreComponents.PathHandler())
-	require.Equal(t, "", managedCoreComponents.ChainID())
-	require.Nil(t, managedCoreComponents.AddressPubKeyConverter())
+	require.Nil(t, managedStateComponents.AccountsAdapter())
+	require.Nil(t, managedStateComponents.PeerAccounts())
+	require.Nil(t, managedStateComponents.TriesContainer())
+	require.Nil(t, managedStateComponents.TrieStorageManagers())
 
-	err = managedCoreComponents.Create()
+	err = managedStateComponents.Create()
 	require.NoError(t, err)
-	require.NotNil(t, managedCoreComponents.Hasher())
-	require.NotNil(t, managedCoreComponents.InternalMarshalizer())
-	require.NotNil(t, managedCoreComponents.VmMarshalizer())
-	require.NotNil(t, managedCoreComponents.TxMarshalizer())
-	require.NotNil(t, managedCoreComponents.Uint64ByteSliceConverter())
-	require.NotNil(t, managedCoreComponents.AddressPubKeyConverter())
-	require.NotNil(t, managedCoreComponents.ValidatorPubKeyConverter())
-	require.NotNil(t, managedCoreComponents.StatusHandler())
-	require.NotNil(t, managedCoreComponents.PathHandler())
-	require.NotEqual(t, "", managedCoreComponents.ChainID())
-	require.NotNil(t, managedCoreComponents.AddressPubKeyConverter())
+	require.NotNil(t, managedStateComponents.AccountsAdapter())
+	require.NotNil(t, managedStateComponents.PeerAccounts())
+	require.NotNil(t, managedStateComponents.TriesContainer())
+	require.NotNil(t, managedStateComponents.TrieStorageManagers())
 }
 
-func TestStateComponents_Close(t *testing.T) {
-	coreArgs := getCoreArgs()
-	managedCoreComponents, _ := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
-	err := managedCoreComponents.Create()
+func TestManagedStateComponents_Close(t *testing.T) {
+	coreComponents := getCoreComponents()
+	args := getStateArgs(coreComponents)
+	managedStateComponents, _ := factory.NewManagedStateComponents(args)
+	err := managedStateComponents.Create()
 	require.NoError(t, err)
 
-	closed := false
-	statusHandlerMock := &mock.AppStatusHandlerMock{
-		CloseCalled: func() {
-			closed = true
-		},
-	}
-	_ = managedCoreComponents.SetStatusHandler(statusHandlerMock)
-	err = managedCoreComponents.Close()
+	err = managedStateComponents.Close()
 	require.NoError(t, err)
-	require.True(t, closed)
-	require.Nil(t, managedCoreComponents.StatusHandler())
+	require.Nil(t, managedStateComponents.AccountsAdapter())
 }
 
 // ------------ Test CoreComponents --------------------
 func TestStateComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getCoreArgs()
-	ccf := factory.NewCoreComponentsFactory(args)
-	cc, _ := ccf.Create()
+	coreComponents := getCoreComponents()
+	args := getStateArgs(coreComponents)
+	scf, _ := factory.NewStateComponentsFactory(args)
 
-	closeCalled := false
-	statusHandler := &mock.AppStatusHandlerMock{
-		CloseCalled: func() {
-			closeCalled = true
-		},
-	}
-	cc.SetStatusHandler(statusHandler)
+	sc, _ := scf.Create()
 
-	err := cc.Close()
-
+	err := sc.Close()
 	require.NoError(t, err)
-	require.True(t, closeCalled)
 }
 
 func getStateArgs(coreComponents factory.CoreComponentsHolder) factory.StateComponentsFactoryArgs {

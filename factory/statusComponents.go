@@ -20,7 +20,7 @@ import (
 type statusComponents struct {
 	statusHandler   core.AppStatusHandler
 	tpsBenchmark    statistics.TPSBenchmark
-	elasticSearch   indexer.Indexer
+	elasticIndexer  indexer.Indexer
 	softwareVersion statistics.SoftwareVersionChecker
 	cancelFunc      func()
 }
@@ -165,7 +165,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	return &statusComponents{
 		softwareVersion: softwareVersionChecker,
 		tpsBenchmark:    tpsBenchmark,
-		elasticSearch:   elasticIndexer,
+		elasticIndexer:  elasticIndexer,
 		statusHandler:   scf.coreComponents.StatusHandler(),
 		cancelFunc:      cancelFunc,
 	}, nil
