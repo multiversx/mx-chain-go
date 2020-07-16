@@ -146,8 +146,6 @@ func TestManagedStatusComponents_Close(t *testing.T) {
 
 // ------------ Test StatusComponents --------------------
 func TestStatusComponents_Close_ShouldWork(t *testing.T) {
-	t.Parallel()
-
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
 	scf, _ := factory.NewStatusComponentsFactory(statusArgs)
 	cc, err := scf.Create()
