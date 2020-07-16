@@ -175,6 +175,10 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	// broadcast section
 
+	if sr.Rounder().Index() == 1 && sr.Header.GetNonce() == 1 {
+		time.Sleep(3 * sr.Rounder().TimeDuration())
+	}
+
 	// create and broadcast header final info
 	sr.createAndBroadcastHeaderFinalInfo()
 
