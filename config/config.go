@@ -139,10 +139,11 @@ type Config struct {
 	VmMarshalizer               TypeConfig
 	TxSignMarshalizer           TypeConfig
 
-	PublicKeyShardId CacheConfig
-	PublicKeyPeerId  CacheConfig
-	PeerIdShardId    CacheConfig
-	PeerHonesty      CacheConfig
+	PublicKeyShardId      CacheConfig
+	PublicKeyPeerId       CacheConfig
+	PeerIdShardId         CacheConfig
+	PublicKeyPIDSignature CacheConfig
+	PeerHonesty           CacheConfig
 
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
@@ -317,8 +318,10 @@ type VirtualMachineOutOfProcessConfig struct {
 // HardforkConfig holds the configuration for the hardfork trigger
 type HardforkConfig struct {
 	ExportStateStorageConfig     StorageConfig
+	ExportKeysStorageConfig      StorageConfig
 	ExportTriesStorageConfig     StorageConfig
 	ImportStateStorageConfig     StorageConfig
+	ImportKeysStorageConfig      StorageConfig
 	PublicKeyToListenFrom        string
 	ImportFolder                 string
 	StartRound                   uint64

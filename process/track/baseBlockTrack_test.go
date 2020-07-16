@@ -682,17 +682,7 @@ func TestShouldAddHeader_ShouldWork(t *testing.T) {
 	assert.False(t, sbt.ShouldAddHeader(&block.MetaBlock{Nonce: maxNumHeadersToKeepPerShard + 1}))
 }
 
-func TestShouldAddHeaderForShard_ShouldReturnFalseWhenGetFirstNotarizedHeaderErr(t *testing.T) {
-	t.Parallel()
-
-	shardArguments := CreateShardTrackerMockArguments()
-	sbt, _ := track.NewShardBlockTrack(shardArguments)
-
-	result := sbt.ShouldAddHeaderForCrossShard(&block.Header{Nonce: uint64(sbt.GetMaxNumHeadersToKeepPerShard()), ShardID: 2})
-	assert.False(t, result)
-}
-
-func TestShouldAddHeaderForShard_ShouldReturnFalseWhenGeLastNotarizedHeaderErr(t *testing.T) {
+func TestShouldAddHeaderForShard_ShouldReturnFalseWhenGetLastNotarizedHeaderErr(t *testing.T) {
 	t.Parallel()
 
 	shardArguments := CreateShardTrackerMockArguments()
@@ -2434,6 +2424,68 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededNilShardShouldReturnAn
 	assert.Equal(t, 0, len(cache))
 }
 
+func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededIsHeaderOutOfRangeShouldReturn(t *testing.T) {
+	t.Parallel()
+
+	cache := make(map[string]struct{})
+	mutCache := sync.Mutex{}
+	shardArguments := CreateShardTrackerMockArguments()
+	shardArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+		AddCalled: func(keys [][]byte) {
+			mutCache.Lock()
+			for _, key := range keys {
+				cache[string(key)] = struct{}{}
+			}
+			mutCache.Unlock()
+		},
+	}
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	metaHdr := &block.MetaBlock{
+		Round: process.MaxHeadersToWhitelistInAdvance + 1,
+		Nonce: process.MaxHeadersToWhitelistInAdvance + 1,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{Hash: []byte("shardHash0"), SenderShardID: 1, ReceiverShardID: 0},
+		},
+	}
+
+	sbt.DoWhitelistWithMetaBlockIfNeeded(metaHdr)
+	_, ok := cache[string(metaHdr.MiniBlockHeaders[0].Hash)]
+
+	assert.False(t, ok)
+}
+
+func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededIsHeaderOutOfRangeShouldReturn(t *testing.T) {
+	t.Parallel()
+
+	cache := make(map[string]struct{})
+	mutCache := sync.Mutex{}
+	metaArguments := CreateMetaTrackerMockArguments()
+	metaArguments.WhitelistHandler = &mock.WhiteListHandlerStub{
+		AddCalled: func(keys [][]byte) {
+			mutCache.Lock()
+			for _, key := range keys {
+				cache[string(key)] = struct{}{}
+			}
+			mutCache.Unlock()
+		},
+	}
+	mbt, _ := track.NewMetaBlockTrack(metaArguments)
+
+	shardHdr := &block.Header{
+		Round: process.MaxHeadersToWhitelistInAdvance + 1,
+		Nonce: process.MaxHeadersToWhitelistInAdvance + 1,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{Hash: []byte("shardHash0"), SenderShardID: 0, ReceiverShardID: core.MetachainShardId},
+		},
+	}
+
+	mbt.DoWhitelistWithShardHeaderIfNeeded(shardHdr)
+	_, ok := cache[string(shardHdr.MiniBlockHeaders[0].Hash)]
+
+	assert.False(t, ok)
+}
+
 func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededShardShouldWhitelistCrossMiniblocks(t *testing.T) {
 	t.Parallel()
 
@@ -2494,4 +2546,32 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededMetaShouldWhitelistCro
 	_, ok := cache[string(shardHdr.MiniBlockHeaders[0].Hash)]
 
 	assert.True(t, ok)
+}
+
+func TestBaseBlockTrack_IsHeaderOutOfRangeShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	round := uint64(10)
+	nonce := uint64(8)
+	crossNotarizedHeader := &block.MetaBlock{
+		Round: round,
+		Nonce: nonce,
+	}
+
+	sbt.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
+
+	metaHdr := &block.MetaBlock{
+		Round: round + process.MaxHeadersToWhitelistInAdvance + 1,
+		Nonce: nonce + process.MaxHeadersToWhitelistInAdvance + 1,
+	}
+	assert.True(t, sbt.IsHeaderOutOfRange(metaHdr))
+
+	metaHdr = &block.MetaBlock{
+		Round: round + process.MaxHeadersToWhitelistInAdvance,
+		Nonce: nonce + process.MaxHeadersToWhitelistInAdvance,
+	}
+	assert.False(t, sbt.IsHeaderOutOfRange(metaHdr))
 }

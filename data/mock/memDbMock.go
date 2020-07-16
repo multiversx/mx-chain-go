@@ -96,6 +96,23 @@ func (s *MemDbMock) DestroyClosed() error {
 	return nil
 }
 
+// RangeKeys will iterate over all contained (key, value) pairs calling the handler for each pair
+func (s *MemDbMock) RangeKeys(handler func(key []byte, value []byte) bool) {
+	if handler == nil {
+		return
+	}
+
+	s.mutx.RLock()
+	defer s.mutx.RUnlock()
+
+	for k, v := range s.db {
+		shouldContinue := handler([]byte(k), v)
+		if !shouldContinue {
+			return
+		}
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *MemDbMock) IsInterfaceNil() bool {
 	return s == nil

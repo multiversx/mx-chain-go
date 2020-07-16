@@ -132,7 +132,7 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
 			RefreshIntervalInSec:             10,
-			RandezVous:                       "erd/kad/1.0.0",
+			ProtocolID:                       "erd/kad/1.0.0",
 			InitialPeerList:                  []string{"peer0", "peer1"},
 			BucketSize:                       10,
 			RoutingTableRefreshIntervalInSec: 5,

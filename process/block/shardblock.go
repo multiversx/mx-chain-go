@@ -215,7 +215,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	defer func() {
-		go sp.checkAndRequestIfMetaHeadersMissing(header.Round)
+		go sp.checkAndRequestIfMetaHeadersMissing()
 	}()
 
 	err = sp.checkEpochCorrectnessCrossChain()
@@ -490,10 +490,10 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	return nil
 }
 
-func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing(round uint64) {
+func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing() {
 	orderedMetaBlocks, _ := sp.blockTracker.GetTrackedHeaders(core.MetachainShardId)
 
-	err := sp.requestHeadersIfMissing(orderedMetaBlocks, core.MetachainShardId, round)
+	err := sp.requestHeadersIfMissing(orderedMetaBlocks, core.MetachainShardId)
 	if err != nil {
 		log.Debug("checkAndRequestIfMetaHeadersMissing", "error", err.Error())
 	}
@@ -949,7 +949,12 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			break
 		}
 
-		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(hdr.GetPrevHash(), sp.marshalizer, sp.store)
+		prevHeader, errNotCritical := process.GetShardHeader(
+			hdr.GetPrevHash(),
+			sp.dataPool.Headers(),
+			sp.marshalizer,
+			sp.store,
+		)
 		if errNotCritical != nil {
 			log.Debug("could not get shard header from storage")
 			return
@@ -1040,8 +1045,9 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {
 		}
 
 		shouldRevertChain = true
-		prevHeader, err := process.GetShardHeaderFromStorage(
+		prevHeader, err := process.GetShardHeader(
 			currentHeader.GetPrevHash(),
+			sp.dataPool.Headers(),
 			sp.marshalizer,
 			sp.store,
 		)
@@ -1065,7 +1071,7 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {
 }
 
 func (sp *shardProcessor) getLastSelfNotarizedHeaderByMetachain() (data.HeaderHandler, []byte) {
-	if sp.forkDetector.GetHighestFinalBlockNonce() == 0 {
+	if sp.forkDetector.GetHighestFinalBlockNonce() == sp.genesisNonce {
 		return sp.blockChain.GetGenesisHeader(), sp.blockChain.GetGenesisHeaderHash()
 	}
 
@@ -1696,7 +1702,7 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *blo
 	shardHeader.RootHash = sp.getRootHash()
 
 	defer func() {
-		go sp.checkAndRequestIfMetaHeadersMissing(shardHeader.GetRound())
+		go sp.checkAndRequestIfMetaHeadersMissing()
 	}()
 
 	if check.IfNil(body) {

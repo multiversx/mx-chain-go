@@ -9,22 +9,22 @@ func NewNilStorer() *nilStorer {
 }
 
 // GetFromEpoch will do nothing
-func (ns *nilStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
+func (ns *nilStorer) GetFromEpoch(_ []byte, _ uint32) ([]byte, error) {
 	return nil, nil
 }
 
 // HasInEpoch will do nothing
-func (ns *nilStorer) HasInEpoch(key []byte, epoch uint32) error {
+func (ns *nilStorer) HasInEpoch(_ []byte, _ uint32) error {
 	return nil
 }
 
 // SearchFirst will do nothing
-func (ns *nilStorer) SearchFirst(key []byte) ([]byte, error) {
+func (ns *nilStorer) SearchFirst(_ []byte) ([]byte, error) {
 	return nil, nil
 }
 
 // Put will do nothing
-func (ns *nilStorer) Put(key, data []byte) error {
+func (ns *nilStorer) Put(_, _ []byte) error {
 	return nil
 }
 
@@ -34,17 +34,17 @@ func (ns *nilStorer) Close() error {
 }
 
 // Get will do nothing
-func (ns *nilStorer) Get(key []byte) ([]byte, error) {
+func (ns *nilStorer) Get(_ []byte) ([]byte, error) {
 	return nil, nil
 }
 
 // Has will do nothing
-func (ns *nilStorer) Has(key []byte) error {
+func (ns *nilStorer) Has(_ []byte) error {
 	return nil
 }
 
 // Remove will do nothing
-func (ns *nilStorer) Remove(key []byte) error {
+func (ns *nilStorer) Remove(_ []byte) error {
 	return nil
 }
 
@@ -55,6 +55,10 @@ func (ns *nilStorer) ClearCache() {
 // DestroyUnit will do nothing
 func (ns *nilStorer) DestroyUnit() error {
 	return nil
+}
+
+// RangeKeys does nothing
+func (ns *nilStorer) RangeKeys(_ func(key []byte, val []byte) bool) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -38,7 +38,7 @@ func startNodeServer(handler hardfork.TriggerHardforkHandler) *gin.Engine {
 	ws.Use(cors.Default())
 	ginHardforkRoute := ws.Group("/hardfork")
 	if handler != nil {
-		ginHardforkRoute.Use(middleware.WithElrondFacade(handler))
+		ginHardforkRoute.Use(middleware.WithTestingElrondFacade(handler))
 	}
 	hardForkRoute, _ := wrapper.NewRouterWrapper("hardfork", ginHardforkRoute, getRoutesConfig())
 	hardfork.Routes(hardForkRoute)
