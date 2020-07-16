@@ -147,6 +147,3 @@ jobs:
           ./kustomize edit set image elrondnetwork/elrond-go-seednode=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
           ./kustomize edit set namespace "$NAMESPACE"
           ./kustomize build ./ | kubectl -n "$NAMESPACE" apply --validate=false -f -
-        env:
-          NUM_NODES_TOTAL: ${{ env.NUM_NODES_TOTAL }}
-          NUM_OF_SHARDS: ${{ env.NUM_OF_SHARDS }}
