@@ -59,13 +59,14 @@ const minRangePortValue = 1025
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 //64kB
 var maxSendBuffSize = (1 << 20) - messageHeader
-
 var log = logger.GetOrCreate("p2p/libp2p")
 
 var _ p2p.Messenger = (*networkMessenger)(nil)
 var externalPackages = []string{"dht", "nat", "basichost", "pubsub"}
 
 func init() {
+	pubsub.TimeCacheDuration = pubsubTimeCacheDuration
+
 	for _, external := range externalPackages {
 		_ = logger.GetOrCreate(fmt.Sprintf("external/%s", external))
 	}
@@ -233,8 +234,6 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 	optsPS := []pubsub.Option{
 		pubsub.WithMessageSigning(withMessageSigning),
 	}
-
-	pubsub.TimeCacheDuration = pubsubTimeCacheDuration
 
 	var err error
 	netMes.pb, err = pubsub.NewGossipSub(netMes.ctx, netMes.p2pHost, optsPS...)
