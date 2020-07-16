@@ -569,12 +569,12 @@ func logError(err error) {
 	}
 }
 
-func startNodeServer(handler transaction.TxService) *gin.Engine {
+func startNodeServer(handler transaction.FacadeHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ginTransactionRoute := ws.Group("/transaction")
 	if handler != nil {
-		ginTransactionRoute.Use(middleware.WithElrondFacade(handler))
+		ginTransactionRoute.Use(middleware.WithFacade(handler))
 	}
 	transactionRoute, _ := wrapper.NewRouterWrapper("transaction", ginTransactionRoute, getRoutesConfig())
 	transaction.Routes(transactionRoute)
@@ -585,7 +585,7 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
+		c.Set("facade", mock.WrongFacade{})
 	})
 	ginTransactionRoute := ws.Group("/transaction")
 	transactionRoute, _ := wrapper.NewRouterWrapper("transaction", ginTransactionRoute, getRoutesConfig())

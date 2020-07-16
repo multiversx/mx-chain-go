@@ -34,12 +34,12 @@ type TriggerResponse struct {
 	Status string `json:"status"`
 }
 
-func startNodeServer(handler hardfork.TriggerHardforkHandler) *gin.Engine {
+func startNodeServer(handler hardfork.FacadeHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ginHardforkRoute := ws.Group("/hardfork")
 	if handler != nil {
-		ginHardforkRoute.Use(middleware.WithElrondFacade(handler))
+		ginHardforkRoute.Use(middleware.WithFacade(handler))
 	}
 	hardForkRoute, _ := wrapper.NewRouterWrapper("hardfork", ginHardforkRoute, getRoutesConfig())
 	hardfork.Routes(hardForkRoute)
@@ -50,7 +50,7 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
+		c.Set("facade", mock.WrongFacade{})
 	})
 	ginHardforkRoute := ws.Group("/hardfork")
 	hardForkRoute, _ := wrapper.NewRouterWrapper("hardfork", ginHardforkRoute, getRoutesConfig())

@@ -29,7 +29,7 @@ func startNodeServerSourceThrottler(handler address.FacadeHandler, maxConnection
 	ws.Use(sourceThrottler.MiddlewareHandlerFunc())
 	ginAddressRoutes := ws.Group("/address")
 	if handler != nil {
-		ginAddressRoutes.Use(middleware.WithElrondFacade(handler))
+		ginAddressRoutes.Use(middleware.WithFacade(handler))
 	}
 	addressRoutes, _ := wrapper.NewRouterWrapper("address", ginAddressRoutes, getRoutesConfig())
 	address.Routes(addressRoutes)

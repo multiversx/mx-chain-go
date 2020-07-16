@@ -38,10 +38,10 @@ const DefaultRestInterface = "localhost:8080"
 const DefaultRestPortOff = "off"
 
 var _ = address.FacadeHandler(&nodeFacade{})
-var _ = hardfork.TriggerHardforkHandler(&nodeFacade{})
+var _ = hardfork.FacadeHandler(&nodeFacade{})
 var _ = node.FacadeHandler(&nodeFacade{})
-var _ = transactionApi.TxService(&nodeFacade{})
-var _ = validator.ValidatorsStatisticsApiHandler(&nodeFacade{})
+var _ = transactionApi.FacadeHandler(&nodeFacade{})
+var _ = validator.FacadeHandler(&nodeFacade{})
 var _ = vmValues.FacadeHandler(&nodeFacade{})
 
 var log = logger.GetOrCreate("facade")

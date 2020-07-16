@@ -10,8 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ValidatorsStatisticsApiHandler interface defines methods that can be used from `elrondFacade` context variable
-type ValidatorsStatisticsApiHandler interface {
+// FacadeHandler interface defines methods that can be used by the gin webserver
+type FacadeHandler interface {
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 	IsInterfaceNil() bool
 }
@@ -21,9 +21,8 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, "/statistics", Statistics)
 }
 
-// Statistics will return the validation statistics for all validators
-func Statistics(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+func getFacade(c *gin.Context) (FacadeHandler, bool) {
+	facadeObj, ok := c.Get("facade")
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -33,10 +32,10 @@ func Statistics(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
-		return
+		return nil, false
 	}
 
-	ef, ok := efObj.(ValidatorsStatisticsApiHandler)
+	facade, ok := facadeObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -46,10 +45,20 @@ func Statistics(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
+		return nil, false
+	}
+
+	return facade, true
+}
+
+// Statistics will return the validation statistics for all validators
+func Statistics(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
 		return
 	}
 
-	valStats, err := ef.ValidatorStatisticsApi()
+	valStats, err := facade.ValidatorStatisticsApi()
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,

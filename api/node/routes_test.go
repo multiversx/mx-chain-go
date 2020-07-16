@@ -485,7 +485,7 @@ func startNodeServerWithFacade(facade interface{}) *gin.Engine {
 	ws.Use(cors.Default())
 	if facade != nil {
 		ws.Use(func(c *gin.Context) {
-			c.Set("elrondFacade", facade)
+			c.Set("facade", facade)
 		})
 	}
 

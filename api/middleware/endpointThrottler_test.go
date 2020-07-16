@@ -23,7 +23,7 @@ func startNodeServerEndpointThrottler(handler interface{}, throttlerName string)
 	if handler == nil {
 		ws.Use(middleware.CreateEndpointThrottler(throttlerName))
 	} else {
-		ws.Use(middleware.WithElrondFacade(handler), middleware.CreateEndpointThrottler(throttlerName))
+		ws.Use(middleware.WithFacade(handler), middleware.CreateEndpointThrottler(throttlerName))
 	}
 	ginAddressRoutes := ws.Group("/address")
 	addressRoutes, _ := wrapper.NewRouterWrapper("address", ginAddressRoutes, getRoutesConfig())
@@ -85,7 +85,7 @@ func TestCreateEndpointThrottler_NoThrottlerShouldExecute(t *testing.T) {
 	assert.Equal(t, 1, responses[http.StatusOK])
 }
 
-func TestCreateEndpointThrottler_ThrottlerCanNotStartShouldNotExecute(t *testing.T) {
+func TestCreateEndpointThrottler_ThrottlerCanNotProcessShouldNotExecute(t *testing.T) {
 	t.Parallel()
 
 	numCalls := uint32(0)

@@ -18,7 +18,7 @@ import (
 
 const pidQueryParam = "pid"
 
-// FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
+// FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
@@ -69,9 +69,8 @@ func Routes(router *wrapper.RouterWrapper) {
 	// placeholder for custom routes
 }
 
-// HeartbeatStatus respond with the heartbeat status of the node
-func HeartbeatStatus(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+func getFacade(c *gin.Context) (FacadeHandler, bool) {
+	facadeObj, ok := c.Get("facade")
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -81,10 +80,10 @@ func HeartbeatStatus(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
-		return
+		return nil, false
 	}
 
-	ef, ok := efObj.(FacadeHandler)
+	facade, ok := facadeObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -94,10 +93,20 @@ func HeartbeatStatus(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
+		return nil, false
+	}
+
+	return facade, true
+}
+
+// HeartbeatStatus respond with the heartbeat status of the node
+func HeartbeatStatus(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
 		return
 	}
 
-	hbStatus, err := ef.GetHeartbeats()
+	hbStatus, err := facade.GetHeartbeats()
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -122,36 +131,15 @@ func HeartbeatStatus(c *gin.Context) {
 
 // Statistics returns the blockchain statistics
 func Statistics(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	ef, ok := efObj.(FacadeHandler)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
 
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"statistics": statsFromTpsBenchmark(ef.TpsBenchmark())},
+			Data:  gin.H{"statistics": statsFromTpsBenchmark(facade.TpsBenchmark())},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
@@ -160,33 +148,12 @@ func Statistics(c *gin.Context) {
 
 // StatusMetrics returns the node statistics exported by an StatusMetricsHandler without p2p statistics
 func StatusMetrics(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
 
-	ef, ok := efObj.(FacadeHandler)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	details := ef.StatusMetrics().StatusMetricsMapWithoutP2P()
+	details := facade.StatusMetrics().StatusMetricsMapWithoutP2P()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
@@ -199,33 +166,12 @@ func StatusMetrics(c *gin.Context) {
 
 // P2pStatusMetrics returns the node's p2p statistics exported by a StatusMetricsHandler
 func P2pStatusMetrics(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
 
-	ef, ok := efObj.(FacadeHandler)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	details := ef.StatusMetrics().StatusP2pMetricsMap()
+	details := facade.StatusMetrics().StatusP2pMetricsMap()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
@@ -268,29 +214,8 @@ func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResp
 
 // QueryDebug returns the debug information after the query has been interpreted
 func QueryDebug(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	ef, ok := efObj.(FacadeHandler)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
 
@@ -308,7 +233,7 @@ func QueryDebug(c *gin.Context) {
 		return
 	}
 
-	qh, err := ef.GetQueryHandler(gtx.Name)
+	qh, err := facade.GetQueryHandler(gtx.Name)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -333,29 +258,8 @@ func QueryDebug(c *gin.Context) {
 
 // PeerInfo returns the information of a provided p2p peer ID
 func PeerInfo(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	ef, ok := efObj.(FacadeHandler)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
 
@@ -366,7 +270,7 @@ func PeerInfo(c *gin.Context) {
 		pid = pids[0]
 	}
 
-	info, err := ef.GetPeerInfo(pid)
+	info, err := facade.GetPeerInfo(pid)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

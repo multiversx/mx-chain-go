@@ -308,7 +308,7 @@ func startNodeServer(handler interface{}) *gin.Engine {
 	getValuesRoute := ws.Group("/vm-values")
 	if handler != nil {
 		getValuesRoute.Use(func(c *gin.Context) {
-			c.Set("elrondFacade", handler)
+			c.Set("facade", handler)
 			c.Next()
 		})
 	}

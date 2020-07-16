@@ -18,7 +18,7 @@ type throttlerGetter interface {
 // REST API end points that need to be better protected
 func CreateEndpointThrottler(throttlerName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tgObj, ok := c.Get("elrondFacade")
+		tgObj, ok := c.Get("facade")
 		if !ok {
 			c.JSON(
 				http.StatusInternalServerError,

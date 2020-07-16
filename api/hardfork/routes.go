@@ -13,8 +13,8 @@ import (
 const execManualTrigger = "executed, trigger is affecting only the current node"
 const execBroadcastTrigger = "executed, trigger is affecting current node and will get broadcast to other peers"
 
-// TriggerHardforkHandler interface defines methods that can be used from `elrondFacade` context variable
-type TriggerHardforkHandler interface {
+// FacadeHandler interface defines methods that can be used by the gin webserver
+type FacadeHandler interface {
 	Trigger(epoch uint32) error
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
@@ -30,9 +30,8 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodPost, "/trigger", Trigger)
 }
 
-// Trigger will receive a trigger request from the client and propagate it for processing
-func Trigger(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+func getFacade(c *gin.Context) (FacadeHandler, bool) {
+	facadeObj, ok := c.Get("facade")
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -42,10 +41,10 @@ func Trigger(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
-		return
+		return nil, false
 	}
 
-	ef, ok := efObj.(TriggerHardforkHandler)
+	facade, ok := facadeObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -55,6 +54,16 @@ func Trigger(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
+		return nil, false
+	}
+
+	return facade, true
+}
+
+// Trigger will receive a trigger request from the client and propagate it for processing
+func Trigger(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
 		return
 	}
 
@@ -72,7 +81,7 @@ func Trigger(c *gin.Context) {
 		return
 	}
 
-	err = ef.Trigger(hr.Epoch)
+	err = facade.Trigger(hr.Epoch)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -86,7 +95,7 @@ func Trigger(c *gin.Context) {
 	}
 
 	status := execManualTrigger
-	if ef.IsSelfTrigger() {
+	if facade.IsSelfTrigger() {
 		status = execBroadcastTrigger
 	}
 

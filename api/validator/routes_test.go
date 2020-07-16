@@ -127,12 +127,12 @@ func logError(err error) {
 	}
 }
 
-func startNodeServer(handler validator.ValidatorsStatisticsApiHandler) *gin.Engine {
+func startNodeServer(handler validator.FacadeHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ginValidatorRoute := ws.Group("/validator")
 	if handler != nil {
-		ginValidatorRoute.Use(middleware.WithElrondFacade(handler))
+		ginValidatorRoute.Use(middleware.WithFacade(handler))
 	}
 	validatorRoute, _ := wrapper.NewRouterWrapper("validator", ginValidatorRoute, getRoutesConfig())
 	validator.Routes(validatorRoute)
@@ -143,7 +143,7 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
+		c.Set("facade", mock.WrongFacade{})
 	})
 	ginValidatorRoute := ws.Group("/validator")
 	validatorRoute, _ := wrapper.NewRouterWrapper("validator", ginValidatorRoute, getRoutesConfig())

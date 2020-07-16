@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
+// FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
@@ -22,9 +22,8 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, "/status", GetNetworkStatus)
 }
 
-// GetNetworkConfig returns metrics related to the network configuration (shard independent)
-func GetNetworkConfig(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+func getFacade(c *gin.Context) (FacadeHandler, bool) {
+	facadeObj, ok := c.Get("facade")
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -34,10 +33,10 @@ func GetNetworkConfig(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
-		return
+		return nil, false
 	}
 
-	ef, ok := efObj.(FacadeHandler)
+	facade, ok := facadeObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -47,10 +46,20 @@ func GetNetworkConfig(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
+		return nil, false
+	}
+
+	return facade, true
+}
+
+// GetNetworkConfig returns metrics related to the network configuration (shard independent)
+func GetNetworkConfig(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
 		return
 	}
 
-	configMetrics := ef.StatusMetrics().ConfigMetrics()
+	configMetrics := facade.StatusMetrics().ConfigMetrics()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
@@ -63,33 +72,12 @@ func GetNetworkConfig(c *gin.Context) {
 
 // GetNetworkStatus returns metrics related to the network status (shard specific)
 func GetNetworkStatus(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
 
-	ef, ok := efObj.(FacadeHandler)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	networkMetrics := ef.StatusMetrics().NetworkMetrics()
+	networkMetrics := facade.StatusMetrics().NetworkMetrics()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{

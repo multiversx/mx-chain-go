@@ -21,8 +21,8 @@ const (
 	getTransactionEndpoint           = "/transaction/:hash"
 )
 
-// TxService interface defines methods that can be used from `elrondFacade` context variable
-type TxService interface {
+// FacadeHandler interface defines methods that can be used by the gin webserver
+type FacadeHandler interface {
 	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
 		gasLimit uint64, data string, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
@@ -96,9 +96,8 @@ func Routes(router *wrapper.RouterWrapper) {
 	)
 }
 
-// SendTransaction will receive a transaction from the client and propagate it for processing
-func SendTransaction(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+func getFacade(c *gin.Context) (FacadeHandler, bool) {
+	facadeObj, ok := c.Get("facade")
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -108,10 +107,10 @@ func SendTransaction(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
-		return
+		return nil, false
 	}
 
-	ef, ok := efObj.(TxService)
+	facade, ok := facadeObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -121,6 +120,16 @@ func SendTransaction(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
+		return nil, false
+	}
+
+	return facade, true
+}
+
+// SendTransaction will receive a transaction from the client and propagate it for processing
+func SendTransaction(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
 		return
 	}
 
@@ -138,7 +147,7 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, txHash, err := ef.CreateTransaction(
+	tx, txHash, err := facade.CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
@@ -162,7 +171,7 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	err = ef.ValidateTransaction(tx)
+	err = facade.ValidateTransaction(tx)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -175,7 +184,7 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	_, err = ef.SendBulkTransactions([]*transaction.Transaction{tx})
+	_, err = facade.SendBulkTransactions([]*transaction.Transaction{tx})
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -201,29 +210,8 @@ func SendTransaction(c *gin.Context) {
 
 // SendMultipleTransactions will receive a number of transactions and will propagate them for processing
 func SendMultipleTransactions(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	ef, ok := efObj.(TxService)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
 
@@ -249,7 +237,7 @@ func SendMultipleTransactions(c *gin.Context) {
 
 	txsHashes := make(map[int]string)
 	for idx, receivedTx := range gtx {
-		tx, txHash, err = ef.CreateTransaction(
+		tx, txHash, err = facade.CreateTransaction(
 			receivedTx.Nonce,
 			receivedTx.Value,
 			receivedTx.Receiver,
@@ -265,7 +253,7 @@ func SendMultipleTransactions(c *gin.Context) {
 			continue
 		}
 
-		err = ef.ValidateTransaction(tx)
+		err = facade.ValidateTransaction(tx)
 		if err != nil {
 			continue
 		}
@@ -274,7 +262,7 @@ func SendMultipleTransactions(c *gin.Context) {
 		txsHashes[idx] = hex.EncodeToString(txHash)
 	}
 
-	numOfSentTxs, err := ef.SendBulkTransactions(txs)
+	numOfSentTxs, err := facade.SendBulkTransactions(txs)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -302,29 +290,8 @@ func SendMultipleTransactions(c *gin.Context) {
 
 // GetTransaction returns transaction details for a given txhash
 func GetTransaction(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
-
-	ef, ok := efObj.(TxService)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
 
@@ -341,7 +308,7 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err := ef.GetTransaction(txhash)
+	tx, err := facade.GetTransaction(txhash)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -366,31 +333,11 @@ func GetTransaction(c *gin.Context) {
 
 // ComputeTransactionGasLimit returns how many gas units a transaction wil consume
 func ComputeTransactionGasLimit(c *gin.Context) {
-	efObj, ok := c.Get("elrondFacade")
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrNilAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
 
-	ef, ok := efObj.(TxService)
-	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
-		return
-	}
 	var gtx SendTxRequest
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
@@ -405,7 +352,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
-	tx, _, err := ef.CreateTransaction(
+	tx, _, err := facade.CreateTransaction(
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
@@ -429,7 +376,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
-	cost, err := ef.ComputeTransactionGasLimit(tx)
+	cost, err := facade.ComputeTransactionGasLimit(tx)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
+// FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	ExecuteSCQuery(*process.SCQuery) (*vmcommon.VMOutput, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
@@ -79,7 +79,7 @@ func executeQuery(context *gin.Context) {
 }
 
 func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
-	efObj, ok := context.Get("elrondFacade")
+	efObj, ok := context.Get("facade")
 	if !ok {
 		return nil, errors.ErrNilAppContext
 	}

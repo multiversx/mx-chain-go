@@ -79,7 +79,7 @@ func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, pro
 	}
 	ws = gin.Default()
 	ws.Use(cors.Default())
-	ws.Use(middleware.WithElrondFacade(elrondFacade))
+	ws.Use(middleware.WithFacade(elrondFacade))
 	for _, proc := range processors {
 		if check.IfNil(proc) {
 			continue
@@ -98,7 +98,7 @@ func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, pro
 	return ws.Run(elrondFacade.RestApiInterface())
 }
 
-func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondFacade middleware.ElrondHandler) {
+func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondFacade middleware.Handler) {
 	nodeRoutes := ws.Group("/node")
 	wrappedNodeRouter, err := wrapper.NewRouterWrapper("node", nodeRoutes, routesConfig)
 	if err == nil {

@@ -4,14 +4,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ElrondHandler interface defines methods that can be used from `elrondFacade` context variable
-type ElrondHandler interface {
+// Handler interface defines methods that can be used from `facade` context variable
+type Handler interface {
 }
 
-// WithElrondFacade middleware will set up an ElrondFacade object in the gin context
-func WithElrondFacade(elrondFacade ElrondHandler) gin.HandlerFunc {
+// WithFacade middleware will set up a facade object in the gin context
+func WithFacade(facade Handler) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set("elrondFacade", elrondFacade)
+		c.Set("facade", facade)
 		c.Next()
 	}
 }

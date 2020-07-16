@@ -355,7 +355,7 @@ func startNodeServer(handler address.FacadeHandler) *gin.Engine {
 	ws.Use(cors.Default())
 	addressRoutes := ws.Group("/address")
 	if handler != nil {
-		addressRoutes.Use(middleware.WithElrondFacade(handler))
+		addressRoutes.Use(middleware.WithFacade(handler))
 	}
 	addressRoute, _ := wrapper.NewRouterWrapper("address", addressRoutes, getRoutesConfig())
 	address.Routes(addressRoute)
@@ -366,7 +366,7 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
+		c.Set("facade", mock.WrongFacade{})
 	})
 	ginAddressRoute := ws.Group("/address")
 	addressRoute, _ := wrapper.NewRouterWrapper("address", ginAddressRoute, getRoutesConfig())
