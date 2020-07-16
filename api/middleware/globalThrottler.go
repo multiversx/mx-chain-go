@@ -57,17 +57,21 @@ func (gt *globalThrottler) MiddlewareHandlerFunc() gin.HandlerFunc {
 			return
 		}
 
+		defer gt.finish(path)
+
 		c.Next()
-
-		gt.mutDebugRequests.Lock()
-		gt.debugRequests[path]--
-		if gt.debugRequests[path] < 1 {
-			delete(gt.debugRequests, path)
-		}
-		gt.mutDebugRequests.Unlock()
-
-		<-gt.queue
 	}
+}
+
+func (gt *globalThrottler) finish(path string) {
+	gt.mutDebugRequests.Lock()
+	gt.debugRequests[path]--
+	if gt.debugRequests[path] < 1 {
+		delete(gt.debugRequests, path)
+	}
+	gt.mutDebugRequests.Unlock()
+
+	<-gt.queue
 }
 
 func (gt *globalThrottler) printDebugInfo() {

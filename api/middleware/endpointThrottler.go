@@ -50,7 +50,8 @@ func CreateEndpointThrottler(throttlerName string) gin.HandlerFunc {
 		}
 
 		endpointThrottler.StartProcessing()
+		defer endpointThrottler.EndProcessing()
+
 		c.Next()
-		endpointThrottler.EndProcessing()
 	}
 }
