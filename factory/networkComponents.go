@@ -160,3 +160,10 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 
 	return peerHonesty.NewP2pPeerHonesty(ratingConfig.PeerHonesty, pkTimeCache, cache)
 }
+
+// Closes all underlying components that need closing
+func (nc *networkComponents) Close() error {
+	nc.closeFunc()
+
+	return nil
+}

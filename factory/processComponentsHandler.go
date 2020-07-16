@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"context"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -20,7 +19,6 @@ var _ ProcessComponentsHandler = (*managedProcessComponents)(nil)
 type managedProcessComponents struct {
 	*processComponents
 	factory              *processComponentsFactory
-	cancelFunc           func()
 	mutProcessComponents sync.RWMutex
 }
 
@@ -46,7 +44,6 @@ func (m *managedProcessComponents) Create() error {
 
 	m.mutProcessComponents.Lock()
 	m.processComponents = pc
-	_, m.cancelFunc = context.WithCancel(context.Background())
 	m.mutProcessComponents.Unlock()
 
 	return nil
@@ -57,10 +54,13 @@ func (m *managedProcessComponents) Close() error {
 	m.mutProcessComponents.Lock()
 	defer m.mutProcessComponents.Unlock()
 
-	m.cancelFunc()
-	//TODO: close underlying components
-	m.cancelFunc = nil
-	m.processComponents = nil
+	if m.processComponents != nil {
+		err := m.processComponents.Close()
+		if err != nil {
+			return err
+		}
+		m.processComponents = nil
+	}
 
 	return nil
 }

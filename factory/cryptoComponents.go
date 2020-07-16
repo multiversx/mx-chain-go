@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -32,6 +31,7 @@ type CryptoComponentsFactoryArgs struct {
 	Config                               config.Config
 	CoreComponentsHolder                 CoreComponentsHolder
 	ActivateBLSPubKeyMessageVerification bool
+	KeyLoader                            KeyLoaderHandler
 }
 
 type cryptoComponentsFactory struct {
@@ -40,7 +40,7 @@ type cryptoComponentsFactory struct {
 	config                               config.Config
 	coreComponentsHolder                 CoreComponentsHolder
 	activateBLSPubKeyMessageVerification bool
-	keyLoader                            func(string, int) ([]byte, string, error)
+	keyLoader                            KeyLoaderHandler
 }
 
 // CryptoParams holds the node public/private key data
@@ -54,12 +54,12 @@ type CryptoParams struct {
 
 // cryptoComponents struct holds the crypto components
 type cryptoComponents struct {
-	TxSingleSigner      crypto.SingleSigner
-	SingleSigner        crypto.SingleSigner
-	MultiSigner         crypto.MultiSigner
-	BlockSignKeyGen     crypto.KeyGenerator
-	TxSignKeyGen        crypto.KeyGenerator
-	MessageSignVerifier vm.MessageSignVerifier
+	txSingleSigner      crypto.SingleSigner
+	blockSingleSigner   crypto.SingleSigner
+	multiSigner         crypto.MultiSigner
+	blockSignKeyGen     crypto.KeyGenerator
+	txSignKeyGen        crypto.KeyGenerator
+	messageSignVerifier vm.MessageSignVerifier
 	CryptoParams
 }
 
@@ -71,6 +71,9 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 	if len(args.ValidatorKeyPemFileName) == 0 {
 		return nil, ErrNilPath
 	}
+	if args.KeyLoader == nil {
+		return nil, ErrNilKeyLoader
+	}
 
 	return &cryptoComponentsFactory{
 		validatorKeyPemFileName:              args.ValidatorKeyPemFileName,
@@ -78,7 +81,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		config:                               args.Config,
 		coreComponentsHolder:                 args.CoreComponentsHolder,
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
-		keyLoader:                            core.LoadSkPkFromPemFile,
+		keyLoader:                            args.KeyLoader,
 	}, nil
 }
 
@@ -126,12 +129,12 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}
 
 	return &cryptoComponents{
-		TxSingleSigner:      txSingleSigner,
-		SingleSigner:        singleSigner,
-		MultiSigner:         multiSigner,
-		BlockSignKeyGen:     blockSignKeyGen,
-		TxSignKeyGen:        txSignKeyGen,
-		MessageSignVerifier: messageSignVerifier,
+		txSingleSigner:      txSingleSigner,
+		blockSingleSigner:   singleSigner,
+		multiSigner:         multiSigner,
+		blockSignKeyGen:     blockSignKeyGen,
+		txSignKeyGen:        txSignKeyGen,
+		messageSignVerifier: messageSignVerifier,
 		CryptoParams:        *cp,
 	}, nil
 }
@@ -221,7 +224,7 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 }
 
 func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
-	encodedSk, pkString, err := ccf.keyLoader(ccf.validatorKeyPemFileName, ccf.skIndex)
+	encodedSk, pkString, err := ccf.keyLoader.LoadKey(ccf.validatorKeyPemFileName, ccf.skIndex)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -238,4 +241,9 @@ func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
 	}
 
 	return skBytes, pkBytes, nil
+}
+
+// Closes all underlying components that need closing
+func (cc *cryptoComponents) Close() error {
+	return nil
 }

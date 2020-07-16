@@ -26,6 +26,9 @@ var ErrNilPathManager = errors.New("nil path manager provided")
 // ErrNilPath signals that a nil/empty path was provided
 var ErrNilPath = errors.New("nil path provided")
 
+// ErrNilKeyLoader signals that a nil key loader has been provided
+var ErrNilKeyLoader = errors.New("nil key loader")
+
 // ErrNilMarshalizer signals that a nil marshalizer has been provided
 var ErrNilMarshalizer = errors.New("nil marshalizer provided")
 

@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -44,11 +45,6 @@ func (ccf *cryptoComponentsFactory) GetSuite() (crypto.Suite, error) {
 	return ccf.getSuite()
 }
 
-// SetKeyLoader -
-func (ccf *cryptoComponentsFactory) SetKeyLoader(keyLoad func(string, int) ([]byte, string, error)) {
-	ccf.keyLoader = keyLoad
-}
-
 // GetFactory
 func (cc *managedCryptoComponents) GetFactory() *cryptoComponentsFactory {
 	return cc.cryptoComponentsFactory
@@ -62,4 +58,9 @@ func (ncf *networkComponentsFactory) SetListenAddress(address string) {
 // CreateTries -
 func (scf *stateComponentsFactory) CreateTries() (state.TriesHolder, map[string]data.StorageManager, error) {
 	return scf.createTries()
+}
+
+// SetStatusHandler -
+func (cc *coreComponents) SetStatusHandler(handler core.AppStatusHandler) {
+	cc.statusHandler = handler
 }

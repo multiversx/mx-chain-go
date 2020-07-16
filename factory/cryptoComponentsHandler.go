@@ -52,8 +52,15 @@ func (mcc *managedCryptoComponents) Create() error {
 // Close closes the managed crypto components
 func (mcc *managedCryptoComponents) Close() error {
 	mcc.mutCryptoComponents.Lock()
-	mcc.cryptoComponents = nil
-	mcc.mutCryptoComponents.Unlock()
+	defer mcc.mutCryptoComponents.Unlock()
+
+	if mcc.cryptoComponents != nil {
+		err := mcc.cryptoComponents.Close()
+		if err != nil {
+			return err
+		}
+		mcc.cryptoComponents = nil
+	}
 
 	return nil
 }
@@ -127,7 +134,7 @@ func (mcc *managedCryptoComponents) TxSingleSigner() crypto.SingleSigner {
 		return nil
 	}
 
-	return mcc.cryptoComponents.TxSingleSigner
+	return mcc.cryptoComponents.txSingleSigner
 }
 
 // BlockSigner returns block single signer
@@ -139,7 +146,7 @@ func (mcc *managedCryptoComponents) BlockSigner() crypto.SingleSigner {
 		return nil
 	}
 
-	return mcc.cryptoComponents.SingleSigner
+	return mcc.cryptoComponents.blockSingleSigner
 }
 
 // MultiSigner returns the block multi-signer
@@ -151,7 +158,7 @@ func (mcc *managedCryptoComponents) MultiSigner() crypto.MultiSigner {
 		return nil
 	}
 
-	return mcc.cryptoComponents.MultiSigner
+	return mcc.cryptoComponents.multiSigner
 }
 
 // SetMultiSigner sets the block multi-signer
@@ -163,7 +170,7 @@ func (mcc *managedCryptoComponents) SetMultiSigner(ms crypto.MultiSigner) error 
 		return ErrNilCryptoComponents
 	}
 
-	mcc.cryptoComponents.MultiSigner = ms
+	mcc.cryptoComponents.multiSigner = ms
 	return nil
 }
 
@@ -176,7 +183,7 @@ func (mcc *managedCryptoComponents) BlockSignKeyGen() crypto.KeyGenerator {
 		return nil
 	}
 
-	return mcc.cryptoComponents.BlockSignKeyGen
+	return mcc.cryptoComponents.blockSignKeyGen
 }
 
 // TxSignKeyGen returns the transaction signer key generator
@@ -188,7 +195,7 @@ func (mcc *managedCryptoComponents) TxSignKeyGen() crypto.KeyGenerator {
 		return nil
 	}
 
-	return mcc.cryptoComponents.TxSignKeyGen
+	return mcc.cryptoComponents.txSignKeyGen
 }
 
 // MessageSignVerifier returns the message signature verifier
@@ -200,7 +207,7 @@ func (mcc *managedCryptoComponents) MessageSignVerifier() vm.MessageSignVerifier
 		return nil
 	}
 
-	return mcc.cryptoComponents.MessageSignVerifier
+	return mcc.cryptoComponents.messageSignVerifier
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

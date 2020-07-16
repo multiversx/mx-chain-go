@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -34,6 +35,7 @@ type stateComponents struct {
 	accountsAdapter     state.AccountsAdapter
 	triesContainer      state.TriesHolder
 	trieStorageManagers map[string]data.StorageManager
+	closeFunc           func()
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
@@ -82,11 +84,14 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, err
 	}
 
+	_, cancelFunc := context.WithCancel(context.Background())
+
 	return &stateComponents{
 		peerAccounts:        peerAdapter,
 		accountsAdapter:     accountsAdapter,
 		triesContainer:      triesContainer,
 		trieStorageManagers: triesStorageManagers,
+		closeFunc:           cancelFunc,
 	}, nil
 }
 
@@ -141,4 +146,13 @@ func convertShardIDToString(shardID uint32) string {
 	}
 
 	return fmt.Sprintf("%d", shardID)
+}
+
+// Closes all underlying components that need closing
+func (pc *stateComponents) Close() error {
+	pc.closeFunc()
+
+	// TODO: close all components
+
+	return nil
 }

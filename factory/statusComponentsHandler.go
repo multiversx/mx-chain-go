@@ -88,10 +88,15 @@ func (m *managedStatusComponents) StartPolling() error {
 // Close will close all the underlying components
 func (m *managedStatusComponents) Close() error {
 	m.mutStatusComponents.Lock()
-	m.cancelFunc()
-	m.cancelFunc = nil
-	m.statusComponents = nil
-	m.mutStatusComponents.Unlock()
+	defer m.mutStatusComponents.Unlock()
+
+	if m.statusComponents != nil {
+		err := m.statusComponents.Close()
+		if err != nil {
+			return err
+		}
+		m.statusComponents = nil
+	}
 
 	return nil
 }
