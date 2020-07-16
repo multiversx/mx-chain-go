@@ -121,6 +121,7 @@ type CryptoComponentsHolder interface {
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
 	MultiSigner() crypto.MultiSigner
+	PeerSignatureHandler() crypto.PeerSignatureHandler
 	SetMultiSigner(ms crypto.MultiSigner) error
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator

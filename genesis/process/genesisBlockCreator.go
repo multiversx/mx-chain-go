@@ -89,7 +89,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	arg := storing.ArgHardforkStorer{
 		KeysStore:   keysStorer,
 		KeyValue:    keysVals,
-		Marshalizer: gbc.arg.Marshalizer,
+		Marshalizer: gbc.arg.Core.InternalMarshalizer(),
 	}
 	hs, err := storing.NewHardforkStorer(arg)
 

@@ -9,18 +9,19 @@ import (
 
 // CryptoComponentsMock -
 type CryptoComponentsMock struct {
-	PubKey         crypto.PublicKey
-	PrivKey        crypto.PrivateKey
-	PubKeyString   string
-	PrivKeyBytes   []byte
-	PubKeyBytes    []byte
-	BlockSig       crypto.SingleSigner
-	TxSig          crypto.SingleSigner
-	MultiSig       crypto.MultiSigner
-	BlKeyGen       crypto.KeyGenerator
-	TxKeyGen       crypto.KeyGenerator
-	MsgSigVerifier vm.MessageSignVerifier
-	mutMultiSig    sync.RWMutex
+	PubKey          crypto.PublicKey
+	PrivKey         crypto.PrivateKey
+	PubKeyString    string
+	PrivKeyBytes    []byte
+	PubKeyBytes     []byte
+	BlockSig        crypto.SingleSigner
+	TxSig           crypto.SingleSigner
+	MultiSig        crypto.MultiSigner
+	PeerSignHandler crypto.PeerSignatureHandler
+	BlKeyGen        crypto.KeyGenerator
+	TxKeyGen        crypto.KeyGenerator
+	MsgSigVerifier  vm.MessageSignVerifier
+	mutMultiSig     sync.RWMutex
 }
 
 // PublicKey -
@@ -64,6 +65,14 @@ func (ccm *CryptoComponentsMock) MultiSigner() crypto.MultiSigner {
 	defer ccm.mutMultiSig.RUnlock()
 
 	return ccm.MultiSig
+}
+
+// PeerSignatureHandler -
+func (ccm *CryptoComponentsMock) PeerSignatureHandler() crypto.PeerSignatureHandler {
+	ccm.mutMultiSig.RLock()
+	defer ccm.mutMultiSig.RUnlock()
+
+	return ccm.PeerSignHandler
 }
 
 // SetMultiSigner -

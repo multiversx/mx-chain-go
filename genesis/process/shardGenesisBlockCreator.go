@@ -151,8 +151,8 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId ui
 		ImportHandler:      arg.importHandler,
 		Marshalizer:        arg.Core.InternalMarshalizer(),
 		Hasher:             arg.Core.Hasher(),
-		DataPool:           arg.DataPool,
-		Storage:            arg.Store,
+		DataPool:           arg.Data.Datapool(),
+		Storage:            arg.Data.StorageService(),
 		SelfShardID:        selfShardId,
 	}
 	shardBlockCreator, err := hardForkProcess.NewShardBlockCreatorAfterHardFork(argsShardBlockAfterHardFork)

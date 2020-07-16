@@ -28,7 +28,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -1480,7 +1479,7 @@ func createHardForkTrigger(
 		InputAntifloodHandler:    network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:   network.OutputAntiFloodHandler(),
 		ValidityAttester:         process.BlockTracker(),
-		Rounder:                  process.Rounder,
+		Rounder:                  process.Rounder(),
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -1643,7 +1642,7 @@ func createNode(
 		node.WithNodeStopChannel(chanStopNodeProcess),
 		node.WithPeerHonestyHandler(peerHonestyHandler),
 		node.WithWatchdogTimer(watchdogTimer),
-		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler),
+		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler()),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

@@ -413,7 +413,7 @@ func getCryptoArgs(coreComponents factory.CoreComponentsHolder) factory.CryptoCo
 				Capacity: 1000,
 				Type:     "LRU",
 			},
-			Hasher:          config.TypeConfig{Type: "blake2b"},
+			Hasher: config.TypeConfig{Type: "blake2b"},
 		},
 		SkIndex:                              0,
 		ValidatorKeyPemFileName:              "validatorKey.pem",

@@ -372,7 +372,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	arg := storing.ArgHardforkStorer{
 		KeysStore:   keysStorer,
 		KeyValue:    keysVals,
-		Marshalizer: e.marshalizer,
+		Marshalizer: e.CoreComponents.InternalMarshalizer(),
 	}
 	hs, err := storing.NewHardforkStorer(arg)
 

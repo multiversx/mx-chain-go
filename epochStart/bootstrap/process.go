@@ -233,7 +233,7 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 }
 
 func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
-	ownPubKey, err := e.publicKey.ToByteArray()
+	ownPubKey, err := e.cryptoComponentsHolder.PublicKey().ToByteArray()
 	if err != nil {
 		return false
 	}

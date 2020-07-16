@@ -1049,7 +1049,8 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsE
 	var requestedNonces []uint64
 	var mutRequestedNonces sync.Mutex
 
-	arguments := CreateMockArguments()
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	rounder := &mock.RounderMock{}
 	requestHandlerStub := &mock.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
@@ -1095,7 +1096,8 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	var requestedNonces []uint64
 	var mutRequestedNonces sync.Mutex
 
-	arguments := CreateMockArguments()
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	rounder := &mock.RounderMock{}
 	requestHandlerStub := &mock.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
