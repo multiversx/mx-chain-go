@@ -89,7 +89,7 @@ jobs:
             -metachain-consensus-group-size $METACHAIN_CONSENSUS_GROUP_SIZE \
             -num-of-observers-in-each-shard 1  \
             -num-of-observers-in-metachain 1 \
-            -chain-id test-errors \
+            -chain-id ${{ github.sha }} \
             -hysteresis $HYSTERESIS \
             -stake-type delegated
 
@@ -115,7 +115,7 @@ jobs:
         run: |
           cp -r $BASE_PATH/cmd/node/config/ $BASE_PATH/filegenConfigLocal/
           cp $BASE_PATH/elrond-k8s-testnet/filegenConfig/observerKey.pem $BASE_PATH/filegenConfigLocal/
-          sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '2 minutes' +%s)",'/g' $BASE_PATH/filegenConfigLocal/nodesSetup.json > $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
+          sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '5 minutes' +%s)",'/g' $BASE_PATH/filegenConfigLocal/nodesSetup.json > $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
           sed -i.bak 's/Port.*/Port = \"1000\"/' $BASE_PATH/filegenConfigLocal/p2p.toml
           sed -i.bak 's/InitialPeerList.*/InitialPeerList = [\"\/dns4\/elrond-seednode\/tcp\/10000\/p2p\/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk\"]/' $BASE_PATH/filegenConfigLocal/p2p.toml
         shell: bash
