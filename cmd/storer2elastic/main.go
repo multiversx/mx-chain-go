@@ -28,6 +28,7 @@ type flags struct {
 	dbPathWithChainID  string
 	configFilePath     string
 	nodeConfigFilePath string
+	nodesSetupFilePath string
 	numShards          int
 	timeout            int
 }
@@ -72,6 +73,14 @@ VERSION:
 		Destination: &flagsValues.nodeConfigFilePath,
 	}
 
+	// nodesSetupFilePathFlag defines a flag which holds the nodes setup json file path
+	nodesSetupFilePathFlag = cli.StringFlag{
+		Name:        "nodes-setup",
+		Usage:       "This string file specifies the `filepath` for the node's nodes setup json configuration file",
+		Value:       "../node/config/nodesSetup.json",
+		Destination: &flagsValues.nodesSetupFilePath,
+	}
+
 	// numOfShardsFlag defines the flag which holds the number of shards
 	numOfShardsFlag = cli.IntFlag{
 		Name:        "num-shards",
@@ -105,7 +114,7 @@ func main() {
 	marshalizer = &marshal.GogoProtoMarshalizer{}
 	hasher = &blake2b.Blake2b{}
 	addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32)
-	validatorPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(96)
+	validatorPubKeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(96)
 
 	cliApp.Action = func(c *cli.Context) error {
 		return startLvlDb2Elastic(c)
@@ -128,6 +137,7 @@ func initCliFlags() {
 		dbPathWithChainIDFlag,
 		configFilePathFlag,
 		nodeConfigFilePathFlag,
+		nodesSetupFilePathFlag,
 		numOfShardsFlag,
 		timeoutFlag,
 	}
@@ -198,8 +208,24 @@ func startLvlDb2Elastic(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	genesisNodesConfig, err := sharding.NewNodesSetup(
+		flagsValues.nodesSetupFilePath,
+		addressPubKeyConverter,
+		validatorPubKeyConverter,
+	)
+	if err != nil {
+		return err
+	}
 
-	dataIndexer, err := dataindexer.New(elasticIndexer, dbReader, shardCoordinator, marshalizer)
+	dataIndexerArgs := dataindexer.Args{
+		ElasticIndexer:    elasticIndexer,
+		DatabaseReader:    dbReader,
+		ShardCoordinator:  shardCoordinator,
+		Marshalizer:       marshalizer,
+		Hasher:            hasher,
+		GenesisNodesSetup: genesisNodesConfig,
+	}
+	dataIndexer, err := dataindexer.New(dataIndexerArgs)
 	if err != nil {
 		return err
 	}

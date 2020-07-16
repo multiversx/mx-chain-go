@@ -1,7 +1,7 @@
 package dataindexer
 
 import (
-	"encoding/hex"
+	"fmt"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -22,10 +23,13 @@ import (
 var log = logger.GetOrCreate("dataindexer")
 
 type dataPreparerAndIndexer struct {
-	elasticIndexer   indexer.Indexer
-	databaseReader   DatabaseReaderHandler
-	shardCoordinator sharding.Coordinator
-	marshalizer      marshal.Marshalizer
+	elasticIndexer    indexer.Indexer
+	databaseReader    DatabaseReaderHandler
+	shardCoordinator  sharding.Coordinator
+	marshalizer       marshal.Marshalizer
+	hasher            hashing.Hasher
+	nodesCoordinators map[uint32]NodesCoordinator
+	hdrsToIndexLater  []data.HeaderHandler
 }
 
 type persistersHolder struct {
@@ -35,32 +39,53 @@ type persistersHolder struct {
 	rewardTransactionsPersister   storage.Persister
 }
 
+// Args holds the arguments needed for creating a new dataPreparerAndIndexer
+type Args struct {
+	ElasticIndexer    indexer.Indexer
+	DatabaseReader    DatabaseReaderHandler
+	ShardCoordinator  sharding.Coordinator
+	Marshalizer       marshal.Marshalizer
+	Hasher            hashing.Hasher
+	GenesisNodesSetup sharding.GenesisNodesSetupHandler
+}
+
 // New returns a new instance of dataPreparerAndIndexer
-func New(
-	elasticIndexer indexer.Indexer,
-	databaseReader DatabaseReaderHandler,
-	shardCoordinator sharding.Coordinator,
-	marshalizer marshal.Marshalizer,
-) (*dataPreparerAndIndexer, error) {
-	if check.IfNil(elasticIndexer) {
+func New(args Args) (*dataPreparerAndIndexer, error) {
+	if check.IfNil(args.ElasticIndexer) {
 		return nil, ErrNilElasticIndexer
 	}
-	if check.IfNil(databaseReader) {
+	if check.IfNil(args.DatabaseReader) {
 		return nil, ErrNilDatabaseReader
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, ErrNilShardCoordinator
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
+	if check.IfNil(args.Hasher) {
+		return nil, ErrNilHasher
+	}
+	if check.IfNil(args.GenesisNodesSetup) {
+		return nil, ErrNilGenesisNodesSetup
+	}
 
-	return &dataPreparerAndIndexer{
-		elasticIndexer:   elasticIndexer,
-		databaseReader:   databaseReader,
-		shardCoordinator: shardCoordinator,
-		marshalizer:      marshalizer,
-	}, nil
+	dpi := &dataPreparerAndIndexer{
+		elasticIndexer:   args.ElasticIndexer,
+		databaseReader:   args.DatabaseReader,
+		shardCoordinator: args.ShardCoordinator,
+		marshalizer:      args.Marshalizer,
+		hasher:           args.Hasher,
+		hdrsToIndexLater: make([]data.HeaderHandler, 0),
+	}
+
+	nodesCoordinator, err := dpi.createNodesCoordinators(args.GenesisNodesSetup)
+	if err != nil {
+		return nil, err
+	}
+
+	dpi.nodesCoordinators = nodesCoordinator
+	return dpi, nil
 }
 
 // Index will prepare the data for indexing and will try to index all the data before the given timeout
@@ -99,6 +124,12 @@ func (dpi *dataPreparerAndIndexer) startIndexing(errChan chan error) {
 				log.Warn("cannot index header", "error", err)
 			}
 		}
+		for _, hdr := range dpi.hdrsToIndexLater {
+			err = dpi.indexHeader(persisters, db, hdr, db.Epoch)
+			if err != nil {
+				log.Warn("cannot index header", "error", err)
+			}
+		}
 		dpi.closePersisters(persisters)
 
 		log.Info("database info", "epoch", db.Epoch, "shard", db.Shard)
@@ -108,6 +139,17 @@ func (dpi *dataPreparerAndIndexer) startIndexing(errChan chan error) {
 }
 
 func (dpi *dataPreparerAndIndexer) indexHeader(persisters *persistersHolder, dbInfo *databasereader.DatabaseInfo, hdr data.HeaderHandler, epoch uint32) error {
+	if metaBlock, ok := hdr.(*block.MetaBlock); ok {
+		if metaBlock.IsStartOfEpochBlock() {
+			dpi.processValidatorsForEpoch(metaBlock.Epoch, metaBlock, persisters.miniBlocksPersister)
+		}
+	}
+
+	if !dpi.canIndexHeaderNow(hdr) {
+		dpi.hdrsToIndexLater = append(dpi.hdrsToIndexLater, hdr)
+		return fmt.Errorf("cannot index header now")
+	}
+
 	miniBlocksHashes := make([]string, 0)
 	shardIDs := dpi.getShardIDs()
 	for _, shard := range shardIDs {
@@ -122,8 +164,10 @@ func (dpi *dataPreparerAndIndexer) indexHeader(persisters *persistersHolder, dbI
 		return err
 	}
 
-	// TODO: investigate how to fill these 2 fields with real values
-	singersIndexes := []uint64{1, 0}
+	singersIndexes, err := dpi.computeSignersIndexes(hdr)
+	if err != nil {
+		return err
+	}
 	notarizedHdrs := dpi.computeNotarizedHeaders(hdr)
 	dpi.elasticIndexer.SaveBlock(body, hdr, txPool, singersIndexes, notarizedHdrs)
 	log.Info("indexed header", "epoch", hdr.GetEpoch(), "shard", hdr.GetShardID(), "nonce", hdr.GetNonce())
@@ -245,63 +289,4 @@ func (dpi *dataPreparerAndIndexer) getUnsignedTx(holder *persistersHolder, txHas
 	}
 
 	return recoveredTx, nil
-}
-
-func (dpi *dataPreparerAndIndexer) preparePersistersHolder(dbInfo *databasereader.DatabaseInfo) (*persistersHolder, error) {
-	persHold := &persistersHolder{}
-
-	miniBlocksPersister, err := dpi.databaseReader.LoadPersister(dbInfo, "MiniBlocks")
-	if err != nil {
-		return nil, err
-	}
-	persHold.miniBlocksPersister = miniBlocksPersister
-
-	txsPersister, err := dpi.databaseReader.LoadPersister(dbInfo, "Transactions")
-	if err != nil {
-		return nil, err
-	}
-	persHold.transactionPersister = txsPersister
-
-	uTxsPersister, err := dpi.databaseReader.LoadPersister(dbInfo, "UnsignedTransactions")
-	if err != nil {
-		return nil, err
-	}
-	persHold.unsignedTransactionsPersister = uTxsPersister
-
-	rTxsPersister, err := dpi.databaseReader.LoadPersister(dbInfo, "RewardTransactions")
-	if err != nil {
-		return nil, err
-	}
-	persHold.rewardTransactionsPersister = rTxsPersister
-
-	return persHold, nil
-}
-
-func (dpi *dataPreparerAndIndexer) closePersisters(persisters *persistersHolder) {
-	err := persisters.miniBlocksPersister.Close()
-	log.LogIfError(err)
-
-	err = persisters.transactionPersister.Close()
-	log.LogIfError(err)
-
-	err = persisters.unsignedTransactionsPersister.Close()
-	log.LogIfError(err)
-
-	err = persisters.rewardTransactionsPersister.Close()
-	log.LogIfError(err)
-}
-
-func (dpi *dataPreparerAndIndexer) computeNotarizedHeaders(hdr data.HeaderHandler) []string {
-	metaBlock, ok := hdr.(*block.MetaBlock)
-	if !ok {
-		return []string{}
-	}
-
-	numShardInfo := len(metaBlock.ShardInfo)
-	notarizedHdrs := make([]string, 0, numShardInfo)
-	for i := 0; i < numShardInfo; i++ {
-		notarizedHdrs[i] = hex.EncodeToString(metaBlock.ShardInfo[i].HeaderHash)
-	}
-
-	return notarizedHdrs
 }

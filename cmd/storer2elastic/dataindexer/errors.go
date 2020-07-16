@@ -14,6 +14,12 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrNilMarshalizer signals that a nil marshalizer has been provided
 var ErrNilMarshalizer = errors.New("nil marshalizer")
 
+// ErrNilHasher signals that a nil hasher has been provided
+var ErrNilHasher = errors.New("nil hasher")
+
+// ErrNilGenesisNodesSetup signals that a nil genesis nodes setup handler has been provided
+var ErrNilGenesisNodesSetup = errors.New("nil genesis nodes setup")
+
 // ErrWrongTypeAssertion signals that an interface is not of a desired type
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
