@@ -148,5 +148,5 @@ jobs:
           ./kustomize edit set namespace "$NAMESPACE"
           ./kustomize build ./ | kubectl -n "$NAMESPACE" apply -f -
         env:
-          NUM_NODES_TOTAL: $NUM_NODES_TOTAL
-          NUM_OF_SHARDS: $NUM_OF_SHARDS
+          NUM_NODES_TOTAL: ${{ NUM_NODES_TOTAL }}
+          NUM_OF_SHARDS: ${{ NUM_OF_SHARDS }}
