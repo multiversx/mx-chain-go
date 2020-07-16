@@ -2,7 +2,6 @@ package factory_test
 
 import (
 	"fmt"
-	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -185,18 +184,11 @@ func getStatusComponentsFactoryArgsAndProcessComponents() (factory.StatusCompone
 	}, processComponents
 }
 
-// creating network components in parallel is not concurrent safe as it changes global variable from
-// pubsub. This is is not an issue during normal operations as this is not called concurrently,
-// but in unit tests, this might get called in parallel so a mutex should be used.
-var mutNetworkComponentsCreate = sync.Mutex{}
-
 func getNetworkComponents() factory.NetworkComponentsHolder {
 	networkArgs := getNetworkArgs()
 	networkComponents, _ := factory.NewManagedNetworkComponents(networkArgs)
 
-	mutNetworkComponentsCreate.Lock()
 	_ = networkComponents.Create()
-	mutNetworkComponentsCreate.Unlock()
 
 	return networkComponents
 }
