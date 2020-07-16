@@ -77,6 +77,18 @@ func (m *managedProcessComponents) NodesCoordinator() sharding.NodesCoordinator 
 	return m.processComponents.NodesCoordinator
 }
 
+// ShardCoordinator returns the shard coordinator
+func (m *managedProcessComponents) ShardCoordinator() sharding.Coordinator {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.ShardCoordinator
+}
+
 // InterceptorsContainer returns the interceptors container
 func (m *managedProcessComponents) InterceptorsContainer() process.InterceptorsContainer {
 	m.mutProcessComponents.RLock()
@@ -291,6 +303,18 @@ func (m *managedProcessComponents) HeaderConstructionValidator() process.HeaderC
 	}
 
 	return m.processComponents.HeaderConstructionValidator
+}
+
+// PeerShardMapper returns the peer to shard mapper
+func (m *managedProcessComponents) PeerShardMapper() process.NetworkShardingCollector {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.PeerShardMapper
 }
 
 // IsInterfaceNil returns true if the interface is nil

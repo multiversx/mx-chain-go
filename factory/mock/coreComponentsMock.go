@@ -2,11 +2,13 @@ package mock
 
 import (
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -22,6 +24,10 @@ type CoreComponentsMock struct {
 	StatusHdl                   core.AppStatusHandler
 	mutStatus                   sync.RWMutex
 	PathHdl                     storage.PathManagerHandler
+	WatchdogTimer               core.WatchdogTimer
+	AlarmSch                    core.TimersScheduler
+	NtpSyncTimer                ntp.SyncTimer
+	GenesisBlockTime            time.Time
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
 	mutIntMarshalizer           sync.RWMutex
@@ -94,6 +100,26 @@ func (ccm *CoreComponentsMock) SetStatusHandler(statusHandler core.AppStatusHand
 // PathHandler -
 func (ccm *CoreComponentsMock) PathHandler() storage.PathManagerHandler {
 	return ccm.PathHdl
+}
+
+// Watchdog -
+func (ccm *CoreComponentsMock) Watchdog() core.WatchdogTimer {
+	return ccm.WatchdogTimer
+}
+
+// AlarmScheduler -
+func (ccm *CoreComponentsMock) AlarmScheduler() core.TimersScheduler {
+	return ccm.AlarmSch
+}
+
+// SyncTimer -
+func (ccm *CoreComponentsMock) SyncTimer() ntp.SyncTimer {
+	return ccm.NtpSyncTimer
+}
+
+// GenesisTime -
+func (ccm *CoreComponentsMock) GenesisTime() time.Time {
+	return ccm.GenesisBlockTime
 }
 
 // ChainID -

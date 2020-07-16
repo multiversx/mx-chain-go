@@ -153,6 +153,12 @@ func (boot *MetaBootstrap) SyncBlock() error {
 	return boot.syncBlock()
 }
 
+// Close closes the synchronization loop
+func (boot *MetaBootstrap) Close() error {
+	boot.cancelFunc()
+	return nil
+}
+
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)

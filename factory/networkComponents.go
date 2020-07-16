@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
@@ -12,13 +13,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
 type NetworkComponentsFactoryArgs struct {
 	P2pConfig     config.P2PConfig
 	MainConfig    config.Config
+	RatingsConfig config.RatingsConfig
 	StatusHandler core.AppStatusHandler
 	Marshalizer   marshal.Marshalizer
 }
@@ -26,6 +31,7 @@ type NetworkComponentsFactoryArgs struct {
 type networkComponentsFactory struct {
 	p2pConfig     config.P2PConfig
 	mainConfig    config.Config
+	ratingsConfig config.RatingsConfig
 	statusHandler core.AppStatusHandler
 	listenAddress string
 	marshalizer   marshal.Marshalizer
@@ -41,6 +47,7 @@ type networkComponents struct {
 	floodPreventers        []process.FloodPreventer
 	peerBlackListHandler   process.PeerBlackListCacher
 	antifloodConfig        config.AntifloodConfig
+	peerHonestyHandler     consensus.PeerHonestyHandler
 	closeFunc              context.CancelFunc
 }
 
@@ -57,6 +64,7 @@ func NewNetworkComponentsFactory(
 
 	return &networkComponentsFactory{
 		p2pConfig:     args.P2pConfig,
+		ratingsConfig: args.RatingsConfig,
 		marshalizer:   args.Marshalizer,
 		mainConfig:    args.MainConfig,
 		statusHandler: args.StatusHandler,
@@ -116,6 +124,15 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
 	}
 
+	peerHonestyHandler, err := ncf.createPeerHonestyHandler(
+		&ncf.mainConfig,
+		ncf.ratingsConfig,
+		antiFloodComponents.PubKeysCacher,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	return &networkComponents{
 		netMessenger:           netMessenger,
 		inputAntifloodHandler:  inputAntifloodHandler,
@@ -125,8 +142,23 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		peerBlackListHandler:   antiFloodComponents.BlacklistHandler,
 		pubKeyTimeCacher:       antiFloodComponents.PubKeysCacher,
 		antifloodConfig:        ncf.mainConfig.Antiflood,
+		peerHonestyHandler:     peerHonestyHandler,
 		closeFunc:              cancelFunc,
 	}, nil
+}
+
+func (ncf *networkComponentsFactory) createPeerHonestyHandler(
+	config *config.Config,
+	ratingConfig config.RatingsConfig,
+	pkTimeCache process.TimeCacher,
+) (consensus.PeerHonestyHandler, error) {
+
+	cache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(config.PeerHonesty))
+	if err != nil {
+		return nil, err
+	}
+
+	return peerHonesty.NewP2pPeerHonesty(ratingConfig.PeerHonesty, pkTimeCache, cache)
 }
 
 // Closes all underlying components that need closing

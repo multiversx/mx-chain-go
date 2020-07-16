@@ -76,6 +76,7 @@ func (mdc *managedDataComponents) Blockchain() data.ChainHandler {
 	return mdc.blkc
 }
 
+// SetBlockchain sets the blockchain subcomponent
 func (mdc *managedDataComponents) SetBlockchain(chain data.ChainHandler) {
 	mdc.mutDataComponents.Lock()
 	mdc.blkc = chain
@@ -104,6 +105,18 @@ func (mdc *managedDataComponents) Datapool() dataRetriever.PoolsHolder {
 	}
 
 	return mdc.dataComponents.datapool
+}
+
+// MiniBlocksProvider returns the MiniBlockProvider
+func (mdc *managedDataComponents) MiniBlocksProvider() MiniBlockProvider {
+	mdc.mutDataComponents.RLock()
+	defer mdc.mutDataComponents.RUnlock()
+
+	if mdc.dataComponents == nil {
+		return nil
+	}
+
+	return mdc.dataComponents.miniBlocksProvider
 }
 
 // Clone creates a shallow clone of a managedDataComponents

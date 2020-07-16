@@ -128,6 +128,12 @@ func (boot *ShardBootstrap) SyncBlock() error {
 	return boot.syncBlock()
 }
 
+// Close closes the synchronization loop
+func (boot *ShardBootstrap) Close() error {
+	boot.cancelFunc()
+	return nil
+}
+
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)

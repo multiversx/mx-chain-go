@@ -3,8 +3,10 @@ package factory_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -320,9 +322,41 @@ func TestCoreComponents_Close_ShouldWork(t *testing.T) {
 	require.True(t, closeCalled)
 }
 
+func getEpochStartConfig() config.EpochStartConfig {
+	return config.EpochStartConfig{
+		MinRoundsBetweenEpochs:            20,
+		RoundsPerEpoch:                    20,
+		ShuffledOutRestartThreshold:       0,
+		ShuffleBetweenShards:              false,
+		MinNumConnectedPeersToStart:       2,
+		MinNumOfPeersToConsiderBlockValid: 2,
+	}
+}
+
 func getCoreArgs() factory.CoreComponentsFactoryArgs {
 	return factory.CoreComponentsFactoryArgs{
 		Config: config.Config{
+			EpochStartConfig: getEpochStartConfig(),
+			PublicKeyPeerId: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
+			},
+			PublicKeyShardId: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
+			},
+			PeerIdShardId: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
+			},
+			PeerHonesty: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
+			},
 			GeneralSettings: config.GeneralSettingsConfig{
 				ChainID:               "undefined",
 				MinTransactionVersion: 1,
@@ -360,6 +394,8 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				PollingIntervalInMinutes: 30,
 			},
 		},
-		WorkingDirectory: "home",
+		WorkingDirectory:    "home",
+		GenesisTime:         time.Now(),
+		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 	}
 }

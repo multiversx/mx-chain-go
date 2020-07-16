@@ -148,6 +148,11 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 	}
 
 	mainConfig := config.Config{
+		PeerHonesty: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
 		Debug: config.DebugConfig{
 			Antiflood: config.AntifloodDebugConfig{
 				Enabled:                    true,
@@ -164,5 +169,18 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 		MainConfig:    mainConfig,
 		StatusHandler: appStatusHandler,
 		Marshalizer:   &mock.MarshalizerMock{},
+		RatingsConfig: config.RatingsConfig{
+			General:    config.General{},
+			ShardChain: config.ShardChain{},
+			MetaChain:  config.MetaChain{},
+			PeerHonesty: config.PeerHonestyConfig{
+				DecayCoefficient:             0.9779,
+				DecayUpdateIntervalInSeconds: 10,
+				MaxScore:                     100,
+				MinScore:                     -100,
+				BadPeerThreshold:             -80,
+				UnitValue:                    1.0,
+			},
+		},
 	}
 }

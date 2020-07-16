@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -38,6 +37,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -52,6 +55,7 @@ var timeSpanForBadHeaders = time.Minute * 2
 // processComponents struct holds the process components
 type processComponents struct {
 	NodesCoordinator            sharding.NodesCoordinator
+	ShardCoordinator            sharding.Coordinator
 	InterceptorsContainer       process.InterceptorsContainer
 	ResolversFinder             dataRetriever.ResolversFinder
 	Rounder                     consensus.Rounder
@@ -70,8 +74,8 @@ type processComponents struct {
 	RequestHandler              process.RequestHandler
 	TxLogsProcessor             process.TransactionLogProcessorDatabase
 	HeaderConstructionValidator process.HeaderConstructionValidator
-
-	closeFunc func()
+	// TODO: maybe move PeerShardMapper to network components
+	PeerShardMapper process.NetworkShardingCollector
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -206,9 +210,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		SingleSigVerifier: pcf.crypto.BlockSigner(),
 		KeyGen:            pcf.crypto.BlockSignKeyGen(),
 	}
-
-	_, cancelFunc := context.WithCancel(context.Background())
-
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
 		return nil, err
@@ -415,8 +416,14 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	peerShardMapper, err := pcf.prepareNetworkShardingCollector()
+	if err != nil {
+		return nil, err
+	}
+
 	return &processComponents{
 		NodesCoordinator:            pcf.nodesCoordinator,
+		ShardCoordinator:            pcf.shardCoordinator,
 		InterceptorsContainer:       interceptorsContainer,
 		ResolversFinder:             resolversFinder,
 		Rounder:                     pcf.rounder,
@@ -435,7 +442,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		TxLogsProcessor:             txLogsProcessor,
 		HeaderConstructionValidator: headerValidator,
 		HeaderIntegrityVerifier:     headerIntegrityVerifier,
-		closeFunc:                   cancelFunc,
+		PeerShardMapper:             peerShardMapper,
 	}, nil
 }
 
@@ -839,6 +846,80 @@ func (pcf *processComponentsFactory) newForkDetector(
 	return nil, errors.New("could not create fork detector")
 }
 
+// PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger
+func (pcf *processComponentsFactory) prepareNetworkShardingCollector() (*networksharding.PeerShardMapper, error) {
+
+	networkShardingCollector, err := createNetworkShardingCollector(
+		&pcf.coreFactoryArgs.Config,
+		pcf.nodesCoordinator,
+		pcf.epochStartNotifier,
+		pcf.startEpochNum,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	localID := pcf.network.NetworkMessenger().ID()
+	networkShardingCollector.UpdatePeerIdShardId(localID, pcf.shardCoordinator.SelfId())
+
+	err = pcf.network.NetworkMessenger().SetPeerShardResolver(networkShardingCollector)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pcf.network.InputAntiFloodHandler().SetPeerValidatorMapper(networkShardingCollector)
+	if err != nil {
+		return nil, err
+	}
+
+	return networkShardingCollector, nil
+}
+
+func createNetworkShardingCollector(
+	config *config.Config,
+	nodesCoordinator sharding.NodesCoordinator,
+	epochStartRegistrationHandler epochStart.RegistrationHandler,
+	epochStart uint32,
+) (*networksharding.PeerShardMapper, error) {
+
+	cacheConfig := config.PublicKeyPeerId
+	cachePkPid, err := createCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheConfig = config.PublicKeyShardId
+	cachePkShardID, err := createCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	cacheConfig = config.PeerIdShardId
+	cachePidShardID, err := createCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	psm, err := networksharding.NewPeerShardMapper(
+		cachePkPid,
+		cachePkShardID,
+		cachePidShardID,
+		nodesCoordinator,
+		epochStart,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	epochStartRegistrationHandler.RegisterHandler(psm)
+
+	return psm, nil
+}
+
+func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
+	return storageUnit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
+}
+
 func checkArgs(args ProcessComponentsFactoryArgs) error {
 	baseErrMessage := "error creating process components"
 	if args.CoreFactoryArgs == nil {
@@ -869,7 +950,7 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilNodesCoordinator)
 	}
 	if check.IfNil(args.Data) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilDataComponents)
+		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilDataComponentsHolder)
 	}
 	if check.IfNil(args.CoreData) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilCoreComponentsHolder)
@@ -878,7 +959,7 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilCryptoComponentsHolder)
 	}
 	if check.IfNil(args.State) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilStateComponents)
+		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilStateComponentsHolder)
 	}
 	if check.IfNil(args.Network) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilNetworkComponentsHolder)
@@ -920,10 +1001,8 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 	return nil
 }
 
-// Closes all underlying components that need closing
+// Close closes all underlying components that need closing
 func (pc *processComponents) Close() error {
-	pc.closeFunc()
-
 	// TODO: close all components
 
 	return nil

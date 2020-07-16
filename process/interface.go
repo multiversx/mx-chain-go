@@ -617,6 +617,15 @@ type PeerShardMapper interface {
 	IsInterfaceNil() bool
 }
 
+// NetworkShardingCollector defines the updating methods used by the network sharding component
+type NetworkShardingCollector interface {
+	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
+	UpdatePublicKeyShardId(pk []byte, shardId uint32)
+	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
+	IsInterfaceNil() bool
+}
+
 // NetworkConnectionWatcher defines a watchdog functionality used to specify if the current node
 // is still connected to the rest of the network
 type NetworkConnectionWatcher interface {
@@ -794,8 +803,8 @@ type ValidityAttester interface {
 
 // MiniBlockProvider defines what a miniblock data provider should do
 type MiniBlockProvider interface {
-	GetMiniBlocks(hashes [][]byte) ([]*MiniblockAndHash, [][]byte)
-	GetMiniBlocksFromPool(hashes [][]byte) ([]*MiniblockAndHash, [][]byte)
+	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -891,12 +900,6 @@ type AntifloodDebugger interface {
 	AddData(pid core.PeerID, topic string, numRejected uint32, sizeRejected uint64, sequence []byte, isBlacklisted bool)
 	Close() error
 	IsInterfaceNil() bool
-}
-
-// MiniblockAndHash holds the info related to a miniblock and its hash
-type MiniblockAndHash struct {
-	Miniblock *block.MiniBlock
-	Hash      []byte
 }
 
 // PoolsCleaner defines the functionality to clean pools for old records

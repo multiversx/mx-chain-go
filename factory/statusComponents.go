@@ -61,7 +61,7 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		return nil, ErrNilCoreComponentsHolder
 	}
 	if check.IfNil(args.DataComponents) {
-		return nil, ErrNilDataComponents
+		return nil, ErrNilDataComponentsHolder
 	}
 	if check.IfNil(args.NetworkComponents) {
 		return nil, ErrNilNetworkComponentsHolder

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"math/big"
 	"os"
 	"os/signal"
@@ -101,275 +100,33 @@ VERSION:
    {{.Version}}
    {{end}}
 `
-	filePathPlaceholder = "[path]"
-	// genesisFile defines a flag for the path of the bootstrapping file.
-	genesisFile = cli.StringFlag{
-		Name: "genesis-file",
-		Usage: "The `" + filePathPlaceholder + "` for the genesis file. This JSON file contains initial data to " +
-			"bootstrap from, such as initial balances for accounts.",
-		Value: "./config/genesis.json",
-	}
-	// smartContractsFile defines a flag for the path of the file containing initial smart contracts.
-	smartContractsFile = cli.StringFlag{
-		Name: "smart-contracts-file",
-		Usage: "The `" + filePathPlaceholder + "` for the initial smart contracts file. This JSON file contains data used " +
-			"to deploy initial smart contracts such as delegation smart contracts",
-		Value: "./config/genesisSmartContracts.json",
-	}
-	// nodesFile defines a flag for the path of the initial nodes file.
-	nodesFile = cli.StringFlag{
-		Name: "nodes-setup-file",
-		Usage: "The `" + filePathPlaceholder + "` for the nodes setup. This JSON file contains initial nodes info, " +
-			"such as consensus group size, round duration, validators public keys and so on.",
-		Value: "./config/nodesSetup.json",
-	}
-	// configurationFile defines a flag for the path to the main toml configuration file
-	configurationFile = cli.StringFlag{
-		Name: "config",
-		Usage: "The `" + filePathPlaceholder + "` for the main configuration file. This TOML file contain the main " +
-			"configurations such as storage setups, epoch duration and so on.",
-		Value: "./config/config.toml",
-	}
-	// configurationEconomicsFile defines a flag for the path to the economics toml configuration file
-	configurationEconomicsFile = cli.StringFlag{
-		Name: "config-economics",
-		Usage: "The `" + filePathPlaceholder + "` for the economics configuration file. This TOML file contains " +
-			"economics configurations such as minimum gas price for a transactions and so on.",
-		Value: "./config/economics.toml",
-	}
-	// configurationApiFile defines a flag for the path to the api routes toml configuration file
-	configurationApiFile = cli.StringFlag{
-		Name: "config-api",
-		Usage: "The `" + filePathPlaceholder + "` for the api configuration file. This TOML file contains " +
-			"all available routes for Rest API and options to enable or disable them.",
-		Value: "./config/api.toml",
-	}
-	// configurationSystemSCFile defines a flag for the path to the system sc toml configuration file
-	configurationSystemSCFile = cli.StringFlag{
-		Name:  "config-systemSmartContracts",
-		Usage: "The `" + filePathPlaceholder + "` for the system smart contracts configuration file.",
-		Value: "./config/systemSmartContractsConfig.toml",
-	}
-	// configurationRatingsFile defines a flag for the path to the ratings toml configuration file
-	configurationRatingsFile = cli.StringFlag{
-		Name:  "config-ratings",
-		Usage: "The ratings configuration file to load",
-		Value: "./config/ratings.toml",
-	}
-	// configurationPreferencesFile defines a flag for the path to the preferences toml configuration file
-	configurationPreferencesFile = cli.StringFlag{
-		Name: "config-preferences",
-		Usage: "The `" + filePathPlaceholder + "` for the preferences configuration file. This TOML file contains " +
-			"preferences configurations, such as the node display name or the shard to start in when starting as observer",
-		Value: "./config/prefs.toml",
-	}
-	// externalConfigFile defines a flag for the path to the external toml configuration file
-	externalConfigFile = cli.StringFlag{
-		Name: "config-external",
-		Usage: "The `" + filePathPlaceholder + "` for the external configuration file. This TOML file contains" +
-			" external configurations such as ElasticSearch's URL and login information",
-		Value: "./config/external.toml",
-	}
-	// p2pConfigurationFile defines a flag for the path to the toml file containing P2P configuration
-	p2pConfigurationFile = cli.StringFlag{
-		Name: "p2p-config",
-		Usage: "The `" + filePathPlaceholder + "` for the p2p configuration file. This TOML file contains peer-to-peer " +
-			"configurations such as port, target peer count or KadDHT settings",
-		Value: "./config/p2p.toml",
-	}
-	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
-	gasScheduleConfigurationFile = cli.StringFlag{
-		Name: "gas-costs-config",
-		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration file. This TOML file contains " +
-			"gas costs used in SmartContract execution",
-		Value: "./config/gasSchedule.toml",
-	}
-	// port defines a flag for setting the port on which the node will listen for connections
-	port = cli.StringFlag{
-		Name: "port",
-		Usage: "The `[p2p port]` number on which the application will start. Can use single values such as " +
-			"`0, 10230, 15670` or range of ports such as `5000-10000`",
-		Value: "0",
-	}
-	// profileMode defines a flag for profiling the binary
-	// If enabled, it will open the pprof routes over the default gin rest webserver.
-	// There are several routes that will be available for profiling (profiling can be analyzed with: go tool pprof):
-	//  /debug/pprof/ (can be accessed in the browser, will list the available options)
-	//  /debug/pprof/goroutine
-	//  /debug/pprof/heap
-	//  /debug/pprof/threadcreate
-	//  /debug/pprof/block
-	//  /debug/pprof/mutex
-	//  /debug/pprof/profile (CPU profile)
-	//  /debug/pprof/trace?seconds=5 (CPU trace) -> being a trace, can be analyzed with: go tool trace
-	// Usage: go tool pprof http(s)://ip.of.the.server/debug/pprof/xxxxx
-	profileMode = cli.BoolFlag{
-		Name: "profile-mode",
-		Usage: "Boolean option for enabling the profiling mode. If set, the /debug/pprof routes will be available " +
-			"on the node for profiling the application.",
-	}
-	// useHealthService is used to enable the health service
-	useHealthService = cli.BoolFlag{
-		Name:  "use-health-service",
-		Usage: "Boolean option for enabling the health service.",
-	}
-	// validatorKeyIndex defines a flag that specifies the 0-th based index of the private key to be used from validatorKey.pem file
-	validatorKeyIndex = cli.IntFlag{
-		Name:  "sk-index",
-		Usage: "The index in the PEM file of the private key to be used by the node.",
-		Value: 0,
-	}
-	// gopsEn used to enable diagnosis of running go processes
-	gopsEn = cli.BoolFlag{
-		Name:  "gops-enable",
-		Usage: "Boolean option for enabling gops over the process. If set, stack can be viewed by calling 'gops stack <pid>'.",
-	}
-	// storageCleanup defines a flag for choosing the option of starting the node from scratch. If it is not set (false)
-	// it starts from the last state stored on disk
-	storageCleanup = cli.BoolFlag{
-		Name: "storage-cleanup",
-		Usage: "Boolean option for starting the node with clean storage. If set, the Node will empty its storage " +
-			"before starting, otherwise it will start from the last state stored on disk..",
-	}
-
-	// restApiInterface defines a flag for the interface on which the rest API will try to bind with
-	restApiInterface = cli.StringFlag{
-		Name: "rest-api-interface",
-		Usage: "The interface `address and port` to which the REST API will attempt to bind. " +
-			"To bind to all available interfaces, set this flag to :8080",
-		Value: facade.DefaultRestInterface,
-	}
-
-	// restApiDebug defines a flag for starting the rest API engine in debug mode
-	restApiDebug = cli.BoolFlag{
-		Name:  "rest-api-debug",
-		Usage: "Boolean option for starting the Rest API in debug mode.",
-	}
-
-	// nodeDisplayName defines the friendly name used by a node in the public monitoring tools. If set, will override
-	// the NodeDisplayName from prefs.toml
-	nodeDisplayName = cli.StringFlag{
-		Name: "display-name",
-		Usage: "The user-friendly name for the node, appearing in the public monitoring tools. Will override the " +
-			"name set in the preferences TOML file.",
-		Value: "",
-	}
-
-	// identityFlagName defines the keybase's identity. If set, will override the identity from prefs.toml
-	identityFlagName = cli.StringFlag{
-		Name:  "keybase-identity",
-		Usage: "The keybase's identity. If set, will override the one set in the preferences TOML file.",
-		Value: "",
-	}
-
-	//useLogView is used when termui interface is not needed.
-	useLogView = cli.BoolFlag{
-		Name: "use-log-view",
-		Usage: "Boolean option for enabling the simple node's interface. If set, the node will not enable the " +
-			"user-friendly terminal view of the node.",
-	}
-
-	// validatorKeyPemFile defines a flag for the path to the validator key used in block signing
-	validatorKeyPemFile = cli.StringFlag{
-		Name:  "validator-key-pem-file",
-		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
-		Value: "./config/validatorKey.pem",
-	}
-	// logLevel defines the logger level
-	logLevel = cli.StringFlag{
-		Name: "log-level",
-		Usage: "This flag specifies the logger `level(s)`. It can contain multiple comma-separated value. For example" +
-			", if set to *:INFO the logs for all packages will have the INFO level. However, if set to *:INFO,api:DEBUG" +
-			" the logs for all packages will have the INFO level, excepting the api package which will receive a DEBUG" +
-			" log level.",
-		Value: "*:" + logger.LogInfo.String(),
-	}
-	//logFile is used when the log output needs to be logged in a file
-	logSaveFile = cli.BoolFlag{
-		Name:  "log-save",
-		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
-	}
-	//logWithCorrelation is used to enable log correlation elements
-	logWithCorrelation = cli.BoolFlag{
-		Name:  "log-correlation",
-		Usage: "Boolean option for enabling log correlation elements.",
-	}
-	//logWithLoggerName is used to enable log correlation elements
-	logWithLoggerName = cli.BoolFlag{
-		Name:  "log-logger-name",
-		Usage: "Boolean option for logger name in the logs.",
-	}
-	// disableAnsiColor defines if the logger subsystem should prevent displaying ANSI colors
-	disableAnsiColor = cli.BoolFlag{
-		Name:  "disable-ansi-color",
-		Usage: "Boolean option for disabling ANSI colors in the logging system.",
-	}
-	// bootstrapRoundIndex defines a flag that specifies the round index from which node should bootstrap from storage
-	bootstrapRoundIndex = cli.Uint64Flag{
-		Name:  "bootstrap-round-index",
-		Usage: "This flag specifies the round `index` from which node should bootstrap from storage.",
-		Value: math.MaxUint64,
-	}
-	// enableTxIndexing enables transaction indexing. There can be cases when it's too expensive to index all transactions
-	//  so we provide the command line option to disable this behaviour
-	enableTxIndexing = cli.BoolTFlag{
-		Name: "tx-indexing",
-		Usage: "Boolean option for enabling transactions indexing. There can be cases when it's too expensive to " +
-			"index all transactions so this flag will disable this.",
-	}
-
-	// workingDirectory defines a flag for the path for the working directory.
-	workingDirectory = cli.StringFlag{
-		Name:  "working-directory",
-		Usage: "This flag specifies the `directory` where the node will store databases, logs and statistics.",
-		Value: "",
-	}
-
-	// destinationShardAsObserver defines a flag for the prefered shard to be assigned to as an observer.
-	destinationShardAsObserver = cli.StringFlag{
-		Name: "destination-shard-as-observer",
-		Usage: "This flag specifies the shard to start in when running as an observer. It will override the configuration " +
-			"set in the preferences TOML config file.",
-		Value: "",
-	}
-
-	keepOldEpochsData = cli.BoolFlag{
-		Name: "keep-old-epochs-data",
-		Usage: "Boolean option for enabling a node to keep old epochs data. If set, the node won't remove any database " +
-			"and will have a full history over epochs.",
-	}
-
-	numEpochsToSave = cli.Uint64Flag{
-		Name: "num-epochs-to-keep",
-		Usage: "This flag represents the number of epochs which will kept in the databases. It is relevant only if " +
-			"the full archive flag is not set.",
-		Value: uint64(2),
-	}
-
-	numActivePersisters = cli.Uint64Flag{
-		Name: "num-active-persisters",
-		Usage: "This flag represents the number of databases (1 database = 1 epoch) which are kept open at a moment. " +
-			"It is relevant even if the node is full archive or not.",
-		Value: uint64(2),
-	}
-
-	startInEpoch = cli.BoolFlag{
-		Name: "start-in-epoch",
-		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network." +
-			"Should be enabled if data is not available in local disk.",
-	}
-
 	rm *statistics.ResourceMonitor
+
+	// appVersion should be populated at build time using ldflags
+	// Usage examples:
+	// linux/mac:
+	//            go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
+	// windows:
+	//            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
+	//            go build -i -v -ldflags="-X main.appVersion=%VERS%"
+	appVersion = core.UnVersionedAppString
 )
 
-// appVersion should be populated at build time using ldflags
-// Usage examples:
-// linux/mac:
-//            go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
-// windows:
-//            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
-//            go build -i -v -ldflags="-X main.appVersion=%VERS%"
-var appVersion = core.UnVersionedAppString
+type configs struct {
+	generalConfig                    *config.Config
+	apiRoutesConfig                  *config.ApiRoutesConfig
+	economicsConfig                  *config.EconomicsConfig
+	systemSCConfig                   *config.SystemSmartContractsConfig
+	ratingsConfig                    *config.RatingsConfig
+	preferencesConfig                *config.Preferences
+	externalConfig                   *config.ExternalConfig
+	p2pConfig                        *config.P2PConfig
+	configurationFileName            string
+	configurationEconomicsFileName   string
+	configurationRatingsFileName     string
+	configurationPreferencesFileName string
+	p2pConfigurationFileName         string
+}
 
 func main() {
 	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
@@ -389,45 +146,7 @@ func main() {
 
 	app.Version = fmt.Sprintf("%s/%s/%s-%s/%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{
-		genesisFile,
-		smartContractsFile,
-		nodesFile,
-		configurationFile,
-		configurationApiFile,
-		configurationEconomicsFile,
-		configurationSystemSCFile,
-		configurationRatingsFile,
-		configurationPreferencesFile,
-		externalConfigFile,
-		p2pConfigurationFile,
-		gasScheduleConfigurationFile,
-		validatorKeyIndex,
-		validatorKeyPemFile,
-		port,
-		profileMode,
-		useHealthService,
-		storageCleanup,
-		gopsEn,
-		nodeDisplayName,
-		identityFlagName,
-		restApiInterface,
-		restApiDebug,
-		disableAnsiColor,
-		logLevel,
-		logSaveFile,
-		logWithCorrelation,
-		logWithLoggerName,
-		useLogView,
-		bootstrapRoundIndex,
-		enableTxIndexing,
-		workingDirectory,
-		destinationShardAsObserver,
-		keepOldEpochsData,
-		numEpochsToSave,
-		numActivePersisters,
-		startInEpoch,
-	}
+	app.Flags = getFlags()
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -448,112 +167,27 @@ func main() {
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
+
 	workingDir := getWorkingDir(ctx, log)
-
-	var logFile *os.File
-	var err error
-	withLogFile := ctx.GlobalBool(logSaveFile.Name)
-	if withLogFile {
-		logFile, err = prepareLogFile(workingDir)
-		if err != nil {
-			return fmt.Errorf("%w creating a log file", err)
-		}
-	}
-
-	logger.ToggleCorrelation(ctx.GlobalBool(logWithCorrelation.Name))
-	logger.ToggleLoggerName(ctx.GlobalBool(logWithLoggerName.Name))
-	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
-	err = logger.SetLogLevel(logLevelFlagValue)
+	logFile, err := updateLogger(workingDir, ctx, log)
 	if err != nil {
 		return err
 	}
-	noAnsiColor := ctx.GlobalBool(disableAnsiColor.Name)
-	if noAnsiColor {
-		err = logger.RemoveLogObserver(os.Stdout)
-		if err != nil {
-			//we need to print this manually as we do not have console log observer
-			fmt.Println("error removing log observer: " + err.Error())
-			return err
-		}
-
-		err = logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
-		if err != nil {
-			//we need to print this manually as we do not have console log observer
-			fmt.Println("error setting log observer: " + err.Error())
-			return err
-		}
-	}
-	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", noAnsiColor)
 
 	enableGopsIfNeeded(ctx, log)
 
 	log.Info("starting node", "version", version, "pid", os.Getpid())
-	log.Trace("reading configs")
 
-	configurationFileName := ctx.GlobalString(configurationFile.Name)
-	generalConfig, err := loadMainConfig(configurationFileName)
+	var cfgs *configs
+	cfgs, err = readConfigs(log, ctx)
 	if err != nil {
 		return err
-	}
-	log.Debug("config", "file", configurationFileName)
-
-	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
-	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
-	if err != nil {
-		return err
-	}
-	log.Debug("config", "file", configurationApiFileName)
-
-	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
-	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName)
-	if err != nil {
-		return err
-	}
-	log.Debug("config", "file", configurationEconomicsFileName)
-
-	configurationSystemSCConfigFileName := ctx.GlobalString(configurationSystemSCFile.Name)
-	systemSCConfig, err := loadSystemSmartContractsConfig(configurationSystemSCConfigFileName)
-	if err != nil {
-		return err
-	}
-	log.Debug("config", "file", configurationSystemSCConfigFileName)
-
-	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
-	ratingsConfig, err := loadRatingsConfig(configurationRatingsFileName)
-	if err != nil {
-		return err
-	}
-	log.Debug("config", "file", configurationRatingsFileName)
-
-	configurationPreferencesFileName := ctx.GlobalString(configurationPreferencesFile.Name)
-	preferencesConfig, err := loadPreferencesConfig(configurationPreferencesFileName)
-	if err != nil {
-		return err
-	}
-	log.Debug("config", "file", configurationPreferencesFileName)
-
-	externalConfigurationFileName := ctx.GlobalString(externalConfigFile.Name)
-	externalConfig, err := loadExternalConfig(externalConfigurationFileName)
-	if err != nil {
-		return err
-	}
-	log.Debug("config", "file", externalConfigurationFileName)
-
-	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
-	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
-	if err != nil {
-		return err
-	}
-
-	log.Debug("config", "file", p2pConfigurationFileName)
-	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
 
 	log.Trace("creating core components")
 
 	coreArgs := mainFactory.CoreComponentsHandlerArgs{
-		Config:           *generalConfig,
+		Config:           *cfgs.generalConfig,
 		WorkingDirectory: workingDir,
 	}
 	managedCoreComponents, err := mainFactory.NewManagedCoreComponents(coreArgs)
@@ -567,10 +201,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	//TODO when refactoring main, maybe initialize economics data before this line
-	totalSupply, ok := big.NewInt(0).SetString(economicsConfig.GlobalSettings.GenesisTotalSupply, 10)
+	totalSupply, ok := big.NewInt(0).SetString(cfgs.economicsConfig.GlobalSettings.GenesisTotalSupply, 10)
 	if !ok {
 		return fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
-			economicsConfig.GlobalSettings.GenesisTotalSupply)
+			cfgs.economicsConfig.GlobalSettings.GenesisTotalSupply)
 	}
 
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
@@ -585,15 +219,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", ctx.GlobalString(nodesFile.Name))
 
-	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, nil)
+	syncer := ntp.NewSyncTime(cfgs.generalConfig.NTPConfig, nil)
 	syncer.StartSyncingTime()
 
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
 	if ctx.IsSet(startInEpoch.Name) {
 		log.Debug("start in epoch is enabled")
-		generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
-		if generalConfig.GeneralSettings.StartInEpochEnabled {
+		cfgs.generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
+		if cfgs.generalConfig.GeneralSettings.StartInEpochEnabled {
 			delayedStartInterval := 2 * time.Second
 			time.Sleep(delayedStartInterval)
 		}
@@ -618,9 +252,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	cryptoComponentsHandlerArgs := mainFactory.CryptoComponentsHandlerArgs{
 		ValidatorKeyPemFileName:              validatorKeyPemFileName,
 		SkIndex:                              ctx.GlobalInt(validatorKeyIndex.Name),
-		Config:                               *generalConfig,
+		Config:                               *cfgs.generalConfig,
 		CoreComponentsHolder:                 managedCoreComponents,
-		ActivateBLSPubKeyMessageVerification: economicsConfig.ValidatorSettings.ActivateBLSPubKeyMessageVerification,
+		ActivateBLSPubKeyMessageVerification: cfgs.economicsConfig.ValidatorSettings.ActivateBLSPubKeyMessageVerification,
 	}
 
 	managedCryptoComponents, err := mainFactory.NewManagedCryptoComponents(cryptoComponentsHandlerArgs)
@@ -636,15 +270,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Debug("block sign pubkey", "value", managedCryptoComponents.PublicKeyString())
 
 	if ctx.IsSet(destinationShardAsObserver.Name) {
-		preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
+		cfgs.preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
 	}
 
 	if ctx.IsSet(nodeDisplayName.Name) {
-		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
+		cfgs.preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
 	}
 
 	if ctx.IsSet(identityFlagName.Name) {
-		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
+		cfgs.preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
 	}
 
 	err = cleanupStorageIfNecessary(workingDir, ctx, log)
@@ -652,7 +286,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	genesisShardCoordinator, nodeType, err := createShardCoordinator(genesisNodesConfig, managedCryptoComponents.PublicKey(), preferencesConfig.Preferences, log)
+	genesisShardCoordinator, nodeType, err := createShardCoordinator(
+		genesisNodesConfig,
+		managedCryptoComponents.PublicKey(),
+		cfgs.preferencesConfig.Preferences,
+		log,
+	)
 	if err != nil {
 		return err
 	}
@@ -677,7 +316,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	healthService := health.NewHealthService(generalConfig.Health, workingDir)
+	healthService := health.NewHealthService(cfgs.generalConfig.Health, workingDir)
 	if ctx.IsSet(useHealthService.Name) {
 		healthService.Start()
 	}
@@ -709,8 +348,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating network components")
 	args := mainFactory.NetworkComponentsFactoryArgs{
-		P2pConfig:     *p2pConfig,
-		MainConfig:    *generalConfig,
+		P2pConfig:     *cfgs.p2pConfig,
+		MainConfig:    *cfgs.generalConfig,
 		StatusHandler: managedCoreComponents.StatusHandler(),
 		Marshalizer:   managedCoreComponents.InternalMarshalizer(),
 	}
@@ -732,7 +371,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	time.Sleep(core.SecondsToWaitForP2PBootstrap * time.Second)
 
 	log.Trace("creating economics data components")
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
+	economicsData, err := economics.NewEconomicsData(cfgs.economicsConfig)
 	if err != nil {
 		return err
 	}
@@ -740,7 +379,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating ratings data components")
 
 	ratingDataArgs := rating.RatingsDataArg{
-		Config:                   ratingsConfig,
+		Config:                   *cfgs.ratingsConfig,
 		ShardConsensusSize:       genesisNodesConfig.ConsensusGroupSize,
 		MetaConsensusSize:        genesisNodesConfig.MetaChainConsensusGroupSize,
 		ShardMinNodes:            genesisNodesConfig.MinNodesPerShard,
@@ -762,17 +401,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig.MetaChainMinNodes,
 		genesisNodesConfig.Hysteresis,
 		genesisNodesConfig.Adaptivity,
-		generalConfig.EpochStartConfig.ShuffleBetweenShards,
+		cfgs.generalConfig.EpochStartConfig.ShuffleBetweenShards,
 	)
 
-	destShardIdAsObserver, err := processDestinationShardAsObserver(preferencesConfig.Preferences)
+	destShardIdAsObserver, err := processDestinationShardAsObserver(cfgs.preferencesConfig.Preferences)
 	if err != nil {
 		return err
 	}
 
 	startRound := int64(0)
-	if generalConfig.Hardfork.AfterHardFork {
-		startRound = int64(generalConfig.Hardfork.StartRound)
+	if cfgs.generalConfig.Hardfork.AfterHardFork {
+		startRound = int64(cfgs.generalConfig.Hardfork.StartRound)
 	}
 	rounder, err := round.NewRound(
 		time.Unix(genesisNodesConfig.StartTime, 0),
@@ -799,7 +438,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		bootstrapDataProvider,
 		managedCoreComponents.InternalMarshalizer(),
 		managedCoreComponents.Hasher(),
-		*generalConfig,
+		*cfgs.generalConfig,
 		managedCoreComponents.ChainID(),
 		workingDir,
 		core.DefaultDBPath,
@@ -814,7 +453,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		bootstrapDataProvider,
 		latestStorageDataProvider,
 		managedCoreComponents.InternalMarshalizer(),
-		*generalConfig,
+		*cfgs.generalConfig,
 		managedCoreComponents.ChainID(),
 		workingDir,
 		core.DefaultDBPath,
@@ -829,7 +468,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		CoreComponentsHolder:       managedCoreComponents,
 		CryptoComponentsHolder:     managedCryptoComponents,
 		Messenger:                  managedNetworkComponents.NetworkMessenger(),
-		GeneralConfig:              *generalConfig,
+		GeneralConfig:              *cfgs.generalConfig,
 		EconomicsData:              economicsData,
 		GenesisNodesConfig:         genesisNodesConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
@@ -864,7 +503,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	currentEpoch := bootstrapParameters.Epoch
 	storerEpoch := currentEpoch
-	if !generalConfig.StoragePruning.Enabled {
+	if !cfgs.generalConfig.StoragePruning.Enabled {
 		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
 		// and it should be Epoch_ALL or something similar
 		storerEpoch = 0
@@ -875,7 +514,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("initializing stats file")
 	err = initStatsFileMonitor(
-		generalConfig,
+		cfgs.generalConfig,
 		managedCryptoComponents.PublicKeyString(),
 		log,
 		workingDir,
@@ -887,7 +526,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating state components")
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:           *generalConfig,
+		Config:           *cfgs.generalConfig,
 		ShardCoordinator: shardCoordinator,
 		Core:             managedCoreComponents,
 	}
@@ -915,7 +554,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 
 	dataArgs := mainFactory.DataComponentsHandlerArgs{
-		Config:             *generalConfig,
+		Config:             *cfgs.generalConfig,
 		EconomicsData:      economicsData,
 		ShardCoordinator:   shardCoordinator,
 		Core:               managedCoreComponents,
@@ -944,8 +583,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator,
 		genesisNodesConfig,
 		version,
-		economicsConfig,
-		generalConfig.EpochStartConfig.RoundsPerEpoch,
+		cfgs.economicsConfig,
+		cfgs.generalConfig.EpochStartConfig.RoundsPerEpoch,
 		managedCoreComponents.MinTransactionVersion(),
 	)
 	if err != nil {
@@ -964,13 +603,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating nodes coordinator")
 	if ctx.IsSet(keepOldEpochsData.Name) {
-		generalConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
+		cfgs.generalConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
 	}
 	if ctx.IsSet(numEpochsToSave.Name) {
-		generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+		cfgs.generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
 	}
 	if ctx.IsSet(numActivePersisters.Name) {
-		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
+		cfgs.generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 	log.Info("Bootstrap", "epoch", bootstrapParameters.Epoch)
 	if bootstrapParameters.NodesConfig != nil {
@@ -979,7 +618,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 	nodesCoordinator, err := createNodesCoordinator(
 		genesisNodesConfig,
-		preferencesConfig.Preferences,
+		cfgs.preferencesConfig.Preferences,
 		epochStartNotifier,
 		managedCryptoComponents.PublicKey(),
 		managedCoreComponents.InternalMarshalizer(),
@@ -987,7 +626,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		rater,
 		managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
 		nodesShuffler,
-		generalConfig.EpochStartConfig,
+		cfgs.generalConfig.EpochStartConfig,
 		shardCoordinator.SelfId(),
 		chanStopNodeProcess,
 		bootstrapParameters,
@@ -997,7 +636,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricNodeDisplayName, preferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricNodeDisplayName, cfgs.preferencesConfig.Preferences.NodeDisplayName)
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricChainId, managedCoreComponents.ChainID())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricGasPerDataByte, economicsData.GasPerDataByte())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasPrice, economicsData.MinGasPrice())
@@ -1023,12 +662,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	copyConfigToStatsFolder(
 		statsFolder,
 		[]string{
-			configurationFileName,
-			configurationEconomicsFileName,
-			configurationRatingsFileName,
-			configurationPreferencesFileName,
-			p2pConfigurationFileName,
-			configurationFileName,
+			cfgs.configurationFileName,
+			cfgs.configurationEconomicsFileName,
+			cfgs.configurationRatingsFileName,
+			cfgs.configurationPreferencesFileName,
+			cfgs.p2pConfigurationFileName,
+			cfgs.configurationFileName,
 			ctx.GlobalString(genesisFile.Name),
 			ctx.GlobalString(nodesFile.Name),
 		})
@@ -1052,7 +691,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating time cache for requested items components")
 	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * genesisNodesConfig.RoundDuration))
 
-	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListPool))
+	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(cfgs.generalConfig.WhiteListPool))
 	if err != nil {
 		return err
 	}
@@ -1061,15 +700,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	whiteListerVerifiedTxs, err := createWhiteListerVerifiedTxs(generalConfig)
+	whiteListerVerifiedTxs, err := createWhiteListerVerifiedTxs(cfgs.generalConfig)
 	if err != nil {
 		return err
 	}
 
 	log.Trace("starting status pooling components")
 	statArgs := mainFactory.StatusComponentsFactoryArgs{
-		Config:             *generalConfig,
-		ExternalConfig:     *externalConfig,
+		Config:             *cfgs.generalConfig,
+		ExternalConfig:     *cfgs.externalConfig,
 		RoundDurationSec:   genesisNodesConfig.RoundDuration / 1000,
 		ElasticOptions:     &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
 		ShardCoordinator:   shardCoordinator,
@@ -1112,19 +751,19 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		WhiteListHandler:          whiteListRequest,
 		WhiteListerVerifiedTxs:    whiteListerVerifiedTxs,
 		EpochStartNotifier:        epochStartNotifier,
-		EpochStart:                &generalConfig.EpochStartConfig,
+		EpochStart:                &cfgs.generalConfig.EpochStartConfig,
 		Rater:                     rater,
 		RatingsData:               ratingsData,
 		StartEpochNum:             currentEpoch,
-		SizeCheckDelta:            generalConfig.Marshalizer.SizeCheckDelta,
-		StateCheckpointModulus:    generalConfig.StateTriesConfig.CheckpointRoundsModulus,
-		MaxComputableRounds:       generalConfig.GeneralSettings.MaxComputableRounds,
-		NumConcurrentResolverJobs: generalConfig.Antiflood.NumConcurrentResolverJobs,
-		MinSizeInBytes:            generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
-		MaxSizeInBytes:            generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
-		MaxRating:                 ratingsConfig.General.MaxRating,
+		SizeCheckDelta:            cfgs.generalConfig.Marshalizer.SizeCheckDelta,
+		StateCheckpointModulus:    cfgs.generalConfig.StateTriesConfig.CheckpointRoundsModulus,
+		MaxComputableRounds:       cfgs.generalConfig.GeneralSettings.MaxComputableRounds,
+		NumConcurrentResolverJobs: cfgs.generalConfig.Antiflood.NumConcurrentResolverJobs,
+		MinSizeInBytes:            cfgs.generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
+		MaxSizeInBytes:            cfgs.generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
+		MaxRating:                 cfgs.ratingsConfig.General.MaxRating,
 		ValidatorPubkeyConverter:  managedCoreComponents.ValidatorPubKeyConverter(),
-		SystemSCConfig:            systemSCConfig,
+		SystemSCConfig:            cfgs.systemSCConfig,
 		Version:                   version,
 		ImportStartHandler:        importStartHandler,
 		WorkingDir:                workingDir,
@@ -1143,7 +782,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = managedStatusComponents.StartPolling()
 
 	hardForkTrigger, err := createHardForkTrigger(
-		generalConfig,
+		cfgs.generalConfig,
 		shardCoordinator,
 		nodesCoordinator,
 		managedCoreComponents,
@@ -1172,9 +811,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
-		generalConfig,
-		ratingsConfig,
-		preferencesConfig,
+		cfgs.generalConfig,
+		*cfgs.ratingsConfig,
+		cfgs.preferencesConfig,
 		genesisNodesConfig,
 		economicsData,
 		syncer,
@@ -1204,7 +843,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating software checker structure")
-	softwareVersionChecker, err := factory.CreateSoftwareVersionChecker(managedCoreComponents.StatusHandler(), generalConfig.SoftwareVersionConfig)
+	softwareVersionChecker, err := factory.CreateSoftwareVersionChecker(
+		managedCoreComponents.StatusHandler(),
+		cfgs.generalConfig.SoftwareVersionConfig,
+	)
 	if err != nil {
 		log.Debug("nil software version checker", "error", err.Error())
 	} else {
@@ -1223,7 +865,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating api resolver structure")
 	apiResolver, err := createApiResolver(
-		generalConfig,
+		cfgs.generalConfig,
 		managedStateComponents.AccountsAdapter(),
 		managedStateComponents.PeerAccounts(),
 		managedCoreComponents.AddressPubKeyConverter(),
@@ -1238,7 +880,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsData,
 		managedCryptoComponents.MessageSignVerifier(),
 		genesisNodesConfig,
-		systemSCConfig,
+		cfgs.systemSCConfig,
 	)
 	if err != nil {
 		return err
@@ -1251,12 +893,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Node:                   currentNode,
 		ApiResolver:            apiResolver,
 		RestAPIServerDebugMode: restAPIServerDebugMode,
-		WsAntifloodConfig:      generalConfig.Antiflood.WebServer,
+		WsAntifloodConfig:      cfgs.generalConfig.Antiflood.WebServer,
 		FacadeConfig: config.FacadeConfig{
 			RestApiInterface: ctx.GlobalString(restApiInterface.Name),
 			PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 		},
-		ApiRoutesConfig: *apiRoutesConfig,
+		ApiRoutesConfig: *cfgs.apiRoutesConfig,
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -1536,14 +1178,14 @@ func loadSystemSmartContractsConfig(filepath string) (*config.SystemSmartContrac
 	return cfg, nil
 }
 
-func loadRatingsConfig(filepath string) (config.RatingsConfig, error) {
+func loadRatingsConfig(filepath string) (*config.RatingsConfig, error) {
 	cfg := &config.RatingsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
-		return config.RatingsConfig{}, err
+		return &config.RatingsConfig{}, err
 	}
 
-	return *cfg, nil
+	return cfg, nil
 }
 
 func loadPreferencesConfig(filepath string) (*config.Preferences, error) {
@@ -1904,18 +1546,6 @@ func createNode(
 		return nil, err
 	}
 
-	networkShardingCollector, err := factory.PrepareNetworkShardingCollector(
-		network,
-		config,
-		nodesCoordinator,
-		shardCoordinator,
-		epochStartRegistrationHandler,
-		process.EpochStartTrigger().MetaEpoch(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	factory.PrepareOpenTopics(network.InputAntiFloodHandler(), shardCoordinator)
 
 	alarmScheduler := alarm.NewAlarmScheduler()
@@ -1927,7 +1557,7 @@ func createNode(
 	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
 		network.PeerBlackListHandler(),
 		network.PubKeyCacher(),
-		networkShardingCollector,
+		process.PeerShardMapper(),
 	)
 	if err != nil {
 		return nil, err
@@ -1984,7 +1614,7 @@ func createNode(
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBlockBlackListHandler(process.BlackListHandler()),
 		node.WithPeerDenialEvaluator(peerDenialEvaluator),
-		node.WithNetworkShardingCollector(networkShardingCollector),
+		node.WithNetworkShardingCollector(process.PeerShardMapper()),
 		node.WithBootStorer(process.BootStorer()),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier()),
@@ -2215,4 +1845,123 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+}
+
+func updateLogger(workingDir string, ctx *cli.Context, log logger.Logger) (*os.File, error) {
+	var logFile *os.File
+	var err error
+	withLogFile := ctx.GlobalBool(logSaveFile.Name)
+	if withLogFile {
+		logFile, err = prepareLogFile(workingDir)
+		if err != nil {
+			return nil, fmt.Errorf("%w creating a log file", err)
+		}
+	}
+
+	logger.ToggleCorrelation(ctx.GlobalBool(logWithCorrelation.Name))
+	logger.ToggleLoggerName(ctx.GlobalBool(logWithLoggerName.Name))
+	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
+	err = logger.SetLogLevel(logLevelFlagValue)
+	if err != nil {
+		return nil, err
+	}
+	noAnsiColor := ctx.GlobalBool(disableAnsiColor.Name)
+	if noAnsiColor {
+		err = logger.RemoveLogObserver(os.Stdout)
+		if err != nil {
+			//we need to print this manually as we do not have console log observer
+			fmt.Println("error removing log observer: " + err.Error())
+			return nil, err
+		}
+
+		err = logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
+		if err != nil {
+			//we need to print this manually as we do not have console log observer
+			fmt.Println("error setting log observer: " + err.Error())
+			return nil, err
+		}
+	}
+	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", noAnsiColor)
+
+	return logFile, nil
+}
+
+func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
+	log.Trace("reading configs")
+
+	configurationFileName := ctx.GlobalString(configurationFile.Name)
+	generalConfig, err := loadMainConfig(configurationFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationFileName)
+
+	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
+	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationApiFileName)
+
+	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
+	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationEconomicsFileName)
+
+	configurationSystemSCConfigFileName := ctx.GlobalString(configurationSystemSCFile.Name)
+	systemSCConfig, err := loadSystemSmartContractsConfig(configurationSystemSCConfigFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationSystemSCConfigFileName)
+
+	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
+	ratingsConfig, err := loadRatingsConfig(configurationRatingsFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationRatingsFileName)
+
+	configurationPreferencesFileName := ctx.GlobalString(configurationPreferencesFile.Name)
+	preferencesConfig, err := loadPreferencesConfig(configurationPreferencesFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationPreferencesFileName)
+
+	externalConfigurationFileName := ctx.GlobalString(externalConfigFile.Name)
+	externalConfig, err := loadExternalConfig(externalConfigurationFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", externalConfigurationFileName)
+
+	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
+	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("config", "file", p2pConfigurationFileName)
+	if ctx.IsSet(port.Name) {
+		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
+	}
+
+	return &configs{
+		generalConfig:                    generalConfig,
+		apiRoutesConfig:                  apiRoutesConfig,
+		economicsConfig:                  economicsConfig,
+		systemSCConfig:                   systemSCConfig,
+		ratingsConfig:                    ratingsConfig,
+		preferencesConfig:                preferencesConfig,
+		externalConfig:                   externalConfig,
+		p2pConfig:                        p2pConfig,
+		configurationFileName:            configurationFileName,
+		configurationEconomicsFileName:   configurationEconomicsFileName,
+		configurationRatingsFileName:     configurationRatingsFileName,
+		configurationPreferencesFileName: configurationPreferencesFileName,
+		p2pConfigurationFileName:         p2pConfigurationFileName,
+	}, nil
 }
