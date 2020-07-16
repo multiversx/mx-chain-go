@@ -130,7 +130,7 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 	incomingGasPrice := incomingTx.Tx.GetGasPrice()
 
 	iterations := 0
-	defer listForSender.monitorOnFoundInsertionPlace(&iterations, incomingTx)
+	defer listForSender.monitorOnFoundInsertionPlace(&iterations, incomingTx, listForSender.insertionHint)
 
 	element := listForSender.insertionHint.recallReversedTraversal(incomingNonce, listForSender.items.Back())
 

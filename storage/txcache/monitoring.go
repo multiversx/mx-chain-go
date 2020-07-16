@@ -246,14 +246,23 @@ func (cache *TxCache) displaySendersSummary() {
 	log.Info("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
 }
 
-func (cache *txListForSender) monitorOnFoundInsertionPlace(iterations *int, incomingTx *WrappedTransaction) {
+func (cache *txListForSender) monitorOnFoundInsertionPlace(iterations *int, incomingTx *WrappedTransaction, hint listForSenderHint) {
 	if *iterations > numIterationsSuboptimalListTraversal {
-		log.Trace("txListForSender.monitorOnFoundInsertionPlace: suboptimal", "iterations", *iterations, "nonce", incomingTx.Tx.GetNonce(), "sender", incomingTx.Tx.GetSndAddr())
+		log.Trace("txListForSender.monitorOnFoundInsertionPlace: suboptimal",
+			"iterations", *iterations,
+			"nonce", incomingTx.Tx.GetNonce(),
+			"sender", incomingTx.Tx.GetSndAddr(),
+			"hint", hint.nonce,
+		)
 	}
 }
 
 func (cache *txListForSender) monitorOnFoundTransaction(iterations *int, txToFind *WrappedTransaction) {
 	if *iterations > numIterationsSuboptimalListTraversal {
-		log.Trace("txListForSender.monitorOnFoundTransaction: suboptimal", "iterations", *iterations, "nonce", txToFind.Tx.GetNonce(), "sender", txToFind.Tx.GetSndAddr())
+		log.Trace("txListForSender.monitorOnFoundTransaction: suboptimal",
+			"iterations", *iterations,
+			"nonce", txToFind.Tx.GetNonce(),
+			"sender", txToFind.Tx.GetSndAddr(),
+		)
 	}
 }

@@ -19,24 +19,33 @@ func TestListForSenderHints_AddTx(t *testing.T) {
 
 	// Add element to the left, hint ["prev of 7" (back.Next())] is saved
 	scenario.add(3)
-	scenario.hintIs(7, math.MaxInt32)
+	scenario.hintForXIsElementY(7, math.MaxInt32)
 	// Since the hint element is still nil,
 	scenario.noHintApplicableFor(5)
 
 	// Add element more to the left, hint ["prev of 3" (element "7")] is saved
 	scenario.add(2)
-	scenario.hintIs(3, 7)
+	scenario.hintForXIsElementY(3, 7)
 	// Hint is now usable for inserting element "2"
 	scenario.hintApplicableFor(2)
 	// Of course, hint is not usable for inserting element "4"
 	scenario.noHintApplicableFor(4)
-	// Now remove the hint element
+	// Now remove exactly the hint element
 	scenario.lengthIs(3)
 	scenario.remove(7)
 	scenario.lengthIs(2)
+	// Hints should be gone upon removal
 	scenario.noHint()
+	// Addition should work
 	scenario.add(1)
 	scenario.lengthIs(3)
+
+	scenario.add(0)
+	scenario.hintForXIsElementY(1, 2)
+	// Elements "on" the hint or after the hint have no applicable hint
+	scenario.noHintApplicableFor(1)
+	scenario.noHintApplicableFor(2)
+	scenario.hintApplicableFor(0)
 }
 
 var fooFallback = &list.Element{}
@@ -66,7 +75,7 @@ func (scenario *hintsTestScenario) noHint() {
 	require.Nil(scenario.t, scenario.list.insertionHint.element)
 }
 
-func (scenario *hintsTestScenario) hintIs(targetNonce int, elementNonce int) {
+func (scenario *hintsTestScenario) hintForXIsElementY(targetNonce int, elementNonce int) {
 	require.Equal(scenario.t, uint64(targetNonce), scenario.list.insertionHint.nonce)
 	require.Equal(scenario.t,
 		elementToString(scenario.list.findListElementWithTx(createDummiestTx(uint64(elementNonce)))),
