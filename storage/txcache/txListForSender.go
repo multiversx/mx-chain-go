@@ -220,7 +220,6 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 }
 
 // RemoveSortedTransactions removes the provided list of transactions, assuming the list is given sorted by nonce
-// QUESTION FOR REVIEW: should I refactor to have a loop-in-loop when traversing the two lists instead?
 func (listForSender *txListForSender) RemoveSortedTransactions(txsToRemove []*WrappedTransaction) int {
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
@@ -229,12 +228,7 @@ func (listForSender *txListForSender) RemoveSortedTransactions(txsToRemove []*Wr
 	pointerInTxsToRemove := 0
 	pointerInTxs := listForSender.items.Front()
 
-	for {
-		// End of any of the two lists, therefore end of loop
-		if pointerInTxs == nil || pointerInTxsToRemove == len(txsToRemove) {
-			break
-		}
-
+	for pointerInTxs != nil && pointerInTxsToRemove < len(txsToRemove) {
 		nextInTxs := pointerInTxs.Next()
 
 		txToRemove := txsToRemove[pointerInTxsToRemove]
