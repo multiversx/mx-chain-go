@@ -702,6 +702,17 @@ func WithWatchdogTimer(watchdog core.WatchdogTimer) Option {
 	}
 }
 
+// WithPeerSignatureHandler sets up a peerSignatureHandler for the Node
+func WithPeerSignatureHandler(peerSignatureHandler crypto.PeerSignatureHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(peerSignatureHandler) {
+			return ErrNilPeerSignatureHandler
+		}
+		n.peerSigHandler = peerSignatureHandler
+		return nil
+	}
+}
+
 // WithHistoryProcessor sets up a history processor for the node
 func WithHistoryProcessor(historyProc fullHistory.HistoryHandler) Option {
 	return func(n *Node) error {

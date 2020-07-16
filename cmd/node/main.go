@@ -27,10 +27,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/closing"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
@@ -491,6 +491,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
+	err = logger.SetDisplayByteSlice(logger.ToHex)
+	log.LogIfError(err)
 	logger.ToggleCorrelation(ctx.GlobalBool(logWithCorrelation.Name))
 	logger.ToggleLoggerName(ctx.GlobalBool(logWithLoggerName.Name))
 	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
@@ -927,7 +929,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              coreComponents.StatusHandler,
-		ImportStartHandler:         importStartHandler,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -1034,7 +1035,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Info("the epoch from nodesConfig is", "epoch", bootstrapParameters.NodesConfig.CurrentEpoch)
 	}
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
-	nodesCoordinator, err := createNodesCoordinator(
+	nodesCoordinator, nodeShufflerOut, err := createNodesCoordinator(
 		genesisNodesConfig,
 		preferencesConfig.Preferences,
 		epochStartNotifier,
@@ -1263,6 +1264,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	)
 	if err != nil {
 		return err
+	}
+
+	err = hardForkTrigger.AddCloser(nodeShufflerOut)
+	if err != nil {
+		return fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
 	}
 
 	var elasticIndexer indexer.Indexer
@@ -1757,10 +1763,10 @@ func createNodesCoordinator(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	bootstrapParameters bootstrap.Parameters,
 	startEpoch uint32,
-) (sharding.NodesCoordinator, error) {
+) (sharding.NodesCoordinator, update.Closer, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if shardIDAsObserver == core.DisabledShardIDAsObserver {
 		shardIDAsObserver = uint32(0)
@@ -1773,12 +1779,12 @@ func createNodesCoordinator(
 
 	eligibleValidators, errEligibleValidators := sharding.NodesInfoToValidators(eligibleNodesInfo)
 	if errEligibleValidators != nil {
-		return nil, errEligibleValidators
+		return nil, nil, errEligibleValidators
 	}
 
 	waitingValidators, errWaitingValidators := sharding.NodesInfoToValidators(waitingNodesInfo)
 	if errWaitingValidators != nil {
-		return nil, errWaitingValidators
+		return nil, nil, errWaitingValidators
 	}
 
 	currentEpoch := startEpoch
@@ -1788,46 +1794,47 @@ func createNodesCoordinator(
 		eligibles := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].EligibleValidators
 		eligibleValidators, err = sharding.SerializableValidatorsToValidators(eligibles)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		waitings := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].WaitingValidators
 		waitingValidators, err = sharding.SerializableValidatorsToValidators(waitings)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	pubKeyBytes, err := pubKey.ToByteArray()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	consensusGroupCache, err := lrucache.NewCache(25000)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	thresholdEpochDuration := epochConfig.ShuffledOutRestartThreshold
 	if !(thresholdEpochDuration >= 0.0 && thresholdEpochDuration <= 1.0) {
-		return nil, fmt.Errorf("invalid threshold for shuffled out handler")
+		return nil, nil, fmt.Errorf("invalid threshold for shuffled out handler")
 	}
 	maxDurationBeforeStopProcess := int64(nodesConfig.RoundDuration) * epochConfig.RoundsPerEpoch
 	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
-	intRandomizer := &random.ConcurrentSafeIntRandomizer{}
-	randDurationBeforeStop := intRandomizer.Intn(int(maxDurationBeforeStopProcess))
-	endOfProcessingHandler := func(argument endProcess.ArgEndProcess) error {
-		go func() {
-			time.Sleep(time.Duration(randDurationBeforeStop) * time.Millisecond)
-			fmt.Println(fmt.Sprintf("the application stops after waiting %d miliseconds because the node was "+
-				"shuffled out", randDurationBeforeStop))
-			chanStopNodeProcess <- argument
-		}()
-		return nil
-	}
-	shuffledOutHandler, err := sharding.NewShuffledOutTrigger(pubKeyBytes, currentShardID, endOfProcessingHandler)
+	maxDurationInterval := time.Millisecond * time.Duration(maxDurationBeforeStopProcess)
+	minDurationInterval := maxDurationInterval / 2
+	//waiting interval will be [maxDuration/2 and maxDuration]
+
+	nodeShufflerOut, err := closing.NewShuffleOutCloser(
+		minDurationInterval,
+		maxDurationInterval,
+		chanStopNodeProcess,
+	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	shuffledOutHandler, err := sharding.NewShuffledOutTrigger(pubKeyBytes, currentShardID, nodeShufflerOut.EndOfProcessingHandler)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
@@ -1851,15 +1858,15 @@ func createNodesCoordinator(
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, ratingAndListIndexHandler)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return nodesCoordinator, nil
+	return nodesCoordinator, nodeShufflerOut, nil
 }
 
 func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {
@@ -1982,6 +1989,7 @@ func createHardForkTrigger(
 		ExportFolder:             exportFolder,
 		ExportTriesStorageConfig: hardForkConfig.ExportTriesStorageConfig,
 		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
+		ExportStateKeysConfig:    hardForkConfig.ExportKeysStorageConfig,
 		WhiteListHandler:         whiteListRequest,
 		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
 		InterceptorsContainer:    process.InterceptorsContainer,
@@ -1999,6 +2007,7 @@ func createHardForkTrigger(
 		OutputAntifloodHandler:   network.OutputAntifloodHandler,
 		ValidityAttester:         process.BlockTracker,
 		ChainID:                  coreData.ChainID,
+		Rounder:                  process.Rounder,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -2174,6 +2183,7 @@ func createNode(
 		node.WithNodeStopChannel(chanStopNodeProcess),
 		node.WithPeerHonestyHandler(peerHonestyHandler),
 		node.WithWatchdogTimer(watchdogTimer),
+		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler),
 		node.WithHistoryProcessor(historyProcessor),
 	)
 	if err != nil {

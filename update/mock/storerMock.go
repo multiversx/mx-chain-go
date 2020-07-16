@@ -81,6 +81,23 @@ func (sm *StorerMock) DestroyUnit() error {
 	return nil
 }
 
+// RangeKeys -
+func (sm *StorerMock) RangeKeys(handler func(key []byte, val []byte) bool) {
+	if handler == nil {
+		return
+	}
+
+	sm.mut.Lock()
+	defer sm.mut.Unlock()
+
+	for k, v := range sm.data {
+		shouldContinue := handler([]byte(k), v)
+		if !shouldContinue {
+			return
+		}
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sm *StorerMock) IsInterfaceNil() bool {
 	return sm == nil

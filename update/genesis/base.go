@@ -15,17 +15,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-// MetaBlockFileName is the constant which defines the export/import filename for metaBlock
-const MetaBlockFileName = "metaBlock"
+// MetaBlockIdentifier is the constant which defines the export/import identifier for metaBlock
+const MetaBlockIdentifier = "metaBlock"
 
-// TransactionsFileName is the constant which defines the export/import filename for transactions
-const TransactionsFileName = "transactions"
+// TransactionsIdentifier is the constant which defines the export/import identifier for transactions
+const TransactionsIdentifier = "transactions"
 
-// MiniBlocksFileName is the constant which defines the export/import filename for miniBlocks
-const MiniBlocksFileName = "miniBlocks"
+// MiniBlocksIdentifier is the constant which defines the export/import identifier for miniBlocks
+const MiniBlocksIdentifier = "miniBlocks"
 
-// TrieFileName is the constant which defines the export/import filename for tries
-const TrieFileName = "trie"
+// TrieIdentifier is the constant which defines the export/import identifier for tries
+const TrieIdentifier = "trie"
 
 // Type identifies the type of the export / import
 type Type uint8
@@ -49,7 +49,7 @@ const (
 	RootHash
 	// UserAccount is the export/import type for an account of type user account
 	UserAccount
-	// PeerAccount is the export/import type for peer account
+	// ValidatorAccount is the export/import type for peer account
 	ValidatorAccount
 	// DataTrie identifies the data trie kept under a specific account
 	DataTrie

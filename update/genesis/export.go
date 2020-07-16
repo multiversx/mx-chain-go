@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -24,20 +23,20 @@ type ArgsNewStateExporter struct {
 	StateSyncer      update.StateSyncer
 	Marshalizer      marshal.Marshalizer
 	Hasher           hashing.Hasher
-	Writer           update.MultiFileWriter
+	HardforkStorer   update.HardforkStorer
 }
 
 type stateExport struct {
-	writer           update.MultiFileWriter
 	stateSyncer      update.StateSyncer
 	shardCoordinator sharding.Coordinator
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
+	hardforkStorer   update.HardforkStorer
 }
 
 var log = logger.GetOrCreate("update/genesis")
 
-// NewStateExporter exports all the data at a specific moment to a set of files
+// NewStateExporter exports all the data at a specific moment to a hardfork storer
 func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, data.ErrNilShardCoordinator
@@ -48,19 +47,19 @@ func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, data.ErrNilMarshalizer
 	}
-	if check.IfNil(args.Writer) {
-		return nil, epochStart.ErrNilStorage
-	}
 	if check.IfNil(args.Hasher) {
 		return nil, update.ErrNilHasher
 	}
+	if check.IfNil(args.HardforkStorer) {
+		return nil, update.ErrNilHardforkStorer
+	}
 
 	se := &stateExport{
-		writer:           args.Writer,
 		stateSyncer:      args.StateSyncer,
 		shardCoordinator: args.ShardCoordinator,
 		marshalizer:      args.Marshalizer,
 		hasher:           args.Hasher,
+		hardforkStorer:   args.HardforkStorer,
 	}
 
 	return se, nil
@@ -73,7 +72,10 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 		return err
 	}
 
-	defer se.writer.Finish()
+	defer func() {
+		errClose := se.hardforkStorer.Close()
+		log.LogIfError(errClose)
+	}()
 
 	err = se.exportMeta()
 	if err != nil {
@@ -106,13 +108,13 @@ func (se *stateExport) exportAllTransactions() error {
 
 	log.Debug("Exported transactions", "len", len(toExportTransactions))
 	for key, tx := range toExportTransactions {
-		err := se.exportTx(key, tx)
-		if err != nil {
-			return err
+		errExport := se.exportTx(key, tx)
+		if errExport != nil {
+			return errExport
 		}
 	}
 
-	return nil
+	return se.hardforkStorer.FinishedIdentifier(TransactionsIdentifier)
 }
 
 func (se *stateExport) exportAllMiniBlocks() error {
@@ -123,13 +125,13 @@ func (se *stateExport) exportAllMiniBlocks() error {
 
 	log.Debug("Exported miniBlocks", "len", len(toExportMBs))
 	for key, mb := range toExportMBs {
-		err := se.exportMBs(key, mb)
-		if err != nil {
-			return err
+		errExport := se.exportMBs(key, mb)
+		if errExport != nil {
+			return errExport
 		}
 	}
 
-	return nil
+	return se.hardforkStorer.FinishedIdentifier(MiniBlocksIdentifier)
 }
 
 func (se *stateExport) exportAllTries() error {
@@ -162,7 +164,12 @@ func (se *stateExport) exportMeta() error {
 	metaHash := se.hasher.Compute(string(jsonData))
 	versionKey := CreateVersionKey(metaBlock, metaHash)
 
-	err = se.writer.Write(MetaBlockFileName, versionKey, jsonData)
+	err = se.hardforkStorer.Write(MetaBlockIdentifier, []byte(versionKey), jsonData)
+	if err != nil {
+		return err
+	}
+
+	err = se.hardforkStorer.FinishedIdentifier(MetaBlockIdentifier)
 	if err != nil {
 		return err
 	}
@@ -173,14 +180,20 @@ func (se *stateExport) exportMeta() error {
 }
 
 func (se *stateExport) exportTrie(key string, trie data.Trie) error {
-	fileName := TrieFileName + atSep + key
+	identifier := TrieIdentifier + atSep + key
 
-	leaves, err := trie.GetAllLeaves()
+	accType, shId, err := GetTrieTypeAndShId(identifier)
 	if err != nil {
 		return err
 	}
 
-	accType, shId, err := GetTrieTypeAndShId(fileName)
+	// no need to export validator account
+	// TODO: export validatorAccount trie to nodeSetup.json with all ratings
+	if accType == ValidatorAccount {
+		return nil
+	}
+
+	leaves, err := trie.GetAllLeaves()
 	if err != nil {
 		return err
 	}
@@ -195,68 +208,81 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	err = se.writer.Write(fileName, rootHashKey, rootHash)
+	err = se.hardforkStorer.Write(identifier, []byte(rootHashKey), rootHash)
 	if err != nil {
 		return err
 	}
 
 	if accType == DataTrie {
-		return se.exportDataTries(leaves, accType, shId, fileName)
+		return se.exportDataTries(leaves, accType, shId, identifier)
 	}
 
-	return se.exportAccountLeafs(leaves, accType, shId, fileName)
+	return se.exportAccountLeafs(leaves, accType, shId, identifier)
 }
 
-func (se *stateExport) exportDataTries(leafs map[string][]byte, accType Type, shId uint32, fileName string) error {
+func (se *stateExport) exportDataTries(leafs map[string][]byte, accType Type, shId uint32, identifier string) error {
 	for address, buff := range leafs {
 		keyToExport := CreateAccountKey(accType, shId, address)
-		err := se.writer.Write(fileName, keyToExport, buff)
+
+		err := se.hardforkStorer.Write(identifier, []byte(keyToExport), buff)
 		if err != nil {
 			return err
 		}
 	}
 
-	se.writer.CloseFile(fileName)
+	err := se.hardforkStorer.FinishedIdentifier(identifier)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (se *stateExport) exportAccountLeafs(leafs map[string][]byte, accType Type, shId uint32, fileName string) error {
+func (se *stateExport) exportAccountLeafs(leafs map[string][]byte, accType Type, shId uint32, identifier string) error {
 	for address, buff := range leafs {
 		keyToExport := CreateAccountKey(accType, shId, address)
-		account, err := NewEmptyAccount(accType, []byte(address))
-		if err != nil {
-			log.Warn("error creating new account account", "address", address, "error", err)
-			continue
-		}
-		err = se.marshalizer.Unmarshal(account, buff)
-		if err != nil {
-			log.Trace("error unmarshaling account this is maybe a code error",
-				"address", hex.EncodeToString([]byte(address)),
-				"error", err,
-			)
 
-			err = se.writer.Write(fileName, keyToExport, buff)
-			if err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		jsonData, err := json.Marshal(account)
-		if err != nil {
-			log.Warn("error marshaling account", "address", address, "error", err)
-			continue
-		}
-
-		err = se.writer.Write(fileName, keyToExport, jsonData)
+		err := se.hardforkStorer.Write(identifier, []byte(keyToExport), buff)
 		if err != nil {
 			return err
 		}
 	}
 
-	se.writer.CloseFile(fileName)
+	err := se.hardforkStorer.FinishedIdentifier(identifier)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (se *stateExport) marshallLeafToJson(
+	accType Type,
+	address, buff []byte,
+) ([]byte, error) {
+	account, err := NewEmptyAccount(accType, address)
+	if err != nil {
+		log.Warn("error creating new account account", "address", address, "error", err)
+		return nil, err
+	}
+
+	err = se.marshalizer.Unmarshal(account, buff)
+	if err != nil {
+		log.Trace("error unmarshaling account this is maybe a code error",
+			"key", hex.EncodeToString(address),
+			"error", err,
+		)
+
+		return buff, nil
+	}
+
+	jsonData, err := json.Marshal(account)
+	if err != nil {
+		log.Warn("error marshaling account", "address", address, "error", err)
+		return nil, err
+	}
+
+	return jsonData, nil
 }
 
 func (se *stateExport) exportMBs(key string, mb *block.MiniBlock) error {
@@ -266,7 +292,8 @@ func (se *stateExport) exportMBs(key string, mb *block.MiniBlock) error {
 	}
 
 	keyToSave := CreateMiniBlockKey(key)
-	err = se.writer.Write(MiniBlocksFileName, keyToSave, marshaledData)
+
+	err = se.hardforkStorer.Write(MiniBlocksIdentifier, []byte(keyToSave), marshaledData)
 	if err != nil {
 		return err
 	}
@@ -281,7 +308,8 @@ func (se *stateExport) exportTx(key string, tx data.TransactionHandler) error {
 	}
 
 	keyToSave := CreateTransactionKey(key, tx)
-	err = se.writer.Write(TransactionsFileName, keyToSave, marshaledData)
+
+	err = se.hardforkStorer.Write(TransactionsIdentifier, []byte(keyToSave), marshaledData)
 	if err != nil {
 		return err
 	}

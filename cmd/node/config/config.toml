@@ -302,6 +302,12 @@
     Capacity = 30000
     Type = "LRU"
 
+#PublicKeyPIDSignature is the cache that is used to map a public key to a peerId-signature pair.
+[PublicKeyPIDSignature]
+    Name = "PublicKeyPIDSignature"
+    Capacity = 3000
+    Type = "LRU"
+
 #PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
 # Used mainly for observers.
 [PeerIdShardId]
@@ -511,7 +517,7 @@
     EnableTrigger = true
     EnableTriggerFromP2P = true
     PublicKeyToListenFrom = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
-	CloseAfterExportInMinutes = 10
+	CloseAfterExportInMinutes = 10000
 	AfterHardFork = false
 	ImportFolder = "export"
 	StartRound = 10000
@@ -525,6 +531,17 @@
             Type = "LRU"
         [Hardfork.ExportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+    [Hardfork.ExportKeysStorageConfig]
+        [Hardfork.ExportKeysStorageConfig.Cache]
+            Name = "HardFork.ExportKeysStorageConfig"
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ExportKeysStorageConfig.DB]
+            FilePath = "ExportKeysStorageConfig/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
@@ -547,6 +564,17 @@
             Type = "LRU"
         [Hardfork.ImportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+	[Hardfork.ImportKeysStorageConfig]
+	    [Hardfork.ImportKeysStorageConfig.Cache]
+            Name = "HardFork.ImportKeysStorageConfig"
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ImportKeysStorageConfig.DB]
+            FilePath = "ExportKeysStorageConfig/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000

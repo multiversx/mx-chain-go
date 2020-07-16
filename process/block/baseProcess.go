@@ -207,7 +207,6 @@ func (bp *baseProcessor) getRootHash() []byte {
 func (bp *baseProcessor) requestHeadersIfMissing(
 	sortedHdrs []data.HeaderHandler,
 	shardId uint32,
-	maxRound uint64,
 ) error {
 
 	prevHdr, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(shardId)
@@ -216,9 +215,9 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	}
 
 	lastNotarizedHdrRound := prevHdr.GetRound()
+	lastNotarizedHdrNonce := prevHdr.GetNonce()
 
 	missingNonces := make([]uint64, 0)
-	isMaxLimitReached := false
 	for i := 0; i < len(sortedHdrs); i++ {
 		currHdr := sortedHdrs[i]
 		if currHdr == nil {
@@ -230,38 +229,24 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 			continue
 		}
 
-		hdrTooNew := currHdr.GetRound() > maxRound
-		if hdrTooNew {
-			isMaxLimitReached = true
-		}
-
-		if !bp.blockTracker.ShouldAddHeader(currHdr) {
-			isMaxLimitReached = true
-		}
-
-		roundsDiff := int64(maxRound) - int64(prevHdr.GetRound())
-		noncesDiff := int64(currHdr.GetNonce()) - int64(prevHdr.GetNonce())
-		minDiff := core.MinInt64(roundsDiff, noncesDiff)
-
-		if minDiff > 1 {
-			numNonces := uint64(minDiff) - 1
-			startNonce := prevHdr.GetNonce() + 1
-			endNonce := startNonce + numNonces
-
-			for j := startNonce; j < endNonce; j++ {
-				missingNonces = append(missingNonces, j)
-				if len(missingNonces) >= process.MaxHeaderRequestsAllowed {
-					isMaxLimitReached = true
-					break
-				}
-			}
-		}
-
-		if isMaxLimitReached {
+		maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
+		if maxNumNoncesToAdd <= 0 {
 			break
 		}
 
+		noncesDiff := int64(currHdr.GetNonce()) - int64(prevHdr.GetNonce())
+		nonces := addMissingNonces(noncesDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
+		missingNonces = append(missingNonces, nonces...)
+
 		prevHdr = currHdr
+	}
+
+	maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
+	if maxNumNoncesToAdd > 0 {
+		lastRound := bp.rounder.Index() - 1
+		roundsDiff := lastRound - int64(prevHdr.GetRound())
+		nonces := addMissingNonces(roundsDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
+		missingNonces = append(missingNonces, nonces...)
 	}
 
 	for _, nonce := range missingNonces {
@@ -269,6 +254,27 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	}
 
 	return nil
+}
+
+func addMissingNonces(diff int64, lastNonce uint64, maxNumNoncesToAdd int) []uint64 {
+	missingNonces := make([]uint64, 0)
+
+	if diff < 2 {
+		return missingNonces
+	}
+
+	numNonces := uint64(diff) - 1
+	startNonce := lastNonce + 1
+	endNonce := startNonce + numNonces
+
+	for nonce := startNonce; nonce < endNonce; nonce++ {
+		missingNonces = append(missingNonces, nonce)
+		if len(missingNonces) >= maxNumNoncesToAdd {
+			break
+		}
+	}
+
+	return missingNonces
 }
 
 func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
@@ -895,7 +901,7 @@ func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
 }
 
 func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint64 {
-	currentBlockNonce := uint64(0)
+	currentBlockNonce := bp.genesisNonce
 	if !check.IfNil(headerHandler) {
 		currentBlockNonce = headerHandler.GetNonce()
 	}
@@ -1174,8 +1180,14 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 		return
 	}
 
+	waitTime := core.ExtraDelayForRequestBlockInfo
+	roundDifferences := bp.rounder.Index() - int64(headerHandler.GetRound())
+	if roundDifferences > 1 {
+		waitTime = 0
+	}
+
 	// waiting for late broadcast of mini blocks and transactions to be done and received
-	time.Sleep(core.ExtraDelayForRequestBlockInfo)
+	time.Sleep(waitTime)
 
 	bp.txCoordinator.RequestMiniBlocks(headerHandler)
 }

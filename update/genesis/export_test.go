@@ -9,10 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/files"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,18 +21,72 @@ func TestNewStateExporter(t *testing.T) {
 		args    ArgsNewStateExporter
 		exError error
 	}{
-		{name: "NilCoordinator", args: ArgsNewStateExporter{Marshalizer: &mock.MarshalizerMock{}, ShardCoordinator: nil, Hasher: &mock.HasherStub{},
-			StateSyncer: &mock.SyncStateStub{}, Writer: &mock.MultiFileWriterStub{}}, exError: data.ErrNilShardCoordinator},
-		{name: "NilStateSyncer", args: ArgsNewStateExporter{Marshalizer: &mock.MarshalizerMock{}, ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-			StateSyncer: nil, Writer: &mock.MultiFileWriterStub{}, Hasher: &mock.HasherStub{}}, exError: update.ErrNilStateSyncer},
-		{name: "NilMarshalizer", args: ArgsNewStateExporter{Marshalizer: nil, ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-			StateSyncer: &mock.SyncStateStub{}, Writer: &mock.MultiFileWriterStub{}, Hasher: &mock.HasherStub{}}, exError: data.ErrNilMarshalizer},
-		{name: "NilWriter", args: ArgsNewStateExporter{Marshalizer: &mock.MarshalizerMock{}, ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-			StateSyncer: &mock.SyncStateStub{}, Writer: nil, Hasher: &mock.HasherStub{}}, exError: epochStart.ErrNilStorage},
-		{name: "NilHasher", args: ArgsNewStateExporter{Marshalizer: &mock.MarshalizerMock{}, ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-			StateSyncer: &mock.SyncStateStub{}, Writer: &mock.MultiFileWriterStub{}, Hasher: nil}, exError: update.ErrNilHasher},
-		{name: "Ok", args: ArgsNewStateExporter{Marshalizer: &mock.MarshalizerMock{}, ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-			StateSyncer: &mock.SyncStateStub{}, Writer: &mock.MultiFileWriterStub{}, Hasher: &mock.HasherStub{}}, exError: nil},
+		{
+			name: "NilCoordinator",
+			args: ArgsNewStateExporter{
+				Marshalizer:      &mock.MarshalizerMock{},
+				ShardCoordinator: nil,
+				Hasher:           &mock.HasherStub{},
+				StateSyncer:      &mock.SyncStateStub{},
+				HardforkStorer:   &mock.HardforkStorerStub{},
+			},
+			exError: data.ErrNilShardCoordinator,
+		},
+		{
+			name: "NilStateSyncer",
+			args: ArgsNewStateExporter{
+				Marshalizer:      &mock.MarshalizerMock{},
+				ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+				StateSyncer:      nil,
+				HardforkStorer:   &mock.HardforkStorerStub{},
+				Hasher:           &mock.HasherStub{},
+			},
+			exError: update.ErrNilStateSyncer,
+		},
+		{
+			name: "NilMarshalizer",
+			args: ArgsNewStateExporter{
+				Marshalizer:      nil,
+				ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+				StateSyncer:      &mock.SyncStateStub{},
+				HardforkStorer:   &mock.HardforkStorerStub{},
+				Hasher:           &mock.HasherStub{},
+			},
+			exError: data.ErrNilMarshalizer,
+		},
+		{
+			name: "NilHardforkStorer",
+			args: ArgsNewStateExporter{
+				Marshalizer:      &mock.MarshalizerMock{},
+				ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+				StateSyncer:      &mock.SyncStateStub{},
+				HardforkStorer:   nil,
+				Hasher:           &mock.HasherStub{},
+			},
+			exError: update.ErrNilHardforkStorer,
+		},
+		{
+			name: "NilHasher",
+			args: ArgsNewStateExporter{
+				Marshalizer:      &mock.MarshalizerMock{},
+				ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+				StateSyncer:      &mock.SyncStateStub{},
+				HardforkStorer:   &mock.HardforkStorerStub{},
+				Hasher:           nil,
+			},
+			exError: update.ErrNilHasher,
+		},
+		{
+			name: "Ok",
+			args: ArgsNewStateExporter{
+				Marshalizer:      &mock.MarshalizerMock{},
+				ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+				StateSyncer:      &mock.SyncStateStub{},
+				HardforkStorer:   &mock.HardforkStorerStub{},
+				Hasher:           &mock.HasherStub{},
+			},
+			exError: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -51,10 +104,6 @@ func TestExportAll(t *testing.T) {
 	defer func() {
 		_ = os.RemoveAll(testPath)
 	}()
-
-	storer := mock.NewStorerMock()
-	argsWriter := files.ArgsNewMultiFileWriter{ExportFolder: testPath, ExportStore: storer}
-	writer, _ := files.NewMultiFileWriter(argsWriter)
 
 	metaBlock := &block.MetaBlock{Round: 1, ChainID: []byte("chainId")}
 	miniBlock := &block.MiniBlock{}
@@ -79,11 +128,29 @@ func TestExportAll(t *testing.T) {
 		_ = os.RemoveAll("./" + testFolderName + "/")
 	}()
 
+	transactionsWereWrote := false
+	miniblocksWereWrote := false
+	metablockWasWrote := false
+	hs := &mock.HardforkStorerStub{
+		WriteCalled: func(identifier string, key []byte, value []byte) error {
+			switch identifier {
+			case TransactionsIdentifier:
+				transactionsWereWrote = true
+			case MiniBlocksIdentifier:
+				miniblocksWereWrote = true
+			case MetaBlockIdentifier:
+				metablockWasWrote = true
+			}
+
+			return nil
+		},
+	}
+
 	args := ArgsNewStateExporter{
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		Marshalizer:      &mock.MarshalizerMock{},
 		StateSyncer:      stateSyncer,
-		Writer:           writer,
+		HardforkStorer:   hs,
 		Hasher:           &mock.HasherMock{},
 	}
 
@@ -93,14 +160,7 @@ func TestExportAll(t *testing.T) {
 	err := stateExporter.ExportAll(1)
 	require.Nil(t, err)
 
-	// check if export files was created
-	if _, err = os.Stat(testPath + "/" + MetaBlockFileName); err != nil {
-		require.Fail(t, "file wasn't created"+MetaBlockFileName)
-	}
-	if _, err = os.Stat(testPath + "/" + MiniBlocksFileName); err != nil {
-		require.Fail(t, "file wasn't created"+MiniBlocksFileName)
-	}
-	if _, err = os.Stat(testPath + "/" + TransactionsFileName); err != nil {
-		require.Fail(t, "file wasn't created"+TransactionsFileName)
-	}
+	assert.True(t, transactionsWereWrote)
+	assert.True(t, miniblocksWereWrote)
+	assert.True(t, metablockWasWrote)
 }

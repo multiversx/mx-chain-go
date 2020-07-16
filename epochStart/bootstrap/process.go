@@ -104,7 +104,6 @@ type epochStartBootstrap struct {
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
-	importStartHandler         epochStart.ImportStartHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -173,7 +172,6 @@ type ArgsEpochStartBootstrap struct {
 	AddressPubkeyConverter     core.PubkeyConverter
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
-	ImportStartHandler         epochStart.ImportStartHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -213,7 +211,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		statusHandler:              args.StatusHandler,
 		shuffledOut:                false,
 		nodeType:                   core.NodeTypeObserver,
-		importStartHandler:         args.ImportStartHandler,
 		argumentsParser:            args.ArgumentsParser,
 	}
 
@@ -322,7 +319,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			}
 
 			return Parameters{
-				Epoch:       0,
+				Epoch:       e.startEpoch,
 				SelfShardId: e.genesisShardCoordinator.SelfId(),
 				NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 			}, nil
@@ -340,7 +337,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		epochToStart := e.baseData.lastEpoch
 		if shuffledOut {
-			epochToStart = 0
+			epochToStart = e.startEpoch
 		}
 
 		newShardId = e.applyShardIDAsObserverIfNeeded(newShardId)
@@ -381,7 +378,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
 
 	if isStartInEpochZero || isCurrentEpochSaved {
-		if e.baseData.lastEpoch == e.startEpoch {
+		if e.baseData.lastEpoch <= e.startEpoch {
 			return e.prepareEpochZero()
 		}
 
@@ -541,7 +538,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		shardIds = append(shardIds, epochStartData.ShardID)
 	}
 
-	if meta.Epoch > 1 { // no need to request genesis block
+	if meta.Epoch > e.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.EpochStart.Economics.PrevEpochStartHash)
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
@@ -558,7 +555,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		return nil, err
 	}
 
-	if meta.Epoch == 1 {
+	if meta.Epoch == e.startEpoch+1 {
 		syncedHeaders[string(meta.EpochStart.Economics.PrevEpochStartHash)] = &block.MetaBlock{}
 	}
 

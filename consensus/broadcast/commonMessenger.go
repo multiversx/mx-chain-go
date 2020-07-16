@@ -40,7 +40,7 @@ type commonMessenger struct {
 	messenger               consensus.P2PMessenger
 	privateKey              crypto.PrivateKey
 	shardCoordinator        sharding.Coordinator
-	singleSigner            crypto.SingleSigner
+	peerSignatureHandler    crypto.PeerSignatureHandler
 	delayedBlockBroadcaster delayedBroadcaster
 }
 
@@ -51,7 +51,7 @@ type CommonMessengerArgs struct {
 	Messenger                  consensus.P2PMessenger
 	PrivateKey                 crypto.PrivateKey
 	ShardCoordinator           sharding.Coordinator
-	SingleSigner               crypto.SingleSigner
+	PeerSignatureHandler       crypto.PeerSignatureHandler
 	HeadersSubscriber          consensus.HeadersPoolSubscriber
 	InterceptorsContainer      process.InterceptorsContainer
 	MaxDelayCacheSize          uint32
@@ -76,8 +76,8 @@ func checkCommonMessengerNilParameters(
 	if check.IfNil(args.ShardCoordinator) {
 		return spos.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.SingleSigner) {
-		return spos.ErrNilSingleSigner
+	if check.IfNil(args.PeerSignatureHandler) {
+		return spos.ErrNilPeerSignatureHandler
 	}
 	if check.IfNil(args.InterceptorsContainer) {
 		return spos.ErrNilInterceptorsContainer
@@ -94,7 +94,7 @@ func checkCommonMessengerNilParameters(
 
 // BroadcastConsensusMessage will send on consensus topic the consensus message
 func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message) error {
-	signature, err := cm.signMessage(message)
+	signature, err := cm.peerSignatureHandler.GetPeerSignature(cm.privateKey, message.OriginatorPid)
 	if err != nil {
 		return err
 	}
@@ -112,20 +112,6 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 	go cm.messenger.Broadcast(consensusTopic, buff)
 
 	return nil
-}
-
-func (cm *commonMessenger) signMessage(message *consensus.Message) ([]byte, error) {
-	buff, err := cm.marshalizer.Marshal(message)
-	if err != nil {
-		return nil, err
-	}
-
-	signature, err := cm.singleSigner.Sign(cm.privateKey, buff)
-	if err != nil {
-		return nil, err
-	}
-
-	return signature, nil
 }
 
 // BroadcastMiniBlocks will send on miniblocks topic the cross-shard miniblocks

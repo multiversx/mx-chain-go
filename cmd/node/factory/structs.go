@@ -572,6 +572,7 @@ func newEpochStartTrigger(
 			Validity:             process.MetaBlockValidity,
 			Finality:             process.BlockFinality,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			Rounder:              args.rounder,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
@@ -1724,7 +1725,7 @@ func newValidatorStatisticsProcessor(
 	hardForkConfig := processComponents.mainConfig.Hardfork
 	ratingEnabledEpoch := uint32(0)
 
-	if processComponents.importStartHandler.ShouldStartImport() {
+	if hardForkConfig.AfterHardFork {
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{

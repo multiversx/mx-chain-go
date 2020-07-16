@@ -70,3 +70,6 @@ var ErrReleaseVersionMismatch = errors.New("release version mismatch")
 
 // ErrNilStore signals that the provided storage service is nil
 var ErrNilStore = errors.New("nil data storage service")
+
+// ErrNilSignalChan returns whenever a nil signal channel is provided
+var ErrNilSignalChan = errors.New("nil signal channel")

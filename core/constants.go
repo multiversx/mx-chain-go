@@ -483,3 +483,6 @@ const PublicKeyBlacklistDuration = time.Second * 7200
 // WrongP2PMessageBlacklistDuration represents the time to keep a peer id in the blacklist if it sends a message that
 // do not follow this protocol
 const WrongP2PMessageBlacklistDuration = time.Second * 7200
+
+// MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
+const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
