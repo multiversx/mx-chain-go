@@ -114,8 +114,6 @@ func TestManagedNetworkComponents_Close(t *testing.T) {
 
 // ------------ Test NetworkComponents --------------------
 func TestNetworkComponents_Close_ShouldWork(t *testing.T) {
-	t.Parallel()
-
 	args := getNetworkArgs()
 	ncf, _ := factory.NewNetworkComponentsFactory(args)
 
