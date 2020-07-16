@@ -126,7 +126,6 @@ jobs:
           cd $BASE_PATH/elrond-k8s-testnet/kube/
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
           chmod u+x ./kustomize
-
           gcloud container clusters get-credentials "$GKE_CLUSTER" --region "$GKE_REGION" --project "$GKE_PROJECT"
           #regex for namepsace evaluation '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
           export NAMESPACE=$( echo ${{ github.ref }}/${{ github.sha }} | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
