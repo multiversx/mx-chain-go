@@ -156,3 +156,25 @@ func TestHistoryProcessor_GetTransaction(t *testing.T) {
 	assert.Equal(t, round, historyTx.Round)
 	assert.Equal(t, epoch, historyTx.Epoch)
 }
+
+func TestHistoryProcessor_GetEpochForHash(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(10)
+	args := createMockHistoryProcArgs()
+	args.HashEpochStorer = &mock.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			hashEpochData := HashEpoch{
+				Epoch: epoch,
+			}
+
+			hashEpochBytes, _ := json.Marshal(hashEpochData)
+			return hashEpochBytes, nil
+		},
+	}
+	proc, _ := NewHistoryProcessor(args)
+
+	resEpoch, err := proc.GetEpochForHash([]byte("txHash"))
+	assert.NoError(t, err)
+	assert.Equal(t, epoch, resEpoch)
+}

@@ -50,7 +50,13 @@ func (n *Node) getBlockByNonceFromHistoryNonce(nonce uint64) (*apiBlock.APIBlock
 }
 
 func (n *Node) getBlockByNonce(nonce uint64) (*apiBlock.APIBlock, error) {
-	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(n.shardCoordinator.SelfId())
+	var storerUnit dataRetriever.UnitType
+	if n.shardCoordinator.SelfId() != core.MetachainShardId {
+		storerUnit = dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(n.shardCoordinator.SelfId())
+	} else {
+		storerUnit = dataRetriever.MetaHdrNonceHashDataUnit
+	}
+
 	nonceToByteSlice := n.uint64ByteSliceConverter.ToByteSlice(nonce)
 	headerHash, err := n.store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
@@ -135,12 +141,12 @@ func (n *Node) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte) 
 
 	numOfTxs := uint32(0)
 	miniBlocksHashes := make([]string, len(blockHeader.MiniBlockHeaders))
-	for _, mb := range blockHeader.MiniBlockHeaders {
+	for idx, mb := range blockHeader.MiniBlockHeaders {
 		if mb.Type == block.PeerBlock {
 			continue
 		}
 		numOfTxs += mb.TxCount
-		miniBlocksHashes = append(miniBlocksHashes, hex.EncodeToString(mb.Hash))
+		miniBlocksHashes[idx] = hex.EncodeToString(mb.Hash)
 	}
 
 	return &apiBlock.APIBlock{

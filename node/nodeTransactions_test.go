@@ -204,7 +204,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 	assert.Equal(t, expectedTx, tx)
 }
 
-func TestNode_GetFullHistoryTransaction_TxInPoolShouldNotReturnErr(t *testing.T) {
+func TestNode_GetFullHistoryTransaction_TxInPoolShouldReturnItDirectly(t *testing.T) {
 	t.Parallel()
 
 	dataPool := &testscommon.PoolsHolderStub{
@@ -228,9 +228,6 @@ func TestNode_GetFullHistoryTransaction_TxInPoolShouldNotReturnErr(t *testing.T)
 			IsEnabledCalled: func() bool {
 				return true
 			},
-			GetTransactionCalled: func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
-				return nil, errors.New("test error")
-			},
 		}),
 	)
 
@@ -251,6 +248,34 @@ func TestNode_GetFullHistoryTransaction_TxInPoolShouldNotReturnErr(t *testing.T)
 	tx, err := n.GetTransaction("aaaa")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTx, tx)
+}
+
+func TestNode_GetFullHistoryTransaction_TxNotInHistoryStorerShouldErr(t *testing.T) {
+	dataPool := &testscommon.PoolsHolderStub{
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
+	}
+	expectedErr := errors.New("test err")
+	n, _ := node.NewNode(
+		node.WithDataPool(dataPool),
+		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return true
+			},
+			GetTransactionCalled: func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
+				return nil, expectedErr
+			},
+		}),
+	)
+
+	tx, err := n.GetTransaction("aaaa")
+	assert.Equal(t, expectedErr, err)
+	assert.Nil(t, tx)
+
 }
 
 func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {

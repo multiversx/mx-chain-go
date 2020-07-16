@@ -51,18 +51,50 @@ func (n *Node) getTransaction(hash []byte) (*transaction.ApiTransactionResult, e
 }
 
 func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransactionResult, error) {
-	tx, err := n.getTransaction(hash)
-	if err != nil {
-		return nil, err
+	// get transaction from pool
+	txObj, txType, found := n.getTxObjFromDataPool(hash)
+	if found {
+		// transaction is in pool return information directly because in history storer
+		// there are no additional information about the transaction
+		return n.castObjToTransaction(txObj, txType)
 	}
 
 	historyTx, err := n.historyProcessor.GetTransaction(hash)
 	if err != nil {
-		// do not return error because is possible transaction to be in pool
-		// return transaction from first get
-		return tx, nil
+		// transaction is not in history storer
+		return nil, err
 	}
 
+	txBytes, txType, found := n.getTxBytesFromStorage(hash)
+	if !found {
+		// this should never happen because transaction was found in history storer should be also found in transaction
+		// storer
+		return &transaction.ApiTransactionResult{
+			Epoch:      historyTx.Epoch,
+			MBHash:     hex.EncodeToString(historyTx.MbHash),
+			BlockHash:  hex.EncodeToString(historyTx.HeaderHash),
+			RcvShard:   historyTx.RcvShardID,
+			SndShard:   historyTx.SndShardID,
+			Round:      historyTx.Round,
+			BlockNonce: historyTx.HeaderNonce,
+		}, nil
+	}
+
+	tx, err := n.unmarshalTransaction(txBytes, txType)
+	if err != nil {
+		// this should never happen
+		return &transaction.ApiTransactionResult{
+			Epoch:      historyTx.Epoch,
+			MBHash:     hex.EncodeToString(historyTx.MbHash),
+			BlockHash:  hex.EncodeToString(historyTx.HeaderHash),
+			RcvShard:   historyTx.RcvShardID,
+			SndShard:   historyTx.SndShardID,
+			Round:      historyTx.Round,
+			BlockNonce: historyTx.HeaderNonce,
+		}, nil
+	}
+
+	// merge data about transaction from history storer and transaction storer
 	tx.Epoch = historyTx.Epoch
 	tx.MBHash = hex.EncodeToString(historyTx.MbHash)
 	tx.BlockHash = hex.EncodeToString(historyTx.HeaderHash)
@@ -129,6 +161,28 @@ func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transactionType, bool
 
 	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	txBytes, err = unsignedTxsStorer.SearchFirst(hash)
+	if err == nil {
+		return txBytes, unsignedTx, true
+	}
+
+	return nil, invalidTx, false
+}
+
+func (n *Node) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transactionType, bool) {
+	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
+	txBytes, err := txsStorer.GetFromEpoch(hash, epoch)
+	if err == nil {
+		return txBytes, normalTx, true
+	}
+
+	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
+	txBytes, err = rewardTxsStorer.GetFromEpoch(hash, epoch)
+	if err == nil {
+		return txBytes, rewardTx, true
+	}
+
+	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	txBytes, err = unsignedTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
 		return txBytes, unsignedTx, true
 	}
