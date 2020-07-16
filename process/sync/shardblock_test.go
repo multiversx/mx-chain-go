@@ -1161,10 +1161,10 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 
 	args := CreateShardBootstrapMockArguments()
 
-	mbsAndHashes := make([]*process.MiniblockAndHash, 0)
+	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 	args.Rounder = initRounder()
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+		GetMiniBlocksCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			return mbsAndHashes, nil
 		},
 	}
@@ -1589,7 +1589,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	mbh := []byte("requested hash")
 	requestedHash := make([][]byte, 0)
 	requestedHash = append(requestedHash, mbh)
-	mbsAndHashes := make([]*process.MiniblockAndHash, 0)
+	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 
 	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
@@ -1597,7 +1597,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	})
 	args.ChainHandler = blkc
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+		GetMiniBlocksCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
 					return mbsAndHashes, nil
@@ -1651,7 +1651,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	mbh := []byte("requested hash")
 	requestedHash := make([][]byte, 0)
 	requestedHash = append(requestedHash, mbh)
-	mbsAndHashes := make([]*process.MiniblockAndHash, 0)
+	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 
 	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
@@ -1660,7 +1660,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	args.ChainHandler = blkc
 	args.Store = createFullStore()
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+		GetMiniBlocksCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
 					return mbsAndHashes, nil
@@ -1847,8 +1847,8 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		},
 	}
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
-			return make([]*process.MiniblockAndHash, 0), [][]byte{[]byte("hash")}
+		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
+			return make([]*block.MiniblockAndHash, 0), [][]byte{[]byte("hash")}
 		},
 	}
 

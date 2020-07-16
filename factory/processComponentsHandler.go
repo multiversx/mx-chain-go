@@ -306,7 +306,7 @@ func (m *managedProcessComponents) HeaderConstructionValidator() process.HeaderC
 }
 
 // PeerShardMapper returns the peer to shard mapper
-func (m *managedProcessComponents) PeerShardMapper() process.PeerShardMapper {
+func (m *managedProcessComponents) PeerShardMapper() process.NetworkShardingCollector {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 

@@ -611,6 +611,23 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 	return bootstrap, nil
 }
 
+func (n *Node) createMiniblocksProvider() (process.MiniBlockProvider, error) {
+	if check.IfNil(n.dataPool) {
+		return nil, process.ErrNilPoolsHolder
+	}
+	if check.IfNil(n.store) {
+		return nil, process.ErrNilStorage
+	}
+
+	arg := provider.ArgMiniBlockProvider{
+		MiniBlockPool:    n.dataPool.MiniBlocks(),
+		MiniBlockStorage: n.store.GetStorer(dataRetriever.MiniBlockUnit),
+		Marshalizer:      n.internalMarshalizer,
+	}
+
+	return provider.NewMiniBlockProvider(arg)
+}
+
 // createConsensusState method creates a consensusState object
 func (n *Node) createConsensusState(epoch uint32) (*spos.ConsensusState, error) {
 	selfId, err := n.pubKey.ToByteArray()

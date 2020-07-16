@@ -1,17 +1,17 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // MiniBlocksProviderStub -
 type MiniBlocksProviderStub struct {
-	GetMiniBlocksCalled         func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte)
-	GetMiniBlocksFromPoolCalled func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte)
+	GetMiniBlocksCalled         func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	GetMiniBlocksFromPoolCalled func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 }
 
 // GetMiniBlocks -
-func (mbps *MiniBlocksProviderStub) GetMiniBlocks(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+func (mbps *MiniBlocksProviderStub) GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 	if mbps.GetMiniBlocksCalled != nil {
 		return mbps.GetMiniBlocksCalled(hashes)
 	}
@@ -19,7 +19,7 @@ func (mbps *MiniBlocksProviderStub) GetMiniBlocks(hashes [][]byte) ([]*process.M
 }
 
 // GetMiniBlocksFromPool -
-func (mbps *MiniBlocksProviderStub) GetMiniBlocksFromPool(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+func (mbps *MiniBlocksProviderStub) GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 	if mbps.GetMiniBlocksFromPoolCalled != nil {
 		return mbps.GetMiniBlocksFromPoolCalled(hashes)
 	}

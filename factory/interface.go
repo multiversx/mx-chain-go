@@ -204,7 +204,7 @@ type ProcessComponentsHolder interface {
 	RequestHandler() process.RequestHandler
 	TxLogsProcessor() process.TransactionLogProcessorDatabase
 	HeaderConstructionValidator() process.HeaderConstructionValidator
-	PeerShardMapper() process.PeerShardMapper
+	PeerShardMapper() process.NetworkShardingCollector
 	IsInterfaceNil() bool
 }
 

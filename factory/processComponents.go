@@ -75,7 +75,7 @@ type processComponents struct {
 	TxLogsProcessor             process.TransactionLogProcessorDatabase
 	HeaderConstructionValidator process.HeaderConstructionValidator
 	// TODO: maybe move PeerShardMapper to network components
-	PeerShardMapper process.PeerShardMapper
+	PeerShardMapper process.NetworkShardingCollector
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory

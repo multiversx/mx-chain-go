@@ -3,8 +3,10 @@ package factory_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/stretchr/testify/require"
@@ -236,6 +238,26 @@ func TestCoreComponentsFactory_CreateStorerTemplatePaths(t *testing.T) {
 func getCoreArgs() factory.CoreComponentsFactoryArgs {
 	return factory.CoreComponentsFactoryArgs{
 		Config: config.Config{
+			PublicKeyPeerId: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
+			},
+			PublicKeyShardId: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
+			},
+			PeerIdShardId: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
+			},
+			PeerHonesty: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
+			},
 			GeneralSettings: config.GeneralSettingsConfig{
 				ChainID:               "undefined",
 				MinTransactionVersion: 1,
@@ -273,6 +295,8 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				PollingIntervalInMinutes: 30,
 			},
 		},
-		WorkingDirectory: "home",
+		WorkingDirectory:    "home",
+		GenesisTime:         time.Now(),
+		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 	}
 }

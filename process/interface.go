@@ -614,9 +614,15 @@ type PeerBlackListCacher interface {
 // PeerShardMapper can return the public key of a provided peer ID
 type PeerShardMapper interface {
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
+	IsInterfaceNil() bool
+}
+
+// NetworkShardingCollector defines the updating methods used by the network sharding component
+type NetworkShardingCollector interface {
 	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardId(pk []byte, shardId uint32)
 	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
 
@@ -797,8 +803,8 @@ type ValidityAttester interface {
 
 // MiniBlockProvider defines what a miniblock data provider should do
 type MiniBlockProvider interface {
-	GetMiniBlocks(hashes [][]byte) ([]*MiniblockAndHash, [][]byte)
-	GetMiniBlocksFromPool(hashes [][]byte) ([]*MiniblockAndHash, [][]byte)
+	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	IsInterfaceNil() bool
 }
 

@@ -919,7 +919,7 @@ func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (bl
 
 func getOrderedMiniBlocks(
 	hashes [][]byte,
-	miniBlocksAndHashes []*process.MiniblockAndHash,
+	miniBlocksAndHashes []*block.MiniblockAndHash,
 ) (block.MiniBlockSlice, error) {
 
 	mapHashMiniBlock := make(map[string]*block.MiniBlock, len(miniBlocksAndHashes))
