@@ -306,6 +306,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 			"nonce", gb.GetNonce(),
 			"round", gb.GetRound(),
 			"root hash", gb.GetRootHash(),
+			"validator stats root hash", gb.GetValidatorStatsRootHash(),
 		)
 	}
 	log.Info("genesis block created",
@@ -313,6 +314,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		"nonce", genesisBlock.GetNonce(),
 		"round", genesisBlock.GetRound(),
 		"root hash", genesisBlock.GetRootHash(),
+		"validator stats root hash", genesisBlock.GetValidatorStatsRootHash(),
 	)
 
 	//TODO call here trie pruning on all roothashes not from current shard
