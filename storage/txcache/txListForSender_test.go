@@ -456,6 +456,3 @@ func newListToTest(maxNumBytes uint32, maxNumTxs uint32) *txListForSender {
 		maxNumTxs:   maxNumTxs,
 	}, func(_ *txListForSender, _ senderScoreParams) {})
 }
-
-// TODO: insertion hints unit test
-// TODO: Benchmark for RemoveTxBulk()

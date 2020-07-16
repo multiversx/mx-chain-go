@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"encoding/binary"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -108,6 +109,10 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 			cache.AddTx(tx)
 		}
 	}
+}
+
+func createDummiestTx(nonce uint64) *WrappedTransaction {
+	return createTx([]byte(fmt.Sprintf("%d", nonce)), ".", nonce)
 }
 
 func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {

@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -14,6 +15,10 @@ type WrappedTransaction struct {
 	SenderShardID   uint32
 	ReceiverShardID uint32
 	Size            int64
+}
+
+func (wrappedTx *WrappedTransaction) String() string {
+	return fmt.Sprintf("%s %d", string(wrappedTx.TxHash), wrappedTx.Tx.GetNonce())
 }
 
 func (wrappedTx *WrappedTransaction) sameAs(another *WrappedTransaction) bool {
