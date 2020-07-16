@@ -93,8 +93,8 @@ jobs:
             -hysteresis $HYSTERESIS \
             -stake-type delegated
         env:
-          - NUM_NODES_TOTAL: $NUM_NODES_TOTAL
-          - NUM_OF_SHARDS: $NUM_OF_SHARDS
+          NUM_NODES_TOTAL: $NUM_NODES_TOTAL
+          NUM_OF_SHARDS: $NUM_OF_SHARDS
 
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
