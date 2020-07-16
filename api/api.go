@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"net/http"
 	"reflect"
 
@@ -51,7 +52,8 @@ type ginWriter struct {
 }
 
 func (gv *ginWriter) Write(p []byte) (n int, err error) {
-	log.Debug("gin server", "message", string(p))
+	trimmed := bytes.TrimSpace(p)
+	log.Debug("gin server", "message", string(trimmed))
 
 	return len(p), nil
 }
@@ -60,7 +62,8 @@ type ginErrorWriter struct {
 }
 
 func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
-	log.Debug("gin server", "error", string(p))
+	trimmed := bytes.TrimSpace(p)
+	log.Debug("gin server", "error", string(trimmed))
 
 	return len(p), nil
 }
