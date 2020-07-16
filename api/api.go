@@ -76,6 +76,7 @@ func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, pro
 	}
 	ws = gin.Default()
 	ws.Use(cors.Default())
+	ws.Use(middleware.WithElrondFacade(elrondFacade))
 	for _, proc := range processors {
 		if check.IfNil(proc) {
 			continue
