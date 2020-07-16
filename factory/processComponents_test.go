@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"strconv"
+	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -11,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/stretchr/testify/require"
 )
 
 var minTxGasPrice = uint64(10)
@@ -18,6 +20,125 @@ var minTxGasLimit = uint64(1000)
 var maxGasLimitPerBlock = uint64(3000000)
 
 // TODO: write unit tests
+
+// ------------ Test ManagedCoreComponents --------------------
+func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	processArgs := getProcessComponentsArgs()
+	_ = processArgs.CoreData.SetInternalMarshalizer(nil)
+	managedCoreComponents, err := factory.NewManagedProcessComponents(processArgs)
+	require.NoError(t, err)
+	err = managedCoreComponents.Create()
+	require.Error(t, err)
+	require.Nil(t, managedCoreComponents.NodesCoordinator())
+}
+
+func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
+	processArgs := getProcessComponentsArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.CurrentShard = core.MetachainShardId
+	processArgs.ShardCoordinator = shardCoordinator
+	managedProcessComponents, err := factory.NewManagedProcessComponents(processArgs)
+	require.NoError(t, err)
+	require.Nil(t, managedProcessComponents.NodesCoordinator())
+	require.Nil(t, managedProcessComponents.InterceptorsContainer())
+	require.Nil(t, managedProcessComponents.ResolversFinder())
+	require.Nil(t, managedProcessComponents.Rounder())
+	require.Nil(t, managedProcessComponents.ForkDetector())
+	require.Nil(t, managedProcessComponents.BlockProcessor())
+	require.Nil(t, managedProcessComponents.EpochStartTrigger())
+	require.Nil(t, managedProcessComponents.EpochStartNotifier())
+	require.Nil(t, managedProcessComponents.BlackListHandler())
+	require.Nil(t, managedProcessComponents.BootStorer())
+	require.Nil(t, managedProcessComponents.HeaderSigVerifier())
+	require.Nil(t, managedProcessComponents.ValidatorsStatistics())
+	require.Nil(t, managedProcessComponents.ValidatorsProvider())
+	require.Nil(t, managedProcessComponents.BlockTracker())
+	require.Nil(t, managedProcessComponents.PendingMiniBlocksHandler())
+	require.Nil(t, managedProcessComponents.RequestHandler())
+	require.Nil(t, managedProcessComponents.TxLogsProcessor())
+	require.Nil(t, managedProcessComponents.HeaderConstructionValidator())
+	require.Nil(t, managedProcessComponents.HeaderIntegrityVerifier())
+
+	err = managedProcessComponents.Create()
+	require.NoError(t, err)
+	require.NotNil(t, managedProcessComponents.NodesCoordinator())
+	require.NotNil(t, managedProcessComponents.InterceptorsContainer())
+	require.NotNil(t, managedProcessComponents.ResolversFinder())
+	require.NotNil(t, managedProcessComponents.Rounder())
+	require.NotNil(t, managedProcessComponents.ForkDetector())
+	require.NotNil(t, managedProcessComponents.BlockProcessor())
+	require.NotNil(t, managedProcessComponents.EpochStartTrigger())
+	require.NotNil(t, managedProcessComponents.EpochStartNotifier())
+	require.NotNil(t, managedProcessComponents.BlackListHandler())
+	require.NotNil(t, managedProcessComponents.BootStorer())
+	require.NotNil(t, managedProcessComponents.HeaderSigVerifier())
+	require.NotNil(t, managedProcessComponents.ValidatorsStatistics())
+	require.NotNil(t, managedProcessComponents.ValidatorsProvider())
+	require.NotNil(t, managedProcessComponents.BlockTracker())
+	require.NotNil(t, managedProcessComponents.PendingMiniBlocksHandler())
+	require.NotNil(t, managedProcessComponents.RequestHandler())
+	require.NotNil(t, managedProcessComponents.TxLogsProcessor())
+	require.NotNil(t, managedProcessComponents.HeaderConstructionValidator())
+	require.NotNil(t, managedProcessComponents.HeaderIntegrityVerifier())
+}
+
+func TestManagedProcessComponents_Close(t *testing.T) {
+	coreArgs := getCoreArgs()
+	managedCoreComponents, _ := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
+	err := managedCoreComponents.Create()
+	require.NoError(t, err)
+
+	closed := false
+	statusHandlerMock := &mock.AppStatusHandlerMock{
+		CloseCalled: func() {
+			closed = true
+		},
+	}
+	_ = managedCoreComponents.SetStatusHandler(statusHandlerMock)
+	err = managedCoreComponents.Close()
+	require.NoError(t, err)
+	require.True(t, closed)
+	require.Nil(t, managedCoreComponents.StatusHandler())
+}
+
+// ------------ Test CoreComponents --------------------
+func TestProcessComponents_Close_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getCoreArgs()
+	ccf := factory.NewCoreComponentsFactory(args)
+	cc, _ := ccf.Create()
+
+	closeCalled := false
+	statusHandler := &mock.AppStatusHandlerMock{
+		CloseCalled: func() {
+			closeCalled = true
+		},
+	}
+	cc.SetStatusHandler(statusHandler)
+
+	err := cc.Close()
+
+	require.NoError(t, err)
+	require.True(t, closeCalled)
+}
+
+func getProcessComponentsArgs() factory.ProcessComponentsFactoryArgs {
+	coreComponents := getCoreComponents()
+	networkComponents := getNetworkComponents()
+	dataComponents := getDataComponents(coreComponents)
+	cryptoComponents := getCryptoComponents(coreComponents)
+	stateComponents := getStateComponents(coreComponents)
+	processArgs := getProcessArgs(
+		getCoreArgs(),
+		coreComponents,
+		dataComponents,
+		cryptoComponents,
+		stateComponents,
+		networkComponents,
+	)
+	return processArgs
+}
 
 func getProcessArgs(
 	coreArgs factory.CoreComponentsFactoryArgs,

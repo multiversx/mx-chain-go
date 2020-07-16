@@ -71,6 +71,60 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 	require.NotNil(t, nc)
 }
 
+// ------------ Test ManagedNetworkComponents --------------------
+func TestManagedNetworkComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	networkArgs := getNetworkArgs()
+	networkArgs.P2pConfig.Node.Port = "invalid"
+	managedCoreComponents, err := factory.NewManagedNetworkComponents(networkArgs)
+	require.NoError(t, err)
+	err = managedCoreComponents.Create()
+	require.Error(t, err)
+	require.Nil(t, managedCoreComponents.NetworkMessenger())
+}
+
+func TestManagedNetworkComponents_Create_ShouldWork(t *testing.T) {
+	networkArgs := getNetworkArgs()
+	managedNetworkComponents, err := factory.NewManagedNetworkComponents(networkArgs)
+	require.NoError(t, err)
+	require.Nil(t, managedNetworkComponents.NetworkMessenger())
+	require.Nil(t, managedNetworkComponents.InputAntiFloodHandler())
+	require.Nil(t, managedNetworkComponents.OutputAntiFloodHandler())
+	require.Nil(t, managedNetworkComponents.PeerBlackListHandler())
+	require.Nil(t, managedNetworkComponents.PubKeyCacher())
+
+	err = managedNetworkComponents.Create()
+	require.NoError(t, err)
+	require.NotNil(t, managedNetworkComponents.NetworkMessenger())
+	require.NotNil(t, managedNetworkComponents.InputAntiFloodHandler())
+	require.NotNil(t, managedNetworkComponents.OutputAntiFloodHandler())
+	require.NotNil(t, managedNetworkComponents.PeerBlackListHandler())
+	require.NotNil(t, managedNetworkComponents.PubKeyCacher())
+}
+
+func TestManagedNetworkComponents_Close(t *testing.T) {
+	networkArgs := getNetworkArgs()
+	managedNetworkComponents, _ := factory.NewManagedNetworkComponents(networkArgs)
+	err := managedNetworkComponents.Create()
+	require.NoError(t, err)
+
+	err = managedNetworkComponents.Close()
+	require.NoError(t, err)
+	require.Nil(t, managedNetworkComponents.NetworkMessenger())
+}
+
+// ------------ Test NetworkComponents --------------------
+func TestNetworkComponents_Close_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getNetworkArgs()
+	ncf, _ := factory.NewNetworkComponentsFactory(args)
+
+	nc, _ := ncf.Create()
+
+	err := nc.Close()
+	require.NoError(t, err)
+}
+
 func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{

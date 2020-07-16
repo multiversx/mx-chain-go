@@ -36,9 +36,9 @@ type dataComponentsFactory struct {
 
 // dataComponents struct holds the data components
 type dataComponents struct {
-	Blkc     data.ChainHandler
-	Store    dataRetriever.StorageService
-	Datapool dataRetriever.PoolsHolder
+	blkc     data.ChainHandler
+	store    dataRetriever.StorageService
+	datapool dataRetriever.PoolsHolder
 }
 
 // NewDataComponentsFactory will return a new instance of dataComponentsFactory
@@ -93,9 +93,9 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 	}
 
 	return &dataComponents{
-		Blkc:     blkc,
-		Store:    store,
-		Datapool: datapool,
+		blkc:     blkc,
+		store:    store,
+		datapool: datapool,
 	}, nil
 }
 
@@ -145,8 +145,8 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 
 // Closes all underlying components that need closing
 func (cc *dataComponents) Close() error {
-	if cc.Store != nil {
-		cc.Store.CloseAll()
+	if cc.store != nil {
+		return cc.store.CloseAll()
 	}
 
 	return nil

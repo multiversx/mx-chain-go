@@ -10,9 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
+	hasherFactory "github.com/ElrondNetwork/elrond-go/hashing/factory"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
+	marshalizerFactory "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
@@ -55,22 +55,22 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *coreComponentsFac
 
 // Create creates the core components
 func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
-	hasher, err := factoryHasher.NewHasher(ccf.config.Hasher.Type)
+	hasher, err := hasherFactory.NewHasher(ccf.config.Hasher.Type)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrHasherCreation, err.Error())
 	}
 
-	internalMarshalizer, err := factoryMarshalizer.NewMarshalizer(ccf.config.Marshalizer.Type)
+	internalMarshalizer, err := marshalizerFactory.NewMarshalizer(ccf.config.Marshalizer.Type)
 	if err != nil {
 		return nil, fmt.Errorf("%w (internal): %s", ErrMarshalizerCreation, err.Error())
 	}
 
-	vmMarshalizer, err := factoryMarshalizer.NewMarshalizer(ccf.config.VmMarshalizer.Type)
+	vmMarshalizer, err := marshalizerFactory.NewMarshalizer(ccf.config.VmMarshalizer.Type)
 	if err != nil {
 		return nil, fmt.Errorf("%w (vm): %s", ErrMarshalizerCreation, err.Error())
 	}
 
-	txSignMarshalizer, err := factoryMarshalizer.NewMarshalizer(ccf.config.TxSignMarshalizer.Type)
+	txSignMarshalizer, err := marshalizerFactory.NewMarshalizer(ccf.config.TxSignMarshalizer.Type)
 	if err != nil {
 		return nil, fmt.Errorf("%w (tx sign): %s", ErrMarshalizerCreation, err.Error())
 	}

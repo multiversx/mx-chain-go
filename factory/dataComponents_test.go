@@ -111,6 +111,60 @@ func TestDataComponentsFactory_CreateForMetaShouldWork(t *testing.T) {
 	require.NotNil(t, dc)
 }
 
+// ------------ Test ManagedDataComponents --------------------
+func TestManagedDataComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
+	args.Config.ShardHdrNonceHashStorage = config.StorageConfig{}
+	managedDataComponents, err := factory.NewManagedDataComponents(factory.DataComponentsHandlerArgs(args))
+	require.NoError(t, err)
+	err = managedDataComponents.Create()
+	require.Error(t, err)
+	require.Nil(t, managedDataComponents.Blockchain())
+}
+
+func TestManagedDataComponents_Create_ShouldWork(t *testing.T) {
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
+	managedDataComponents, err := factory.NewManagedDataComponents(factory.DataComponentsHandlerArgs(args))
+	require.NoError(t, err)
+	require.Nil(t, managedDataComponents.Blockchain())
+	require.Nil(t, managedDataComponents.StorageService())
+	require.Nil(t, managedDataComponents.Datapool())
+
+	err = managedDataComponents.Create()
+	require.NoError(t, err)
+	require.NotNil(t, managedDataComponents.Blockchain())
+	require.NotNil(t, managedDataComponents.StorageService())
+	require.NotNil(t, managedDataComponents.Datapool())
+}
+
+func TestManagedDataComponents_Close(t *testing.T) {
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
+	managedDataComponents, _ := factory.NewManagedDataComponents(factory.DataComponentsHandlerArgs(args))
+	err := managedDataComponents.Create()
+	require.NoError(t, err)
+
+	err = managedDataComponents.Close()
+	require.NoError(t, err)
+	require.Nil(t, managedDataComponents.Blockchain())
+}
+
+// ------------ Test DataComponents --------------------
+func TestManagedDataComponents_Close_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
+	dcf, _ := factory.NewDataComponentsFactory(args)
+
+	dc, _ := dcf.Create()
+
+	err := dc.Close()
+	require.NoError(t, err)
+}
+
 func getDataArgs(coreComponents factory.CoreComponentsHolder) factory.DataComponentsFactoryArgs {
 	testEconomics := &economics.TestEconomicsData{EconomicsData: &economics.EconomicsData{}}
 	testEconomics.SetMinGasPrice(200000000000)

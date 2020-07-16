@@ -227,3 +227,8 @@ type StatusComponentsHandler interface {
 	SetForkDetector(forkDetector process.ForkDetector)
 	StartPolling() error
 }
+
+// KeyLoaderHandler defines the loading of a key from a pem file and index
+type KeyLoaderHandler interface {
+	LoadKey(string, int) ([]byte, string, error)
+}

@@ -73,12 +73,12 @@ func (mdc *managedDataComponents) Blockchain() data.ChainHandler {
 		return nil
 	}
 
-	return mdc.Blkc
+	return mdc.blkc
 }
 
 func (mdc *managedDataComponents) SetBlockchain(chain data.ChainHandler) {
 	mdc.mutDataComponents.Lock()
-	mdc.Blkc = chain
+	mdc.blkc = chain
 	mdc.mutDataComponents.Unlock()
 }
 
@@ -91,7 +91,7 @@ func (mdc *managedDataComponents) StorageService() dataRetriever.StorageService 
 		return nil
 	}
 
-	return mdc.Store
+	return mdc.store
 }
 
 // Datapool returns the Datapool
@@ -103,7 +103,7 @@ func (mdc *managedDataComponents) Datapool() dataRetriever.PoolsHolder {
 		return nil
 	}
 
-	return mdc.dataComponents.Datapool
+	return mdc.dataComponents.datapool
 }
 
 // Clone creates a shallow clone of a managedDataComponents
@@ -111,9 +111,9 @@ func (mdc *managedDataComponents) Clone() interface{} {
 	dataComps := (*dataComponents)(nil)
 	if mdc.dataComponents != nil {
 		dataComps = &dataComponents{
-			Blkc:     mdc.Blockchain(),
-			Store:    mdc.StorageService(),
-			Datapool: mdc.Datapool(),
+			blkc:     mdc.Blockchain(),
+			store:    mdc.StorageService(),
+			datapool: mdc.Datapool(),
 		}
 	}
 

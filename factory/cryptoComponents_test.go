@@ -39,6 +39,18 @@ func TestNewCryptoComponentsFactory_NilPemFileShouldErr(t *testing.T) {
 	require.Equal(t, factory.ErrNilPath, err)
 }
 
+func TestCryptoComponentsFactory_CreateCryptoParamsNilKeyLoaderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getCoreComponents()
+	args := getCryptoArgs(coreComponents)
+	args.KeyLoader = nil
+	ccf, err := factory.NewCryptoComponentsFactory(args)
+
+	require.Nil(t, ccf)
+	require.Equal(t, factory.ErrNilKeyLoader, err)
+}
+
 func TestNewCryptoComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -56,8 +68,6 @@ func TestNewCryptoComponentsFactory_CreateInvalidConsensusTypeShouldErr(t *testi
 	args := getCryptoArgs(coreComponents)
 	args.Config.Consensus.Type = "invalid"
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
-	keyLoader := dummyLoadSkPkFromPemFile([]byte(dummySk), dummyPk, nil)
-	ccf.SetKeyLoader(keyLoader)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -78,8 +88,6 @@ func TestCryptoComponentsFactory_CreateShouldErrDueToMissingConfig(t *testing.T)
 
 	ccf, err := factory.NewCryptoComponentsFactory(args)
 	require.Nil(t, err)
-	keyLoader := dummyLoadSkPkFromPemFile([]byte(dummySk), dummyPk, nil)
-	ccf.SetKeyLoader(keyLoader)
 
 	cc, err := ccf.Create()
 	require.Error(t, err)
@@ -95,8 +103,6 @@ func TestCryptoComponentsFactory_CreateInvalidMultiSigHasherShouldErr(t *testing
 	ccf, err := factory.NewCryptoComponentsFactory(args)
 	require.Nil(t, err)
 
-	keyLoader := dummyLoadSkPkFromPemFile([]byte(dummySk), dummyPk, nil)
-	ccf.SetKeyLoader(keyLoader)
 	cspf, err := ccf.Create()
 	require.Nil(t, cspf)
 	require.Equal(t, factory.ErrMultiSigHasherMissmatch, err)
@@ -108,8 +114,6 @@ func TestCryptoComponentsFactory_CreateOK(t *testing.T) {
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
-	keyLoader := dummyLoadSkPkFromPemFile([]byte(dummySk), dummyPk, nil)
-	ccf.SetKeyLoader(keyLoader)
 
 	cc, err := ccf.Create()
 	require.NoError(t, err)
@@ -125,8 +129,6 @@ func TestCryptoComponentsFactory_CreateSingleSignerInvalidConsensusTypeShouldErr
 	ccf, err := factory.NewCryptoComponentsFactory(args)
 	require.NotNil(t, ccf)
 	require.Nil(t, err)
-	keyLoader := dummyLoadSkPkFromPemFile([]byte(dummySk), dummyPk, nil)
-	ccf.SetKeyLoader(keyLoader)
 
 	singleSigner, err := ccf.CreateSingleSigner()
 	require.Nil(t, singleSigner)
@@ -141,8 +143,6 @@ func TestCryptoComponentsFactory_CreateSingleSignerOK(t *testing.T) {
 	ccf, err := factory.NewCryptoComponentsFactory(args)
 	require.NotNil(t, ccf)
 	require.Nil(t, err)
-	keyLoader := dummyLoadSkPkFromPemFile([]byte(dummySk), dummyPk, nil)
-	ccf.SetKeyLoader(keyLoader)
 
 	singleSigner, err := ccf.CreateSingleSigner()
 	require.Nil(t, err)
@@ -206,9 +206,6 @@ func TestCryptoComponentsFactory_CreateMultiSignerInvalidConsensusTypeShouldErr(
 	require.NotNil(t, ccf)
 	require.Nil(t, err)
 
-	keyLoader := dummyLoadSkPkFromPemFile([]byte(dummySk), dummyPk, nil)
-	ccf.SetKeyLoader(keyLoader)
-
 	multiSigner, err := ccf.CreateMultiSigner(mock.HasherMock{}, &factory.CryptoParams{}, &mock.KeyGenMock{})
 	require.Nil(t, multiSigner)
 	require.Equal(t, factory.ErrInvalidConsensusConfig, err)
@@ -222,9 +219,6 @@ func TestCryptoComponentsFactory_CreateMultiSignerOK(t *testing.T) {
 	ccf, err := factory.NewCryptoComponentsFactory(args)
 	require.NotNil(t, ccf)
 	require.Nil(t, err)
-
-	keyLoader := dummyLoadSkPkFromPemFile([]byte(dummySk), dummyPk, nil)
-	ccf.SetKeyLoader(keyLoader)
 
 	suite, _ := ccf.GetSuite()
 	blockSignKeyGen := signing.NewKeyGenerator(suite)
@@ -271,9 +265,8 @@ func TestCryptoComponentsFactory_CreateCryptoParamsInvalidPrivateKeyByteArraySho
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
+	args.KeyLoader = &mock.KeyLoaderStub{dummyLoadSkPkFromPemFile([]byte{}, dummyPk, nil)}
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
-	keyLoader := dummyLoadSkPkFromPemFile([]byte{}, dummyPk, nil)
-	ccf.SetKeyLoader(keyLoader)
 
 	suite, _ := ccf.GetSuite()
 	blockSignKeyGen := signing.NewKeyGenerator(suite)
@@ -285,14 +278,12 @@ func TestCryptoComponentsFactory_CreateCryptoParamsInvalidPrivateKeyByteArraySho
 
 func TestCryptoComponentsFactory_CreateCryptoParamsLoadKeysFailShouldErr(t *testing.T) {
 	t.Parallel()
+	expectedError := errors.New("expected error")
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
+	args.KeyLoader = &mock.KeyLoaderStub{dummyLoadSkPkFromPemFile([]byte{}, "", expectedError)}
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
-
-	expectedError := errors.New("expected error")
-	keyLoader := dummyLoadSkPkFromPemFile([]byte{}, "", expectedError)
-	ccf.SetKeyLoader(keyLoader)
 
 	suite, _ := ccf.GetSuite()
 	blockSignKeyGen := signing.NewKeyGenerator(suite)
@@ -309,9 +300,6 @@ func TestCryptoComponentsFactory_CreateCryptoParamsOK(t *testing.T) {
 	args := getCryptoArgs(coreComponents)
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
-	keyLoader := dummyLoadSkPkFromPemFile([]byte(dummySk), dummyPk, nil)
-	ccf.SetKeyLoader(keyLoader)
-
 	suite, _ := ccf.GetSuite()
 	blockSignKeyGen := signing.NewKeyGenerator(suite)
 
@@ -323,14 +311,12 @@ func TestCryptoComponentsFactory_CreateCryptoParamsOK(t *testing.T) {
 func TestCryptoComponentsFactory_GetSkPkInvalidSkBytesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := getCoreComponents()
-	args := getCryptoArgs(coreComponents)
-	ccf, _ := factory.NewCryptoComponentsFactory(args)
 	setSk := []byte("zxwY")
 	setPk := []byte(dummyPk)
-
-	keyLoader := dummyLoadSkPkFromPemFile(setSk, string(setPk), nil)
-	ccf.SetKeyLoader(keyLoader)
+	coreComponents := getCoreComponents()
+	args := getCryptoArgs(coreComponents)
+	args.KeyLoader = &mock.KeyLoaderStub{dummyLoadSkPkFromPemFile(setSk, string(setPk), nil)}
+	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
 	sk, pk, err := ccf.GetSkPk()
 	require.NotNil(t, err)
@@ -340,14 +326,13 @@ func TestCryptoComponentsFactory_GetSkPkInvalidSkBytesShouldErr(t *testing.T) {
 
 func TestCryptoComponentsFactory_GetSkPkInvalidPkBytesShouldErr(t *testing.T) {
 	t.Parallel()
+	setSk := []byte(dummySk)
+	setPk := "0"
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
+	args.KeyLoader = &mock.KeyLoaderStub{dummyLoadSkPkFromPemFile(setSk, setPk, nil)}
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
-	setSk := []byte(dummySk)
-	setPk := "0"
-	keyLoader := dummyLoadSkPkFromPemFile(setSk, setPk, nil)
-	ccf.SetKeyLoader(keyLoader)
 
 	sk, pk, err := ccf.GetSkPk()
 	require.NotNil(t, err)
@@ -365,13 +350,57 @@ func TestCryptoComponentsFactory_GetSkPkOK(t *testing.T) {
 
 	expectedSk, _ := hex.DecodeString(dummySk)
 	expectedPk, _ := hex.DecodeString(dummyPk)
-	keyLoader := dummyLoadSkPkFromPemFile([]byte(dummySk), dummyPk, nil)
-	ccf.SetKeyLoader(keyLoader)
 
 	sk, pk, err := ccf.GetSkPk()
 	require.Nil(t, err)
 	require.Equal(t, expectedSk, sk)
 	require.Equal(t, expectedPk, pk)
+}
+
+// ------------ Test ManagedCryptoComponents --------------------
+func TestManagedCryptoComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	coreComponents := getCoreComponents()
+	args := getCryptoArgs(coreComponents)
+	args.Config.Consensus.Type = "invalid"
+	managedCryptoComponents, err := factory.NewManagedCryptoComponents(factory.CryptoComponentsHandlerArgs(args))
+	require.NoError(t, err)
+	err = managedCryptoComponents.Create()
+	require.Error(t, err)
+	require.Nil(t, managedCryptoComponents.BlockSignKeyGen())
+}
+
+func TestManagedCryptoComponents_Create_ShouldWork(t *testing.T) {
+	coreComponents := getCoreComponents()
+	args := getCryptoArgs(coreComponents)
+	managedCryptoComponents, err := factory.NewManagedCryptoComponents(factory.CryptoComponentsHandlerArgs(args))
+	require.NoError(t, err)
+	require.Nil(t, managedCryptoComponents.TxSingleSigner())
+	require.Nil(t, managedCryptoComponents.BlockSigner())
+	require.Nil(t, managedCryptoComponents.MultiSigner())
+	require.Nil(t, managedCryptoComponents.BlockSignKeyGen())
+	require.Nil(t, managedCryptoComponents.TxSignKeyGen())
+	require.Nil(t, managedCryptoComponents.MessageSignVerifier())
+
+	err = managedCryptoComponents.Create()
+	require.NoError(t, err)
+	require.NotNil(t, managedCryptoComponents.TxSingleSigner())
+	require.NotNil(t, managedCryptoComponents.BlockSigner())
+	require.NotNil(t, managedCryptoComponents.MultiSigner())
+	require.NotNil(t, managedCryptoComponents.BlockSignKeyGen())
+	require.NotNil(t, managedCryptoComponents.TxSignKeyGen())
+	require.NotNil(t, managedCryptoComponents.MessageSignVerifier())
+}
+
+func TestManagedCryptoComponents_Close(t *testing.T) {
+	coreComponents := getCoreComponents()
+	args := getCryptoArgs(coreComponents)
+	managedCryptoComponents, _ := factory.NewManagedCryptoComponents(factory.CryptoComponentsHandlerArgs(args))
+	err := managedCryptoComponents.Create()
+	require.NoError(t, err)
+
+	err = managedCryptoComponents.Close()
+	require.NoError(t, err)
+	require.Nil(t, managedCryptoComponents.MultiSigner())
 }
 
 func getCryptoArgs(coreComponents factory.CoreComponentsHolder) factory.CryptoComponentsFactoryArgs {
@@ -386,6 +415,9 @@ func getCryptoArgs(coreComponents factory.CoreComponentsHolder) factory.CryptoCo
 		ValidatorKeyPemFileName:              "validatorKey.pem",
 		CoreComponentsHolder:                 coreComponents,
 		ActivateBLSPubKeyMessageVerification: false,
+		KeyLoader: &mock.KeyLoaderStub{
+			LoadKeyCalled: dummyLoadSkPkFromPemFile([]byte(dummySk), dummyPk, nil),
+		},
 	}
 
 	return args
