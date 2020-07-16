@@ -34,7 +34,10 @@ func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) 
 
 func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	processArgs := getProcessComponentsArgs()
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(0)
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		return 0
+	}
 	shardCoordinator.CurrentShard = core.MetachainShardId
 	processArgs.ShardCoordinator = shardCoordinator
 	managedProcessComponents, err := factory.NewManagedProcessComponents(processArgs)
@@ -156,6 +159,8 @@ func getProcessArgs(
 	gasSchedule["BuiltInCost"]["ESDTTransfer"] = 1
 	gasSchedule[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(1)
 
+	epochStartConfig := getEpochStartConfig()
+
 	return factory.ProcessComponentsFactoryArgs{
 		CoreFactoryArgs:     &coreArgs,
 		AccountsParser:      &mock.AccountsParserStub{},
@@ -171,28 +176,21 @@ func getProcessArgs(
 			Hysteresis:                  0,
 			Adaptivity:                  false,
 		},
-		GasSchedule:            gasSchedule,
-		Rounder:                &mock.RounderMock{},
-		ShardCoordinator:       mock.NewMultiShardsCoordinatorMock(2),
-		NodesCoordinator:       &mock.NodesCoordinatorMock{},
-		Data:                   dataComponents,
-		CoreData:               coreComponets,
-		Crypto:                 cryptoComponents,
-		State:                  stateComponents,
-		Network:                networkComponents,
-		CoreServiceContainer:   &testscommon.ServiceContainerMock{},
-		RequestedItemsHandler:  &testscommon.RequestedItemsHandlerStub{},
-		WhiteListHandler:       &testscommon.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs: &testscommon.WhiteListHandlerStub{},
-		EpochStartNotifier:     &mock.EpochStartNotifierStub{},
-		EpochStart: &config.EpochStartConfig{
-			MinRoundsBetweenEpochs:            20,
-			RoundsPerEpoch:                    20,
-			ShuffledOutRestartThreshold:       0,
-			ShuffleBetweenShards:              false,
-			MinNumConnectedPeersToStart:       2,
-			MinNumOfPeersToConsiderBlockValid: 2,
-		},
+		GasSchedule:               gasSchedule,
+		Rounder:                   &mock.RounderMock{},
+		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(2),
+		NodesCoordinator:          &mock.NodesCoordinatorMock{},
+		Data:                      dataComponents,
+		CoreData:                  coreComponets,
+		Crypto:                    cryptoComponents,
+		State:                     stateComponents,
+		Network:                   networkComponents,
+		CoreServiceContainer:      &testscommon.ServiceContainerMock{},
+		RequestedItemsHandler:     &testscommon.RequestedItemsHandlerStub{},
+		WhiteListHandler:          &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:    &testscommon.WhiteListHandlerStub{},
+		EpochStartNotifier:        &mock.EpochStartNotifierStub{},
+		EpochStart:                &epochStartConfig,
 		Rater:                     &testscommon.RaterMock{},
 		RatingsData:               &testscommon.RatingsInfoMock{},
 		SizeCheckDelta:            0,
@@ -242,7 +240,7 @@ func CreateEconomicsData() *economics.EconomicsData {
 			RewardsSettings: config.RewardsSettings{
 				LeaderPercentage:    0.1,
 				DeveloperPercentage: 0.1,
-				CommunityAddress:    "test address",
+				CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,

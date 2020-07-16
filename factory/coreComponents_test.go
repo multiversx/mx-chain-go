@@ -322,9 +322,21 @@ func TestCoreComponents_Close_ShouldWork(t *testing.T) {
 	require.True(t, closeCalled)
 }
 
+func getEpochStartConfig() config.EpochStartConfig {
+	return config.EpochStartConfig{
+		MinRoundsBetweenEpochs:            20,
+		RoundsPerEpoch:                    20,
+		ShuffledOutRestartThreshold:       0,
+		ShuffleBetweenShards:              false,
+		MinNumConnectedPeersToStart:       2,
+		MinNumOfPeersToConsiderBlockValid: 2,
+	}
+}
+
 func getCoreArgs() factory.CoreComponentsFactoryArgs {
 	return factory.CoreComponentsFactoryArgs{
 		Config: config.Config{
+			EpochStartConfig: getEpochStartConfig(),
 			PublicKeyPeerId: config.CacheConfig{
 				Type:     "LRU",
 				Capacity: 5000,

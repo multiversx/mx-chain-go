@@ -38,9 +38,9 @@ type dataComponentsFactory struct {
 
 // dataComponents struct holds the data components
 type dataComponents struct {
-	blkc     data.ChainHandler
-	store    dataRetriever.StorageService
-	datapool dataRetriever.PoolsHolder
+	blkc               data.ChainHandler
+	store              dataRetriever.StorageService
+	datapool           dataRetriever.PoolsHolder
 	miniBlocksProvider process.MiniBlockProvider
 }
 
@@ -106,10 +106,10 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 		return nil, err
 	}
 
-	return &DataComponents{
-		blkc:     blkc,
-		store:    store,
-		datapool: datapool,
+	return &dataComponents{
+		blkc:               blkc,
+		store:              store,
+		datapool:           datapool,
 		miniBlocksProvider: miniBlocksProvider,
 	}, nil
 }

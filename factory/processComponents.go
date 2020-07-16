@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -77,7 +76,6 @@ type processComponents struct {
 	HeaderConstructionValidator process.HeaderConstructionValidator
 	// TODO: maybe move PeerShardMapper to network components
 	PeerShardMapper process.NetworkShardingCollector
-	closeFunc func()
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -445,7 +443,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		HeaderConstructionValidator: headerValidator,
 		HeaderIntegrityVerifier:     headerIntegrityVerifier,
 		PeerShardMapper:             peerShardMapper,
-		closeFunc:                   cancelFunc,
 	}, nil
 }
 
@@ -1004,10 +1001,8 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 	return nil
 }
 
-// Closes all underlying components that need closing
+// Close closes all underlying components that need closing
 func (pc *processComponents) Close() error {
-	pc.closeFunc()
-
 	// TODO: close all components
 
 	return nil
