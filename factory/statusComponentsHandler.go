@@ -106,11 +106,11 @@ func (m *managedStatusComponents) TpsBenchmark() statistics.TPSBenchmark {
 	m.mutStatusComponents.RLock()
 	defer m.mutStatusComponents.RUnlock()
 
-	if m.tpsBenchmark == nil {
+	if m.statusComponents == nil {
 		return nil
 	}
 
-	return m.tpsBenchmark
+	return m.statusComponents.tpsBenchmark
 }
 
 // ElasticIndexer returns the elastic indexer handler
@@ -118,11 +118,11 @@ func (m *managedStatusComponents) ElasticIndexer() indexer.Indexer {
 	m.mutStatusComponents.RLock()
 	defer m.mutStatusComponents.RUnlock()
 
-	if m.elasticSearch == nil {
+	if m.statusComponents == nil {
 		return nil
 	}
 
-	return m.elasticSearch
+	return m.statusComponents.elasticIndexer
 }
 
 // SoftwareVersionChecker returns the software version checker handler
@@ -130,11 +130,11 @@ func (m *managedStatusComponents) SoftwareVersionChecker() statistics.SoftwareVe
 	m.mutStatusComponents.RLock()
 	defer m.mutStatusComponents.RUnlock()
 
-	if m.softwareVersion == nil {
+	if m.statusComponents == nil {
 		return nil
 	}
 
-	return m.softwareVersion
+	return m.statusComponents.softwareVersion
 }
 
 // StatusHandler returns the status handler
@@ -142,11 +142,11 @@ func (m *managedStatusComponents) StatusHandler() core.AppStatusHandler {
 	m.mutStatusComponents.RLock()
 	defer m.mutStatusComponents.RUnlock()
 
-	if m.statusHandler == nil {
+	if m.statusComponents == nil {
 		return nil
 	}
 
-	return m.statusHandler
+	return m.statusComponents.statusHandler
 }
 
 // ServiceContainer returns a ServiceContainer instance for the assigned shard
@@ -158,7 +158,7 @@ func (m *managedStatusComponents) ServiceContainer() (serviceContainer.Core, err
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		coreServiceContainer, err = serviceContainer.NewServiceContainer(
-			serviceContainer.WithIndexer(m.statusComponents.elasticSearch),
+			serviceContainer.WithIndexer(m.statusComponents.elasticIndexer),
 		)
 		if err != nil {
 			return nil, err
@@ -169,8 +169,8 @@ func (m *managedStatusComponents) ServiceContainer() (serviceContainer.Core, err
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		var indexerToUse indexer.Indexer
 		indexerToUse = indexer.NewNilIndexer()
-		if m.statusComponents.elasticSearch != nil {
-			indexerToUse = m.statusComponents.elasticSearch
+		if m.statusComponents.elasticIndexer != nil {
+			indexerToUse = m.statusComponents.elasticIndexer
 		}
 		coreServiceContainer, err = serviceContainer.NewServiceContainer(
 			serviceContainer.WithIndexer(indexerToUse),
@@ -353,7 +353,7 @@ func (m *managedStatusComponents) startMachineStatisticsPolling(ctx context.Cont
 	return nil
 }
 
-func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling, ctx context.Context) error {
+func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling, _ context.Context) error {
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
 		mem := machine.AcquireMemStatistics()
 

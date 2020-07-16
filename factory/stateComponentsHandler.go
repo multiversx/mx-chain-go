@@ -65,29 +65,55 @@ func (m *managedStateComponents) Close() error {
 
 // PeerAccounts returns the accounts adapter for the validators
 func (m *managedStateComponents) PeerAccounts() state.AccountsAdapter {
+	m.mutStateComponents.RLock()
+	defer m.mutStateComponents.RUnlock()
+
+	if m.stateComponents == nil {
+		return nil
+	}
+
 	return m.stateComponents.peerAccounts
 }
 
 // AccountsAdapter returns the accounts adapter for the user accounts
 func (m *managedStateComponents) AccountsAdapter() state.AccountsAdapter {
+	m.mutStateComponents.RLock()
+	defer m.mutStateComponents.RUnlock()
+
+	if m.stateComponents == nil {
+		return nil
+	}
+
 	return m.stateComponents.accountsAdapter
 }
 
 // TriesContainer returns the tries container
 func (m *managedStateComponents) TriesContainer() state.TriesHolder {
+	m.mutStateComponents.RLock()
+	defer m.mutStateComponents.RUnlock()
+
+	if m.stateComponents == nil {
+		return nil
+	}
+
 	return m.stateComponents.triesContainer
 }
 
 // TrieStorageManagers returns the trie storage manager for the given account type
 func (m *managedStateComponents) TrieStorageManagers() map[string]data.StorageManager {
+	m.mutStateComponents.RLock()
+	defer m.mutStateComponents.RUnlock()
+
+	if m.stateComponents == nil {
+		return nil
+	}
+
 	retMap := make(map[string]data.StorageManager)
 
 	// give back a map copy
-	m.mutStateComponents.RLock()
 	for key, val := range m.stateComponents.trieStorageManagers {
 		retMap[key] = val
 	}
-	m.mutStateComponents.RUnlock()
 
 	return retMap
 }

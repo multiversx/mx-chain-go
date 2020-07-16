@@ -86,44 +86,26 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedProcessComponents_Close(t *testing.T) {
-	coreArgs := getCoreArgs()
-	managedCoreComponents, _ := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
+	processArgs := getProcessComponentsArgs()
+	managedCoreComponents, _ := factory.NewManagedProcessComponents(processArgs)
 	err := managedCoreComponents.Create()
 	require.NoError(t, err)
 
-	closed := false
-	statusHandlerMock := &mock.AppStatusHandlerMock{
-		CloseCalled: func() {
-			closed = true
-		},
-	}
-	_ = managedCoreComponents.SetStatusHandler(statusHandlerMock)
 	err = managedCoreComponents.Close()
 	require.NoError(t, err)
-	require.True(t, closed)
-	require.Nil(t, managedCoreComponents.StatusHandler())
+	require.Nil(t, managedCoreComponents.NodesCoordinator())
 }
 
 // ------------ Test CoreComponents --------------------
 func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getCoreArgs()
-	ccf := factory.NewCoreComponentsFactory(args)
-	cc, _ := ccf.Create()
+	processArgs := getProcessComponentsArgs()
+	pcf, _ := factory.NewProcessComponentsFactory(processArgs)
+	pc, _ := pcf.Create()
 
-	closeCalled := false
-	statusHandler := &mock.AppStatusHandlerMock{
-		CloseCalled: func() {
-			closeCalled = true
-		},
-	}
-	cc.SetStatusHandler(statusHandler)
-
-	err := cc.Close()
-
+	err := pc.Close()
 	require.NoError(t, err)
-	require.True(t, closeCalled)
 }
 
 func getProcessComponentsArgs() factory.ProcessComponentsFactoryArgs {
