@@ -129,6 +129,14 @@ func (ei *elasticIndexer) createIndexPolicies(indexPolicies map[string]io.Reader
 }
 
 func (ei *elasticIndexer) createIndexTemplates(indexTemplates map[string]io.Reader) error {
+	opendistroTemplate := getTemplateByName("opendistro", indexTemplates)
+	if opendistroTemplate != nil {
+		err := ei.elasticClient.CheckAndCreateTemplate("opendistro", opendistroTemplate)
+		if err != nil {
+			return err
+		}
+	}
+
 	txTemplate := getTemplateByName(txIndex, indexTemplates)
 
 	if txTemplate != nil {

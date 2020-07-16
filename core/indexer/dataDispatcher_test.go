@@ -26,6 +26,8 @@ import (
 func TestDataDispatcher(t *testing.T) {
 	indexTemplates := make(map[string]io.Reader)
 	indexPolicies  := make(map[string]io.Reader)
+	opendistroTemplate, _ := core.OpenFile("./testdata/opendistro.json")
+	indexTemplates["opendistro"] = opendistroTemplate
 	transactionsTemplate, _ := core.OpenFile("./testdata/transactions.json")
 	indexTemplates["transactions"] = transactionsTemplate
 	transactionsPolicy, _ := core.OpenFile("./testdata/transactions_policy.json")
@@ -50,6 +52,9 @@ func TestDataDispatcher(t *testing.T) {
 	numTransactions := 1
 	dataSize := 1000
 	for i := 0; i < 1000; i++ {
+		if i > 0 && i%20 == 0 {
+			time.Sleep(time.Second*30)
+		}
 		txs, hashes := generateTransactions(numTransactions, dataSize)
 
 		header := &dataBlock.Header{}

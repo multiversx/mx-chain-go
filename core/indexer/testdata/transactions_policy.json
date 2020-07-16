@@ -5,12 +5,18 @@
     "states": [
       {
         "name": "hot",
-        "actions": [],
+        "actions": [
+          {
+            "rollover": {
+              "min_doc_count": 20
+            }
+          }
+        ],
         "transitions": [
           {
             "state_name": "warm",
             "conditions": {
-              "min_doc_count": 1
+              "min_doc_count": 20
             }
           }
         ]
@@ -19,9 +25,6 @@
         "name": "warm",
         "actions": [
           {
-            "rollover": {
-              "min_doc_count": 1
-            },
             "replica_count": {
               "number_of_replicas": 1
             }

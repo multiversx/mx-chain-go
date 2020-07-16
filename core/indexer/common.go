@@ -330,19 +330,16 @@ func serializeTransactions(
 		}
 
 		// append a newline for each element
-		serializedData = append(serializedData, "\n"...)
+		//serializedData = append(serializedData, "\n"...)
 
-		buffLenWithCurrentTx := buff.Len() + len(meta) + len(serializedData)
+		buffLenWithCurrentTx := buff.Len() + len(serializedData)
 		if buffLenWithCurrentTx > txsBulkSizeThreshold && buff.Len() != 0 {
 			buffSlice = append(buffSlice, buff)
 			buff = bytes.Buffer{}
 		}
 
-		buff.Grow(len(meta) + len(serializedData))
-		_, err = buff.Write(meta)
-		if err != nil {
-			log.Warn("elastic search: serialize bulk tx, write meta", "error", err.Error())
-		}
+		buff.Grow(len(serializedData))
+
 		_, err = buff.Write(serializedData)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
