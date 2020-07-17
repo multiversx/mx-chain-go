@@ -86,7 +86,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		NodePrice:         big.NewInt(0).Set(arg.Economics.GenesisNodePrice()),
 	}
 
-	validatorRootHash, err := arg.ValidatorAccounts.RootHash()
+	validatorRootHash, err := arg.ValidatorAccounts.Commit()
 	if err != nil {
 		return nil, err
 	}
