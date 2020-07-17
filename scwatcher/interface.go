@@ -3,7 +3,7 @@ package scwatcher
 import "github.com/ElrondNetwork/elrond-go/data"
 
 // ScWatcherDriver defines the interface of the Smart Contracts Watcher
-type ScWatcherDriver interface {
+type Driver interface {
 	DigestBlock(body data.BodyHandler, header data.HeaderHandler, transactions TransactionsToDigest)
 }
 

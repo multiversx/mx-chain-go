@@ -66,6 +66,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/scwatcher"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -1150,7 +1151,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
-	err = setServiceContainer(shardCoordinator, tpsBenchmark)
+	scWatcherDriver := scwatcher.NewScWatcherDriver()
+	err = setServiceContainer(shardCoordinator, tpsBenchmark, scWatcherDriver)
 	if err != nil {
 		return err
 	}
@@ -2237,10 +2239,13 @@ func initStatsFileMonitor(
 	return nil
 }
 
-func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *statistics.TpsBenchmark) error {
+func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *statistics.TpsBenchmark, scWatcherDriver scwatcher.Driver) error {
 	var err error
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		coreServiceContainer, err = serviceContainer.NewServiceContainer(serviceContainer.WithIndexer(dbIndexer))
+		coreServiceContainer, err = serviceContainer.NewServiceContainer(
+			serviceContainer.WithIndexer(dbIndexer),
+			serviceContainer.WithScWatcherDriver(scWatcherDriver),
+		)
 		if err != nil {
 			return err
 		}

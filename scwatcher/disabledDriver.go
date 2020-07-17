@@ -2,7 +2,7 @@ package scwatcher
 
 import "github.com/ElrondNetwork/elrond-go/data"
 
-var _ ScWatcherDriver = (*DisabledScWatcherDriver)(nil)
+var _ Driver = (*DisabledScWatcherDriver)(nil)
 
 type DisabledScWatcherDriver struct {
 }

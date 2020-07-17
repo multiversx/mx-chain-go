@@ -11,7 +11,7 @@ var _ Core = (*serviceContainer)(nil)
 type serviceContainer struct {
 	indexer         indexer.Indexer
 	tpsBenchmark    statistics.TPSBenchmark
-	scWatcherDriver scwatcher.ScWatcherDriver
+	scWatcherDriver scwatcher.Driver
 }
 
 // Option represents a functional configuration parameter that
@@ -44,11 +44,11 @@ func (sc *serviceContainer) TPSBenchmark() statistics.TPSBenchmark {
 }
 
 // ScWatcherDriver returns the ScWatcher driver
-func (sc *serviceContainer) ScWatcherDriver() scwatcher.ScWatcherDriver {
+func (sc *serviceContainer) ScWatcherDriver() scwatcher.Driver {
 	return sc.scWatcherDriver
 }
 
-// WithIndexer sets up the database indexer for the core serviceContainer
+// WithIndexer sets up the database indexer
 func WithIndexer(indexer indexer.Indexer) Option {
 	return func(sc *serviceContainer) error {
 		sc.indexer = indexer
@@ -56,10 +56,18 @@ func WithIndexer(indexer indexer.Indexer) Option {
 	}
 }
 
-// WithTPSBenchmark sets up the tpsBenchmark object for the core serviceContainer
+// WithTPSBenchmark sets up the tpsBenchmark object
 func WithTPSBenchmark(tpsBenchmark statistics.TPSBenchmark) Option {
 	return func(sc *serviceContainer) error {
 		sc.tpsBenchmark = tpsBenchmark
+		return nil
+	}
+}
+
+// WithScWatcherDriver sets up the Smart Contracts Driver
+func WithScWatcherDriver(driver scwatcher.Driver) Option {
+	return func(sc *serviceContainer) error {
+		sc.scWatcherDriver = driver
 		return nil
 	}
 }

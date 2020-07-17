@@ -11,6 +11,6 @@ import (
 type Core interface {
 	Indexer() indexer.Indexer
 	TPSBenchmark() statistics.TPSBenchmark
-	ScWatcherDriver() scwatcher.ScWatcherDriver
+	ScWatcherDriver() scwatcher.Driver
 	IsInterfaceNil() bool
 }
