@@ -1216,6 +1216,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		version,
 		importStartHandler,
 		workingDir,
+		coreComponents.Uint64ByteSliceConverter,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
