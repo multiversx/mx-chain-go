@@ -42,8 +42,8 @@ type stateImport struct {
 	miniBlocks        map[string]*block.MiniBlock
 	importedMetaBlock *block.MetaBlock
 	tries             map[string]data.Trie
-	accountDBsMap     map[uint32]state.AccountsAdapter
-	validatorDB       state.AccountsAdapter
+	accountDBsMap     map[uint32]state.AccountsDBImporter
+	validatorDB       state.AccountsDBImporter
 
 	hasher              hashing.Hasher
 	marshalizer         marshal.Marshalizer
@@ -76,7 +76,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		tries:               make(map[string]data.Trie),
 		hasher:              args.Hasher,
 		marshalizer:         args.Marshalizer,
-		accountDBsMap:       make(map[uint32]state.AccountsAdapter),
+		accountDBsMap:       make(map[uint32]state.AccountsDBImporter),
 		trieStorageManagers: args.TrieStorageManagers,
 		storageConfig:       args.StorageConfig,
 		shardID:             args.ShardID,
@@ -333,7 +333,7 @@ func (si *stateImport) importDataTrie(fileName string, shID uint32) error {
 	return nil
 }
 
-func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.AccountsAdapter, data.Trie, error) {
+func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.AccountsDBImporter, data.Trie, error) {
 	accountFactory, err := newAccountCreator(accType)
 	if err != nil {
 		return nil, nil, err
@@ -421,7 +421,7 @@ func (si *stateImport) importState(fileName string) error {
 			break
 		}
 
-		err = mainTrie.Update(address, marshalledData)
+		err = si.unMarshalAndSaveAccount(accType, address, marshalledData, accountsDB, mainTrie)
 		if err != nil {
 			break
 		}
@@ -438,7 +438,7 @@ func (si *stateImport) importState(fileName string) error {
 func (si *stateImport) unMarshalAndSaveAccount(
 	accType Type,
 	address, buffer []byte,
-	accountsDB state.AccountsAdapter,
+	accountsDB state.AccountsDBImporter,
 	mainTrie data.Trie,
 ) error {
 	account, err := NewEmptyAccount(accType, address)
@@ -456,11 +456,11 @@ func (si *stateImport) unMarshalAndSaveAccount(
 		return err
 	}
 
-	return accountsDB.SaveAccount(account)
+	return accountsDB.ImportAccount(account)
 }
 
 func (si *stateImport) saveRootHash(
-	accountsDB state.AccountsAdapter,
+	accountsDB state.AccountsDBImporter,
 	accType Type,
 	shardID uint32,
 	originalRootHash []byte,
@@ -479,7 +479,17 @@ func (si *stateImport) saveRootHash(
 
 // GetAccountsDBForShard returns the accounts DB for a specific shard
 func (si *stateImport) GetAccountsDBForShard(shardID uint32) state.AccountsAdapter {
-	return si.accountDBsMap[shardID]
+	adb, ok := si.accountDBsMap[shardID]
+	if !ok {
+		return nil
+	}
+
+	accountsAdapter, ok := adb.(state.AccountsAdapter)
+	if !ok {
+		return nil
+	}
+
+	return accountsAdapter
 }
 
 // GetTransactions returns all pending imported transactions
@@ -499,7 +509,12 @@ func (si *stateImport) GetMiniBlocks() map[string]*block.MiniBlock {
 
 // GetValidatorAccountsDB returns the imported validator accounts DB
 func (si *stateImport) GetValidatorAccountsDB() state.AccountsAdapter {
-	return si.validatorDB
+	accountsAdapter, ok := si.validatorDB.(state.AccountsAdapter)
+	if !ok {
+		return nil
+	}
+
+	return accountsAdapter
 }
 
 // IsInterfaceNil returns true if underlying object is nil
