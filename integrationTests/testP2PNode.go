@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
@@ -22,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
@@ -131,9 +133,15 @@ func (tP2pNode *TestP2PNode) initNode() {
 	}
 	argHardforkTrigger.SelfPubKeyBytes, _ = tP2pNode.NodeKeys.Pk.ToByteArray()
 	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)
-	if err != nil {
-		fmt.Printf("Error creating hardfork trigger: %s\n", err.Error())
-	}
+	log.LogIfError(err)
+
+	cacher := testscommon.NewCacherMock()
+	psh, err := peerSignatureHandler.NewPeerSignatureHandler(
+		cacher,
+		tP2pNode.SingleSigner,
+		tP2pNode.KeyGen,
+	)
+	log.LogIfError(err)
 
 	tP2pNode.Node, err = node.NewNode(
 		node.WithMessenger(tP2pNode.Messenger),
@@ -163,10 +171,9 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
 		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
+		node.WithPeerSignatureHandler(psh),
 	)
-	if err != nil {
-		fmt.Printf("Error creating node: %s\n", err.Error())
-	}
+	log.LogIfError(err)
 
 	hbConfig := config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 4,
@@ -176,9 +183,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		HideInactiveValidatorIntervalInSec:  600,
 	}
 	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
-	if err != nil {
-		fmt.Printf("Error starting heartbeat: %s\n", err.Error())
-	}
+	log.LogIfError(err)
 }
 
 func (tP2pNode *TestP2PNode) getPubkeys() map[uint32][]string {
