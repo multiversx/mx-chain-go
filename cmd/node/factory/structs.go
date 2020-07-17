@@ -344,7 +344,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	genesisMetaBlock, ok := genesisBlocks[core.MetachainShardId]
 	if !ok {
-		return nil, errors.New("genesis meta block does not exists")
+		return nil, errors.New("genesis meta block does not exist")
 	}
 
 	genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
@@ -509,7 +509,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
 	genesisBlock, ok := genesisBlocks[args.shardCoordinator.SelfId()]
 	if !ok {
-		return errors.New("genesis block does not exists")
+		return errors.New("genesis block does not exist")
 	}
 
 	genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlock)
