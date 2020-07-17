@@ -10,6 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	getConfigPath = "/config"
+	getStatusPath = "/status"
+)
+
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
@@ -18,8 +23,8 @@ type FacadeHandler interface {
 
 // Routes defines address related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodGet, "/config", GetNetworkConfig)
-	router.RegisterHandler(http.MethodGet, "/status", GetNetworkStatus)
+	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
+	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {

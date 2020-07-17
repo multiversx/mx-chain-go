@@ -53,7 +53,7 @@ type ginWriter struct {
 
 func (gv *ginWriter) Write(p []byte) (n int, err error) {
 	trimmed := bytes.TrimSpace(p)
-	log.Debug("gin server", "message", string(trimmed))
+	log.Trace("gin server", "message", string(trimmed))
 
 	return len(p), nil
 }
@@ -63,7 +63,7 @@ type ginErrorWriter struct {
 
 func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
 	trimmed := bytes.TrimSpace(p)
-	log.Debug("gin server", "error", string(trimmed))
+	log.Trace("gin server", "error", string(trimmed))
 
 	return len(p), nil
 }

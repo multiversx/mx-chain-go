@@ -13,6 +13,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	getAccountPath = "/:address"
+	getBalancePath = "/:address/balance"
+	getKeyPath     = "/:address/key/:key"
+)
+
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
@@ -32,9 +38,9 @@ type accountResponse struct {
 
 // Routes defines address related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodGet, "/:address", GetAccount)
-	router.RegisterHandler(http.MethodGet, "/:address/balance", GetBalance)
-	router.RegisterHandler(http.MethodGet, "/:address/key/:key", GetValueForKey)
+	router.RegisterHandler(http.MethodGet, getAccountPath, GetAccount)
+	router.RegisterHandler(http.MethodGet, getBalancePath, GetBalance)
+	router.RegisterHandler(http.MethodGet, getKeyPath, GetValueForKey)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {

@@ -13,6 +13,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	hexPath    = "/hex"
+	stringPath = "/string"
+	intPath    = "/int"
+	queryPath  = "/query"
+)
+
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	ExecuteSCQuery(*process.SCQuery) (*vmcommon.VMOutput, error)
@@ -29,10 +36,10 @@ type VMValueRequest struct {
 
 // Routes defines address related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodPost, "/hex", getHex)
-	router.RegisterHandler(http.MethodPost, "/string", getString)
-	router.RegisterHandler(http.MethodPost, "/int", getInt)
-	router.RegisterHandler(http.MethodPost, "/query", executeQuery)
+	router.RegisterHandler(http.MethodPost, hexPath, getHex)
+	router.RegisterHandler(http.MethodPost, stringPath, getString)
+	router.RegisterHandler(http.MethodPost, intPath, getInt)
+	router.RegisterHandler(http.MethodPost, queryPath, executeQuery)
 }
 
 // getHex returns the data as bytes, hex-encoded

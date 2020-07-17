@@ -19,6 +19,10 @@ const (
 	sendTransactionEndpoint          = "/transaction/send"
 	sendMultipleTransactionsEndpoint = "/transaction/send-multiple"
 	getTransactionEndpoint           = "/transaction/:hash"
+	sendTransactionPath              = "/send"
+	costPath                         = "/cost"
+	sendMultiplePath                 = "/send-multiple"
+	getTransactionPath               = "/:txhash"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
@@ -77,20 +81,20 @@ type TxResponse struct {
 func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(
 		http.MethodPost,
-		"/send",
+		sendTransactionPath,
 		middleware.CreateEndpointThrottler(sendTransactionEndpoint),
 		SendTransaction,
 	)
-	router.RegisterHandler(http.MethodPost, "/cost", ComputeTransactionGasLimit)
+	router.RegisterHandler(http.MethodPost, costPath, ComputeTransactionGasLimit)
 	router.RegisterHandler(
 		http.MethodPost,
-		"/send-multiple",
+		sendMultiplePath,
 		middleware.CreateEndpointThrottler(sendMultipleTransactionsEndpoint),
 		SendMultipleTransactions,
 	)
 	router.RegisterHandler(
 		http.MethodGet,
-		"/:txhash",
+		getTransactionPath,
 		middleware.CreateEndpointThrottler(getTransactionEndpoint),
 		GetTransaction,
 	)

@@ -10,8 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const execManualTrigger = "executed, trigger is affecting only the current node"
-const execBroadcastTrigger = "executed, trigger is affecting current node and will get broadcast to other peers"
+const (
+	execManualTrigger    = "executed, trigger is affecting only the current node"
+	execBroadcastTrigger = "executed, trigger is affecting current node and will get broadcast to other peers"
+	triggerPath          = "/trigger"
+)
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
@@ -27,7 +30,7 @@ type HarforkRequest struct {
 
 // Routes defines node related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodPost, "/trigger", Trigger)
+	router.RegisterHandler(http.MethodPost, triggerPath, Trigger)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {

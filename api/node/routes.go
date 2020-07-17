@@ -16,7 +16,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const pidQueryParam = "pid"
+const (
+	pidQueryParam       = "pid"
+	heartbeatStatusPath = "/heartbeatstatus"
+	statisticsPath      = "/statistics"
+	statusPath          = "/status"
+	p2pStatusPath       = "/p2pstatus"
+	debugPath           = "/debug"
+	peerInfoPath        = "/peerinfo"
+)
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
@@ -60,12 +68,12 @@ type shardStatisticsResponse struct {
 
 // Routes defines node related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodGet, "/heartbeatstatus", HeartbeatStatus)
-	router.RegisterHandler(http.MethodGet, "/statistics", Statistics)
-	router.RegisterHandler(http.MethodGet, "/status", StatusMetrics)
-	router.RegisterHandler(http.MethodGet, "/p2pstatus", P2pStatusMetrics)
-	router.RegisterHandler(http.MethodPost, "/debug", QueryDebug)
-	router.RegisterHandler(http.MethodGet, "/peerinfo", PeerInfo)
+	router.RegisterHandler(http.MethodGet, heartbeatStatusPath, HeartbeatStatus)
+	router.RegisterHandler(http.MethodGet, statisticsPath, Statistics)
+	router.RegisterHandler(http.MethodGet, statusPath, StatusMetrics)
+	router.RegisterHandler(http.MethodGet, p2pStatusPath, P2pStatusMetrics)
+	router.RegisterHandler(http.MethodPost, debugPath, QueryDebug)
+	router.RegisterHandler(http.MethodGet, peerInfoPath, PeerInfo)
 	// placeholder for custom routes
 }
 

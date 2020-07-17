@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const statisticsPath = "/statistics"
+
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
@@ -18,7 +20,7 @@ type FacadeHandler interface {
 
 // Routes defines validators' related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodGet, "/statistics", Statistics)
+	router.RegisterHandler(http.MethodGet, statisticsPath, Statistics)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
