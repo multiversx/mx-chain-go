@@ -297,11 +297,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	err = prepareGenesisBlock(args, genesisBlocks)
-	if err != nil {
-		return nil, err
-	}
-
 	validatorStatisticsProcessor, err := newValidatorStatisticsProcessor(args)
 	if err != nil {
 		return nil, err
@@ -339,7 +334,20 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
-	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
+
+	log.Debug("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
+
+	genesisMetaBlock, ok := genesisBlocks[core.MetachainShardId]
+	if !ok {
+		return nil, errors.New("genesis meta block does not exists")
+	}
+
+	genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+
+	err = prepareGenesisBlock(args, genesisBlocks)
+	if err != nil {
+		return nil, err
+	}
 
 	bootStr := args.data.Store.GetStorer(dataRetriever.BootstrapUnit)
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(args.coreData.InternalMarshalizer, bootStr)
