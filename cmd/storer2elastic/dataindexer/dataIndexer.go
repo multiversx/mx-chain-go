@@ -22,7 +22,7 @@ import (
 
 var log = logger.GetOrCreate("dataindexer")
 
-type dataPreparerAndIndexer struct {
+type dataProcessor struct {
 	elasticIndexer    indexer.Indexer
 	databaseReader    DatabaseReaderHandler
 	shardCoordinator  sharding.Coordinator
@@ -39,7 +39,7 @@ type persistersHolder struct {
 	rewardTransactionsPersister   storage.Persister
 }
 
-// Args holds the arguments needed for creating a new dataPreparerAndIndexer
+// Args holds the arguments needed for creating a new dataProcessor
 type Args struct {
 	ElasticIndexer    indexer.Indexer
 	DatabaseReader    DatabaseReaderHandler
@@ -49,8 +49,8 @@ type Args struct {
 	GenesisNodesSetup sharding.GenesisNodesSetupHandler
 }
 
-// New returns a new instance of dataPreparerAndIndexer
-func New(args Args) (*dataPreparerAndIndexer, error) {
+// New returns a new instance of dataProcessor
+func New(args Args) (*dataProcessor, error) {
 	if check.IfNil(args.ElasticIndexer) {
 		return nil, ErrNilElasticIndexer
 	}
@@ -70,7 +70,7 @@ func New(args Args) (*dataPreparerAndIndexer, error) {
 		return nil, ErrNilGenesisNodesSetup
 	}
 
-	dpi := &dataPreparerAndIndexer{
+	dpi := &dataProcessor{
 		elasticIndexer:   args.ElasticIndexer,
 		databaseReader:   args.DatabaseReader,
 		shardCoordinator: args.ShardCoordinator,
@@ -89,7 +89,7 @@ func New(args Args) (*dataPreparerAndIndexer, error) {
 }
 
 // Index will prepare the data for indexing and will try to index all the data before the given timeout
-func (dpi *dataPreparerAndIndexer) Index(timeout int) error {
+func (dpi *dataProcessor) Index(timeout int) error {
 	errChan := make(chan error, 0)
 	go func() {
 		dpi.startIndexing(errChan)
@@ -103,7 +103,7 @@ func (dpi *dataPreparerAndIndexer) Index(timeout int) error {
 	}
 }
 
-func (dpi *dataPreparerAndIndexer) startIndexing(errChan chan error) {
+func (dpi *dataProcessor) startIndexing(errChan chan error) {
 	records, err := dpi.databaseReader.GetDatabaseInfo()
 	if err != nil {
 		errChan <- err
@@ -138,7 +138,7 @@ func (dpi *dataPreparerAndIndexer) startIndexing(errChan chan error) {
 	errChan <- nil
 }
 
-func (dpi *dataPreparerAndIndexer) indexHeader(persisters *persistersHolder, dbInfo *databasereader.DatabaseInfo, hdr data.HeaderHandler, epoch uint32) error {
+func (dpi *dataProcessor) indexHeader(persisters *persistersHolder, dbInfo *databasereader.DatabaseInfo, hdr data.HeaderHandler, epoch uint32) error {
 	if metaBlock, ok := hdr.(*block.MetaBlock); ok {
 		if metaBlock.IsStartOfEpochBlock() {
 			dpi.processValidatorsForEpoch(metaBlock.Epoch, metaBlock, persisters.miniBlocksPersister)
@@ -159,7 +159,7 @@ func (dpi *dataPreparerAndIndexer) indexHeader(persisters *persistersHolder, dbI
 		}
 	}
 
-	body, txPool, err := dpi.processBodyAndTxPoolForHeader(persisters, miniBlocksHashes)
+	body, txPool, err := dpi.processBodyAndTransactionsPoolForHeader(persisters, miniBlocksHashes)
 	if err != nil {
 		return err
 	}
@@ -174,7 +174,7 @@ func (dpi *dataPreparerAndIndexer) indexHeader(persisters *persistersHolder, dbI
 	return nil
 }
 
-func (dpi *dataPreparerAndIndexer) getShardIDs() []uint32 {
+func (dpi *dataProcessor) getShardIDs() []uint32 {
 	shardIDs := make([]uint32, 0)
 	for shard := uint32(0); shard < dpi.shardCoordinator.NumberOfShards(); shard++ {
 		shardIDs = append(shardIDs, shard)
@@ -184,7 +184,7 @@ func (dpi *dataPreparerAndIndexer) getShardIDs() []uint32 {
 	return shardIDs
 }
 
-func (dpi *dataPreparerAndIndexer) processBodyAndTxPoolForHeader(
+func (dpi *dataProcessor) processBodyAndTransactionsPoolForHeader(
 	persisters *persistersHolder,
 	mbHashes []string,
 ) (*block.Body, map[string]data.TransactionHandler, error) {
@@ -192,9 +192,7 @@ func (dpi *dataPreparerAndIndexer) processBodyAndTxPoolForHeader(
 	mbUnit := persisters.miniBlocksPersister
 
 	blockBody := &block.Body{}
-
 	for _, mbHash := range mbHashes {
-
 		mbBytes, err := mbUnit.Get([]byte(mbHash))
 		if err != nil {
 			log.Warn("miniblock not found in storage", "hash", []byte(mbHash))
@@ -215,7 +213,7 @@ func (dpi *dataPreparerAndIndexer) processBodyAndTxPoolForHeader(
 	return blockBody, txPool, nil
 }
 
-func (dpi *dataPreparerAndIndexer) processTransactionsForMiniBlock(
+func (dpi *dataProcessor) processTransactionsForMiniBlock(
 	persisters *persistersHolder,
 	txHashes [][]byte,
 	txPool map[string]data.TransactionHandler,
@@ -225,7 +223,7 @@ func (dpi *dataPreparerAndIndexer) processTransactionsForMiniBlock(
 		var tx data.TransactionHandler
 		var getTxErr error
 		switch mbType {
-		case block.TxBlock:
+		case block.TxBlock, block.InvalidBlock:
 			tx, getTxErr = dpi.getRegularTx(persisters, txHash)
 		case block.RewardsBlock:
 			tx, getTxErr = dpi.getRewardTx(persisters, txHash)
@@ -240,7 +238,7 @@ func (dpi *dataPreparerAndIndexer) processTransactionsForMiniBlock(
 	}
 }
 
-func (dpi *dataPreparerAndIndexer) getRegularTx(holder *persistersHolder, txHash []byte) (data.TransactionHandler, error) {
+func (dpi *dataProcessor) getRegularTx(holder *persistersHolder, txHash []byte) (data.TransactionHandler, error) {
 	txBytes, err := holder.transactionPersister.Get(txHash)
 	if err != nil {
 		log.Warn("cannot get tx from storer", "txHash", txHash)
@@ -257,7 +255,7 @@ func (dpi *dataPreparerAndIndexer) getRegularTx(holder *persistersHolder, txHash
 	return recoveredTx, nil
 }
 
-func (dpi *dataPreparerAndIndexer) getRewardTx(holder *persistersHolder, txHash []byte) (data.TransactionHandler, error) {
+func (dpi *dataProcessor) getRewardTx(holder *persistersHolder, txHash []byte) (data.TransactionHandler, error) {
 	txBytes, err := holder.rewardTransactionsPersister.Get(txHash)
 	if err != nil {
 		log.Warn("cannot get tx from storer", "txHash", txHash)
@@ -274,7 +272,7 @@ func (dpi *dataPreparerAndIndexer) getRewardTx(holder *persistersHolder, txHash 
 	return recoveredTx, nil
 }
 
-func (dpi *dataPreparerAndIndexer) getUnsignedTx(holder *persistersHolder, txHash []byte) (data.TransactionHandler, error) {
+func (dpi *dataProcessor) getUnsignedTx(holder *persistersHolder, txHash []byte) (data.TransactionHandler, error) {
 	txBytes, err := holder.unsignedTransactionsPersister.Get(txHash)
 	if err != nil {
 		log.Warn("cannot get unsigned tx from storer", "txHash", txHash)

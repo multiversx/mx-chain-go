@@ -37,7 +37,7 @@ func NewElasticIndexerArguments() indexer.ElasticIndexerArgs {
 	return indexer.ElasticIndexerArgs{
 		Url:                      "Url",
 		UserName:                 "user",
-		Password:                 "Password",
+		Password:                 "password",
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &mock.HasherMock{},
 		Options:                  &indexer.Options{},

@@ -47,8 +47,8 @@ type elasticIndexer struct {
 	isNilIndexer bool
 }
 
-// NewElasticIndexer creates a new elasticIndexer where the server listens on the Url, authentication for the server is
-// using the username and Password
+// NewElasticIndexer creates a new elasticIndexer where the server listens on the url, authentication for the server is
+// using the username and password
 func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 	err := checkElasticSearchParams(arguments)
 	if err != nil {

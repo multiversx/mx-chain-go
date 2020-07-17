@@ -14,10 +14,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/elastic"
 	nodeConfigPackage "github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
+	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	hasherFactory "github.com/ElrondNetwork/elrond-go/hashing/factory"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	marshalFactory "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -61,7 +62,7 @@ VERSION:
 	dbPathWithChainIDFlag = cli.StringFlag{
 		Name:        "db-path",
 		Usage:       "This string flag specifies the path for the database directory, the chain ID directory",
-		Value:       "../../db",
+		Value:       "db/chainID",
 		Destination: &flagsValues.dbPathWithChainID,
 	}
 
@@ -77,7 +78,7 @@ VERSION:
 	nodesSetupFilePathFlag = cli.StringFlag{
 		Name:        "nodes-setup",
 		Usage:       "This string file specifies the `filepath` for the node's nodes setup json configuration file",
-		Value:       "../node/config/nodesSetup.json",
+		Value:       "config/nodesSetup.json",
 		Destination: &flagsValues.nodesSetupFilePath,
 	}
 
@@ -111,13 +112,9 @@ VERSION:
 
 func main() {
 	initCliFlags()
-	marshalizer = &marshal.GogoProtoMarshalizer{}
-	hasher = &blake2b.Blake2b{}
-	addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32)
-	validatorPubKeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(96)
 
 	cliApp.Action = func(c *cli.Context) error {
-		return startLvlDb2Elastic(c)
+		return startStorer2Elastic(c)
 	}
 
 	err := cliApp.Run(os.Args)
@@ -149,7 +146,7 @@ func initCliFlags() {
 	}
 }
 
-func startLvlDb2Elastic(ctx *cli.Context) error {
+func startStorer2Elastic(ctx *cli.Context) error {
 	log.Info("storer2elastic application started", "version", cliApp.Version)
 
 	var err error
@@ -174,6 +171,23 @@ func startLvlDb2Elastic(ctx *cli.Context) error {
 	}
 
 	err = core.LoadTomlFile(&nodeConfig, configuration.General.NodeConfigFilePath)
+	if err != nil {
+		return err
+	}
+
+	marshalizer, err = marshalFactory.NewMarshalizer(nodeConfig.Marshalizer.Type)
+	if err != nil {
+		return err
+	}
+	hasher, err = hasherFactory.NewHasher(nodeConfig.Hasher.Type)
+	if err != nil {
+		return err
+	}
+	addressPubKeyConverter, err = stateFactory.NewPubkeyConverter(nodeConfig.AddressPubkeyConverter)
+	if err != nil {
+		return err
+	}
+	validatorPubKeyConverter, err = stateFactory.NewPubkeyConverter(nodeConfig.ValidatorPubkeyConverter)
 	if err != nil {
 		return err
 	}
@@ -203,11 +217,19 @@ func startLvlDb2Elastic(ctx *cli.Context) error {
 		MaxBatchSize:      30000,
 		MaxOpenFiles:      20,
 	}
+
 	persisterFactory := factory.NewPersisterFactory(nodeConfigPackage.DBConfig(generalDBConfig))
-	dbReader, err := databasereader.NewDatabaseReader(configuration.General.DBPathWithChainID, marshalizer, persisterFactory)
+	dbReaderArgs := databasereader.Args{
+		DirectoryReader:   factory.NewDirectoryReader(),
+		Marshalizer:       marshalizer,
+		PersisterFactory:  persisterFactory,
+		DbPathWithChainID: configuration.General.DBPathWithChainID,
+	}
+	dbReader, err := databasereader.New(dbReaderArgs)
 	if err != nil {
 		return err
 	}
+
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		flagsValues.nodesSetupFilePath,
 		addressPubKeyConverter,

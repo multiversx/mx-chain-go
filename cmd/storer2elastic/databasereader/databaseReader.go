@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
 var log = logger.GetOrCreate("databasereader")
@@ -21,9 +20,18 @@ var log = logger.GetOrCreate("databasereader")
 const shardBlocksStorer = "BlockHeaders"
 const metaHeadersStorer = "MetaBlock"
 
+// DatabaseInfo holds data about a specific database
 type DatabaseInfo struct {
 	Epoch uint32
 	Shard uint32
+}
+
+// Args holds the arguments needed for creating a new database reader
+type Args struct {
+	DirectoryReader   storage.DirectoryReaderHandler
+	Marshalizer       marshal.Marshalizer
+	PersisterFactory  storage.PersisterFactory
+	DbPathWithChainID string
 }
 
 type databaseReader struct {
@@ -33,26 +41,30 @@ type databaseReader struct {
 	dbPathWithChainID string
 }
 
-// NewDatabaseReader will return a new instance of databaseReader
-func NewDatabaseReader(dbFilePath string, marshalizer marshal.Marshalizer, persisterFactory storage.PersisterFactory) (*databaseReader, error) {
-	if len(dbFilePath) == 0 {
+// New will return a new instance of databaseReader
+func New(args Args) (*databaseReader, error) {
+	if len(args.DbPathWithChainID) == 0 {
 		return nil, ErrEmptyDbFilePath
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.DirectoryReader) {
+		return nil, ErrNilDirectoryReader
+	}
+	if check.IfNil(args.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if check.IfNil(persisterFactory) {
+	if check.IfNil(args.PersisterFactory) {
 		return nil, ErrNilPersisterFactory
 	}
 
 	return &databaseReader{
-		directoryReader:   factory.NewDirectoryReader(),
-		marshalizer:       marshalizer,
-		persisterFactory:  persisterFactory,
-		dbPathWithChainID: dbFilePath,
+		directoryReader:   args.DirectoryReader,
+		marshalizer:       args.Marshalizer,
+		persisterFactory:  args.PersisterFactory,
+		dbPathWithChainID: args.DbPathWithChainID,
 	}, nil
 }
 
+// GetDatabaseInfo returns all the databases' data found in the path specified on the constructor
 func (dr *databaseReader) GetDatabaseInfo() ([]*DatabaseInfo, error) {
 	dbs := make([]*DatabaseInfo, 0)
 	epochsDirectories, err := dr.directoryReader.ListDirectoriesAsString(dr.dbPathWithChainID)
@@ -90,7 +102,14 @@ func (dr *databaseReader) GetDatabaseInfo() ([]*DatabaseInfo, error) {
 	}
 
 	sort.Slice(dbs, func(i, j int) bool {
-		return dbs[i].Epoch < dbs[j].Epoch
+		if dbs[i].Epoch < dbs[j].Epoch {
+			return true
+		}
+		if dbs[i].Epoch > dbs[i].Epoch {
+			return false
+		}
+
+		return dbs[i].Shard > dbs[j].Shard
 	})
 
 	return dbs, nil

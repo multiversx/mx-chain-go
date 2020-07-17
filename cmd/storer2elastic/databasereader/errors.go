@@ -10,3 +10,9 @@ var ErrNilMarshalizer = errors.New("nil marshalizer")
 
 // ErrNilPersisterFactory signals that a nil persister factory has been provided
 var ErrNilPersisterFactory = errors.New("nil persister factory")
+
+// ErrNilDirectoryReader signals that a nil directory reader has been provided
+var ErrNilDirectoryReader = errors.New("nil directory reader")
+
+// ErrNoHeader signals that no header has been found during database read
+var ErrNoHeader = errors.New("no header")

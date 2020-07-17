@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	bootstrapDisabled "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -64,7 +65,7 @@ func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
 		AddressPubkeyConverter:   escf.addressPubKeyConverter,
 		ValidatorPubkeyConverter: escf.validatorPubKeyConverter,
 		NodesCoordinator:         disabled.NewNodesCoordinator(),
-		EpochStartNotifier:       disabled.NewEpochStartEventNotifier(),
+		EpochStartNotifier:       &bootstrapDisabled.EpochStartNotifier{},
 		Options:                  &indexer.Options{TxIndexingEnabled: true},
 	}
 

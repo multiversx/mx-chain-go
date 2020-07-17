@@ -1,17 +1,16 @@
 package databasereader
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// GetHeaders returns all the headers found in meta block or shard header units
 func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler, error) {
 	hdrStorer := shardBlocksStorer
 	if dbInfo.Shard == core.MetachainShardId {
@@ -31,36 +30,36 @@ func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler
 		_ = hdrPersister.Close()
 	}()
 
-	records := make([]core.KeyValueHolder, 0)
+	hdrs := make([]data.HeaderHandler, 0)
 	recordsRangeHandler := func(key []byte, value []byte) bool {
-		records = append(records, keyValStorage.NewKeyValStorage(key, value))
+		hdr, err := dr.getHeader(hdrStorer, value)
+		if err != nil {
+			log.Warn("error fetching a header", "key", key, "error", err)
+		} else {
+			hdrs = append(hdrs, hdr)
+		}
 		return true
 	}
 
 	hdrPersister.RangeKeys(recordsRangeHandler)
 
-	hdrs := make([]data.HeaderHandler, 0)
-	for _, rec := range records {
-		hdrBytes := rec.Value()
-		var hdr data.HeaderHandler
-		var errUmarshal error
-		if hdrStorer == shardBlocksStorer {
-			hdr, errUmarshal = dr.unmarshalShardHeader(hdrBytes)
-		} else {
-			hdr, errUmarshal = dr.unmarshalMetaBlock(hdrBytes)
-		}
-		if errUmarshal != nil {
-			log.Warn("error unmarshalling header", "error", errUmarshal)
-			continue
-		}
-
-		hdrs = append(hdrs, hdr)
-	}
-
 	if len(hdrs) == 0 {
-		return nil, errors.New("no header")
+		return nil, ErrNoHeader
 	}
+
 	return hdrs, nil
+}
+
+func (dr *databaseReader) getHeader(hdrStorer string, value []byte) (data.HeaderHandler, error) {
+	var hdr data.HeaderHandler
+	var errUmarshal error
+	if hdrStorer == shardBlocksStorer {
+		hdr, errUmarshal = dr.unmarshalShardHeader(value)
+	} else {
+		hdr, errUmarshal = dr.unmarshalMetaBlock(value)
+	}
+
+	return hdr, errUmarshal
 }
 
 func (dr *databaseReader) unmarshalShardHeader(hdrBytes []byte) (*block.Header, error) {
@@ -83,6 +82,7 @@ func (dr *databaseReader) unmarshalMetaBlock(hdrBytes []byte) (*block.MetaBlock,
 	return blck, nil
 }
 
+// LoadPersister will load the persister based on the database information and the unit
 func (dr *databaseReader) LoadPersister(dbInfo *DatabaseInfo, unit string) (storage.Persister, error) {
 	shardIDStr := fmt.Sprintf("%d", dbInfo.Shard)
 	if shardIDStr == fmt.Sprintf("%d", core.MetachainShardId) {
