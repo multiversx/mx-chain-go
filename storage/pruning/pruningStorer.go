@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"runtime/debug"
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -799,14 +800,11 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	return nil
 }
 
-// Iterate returns a closed channel as it is unable to iterate over multiple persisters
-func (ps *PruningStorer) Iterate() chan core.KeyValueHolder {
-	ch := make(chan core.KeyValueHolder)
-	close(ch)
-
-	log.Error("improper use of PruningStorer.Iterate()")
-
-	return ch
+// RangeKeys does nothing as it is unable to iterate over multiple persisters
+// RangeKeys -
+func (ps *PruningStorer) RangeKeys(_ func(key []byte, val []byte) bool) {
+	log.Error("improper use of PruningStorer.RangeKeys()")
+	debug.PrintStack()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -5,9 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 )
 
 // MemDbMock represents the memory database storage. It holds a map of key value pairs
@@ -99,22 +96,21 @@ func (s *MemDbMock) DestroyClosed() error {
 	return nil
 }
 
-// Iterate will iterate over all contained (key, value) pairs
-func (s *MemDbMock) Iterate() chan core.KeyValueHolder {
-	ch := make(chan core.KeyValueHolder)
+// RangeKeys will iterate over all contained (key, value) pairs calling the handler for each pair
+func (s *MemDbMock) RangeKeys(handler func(key []byte, value []byte) bool) {
+	if handler == nil {
+		return
+	}
 
-	go func() {
-		s.mutx.RLock()
-		defer s.mutx.RUnlock()
+	s.mutx.RLock()
+	defer s.mutx.RUnlock()
 
-		for k, v := range s.db {
-			ch <- keyValStorage.NewKeyValStorage([]byte(k), v)
+	for k, v := range s.db {
+		shouldContinue := handler([]byte(k), v)
+		if !shouldContinue {
+			return
 		}
-
-		close(ch)
-	}()
-
-	return ch
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -1,7 +1,5 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/core"
-
 // StorerStub -
 type StorerStub struct {
 	PutCalled          func(key, data []byte) error
@@ -14,7 +12,7 @@ type StorerStub struct {
 	ClearCacheCalled   func()
 	CloseCalled        func() error
 	DestroyUnitCalled  func() error
-	IterateCalled      func() chan core.KeyValueHolder
+	RangeKeysCalled    func(handler func(key []byte, val []byte) bool)
 }
 
 // GetFromEpoch -
@@ -70,16 +68,11 @@ func (ss *StorerStub) DestroyUnit() error {
 	return ss.DestroyUnitCalled()
 }
 
-// Iterate -
-func (ss *StorerStub) Iterate() chan core.KeyValueHolder {
-	if ss.IterateCalled != nil {
-		return ss.IterateCalled()
+// RangeKeys -
+func (ss *StorerStub) RangeKeys(handler func(key []byte, val []byte) bool) {
+	if ss.RangeKeysCalled != nil {
+		ss.RangeKeysCalled(handler)
 	}
-
-	ch := make(chan core.KeyValueHolder)
-	close(ch)
-
-	return ch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

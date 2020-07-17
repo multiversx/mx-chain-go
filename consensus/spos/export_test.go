@@ -3,7 +3,6 @@ package spos
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -60,14 +59,6 @@ func (wrk *Worker) SetForkDetector(forkDetector process.ForkDetector) {
 	wrk.forkDetector = forkDetector
 }
 
-func (wrk *Worker) KeyGenerator() crypto.KeyGenerator {
-	return wrk.keyGenerator
-}
-
-func (wrk *Worker) SetKeyGenerator(keyGenerator crypto.KeyGenerator) {
-	wrk.keyGenerator = keyGenerator
-}
-
 func (wrk *Worker) Marshalizer() marshal.Marshalizer {
 	return wrk.marshalizer
 }
@@ -85,7 +76,7 @@ func (wrk *Worker) SetRounder(rounder consensus.Rounder) {
 }
 
 func (wrk *Worker) CheckSignature(cnsData *consensus.Message) error {
-	return wrk.checkSignature(cnsData)
+	return wrk.peerSignatureHandler.VerifyPeerSignature(cnsData.PubKey, core.PeerID(cnsData.OriginatorPid), cnsData.Signature)
 }
 
 func (wrk *Worker) ExecuteMessage(cnsDtaList []*consensus.Message) {

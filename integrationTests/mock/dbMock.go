@@ -1,7 +1,5 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/core"
-
 // MockDB -
 type MockDB struct {
 }
@@ -46,12 +44,8 @@ func (MockDB) DestroyClosed() error {
 	return nil
 }
 
-// Iterate -
-func (MockDB) Iterate() chan core.KeyValueHolder {
-	ch := make(chan core.KeyValueHolder)
-	close(ch)
-
-	return ch
+// RangeKeys -
+func (MockDB) RangeKeys(_ func(key []byte, val []byte) bool) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

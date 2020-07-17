@@ -18,7 +18,7 @@ type HeaderDataForValidator struct {
 
 // SignMessage will sign and return the given message
 func (cm *commonMessenger) SignMessage(message *consensus.Message) ([]byte, error) {
-	return cm.signMessage(message)
+	return cm.peerSignatureHandler.GetPeerSignature(cm.privateKey, message.OriginatorPid)
 }
 
 // ExtractMetaMiniBlocksAndTransactions -
@@ -176,14 +176,14 @@ func NewCommonMessenger(
 	messenger consensus.P2PMessenger,
 	privateKey crypto.PrivateKey,
 	shardCoordinator sharding.Coordinator,
-	singleSigner crypto.SingleSigner,
+	peerSigHandler crypto.PeerSignatureHandler,
 ) (*commonMessenger, error) {
 
 	return &commonMessenger{
-		marshalizer:      marshalizer,
-		messenger:        messenger,
-		privateKey:       privateKey,
-		shardCoordinator: shardCoordinator,
-		singleSigner:     singleSigner,
+		marshalizer:          marshalizer,
+		messenger:            messenger,
+		privateKey:           privateKey,
+		shardCoordinator:     shardCoordinator,
+		peerSignatureHandler: peerSigHandler,
 	}, nil
 }

@@ -44,6 +44,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.miniBlocksPool = t.miniBlocksPool
 	rt.mapMissingMiniblocks = t.mapMissingMiniblocks
 	rt.mapFinalizedEpochs = t.mapFinalizedEpochs
+	rt.rounder = t.rounder
 	return rt
 }
 

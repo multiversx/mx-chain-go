@@ -2,6 +2,8 @@ package crypto
 
 import (
 	"crypto/cipher"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // A Scalar represents a scalar value by which
@@ -214,4 +216,12 @@ type LowLevelSignerBLS interface {
 	AggregateSignatures(suite Suite, signatures [][]byte, pubKeysSigners []PublicKey) ([]byte, error)
 	// VerifyAggregatedSig verifies the validity of an aggregated signature over a given message
 	VerifyAggregatedSig(suite Suite, pubKeys []PublicKey, aggSigBytes []byte, msg []byte) error
+}
+
+// PeerSignatureHandler is a wrapper over SingleSigner that buffers the peer signatures.
+// When it needs to sign or to verify a signature, is searches the buffer first.
+type PeerSignatureHandler interface {
+	VerifyPeerSignature(pk []byte, pid core.PeerID, signature []byte) error
+	GetPeerSignature(key PrivateKey, pid []byte) ([]byte, error)
+	IsInterfaceNil() bool
 }
