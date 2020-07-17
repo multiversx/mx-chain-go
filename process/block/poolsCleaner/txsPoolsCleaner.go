@@ -275,7 +275,7 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 			numRemoved := storeWithRemoveTxBulk.RemoveTxBulk(hashes)
 			log.Debug("RemoveTxBulk()", "num", len(hashes), "numRemoved", numRemoved, "store", fmt.Sprintf("%T", store))
 		} else {
-			log.Debug("bulk removal no supported, will remove one by one", "num", len(hashes), "store", fmt.Sprintf("%T", store))
+			log.Debug("bulk removal not supported, will remove one by one", "num", len(hashes), "store", fmt.Sprintf("%T", store))
 			for _, hash := range hashes {
 				store.Remove(hash)
 			}
