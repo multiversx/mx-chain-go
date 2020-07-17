@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
+	"github.com/ElrondNetwork/elrond-go/scwatcher"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
@@ -576,6 +577,13 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		)
 		return
 	}
+
+	go sp.core.ScWatcherDriver().DigestBlock(body, header, scwatcher.TransactionsToDigest{
+		RegularTxs:  txPool,
+		ScResults:   scPool,
+		ReceiptsTxs: receiptPool,
+		InvalidTxs:  invalidPool,
+	})
 
 	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes, nil)
 

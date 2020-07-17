@@ -3,11 +3,15 @@ package serviceContainer
 import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/scwatcher"
 )
 
+var _ Core = (*serviceContainer)(nil)
+
 type serviceContainer struct {
-	indexer      indexer.Indexer
-	tpsBenchmark statistics.TPSBenchmark
+	indexer         indexer.Indexer
+	tpsBenchmark    statistics.TPSBenchmark
+	scWatcherDriver scwatcher.ScWatcherDriver
 }
 
 // Option represents a functional configuration parameter that
@@ -17,7 +21,9 @@ type Option func(container *serviceContainer) error
 // NewServiceContainer creates a new serviceContainer responsible in
 //  providing access to all injected core features
 func NewServiceContainer(opts ...Option) (Core, error) {
-	sc := &serviceContainer{}
+	sc := &serviceContainer{
+		scWatcherDriver: &scwatcher.DisabledScWatcherDriver{},
+	}
 	for _, opt := range opts {
 		err := opt(sc)
 		if err != nil {
@@ -37,9 +43,9 @@ func (sc *serviceContainer) TPSBenchmark() statistics.TPSBenchmark {
 	return sc.tpsBenchmark
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (sc *serviceContainer) IsInterfaceNil() bool {
-	return sc == nil
+// ScWatcherDriver returns the ScWatcher driver
+func (sc *serviceContainer) ScWatcherDriver() scwatcher.ScWatcherDriver {
+	return sc.scWatcherDriver
 }
 
 // WithIndexer sets up the database indexer for the core serviceContainer
@@ -56,4 +62,9 @@ func WithTPSBenchmark(tpsBenchmark statistics.TPSBenchmark) Option {
 		sc.tpsBenchmark = tpsBenchmark
 		return nil
 	}
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sc *serviceContainer) IsInterfaceNil() bool {
+	return sc == nil
 }
