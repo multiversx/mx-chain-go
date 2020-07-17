@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -33,12 +34,12 @@ type TriggerResponse struct {
 	Status string `json:"status"`
 }
 
-func startNodeServer(handler hardfork.TriggerHardforkHandler) *gin.Engine {
+func startNodeServer(handler hardfork.FacadeHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ginHardforkRoute := ws.Group("/hardfork")
 	if handler != nil {
-		ginHardforkRoute.Use(middleware.WithTestingElrondFacade(handler))
+		ginHardforkRoute.Use(middleware.WithFacade(handler))
 	}
 	hardForkRoute, _ := wrapper.NewRouterWrapper("hardfork", ginHardforkRoute, getRoutesConfig())
 	hardfork.Routes(hardForkRoute)
@@ -49,7 +50,7 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
+		c.Set("facade", mock.WrongFacade{})
 	})
 	ginHardforkRoute := ws.Group("/hardfork")
 	hardForkRoute, _ := wrapper.NewRouterWrapper("hardfork", ginHardforkRoute, getRoutesConfig())
@@ -61,6 +62,20 @@ func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
 	log.LogIfError(err)
+}
+
+func TestTrigger_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("POST", "/hardfork/trigger", bytes.NewBuffer(nil))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestTrigger_WithWrongFacadeShouldErr(t *testing.T) {

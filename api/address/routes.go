@@ -13,7 +13,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
+const (
+	getAccountPath = "/:address"
+	getBalancePath = "/:address/balance"
+	getKeyPath     = "/:address/key/:key"
+)
+
+// FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
 	GetValueForKey(address string, key string) (string, error)
@@ -32,15 +38,26 @@ type accountResponse struct {
 
 // Routes defines address related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodGet, "/:address", GetAccount)
-	router.RegisterHandler(http.MethodGet, "/:address/balance", GetBalance)
-	router.RegisterHandler(http.MethodGet, "/:address/key/:key", GetValueForKey)
+	router.RegisterHandler(http.MethodGet, getAccountPath, GetAccount)
+	router.RegisterHandler(http.MethodGet, getBalancePath, GetBalance)
+	router.RegisterHandler(http.MethodGet, getKeyPath, GetValueForKey)
 }
 
-// GetAccount returns an accountResponse containing information
-//  about the account correlated with provided address
-func GetAccount(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+func getFacade(c *gin.Context) (FacadeHandler, bool) {
+	facadeObj, ok := c.Get("facade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return nil, false
+	}
+
+	facade, ok := facadeObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -50,11 +67,22 @@ func GetAccount(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
+		return nil, false
+	}
+
+	return facade, true
+}
+
+// GetAccount returns an accountResponse containing information
+//  about the account correlated with provided address
+func GetAccount(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
 		return
 	}
 
 	addr := c.Param("address")
-	acc, err := ef.GetAccount(addr)
+	acc, err := facade.GetAccount(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -79,18 +107,11 @@ func GetAccount(c *gin.Context) {
 
 // GetBalance returns the balance for the address parameter
 func GetBalance(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
+
 	addr := c.Param("address")
 	if addr == "" {
 		c.JSON(
@@ -104,7 +125,7 @@ func GetBalance(c *gin.Context) {
 		return
 	}
 
-	balance, err := ef.GetBalance(addr)
+	balance, err := facade.GetBalance(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -128,16 +149,8 @@ func GetBalance(c *gin.Context) {
 
 // GetValueForKey returns the value for the given address and key
 func GetValueForKey(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
 
@@ -167,7 +180,7 @@ func GetValueForKey(c *gin.Context) {
 		return
 	}
 
-	value, err := ef.GetValueForKey(addr, key)
+	value, err := facade.GetValueForKey(addr, key)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
