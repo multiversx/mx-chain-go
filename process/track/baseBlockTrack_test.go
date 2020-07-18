@@ -1723,7 +1723,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 		Nonce: 1,
 		ShardInfo: []block.ShardData{
 			{
-				NumPendingMiniBlocks: 99,
+				NumPendingMiniBlocks: process.MaxNumPendingMiniBlocksPerShard*shardArguments.ShardCoordinator.NumberOfShards() - 1,
 			},
 		},
 		PrevHash:     startHeaderHash,
@@ -1736,7 +1736,7 @@ func TestIsShardStuck_ShouldWork(t *testing.T) {
 		Nonce: 2,
 		ShardInfo: []block.ShardData{
 			{
-				NumPendingMiniBlocks: 100,
+				NumPendingMiniBlocks: process.MaxNumPendingMiniBlocksPerShard * shardArguments.ShardCoordinator.NumberOfShards(),
 			},
 		},
 		PrevHash:     hdr1Hash,
