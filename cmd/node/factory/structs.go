@@ -348,7 +348,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
-
 	err = prepareGenesisBlock(args, genesisBlocks)
 	if err != nil {
 		return nil, err
