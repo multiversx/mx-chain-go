@@ -81,7 +81,7 @@ const MaxRoundsWithoutCommittedBlock = 10
 const MinForkRound = uint64(0)
 
 // MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
-const MaxNumPendingMiniBlocks = 100
+const MaxNumPendingMiniBlocks = 500
 
 // MaxMetaNoncesBehind defines the maximum difference between the current meta block nonce and the processed meta block
 // nonce before a shard is considered stuck
