@@ -117,7 +117,6 @@ jobs:
           sed -i.bak 's/Port.*/Port = \"1000\"/' $BASE_PATH/filegenConfigLocal/p2p.toml
           sed -i.bak 's/InitialPeerList.*/InitialPeerList = [\"\/dns4\/elrond-seednode\/tcp\/10000\/p2p\/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk\"]/' $BASE_PATH/filegenConfigLocal/p2p.toml
 
-
           sed -i.bak 's/Address.*80\"/Address = \"http:\/\/observer-shard-0:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
           sed -i.bak 's/Address.*81\"/Address = \"http:\/\/observer-shard-1:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
           sed -i.bak 's/= 8080/= 8081/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
