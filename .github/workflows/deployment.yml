@@ -71,19 +71,6 @@ jobs:
           sudo apt update
           sudo apt install bc -y
 
-      - name: Prepare Configs
-        run: |
-          cp -r $BASE_PATH/cmd/node/config/ $BASE_PATH/filegenConfigLocal/
-          cp $BASE_PATH/elrond-k8s-testnet/filegenConfig/observerKey.pem $BASE_PATH/filegenConfigLocal/
-          sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '8 minutes' +%s)",'/g' $BASE_PATH/filegenConfigLocal/nodesSetup.json > $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
-          sed -i.bak 's/Port.*/Port = \"1000\"/' $BASE_PATH/filegenConfigLocal/p2p.toml
-          sed -i.bak 's/InitialPeerList.*/InitialPeerList = [\"\/dns4\/elrond-seednode\/tcp\/10000\/p2p\/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk\"]/' $BASE_PATH/filegenConfigLocal/p2p.toml
-
-          sed -i.bak 's/Address.*80\"/Address = \"http:\/\/observer-shard-0:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
-          sed -i.bak 's/Address.*81\"/Address = \"http:\/\/observer-shard-1:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
-          sed -i.bak 's/= 8080/= 8081/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
-        shell: bash
-
       - name: Create Configs
         run: |
           export HYSTERESIS=0.21
@@ -121,6 +108,19 @@ jobs:
             -chain-id ${{ github.sha }} \
             -hysteresis $HYSTERESIS \
             -stake-type delegated
+
+      - name: Prepare Configs
+        run: |
+          cp -r $BASE_PATH/cmd/node/config/ $BASE_PATH/filegenConfigLocal/
+          cp $BASE_PATH/elrond-k8s-testnet/filegenConfig/observerKey.pem $BASE_PATH/filegenConfigLocal/
+          sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '8 minutes' +%s)",'/g' $BASE_PATH/filegenConfigLocal/nodesSetup.json > $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
+          sed -i.bak 's/Port.*/Port = \"1000\"/' $BASE_PATH/filegenConfigLocal/p2p.toml
+          sed -i.bak 's/InitialPeerList.*/InitialPeerList = [\"\/dns4\/elrond-seednode\/tcp\/10000\/p2p\/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk\"]/' $BASE_PATH/filegenConfigLocal/p2p.toml
+
+          sed -i.bak 's/Address.*80\"/Address = \"http:\/\/observer-shard-0:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
+          sed -i.bak 's/Address.*81\"/Address = \"http:\/\/observer-shard-1:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
+          sed -i.bak 's/= 8080/= 8081/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
+        shell: bash
 
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
