@@ -160,9 +160,6 @@ jobs:
           export NAMESPACE=$( echo ${{ github.ref }}/${{ github.sha }} | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
           kubectl create namespace "$NAMESPACE"
 
-          ls -lh $BASE_PATH/elrond-txgen-go/cmd/txgen
-          ls -lh $BASE_PATH/elrond-txgen-go/cmd/txgen/config/
-
           kubectl -n $NAMESPACE create configmap elrond-node-config \
             --from-file=$BASE_PATH/filegenConfigLocal/validatorKey.pem \
             --from-file=$BASE_PATH/filegenConfigLocal/observerKey.pem \
@@ -172,8 +169,9 @@ jobs:
             --from-file=$BASE_PATH/filegenConfigLocal/genesisSmartContracts.json \
             --from-file=nodesSetup.json=$BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json \
             --from-file=$BASE_PATH/filegenConfigLocal/walletKey.pem \
-            --from-file=proxyConfig.toml=$BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
+            --from-file=proxyConfig.toml=$BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml \
             --from-file=txgenConfig.toml=$BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
+
           kubectl create configmap txgen-config --from-literal=num_shards_txgen=2 --from-literal=minting_value=200000000 --from-literal=num_accounts=100
 
           echo $NUM_NODES_TOTAL $NUM_OF_SHARDS
