@@ -172,7 +172,7 @@ jobs:
             --from-file=proxyConfig.toml=$BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml \
             --from-file=proxyEconomics.toml=$BASE_PATH/elrond-proxy-go/cmd/proxy/config/economics.toml \
             --from-file=txgenConfig.toml=$BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml \
-            --from-file=txgenEconomics.tmol=$BASE_PATH/elrond-txgen-go/cmd/txgen/config/economics.toml
+            --from-file=txgenEconomics.toml=$BASE_PATH/elrond-txgen-go/cmd/txgen/config/economics.toml
 
           kubectl -n $NAMESPACE create configmap txgen-config \
             --from-literal=num_shards_txgen=2 \
