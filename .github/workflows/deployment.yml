@@ -122,7 +122,7 @@ jobs:
 
           # Scenarios is the list of scenarios that txgen will start with. All values: ["basic", "erc20", "stake", "esdt", "badNonce", "highLoad"]
           sed -i.bak 's/Scenarios = .*]/Scenarios = [\"basic\"]/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
-          sed -i.bak 's/= 8080/= 8081/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
+          sed -i.bak 's/8080/8001/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
         shell: bash
 
       # Configure docker to use the gcloud command-line tool as a credential helper
