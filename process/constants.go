@@ -48,7 +48,7 @@ const EpochChangeGracePeriod = 1
 
 // MaxHeaderRequestsAllowed defines the maximum number of missing cross-shard headers (gaps) which could be requested
 // in one round, when node processes a received block
-const MaxHeaderRequestsAllowed = 10
+const MaxHeaderRequestsAllowed = 30
 
 // NumTxPerSenderBatchForFillingMiniblock defines the number of transactions to be drawn
 // from the transactions pool, for a specific sender, in a single pass.
@@ -65,7 +65,7 @@ const MaxSyncWithErrorsAllowed = 10
 
 // MaxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance,
 // if they are missing
-const MaxHeadersToRequestInAdvance = 10
+const MaxHeadersToRequestInAdvance = 30
 
 // RoundModulusTrigger defines a round modulus on which a trigger for an action will be released
 const RoundModulusTrigger = 5
@@ -101,9 +101,9 @@ const MaxMetaHeadersAllowedInOneShardBlock = 50
 // MaxShardHeadersAllowedInOneMetaBlock defines the maximum number of shard headers allowed to be included in one meta block
 const MaxShardHeadersAllowedInOneMetaBlock = 50
 
-// MinShardHeadersInOneMetaBlock defines the minimum number of shard headers which would be included in one meta block
-// if they are available
-const MinShardHeadersInOneMetaBlock = 5
+// MinShardHeadersFromSameShardInOneMetaBlock defines the minimum number of shard headers from the same shard,
+// which would be included in one meta block if they are available
+const MinShardHeadersFromSameShardInOneMetaBlock = 20
 
 // MaxNumOfTxsToSelect defines the maximum number of transactions that should be selected from the cache
 const MaxNumOfTxsToSelect = 30000
@@ -115,4 +115,4 @@ const MaxRoundsToKeepUnprocessedMiniBlocks = 100
 const MaxRoundsToKeepUnprocessedTransactions = 100
 
 // MaxHeadersToWhitelistInAdvance defines the maximum number of headers whose miniblocks will be whitelisted in advance
-const MaxHeadersToWhitelistInAdvance = 20
+const MaxHeadersToWhitelistInAdvance = 30
