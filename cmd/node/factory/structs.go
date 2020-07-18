@@ -297,7 +297,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	err = prepareGenesisBlock(args, genesisBlocks)
+	err = setGenesisHeader(args, genesisBlocks)
 	if err != nil {
 		return nil, err
 	}
@@ -504,6 +504,20 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		TxLogsProcessor:          txLogsProcessor,
 		HeaderValidator:          headerValidator,
 	}, nil
+}
+
+func setGenesisHeader(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
+	genesisBlock, ok := genesisBlocks[args.shardCoordinator.SelfId()]
+	if !ok {
+		return errors.New("genesis block does not exist")
+	}
+
+	err := args.data.Blkc.SetGenesisHeader(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
