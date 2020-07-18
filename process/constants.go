@@ -91,15 +91,19 @@ const MaxMetaNoncesBehind = 15
 // shard block nonce by meta, before meta is considered stuck
 const MaxShardNoncesBehind = 15
 
-// MaxRoundsWithoutNewBlockReceived defines the maximum rounds to wait for a new block to be received,
+// MaxRoundsWithoutNewBlockReceived defines the maximum number of rounds to wait for a new block to be received,
 // before a special action to be applied
 const MaxRoundsWithoutNewBlockReceived = 10
 
-// MaxMetaHeadersAllowedInOneShardBlock defines the maximum meta headers allowed to be included in one shard block
+// MaxMetaHeadersAllowedInOneShardBlock defines the maximum number of meta headers allowed to be included in one shard block
 const MaxMetaHeadersAllowedInOneShardBlock = 50
 
-// MaxShardHeadersAllowedInOneMetaBlock defines the maximum shard headers allowed to be included in one meta block
+// MaxShardHeadersAllowedInOneMetaBlock defines the maximum number of shard headers allowed to be included in one meta block
 const MaxShardHeadersAllowedInOneMetaBlock = 50
+
+// MinShardHeadersInOneMetaBlock defines the minimum number of shard headers which would be included in one meta block
+// if they are available
+const MinShardHeadersInOneMetaBlock = 5
 
 // MaxNumOfTxsToSelect defines the maximum number of transactions that should be selected from the cache
 const MaxNumOfTxsToSelect = 30000
