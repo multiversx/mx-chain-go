@@ -159,6 +159,10 @@ jobs:
           #regex for namepsace evaluation '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
           export NAMESPACE=$( echo ${{ github.ref }}/${{ github.sha }} | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
           kubectl create namespace "$NAMESPACE"
+
+          ls -lh $BASE_PATH/elrond-txgen-go/cmd/txgen
+          ls -lh $BASE_PATH/elrond-txgen-go/cmd/txgen/config/
+
           kubectl -n $NAMESPACE create configmap elrond-node-config \
             --from-file=$BASE_PATH/filegenConfigLocal/validatorKey.pem \
             --from-file=$BASE_PATH/filegenConfigLocal/observerKey.pem \
