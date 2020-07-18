@@ -1025,7 +1025,7 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsE
 		return requestedNonces[i] < requestedNonces[j]
 	})
 	mutRequestedNonces.Unlock()
-	expectedNonces := []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	expectedNonces := []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}
 	assert.Equal(t, expectedNonces, requestedNonces)
 
 	requestedNonces = make([]uint64, 0)
@@ -1107,6 +1107,6 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 		return requestedNonces[i] < requestedNonces[j]
 	})
 	mutRequestedNonces.Unlock()
-	expectedNonces = []uint64{6, 7, 9, 11, 12, 13, 14, 15}
+	expectedNonces = []uint64{6, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18}
 	assert.Equal(t, expectedNonces, requestedNonces)
 }
