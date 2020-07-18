@@ -140,6 +140,7 @@ jobs:
             --from-file=$BASE_PATH/filegenConfigLocal/genesisSmartContracts.json \
             --from-file=nodesSetup.json=$BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json \
             --from-file=$BASE_PATH/filegenConfigLocal/walletKey.pem
+          kubectl create configmap txgen-config --from-literal=num_shards_txgen=2 --from-literal=minting_value=200000000 --from-literal=num_accounts=100
 
           echo $NUM_NODES_TOTAL $NUM_OF_SHARDS
           ./kustomize edit set replicas elrond-node=65 observer-shard=2
