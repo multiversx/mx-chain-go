@@ -80,7 +80,8 @@ const MaxRoundsWithoutCommittedBlock = 10
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
 
-// MaxNumPendingMiniBlocksPerShard defines the maximum number of pending miniblocks per shard, after which a shard could be considered stuck
+// MaxNumPendingMiniBlocksPerShard defines the maximum number of pending miniblocks per shard, after which a shard
+// could be considered stuck if this value multiplied by the number of shards is reached
 const MaxNumPendingMiniBlocksPerShard = 10
 
 // MaxMetaNoncesBehind defines the maximum difference between the current meta block nonce and the processed meta block
