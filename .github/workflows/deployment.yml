@@ -172,7 +172,10 @@ jobs:
             --from-file=proxyConfig.toml=$BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml \
             --from-file=txgenConfig.toml=$BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
 
-          kubectl create configmap txgen-config --from-literal=num_shards_txgen=2 --from-literal=minting_value=200000000 --from-literal=num_accounts=100
+          kubectl -n $NAMESPACE create configmap txgen-config \
+            --from-literal=num_shards_txgen=2 \
+            --from-literal=minting_value=200000000 \
+            --from-literal=num_accounts=100
 
           echo $NUM_NODES_TOTAL $NUM_OF_SHARDS
           ./kustomize edit set replicas elrond-node=34 observer-shard=2
