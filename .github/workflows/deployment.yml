@@ -178,13 +178,13 @@ jobs:
             --from-file=txgenEconomics.toml=$BASE_PATH/elrond-txgen-go/cmd/txgen/config/economics.toml
 
           # SCENARIOS: the commands get piped into parallel, look at https://www.gnu.org/software/parallel/parallel_cheat.pdf
-          # current values: (input multiple values: "./basic.sh ./erc20.sh")
-          # ["./basic.sh", "./erc20.sh", "./stake.sh", "./esdt.sh", "./badNonce.sh", "./highLoad.sh"]
+          # current values: (input multiple values: "/go/elrond-txgen-go/scripts/basic.sh /go/elrond-txgen-go/scripts/erc20.sh")
+          # ["/go/elrond-txgen-go/scripts/basic.sh", "/go/elrond-txgen-go/scripts/erc20.sh", "/go/elrond-txgen-go/scripts/stake.sh", "/go/elrond-txgen-go/scripts/esdt.sh", "/go/elrond-txgen-go/scripts/badNonce.sh", "/go/elrond-txgen-go/scripts/highLoad.sh"]
           kubectl -n $NAMESPACE create configmap txgen-config \
             --from-literal=num_shards_txgen=2 \
             --from-literal=minting_value=2000000000000 \
             --from-literal=num_accounts=10000 \
-            --from-literal=screnarios="./basic.sh"
+            --from-literal=screnarios="/go/elrond-txgen-go/scripts/basic.sh"
 
           echo $NUM_NODES_TOTAL $NUM_OF_SHARDS
           ./kustomize edit set replicas elrond-node=34 observer-shard=2
