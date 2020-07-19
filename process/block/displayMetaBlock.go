@@ -307,18 +307,18 @@ func getNumTxs(metaBlock *block.MetaBlock, body *block.Body) uint64 {
 	numTxs := uint64(0)
 	for i := 0; i < len(shardInfo); i++ {
 		shardMiniBlockHeaders := shardInfo[i].ShardMiniBlockHeaders
-		numTxsPerShardHeader := uint64(0)
+		numTxsInShardHeader := uint64(0)
 		for j := 0; j < len(shardMiniBlockHeaders); j++ {
-			numTxsPerShardHeader += uint64(shardMiniBlockHeaders[j].TxCount)
+			numTxsInShardHeader += uint64(shardMiniBlockHeaders[j].TxCount)
 		}
 
 		log.Trace("txs info",
 			"shard", shardInfo[i].GetShardID(),
 			"round", shardInfo[i].GetRound(),
 			"nonce", shardInfo[i].GetNonce(),
-			"num txs", numTxsPerShardHeader)
+			"num txs", numTxsInShardHeader)
 
-		numTxs += numTxsPerShardHeader
+		numTxs += numTxsInShardHeader
 	}
 
 	numTxsInMetaBlock := uint64(0)
