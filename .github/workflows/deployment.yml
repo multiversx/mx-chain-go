@@ -151,7 +151,7 @@ jobs:
           docker push $REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_PROXY":"$GITHUB_SHA
           docker push $REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_TXGEN":"$GITHUB_SHA
 
-      # Deploy the Docker image to the GKE cluster
+      # Deploy the Docker images to the GKE cluster
       - name: Deploy
         run: |
           cd $BASE_PATH/elrond-k8s-testnet/kube/
@@ -159,7 +159,7 @@ jobs:
           chmod u+x ./kustomize
 
           gcloud container clusters get-credentials "$GKE_CLUSTER" --region "$GKE_REGION" --project "$GKE_PROJECT"
-          #regex for namepsace evaluation '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
+          #kubernetes regex for namepsace evaluation '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
           export NAMESPACE=$( echo ${{ github.ref }}/${{ github.sha }} | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
           kubectl create namespace "$NAMESPACE"
 
@@ -177,10 +177,14 @@ jobs:
             --from-file=txgenConfig.toml=$BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml \
             --from-file=txgenEconomics.toml=$BASE_PATH/elrond-txgen-go/cmd/txgen/config/economics.toml
 
+          # SCENARIOS: the commands get piped into parallel, look at https://www.gnu.org/software/parallel/parallel_cheat.pdf
+          # current values: (input multiple values: "/go/elrond-txgen-go/scripts/basic.sh /go/elrond-txgen-go/scripts/erc20.sh")
+          # ["/go/elrond-txgen-go/scripts/basic.sh", "/go/elrond-txgen-go/scripts/erc20.sh", "/go/elrond-txgen-go/scripts/stake.sh", "/go/elrond-txgen-go/scripts/esdt.sh", "/go/elrond-txgen-go/scripts/badNonce.sh", "/go/elrond-txgen-go/scripts/highLoad.sh"]
           kubectl -n $NAMESPACE create configmap txgen-config \
             --from-literal=num_shards_txgen=2 \
-            --from-literal=minting_value=200000000 \
-            --from-literal=num_accounts=100
+            --from-literal=minting_value=2000000000000 \
+            --from-literal=num_accounts=10000 \
+            --from-literal=screnarios="/go/elrond-txgen-go/scripts/basic.sh"
 
           echo $NUM_NODES_TOTAL $NUM_OF_SHARDS
           ./kustomize edit set replicas elrond-node=34 observer-shard=2
