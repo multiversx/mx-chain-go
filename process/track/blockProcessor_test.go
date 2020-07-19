@@ -796,7 +796,12 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfHighestRoundFrom
 func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfLastNotarizedHeaderNonceIsFarFromLatestValidHeaderNonce(t *testing.T) {
 	t.Parallel()
 
-	testRequestHeaders(t, 14, 13, 13)
+	testRequestHeaders(
+		t,
+		process.MaxHeadersToRequestInAdvance+4,
+		process.MaxHeadersToRequestInAdvance+3,
+		process.MaxHeadersToRequestInAdvance+3,
+	)
 }
 
 func testRequestHeaders(t *testing.T, roundIndex uint64, round uint64, nonce uint64) {
