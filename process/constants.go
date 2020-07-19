@@ -48,7 +48,7 @@ const EpochChangeGracePeriod = 1
 
 // MaxHeaderRequestsAllowed defines the maximum number of missing cross-shard headers (gaps) which could be requested
 // in one round, when node processes a received block
-const MaxHeaderRequestsAllowed = 10
+const MaxHeaderRequestsAllowed = 20
 
 // NumTxPerSenderBatchForFillingMiniblock defines the number of transactions to be drawn
 // from the transactions pool, for a specific sender, in a single pass.
@@ -65,7 +65,7 @@ const MaxSyncWithErrorsAllowed = 10
 
 // MaxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance,
 // if they are missing
-const MaxHeadersToRequestInAdvance = 10
+const MaxHeadersToRequestInAdvance = 20
 
 // RoundModulusTrigger defines a round modulus on which a trigger for an action will be released
 const RoundModulusTrigger = 5
@@ -80,8 +80,9 @@ const MaxRoundsWithoutCommittedBlock = 10
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
 
-// MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
-const MaxNumPendingMiniBlocks = 100
+// MaxNumPendingMiniBlocksPerShard defines the maximum number of pending miniblocks per shard, after which a shard
+// could be considered stuck if this value multiplied by the number of shards is reached
+const MaxNumPendingMiniBlocksPerShard = 10
 
 // MaxMetaNoncesBehind defines the maximum difference between the current meta block nonce and the processed meta block
 // nonce before a shard is considered stuck
@@ -99,11 +100,11 @@ const MaxRoundsWithoutNewBlockReceived = 10
 const MaxMetaHeadersAllowedInOneShardBlock = 50
 
 // MaxShardHeadersAllowedInOneMetaBlock defines the maximum number of shard headers allowed to be included in one meta block
-const MaxShardHeadersAllowedInOneMetaBlock = 50
+const MaxShardHeadersAllowedInOneMetaBlock = 60
 
-// MinShardHeadersInOneMetaBlock defines the minimum number of shard headers which would be included in one meta block
-// if they are available
-const MinShardHeadersInOneMetaBlock = 5
+// MinShardHeadersFromSameShardInOneMetaBlock defines the minimum number of shard headers from the same shard,
+// which would be included in one meta block if they are available
+const MinShardHeadersFromSameShardInOneMetaBlock = 10
 
 // MaxNumOfTxsToSelect defines the maximum number of transactions that should be selected from the cache
 const MaxNumOfTxsToSelect = 30000

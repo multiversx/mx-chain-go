@@ -861,7 +861,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	}
 
 	maxShardHeadersFromSameShard := core.MaxUint32(
-		process.MinShardHeadersInOneMetaBlock,
+		process.MinShardHeadersFromSameShardInOneMetaBlock,
 		process.MaxShardHeadersAllowedInOneMetaBlock/mp.shardCoordinator.NumberOfShards(),
 	)
 	maxShardHeadersAllowedInOneMetaBlock := maxShardHeadersFromSameShard * mp.shardCoordinator.NumberOfShards()
