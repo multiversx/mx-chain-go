@@ -87,7 +87,7 @@ func (hc *headersCounter) displayLogInfo(
 
 	log.Debug(message, arguments...)
 
-	numTxs := getNumTxs(header)
+	numTxs := getNumTxs(header, body)
 	tps := numTxs / roundDuration
 	if tps > hc.peakTPS {
 		hc.peakTPS = tps
@@ -302,7 +302,7 @@ func displayEconomicsData(economics block.Economics) []*display.LineData {
 	}
 }
 
-func getNumTxs(metaBlock *block.MetaBlock) uint64 {
+func getNumTxs(metaBlock *block.MetaBlock, body *block.Body) uint64 {
 	shardInfo := metaBlock.ShardInfo
 	numTxs := uint64(0)
 	for i := 0; i < len(shardInfo); i++ {
@@ -313,13 +313,26 @@ func getNumTxs(metaBlock *block.MetaBlock) uint64 {
 		}
 
 		log.Trace("txs info",
-			"shard", shardInfo[i].ShardID,
-			"round", shardInfo[i].Round,
-			"nonce", shardInfo[i].Nonce,
+			"shard", shardInfo[i].GetShardID(),
+			"round", shardInfo[i].GetRound(),
+			"nonce", shardInfo[i].GetNonce(),
 			"num txs", numTxsPerShardHeader)
 
 		numTxs += numTxsPerShardHeader
 	}
+
+	numTxsInMetaBlock := uint64(0)
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		numTxsInMetaBlock += uint64(len(body.MiniBlocks[i].TxHashes))
+	}
+
+	log.Trace("txs info",
+		"shard", metaBlock.GetShardID(),
+		"round", metaBlock.GetRound(),
+		"nonce", metaBlock.GetNonce(),
+		"num txs", numTxsInMetaBlock)
+
+	numTxs += numTxsInMetaBlock
 
 	return numTxs
 }
