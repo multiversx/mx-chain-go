@@ -1106,6 +1106,7 @@ func (mp *metaProcessor) CommitBlock(
 		headerHash,
 		numShardHeadersFromPool,
 		mp.blockTracker,
+		uint64(mp.rounder.TimeDuration().Seconds()),
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
