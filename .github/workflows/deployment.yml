@@ -186,6 +186,7 @@ jobs:
             --from-literal=num_accounts=10000 \
             --from-literal=screnarios="./basic.sh"
 
+
           echo $NUM_NODES_TOTAL $NUM_OF_SHARDS
           ./kustomize edit set replicas elrond-node=34 observer-shard=2
           ./kustomize edit set image elrondnetwork/elrond-go-node=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
