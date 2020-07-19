@@ -183,7 +183,7 @@ jobs:
           kubectl -n $NAMESPACE create configmap txgen-config \
             --from-literal=num_shards_txgen=2 \
             --from-literal=minting_value=2000000000000 \
-            --from-literal=num_accounts=10000 \
+            --from-literal=num_accounts=100 \
             --from-literal=screnarios="/go/elrond-txgen-go/scripts/basic.sh"
 
           echo $NUM_NODES_TOTAL $NUM_OF_SHARDS
