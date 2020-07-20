@@ -65,7 +65,7 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 		return nil, err
 	}
 
-	txBytes, txType, found := n.getTxBytesFromStorage(hash)
+	txBytes, txType, found := n.getTxBytesFromStorageByEpoch(hash, historyTx.Epoch)
 	if !found {
 		// this should never happen because transaction was found in history storer should be also found in transaction
 		// storer

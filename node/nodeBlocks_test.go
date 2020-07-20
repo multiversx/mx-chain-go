@@ -20,7 +20,7 @@ func TestGetBlockByHash_InvalidShardShouldErr(t *testing.T) {
 
 	n, _ := node.NewNode()
 
-	blk, err := n.GetBlockByHash("invalidHash")
+	blk, err := n.GetBlockByHash("invalidHash", false)
 	assert.Error(t, err)
 	assert.Nil(t, blk)
 }
@@ -69,15 +69,20 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	)
 
 	expectedBlock := &apiBlock.APIBlock{
-		Nonce:      nonce,
-		Round:      round,
-		ShardID:    shardID,
-		Epoch:      epoch,
-		Hash:       hex.EncodeToString(headerHash),
-		MiniBlocks: []string{hex.EncodeToString(miniblockHeader)},
+		Nonce:   nonce,
+		Round:   round,
+		ShardID: shardID,
+		Epoch:   epoch,
+		Hash:    hex.EncodeToString(headerHash),
+		MiniBlocks: []*apiBlock.APIMiniBlock{
+			{
+				Hash: hex.EncodeToString(miniblockHeader),
+				Type: block.TxBlock.String(),
+			},
+		},
 	}
 
-	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash))
+	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -99,21 +104,17 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 		}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}),
 		node.WithDataStore(&mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return &mock.StorerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						blk := &block.MetaBlock{
-							Nonce: nonce,
-							Round: round,
-							Epoch: epoch,
-							MiniBlockHeaders: []block.MiniBlockHeader{
-								{Hash: miniblockHeader},
-							},
-						}
-						blockBytes, _ := json.Marshal(blk)
-						return blockBytes, nil
+			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+				blk := &block.MetaBlock{
+					Nonce: nonce,
+					Round: round,
+					Epoch: epoch,
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{Hash: miniblockHeader},
 					},
 				}
+				blockBytes, _ := json.Marshal(blk)
+				return blockBytes, nil
 			},
 		}),
 	)
@@ -124,9 +125,16 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 		ShardID: core.MetachainShardId,
 		Epoch:   epoch,
 		Hash:    hex.EncodeToString(headerHash),
+		MiniBlocks: []*apiBlock.APIMiniBlock{
+			{
+				Hash: hex.EncodeToString(miniblockHeader),
+				Type: block.TxBlock.String(),
+			},
+		},
+		NotarizedBlockHashes: []string{},
 	}
 
-	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash))
+	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -179,15 +187,20 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	)
 
 	expectedBlock := &apiBlock.APIBlock{
-		Nonce:      nonce,
-		Round:      round,
-		ShardID:    shardID,
-		Epoch:      epoch,
-		Hash:       headerHash,
-		MiniBlocks: []string{hex.EncodeToString(miniblockHeader)},
+		Nonce:   nonce,
+		Round:   round,
+		ShardID: shardID,
+		Epoch:   epoch,
+		Hash:    headerHash,
+		MiniBlocks: []*apiBlock.APIMiniBlock{
+			{
+				Hash: hex.EncodeToString(miniblockHeader),
+				Type: block.TxBlock.String(),
+			},
+		},
 	}
 
-	blk, err := n.GetBlockByNonce(1)
+	blk, err := n.GetBlockByNonce(1, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }
@@ -212,38 +225,39 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{SelfShardId: 0}),
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
-				return hex.DecodeString(headerHash)
-			},
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return &mock.StorerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						blk := &block.Header{
-							Nonce:   nonce,
-							Round:   round,
-							ShardID: shardID,
-							Epoch:   epoch,
-							MiniBlockHeaders: []block.MiniBlockHeader{
-								{Hash: miniblockHeader},
-							},
-						}
-						blockBytes, _ := json.Marshal(blk)
-						return blockBytes, nil
+				if unitType == dataRetriever.ShardHdrNonceHashDataUnit {
+					return hex.DecodeString(headerHash)
+				}
+				blk := &block.Header{
+					Nonce:   nonce,
+					Round:   round,
+					ShardID: shardID,
+					Epoch:   epoch,
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{Hash: miniblockHeader},
 					},
 				}
+				blockBytes, _ := json.Marshal(blk)
+				return blockBytes, nil
 			},
 		}),
 	)
 
 	expectedBlock := &apiBlock.APIBlock{
-		Nonce:      nonce,
-		Round:      round,
-		ShardID:    shardID,
-		Epoch:      epoch,
-		Hash:       headerHash,
-		MiniBlocks: []string{hex.EncodeToString(miniblockHeader)},
+		Nonce:   nonce,
+		Round:   round,
+		ShardID: shardID,
+		Epoch:   epoch,
+		Hash:    headerHash,
+		MiniBlocks: []*apiBlock.APIMiniBlock{
+			{
+				Hash: hex.EncodeToString(miniblockHeader),
+				Type: block.TxBlock.String(),
+			},
+		},
 	}
 
-	blk, err := n.GetBlockByNonce(1)
+	blk, err := n.GetBlockByNonce(1, false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
 }

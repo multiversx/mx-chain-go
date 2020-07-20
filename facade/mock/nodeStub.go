@@ -35,8 +35,8 @@ type NodeStub struct {
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetBlockByHashCalled                           func(hash string) (*block.APIBlock, error)
-	GetBlockByNonceCalled                          func(nonce uint64) (*block.APIBlock, error)
+	GetBlockByHashCalled                           func(hash string, withTxs bool) (*block.APIBlock, error)
+	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*block.APIBlock, error)
 }
 
 // GetValueForKey -
@@ -54,13 +54,13 @@ func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 }
 
 // GetBlockByHash -
-func (ns *NodeStub) GetBlockByHash(hash string) (*block.APIBlock, error) {
-	return ns.GetBlockByHashCalled(hash)
+func (ns *NodeStub) GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error) {
+	return ns.GetBlockByHashCalled(hash, withTxs)
 }
 
 // GetBlockByNonce -
-func (ns *NodeStub) GetBlockByNonce(nonce uint64) (*block.APIBlock, error) {
-	return ns.GetBlockByNonceCalled(nonce)
+func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error) {
+	return ns.GetBlockByNonceCalled(nonce, withTxs)
 }
 
 // DecodeAddressPubkey -

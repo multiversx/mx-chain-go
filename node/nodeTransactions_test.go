@@ -563,6 +563,13 @@ func getStorerStub(find bool) storage.Storer {
 			_, txBytes := getDummyNormalTx()
 			return txBytes, nil
 		},
+		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+			if !find {
+				return nil, errors.New("key not found")
+			}
+			_, txBytes := getDummyNormalTx()
+			return txBytes, nil
+		},
 	}
 }
 

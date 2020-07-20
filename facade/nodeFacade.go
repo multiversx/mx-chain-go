@@ -348,13 +348,13 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 }
 
 // GetBlockByHash return the block for a given hash
-func (nf *nodeFacade) GetBlockByHash(hash string) (*block.APIBlock, error) {
-	return nf.node.GetBlockByHash(hash)
+func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error) {
+	return nf.node.GetBlockByHash(hash, withTxs)
 }
 
 // GetBlockByNonce returns the block for a given nonce
-func (nf *nodeFacade) GetBlockByNonce(nonce uint64) (*block.APIBlock, error) {
-	return nf.node.GetBlockByNonce(nonce)
+func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error) {
+	return nf.node.GetBlockByNonce(nonce, withTxs)
 }
 
 // Close will cleanup started go routines

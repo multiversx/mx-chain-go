@@ -59,8 +59,8 @@ type NodeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 
-	GetBlockByHash(hash string) (*block.APIBlock, error)
-	GetBlockByNonce(nonce uint64) (*block.APIBlock, error)
+	GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error)
+	GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests
