@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	coreMock "github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -88,7 +89,6 @@ func NewShardProcessorEmptyWith3shards(
 			FeeHandler:        &mock.FeeAccumulatorStub{},
 			Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
 			RequestHandler:    &mock.RequestHandlerStub{},
-			Core:              &mock.ServiceContainerMock{},
 			BlockChainHook:    &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:     &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger: &mock.EpochStartTriggerStub{},
@@ -103,6 +103,8 @@ func NewShardProcessorEmptyWith3shards(
 			DataPool:           tdp,
 			BlockChain:         blockChain,
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Indexer:            &mock.IndexerMock{},
+			TpsBenchmark:       &coreMock.TpsBenchmarkMock{},
 			Version:            "softwareVersion",
 		},
 	}

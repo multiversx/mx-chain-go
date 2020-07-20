@@ -5,6 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	coreMock "github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
@@ -165,7 +167,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		FeeHandler:        tpn.FeeAccumulator,
 		Uint64Converter:   TestUint64Converter,
 		RequestHandler:    tpn.RequestHandler,
-		Core:              nil,
 		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 		HeaderValidator:   tpn.HeaderValidator,
@@ -180,12 +181,13 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
+		Indexer:                indexer.NewNilIndexer(),
+		TpsBenchmark:           &coreMock.TpsBenchmarkMock{},
 		Version:                string(SoftwareVersion),
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
-		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
@@ -214,7 +216,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	if err != nil {
-		fmt.Printf("Error creating blockprocessor: %s\n", err.Error())
+		panic(fmt.Sprintf("Error creating blockprocessor: %s", err.Error()))
 	}
 }
 
