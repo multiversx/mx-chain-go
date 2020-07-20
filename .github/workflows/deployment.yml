@@ -80,17 +80,6 @@ jobs:
           export CONSENSUS_GROUP_SIZE=4
           export METACHAIN_CONSENSUS_GROUP_SIZE=7
           source .github/workflows/env
-
-          export HYSTERESISMUL=$(bc <<< "(1 + $HYSTERESIS)")
-          export NVS=$(bc <<< "($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
-          export NUM_VALIDATORS_ON_SHARD=$(bc <<< "($NVS+1)/1")
-          export NVM=$(bc <<< "($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
-          export NUM_VALIDATORS_ON_META=$(bc <<< "($NVM+1)/1")
-          export NUM_NODES_TOTAL=$(bc <<< "($NUM_VALIDATORS_ON_SHARD + $NUM_VALIDATORS_ON_META)")
-
-          echo '::set-env name=NUM_VALIDATORS_ON_SHARD::$NUM_VALIDATORS_ON_SHARD'
-          echo '::set-env name=NUM_VALIDATORS_ON_META::$NUM_VALIDATORS_ON_META'
-          echo '::set-env name=NUM_NODES_TOTAL::$NUM_NODES_TOTAL'
           echo elrond-node="$NUM_NODES_TOTAL" observer-shard="$NUM_OF_SHARDS"
 
           docker run \
@@ -154,12 +143,27 @@ jobs:
       # Deploy the Docker images to the GKE cluster
       - name: Deploy
         run: |
+          sudo apt update
+          sudo apt install bc -y
+          source .github/workflows/env
+          export HYSTERESISMUL=$(bc <<< "(1 + $HYSTERESIS)")
+          export NVS=$(bc <<< "($NUM_NODES_SHARD + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
+          export NUM_VALIDATORS_ON_SHARD=$(bc <<< "($NVS+1)/1")
+          export NVM=$(bc <<< "($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
+          export NUM_VALIDATORS_ON_META=$(bc <<< "($NVM+1)/1")
+          export NUM_NODES_TOTAL=$(bc <<< "($NUM_VALIDATORS_ON_SHARD + $NUM_VALIDATORS_ON_META)")
+          echo elrond-node="$NUM_NODES_TOTAL" observer-shard="$NUM_OF_SHARDS" validators-shard=$NUM_VALIDATORS_ON_SHARD
+
           cd $BASE_PATH/elrond-k8s-testnet/kube/
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
           chmod u+x ./kustomize
 
           gcloud container clusters get-credentials "$GKE_CLUSTER" --region "$GKE_REGION" --project "$GKE_PROJECT"
+
+          #TODO: this should add node-pools for new deployment, we need to find logix to delete it with the deletion of a testnet
+          #gcloud container node-pools create ${{ github.sha }} --preemptible --cluster "$GKE_CLUSTER"
           #kubernetes regex for namepsace evaluation '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
+
           export NAMESPACE=$( echo ${{ github.ref }}/${{ github.sha }} | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
           kubectl create namespace "$NAMESPACE"
 
@@ -182,7 +186,7 @@ jobs:
           # ["/go/elrond-txgen-go/scripts/basic.sh", "/go/elrond-txgen-go/scripts/erc20.sh", "/go/elrond-txgen-go/scripts/stake.sh", "/go/elrond-txgen-go/scripts/esdt.sh", "/go/elrond-txgen-go/scripts/badNonce.sh", "/go/elrond-txgen-go/scripts/highLoad.sh"]
           kubectl -n $NAMESPACE create configmap txgen-config \
             --from-literal=num_shards_txgen=2 \
-            --from-literal=minting_value=2000000000000 \
+            --from-literal=minting_value=20000000000000 \
             --from-literal=num_accounts=100 \
             --from-literal=screnarios="/go/elrond-txgen-go/scripts/basic.sh"
 
