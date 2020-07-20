@@ -591,7 +591,8 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 		}
 	}
 
-	isShardStuck := numPendingMiniBlocks >= process.MaxNumPendingMiniBlocks || isMetaDifferenceTooLarge
+	maxNumPendingMiniBlocks := process.MaxNumPendingMiniBlocksPerShard * bbt.shardCoordinator.NumberOfShards()
+	isShardStuck := numPendingMiniBlocks >= maxNumPendingMiniBlocks || isMetaDifferenceTooLarge
 	return isShardStuck
 }
 

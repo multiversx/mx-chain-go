@@ -7,8 +7,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -24,6 +26,20 @@ import (
 type ValidatorStatisticsResponse struct {
 	Result map[string]*state.ValidatorApiResponse `json:"statistics"`
 	Error  string                                 `json:"error"`
+}
+
+func TestValidatorStatistics_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/validator/statistics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestValidatorStatistics_ErrorWithWrongFacade(t *testing.T) {
@@ -111,12 +127,12 @@ func logError(err error) {
 	}
 }
 
-func startNodeServer(handler validator.ValidatorsStatisticsApiHandler) *gin.Engine {
+func startNodeServer(handler validator.FacadeHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ginValidatorRoute := ws.Group("/validator")
 	if handler != nil {
-		ginValidatorRoute.Use(middleware.WithTestingElrondFacade(handler))
+		ginValidatorRoute.Use(middleware.WithFacade(handler))
 	}
 	validatorRoute, _ := wrapper.NewRouterWrapper("validator", ginValidatorRoute, getRoutesConfig())
 	validator.Routes(validatorRoute)
@@ -127,7 +143,7 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
+		c.Set("facade", mock.WrongFacade{})
 	})
 	ginValidatorRoute := ws.Group("/validator")
 	validatorRoute, _ := wrapper.NewRouterWrapper("validator", ginValidatorRoute, getRoutesConfig())

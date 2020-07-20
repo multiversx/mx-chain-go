@@ -249,6 +249,18 @@ func TestAllRoutes_WhenBadJsonShouldErr(t *testing.T) {
 	requireErrorOnGetSingleValueRoutes(t, &facade, []byte("dummy"), apiErrors.ErrInvalidJSONRequest)
 }
 
+func TestAllRoutes_WhenNilFacadeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	request := VMValueRequest{
+		ScAddress: DummyScAddress,
+		FuncName:  "function",
+		Args:      []string{},
+	}
+
+	requireErrorOnAllRoutes(t, nil, request, apiErrors.ErrNilAppContext)
+}
+
 func TestAllRoutes_WhenBadFacadeShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -294,10 +306,12 @@ func startNodeServer(handler interface{}) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	getValuesRoute := ws.Group("/vm-values")
-	getValuesRoute.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", handler)
-		c.Next()
-	})
+	if handler != nil {
+		getValuesRoute.Use(func(c *gin.Context) {
+			c.Set("facade", handler)
+			c.Next()
+		})
+	}
 	vmValuesRoute, _ := wrapper.NewRouterWrapper("vm-values", getValuesRoute, getRoutesConfig())
 	Routes(vmValuesRoute)
 
