@@ -163,6 +163,8 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		return nil, err
 	}
 
+	hbc.storer = heartbeatStorer
+
 	timer := &heartbeatProcess.RealTimer{}
 	if hcf.config.Marshalizer.SizeCheckDelta > 0 {
 		marshalizer = marshal.NewSizeCheckUnmarshalizer(marshalizer, hcf.config.Marshalizer.SizeCheckDelta)
@@ -266,9 +268,11 @@ func (hcf *heartbeatComponentsFactory) startSendingHeartbeats(ctx context.Contex
 }
 
 // Close closes the heartbeat components
-func (hc *heartbeatComponents) Close() {
+func (hc *heartbeatComponents) Close() error {
 	hc.cancelFunc()
 	// TODO: check if the subcomponents need to be closed
+
+	return nil
 }
 
 func checkConfigParams(config config.HeartbeatConfig) error {
