@@ -14,6 +14,8 @@ github.com/ElrondNetwork/elrond-go-logger v1.0.4 h1:i5Yu4qyjTZDwvBY/ykbNpp2SP9jx
 github.com/ElrondNetwork/elrond-go-logger v1.0.4/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
 github.com/ElrondNetwork/elrond-vm-common v0.1.21 h1:GosUg0kc9mV9TpEqlsQKkQOikhR6YBWZP0PSHuRLKpQ=
 github.com/ElrondNetwork/elrond-vm-common v0.1.21/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
+github.com/ElrondNetwork/elrond-vm-common v0.1.22-0.20200720100823-d37ba1c475a0 h1:LcEnW6pQwsk7KrGXD1yxyDFUZQx/umLP2lM5QIf9cKI=
+github.com/ElrondNetwork/elrond-vm-common v0.1.22-0.20200720100823-d37ba1c475a0/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-util v0.3.4/go.mod h1:lCXk+AyNVXLet06PzCMBQb/iEWTSxGIoSXOTb6GeWjA=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
