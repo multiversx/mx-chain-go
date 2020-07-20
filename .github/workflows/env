@@ -5,9 +5,9 @@ export NUM_NODES_METACHAIN=9
 export CONSENSUS_GROUP_SIZE=7
 export METACHAIN_CONSENSUS_GROUP_SIZE=4
 
-### CONFIG.toml SCENARIOS
+# CONFIG.toml SCENARIOS:
 # Scenarios is the list of scenarios that txgen will start with.
-# All values: [\"basic\", \"erc20\", \"stake\", \"esdt\", \"badNonce\", \"highLoad\"]
+# All values: ["basic", "erc20", "stake", "esdt", "badNonce", "highLoad"]
 export TXGEN_CONFIG_SCENARIOS='"basic"'
 # SCENARIOS: the commands get piped into parallel, look at https://www.gnu.org/software/parallel/parallel_cheat.pdf
 # Current values:
