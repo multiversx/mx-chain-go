@@ -10,11 +10,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/config"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
-	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataindexer"
+	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/elastic"
 	nodeConfigPackage "github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	hasherFactory "github.com/ElrondNetwork/elrond-go/hashing/factory"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -104,6 +106,7 @@ VERSION:
 	cliApp                   *cli.App
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	shardCoordinator         sharding.Coordinator
 	nodeConfig               nodeConfigPackage.Config
 	addressPubKeyConverter   core.PubkeyConverter
@@ -149,6 +152,7 @@ func initCliFlags() {
 func startStorer2Elastic(ctx *cli.Context) error {
 	log.Info("storer2elastic application started", "version", cliApp.Version)
 
+	uint64ByteSliceConverter = uint64ByteSlice.NewBigEndianConverter()
 	var err error
 	shardCoordinator, err = sharding.NewMultiShardCoordinator(uint32(flagsValues.numShards), 0)
 	if err != nil {
@@ -239,15 +243,16 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
-	dataIndexerArgs := dataindexer.Args{
-		ElasticIndexer:    elasticIndexer,
-		DatabaseReader:    dbReader,
-		ShardCoordinator:  shardCoordinator,
-		Marshalizer:       marshalizer,
-		Hasher:            hasher,
-		GenesisNodesSetup: genesisNodesConfig,
+	dataIndexerArgs := dataprocessor.Args{
+		ElasticIndexer:           elasticIndexer,
+		DatabaseReader:           dbReader,
+		ShardCoordinator:         shardCoordinator,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		GenesisNodesSetup:        genesisNodesConfig,
+		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 	}
-	dataIndexer, err := dataindexer.New(dataIndexerArgs)
+	dataIndexer, err := dataprocessor.New(dataIndexerArgs)
 	if err != nil {
 		return err
 	}

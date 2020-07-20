@@ -1,4 +1,4 @@
-package dataindexer
+package dataprocessor
 
 import (
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"

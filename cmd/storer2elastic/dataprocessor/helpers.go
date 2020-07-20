@@ -1,11 +1,12 @@
-package dataindexer
+package dataprocessor
 
 import (
 	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
-	dataIndexerDisabled "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataindexer/disabled"
+	dataIndexerDisabled "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor/disabled"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -14,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
-func (dpi *dataProcessor) computeNotarizedHeaders(hdr data.HeaderHandler) []string {
+func (dp *dataProcessor) computeNotarizedHeaders(hdr data.HeaderHandler) []string {
 	metaBlock, ok := hdr.(*block.MetaBlock)
 	if !ok {
 		return []string{}
@@ -29,7 +30,7 @@ func (dpi *dataProcessor) computeNotarizedHeaders(hdr data.HeaderHandler) []stri
 	return notarizedHdrs
 }
 
-func (dpi *dataProcessor) processValidatorsForEpoch(epoch uint32, metaBlock *block.MetaBlock, mbUnit storage.Persister) {
+func (dp *dataProcessor) processValidatorsForEpoch(epoch uint32, metaBlock *block.MetaBlock, mbUnit storage.Persister) {
 	peerMiniBlocks := make([]*block.MiniBlock, 0)
 
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
@@ -43,7 +44,7 @@ func (dpi *dataProcessor) processValidatorsForEpoch(epoch uint32, metaBlock *blo
 			continue
 		}
 		recoveredMiniBlock := &block.MiniBlock{}
-		err = dpi.marshalizer.Unmarshal(recoveredMiniBlock, mbBytes)
+		err = dp.marshalizer.Unmarshal(recoveredMiniBlock, mbBytes)
 		if err != nil {
 			log.Warn("cannot unmarshal peer miniblock", "error", err)
 			continue
@@ -56,14 +57,14 @@ func (dpi *dataProcessor) processValidatorsForEpoch(epoch uint32, metaBlock *blo
 		MiniBlocks: peerMiniBlocks,
 	}
 
-	for shardID := range dpi.nodesCoordinators {
-		dpi.nodesCoordinators[shardID].EpochStartPrepare(metaBlock, peerBlock)
+	for shardID := range dp.nodesCoordinators {
+		dp.nodesCoordinators[shardID].EpochStartPrepare(metaBlock, peerBlock)
 	}
 }
 
-func (dpi *dataProcessor) canIndexHeaderNow(hdr data.HeaderHandler) bool {
+func (dp *dataProcessor) canIndexHeaderNow(hdr data.HeaderHandler) bool {
 	shardID := hdr.GetShardID()
-	nodesCoord, ok := dpi.nodesCoordinators[shardID]
+	nodesCoord, ok := dp.nodesCoordinators[shardID]
 	if !ok {
 		return false
 	}
@@ -77,8 +78,8 @@ func (dpi *dataProcessor) canIndexHeaderNow(hdr data.HeaderHandler) bool {
 	return false
 }
 
-func (dpi *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint64, error) {
-	nodesCoordinator, ok := dpi.nodesCoordinators[hdr.GetShardID()]
+func (dp *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint64, error) {
+	nodesCoordinator, ok := dp.nodesCoordinators[hdr.GetShardID()]
 	if !ok {
 		return nil, fmt.Errorf("nodes coordinator not found for shard %d", hdr.GetShardID())
 	}
@@ -93,11 +94,11 @@ func (dpi *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint6
 	return nodesCoordinator.GetValidatorsIndexes(publicKeys, hdr.GetEpoch())
 }
 
-func (dpi *dataProcessor) createNodesCoordinators(nodesConfig sharding.GenesisNodesSetupHandler) (map[uint32]NodesCoordinator, error) {
+func (dp *dataProcessor) createNodesCoordinators(nodesConfig sharding.GenesisNodesSetupHandler) (map[uint32]NodesCoordinator, error) {
 	nodesCoordinatorsMap := make(map[uint32]NodesCoordinator)
-	shardIDs := dpi.getShardIDs()
+	shardIDs := dp.getShardIDs()
 	for _, shardID := range shardIDs {
-		nodeCoordForShard, err := dpi.createNodesCoordinatorForShard(nodesConfig, shardID)
+		nodeCoordForShard, err := dp.createNodesCoordinatorForShard(nodesConfig, shardID)
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +108,7 @@ func (dpi *dataProcessor) createNodesCoordinators(nodesConfig sharding.GenesisNo
 	return nodesCoordinatorsMap, nil
 }
 
-func (dpi *dataProcessor) createNodesCoordinatorForShard(nodesConfig sharding.GenesisNodesSetupHandler, shardID uint32) (NodesCoordinator, error) {
+func (dp *dataProcessor) createNodesCoordinatorForShard(nodesConfig sharding.GenesisNodesSetupHandler, shardID uint32) (NodesCoordinator, error) {
 	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
 
 	eligibleValidators, err := sharding.NodesInfoToValidators(eligibleNodesInfo)
@@ -130,8 +131,8 @@ func (dpi *dataProcessor) createNodesCoordinatorForShard(nodesConfig sharding.Ge
 	argsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: int(nodesConfig.GetShardConsensusGroupSize()),
 		MetaConsensusGroupSize:  int(nodesConfig.GetMetaConsensusGroupSize()),
-		Marshalizer:             dpi.marshalizer,
-		Hasher:                  dpi.hasher,
+		Marshalizer:             dp.marshalizer,
+		Hasher:                  dp.hasher,
 		Shuffler:                dataIndexerDisabled.NewNodesShuffler(),
 		EpochStartNotifier:      &disabled.EpochStartNotifier{},
 		BootStorer:              memDB,
@@ -151,28 +152,34 @@ func (dpi *dataProcessor) createNodesCoordinatorForShard(nodesConfig sharding.Ge
 	return baseNodesCoordinator, nil
 }
 
-func (dpi *dataProcessor) preparePersistersHolder(dbInfo *databasereader.DatabaseInfo) (*persistersHolder, error) {
+func (dp *dataProcessor) preparePersistersHolder(dbInfo *databasereader.DatabaseInfo) (*persistersHolder, error) {
 	persHold := &persistersHolder{}
 
-	miniBlocksPersister, err := dpi.databaseReader.LoadPersister(dbInfo, "MiniBlocks")
+	shardHeadersPersister, err := dp.databaseReader.LoadPersister(dbInfo, "BlockHeaders")
+	if err != nil {
+		return nil, err
+	}
+	persHold.shardHeadersPersister = shardHeadersPersister
+
+	miniBlocksPersister, err := dp.databaseReader.LoadPersister(dbInfo, "MiniBlocks")
 	if err != nil {
 		return nil, err
 	}
 	persHold.miniBlocksPersister = miniBlocksPersister
 
-	txsPersister, err := dpi.databaseReader.LoadPersister(dbInfo, "Transactions")
+	txsPersister, err := dp.databaseReader.LoadPersister(dbInfo, "Transactions")
 	if err != nil {
 		return nil, err
 	}
 	persHold.transactionPersister = txsPersister
 
-	uTxsPersister, err := dpi.databaseReader.LoadPersister(dbInfo, "UnsignedTransactions")
+	uTxsPersister, err := dp.databaseReader.LoadPersister(dbInfo, "UnsignedTransactions")
 	if err != nil {
 		return nil, err
 	}
 	persHold.unsignedTransactionsPersister = uTxsPersister
 
-	rTxsPersister, err := dpi.databaseReader.LoadPersister(dbInfo, "RewardTransactions")
+	rTxsPersister, err := dp.databaseReader.LoadPersister(dbInfo, "RewardTransactions")
 	if err != nil {
 		return nil, err
 	}
@@ -181,8 +188,11 @@ func (dpi *dataProcessor) preparePersistersHolder(dbInfo *databasereader.Databas
 	return persHold, nil
 }
 
-func (dpi *dataProcessor) closePersisters(persisters *persistersHolder) {
-	err := persisters.miniBlocksPersister.Close()
+func (dp *dataProcessor) closePersisters(persisters *persistersHolder) {
+	err := persisters.shardHeadersPersister.Close()
+	log.LogIfError(err)
+
+	err = persisters.miniBlocksPersister.Close()
 	log.LogIfError(err)
 
 	err = persisters.transactionPersister.Close()
@@ -193,4 +203,29 @@ func (dpi *dataProcessor) closePersisters(persisters *persistersHolder) {
 
 	err = persisters.rewardTransactionsPersister.Close()
 	log.LogIfError(err)
+}
+
+func getMetaChainDatabasesInfo(records []*databasereader.DatabaseInfo) ([]*databasereader.DatabaseInfo, error) {
+	metaChainDBsInfo := make([]*databasereader.DatabaseInfo, 0)
+	for _, record := range records {
+		if record.Shard == core.MetachainShardId {
+			metaChainDBsInfo = append(metaChainDBsInfo, record)
+		}
+	}
+
+	if len(metaChainDBsInfo) == 0 {
+		return nil, ErrNoMetachainDatabase
+	}
+
+	return metaChainDBsInfo, nil
+}
+
+func getShardDatabaseForEpoch(records []*databasereader.DatabaseInfo, epoch uint32, shard uint32) (*databasereader.DatabaseInfo, error) {
+	for _, record := range records {
+		if record.Epoch == epoch && record.Shard == shard {
+			return record, nil
+		}
+	}
+
+	return nil, ErrDatabaseInfoNotFound
 }
