@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	coreMock "github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -105,7 +104,7 @@ func CreateMockArgumentsMultiShard() blproc.ArgShardProcessor {
 	arguments.BlockChain = blockchain.NewBlockChain()
 	_ = arguments.BlockChain.SetGenesisHeader(&block.Header{Nonce: 0})
 	arguments.Indexer = &mock.IndexerMock{}
-	arguments.TpsBenchmark = &coreMock.TpsBenchmarkMock{}
+	arguments.TpsBenchmark = &testscommon.TpsBenchmarkMock{}
 
 	return arguments
 }
