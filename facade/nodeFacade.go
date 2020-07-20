@@ -39,10 +39,10 @@ const DefaultRestInterface = "localhost:8080"
 const DefaultRestPortOff = "off"
 
 var _ = address.FacadeHandler(&nodeFacade{})
-var _ = hardfork.TriggerHardforkHandler(&nodeFacade{})
+var _ = hardfork.FacadeHandler(&nodeFacade{})
 var _ = node.FacadeHandler(&nodeFacade{})
-var _ = transactionApi.TxService(&nodeFacade{})
-var _ = validator.ValidatorsStatisticsApiHandler(&nodeFacade{})
+var _ = transactionApi.FacadeHandler(&nodeFacade{})
+var _ = validator.FacadeHandler(&nodeFacade{})
 var _ = vmValues.FacadeHandler(&nodeFacade{})
 
 var log = logger.GetOrCreate("facade")
@@ -180,21 +180,15 @@ func (nf *nodeFacade) startRest() {
 	case DefaultRestPortOff:
 		log.Debug("web server is off")
 	default:
-		log.Debug("creating web server middleware limiter")
-		limiter, err := middleware.NewMiddleware(
-			nf,
-			nf.wsAntifloodConfig.SimultaneousRequests,
-			nf.wsAntifloodConfig.SameSourceRequests,
-		)
+		log.Debug("creating web server limiters")
+		limiters, err := nf.createMiddlewareLimiters()
 		if err != nil {
-			log.Error("error creating web server limiter",
+			log.Error("error creating web server limiters",
 				"error", err.Error(),
 			)
 			log.Error("web server is off")
 			return
 		}
-
-		go nf.sourceLimiterReset(limiter)
 
 		log.Debug("starting web server",
 			"SimultaneousRequests", nf.wsAntifloodConfig.SimultaneousRequests,
@@ -202,14 +196,28 @@ func (nf *nodeFacade) startRest() {
 			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
 		)
 
-		// TODO figure out a way to close the api engine
-		err = api.Start(nf, nf.apiRoutesConfig, limiter)
+		err = api.Start(nf, nf.apiRoutesConfig, limiters...)
 		if err != nil {
 			log.Error("could not start webserver",
 				"error", err.Error(),
 			)
 		}
 	}
+}
+
+func (nf *nodeFacade) createMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
+	sourceLimiter, err := middleware.NewSourceThrottler(nf.wsAntifloodConfig.SameSourceRequests)
+	if err != nil {
+		return nil, err
+	}
+	go nf.sourceLimiterReset(sourceLimiter)
+
+	globalLimiter, err := middleware.NewGlobalThrottler(nf.wsAntifloodConfig.SimultaneousRequests)
+	if err != nil {
+		return nil, err
+	}
+
+	return []api.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
 }
 
 func (nf *nodeFacade) sourceLimiterReset(reset resetHandler) {
