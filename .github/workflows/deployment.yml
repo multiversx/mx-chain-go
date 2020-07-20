@@ -110,7 +110,7 @@ jobs:
           sed -i.bak 's/Address.*80\"/Address = \"http:\/\/observer-shard-zero:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
           sed -i.bak 's/Address.*81\"/Address = \"http:\/\/observer-shard-one:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
 
-          sed -i.bak 's/Scenarios = .*]/Scenarios = $TXGEN_CONFIG_SCENARIOS/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
+          sed -i.bak 's/Scenarios =/c\Scenarios = [${TXGEN_CONFIG_SCENARIOS}]/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
           sed -i.bak 's/8080/8001/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
         shell: bash
 
