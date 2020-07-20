@@ -73,14 +73,8 @@ jobs:
 
       - name: Create Configs
         run: |
-          export HYSTERESIS=0.21
-          export NUM_OF_SHARDS=2
-          export NUM_NODES_SHARD=9
-          export NUM_NODES_METACHAIN=9
-          export CONSENSUS_GROUP_SIZE=4
-          export METACHAIN_CONSENSUS_GROUP_SIZE=7
           source .github/workflows/env
-          echo elrond-node="$NUM_NODES_TOTAL" observer-shard="$NUM_OF_SHARDS"
+          echo elrond-node-shard="$NUM_NODES_SHARD" observer-shard="$NUM_OF_SHARDS"
 
           docker run \
             -v "/home/runner/work/elrond-go/elrond-go/cmd/node/config/:/data/" \
@@ -101,6 +95,7 @@ jobs:
       - name: Prepare Configs
         run: |
           source .github/workflows/env
+          echo scenarios=$SCENARIOS scenarios-config=$TXGEN_CONFIG_SCENARIOS
           cp -r $BASE_PATH/cmd/node/config/ $BASE_PATH/filegenConfigLocal/
           cp $BASE_PATH/elrond-k8s-testnet/filegenConfig/observerKey.pem $BASE_PATH/filegenConfigLocal/
           sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '8 minutes' +%s)",'/g' $BASE_PATH/filegenConfigLocal/nodesSetup.json > $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
@@ -110,7 +105,7 @@ jobs:
           sed -i.bak 's/Address.*80\"/Address = \"http:\/\/observer-shard-zero:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
           sed -i.bak 's/Address.*81\"/Address = \"http:\/\/observer-shard-one:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
 
-          sed -i.bak 's/Scenarios =/c\Scenarios = [${TXGEN_CONFIG_SCENARIOS}]/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
+          sed -i.bak 's/Scenarios =.*/Scenarios = [${TXGEN_CONFIG_SCENARIOS}]/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
           sed -i.bak 's/8080/8001/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
         shell: bash
 
@@ -184,7 +179,7 @@ jobs:
             --from-literal=num_shards_txgen=$NUM_OF_SHARDS \
             --from-literal=minting_value=$PROXY_MINTING_VALUE \
             --from-literal=num_accounts=$PROXY_NUM_ACCOUNTS \
-            --from-literal=screnarios=$SCENARIOS
+            --from-literal=screnarios=${SCENARIOS}
 
           ./kustomize edit set replicas elrond-node=$NUM_NODES_TOTAL observer-shard=$NUM_OF_SHARDS
           ./kustomize edit set image elrondnetwork/elrond-go-node=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
