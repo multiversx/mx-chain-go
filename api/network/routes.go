@@ -10,7 +10,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
+const (
+	getConfigPath = "/config"
+	getStatusPath = "/status"
+)
+
+// FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
@@ -18,13 +23,25 @@ type FacadeHandler interface {
 
 // Routes defines address related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodGet, "/config", GetNetworkConfig)
-	router.RegisterHandler(http.MethodGet, "/status", GetNetworkStatus)
+	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
+	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 }
 
-// GetNetworkConfig returns metrics related to the network configuration (shard independent)
-func GetNetworkConfig(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+func getFacade(c *gin.Context) (FacadeHandler, bool) {
+	facadeObj, ok := c.Get("facade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return nil, false
+	}
+
+	facade, ok := facadeObj.(FacadeHandler)
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -34,10 +51,20 @@ func GetNetworkConfig(c *gin.Context) {
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
+		return nil, false
+	}
+
+	return facade, true
+}
+
+// GetNetworkConfig returns metrics related to the network configuration (shard independent)
+func GetNetworkConfig(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
 		return
 	}
 
-	configMetrics := ef.StatusMetrics().ConfigMetrics()
+	configMetrics := facade.StatusMetrics().ConfigMetrics()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
@@ -50,20 +77,12 @@ func GetNetworkConfig(c *gin.Context) {
 
 // GetNetworkStatus returns metrics related to the network status (shard specific)
 func GetNetworkStatus(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	facade, ok := getFacade(c)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
 		return
 	}
 
-	networkMetrics := ef.StatusMetrics().NetworkMetrics()
+	networkMetrics := facade.StatusMetrics().NetworkMetrics()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{

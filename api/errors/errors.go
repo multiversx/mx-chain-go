@@ -4,6 +4,9 @@ import (
 	"errors"
 )
 
+// ErrNilAppContext signals that no context was passed to the routing system
+var ErrNilAppContext = errors.New("nil app context")
+
 // ErrInvalidAppContext signals an invalid context passed to the routing system
 var ErrInvalidAppContext = errors.New("invalid app context")
 
