@@ -102,7 +102,7 @@ func New(args Args) (*dataProcessor, error) {
 func (dp *dataProcessor) Index(timeout int) error {
 	errChan := make(chan error, 0)
 	go func() {
-		dp.startIndexing2(errChan)
+		dp.startIndexing(errChan)
 	}()
 
 	select {
@@ -113,7 +113,7 @@ func (dp *dataProcessor) Index(timeout int) error {
 	}
 }
 
-func (dp *dataProcessor) startIndexing2(errChan chan error) {
+func (dp *dataProcessor) startIndexing(errChan chan error) {
 	records, err := dp.databaseReader.GetDatabaseInfo()
 	if err != nil {
 		errChan <- err
