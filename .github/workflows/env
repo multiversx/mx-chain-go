@@ -8,7 +8,7 @@ export METACHAIN_CONSENSUS_GROUP_SIZE=4
 ### CONFIG.toml SCENARIOS
 # Scenarios is the list of scenarios that txgen will start with.
 # All values: [\"basic\", \"erc20\", \"stake\", \"esdt\", \"badNonce\", \"highLoad\"]
-export TXGEN_CONFIG_SCENARIOS=[\"basic\", \"erc20\"]
+export TXGEN_CONFIG_SCENARIOS='[\"basic\", \"erc20\"]'
 # SCENARIOS: the commands get piped into parallel, look at https://www.gnu.org/software/parallel/parallel_cheat.pdf
 # Current values:
 # ["/go/elrond-txgen-go/scripts/basic.sh", "/go/elrond-txgen-go/scripts/erc20.sh", "/go/elrond-txgen-go/scripts/stake.sh", "/go/elrond-txgen-go/scripts/esdt.sh", "/go/elrond-txgen-go/scripts/badNonce.sh", "/go/elrond-txgen-go/scripts/highLoad.sh"]
