@@ -100,6 +100,7 @@ jobs:
 
       - name: Prepare Configs
         run: |
+          source .github/workflows/env
           cp -r $BASE_PATH/cmd/node/config/ $BASE_PATH/filegenConfigLocal/
           cp $BASE_PATH/elrond-k8s-testnet/filegenConfig/observerKey.pem $BASE_PATH/filegenConfigLocal/
           sed 's/\"startTime\":.*/\"startTime\": '"$(date -d '8 minutes' +%s)",'/g' $BASE_PATH/filegenConfigLocal/nodesSetup.json > $BASE_PATH/filegenConfigLocal/nodesSetupUpdated.json
@@ -109,15 +110,13 @@ jobs:
           sed -i.bak 's/Address.*80\"/Address = \"http:\/\/observer-shard-zero:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
           sed -i.bak 's/Address.*81\"/Address = \"http:\/\/observer-shard-one:8080\"/' $BASE_PATH/elrond-proxy-go/cmd/proxy/config/config.toml
 
-          # Scenarios is the list of scenarios that txgen will start with. All values: ["basic", "erc20", "stake", "esdt", "badNonce", "highLoad"]
-          sed -i.bak 's/Scenarios = .*]/Scenarios = [\"basic\"]/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
+          sed -i.bak 's/Scenarios = .*]/Scenarios = $TXGEN_CONFIG_SCENARIOS/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
           sed -i.bak 's/8080/8001/' $BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml
         shell: bash
 
       # Configure docker to use the gcloud command-line tool as a credential helper
       - run: |
           # Set up docker to authenticate
-          # via gcloud command-line tool.
           gcloud auth configure-docker
 
       # Build the Docker image
@@ -152,7 +151,7 @@ jobs:
           export NVM=$(bc <<< "($NUM_NODES_METACHAIN + $HYSTERESISMUL - 1) * $HYSTERESISMUL")
           export NUM_VALIDATORS_ON_META=$(bc <<< "($NVM+1)/1")
           export NUM_NODES_TOTAL=$(bc <<< "($NUM_VALIDATORS_ON_SHARD + $NUM_VALIDATORS_ON_META)")
-          echo elrond-node="$NUM_NODES_TOTAL" observer-shard="$NUM_OF_SHARDS" validators-shard=$NUM_VALIDATORS_ON_SHARD
+          echo elrond-node="$NUM_NODES_TOTAL" validators-shard="$NUM_VALIDATORS_ON_SHARD" observer-shard="$NUM_OF_SHARDS"
 
           cd $BASE_PATH/elrond-k8s-testnet/kube/
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
@@ -162,8 +161,8 @@ jobs:
 
           #TODO: this should add node-pools for new deployment, we need to find logix to delete it with the deletion of a testnet
           #gcloud container node-pools create ${{ github.sha }} --preemptible --cluster "$GKE_CLUSTER"
-          #kubernetes regex for namepsace evaluation '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
 
+          #kubernetes regex for namepsace evaluation '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
           export NAMESPACE=$( echo ${{ github.ref }}/${{ github.sha }} | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
           kubectl create namespace "$NAMESPACE"
 
@@ -181,17 +180,13 @@ jobs:
             --from-file=txgenConfig.toml=$BASE_PATH/elrond-txgen-go/cmd/txgen/config/config.toml \
             --from-file=txgenEconomics.toml=$BASE_PATH/elrond-txgen-go/cmd/txgen/config/economics.toml
 
-          # SCENARIOS: the commands get piped into parallel, look at https://www.gnu.org/software/parallel/parallel_cheat.pdf
-          # current values: (input multiple values: "/go/elrond-txgen-go/scripts/basic.sh /go/elrond-txgen-go/scripts/erc20.sh")
-          # ["/go/elrond-txgen-go/scripts/basic.sh", "/go/elrond-txgen-go/scripts/erc20.sh", "/go/elrond-txgen-go/scripts/stake.sh", "/go/elrond-txgen-go/scripts/esdt.sh", "/go/elrond-txgen-go/scripts/badNonce.sh", "/go/elrond-txgen-go/scripts/highLoad.sh"]
           kubectl -n $NAMESPACE create configmap txgen-config \
-            --from-literal=num_shards_txgen=2 \
-            --from-literal=minting_value=20000000000000 \
-            --from-literal=num_accounts=100 \
-            --from-literal=screnarios="/go/elrond-txgen-go/scripts/basic.sh"
+            --from-literal=num_shards_txgen=$NUM_OF_SHARDS \
+            --from-literal=minting_value=$PROXY_MINTING_VALUE \
+            --from-literal=num_accounts=$PROXY_NUM_ACCOUNTS \
+            --from-literal=screnarios=$SCENARIOS
 
-          echo $NUM_NODES_TOTAL $NUM_OF_SHARDS
-          ./kustomize edit set replicas elrond-node=34 observer-shard=2
+          ./kustomize edit set replicas elrond-node=$NUM_NODES_TOTAL observer-shard=$NUM_OF_SHARDS
           ./kustomize edit set image elrondnetwork/elrond-go-node=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
           ./kustomize edit set image elrondnetwork/elrond-go-seednode=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
           ./kustomize edit set image elrondnetwork/elrond-go-proxy=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_PROXY:$GITHUB_SHA
