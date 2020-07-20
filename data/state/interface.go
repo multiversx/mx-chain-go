@@ -171,3 +171,10 @@ type baseAccountHandler interface {
 	DataTrieTracker() DataTrieTracker
 	IsInterfaceNil() bool
 }
+
+// AccountsDBImporter is used in importing accounts
+type AccountsDBImporter interface {
+	ImportAccount(account AccountHandler) error
+	Commit() ([]byte, error)
+	IsInterfaceNil() bool
+}
