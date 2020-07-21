@@ -86,7 +86,7 @@ func (psh *PresenterStatusHandler) CalculateTimeToSynchronize() string {
 }
 
 // CalculateSynchronizationSpeed will calculate and return speed of synchronization
-// how many block per second are synchronized
+// how many blocks per second are synchronized
 func (psh *PresenterStatusHandler) CalculateSynchronizationSpeed() uint64 {
 	currentSynchronizedRound := psh.GetSynchronizedRound()
 	if psh.oldRound == 0 {
