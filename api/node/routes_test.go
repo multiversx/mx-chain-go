@@ -213,30 +213,6 @@ func TestStatusMetrics_NilContextShouldError(t *testing.T) {
 	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
 }
 
-func TestPrometheusMetrics_ShouldWork(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := "test-key"
-	value := uint64(37)
-	statusMetricsProvider.SetUInt64Value(key, value)
-
-	facade := mock.Facade{}
-	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
-		return statusMetricsProvider
-	}
-
-	ws := startNodeServer(&facade)
-	req, _ := http.NewRequest("GET", "/node/metrics", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	respBytes, _ := ioutil.ReadAll(resp.Body)
-	respStr := string(respBytes)
-	assert.Equal(t, resp.Code, http.StatusOK)
-
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
-	assert.True(t, keyAndValueFoundInResponse)
-}
-
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
@@ -469,6 +445,44 @@ func TestPeerInfo_PeerInfoShouldWork(t *testing.T) {
 	require.True(t, ok)
 
 	assert.NotNil(t, responseInfo["info"])
+}
+
+func TestPrometheusMetrics_NilContextShouldErr(t *testing.T) {
+	ws := startNodeServer(nil)
+	req, _ := http.NewRequest("GET", "/node/metrics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
+
+}
+
+func TestPrometheusMetrics_ShouldWork(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := "test-key"
+	value := uint64(37)
+	statusMetricsProvider.SetUInt64Value(key, value)
+
+	facade := mock.Facade{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/metrics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+	assert.True(t, keyAndValueFoundInResponse)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

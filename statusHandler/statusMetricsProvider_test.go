@@ -122,7 +122,7 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutDefaultSh
 
 	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
 
-	expectedMetricOutput := fmt.Sprintf("%s{%s=%d} %v", key1, core.MetricShardId, 0, value1)
+	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, core.MetricShardId, 0, value1)
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
 }
 
@@ -140,6 +140,6 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutCorrectSh
 
 	strRes := sm.StatusMetricsWithoutP2PPrometheusString()
 
-	expectedMetricOutput := fmt.Sprintf("%s{%s=%d} %v", key1, core.MetricShardId, shardID, value1)
+	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, core.MetricShardId, shardID, value1)
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
 }
