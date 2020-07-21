@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -42,27 +43,23 @@ type stakingAuctionSC struct {
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
 type ArgsStakingAuctionSmartContract struct {
-	NodesConfigProvider vm.NodesConfigProvider
-	ValidatorSettings   vm.ValidatorSettingsHandler
-	Eei                 vm.SystemEI
-	SigVerifier         vm.MessageSignVerifier
-	StakingSCAddress    []byte
-	AuctionSCAddress    []byte
-	GasCost             vm.GasCost
-	Marshalizer         marshal.Marshalizer
+	StakingSCConfig  config.StakingSystemSCConfig
+	Eei              vm.SystemEI
+	SigVerifier      vm.MessageSignVerifier
+	StakingSCAddress []byte
+	AuctionSCAddress []byte
+	GasCost          vm.GasCost
+	Marshalizer      marshal.Marshalizer
 }
 
 // NewStakingAuctionSmartContract creates an auction smart contract
 func NewStakingAuctionSmartContract(
 	args ArgsStakingAuctionSmartContract,
 ) (*stakingAuctionSC, error) {
-	if check.IfNil(args.ValidatorSettings) {
-		return nil, vm.ErrNilValidatorSettings
-	}
-	if args.ValidatorSettings.GenesisNodePrice() == nil {
+	if args.GenesisNodePrice == nil {
 		return nil, vm.ErrNilInitialStakeValue
 	}
-	if args.ValidatorSettings.MinStepValue().Cmp(big.NewInt(0)) < 1 {
+	if args.MinStepValue.Cmp(big.NewInt(0)) < 1 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
 	if check.IfNil(args.Eei) {
@@ -74,10 +71,7 @@ func NewStakingAuctionSmartContract(
 	if len(args.AuctionSCAddress) == 0 {
 		return nil, vm.ErrNilAuctionSmartContractAddress
 	}
-	if check.IfNil(args.NodesConfigProvider) {
-		return nil, vm.ErrNilNodesConfigProvider
-	}
-	if args.NodesConfigProvider.MinNumberOfNodes() < 1 {
+	if args.MinNumberOfNodes < 1 {
 		return nil, vm.ErrInvalidMinNumberOfNodes
 	}
 	if check.IfNil(args.Marshalizer) {
@@ -86,21 +80,21 @@ func NewStakingAuctionSmartContract(
 
 	// TODO: max numNodes as well when enabling auction
 	baseConfig := AuctionConfig{
-		MinStakeValue: big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
+		MinStakeValue: big.NewInt(0).Set(args.GenesisNodePrice),
 		NumNodes:      args.NodesConfigProvider.MinNumberOfNodes(),
-		TotalSupply:   big.NewInt(0).Set(args.ValidatorSettings.GenesisTotalSupply()),
-		MinStep:       big.NewInt(0).Set(args.ValidatorSettings.MinStepValue()),
-		NodePrice:     big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
-		UnJailPrice:   big.NewInt(0).Set(args.ValidatorSettings.UnJailValue()),
+		TotalSupply:   big.NewInt(0).Set(args.GenesisTotalSupply),
+		MinStep:       big.NewInt(0).Set(args.MinStepValue),
+		NodePrice:     big.NewInt(0).Set(args.GenesisNodePrice),
+		UnJailPrice:   big.NewInt(0).Set(args.UnJailValue),
 	}
 
 	reg := &stakingAuctionSC{
 		eei:                args.Eei,
-		unBondPeriod:       args.ValidatorSettings.UnBondPeriod(),
+		unBondPeriod:       args.UnBondPeriod,
 		sigVerifier:        args.SigVerifier,
 		baseConfig:         baseConfig,
-		enableAuctionNonce: args.ValidatorSettings.AuctionEnableNonce(),
-		enableStakingNonce: args.ValidatorSettings.StakeEnableNonce(),
+		enableAuctionNonce: args.AuctionEnableNonce,
+		enableStakingNonce: args.StakeEnableNonce,
 		stakingSCAddress:   args.StakingSCAddress,
 		auctionSCAddress:   args.AuctionSCAddress,
 		gasCost:            args.GasCost,

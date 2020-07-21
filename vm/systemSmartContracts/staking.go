@@ -9,6 +9,7 @@ import (
 	"math/big"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -37,17 +38,12 @@ type stakingSC struct {
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
 type ArgsNewStakingSmartContract struct {
-	MinNumNodes              uint32
-	MinStakeValue            *big.Int
-	UnBondPeriod             uint64
-	Eei                      vm.SystemEI
-	StakingAccessAddr        []byte
-	JailAccessAddr           []byte
-	NumRoundsWithoutBleed    uint64
-	BleedPercentagePerRound  float64
-	MaximumPercentageToBleed float64
-	GasCost                  vm.GasCost
-	Marshalizer              marshal.Marshalizer
+	StakingSCConfig   config.StakingSystemSCConfig
+	Eei               vm.SystemEI
+	StakingAccessAddr []byte
+	JailAccessAddr    []byte
+	GasCost           vm.GasCost
+	Marshalizer       marshal.Marshalizer
 }
 
 // NewStakingSmartContract creates a staking smart contract

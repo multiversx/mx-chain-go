@@ -13,7 +13,6 @@ import (
 
 type systemSCFactory struct {
 	systemEI            vm.ContextHandler
-	validatorSettings   vm.ValidatorSettingsHandler
 	nodesConfigProvider vm.NodesConfigProvider
 	sigVerifier         vm.MessageSignVerifier
 	gasCost             vm.GasCost
@@ -25,7 +24,6 @@ type systemSCFactory struct {
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
 type ArgsNewSystemSCFactory struct {
 	SystemEI            vm.ContextHandler
-	ValidatorSettings   vm.ValidatorSettingsHandler
 	NodesConfigProvider vm.NodesConfigProvider
 	SigVerifier         vm.MessageSignVerifier
 	GasMap              map[string]map[string]uint64
@@ -38,9 +36,6 @@ type ArgsNewSystemSCFactory struct {
 func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if check.IfNil(args.SystemEI) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
-	}
-	if check.IfNil(args.ValidatorSettings) {
-		return nil, vm.ErrNilEconomicsData
 	}
 	if check.IfNil(args.SigVerifier) {
 		return nil, vm.ErrNilMessageSignVerifier
@@ -60,7 +55,6 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 
 	scf := &systemSCFactory{
 		systemEI:            args.SystemEI,
-		validatorSettings:   args.ValidatorSettings,
 		sigVerifier:         args.SigVerifier,
 		nodesConfigProvider: args.NodesConfigProvider,
 		marshalizer:         args.Marshalizer,
@@ -116,17 +110,13 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 
 func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, error) {
 	argsStaking := systemSmartContracts.ArgsNewStakingSmartContract{
-		MinNumNodes:              scf.nodesConfigProvider.MinNumberOfNodes(),
-		MinStakeValue:            scf.validatorSettings.GenesisNodePrice(),
-		UnBondPeriod:             scf.validatorSettings.UnBondPeriod(),
-		Eei:                      scf.systemEI,
-		StakingAccessAddr:        AuctionSCAddress,
-		JailAccessAddr:           JailingAddress,
-		NumRoundsWithoutBleed:    scf.validatorSettings.NumRoundsWithoutBleed(),
-		BleedPercentagePerRound:  scf.validatorSettings.BleedPercentagePerRound(),
-		MaximumPercentageToBleed: scf.validatorSettings.MaximumPercentageToBleed(),
-		GasCost:                  scf.gasCost,
-		Marshalizer:              scf.marshalizer,
+		MinNumNodes:       scf.nodesConfigProvider.MinNumberOfNodes(),
+		StakingSCConfig:   scf.systemSCConfig.StakingSystemSCConfig,
+		Eei:               scf.systemEI,
+		StakingAccessAddr: AuctionSCAddress,
+		JailAccessAddr:    JailingAddress,
+		GasCost:           scf.gasCost,
+		Marshalizer:       scf.marshalizer,
 	}
 	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
 	return staking, err
@@ -137,7 +127,7 @@ func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, err
 		Eei:                 scf.systemEI,
 		SigVerifier:         scf.sigVerifier,
 		NodesConfigProvider: scf.nodesConfigProvider,
-		ValidatorSettings:   scf.validatorSettings,
+		StakingSCConfig:     scf.systemSCConfig.StakingSystemSCConfig,
 		StakingSCAddress:    StakingSCAddress,
 		AuctionSCAddress:    AuctionSCAddress,
 		GasCost:             scf.gasCost,
