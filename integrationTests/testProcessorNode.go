@@ -259,8 +259,8 @@ func CreatePkBytes(numShards uint32) map[uint32][]byte {
 	pk := []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
 	pksbytes := make(map[uint32][]byte, numShards+1)
 	for i := uint32(0); i < numShards; i++ {
-		pksbytes[i] = make([]byte, 128)
-		pksbytes[i] = pk
+		pksbytes[i] = make([]byte, len(pk))
+		copy(pksbytes[i], pk)
 		pksbytes[i][0] = byte(i)
 	}
 
@@ -285,6 +285,7 @@ func newBaseTestProcessorNode(
 	pksBytes := CreatePkBytes(maxShards)
 	address := make([]byte, 32)
 	address = []byte("afafafafafafafafafafafafafafafaf")
+	numNodes := uint32(len(pksBytes))
 
 	nodesSetup := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
@@ -299,6 +300,9 @@ func newBaseTestProcessorNode(
 			list := make([]sharding.GenesisNodeInfoHandler, 0)
 			list = append(list, mock.NewNodeInfo(address, pksBytes[shardId], shardId))
 			return list, nil, nil
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return numNodes
 		},
 	}
 	nodesCoordinator := &mock.NodesCoordinatorMock{
@@ -440,8 +444,12 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                 ChainID,
-		NodesSetup:              &mock.NodesSetupStub{},
-		MinTransactionVersion:   MinTransactionVersion,
+		NodesSetup: &mock.NodesSetupStub{
+			MinNumberOfNodesCalled: func() uint32 {
+				return 1
+			},
+		},
+		MinTransactionVersion: MinTransactionVersion,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -481,7 +489,11 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData)
 
 	if check.IfNil(tpn.NodesSetup) {
-		tpn.NodesSetup = &mock.NodesSetupStub{}
+		tpn.NodesSetup = &mock.NodesSetupStub{
+			MinNumberOfNodesCalled: func() uint32 {
+				return tpn.ShardCoordinator.NumberOfShards() * 2
+			},
+		}
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
@@ -1133,7 +1145,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
-				WaitingNodesPercentage:               1,
+				WaitingNodesPercentage:               1000000,
 				ActivateBLSPubKeyMessageVerification: false,
 			},
 		},

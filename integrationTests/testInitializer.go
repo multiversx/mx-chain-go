@@ -653,7 +653,7 @@ func CreateGenesisMetaBlock(
 		},
 		BlockSignKeyGen:    &mock.KeyGenMock{},
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
-		GenesisNodePrice:   big.NewInt(100),
+		GenesisNodePrice:   big.NewInt(1000),
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

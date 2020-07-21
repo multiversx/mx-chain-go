@@ -465,7 +465,10 @@ func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 	r.eei.SetStorage([]byte(epochData), r.stakeValue.Bytes())
 
-	stakeConfig := &StakingNodesConfig{MinNumNodes: int64(r.minNumNodes)}
+	stakeConfig := &StakingNodesConfig{
+		MinNumNodes: int64(r.minNumNodes),
+		MaxNumNodes: int64(r.maxNumNodes),
+	}
 	r.setConfig(stakeConfig)
 
 	return vmcommon.Ok
@@ -520,10 +523,6 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 		r.eei.AddReturnMessage("not enough arguments, needed BLS key and reward address")
 		return vmcommon.UserError
 	}
-	if !r.canStake() {
-		r.eei.AddReturnMessage("staking is full")
-		return vmcommon.UserError
-	}
 
 	stakeValue := r.getStakeValueForCurrentEpoch()
 	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
@@ -533,6 +532,11 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	}
 
 	if !onlyRegister {
+		if !r.canStake() {
+			r.eei.AddReturnMessage("staking is full")
+			return vmcommon.UserError
+		}
+
 		if !registrationData.Staked {
 			r.addToStakedNodes()
 		}

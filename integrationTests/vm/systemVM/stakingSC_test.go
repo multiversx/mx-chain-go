@@ -364,7 +364,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 }
 
 func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9499987910)
+	expectedValue := big.NewInt(0).SetUint64(9999986910)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 

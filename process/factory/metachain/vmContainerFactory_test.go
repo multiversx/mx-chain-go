@@ -132,7 +132,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MinVetoThreshold: 50,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
-				GenesisNodePrice:                     "100000",
+				GenesisNodePrice:                     "1000",
 				UnJailValue:                          "100",
 				MinStepValue:                         "100",
 				MinStakeValue:                        "1",
