@@ -37,26 +37,30 @@ jobs:
         run: '(test -f .github/workflows/env && echo ::set-env name=build_env::true) || echo ENV testnet config does not exist'
 
       # https://github.com/actions/checkout#Checkout-multiple-repos-side-by-side
+      # https://github.com/actions/checkout
       - name: Checkout deployment config repo
         uses: actions/checkout@v2
         with:
-          repository: elrondnetwork/elrond-k8s-testnet@master
+          repository: elrondnetwork/elrond-k8s-testnet
           token: ${{ secrets.PAT }} # `GitHub_PAT` is a secret that contains your PAT
           path: elrond-k8s-testnet
+          ref: master
 
       - name: Checkout deployment config repo
         uses: actions/checkout@v2
         with:
-          repository: elrondnetwork/elrond-proxy-go@master
+          repository: elrondnetwork/elrond-proxy-go
           token: ${{ secrets.PAT }}
           path: elrond-proxy-go
+          ref: master
 
       - name: Checkout deployment config repo
         uses: actions/checkout@v2
         with:
-          repository: elrondnetwork/elrond-txgen-go@master
+          repository: elrondnetwork/elrond-txgen-go
           token: ${{ secrets.PAT }}
           path: elrond-txgen-go
+          ref: master
 
       # Setup gcloud CLI
       - name: Setup gcloud CLI
