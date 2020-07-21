@@ -332,7 +332,7 @@ type HardforkConfig struct {
 
 // FullHistoryConfig holds the configuration for the full history node
 type FullHistoryConfig struct {
-	EnableHistoryNode               bool
+	Enabled                         bool
 	HistoryTransactionStorageConfig StorageConfig
 	HashEpochStorageConfig          StorageConfig
 }

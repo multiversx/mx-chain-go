@@ -155,7 +155,7 @@ type Node struct {
 	peerHonestyHandler consensus.PeerHonestyHandler
 
 	watchdog         core.WatchdogTimer
-	historyProcessor fullHistory.HistoryHandler
+	historyProcessor fullHistory.HistoryRepository
 }
 
 // ApplyOptions can set up different configurable options of a Node instance

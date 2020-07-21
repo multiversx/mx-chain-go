@@ -28,9 +28,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
@@ -1180,20 +1180,19 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	historyProcFactoryArgs := &historyFactory.ArgsHistoryProcessorFactory{
-		Hasher:          coreComponents.Hasher,
-		Marshalizer:     coreComponents.InternalMarshalizer,
-		HistoryStorer:   dataComponents.Store.GetStorer(dataRetriever.TransactionHistoryUnit),
-		HashEpochStorer: dataComponents.Store.GetStorer(dataRetriever.HashEpochUnit),
-		SelfShardID:     shardCoordinator.SelfId(),
-		IsEnabled:       generalConfig.FullHistory.EnableHistoryNode,
+	historyProcFactoryArgs := &historyFactory.ArgsHistoryRepositoryFactory{
+		SelfShardID:       shardCoordinator.SelfId(),
+		FullHistoryConfig: generalConfig.FullHistory,
+		Hasher:            coreComponents.Hasher,
+		Marshalizer:       coreComponents.InternalMarshalizer,
+		Store:             dataComponents.Store,
 	}
-	historyProcessorFactory, err := historyFactory.NewHistoryProcessorFactory(historyProcFactoryArgs)
+	historyRepositoryFactory, err := historyFactory.NewHistoryRepositoryFactory(historyProcFactoryArgs)
 	if err != nil {
 		return err
 	}
 
-	historyProcessor, err := historyProcessorFactory.Create()
+	historyRepository, err := historyRepositoryFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -1236,7 +1235,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		version,
 		importStartHandler,
 		workingDir,
-		historyProcessor,
+		historyRepository,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1306,7 +1305,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		hardForkTrigger,
-		historyProcessor,
+		historyRepository,
 	)
 	if err != nil {
 		return err
@@ -2063,7 +2062,7 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
-	historyProcessor fullHistory.HistoryHandler,
+	historyProcessor fullHistory.HistoryRepository,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32

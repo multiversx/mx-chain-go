@@ -15,68 +15,8 @@ type baseAPIBockProcessor struct {
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	historyProc              fullHistory.HistoryHandler
+	historyProc              fullHistory.HistoryRepository
 	unmarshalTx              func(txBytes []byte, txType string) (*transaction.ApiTransactionResult, error)
-}
-
-func (bap *baseAPIBockProcessor) getNormalTxsFromMB(miniblock *block.MiniBlock, epoch uint32) []*transaction.ApiTransactionResult {
-	txs := make([]*transaction.ApiTransactionResult, len(miniblock.TxHashes))
-	unit := dataRetriever.TransactionUnit
-	for idx := 0; idx < len(miniblock.TxHashes); idx++ {
-		txBytes, err := bap.getFromStorerWithEpoch(unit, miniblock.TxHashes[idx], epoch)
-		if err != nil {
-			continue
-		}
-
-		tx, err := bap.unmarshalTx(txBytes, "normal")
-		if err != nil {
-			continue
-		}
-
-		txs[idx] = tx
-	}
-
-	return txs
-}
-
-func (bap *baseAPIBockProcessor) getRewardTxsFromMB(miniblock *block.MiniBlock, epoch uint32) []*transaction.ApiTransactionResult {
-	txs := make([]*transaction.ApiTransactionResult, len(miniblock.TxHashes))
-	unit := dataRetriever.RewardTransactionUnit
-	for idx := 0; idx < len(miniblock.TxHashes); idx++ {
-		txBytes, err := bap.getFromStorerWithEpoch(unit, miniblock.TxHashes[idx], epoch)
-		if err != nil {
-			continue
-		}
-
-		tx, err := bap.unmarshalTx(txBytes, "rewardTx")
-		if err != nil {
-			continue
-		}
-
-		txs[idx] = tx
-	}
-
-	return txs
-}
-
-func (bap *baseAPIBockProcessor) getUnsignedTxsFromMB(miniblock *block.MiniBlock, epoch uint32) []*transaction.ApiTransactionResult {
-	txs := make([]*transaction.ApiTransactionResult, len(miniblock.TxHashes))
-	unit := dataRetriever.UnsignedTransactionUnit
-	for idx := 0; idx < len(miniblock.TxHashes); idx++ {
-		txBytes, err := bap.getFromStorerWithEpoch(unit, miniblock.TxHashes[idx], epoch)
-		if err != nil {
-			continue
-		}
-
-		tx, err := bap.unmarshalTx(txBytes, "unsignedTx")
-		if err != nil {
-			continue
-		}
-
-		txs[idx] = tx
-	}
-
-	return txs
 }
 
 func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epoch uint32) []*transaction.ApiTransactionResult {
@@ -93,14 +33,38 @@ func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epo
 
 	switch miniBlock.Type {
 	case block.TxBlock:
-		return bap.getNormalTxsFromMB(miniBlock, epoch)
-	case block.SmartContractResultBlock:
-		return bap.getUnsignedTxsFromMB(miniBlock, epoch)
+		return bap.getTxsFromMiniblock(miniBlock, epoch, "normal", dataRetriever.TransactionUnit)
 	case block.RewardsBlock:
-		return bap.getRewardTxsFromMB(miniBlock, epoch)
+		return bap.getTxsFromMiniblock(miniBlock, epoch, "rewardTx", dataRetriever.RewardTransactionUnit)
+	case block.SmartContractResultBlock:
+		return bap.getTxsFromMiniblock(miniBlock, epoch, "unsignedTx", dataRetriever.UnsignedTransactionUnit)
 	default:
 		return nil
 	}
+}
+
+func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
+	miniblock *block.MiniBlock,
+	epoch uint32,
+	txType string,
+	unit dataRetriever.UnitType,
+) []*transaction.ApiTransactionResult {
+	txs := make([]*transaction.ApiTransactionResult, 0)
+	for idx := 0; idx < len(miniblock.TxHashes); idx++ {
+		txBytes, err := bap.getFromStorerWithEpoch(unit, miniblock.TxHashes[idx], epoch)
+		if err != nil {
+			continue
+		}
+
+		tx, err := bap.unmarshalTx(txBytes, txType)
+		if err != nil {
+			continue
+		}
+
+		txs = append(txs, tx)
+	}
+
+	return txs
 }
 
 func (bap *baseAPIBockProcessor) getFromStorer(unit dataRetriever.UnitType, key []byte) ([]byte, error) {

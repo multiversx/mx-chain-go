@@ -72,7 +72,7 @@ type baseProcessor struct {
 	stateCheckpointModulus uint
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
-	historyProc            fullHistory.HistoryHandler
+	historyProc            fullHistory.HistoryRepository
 }
 
 type bootStorerDataArgs struct {
@@ -404,8 +404,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
 	}
-	if check.IfNil(arguments.HistoryProcessor) {
-		return process.ErrNilHistoryProcessor
+	if check.IfNil(arguments.HistoryRepository) {
+		return process.ErrNilHistoryRepository
 	}
 	if len(arguments.Version) == 0 {
 		return process.ErrEmptySoftwareVersion
@@ -1205,7 +1205,7 @@ func (bp *baseProcessor) saveHistoryData(headerHash []byte, header data.HeaderHa
 
 	err := bp.historyProc.PutTransactionsData(historyTransactionData)
 	if err != nil {
-		log.Debug("history processor: cannot save transaction data",
+		log.Warn("history processor: cannot save transaction data",
 			"error", err.Error())
 	}
 }

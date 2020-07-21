@@ -12,7 +12,7 @@ type HistoryProcessorStub struct {
 	IsEnabledCalled           func() bool
 }
 
-// PutTransactionsData will save in storage information about history transactions
+// PutTransactionsData -
 func (hp *HistoryProcessorStub) PutTransactionsData(historyTxsData *fullHistory.HistoryTransactionsData) error {
 	if hp.PutTransactionsDataCalled != nil {
 		return hp.PutTransactionsDataCalled(historyTxsData)
@@ -20,7 +20,7 @@ func (hp *HistoryProcessorStub) PutTransactionsData(historyTxsData *fullHistory.
 	return nil
 }
 
-// GetTransaction will return a history transaction for the given hash from storage
+// GetTransaction -
 func (hp *HistoryProcessorStub) GetTransaction(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
 	if hp.GetTransactionCalled != nil {
 		return hp.GetTransactionCalled(hash)
@@ -28,17 +28,17 @@ func (hp *HistoryProcessorStub) GetTransaction(hash []byte) (*fullHistory.Histor
 	return nil, nil
 }
 
-// GetEpochForHash will return epoch for a given hash
+// GetEpochForHash -
 func (hp *HistoryProcessorStub) GetEpochForHash(hash []byte) (uint32, error) {
 	return hp.GetEpochForHashCalled(hash)
 }
 
-// IsEnabled will always return true because this is implementation of a history processor
+// IsEnabled -
 func (hp *HistoryProcessorStub) IsEnabled() bool {
 	return true
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
+// IsInterfaceNil -
 func (hp *HistoryProcessorStub) IsInterfaceNil() bool {
 	return hp == nil
 }

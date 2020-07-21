@@ -214,12 +214,12 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		return nil, err
 	}
 
-	if psf.generalConfig.FullHistory.EnableHistoryNode {
+	if psf.generalConfig.FullHistory.Enabled {
 		successfullyCreatedStorers = append(successfullyCreatedStorers, historyTxUnit)
 		store.AddStorer(dataRetriever.TransactionHistoryUnit, historyTxUnit)
 
 		successfullyCreatedStorers = append(successfullyCreatedStorers, hashEpochUnit)
-		store.AddStorer(dataRetriever.HashEpochUnit, hashEpochUnit)
+		store.AddStorer(dataRetriever.EpochByHashUnit, hashEpochUnit)
 	}
 
 	return store, err
@@ -372,19 +372,19 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 
-	if psf.generalConfig.FullHistory.EnableHistoryNode {
+	if psf.generalConfig.FullHistory.Enabled {
 		successfullyCreatedStorers = append(successfullyCreatedStorers, historyTxUnit)
 		store.AddStorer(dataRetriever.TransactionHistoryUnit, historyTxUnit)
 
 		successfullyCreatedStorers = append(successfullyCreatedStorers, hashEpochUnit)
-		store.AddStorer(dataRetriever.HashEpochUnit, hashEpochUnit)
+		store.AddStorer(dataRetriever.EpochByHashUnit, hashEpochUnit)
 	}
 
 	return store, err
 }
 
 func (psf *StorageServiceFactory) createHistoryStorersIfNeeded() (*pruning.PruningStorer, *storageUnit.Unit, error) {
-	if !psf.generalConfig.FullHistory.EnableHistoryNode {
+	if !psf.generalConfig.FullHistory.Enabled {
 		return nil, nil, nil
 	}
 

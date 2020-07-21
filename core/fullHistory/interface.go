@@ -1,13 +1,13 @@
 package fullHistory
 
-// HistoryProcessorFactory can create new instances of HistoryHandler
+// HistoryProcessorFactory can create new instances of HistoryRepository
 type HistoryProcessorFactory interface {
-	Create() (HistoryHandler, error)
+	Create() (HistoryRepository, error)
 	IsInterfaceNil() bool
 }
 
-// HistoryHandler provides methods needed for the history data processing
-type HistoryHandler interface {
+// HistoryRepository provides methods needed for the history data processing
+type HistoryRepository interface {
 	PutTransactionsData(htd *HistoryTransactionsData) error
 	GetTransaction(hash []byte) (*HistoryTransactionWithEpoch, error)
 	GetEpochForHash(hash []byte) (uint32, error)
@@ -15,7 +15,7 @@ type HistoryHandler interface {
 	IsInterfaceNil() bool
 }
 
-type hashEpochHandler interface {
+type hashEpochRepository interface {
 	GetEpoch(hash []byte) (uint32, error)
 	SaveEpoch(hash []byte, epoch uint32) error
 }

@@ -40,14 +40,17 @@ var ErrValidationEmptyTxHash = errors.New("TxHash is empty")
 // ErrInvalidBlockNonce signals an invalid block nonce was provided
 var ErrInvalidBlockNonce = errors.New("invalid block nonce")
 
+// ErrInvalidQueryParameter signals and invalid query parameter was provided
+var ErrInvalidQueryParameter = errors.New("invalid query parameter")
+
 // ErrValidationEmptyBlockHash signals an empty block hash was provided
 var ErrValidationEmptyBlockHash = errors.New("block hash is empty")
 
 // ErrGetTransaction signals an error happened trying to fetch a transaction
-var ErrGetTransaction = errors.New("transaction getting failed")
+var ErrGetTransaction = errors.New("getting transaction failed")
 
 // ErrGetBlock signals an error happened trying to fetch a block
-var ErrGetBlock = errors.New("block getting failed")
+var ErrGetBlock = errors.New("getting block failed")
 
 // ErrQueryError signals a general query error
 var ErrQueryError = errors.New("query error")

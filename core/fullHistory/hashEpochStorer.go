@@ -12,7 +12,7 @@ type hashEpochProcessor struct {
 	storer      storage.Storer
 }
 
-func newHashEpochProcessor(storer storage.Storer, marshalizer marshal.Marshalizer) *hashEpochProcessor {
+func newHashEpochStorer(storer storage.Storer, marshalizer marshal.Marshalizer) *hashEpochProcessor {
 	return &hashEpochProcessor{
 		storer:      storer,
 		marshalizer: marshalizer,
@@ -26,7 +26,7 @@ func (hep *hashEpochProcessor) GetEpoch(hash []byte) (uint32, error) {
 		return 0, err
 	}
 
-	hashEpochData := &HashEpoch{}
+	hashEpochData := &EpochByHash{}
 	err = hep.marshalizer.Unmarshal(hashEpochData, hashEpochBytes)
 	if err != nil {
 		return 0, err
@@ -37,7 +37,7 @@ func (hep *hashEpochProcessor) GetEpoch(hash []byte) (uint32, error) {
 
 // SaveEpoch will save epoch for provided hash
 func (hep *hashEpochProcessor) SaveEpoch(hash []byte, epoch uint32) error {
-	hashEpochData := &HashEpoch{
+	hashEpochData := &EpochByHash{
 		Epoch: epoch,
 	}
 	hashEpochBytes, err := hep.marshalizer.Marshal(hashEpochData)

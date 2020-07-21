@@ -14,6 +14,6 @@ type APIBlockProcessorArg struct {
 	Store                    dataRetriever.StorageService
 	Marshalizer              marshal.Marshalizer
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	HistoryProc              fullHistory.HistoryHandler
+	HistoryProc              fullHistory.HistoryRepository
 	UnmarshalTx              func(txBytes []byte, txType string) (*transaction.ApiTransactionResult, error)
 }

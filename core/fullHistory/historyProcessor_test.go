@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockHistoryProcArgs() HistoryProcessorArguments {
-	return HistoryProcessorArguments{
+func createMockHistoryProcArgs() HistoryRepositoryArguments {
+	return HistoryRepositoryArguments{
 		Marshalizer:     &mock.MarshalizerMock{},
 		Hasher:          &mock.HasherMock{},
 		HistoryStorer:   &mock.StorerStub{},
@@ -27,7 +27,7 @@ func TestNewHistoryProcessor_NilHistoryStorerShouldErr(t *testing.T) {
 	args := createMockHistoryProcArgs()
 	args.HistoryStorer = nil
 
-	proc, err := NewHistoryProcessor(args)
+	proc, err := NewHistoryRepository(args)
 	assert.Nil(t, proc)
 	assert.Equal(t, core.ErrNilStore, err)
 }
@@ -38,7 +38,7 @@ func TestNewHistoryProcessor_NilHasherShouldErr(t *testing.T) {
 	args := createMockHistoryProcArgs()
 	args.Hasher = nil
 
-	proc, err := NewHistoryProcessor(args)
+	proc, err := NewHistoryRepository(args)
 	assert.Nil(t, proc)
 	assert.Equal(t, core.ErrNilHasher, err)
 }
@@ -49,7 +49,7 @@ func TestNewHistoryProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	args := createMockHistoryProcArgs()
 	args.Marshalizer = nil
 
-	proc, err := NewHistoryProcessor(args)
+	proc, err := NewHistoryRepository(args)
 	assert.Nil(t, proc)
 	assert.Equal(t, core.ErrNilMarshalizer, err)
 }
@@ -60,7 +60,7 @@ func TestNewHistoryProcessor_NilHashEpochStorerShouldErr(t *testing.T) {
 	args := createMockHistoryProcArgs()
 	args.HashEpochStorer = nil
 
-	proc, err := NewHistoryProcessor(args)
+	proc, err := NewHistoryRepository(args)
 	assert.Nil(t, proc)
 	assert.Equal(t, core.ErrNilStore, err)
 }
@@ -70,7 +70,7 @@ func TestNewHistoryProcessor(t *testing.T) {
 
 	args := createMockHistoryProcArgs()
 
-	proc, err := NewHistoryProcessor(args)
+	proc, err := NewHistoryRepository(args)
 	assert.NotNil(t, proc)
 	assert.NoError(t, err)
 	assert.True(t, proc.IsEnabled())
@@ -96,7 +96,7 @@ func TestHistoryProcessor_PutTransactionsData(t *testing.T) {
 		},
 	}
 
-	proc, _ := NewHistoryProcessor(args)
+	proc, _ := NewHistoryRepository(args)
 
 	headerHash := []byte("headerHash")
 	txsData := &HistoryTransactionsData{
@@ -117,6 +117,7 @@ func TestHistoryProcessor_PutTransactionsData(t *testing.T) {
 
 	err := proc.PutTransactionsData(txsData)
 	assert.Nil(t, err)
+	assert.Equal(t, 3, countCalledHashEpoch)
 }
 
 func TestHistoryProcessor_GetTransaction(t *testing.T) {
@@ -126,7 +127,7 @@ func TestHistoryProcessor_GetTransaction(t *testing.T) {
 	args := createMockHistoryProcArgs()
 	args.HashEpochStorer = &mock.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			hashEpochData := HashEpoch{
+			hashEpochData := EpochByHash{
 				Epoch: epoch,
 			}
 
@@ -149,7 +150,7 @@ func TestHistoryProcessor_GetTransaction(t *testing.T) {
 		},
 	}
 
-	proc, _ := NewHistoryProcessor(args)
+	proc, _ := NewHistoryRepository(args)
 
 	historyTx, err := proc.GetTransaction([]byte("txHash"))
 	assert.Nil(t, err)
@@ -164,7 +165,7 @@ func TestHistoryProcessor_GetEpochForHash(t *testing.T) {
 	args := createMockHistoryProcArgs()
 	args.HashEpochStorer = &mock.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			hashEpochData := HashEpoch{
+			hashEpochData := EpochByHash{
 				Epoch: epoch,
 			}
 
@@ -172,7 +173,7 @@ func TestHistoryProcessor_GetEpochForHash(t *testing.T) {
 			return hashEpochBytes, nil
 		},
 	}
-	proc, _ := NewHistoryProcessor(args)
+	proc, _ := NewHistoryRepository(args)
 
 	resEpoch, err := proc.GetEpochForHash([]byte("txHash"))
 	assert.NoError(t, err)

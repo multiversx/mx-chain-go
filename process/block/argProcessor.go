@@ -41,7 +41,7 @@ type ArgBaseProcessor struct {
 	StateCheckpointModulus uint
 	BlockSizeThrottler     process.BlockSizeThrottler
 	Version                string
-	HistoryProcessor       fullHistory.HistoryHandler
+	HistoryRepository      fullHistory.HistoryRepository
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

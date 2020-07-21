@@ -38,7 +38,7 @@ func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -62,7 +62,7 @@ func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -87,7 +87,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) 
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -118,7 +118,7 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -140,6 +140,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 	}
 	storer := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			// getStorerStub contains a transaction that is created with getDummyNormalTx method
 			return getStorerStub(true)
 		},
 	}
@@ -157,7 +158,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return true
 			},
@@ -199,6 +200,8 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 		Status:     core.TxStatusExecuted,
 	}
 
+	// transaction that is returned shoud be the same with expectedTx because
+	// expectedTx is formated for a dummyTx( returned by method getDummyNormalTx
 	tx, err := n.GetTransaction("aaaa")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTx, tx)
@@ -224,7 +227,7 @@ func TestNode_GetFullHistoryTransaction_TxInPoolShouldReturnItDirectly(t *testin
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return true
 			},
@@ -262,7 +265,7 @@ func TestNode_GetFullHistoryTransaction_TxNotInHistoryStorerShouldErr(t *testing
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return true
 			},
@@ -301,7 +304,7 @@ func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -337,7 +340,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -378,7 +381,7 @@ func TestNode_GetTransaction_ShouldFindInStorageButErrorUnmarshaling(t *testing.
 			},
 		}, 0),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -405,7 +408,7 @@ func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
-		node.WithHistoryProcessor(&mock.HistoryProcessorStub{
+		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},

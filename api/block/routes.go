@@ -14,14 +14,12 @@ import (
 )
 
 const (
-	getBlockByNonceEndpoint        = "/block/by-nonce/:nonce"
-	getBlockByNonceWithTxsEndpoint = "/block/by-nonce/:nonce/transactions"
-	getBlockByHashEndpoint         = "/block/by-hash/:hash"
-	getBlockByHashWithTxsEndpoint  = "/block/by-hash/:hash/transactions"
+	getBlockByNoncePath = "/block/by-nonce/:nonce"
+	getBlockByHashPath  = "/block/by-hash/:hash"
 )
 
-// BlkService interface defines methods that can be used from `elrondFacade` context variable
-type BlkService interface {
+// BlockService interface defines methods that can be used from `elrondFacade` context variable
+type BlockService interface {
 	GetBlockByHash(hash string, withTxs bool) (*APIBlock, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*APIBlock, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -50,161 +48,117 @@ type APIMiniBlock struct {
 
 // Routes defines block related routes
 func Routes(routes *wrapper.RouterWrapper) {
-	routes.RegisterHandler(http.MethodGet, "/by-nonce/:nonce", getBlockByNonce)
-	routes.RegisterHandler(http.MethodGet, "/by-nonce/:nonce/transactions", getBlockByNonceWithTxs)
-	routes.RegisterHandler(http.MethodGet, "/by-hash/:hash", getBlockByHash)
-	routes.RegisterHandler(http.MethodGet, "/by-hash/:hash/transactions", getBlockByHashWithTxs)
+	routes.RegisterHandler(http.MethodGet, getBlockByNoncePath, getBlockByNonce)
+	routes.RegisterHandler(http.MethodGet, getBlockByHashPath, getBlockByHash)
 }
 
 func getBlockByNonce(c *gin.Context) {
-	getBlkByNonce(c, false, getBlockByNonceEndpoint)
-}
-
-func getBlockByNonceWithTxs(c *gin.Context) {
-	getBlkByNonce(c, true, getBlockByNonceWithTxsEndpoint)
-}
-
-func getBlockByHash(c *gin.Context) {
-	getBlkByHash(c, false, getBlockByHashEndpoint)
-}
-
-func getBlockByHashWithTxs(c *gin.Context) {
-	getBlkByHash(c, true, getBlockByHashWithTxsEndpoint)
-}
-
-func getBlkByNonce(c *gin.Context, withTxs bool, endpoint string) {
-	ef, ok := c.MustGet("elrondFacade").(BlkService)
+	ef, ok := c.MustGet("elrondFacade").(BlockService)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
+		shared.RespondWithInvalidAppContext(c)
+		return
+	}
+
+	nonce, err := getQueryParamNonce(c)
+	if err != nil {
+		shared.RespondWith(
+			c,
+			http.StatusBadRequest,
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
+			shared.ReturnCodeRequestError,
 		)
 		return
 	}
 
-	endpointThrottler, ok := ef.GetThrottlerForEndpoint(endpoint)
-	if ok {
-		if !endpointThrottler.CanProcess() {
-			c.JSON(
-				http.StatusTooManyRequests,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: errors.ErrTooManyRequests.Error(),
-					Code:  shared.ReturnCodeSystemBusy,
-				},
-			)
-			return
-		}
-
-		endpointThrottler.StartProcessing()
-		defer endpointThrottler.EndProcessing()
-	}
-
-	nonceStr := c.Param("nonce")
-	nonce, err := strconv.ParseUint(nonceStr, 10, 64)
-	if nonceStr == "" || err != nil {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
+	withTxs, err := getQueryParamWithTxs(c)
+	if err != nil {
+		shared.RespondWith(
+			c,
+			http.StatusInternalServerError,
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
+			shared.ReturnCodeRequestError,
 		)
 		return
 	}
 
 	block, err := ef.GetBlockByNonce(nonce, withTxs)
 	if err != nil {
-		c.JSON(
+		shared.RespondWith(
+			c,
 			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrGetBlock.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
+			nil,
+			errors.ErrGetBlock.Error(),
+			shared.ReturnCodeInternalError,
 		)
 		return
 	}
 
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data:  gin.H{"block": block},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
+	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
+
 }
 
-func getBlkByHash(c *gin.Context, withTxs bool, endpoint string) {
-	ef, ok := c.MustGet("elrondFacade").(BlkService)
+func getBlockByHash(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(BlockService)
 	if !ok {
-		c.JSON(
-			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
-		)
+		shared.RespondWithInvalidAppContext(c)
 		return
-	}
-
-	endpointThrottler, ok := ef.GetThrottlerForEndpoint(endpoint)
-	if ok {
-		if !endpointThrottler.CanProcess() {
-			c.JSON(
-				http.StatusTooManyRequests,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: errors.ErrTooManyRequests.Error(),
-					Code:  shared.ReturnCodeSystemBusy,
-				},
-			)
-			return
-		}
-
-		endpointThrottler.StartProcessing()
-		defer endpointThrottler.EndProcessing()
 	}
 
 	hash := c.Param("hash")
 	if hash == "" {
-		c.JSON(
+		shared.RespondWith(
+			c,
 			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
+			shared.ReturnCodeRequestError,
+		)
+		return
+	}
+
+	withTxs, err := getQueryParamWithTxs(c)
+	if err != nil {
+		shared.RespondWith(
+			c,
+			http.StatusInternalServerError,
+			nil,
+			fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
+			shared.ReturnCodeRequestError,
 		)
 		return
 	}
 
 	block, err := ef.GetBlockByHash(hash, withTxs)
 	if err != nil {
-		c.JSON(
+		shared.RespondWith(
+			c,
 			http.StatusInternalServerError,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: errors.ErrGetBlock.Error(),
-				Code:  shared.ReturnCodeInternalError,
-			},
+			nil,
+			errors.ErrGetBlock.Error(),
+			shared.ReturnCodeInternalError,
 		)
 		return
 	}
 
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data:  gin.H{"block": block},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
-	)
+	shared.RespondWith(c, http.StatusOK, gin.H{"block": block}, "", shared.ReturnCodeSuccess)
+}
+
+func getQueryParamWithTxs(c *gin.Context) (bool, error) {
+	withTxsStr := c.Request.URL.Query().Get("withTxs")
+	if withTxsStr == "" {
+		return false, nil
+	}
+
+	return strconv.ParseBool(withTxsStr)
+}
+
+func getQueryParamNonce(c *gin.Context) (uint64, error) {
+	nonceStr := c.Param("nonce")
+	if nonceStr == "" {
+		return 0, errors.ErrInvalidBlockNonce
+	}
+
+	return strconv.ParseUint(nonceStr, 10, 64)
 }

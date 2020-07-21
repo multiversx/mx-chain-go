@@ -313,7 +313,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			BlockChain:         blkc,
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 			Version:            "softwareVersion",
-			HistoryProcessor:   &mock.HistoryProcessorStub{},
+			HistoryRepository:  &mock.HistoryProcessorStub{},
 		},
 	}
 
@@ -1019,7 +1019,7 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsE
 
 	requestedNonces = make([]uint64, 0)
 	rounder.RoundIndex = process.MaxHeaderRequestsAllowed + 5
-	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {
@@ -1031,7 +1031,7 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsE
 
 	requestedNonces = make([]uint64, 0)
 	rounder.RoundIndex = 5
-	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {
@@ -1089,7 +1089,7 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 
 	requestedNonces = make([]uint64, 0)
 	rounder.RoundIndex = 15
-	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {
@@ -1101,7 +1101,7 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 
 	requestedNonces = make([]uint64, 0)
 	rounder.RoundIndex = process.MaxHeaderRequestsAllowed + 10
-	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {

@@ -14,7 +14,7 @@ message HistoryTransaction {
     uint64 Round       = 3;
     uint64 HeaderNonce = 4;
     bytes  HeaderHash  = 5;
-	bytes  MbHash      = 6;
-	bytes  Status      = 7;
+    bytes  MbHash      = 6;
+    bytes  Status      = 7;
 }
 

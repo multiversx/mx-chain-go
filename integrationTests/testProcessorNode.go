@@ -253,7 +253,7 @@ type TestProcessorNode struct {
 
 	ExportHandler    update.ExportHandler
 	WaitTime         time.Duration
-	HistoryProcessor fullHistory.HistoryHandler
+	HistoryProcessor fullHistory.HistoryRepository
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -1267,7 +1267,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
 		Version:                string(SoftwareVersion),
-		HistoryProcessor:       tpn.HistoryProcessor,
+		HistoryRepository:      tpn.HistoryProcessor,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

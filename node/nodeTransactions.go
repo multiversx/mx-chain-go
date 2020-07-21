@@ -69,6 +69,7 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 	if !found {
 		// this should never happen because transaction was found in history storer should be also found in transaction
 		// storer
+		log.Warn("node transaction: cannot find transaction in storage")
 		return &transaction.ApiTransactionResult{
 			Epoch:      historyTx.Epoch,
 			MBHash:     hex.EncodeToString(historyTx.MbHash),
@@ -83,6 +84,7 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 	tx, err := n.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		// this should never happen
+		log.Warn("node transaction: cannot unmarshal transaction", "error", err.Error())
 		return &transaction.ApiTransactionResult{
 			Epoch:      historyTx.Epoch,
 			MBHash:     hex.EncodeToString(historyTx.MbHash),
