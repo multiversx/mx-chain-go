@@ -1,11 +1,13 @@
 # This workflows will build a docker container, publish it to Google Container Registry, and deploy it to GKE when a release is created
+# pull_request trigger types: [assigned, unassigned, labeled, unlabeled, opened, edited, closed, reopened, synchronize, ready_for_review, locked, unlocked, review_requested, review_request_removed]
+
 
 name: Build and Deploy Testnet
 
 on:
   pull_request:
     branches: [master, development]
-    types: [opened, synchronize, closed]
+    types: [opened, ready_for_review, closed]
   push:
     branches:
       - prometheus-style-metrics-endpoint
