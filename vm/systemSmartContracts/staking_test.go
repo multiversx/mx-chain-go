@@ -62,7 +62,7 @@ func TestNewStakingSmartContract_NilStakeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.MinStakeValue = ""
+	args.StakingSCConfig.GenesisNodePrice = ""
 	stakingSmartContract, err := NewStakingSmartContract(args)
 
 	assert.Nil(t, stakingSmartContract)
@@ -106,7 +106,7 @@ func TestNewStakingSmartContract_NegativeStakeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
-	args.StakingSCConfig.MinStakeValue = big.NewInt(-100).Text(10)
+	args.StakingSCConfig.GenesisNodePrice = big.NewInt(-100).Text(10)
 	stakingSmartContract, err := NewStakingSmartContract(args)
 
 	assert.Nil(t, stakingSmartContract)

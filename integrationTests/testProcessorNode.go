@@ -1145,7 +1145,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
-				WaitingNodesPercentage:               1000000,
+				WaitingNodesPercentage:               100,
 				ActivateBLSPubKeyMessageVerification: false,
 			},
 		},
