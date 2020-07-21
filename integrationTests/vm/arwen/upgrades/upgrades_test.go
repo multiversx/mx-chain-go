@@ -16,19 +16,19 @@ func TestUpgrades_Hello(t *testing.T) {
 	fmt.Println("Deploy v1")
 
 	context.ScCodeMetadata.Upgradeable = true
-	err := context.DeploySC("../testdata/hello-v1/answer.wasm", "")
+	err := context.DeploySC("../testdata/hello-v1/output/answer.wasm", "")
 	require.Nil(t, err)
 	require.Equal(t, uint64(24), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 
 	fmt.Println("Upgrade to v2")
 
-	err = context.UpgradeSC("../testdata/hello-v2/answer.wasm", "")
+	err = context.UpgradeSC("../testdata/hello-v2/output/answer.wasm", "")
 	require.Nil(t, err)
 	require.Equal(t, uint64(42), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 
 	fmt.Println("Upgrade to v3")
 
-	err = context.UpgradeSC("../testdata/hello-v3/answer.wasm", "")
+	err = context.UpgradeSC("../testdata/hello-v3/output/answer.wasm", "")
 	require.Nil(t, err)
 	require.Equal(t, "forty-two", context.QuerySCString("getUltimateAnswer", [][]byte{}))
 }
@@ -40,13 +40,13 @@ func TestUpgrades_HelloDoesNotUpgradeWhenNotUpgradeable(t *testing.T) {
 	fmt.Println("Deploy v1")
 
 	context.ScCodeMetadata.Upgradeable = false
-	err := context.DeploySC("../testdata/hello-v1/answer.wasm", "")
+	err := context.DeploySC("../testdata/hello-v1/output/answer.wasm", "")
 	require.Nil(t, err)
 	require.Equal(t, uint64(24), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 
 	fmt.Println("Upgrade to v2 will not be performed")
 
-	err = context.UpgradeSC("../testdata/hello-v2/answer.wasm", "")
+	err = context.UpgradeSC("../testdata/hello-v2/output/answer.wasm", "")
 	require.Nil(t, err)
 	require.Equal(t, uint64(24), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 }
@@ -58,7 +58,7 @@ func TestUpgrades_HelloCannotBeUpgradedByNonOwner(t *testing.T) {
 	fmt.Println("Deploy v1")
 
 	context.ScCodeMetadata.Upgradeable = true
-	err := context.DeploySC("../testdata/hello-v1/answer.wasm", "")
+	err := context.DeploySC("../testdata/hello-v1/output/answer.wasm", "")
 	require.Nil(t, err)
 	require.Equal(t, uint64(24), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 
@@ -66,7 +66,7 @@ func TestUpgrades_HelloCannotBeUpgradedByNonOwner(t *testing.T) {
 
 	// Alice states that she is the owner of the contract (though she is not)
 	context.Owner = context.Alice
-	err = context.UpgradeSC("../testdata/hello-v2/answer.wasm", "")
+	err = context.UpgradeSC("../testdata/hello-v2/output/answer.wasm", "")
 	require.Nil(t, err)
 	require.Equal(t, uint64(24), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 }
@@ -78,20 +78,20 @@ func TestUpgrades_HelloUpgradesToNotUpgradeable(t *testing.T) {
 	fmt.Println("Deploy v1")
 
 	context.ScCodeMetadata.Upgradeable = true
-	err := context.DeploySC("../testdata/hello-v1/answer.wasm", "")
+	err := context.DeploySC("../testdata/hello-v1/output/answer.wasm", "")
 	require.Nil(t, err)
 	require.Equal(t, uint64(24), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 
 	fmt.Println("Upgrade to v2, becomes not upgradeable")
 
 	context.ScCodeMetadata.Upgradeable = false
-	err = context.UpgradeSC("../testdata/hello-v2/answer.wasm", "")
+	err = context.UpgradeSC("../testdata/hello-v2/output/answer.wasm", "")
 	require.Nil(t, err)
 	require.Equal(t, uint64(42), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 
 	fmt.Println("Upgrade to v3, should not be possible")
 
-	err = context.UpgradeSC("../testdata/hello-v3/answer.wasm", "")
+	err = context.UpgradeSC("../testdata/hello-v3/output/answer.wasm", "")
 	require.Nil(t, err)
 	require.Equal(t, uint64(42), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 }
@@ -106,14 +106,14 @@ func TestUpgrades_ParentAndChildContracts(t *testing.T) {
 
 	fmt.Println("Deploy parent")
 
-	err := context.DeploySC("../testdata/upgrades-parent/parent.wasm", "")
+	err := context.DeploySC("../testdata/upgrades-parent/output/parent.wasm", "")
 	require.Nil(t, err)
 	require.Equal(t, uint64(45), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 	parentAddress = context.ScAddress
 
 	fmt.Println("Deploy child v1")
 
-	childInitialCode := arwen.GetSCCode("../testdata/hello-v1/answer.wasm")
+	childInitialCode := arwen.GetSCCode("../testdata/hello-v1/output/answer.wasm")
 	err = context.ExecuteSC(owner, "createChild@"+childInitialCode)
 	require.Nil(t, err)
 
@@ -126,7 +126,7 @@ func TestUpgrades_ParentAndChildContracts(t *testing.T) {
 	fmt.Println("Deploy child v2")
 	context.ScAddress = parentAddress
 	// We need to double hex-encode the code (so that we don't have to hex-encode in the contract).
-	childUpgradedCode := arwen.GetSCCode("../testdata/hello-v2/answer.wasm")
+	childUpgradedCode := arwen.GetSCCode("../testdata/hello-v2/output/answer.wasm")
 	childUpgradedCode = hex.EncodeToString([]byte(childUpgradedCode))
 	// Not supported at this moment, V2 not deployed.
 	// TODO: Adjust test when upgrade child from parent is supported.
