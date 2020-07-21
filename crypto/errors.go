@@ -129,3 +129,6 @@ var ErrInvalidPID = errors.New("invalid PID")
 
 // ErrInvalidSignature signals that the given signature is invalid
 var ErrInvalidSignature = errors.New("invalid signature")
+
+// ErrWrongTypeAssertion signals wrong type assertion
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
