@@ -6,7 +6,7 @@ import (
 
 // CacherMock -
 type CacherMock struct {
-	mut                  sync.Mutex
+	mut                  sync.RWMutex
 	dataMap              map[string]interface{}
 	mutAddedDataHandlers sync.RWMutex
 	addedDataHandlers    []func(key []byte, val interface{})
@@ -49,8 +49,8 @@ func (cacher *CacherMock) callAddedDataHandlers(key []byte, val interface{}) {
 
 // Get -
 func (cacher *CacherMock) Get(key []byte) (value interface{}, ok bool) {
-	cacher.mut.Lock()
-	defer cacher.mut.Unlock()
+	cacher.mut.RLock()
+	defer cacher.mut.RUnlock()
 
 	val, ok := cacher.dataMap[string(key)]
 
@@ -59,8 +59,8 @@ func (cacher *CacherMock) Get(key []byte) (value interface{}, ok bool) {
 
 // Has -
 func (cacher *CacherMock) Has(key []byte) bool {
-	cacher.mut.Lock()
-	defer cacher.mut.Unlock()
+	cacher.mut.RLock()
+	defer cacher.mut.RUnlock()
 
 	_, ok := cacher.dataMap[string(key)]
 
@@ -69,8 +69,8 @@ func (cacher *CacherMock) Has(key []byte) bool {
 
 // Peek -
 func (cacher *CacherMock) Peek(key []byte) (value interface{}, ok bool) {
-	cacher.mut.Lock()
-	defer cacher.mut.Unlock()
+	cacher.mut.RLock()
+	defer cacher.mut.RUnlock()
 
 	val, ok := cacher.dataMap[string(key)]
 
@@ -114,8 +114,8 @@ func (cacher *CacherMock) Keys() [][]byte {
 
 // Len -
 func (cacher *CacherMock) Len() int {
-	cacher.mut.Lock()
-	defer cacher.mut.Unlock()
+	cacher.mut.RLock()
+	defer cacher.mut.RUnlock()
 
 	return len(cacher.dataMap)
 }
