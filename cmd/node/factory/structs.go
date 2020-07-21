@@ -918,6 +918,9 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	smartContractParser := args.smartContractParser
 	economicsData := args.economicsData
 
+	genesisVmConfig := args.mainConfig.VirtualMachineConfig
+	genesisVmConfig.OutOfProcessEnabled = false
+
 	arg := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              uint64(nodesSetup.StartTime),
 		StartEpochNum:            args.startEpochNum,
@@ -937,7 +940,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		SmartContractParser:      smartContractParser,
 		ValidatorAccounts:        stateComponents.PeerAccounts,
 		GasMap:                   args.gasSchedule,
-		VirtualMachineConfig:     args.mainConfig.VirtualMachineConfig,
+		VirtualMachineConfig:     genesisVmConfig,
 		TxLogsProcessor:          args.txLogsProcessor,
 		HardForkConfig:           args.mainConfig.Hardfork,
 		TrieStorageManagers:      args.tries.TrieStorageManagers,
