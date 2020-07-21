@@ -62,6 +62,18 @@ func NewAccountsDB(
 	}, nil
 }
 
+// ImportAccount saves the account in the trie. It does not modify
+func (adb *AccountsDB) ImportAccount(account AccountHandler) error {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	if check.IfNil(account) {
+		return fmt.Errorf("%w in accountsDB ImportAccount", ErrNilAccountHandler)
+	}
+
+	return adb.saveAccountToTrie(account)
+}
+
 // SaveAccount saves in the trie all changes made to the account.
 func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 	adb.mutOp.Lock()
