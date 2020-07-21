@@ -40,21 +40,21 @@ jobs:
       - name: Checkout deployment config repo
         uses: actions/checkout@v2
         with:
-          repository: elrondnetwork/elrond-k8s-testnet
+          repository: elrondnetwork/elrond-k8s-testnet@master
           token: ${{ secrets.PAT }} # `GitHub_PAT` is a secret that contains your PAT
           path: elrond-k8s-testnet
 
       - name: Checkout deployment config repo
         uses: actions/checkout@v2
         with:
-          repository: elrondnetwork/elrond-proxy-go
+          repository: elrondnetwork/elrond-proxy-go@master
           token: ${{ secrets.PAT }}
           path: elrond-proxy-go
 
       - name: Checkout deployment config repo
         uses: actions/checkout@v2
         with:
-          repository: elrondnetwork/elrond-txgen-go
+          repository: elrondnetwork/elrond-txgen-go@master
           token: ${{ secrets.PAT }}
           path: elrond-txgen-go
 
