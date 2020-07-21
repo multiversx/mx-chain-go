@@ -3,9 +3,11 @@
 name: Build and Deploy Testnet
 
 on:
+  pull_request:
+    branches: [master, development]
+    types: [opened, synchronize, closed]
   push:
     branches:
-      - deployment_configuration
       - prometheus-style-metrics-endpoint
 
 # Environment variables available to all jobs and steps in this workflows
