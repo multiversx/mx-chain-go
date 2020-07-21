@@ -352,6 +352,21 @@ func (bh *BlockChainHookImpl) IsSmartContract(address []byte) bool {
 	return core.IsSmartContractAddress(address)
 }
 
+// IsPayable checks weather the provided address can receive ERD or not
+func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
+	if !bh.IsSmartContract(address) {
+		return false, nil
+	}
+
+	acc, err := bh.GetUserAccount(address)
+	if err != nil {
+		return false, err
+	}
+
+	metadata := vmcommon.CodeMetadataFromBytes(acc.GetCodeMetadata())
+	return metadata.Payable, nil
+}
+
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
 ) (state.UserAccountHandler, state.UserAccountHandler, error) {
