@@ -92,6 +92,10 @@ func NewStakingAuctionSmartContract(
 	if !ok || baseConfig.NodePrice.Cmp(zero) < 0 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
+	baseConfig.MinStep, ok = big.NewInt(0).SetString(args.StakingSCConfig.MinStepValue, conversionBase)
+	if !ok || baseConfig.NodePrice.Cmp(zero) < 0 {
+		return nil, vm.ErrNegativeInitialStakeValue
+	}
 
 	reg := &stakingAuctionSC{
 		eei:                args.Eei,
@@ -603,10 +607,10 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	registrationData.TotalStakeValue.Add(registrationData.TotalStakeValue, args.CallValue)
-	if registrationData.TotalStakeValue.Cmp(auctionConfig.MinStakeValue) < 0 {
+	if registrationData.TotalStakeValue.Cmp(auctionConfig.NodePrice) < 0 {
 		s.eei.AddReturnMessage(
 			fmt.Sprintf("insufficient stake value expected %s, got %s",
-				auctionConfig.MinStakeValue.String(),
+				auctionConfig.NodePrice.String(),
 				registrationData.TotalStakeValue.String(),
 			),
 		)
@@ -649,7 +653,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	numQualified := big.NewInt(0).Div(registrationData.TotalStakeValue, auctionConfig.MinStakeValue)
+	numQualified := big.NewInt(0).Div(registrationData.TotalStakeValue, auctionConfig.NodePrice)
 	if uint64(len(registrationData.BlsPubKeys)) > numQualified.Uint64() {
 		s.eei.AddReturnMessage("insufficient funds")
 		return vmcommon.OutOfFunds
@@ -681,7 +685,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 			blsKeys,
 			numQualified.Uint64(),
 			registrationData,
-			auctionConfig.MinStakeValue,
+			auctionConfig.NodePrice,
 			registrationData.RewardAddress,
 		)
 	}

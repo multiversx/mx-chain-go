@@ -322,7 +322,7 @@ func hardForkImport(
 					MinStepValue:                         "10",
 					MinStakeValue:                        "1",
 					UnBondPeriod:                         1,
-					AuctionEnableNonce:                   0,
+					AuctionEnableNonce:                   1000000,
 					StakeEnableNonce:                     0,
 					NumRoundsWithoutBleed:                1,
 					MaximumPercentageToBleed:             1,

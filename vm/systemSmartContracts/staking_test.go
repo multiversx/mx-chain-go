@@ -24,7 +24,7 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 		Eei:               &mock.SystemEIStub{},
 		StakingAccessAddr: []byte("auction"),
 		JailAccessAddr:    []byte("jail"),
-		MinNumNodes:       0,
+		MinNumNodes:       1,
 		Marshalizer:       &mock.MarshalizerMock{},
 		StakingSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "100",
@@ -37,7 +37,7 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 			NumRoundsWithoutBleed:                0,
 			MaximumPercentageToBleed:             0,
 			BleedPercentagePerRound:              0,
-			WaitingNodesPercentage:               0,
+			WaitingNodesPercentage:               1,
 			ActivateBLSPubKeyMessageVerification: false,
 		},
 	}
@@ -66,7 +66,7 @@ func TestNewStakingSmartContract_NilStakeValueShouldErr(t *testing.T) {
 	stakingSmartContract, err := NewStakingSmartContract(args)
 
 	assert.Nil(t, stakingSmartContract)
-	assert.Equal(t, vm.ErrNilInitialStakeValue, err)
+	assert.Equal(t, vm.ErrNegativeInitialStakeValue, err)
 }
 
 func TestNewStakingSmartContract_NilSystemEIShouldErr(t *testing.T) {
@@ -1013,6 +1013,7 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 	// check if account is staked should return error code
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
 	// do stake should work
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("anotherKey"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
 	// check again isStaked should return vmcommon.Ok
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.Ok)

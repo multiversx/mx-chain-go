@@ -43,7 +43,8 @@ func createMockArgumentsForAuction() ArgsStakingAuctionSmartContract {
 			WaitingNodesPercentage:               1,
 			ActivateBLSPubKeyMessageVerification: false,
 		},
-		Marshalizer: &mock.MarshalizerMock{},
+		Marshalizer:        &mock.MarshalizerMock{},
+		GenesisTotalSupply: big.NewInt(100000000),
 	}
 
 	return args
@@ -77,7 +78,7 @@ func TestNewStakingAuctionSmartContract_NilStakeValue(t *testing.T) {
 
 	asc, err := NewStakingAuctionSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilInitialStakeValue, err)
+	require.Equal(t, vm.ErrNegativeInitialStakeValue, err)
 }
 
 func TestNewStakingAuctionSmartContract_NegativeInitialStakeValue(t *testing.T) {
@@ -128,7 +129,10 @@ func TestAuctionSC_calculateNodePrice_Case1(t *testing.T) {
 	t.Parallel()
 
 	expectedNodePrice := big.NewInt(20000000)
-	stakingAuctionSC, _ := NewStakingAuctionSmartContract(createMockArgumentsForAuction())
+	args := createMockArgumentsForAuction()
+	args.GenesisTotalSupply = big.NewInt(1000000000)
+	args.StakingSCConfig.MinStakeValue = "100"
+	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	bids := []AuctionData{
 		createABid(100000000, 100, 30000000),
@@ -685,12 +689,19 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondUnStakeUnBondOneBlsPubKey(t *
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
+	arguments.CallerAddr = []byte("anotherAddress")
+	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), []byte("anotherKey"), []byte("signed")}
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return 100
 	}
 	blockChainHook.CurrentEpochCalled = func() uint32 {
 		return 10
 	}
+
+	arguments.CallerAddr = stakerAddress
 	arguments.Function = "unStake"
 	arguments.Arguments = [][]byte{stakerPubKey}
 	arguments.CallValue = big.NewInt(0)
@@ -830,6 +841,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndRestake(t *testin
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 1000
+	argsStaking.StakingSCConfig.AuctionEnableNonce = 100000000
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
@@ -850,7 +862,13 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndRestake(t *testin
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
+	arguments.CallerAddr = []byte("anotherCaller")
+	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), []byte("anotherKey"), []byte("signed")}
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
 	nonce += 1
+	arguments.CallerAddr = stakerAddress.Bytes()
 	arguments.Function = "unStake"
 	arguments.Arguments = [][]byte{stakerPubKey.Bytes()}
 	arguments.CallValue = big.NewInt(0)

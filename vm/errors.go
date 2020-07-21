@@ -38,9 +38,6 @@ var ErrNilCryptoHook = errors.New("crypto hook is nil")
 // ErrNilOrEmptyKey signals that key is nil or empty
 var ErrNilOrEmptyKey = errors.New("nil or empty key")
 
-// ErrNilInitialStakeValue signals that nil initial stake value was provided
-var ErrNilInitialStakeValue = errors.New("initial stake value is nil")
-
 // ErrNilEconomicsData signals that nil economics data has been provided
 var ErrNilEconomicsData = errors.New("nil economics data")
 
@@ -82,9 +79,6 @@ var ErrOnExecutionAtStakingSC = errors.New("execution error at staking sc")
 
 // ErrNilAuctionSmartContractAddress signals that auction smart contract address is nil
 var ErrNilAuctionSmartContractAddress = errors.New("nil auction smart contract address")
-
-// ErrNilValidatorSettings signals that validator settings is nil
-var ErrNilValidatorSettings = errors.New("nil validator settings")
 
 // ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
 var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")
