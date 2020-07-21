@@ -8,21 +8,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	getBlockByNoncePath = "/block/by-nonce/:nonce"
-	getBlockByHashPath  = "/block/by-hash/:hash"
+	getBlockByNoncePath = "/by-nonce/:nonce"
+	getBlockByHashPath  = "/by-hash/:hash"
 )
 
 // BlockService interface defines methods that can be used from `elrondFacade` context variable
 type BlockService interface {
 	GetBlockByHash(hash string, withTxs bool) (*APIBlock, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*APIBlock, error)
-	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 }
 
 // APIBlock represents the structure for block that is returned by api routes
@@ -53,7 +51,7 @@ func Routes(routes *wrapper.RouterWrapper) {
 }
 
 func getBlockByNonce(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(BlockService)
+	ef, ok := c.MustGet("facade").(BlockService)
 	if !ok {
 		shared.RespondWithInvalidAppContext(c)
 		return

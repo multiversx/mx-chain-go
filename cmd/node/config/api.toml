@@ -99,12 +99,6 @@
 	    # /block/by-nonce/:nonce will return the block in JSON format based on its nonce
 	    { Name = "/by-nonce/:nonce", Open = true },
 
-	    # /block/by-nonce/:nonce/transactions will return the block with transactions in JSON format based on its nonce
-        { Name = "/by-nonce/:nonce/transactions", Open = true },
-
 	    # /block/by-hash/:hash will return the block in JSON format based on its nonce
 	    { Name = "/by-hash/:hash", Open = true },
-
-	    # /block/by-hash/:hash will return the block with transactions in JSON format based on its nonce
-        { Name = "/by-hash/:hash/transactions", Open = true },
 	]
