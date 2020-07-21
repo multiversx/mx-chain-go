@@ -2,6 +2,7 @@ package factory
 
 import (
 	"errors"
+	"math/big"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -457,9 +458,15 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	conversionBase := 10
+	genesisNodePrice, ok := big.NewInt(0).SetString(args.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
+	if !ok {
+		return nil, errors.New("invalid genesis node price")
+	}
+
 	nodesSetupChecker, err := checking.NewNodesSetupChecker(
 		args.accountsParser,
-		args.economicsData.GenesisNodePrice(),
+		genesisNodePrice,
 		args.validatorPubkeyConverter,
 		args.crypto.BlockSignKeyGen,
 	)

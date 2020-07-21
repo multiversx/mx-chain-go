@@ -13,6 +13,7 @@ import (
 
 type systemSCFactory struct {
 	systemEI            vm.ContextHandler
+	economics           vm.EconomicsHandler
 	nodesConfigProvider vm.NodesConfigProvider
 	sigVerifier         vm.MessageSignVerifier
 	gasCost             vm.GasCost
@@ -24,6 +25,7 @@ type systemSCFactory struct {
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
 type ArgsNewSystemSCFactory struct {
 	SystemEI            vm.ContextHandler
+	Economics           vm.EconomicsHandler
 	NodesConfigProvider vm.NodesConfigProvider
 	SigVerifier         vm.MessageSignVerifier
 	GasMap              map[string]map[string]uint64
@@ -49,6 +51,9 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if check.IfNil(args.Hasher) {
 		return nil, vm.ErrNilHasher
 	}
+	if check.IfNil(args.Economics) {
+		return nil, vm.ErrNilEconomicsData
+	}
 	if args.SystemSCConfig == nil {
 		return nil, vm.ErrNilSystemSCConfig
 	}
@@ -60,6 +65,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
 		systemSCConfig:      args.SystemSCConfig,
+		economics:           args.Economics,
 	}
 
 	err := scf.createGasConfig(args.GasMap)
@@ -134,6 +140,7 @@ func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, err
 		GasCost:            scf.gasCost,
 		Marshalizer:        scf.marshalizer,
 		NumOfNodesToSelect: uint64(nodesToSelect),
+		GenesisTotalSupply: scf.economics.GenesisTotalSupply(),
 	}
 	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
 	return auction, err

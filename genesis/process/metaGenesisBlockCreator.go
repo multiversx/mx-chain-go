@@ -78,12 +78,13 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		Nonce:                  nonce,
 		Epoch:                  epoch,
 	}
+
 	header.EpochStart.Economics = block.Economics{
 		TotalSupply:       big.NewInt(0).Set(arg.Economics.GenesisTotalSupply()),
 		TotalToDistribute: big.NewInt(0),
 		TotalNewlyMinted:  big.NewInt(0),
 		RewardsPerBlock:   big.NewInt(0),
-		NodePrice:         big.NewInt(0).Set(arg.Economics.GenesisNodePrice()),
+		NodePrice:         big.NewInt(0).Set(arg.GenesisNodePrice),
 	}
 
 	validatorRootHash, err := arg.ValidatorAccounts.RootHash()
@@ -407,7 +408,7 @@ func setStakedData(
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
 	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
-	stakeValue := arg.Economics.GenesisNodePrice()
+	stakeValue := arg.GenesisNodePrice
 
 	stakedNodes := nodesListSplitter.GetAllNodes()
 	for _, nodeInfo := range stakedNodes {

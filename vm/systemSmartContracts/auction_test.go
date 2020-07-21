@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -23,13 +24,25 @@ import (
 
 func createMockArgumentsForAuction() ArgsStakingAuctionSmartContract {
 	args := ArgsStakingAuctionSmartContract{
-		ValidatorSettings:   &mock.ValidatorSettingsStub{},
-		Eei:                 &mock.SystemEIStub{},
-		SigVerifier:         &mock.MessageSignVerifierMock{},
-		AuctionSCAddress:    []byte("auction"),
-		StakingSCAddress:    []byte("staking"),
-		NodesConfigProvider: &mock.NodesConfigProviderStub{},
-		Marshalizer:         &mock.MarshalizerMock{},
+		Eei:                &mock.SystemEIStub{},
+		SigVerifier:        &mock.MessageSignVerifierMock{},
+		AuctionSCAddress:   []byte("auction"),
+		StakingSCAddress:   []byte("staking"),
+		NumOfNodesToSelect: 10,
+		StakingSCConfig: config.StakingSystemSCConfig{
+			GenesisNodePrice:                     "1000",
+			UnJailValue:                          "10",
+			MinStepValue:                         "10",
+			UnBondPeriod:                         1,
+			AuctionEnableNonce:                   0,
+			StakeEnableNonce:                     0,
+			NumRoundsWithoutBleed:                1,
+			MaximumPercentageToBleed:             1,
+			BleedPercentagePerRound:              1,
+			WaitingNodesPercentage:               1,
+			ActivateBLSPubKeyMessageVerification: false,
+		},
+		Marshalizer: &mock.MarshalizerMock{},
 	}
 
 	return args
@@ -55,26 +68,11 @@ func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint6
 	return data
 }
 
-func TestNewStakingAuctionSmartContract_NilValidatorSetting(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockArgumentsForAuction()
-	arguments.ValidatorSettings = nil
-
-	asc, err := NewStakingAuctionSmartContract(arguments)
-	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilValidatorSettings, err)
-}
-
 func TestNewStakingAuctionSmartContract_NilStakeValue(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
-	arguments.ValidatorSettings = &mock.ValidatorSettingsStub{
-		StakeValueCalled: func() *big.Int {
-			return nil
-		},
-	}
+	arguments.StakingSCConfig.GenesisNodePrice = ""
 
 	asc, err := NewStakingAuctionSmartContract(arguments)
 	require.Nil(t, asc)
@@ -85,11 +83,7 @@ func TestNewStakingAuctionSmartContract_NegativeInitialStakeValue(t *testing.T) 
 	t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
-	arguments.ValidatorSettings = &mock.ValidatorSettingsStub{
-		MinStepValueCalled: func() *big.Int {
-			return big.NewInt(-1)
-		},
-	}
+	arguments.StakingSCConfig.MinStepValue = ""
 
 	asc, err := NewStakingAuctionSmartContract(arguments)
 	require.Nil(t, asc)
@@ -154,9 +148,7 @@ func TestAuctionSC_calculateNodePrice_Case2(t *testing.T) {
 
 	expectedNodePrice := big.NewInt(20000000)
 	args := createMockArgumentsForAuction()
-	args.NodesConfigProvider = &mock.NodesConfigProviderStub{MinNumberOfNodesCalled: func() uint32 {
-		return 5
-	}}
+	args.NumOfNodesToSelect = 5
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	bids := []AuctionData{
@@ -176,9 +168,7 @@ func TestAuctionSC_calculateNodePrice_Case3(t *testing.T) {
 
 	expectedNodePrice := big.NewInt(12500000)
 	args := createMockArgumentsForAuction()
-	args.NodesConfigProvider = &mock.NodesConfigProviderStub{MinNumberOfNodesCalled: func() uint32 {
-		return 5
-	}}
+	args.NumOfNodesToSelect = 5
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	bids := []AuctionData{
@@ -216,9 +206,7 @@ func TestAuctionSC_selection_StakeGetAllocatedSeats(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForAuction()
-	args.NodesConfigProvider = &mock.NodesConfigProviderStub{MinNumberOfNodesCalled: func() uint32 {
-		return 5
-	}}
+	args.NumOfNodesToSelect = 5
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	bid1 := createABid(25000000, 2, 12500000)
@@ -241,14 +229,7 @@ func TestAuctionSC_selection_FirstBidderShouldTake50Percents(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForAuction()
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{
-		MinStepValueCalled: func() *big.Int {
-			return big.NewInt(100000)
-		},
-		StakeValueCalled: func() *big.Int {
-			return big.NewInt(1)
-		},
-	}
+	args.StakingSCConfig.MinStepValue = big.NewInt(100000).Text(10)
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	bids := []AuctionData{
@@ -330,9 +311,7 @@ func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
 	}
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{NumNodesCalled: func() uint32 {
-		return 5
-	}}
+	args.NumOfNodesToSelect = 5
 
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
@@ -361,9 +340,9 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
-	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
+	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
-	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
+	argsStaking.StakingSCConfig.UnBondPeriod = 100000
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("auction"))
@@ -374,14 +353,12 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 	args.Eei = eei
 	eei.SetStorage(arguments.CallerAddr, auctionDataBytes)
 
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{NumNodesCalled: func() uint32 {
-		return 5
-	}}
+	args.NumOfNodesToSelect = 5
 
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	arguments.Function = "stake"
-	arguments.CallValue = big.NewInt(0).Mul(big.NewInt(2), args.ValidatorSettings.GenesisNodePrice())
+	arguments.CallValue = big.NewInt(0).Mul(big.NewInt(2), big.NewInt(10000000))
 	arguments.Arguments = [][]byte{big.NewInt(2).Bytes(), key1, []byte("msg1"), key2, []byte("msg2"), maxStakePerNoce.Bytes(), rewardAddr}
 
 	errCode := stakingAuctionSC.Execute(arguments)
@@ -401,9 +378,9 @@ func TestStakingAuctionSC_ExecuteStakeWithRewardAddress(t *testing.T) {
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
-	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
+	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
-	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
+	argsStaking.StakingSCConfig.UnBondPeriod = 100000
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
@@ -444,9 +421,9 @@ func TestStakingAuctionSC_ExecuteStakeUnJail(t *testing.T) {
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
-	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
+	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
-	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
+	argsStaking.StakingSCConfig.UnBondPeriod = 100000
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
@@ -513,7 +490,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{NumNodesCalled: func() uint32 {
+	args.ValidatorSettings = &mock.EconomicsHandlerStub{NumNodesCalled: func() uint32 {
 		return 5
 	}}
 
@@ -538,9 +515,9 @@ func TestStakingAuctionSC_ExecuteStakeStakeClaim(t *testing.T) {
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
-	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
+	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
-	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
+	argsStaking.StakingSCConfig.UnBondPeriod = 100000
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
@@ -602,9 +579,9 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKeyAndRestake(t *testing.T
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
 
 	argsStaking := createMockStakingScArguments()
-	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
+	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
-	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
+	argsStaking.StakingSCConfig.UnBondPeriod = 100000
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
@@ -677,7 +654,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondUnStakeUnBondOneBlsPubKey(t *
 	unBondPeriod := uint64(5)
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForAuction()
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{
+	args.ValidatorSettings = &mock.EconomicsHandlerStub{
 		UnBondPeriodCalled: func() uint64 {
 			return unBondPeriod
 		},
@@ -847,7 +824,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndRestake(t *testin
 			return nonce
 		},
 	}
-	validatorSettings := &mock.ValidatorSettingsStub{
+	validatorSettings := &mock.EconomicsHandlerStub{
 		StakeEnableNonceCalled: func() uint64 {
 			return 0
 		},
@@ -1264,7 +1241,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 	args.Eei = eei
 	eei.SetSCAddress(args.AuctionSCAddress)
 
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{UnBondPeriodCalled: func() uint64 {
+	args.ValidatorSettings = &mock.EconomicsHandlerStub{UnBondPeriodCalled: func() uint64 {
 		return 10
 	}}
 
@@ -1376,7 +1353,7 @@ func TestAuctionStakingSC_ExecuteStakeUnStakeReturnsErrAsNotEnabled(t *testing.T
 		}}
 	}
 	args := createMockArgumentsForAuction()
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{StakeEnableNonceCalled: func() uint64 {
+	args.ValidatorSettings = &mock.EconomicsHandlerStub{StakeEnableNonceCalled: func() uint64 {
 		return eei.BlockChainHook().CurrentNonce() + uint64(1)
 	}}
 	args.Eei = eei
@@ -1467,7 +1444,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{
+	args.ValidatorSettings = &mock.EconomicsHandlerStub{
 		StakeValueCalled: func() *big.Int {
 			return big.NewInt(0).Set(stakeValue)
 		},
@@ -1559,7 +1536,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{
+	args.ValidatorSettings = &mock.EconomicsHandlerStub{
 		UnBondPeriodCalled: func() uint64 {
 			return unBondPeriod
 		},

@@ -46,6 +46,12 @@ type SystemEI interface {
 	IsInterfaceNil() bool
 }
 
+// EconomicsHandler defines the methods to get data from the economics component
+type EconomicsHandler interface {
+	GenesisTotalSupply() *big.Int
+	IsInterfaceNil() bool
+}
+
 // ContextHandler defines the methods needed to execute system smart contracts
 type ContextHandler interface {
 	SystemEI
