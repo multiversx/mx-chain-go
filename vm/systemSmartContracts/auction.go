@@ -84,7 +84,7 @@ func NewStakingAuctionSmartContract(
 	if !ok || baseConfig.UnJailPrice.Cmp(zero) <= 0 {
 		return nil, vm.ErrInvalidUnJailCost
 	}
-	baseConfig.MinStakeValue, ok = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
+	baseConfig.MinStakeValue, ok = big.NewInt(0).SetString(args.StakingSCConfig.MinStakeValue, conversionBase)
 	if !ok || baseConfig.MinStakeValue.Cmp(zero) <= 0 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}

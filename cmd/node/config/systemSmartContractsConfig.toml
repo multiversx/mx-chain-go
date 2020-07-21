@@ -1,7 +1,8 @@
 [StakingSystemSCConfig]
     GenesisNodePrice = "2500000000000000000000" #2.5KERD
+    MinStakeValue = "100000000000000000000" #100ERD
     UnBondPeriod = 400
-    MinStepValue = "10000000000000000000"
+    MinStepValue = "100000000000000000000"
     AuctionEnableNonce = 100000000000
     StakeEnableNonce = 0
     NumRoundsWithoutBleed = 100

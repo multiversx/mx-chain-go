@@ -10,6 +10,7 @@ type SystemSmartContractsConfig struct {
 // StakingSystemSCConfig will hold the staking system smart contract settings
 type StakingSystemSCConfig struct {
 	GenesisNodePrice                     string
+	MinStakeValue                        string
 	UnJailValue                          string
 	MinStepValue                         string
 	UnBondPeriod                         uint64

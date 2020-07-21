@@ -74,6 +74,7 @@ func createMockArgument(
 				GenesisNodePrice:                     nodePrice.Text(10),
 				UnJailValue:                          "10",
 				MinStepValue:                         "10",
+				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
 				AuctionEnableNonce:                   1,
 				StakeEnableNonce:                     1,

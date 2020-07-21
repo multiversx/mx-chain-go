@@ -39,6 +39,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				GenesisNodePrice:                     "1000",
 				UnJailValue:                          "10",
 				MinStepValue:                         "10",
+				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
 				AuctionEnableNonce:                   0,
 				StakeEnableNonce:                     0,
