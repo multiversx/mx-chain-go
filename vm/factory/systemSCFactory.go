@@ -110,7 +110,7 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 
 func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, error) {
 	argsStaking := systemSmartContracts.ArgsNewStakingSmartContract{
-		MinNumNodes:       scf.nodesConfigProvider.MinNumberOfNodes(),
+		MinNumNodes:       uint64(scf.nodesConfigProvider.MinNumberOfNodes()),
 		StakingSCConfig:   scf.systemSCConfig.StakingSystemSCConfig,
 		Eei:               scf.systemEI,
 		StakingAccessAddr: AuctionSCAddress,
@@ -123,15 +123,17 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 }
 
 func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, error) {
+	nodesToSelect := scf.nodesConfigProvider.MinNumberOfNodes() +
+		uint32(float64(scf.nodesConfigProvider.MinNumberOfNodes())*scf.systemSCConfig.StakingSystemSCConfig.WaitingNodesPercentage)
 	args := systemSmartContracts.ArgsStakingAuctionSmartContract{
-		Eei:                 scf.systemEI,
-		SigVerifier:         scf.sigVerifier,
-		NodesConfigProvider: scf.nodesConfigProvider,
-		StakingSCConfig:     scf.systemSCConfig.StakingSystemSCConfig,
-		StakingSCAddress:    StakingSCAddress,
-		AuctionSCAddress:    AuctionSCAddress,
-		GasCost:             scf.gasCost,
-		Marshalizer:         scf.marshalizer,
+		Eei:                scf.systemEI,
+		SigVerifier:        scf.sigVerifier,
+		StakingSCConfig:    scf.systemSCConfig.StakingSystemSCConfig,
+		StakingSCAddress:   StakingSCAddress,
+		AuctionSCAddress:   AuctionSCAddress,
+		GasCost:            scf.gasCost,
+		Marshalizer:        scf.marshalizer,
+		NumOfNodesToSelect: uint64(nodesToSelect),
 	}
 	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
 	return auction, err

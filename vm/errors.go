@@ -136,3 +136,15 @@ var ErrVotedForAProposalThatNotBeginsYet = errors.New("voted for a proposal that
 
 // ErrNilPublicKey signals that nil public key has been provided
 var ErrNilPublicKey = errors.New("nil public key")
+
+// ErrInvalidUnJailCost signals that provided unjail cost is invalid
+var ErrInvalidUnJailCost = errors.New("invalid unjail cost")
+
+// ErrNegativeWaitingNodesPercentage signals that negative waiting nodes percentage was provided
+var ErrNegativeWaitingNodesPercentage = errors.New("negative waiting nodes percentage")
+
+// ErrNegativeBleedPercentagePerRound signals that negative bleed percentage per round has been provided
+var ErrNegativeBleedPercentagePerRound = errors.New("negative bleed percentage per round")
+
+// ErrNegativeMaximumPercentageToBleed signals that negative maximum percentage to bleed has been provided
+var ErrNegativeMaximumPercentageToBleed = errors.New("negative maximum percentage to bleed")
