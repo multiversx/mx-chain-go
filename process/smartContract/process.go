@@ -1196,6 +1196,11 @@ func (sc *scProcessor) processSimpleSCR(
 	scResult *smartContractResult.SmartContractResult,
 	dstAcc state.UserAccountHandler,
 ) error {
+	metadata := vmcommon.CodeMetadataFromBytes(dstAcc.GetCodeMetadata())
+	if !metadata.Payable && scResult.Value != nil{
+		return process.ErrAccountNotPayable
+	}
+
 	outputAccount := &vmcommon.OutputAccount{
 		Code:         scResult.Code,
 		CodeMetadata: scResult.CodeMetadata,

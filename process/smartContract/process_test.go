@@ -1677,6 +1677,9 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 			putCodeCalled++
 			return nil
 		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
+		},
 	}
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
@@ -1709,6 +1712,9 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
+			return nil
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
 		},
 	}
