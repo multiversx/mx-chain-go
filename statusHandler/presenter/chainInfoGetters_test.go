@@ -127,8 +127,8 @@ func TestPresenterStatusHandler_CalculateTimeToSynchronize(t *testing.T) {
 	presenterStatusHandler := NewPresenterStatusHandler()
 
 	time.Sleep(time.Second)
-	presenterStatusHandler.SetUInt64Value(core.MetricNonce, currentBlockNonce)
-	presenterStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, probableHighestNonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, currentBlockNonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRound, probableHighestNonce)
 	presenterStatusHandler.synchronizationSpeedHistory = append(presenterStatusHandler.synchronizationSpeedHistory, synchronizationSpeed)
 	synchronizationEstimation := presenterStatusHandler.CalculateTimeToSynchronize()
 
@@ -146,9 +146,9 @@ func TestPresenterStatusHandler_CalculateSynchronizationSpeed(t *testing.T) {
 	initialNonce := uint64(10)
 	currentNonce := uint64(20)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricNonce, initialNonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, initialNonce)
 	_ = presenterStatusHandler.CalculateSynchronizationSpeed()
-	presenterStatusHandler.SetUInt64Value(core.MetricNonce, currentNonce)
+	presenterStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, currentNonce)
 	syncSpeed := presenterStatusHandler.CalculateSynchronizationSpeed()
 
 	expectedSpeed := currentNonce - initialNonce
