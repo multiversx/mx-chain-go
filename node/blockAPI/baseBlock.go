@@ -1,6 +1,8 @@
 package blockAPI
 
 import (
+	"encoding/hex"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -19,15 +21,23 @@ type baseAPIBockProcessor struct {
 	unmarshalTx              func(txBytes []byte, txType string) (*transaction.ApiTransactionResult, error)
 }
 
+var log = logger.GetOrCreate("node/blockAPI")
+
 func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epoch uint32) []*transaction.ApiTransactionResult {
 	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, mbHeader.Hash, epoch)
 	if err != nil {
+		log.Warn("cannot get miniblock from storage",
+			"hash", hex.EncodeToString(mbHeader.Hash),
+			"error", err.Error())
 		return nil
 	}
 
 	miniBlock := &block.MiniBlock{}
 	err = bap.marshalizer.Unmarshal(miniBlock, mbBytes)
 	if err != nil {
+		log.Warn("cannot unmarshal miniblock",
+			"hash", hex.EncodeToString(mbHeader.Hash),
+			"error", err.Error())
 		return nil
 	}
 
@@ -53,11 +63,17 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 	for idx := 0; idx < len(miniblock.TxHashes); idx++ {
 		txBytes, err := bap.getFromStorerWithEpoch(unit, miniblock.TxHashes[idx], epoch)
 		if err != nil {
+			log.Warn("cannot get from storage transaction",
+				"hash", hex.EncodeToString(miniblock.TxHashes[idx]),
+				"error", err.Error())
 			continue
 		}
 
 		tx, err := bap.unmarshalTx(txBytes, txType)
 		if err != nil {
+			log.Warn("cannot unmarshal transaction",
+				"hash", hex.EncodeToString(miniblock.TxHashes[idx]),
+				"error", err.Error())
 			continue
 		}
 
