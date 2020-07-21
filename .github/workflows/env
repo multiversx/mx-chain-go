@@ -15,4 +15,4 @@ export TXGEN_CONFIG_SCENARIOS='"basic", "erc20"'
 # Input multiple values like: "/go/elrond-txgen-go/scripts/basic.sh /go/elrond-txgen-go/scripts/erc20.sh"
 export SCENARIOS="/go/elrond-txgen-go/scripts/basic.sh /go/elrond-txgen-go/scripts/erc20.sh"
 export PROXY_MINTING_VALUE=20000000000000
-export PROXY_NUM_ACCOUNTS=100
+export PROXY_NUM_ACCOUNTS=50
