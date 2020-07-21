@@ -123,8 +123,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		ratingEnableEpoch:    arguments.RatingEnableEpoch,
 	}
 
-	rater := arguments.Rater
-	err := vs.saveInitialState(arguments.NodesSetup, rater.GetStartRating())
+	err := vs.saveInitialState(arguments.NodesSetup)
 	if err != nil {
 		return nil, err
 	}
@@ -213,17 +212,14 @@ func (vs *validatorStatistics) saveUpdatesForList(
 }
 
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
-func (vs *validatorStatistics) saveInitialState(
-	nodesConfig sharding.GenesisNodesSetupHandler,
-	startRating uint32,
-) error {
+func (vs *validatorStatistics) saveInitialState(nodesConfig sharding.GenesisNodesSetupHandler) error {
 	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
-	err := vs.saveInitialValueForMap(eligibleNodesInfo, startRating, core.EligibleList)
+	err := vs.saveInitialValueForMap(eligibleNodesInfo, core.EligibleList)
 	if err != nil {
 		return err
 	}
 
-	err = vs.saveInitialValueForMap(waitingNodesInfo, startRating, core.WaitingList)
+	err = vs.saveInitialValueForMap(waitingNodesInfo, core.WaitingList)
 	if err != nil {
 		return err
 	}
@@ -240,7 +236,6 @@ func (vs *validatorStatistics) saveInitialState(
 
 func (vs *validatorStatistics) saveInitialValueForMap(
 	nodesInfo map[uint32][]sharding.GenesisNodeInfoHandler,
-	startRating uint32,
 	peerType core.PeerType,
 ) error {
 	if len(nodesInfo) == 0 {
@@ -250,7 +245,7 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	for shardID := uint32(0); shardID < vs.shardCoordinator.NumberOfShards(); shardID++ {
 		nodeInfoList := nodesInfo[shardID]
 		for index, nodeInfo := range nodeInfoList {
-			err := vs.initializeNode(nodeInfo, startRating, shardID, peerType, uint32(index))
+			err := vs.initializeNode(nodeInfo, shardID, peerType, uint32(index))
 			if err != nil {
 				return err
 			}
@@ -260,7 +255,7 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	shardID := core.MetachainShardId
 	nodeInfoList := nodesInfo[shardID]
 	for index, nodeInfo := range nodeInfoList {
-		err := vs.initializeNode(nodeInfo, startRating, shardID, peerType, uint32(index))
+		err := vs.initializeNode(nodeInfo, shardID, peerType, uint32(index))
 		if err != nil {
 			return err
 		}
@@ -817,7 +812,6 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 
 func (vs *validatorStatistics) initializeNode(
 	node sharding.GenesisNodeInfoHandler,
-	startRating uint32,
 	shardID uint32,
 	peerType core.PeerType,
 	index uint32,
@@ -827,7 +821,7 @@ func (vs *validatorStatistics) initializeNode(
 		return err
 	}
 
-	return vs.savePeerAccountData(peerAccount, node, startRating, shardID, peerType, index)
+	return vs.savePeerAccountData(peerAccount, node, node.GetInitialRating(), shardID, peerType, index)
 }
 
 func (vs *validatorStatistics) savePeerAccountData(

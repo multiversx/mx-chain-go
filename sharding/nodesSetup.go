@@ -11,10 +11,13 @@ import (
 var _ GenesisNodesSetupHandler = (*NodesSetup)(nil)
 var _ GenesisNodeInfoHandler = (*NodeInfo)(nil)
 
+const defaultInitialRating = uint32(50)
+
 // InitialNode holds data from json
 type InitialNode struct {
-	PubKey  string `json:"pubkey"`
-	Address string `json:"address"`
+	PubKey        string `json:"pubkey"`
+	Address       string `json:"address"`
+	InitialRating uint32 `json:"initialRating"`
 	NodeInfo
 }
 
@@ -24,6 +27,7 @@ type NodeInfo struct {
 	eligible      bool
 	pubKey        []byte
 	address       []byte
+	initialRating uint32
 }
 
 // AssignedShard gets the node assigned shard
@@ -39,6 +43,11 @@ func (ni *NodeInfo) AddressBytes() []byte {
 // PubKeyBytes gets the node public key as bytes
 func (ni *NodeInfo) PubKeyBytes() []byte {
 	return ni.pubKey
+}
+
+// GetInitialRating gets the initial rating for a node
+func (ni *NodeInfo) GetInitialRating() uint32 {
+	return ni.initialRating
 }
 
 // IsInterfaceNil returns true if underlying object is nil
@@ -137,6 +146,12 @@ func (ns *NodesSetup) processConfig() error {
 			return ErrCouldNotParseAddress
 		}
 
+		initialRating := ns.InitialNodes[i].InitialRating
+		if initialRating == uint32(0) {
+			initialRating = defaultInitialRating
+		}
+		ns.InitialNodes[i].initialRating = initialRating
+
 		ns.nrOfNodes++
 	}
 
@@ -218,7 +233,13 @@ func (ns *NodesSetup) createInitialNodesInfo() {
 	ns.waiting = make(map[uint32][]GenesisNodeInfoHandler, nrOfShardAndMeta)
 	for _, in := range ns.InitialNodes {
 		if in.pubKey != nil && in.address != nil {
-			nodeInfo := &NodeInfo{in.assignedShard, in.eligible, in.pubKey, in.address}
+			nodeInfo := &NodeInfo{
+				assignedShard: in.assignedShard,
+				eligible:      in.eligible,
+				pubKey:        in.pubKey,
+				address:       in.address,
+				initialRating: in.initialRating,
+			}
 			if in.eligible {
 				ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], nodeInfo)
 			} else {
