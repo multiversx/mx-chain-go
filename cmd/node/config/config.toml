@@ -241,7 +241,7 @@
 
 [TxBlockBodyDataPool]
     Name = "TxBlockBodyDataPool"
-    Capacity = 300
+    Capacity = 1000
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
 
@@ -300,6 +300,12 @@
 [PublicKeyShardId]
     Name = "PublicKeyShardId"
     Capacity = 30000
+    Type = "LRU"
+
+#PublicKeyPIDSignature is the cache that is used to map a public key to a peerId-signature pair.
+[PublicKeyPIDSignature]
+    Name = "PublicKeyPIDSignature"
+    Capacity = 3000
     Type = "LRU"
 
 #PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
