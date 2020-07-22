@@ -165,7 +165,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 			GetTransactionCalled: func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
 				return &fullHistory.HistoryTransactionWithEpoch{
 					Epoch: epoch,
-					HistoryTransaction: &fullHistory.HistoryTransaction{
+					TransactionsGroupMetadata: &fullHistory.TransactionsGroupMetadata{
 						MbHash:      mbHash,
 						HeaderHash:  blockHash,
 						HeaderNonce: blockNonce,
