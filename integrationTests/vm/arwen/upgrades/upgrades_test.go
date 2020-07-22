@@ -71,6 +71,27 @@ func TestUpgrades_HelloCannotBeUpgradedByNonOwner(t *testing.T) {
 	require.Equal(t, uint64(24), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 }
 
+func TestUpgrades_StorageCannotBeModifiedByNonOwner(t *testing.T) {
+	context := arwen.SetupTestContext(t)
+	defer context.Close()
+
+	context.ScCodeMetadata.Upgradeable = true
+	err := context.DeploySC("../testdata/counter/output/counter.wasm", "")
+	require.Nil(t, err)
+	require.Equal(t, uint64(1), context.QuerySCInt("get", [][]byte{}))
+
+	err = context.ExecuteSC(&context.Alice, "increment")
+	require.Nil(t, err)
+	require.Equal(t, uint64(2), context.QuerySCInt("get", [][]byte{}))
+
+	// Alice states that she is the owner of the contract (though she is not)
+	// Neither code, nor storage get modified
+	context.Owner = context.Alice
+	err = context.UpgradeSC("../testdata/counter/output/counter.wasm", "")
+	require.Nil(t, err)
+	require.Equal(t, uint64(2), context.QuerySCInt("get", [][]byte{}))
+}
+
 func TestUpgrades_HelloUpgradesToNotUpgradeable(t *testing.T) {
 	context := arwen.SetupTestContext(t)
 	defer context.Close()
@@ -140,6 +161,7 @@ func TestUpgrades_UpgradeDelegationContract(t *testing.T) {
 
 	delegationWasmPath := "../testdata/delegation/delegation.wasm"
 	delegationInitParams := "0000000000000000000000000000000000000000000000000000000000000000@0064@0064@0064"
+	delegationUpgradeParams := "0000000000000000000000000000000000000000000000000000000000000000@0080@0080@0080"
 
 	context.GasLimit = 21600000
 	err := context.DeploySC(delegationWasmPath, delegationInitParams)
@@ -147,5 +169,8 @@ func TestUpgrades_UpgradeDelegationContract(t *testing.T) {
 
 	context.GasLimit = 21700000
 	err = context.DeploySC(delegationWasmPath, delegationInitParams)
+	require.Nil(t, err)
+
+	err = context.UpgradeSC(delegationWasmPath, delegationUpgradeParams)
 	require.Nil(t, err)
 }
