@@ -1180,14 +1180,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	historyProcFactoryArgs := &historyFactory.ArgsHistoryRepositoryFactory{
+	historyRepoFactoryArgs := &historyFactory.ArgsHistoryRepositoryFactory{
 		SelfShardID:       shardCoordinator.SelfId(),
 		FullHistoryConfig: generalConfig.FullHistory,
 		Hasher:            coreComponents.Hasher,
 		Marshalizer:       coreComponents.InternalMarshalizer,
 		Store:             dataComponents.Store,
 	}
-	historyRepositoryFactory, err := historyFactory.NewHistoryRepositoryFactory(historyProcFactoryArgs)
+	historyRepositoryFactory, err := historyFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {
 		return err
 	}
@@ -2062,7 +2062,7 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
-	historyProcessor fullHistory.HistoryRepository,
+	historyRepository fullHistory.HistoryRepository,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2183,7 +2183,7 @@ func createNode(
 		node.WithPeerHonestyHandler(peerHonestyHandler),
 		node.WithWatchdogTimer(watchdogTimer),
 		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler),
-		node.WithHistoryProcessor(historyProcessor),
+		node.WithHistoryRepository(historyRepository),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

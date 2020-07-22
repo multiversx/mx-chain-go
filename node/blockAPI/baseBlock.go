@@ -2,6 +2,7 @@ package blockAPI
 
 import (
 	"encoding/hex"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -17,7 +18,7 @@ type baseAPIBockProcessor struct {
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	historyProc              fullHistory.HistoryRepository
+	historyRepo              fullHistory.HistoryRepository
 	unmarshalTx              func(txBytes []byte, txType string) (*transaction.ApiTransactionResult, error)
 }
 
@@ -45,7 +46,7 @@ func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epo
 	case block.TxBlock:
 		return bap.getTxsFromMiniblock(miniBlock, epoch, "normal", dataRetriever.TransactionUnit)
 	case block.RewardsBlock:
-		return bap.getTxsFromMiniblock(miniBlock, epoch, "rewardTx", dataRetriever.RewardTransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, epoch, "reward", dataRetriever.RewardTransactionUnit)
 	case block.SmartContractResultBlock:
 		return bap.getTxsFromMiniblock(miniBlock, epoch, "unsignedTx", dataRetriever.UnsignedTransactionUnit)
 	default:
@@ -88,7 +89,7 @@ func (bap *baseAPIBockProcessor) getFromStorer(unit dataRetriever.UnitType, key 
 		return bap.store.Get(unit, key)
 	}
 
-	epoch, err := bap.historyProc.GetEpochForHash(key)
+	epoch, err := bap.historyRepo.GetEpochForHash(key)
 	if err != nil {
 		return nil, err
 	}

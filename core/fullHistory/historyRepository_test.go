@@ -21,7 +21,7 @@ func createMockHistoryProcArgs() HistoryRepositoryArguments {
 	}
 }
 
-func TestNewHistoryProcessor_NilHistoryStorerShouldErr(t *testing.T) {
+func TestNewHistoryRepository_NilHistoryStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockHistoryProcArgs()
@@ -32,7 +32,7 @@ func TestNewHistoryProcessor_NilHistoryStorerShouldErr(t *testing.T) {
 	assert.Equal(t, core.ErrNilStore, err)
 }
 
-func TestNewHistoryProcessor_NilHasherShouldErr(t *testing.T) {
+func TestNewHistoryRepository_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockHistoryProcArgs()
@@ -43,7 +43,7 @@ func TestNewHistoryProcessor_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, core.ErrNilHasher, err)
 }
 
-func TestNewHistoryProcessor_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewHistoryRepository_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockHistoryProcArgs()
@@ -54,7 +54,7 @@ func TestNewHistoryProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	assert.Equal(t, core.ErrNilMarshalizer, err)
 }
 
-func TestNewHistoryProcessor_NilHashEpochStorerShouldErr(t *testing.T) {
+func TestNewHistoryRepository_NilHashEpochStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockHistoryProcArgs()
@@ -65,7 +65,7 @@ func TestNewHistoryProcessor_NilHashEpochStorerShouldErr(t *testing.T) {
 	assert.Equal(t, core.ErrNilStore, err)
 }
 
-func TestNewHistoryProcessor(t *testing.T) {
+func TestNewHistoryRepository(t *testing.T) {
 	t.Parallel()
 
 	args := createMockHistoryProcArgs()
@@ -77,7 +77,7 @@ func TestNewHistoryProcessor(t *testing.T) {
 	assert.False(t, proc.IsInterfaceNil())
 }
 
-func TestHistoryProcessor_PutTransactionsData(t *testing.T) {
+func TestHistoryRepository_PutTransactionsData(t *testing.T) {
 	t.Parallel()
 
 	txHash := []byte("txHash")
@@ -120,7 +120,7 @@ func TestHistoryProcessor_PutTransactionsData(t *testing.T) {
 	assert.Equal(t, 3, countCalledHashEpoch)
 }
 
-func TestHistoryProcessor_GetTransaction(t *testing.T) {
+func TestHistoryRepository_GetTransaction(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(10)
@@ -158,7 +158,7 @@ func TestHistoryProcessor_GetTransaction(t *testing.T) {
 	assert.Equal(t, epoch, historyTx.Epoch)
 }
 
-func TestHistoryProcessor_GetEpochForHash(t *testing.T) {
+func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(10)

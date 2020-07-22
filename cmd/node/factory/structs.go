@@ -147,7 +147,7 @@ type processComponentsFactoryArgs struct {
 	version                   string
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
-	historyRep                fullHistory.HistoryRepository
+	historyRepo               fullHistory.HistoryRepository
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -188,7 +188,7 @@ func NewProcessComponentsFactoryArgs(
 	version string,
 	importStartHandler update.ImportStartHandler,
 	workingDir string,
-	historyRep fullHistory.HistoryRepository,
+	historyRepo fullHistory.HistoryRepository,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -228,7 +228,7 @@ func NewProcessComponentsFactoryArgs(
 		version:                   version,
 		importStartHandler:        importStartHandler,
 		workingDir:                workingDir,
-		historyRep:                historyRep,
+		historyRepo:               historyRepo,
 	}
 }
 
@@ -1059,7 +1059,7 @@ func newBlockProcessor(
 			txLogsProcessor,
 			processArgs.version,
 			processArgs.smartContractParser,
-			processArgs.historyRep,
+			processArgs.historyRepo,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1090,7 +1090,7 @@ func newBlockProcessor(
 			txLogsProcessor,
 			processArgs.systemSCConfig,
 			processArgs.version,
-			processArgs.historyRep,
+			processArgs.historyRepo,
 		)
 	}
 

@@ -154,8 +154,8 @@ type Node struct {
 	heartbeatHandler   *componentHandler.HeartbeatHandler
 	peerHonestyHandler consensus.PeerHonestyHandler
 
-	watchdog         core.WatchdogTimer
-	historyProcessor fullHistory.HistoryRepository
+	watchdog          core.WatchdogTimer
+	historyRepository fullHistory.HistoryRepository
 }
 
 // ApplyOptions can set up different configurable options of a Node instance

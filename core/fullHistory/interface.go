@@ -1,7 +1,7 @@
 package fullHistory
 
-// HistoryProcessorFactory can create new instances of HistoryRepository
-type HistoryProcessorFactory interface {
+// HistoryRepositoryFactory can create new instances of HistoryRepository
+type HistoryRepositoryFactory interface {
 	Create() (HistoryRepository, error)
 	IsInterfaceNil() bool
 }

@@ -48,7 +48,7 @@ type historyProcessor struct {
 	hashEpochStorer hashEpochRepository
 }
 
-// NewHistoryRepository will create a new instance of HistoryProcessor
+// NewHistoryRepository will create a new instance of HistoryRepository
 func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcessor, error) {
 	if check.IfNil(arguments.HistoryStorer) {
 		return nil, core.ErrNilStore
@@ -102,6 +102,7 @@ func (hp *historyProcessor) PutTransactionsData(historyTxsData *HistoryTransacti
 func (hp *historyProcessor) saveMiniblockData(historyTxsData *HistoryTransactionsData, mb *block.MiniBlock, epoch uint32) error {
 	mbHash, err := core.CalculateHash(hp.marshalizer, hp.hasher, mb)
 	if err != nil {
+		log.Warn("cannot calculate miniblock hash", "error", err.Error())
 		return err
 	}
 

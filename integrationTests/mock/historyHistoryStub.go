@@ -4,8 +4,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 )
 
-// HistoryProcessorStub -
-type HistoryProcessorStub struct {
+// HistoryRepositoryStub -
+type HistoryRepositoryStub struct {
 	PutTransactionsDataCalled func(htd *fullHistory.HistoryTransactionsData) error
 	GetTransactionCalled      func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error)
 	IsEnabledCalled           func() bool
@@ -13,7 +13,7 @@ type HistoryProcessorStub struct {
 }
 
 // PutTransactionsData will save in storage information about history transactions
-func (hp *HistoryProcessorStub) PutTransactionsData(historyTxsData *fullHistory.HistoryTransactionsData) error {
+func (hp *HistoryRepositoryStub) PutTransactionsData(historyTxsData *fullHistory.HistoryTransactionsData) error {
 	if hp.PutTransactionsDataCalled != nil {
 		return hp.PutTransactionsDataCalled(historyTxsData)
 	}
@@ -21,7 +21,7 @@ func (hp *HistoryProcessorStub) PutTransactionsData(historyTxsData *fullHistory.
 }
 
 // GetTransaction will return a history transaction with give hash from storage
-func (hp *HistoryProcessorStub) GetTransaction(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
+func (hp *HistoryRepositoryStub) GetTransaction(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
 	if hp.GetTransactionCalled != nil {
 		return hp.GetTransactionCalled(hash)
 	}
@@ -29,16 +29,16 @@ func (hp *HistoryProcessorStub) GetTransaction(hash []byte) (*fullHistory.Histor
 }
 
 // GetEpochForHash will return epoch for a given hash
-func (hp *HistoryProcessorStub) GetEpochForHash(hash []byte) (uint32, error) {
+func (hp *HistoryRepositoryStub) GetEpochForHash(hash []byte) (uint32, error) {
 	return hp.GetEpochForHashCalled(hash)
 }
 
 // IsEnabled will always return true because this is implementation of a history processor
-func (hp *HistoryProcessorStub) IsEnabled() bool {
+func (hp *HistoryRepositoryStub) IsEnabled() bool {
 	return true
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (hp *HistoryProcessorStub) IsInterfaceNil() bool {
+func (hp *HistoryRepositoryStub) IsInterfaceNil() bool {
 	return hp == nil
 }

@@ -47,7 +47,7 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	storerMock := mock.NewStorerMock()
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
-		node.WithHistoryProcessor(historyProc),
+		node.WithHistoryRepository(historyProc),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -98,7 +98,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	storerMock := mock.NewStorerMock()
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
-		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -164,7 +164,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
-		node.WithHistoryProcessor(historyProc),
+		node.WithHistoryRepository(historyProc),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithDataStore(&mock.ChainStorerMock{
 			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
@@ -219,7 +219,7 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
-		node.WithHistoryProcessor(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},

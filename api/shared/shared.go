@@ -51,3 +51,14 @@ func RespondWithInvalidAppContext(c *gin.Context) {
 		ReturnCodeInternalError,
 	)
 }
+
+// RespondWithValidationError will be called when the application's context is invalid
+func RespondWithValidationError(c *gin.Context, error string) {
+	RespondWith(
+		c,
+		http.StatusBadRequest,
+		nil,
+		error,
+		ReturnCodeRequestError,
+	)
+}

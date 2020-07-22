@@ -251,9 +251,9 @@ type TestProcessorNode struct {
 	ChainID               []byte
 	MinTransactionVersion uint32
 
-	ExportHandler    update.ExportHandler
-	WaitTime         time.Duration
-	HistoryProcessor fullHistory.HistoryRepository
+	ExportHandler     update.ExportHandler
+	WaitTime          time.Duration
+	HistoryRepository fullHistory.HistoryRepository
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -336,7 +336,7 @@ func newBaseTestProcessorNode(
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
 		NodesSetup:              nodesSetup,
-		HistoryProcessor:        &mock.HistoryProcessorStub{},
+		HistoryRepository:       &mock.HistoryRepositoryStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -1267,7 +1267,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
 		Version:                string(SoftwareVersion),
-		HistoryRepository:      tpn.HistoryProcessor,
+		HistoryRepository:      tpn.HistoryRepository,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1460,7 +1460,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithChainID(tpn.ChainID),
 		node.WithMinTransactionVersion(tpn.MinTransactionVersion),
-		node.WithHistoryProcessor(tpn.HistoryProcessor),
+		node.WithHistoryRepository(tpn.HistoryRepository),
 	)
 	log.LogIfError(err)
 

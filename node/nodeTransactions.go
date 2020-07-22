@@ -17,7 +17,7 @@ type transactionType string
 const (
 	normalTx   transactionType = "normal"
 	unsignedTx transactionType = "unsignedTx"
-	rewardTx   transactionType = "rewardTx"
+	rewardTx   transactionType = "reward"
 	invalidTx  transactionType = "invalidTx"
 )
 
@@ -29,7 +29,7 @@ func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult,
 		return nil, err
 	}
 
-	if n.historyProcessor.IsEnabled() {
+	if n.historyRepository.IsEnabled() {
 		return n.getFullHistoryTransaction(hash)
 	}
 
@@ -59,7 +59,7 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 		return n.castObjToTransaction(txObj, txType)
 	}
 
-	historyTx, err := n.historyProcessor.GetTransaction(hash)
+	historyTx, err := n.historyRepository.GetTransaction(hash)
 	if err != nil {
 		// transaction is not in history storer
 		return nil, err

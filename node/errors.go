@@ -175,8 +175,8 @@ var ErrNilWatchdog = errors.New("nil watchdog")
 // ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 
-// ErrNilHistoryProcessor signals that history processor is nil
-var ErrNilHistoryProcessor = errors.New("history processor is nil")
+// ErrNilHistoryRepository signals that history processor is nil
+var ErrNilHistoryRepository = errors.New("history repository is nil")
 
 // ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
 var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")

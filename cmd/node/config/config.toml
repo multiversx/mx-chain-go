@@ -607,7 +607,7 @@
     PollingIntervalInMinutes = 65
 
 [FullHistory]
-    Enable = false
+    Enabled = false
     [FullHistory.HistoryTransactionStorageConfig.Cache]
         Name = "FullHistory.HistoryTransactionsConfig"
         Capacity = 20000

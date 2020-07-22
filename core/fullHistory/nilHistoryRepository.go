@@ -7,26 +7,26 @@ import (
 type nilHistoryRepository struct {
 }
 
-// NewNilHistoryProcessor returns a not implemented history repository
-func NewNilHistoryProcessor() (*nilHistoryRepository, error) {
+// NewNilHistoryRepository returns a not implemented history repository
+func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 	return new(nilHistoryRepository), nil
 }
 
-var errNilHistoryProcessorImplementation = errors.New("this a nil implementation of history processor")
+var errNilHistoryRepositoryImplementation = errors.New("this is a nil implementation of history processor")
 
 // PutTransactionsData returns a not implemented error
 func (nhr *nilHistoryRepository) PutTransactionsData(_ *HistoryTransactionsData) error {
-	return errNilHistoryProcessorImplementation
+	return errNilHistoryRepositoryImplementation
 }
 
 // GetTransaction returns a not implemented error
 func (nhr *nilHistoryRepository) GetTransaction(_ []byte) (*HistoryTransactionWithEpoch, error) {
-	return nil, errNilHistoryProcessorImplementation
+	return nil, errNilHistoryRepositoryImplementation
 }
 
 // GetEpochForHash returns a not implemented error
 func (nhr *nilHistoryRepository) GetEpochForHash(_ []byte) (uint32, error) {
-	return 0, errNilHistoryProcessorImplementation
+	return 0, errNilHistoryRepositoryImplementation
 }
 
 // IsEnabled -

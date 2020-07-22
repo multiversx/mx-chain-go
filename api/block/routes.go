@@ -59,24 +59,16 @@ func getBlockByNonce(c *gin.Context) {
 
 	nonce, err := getQueryParamNonce(c)
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusBadRequest,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
-			shared.ReturnCodeRequestError,
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
 		)
 		return
 	}
 
 	withTxs, err := getQueryParamWithTxs(c)
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
-			shared.ReturnCodeRequestError,
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidQueryParameter.Error()),
 		)
 		return
 	}
@@ -106,24 +98,16 @@ func getBlockByHash(c *gin.Context) {
 
 	hash := c.Param("hash")
 	if hash == "" {
-		shared.RespondWith(
-			c,
-			http.StatusBadRequest,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
-			shared.ReturnCodeRequestError,
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyBlockHash.Error()),
 		)
 		return
 	}
 
 	withTxs, err := getQueryParamWithTxs(c)
 	if err != nil {
-		shared.RespondWith(
-			c,
-			http.StatusInternalServerError,
-			nil,
-			fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
-			shared.ReturnCodeRequestError,
+		shared.RespondWithValidationError(
+			c, fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrInvalidBlockNonce.Error()),
 		)
 		return
 	}

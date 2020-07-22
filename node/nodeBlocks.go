@@ -28,10 +28,6 @@ func (n *Node) GetBlockByNonce(nonce uint64, withTxs bool) (*apiBlock.APIBlock, 
 }
 
 func (n *Node) createAPIBlockProcessor() blockAPI.APIBlockHandler {
-	unmarshalTxWrapper := func(txBytes []byte, txType string) (*transaction.ApiTransactionResult, error) {
-		return n.unmarshalTransaction(txBytes, transactionType(txType))
-	}
-
 	if n.shardCoordinator.SelfId() != core.MetachainShardId {
 		return blockAPI.NewShardApiBlockProcessor(
 			&blockAPI.APIBlockProcessorArg{
@@ -39,8 +35,8 @@ func (n *Node) createAPIBlockProcessor() blockAPI.APIBlockHandler {
 				Store:                    n.store,
 				Marshalizer:              n.internalMarshalizer,
 				Uint64ByteSliceConverter: n.uint64ByteSliceConverter,
-				HistoryProc:              n.historyProcessor,
-				UnmarshalTx:              unmarshalTxWrapper,
+				HistoryRepo:              n.historyRepository,
+				UnmarshalTx:              n.unmarshalTxWrapper,
 			},
 		)
 	}
@@ -51,8 +47,12 @@ func (n *Node) createAPIBlockProcessor() blockAPI.APIBlockHandler {
 			Store:                    n.store,
 			Marshalizer:              n.internalMarshalizer,
 			Uint64ByteSliceConverter: n.uint64ByteSliceConverter,
-			HistoryProc:              n.historyProcessor,
-			UnmarshalTx:              unmarshalTxWrapper,
+			HistoryRepo:              n.historyRepository,
+			UnmarshalTx:              n.unmarshalTxWrapper,
 		},
 	)
+}
+
+func (n *Node) unmarshalTxWrapper(txBytes []byte, txType string) (*transaction.ApiTransactionResult, error) {
+	return n.unmarshalTransaction(txBytes, transactionType(txType))
 }

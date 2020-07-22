@@ -713,13 +713,13 @@ func WithPeerSignatureHandler(peerSignatureHandler crypto.PeerSignatureHandler) 
 	}
 }
 
-// WithHistoryProcessor sets up a history processor for the node
-func WithHistoryProcessor(historyProc fullHistory.HistoryRepository) Option {
+// WithHistoryRepository sets up a history repository for the node
+func WithHistoryRepository(historyRepo fullHistory.HistoryRepository) Option {
 	return func(n *Node) error {
-		if check.IfNil(historyProc) {
-			return ErrNilHistoryProcessor
+		if check.IfNil(historyRepo) {
+			return ErrNilHistoryRepository
 		}
-		n.historyProcessor = historyProc
+		n.historyRepository = historyRepo
 		return nil
 	}
 }

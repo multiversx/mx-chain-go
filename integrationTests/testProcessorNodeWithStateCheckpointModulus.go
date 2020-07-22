@@ -68,7 +68,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryProcessor:        &mock.HistoryProcessorStub{},
+		HistoryRepository:       &mock.HistoryRepositoryStub{},
 	}
 	tpn.NodesSetup = nodesSetup
 

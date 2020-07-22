@@ -75,7 +75,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			BlockChain:         createTestBlockchain(),
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 			Version:            "softwareVersion",
-			HistoryRepository:  &mock.HistoryProcessorStub{},
+			HistoryRepository:  &mock.HistoryRepositoryStub{},
 		},
 		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},

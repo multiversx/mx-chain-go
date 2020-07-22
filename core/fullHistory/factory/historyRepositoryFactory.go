@@ -27,7 +27,7 @@ type historyRepositoryFactory struct {
 }
 
 // NewHistoryRepositoryFactory creates an instance of historyRepositoryFactory
-func NewHistoryRepositoryFactory(args *ArgsHistoryRepositoryFactory) (fullHistory.HistoryProcessorFactory, error) {
+func NewHistoryRepositoryFactory(args *ArgsHistoryRepositoryFactory) (fullHistory.HistoryRepositoryFactory, error) {
 	return &historyRepositoryFactory{
 		selfShardID:       args.SelfShardID,
 		fullHistoryConfig: args.FullHistoryConfig,
@@ -40,7 +40,7 @@ func NewHistoryRepositoryFactory(args *ArgsHistoryRepositoryFactory) (fullHistor
 // Create creates instances of HistoryRepository
 func (hpf *historyRepositoryFactory) Create() (fullHistory.HistoryRepository, error) {
 	if !hpf.fullHistoryConfig.Enabled {
-		return fullHistory.NewNilHistoryProcessor()
+		return fullHistory.NewNilHistoryRepository()
 	}
 
 	historyRepArgs := fullHistory.HistoryRepositoryArguments{

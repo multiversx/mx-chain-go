@@ -106,7 +106,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),
-		historyProc:            arguments.HistoryRepository,
+		historyRepo:            arguments.HistoryRepository,
 	}
 
 	mp := metaProcessor{

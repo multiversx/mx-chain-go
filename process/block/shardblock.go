@@ -77,7 +77,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		feeHandler:             arguments.FeeHandler,
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),
-		historyProc:            arguments.HistoryRepository,
+		historyRepo:            arguments.HistoryRepository,
 	}
 
 	sp := shardProcessor{

@@ -14,7 +14,7 @@ type shardAPIBlockProcessor struct {
 
 // NewShardApiBlockProcessor will create a new instance of shard api block processor
 func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcessor {
-	isFullHistoryNode := arg.HistoryProc.IsEnabled()
+	isFullHistoryNode := arg.HistoryRepo.IsEnabled()
 	return &shardAPIBlockProcessor{
 		baseAPIBockProcessor: &baseAPIBockProcessor{
 			isFullHistoryNode:        isFullHistoryNode,
@@ -22,7 +22,7 @@ func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcesso
 			store:                    arg.Store,
 			marshalizer:              arg.Marshalizer,
 			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
-			historyProc:              arg.HistoryProc,
+			historyRepo:              arg.HistoryRepo,
 			unmarshalTx:              arg.UnmarshalTx,
 		},
 	}

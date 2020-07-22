@@ -81,7 +81,7 @@ func NewTestSyncNode(
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		NodesSetup:              nodesSetup,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryProcessor:        &mock.HistoryProcessorStub{},
+		HistoryRepository:       &mock.HistoryRepositoryStub{},
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -182,7 +182,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
 		Version:                string(SoftwareVersion),
-		HistoryRepository:      tpn.HistoryProcessor,
+		HistoryRepository:      tpn.HistoryRepository,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

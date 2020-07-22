@@ -72,7 +72,7 @@ type baseProcessor struct {
 	stateCheckpointModulus uint
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
-	historyProc            fullHistory.HistoryRepository
+	historyRepo            fullHistory.HistoryRepository
 }
 
 type bootStorerDataArgs struct {
@@ -1193,7 +1193,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 }
 
 func (bp *baseProcessor) saveHistoryData(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) {
-	if !bp.historyProc.IsEnabled() {
+	if !bp.historyRepo.IsEnabled() {
 		return
 	}
 
@@ -1203,7 +1203,7 @@ func (bp *baseProcessor) saveHistoryData(headerHash []byte, header data.HeaderHa
 		BodyHandler:   body,
 	}
 
-	err := bp.historyProc.PutTransactionsData(historyTransactionData)
+	err := bp.historyRepo.PutTransactionsData(historyTransactionData)
 	if err != nil {
 		log.Warn("history processor: cannot save transaction data",
 			"error", err.Error())
