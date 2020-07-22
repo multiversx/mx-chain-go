@@ -568,6 +568,7 @@ func newEpochStartTrigger(
 			Validity:             process.MetaBlockValidity,
 			Finality:             process.BlockFinality,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			Rounder:              args.rounder,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
@@ -1601,14 +1602,15 @@ func newMetaBlockProcessor(
 	}
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:      core.InternalMarshalizer,
-		Hasher:           core.Hasher,
-		Store:            data.Store,
-		ShardCoordinator: shardCoordinator,
-		RewardsHandler:   economicsData,
-		RoundTime:        rounder,
-		GenesisNonce:     genesisHdr.GetNonce(),
-		GenesisEpoch:     genesisHdr.GetEpoch(),
+		Marshalizer:        core.InternalMarshalizer,
+		Hasher:             core.Hasher,
+		Store:              data.Store,
+		ShardCoordinator:   shardCoordinator,
+		RewardsHandler:     economicsData,
+		RoundTime:          rounder,
+		GenesisNonce:       genesisHdr.GetNonce(),
+		GenesisEpoch:       genesisHdr.GetEpoch(),
+		GenesisTotalSupply: economicsData.GenesisTotalSupply(),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -1713,7 +1715,7 @@ func newValidatorStatisticsProcessor(
 	hardForkConfig := processComponents.mainConfig.Hardfork
 	ratingEnabledEpoch := uint32(0)
 
-	if processComponents.importStartHandler.ShouldStartImport() {
+	if hardForkConfig.AfterHardFork {
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{

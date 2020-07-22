@@ -57,8 +57,8 @@ func (v *ValidatorSettingsStub) UnJailValue() *big.Int {
 	return big.NewInt(100000)
 }
 
-// TotalSupply -
-func (v *ValidatorSettingsStub) TotalSupply() *big.Int {
+// GenesisTotalSupply -
+func (v *ValidatorSettingsStub) GenesisTotalSupply() *big.Int {
 	if v.TotalSupplyCalled != nil {
 		return v.TotalSupplyCalled()
 	}

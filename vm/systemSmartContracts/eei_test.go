@@ -68,7 +68,7 @@ func TestVmContext_GetBalance(t *testing.T) {
 	addr := []byte("addr")
 	balance := big.NewInt(10)
 	account, _ := state.NewUserAccount([]byte("123"))
-	account.AddToBalance(balance)
+	_ = account.AddToBalance(balance)
 
 	blockChainHook := &mock.BlockChainHookStub{GetUserAccountCalled: func(address []byte) (a vmcommon.UserAccountHandler, e error) {
 		if bytes.Equal(address, addr) {

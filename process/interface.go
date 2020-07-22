@@ -532,7 +532,7 @@ type RewardsHandler interface {
 	CommunityPercentage() float64
 	CommunityAddress() string
 	MinInflationRate() float64
-	MaxInflationRate() float64
+	MaxInflationRate(year uint32) float64
 	IsInterfaceNil() bool
 }
 
@@ -685,6 +685,7 @@ type BlockTracker interface {
 	AddTrackedHeader(header data.HeaderHandler, hash []byte)
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstWhitelist(interceptedData InterceptedData) bool
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
@@ -784,6 +785,7 @@ type EpochStartValidatorInfoCreator interface {
 type ValidityAttester interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstWhitelist(interceptedData InterceptedData) bool
 	IsInterfaceNil() bool
 }
 

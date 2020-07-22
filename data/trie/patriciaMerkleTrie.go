@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -303,7 +304,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	}
 
 	newTr := tr.recreateFromMainDb(root)
-	if newTr != nil {
+	if !check.IfNil(newTr) {
 		return newTr, nil
 	}
 
@@ -600,6 +601,34 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 	}
 
 	return leaves, nil
+}
+
+// GetAllLeavesOnChannel adds all the trie leaves to the given channel
+func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel() chan core.KeyValueHolder {
+	//TODO pass a context for cancellation purposes when needed
+	leavesChannel := make(chan core.KeyValueHolder)
+
+	tr.mutOperation.RLock()
+	if tr.root == nil {
+		tr.mutOperation.RUnlock()
+		close(leavesChannel)
+
+		return leavesChannel
+	}
+	tr.mutOperation.RUnlock()
+
+	go func() {
+		tr.mutOperation.RLock()
+		err := tr.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.Database(), tr.marshalizer)
+		if err != nil {
+			log.Error("could not get all trie leaves: ", "error", err)
+		}
+		tr.mutOperation.RUnlock()
+
+		close(leavesChannel)
+	}()
+
+	return leavesChannel
 }
 
 // GetAllHashes returns all the hashes from the trie

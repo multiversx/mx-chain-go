@@ -200,7 +200,7 @@ func (txPool *shardedTxPool) onAdded(key []byte, value interface{}) {
 	defer txPool.mutexAddCallbacks.RUnlock()
 
 	for _, handler := range txPool.onAddCallbacks {
-		go handler(key, value)
+		handler(key, value)
 	}
 }
 
@@ -301,8 +301,8 @@ func (txPool *shardedTxPool) ClearShardStore(cacheID string) {
 	shard.Cache.Clear()
 }
 
-// RegisterHandler registers a new handler to be called when a new transaction is added
-func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte, value interface{})) {
+// RegisterOnAdded registers a new handler to be called when a new transaction is added
+func (txPool *shardedTxPool) RegisterOnAdded(handler func(key []byte, value interface{})) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler")
 		return

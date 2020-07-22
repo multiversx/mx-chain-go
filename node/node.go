@@ -96,7 +96,6 @@ type Node struct {
 	validatorsProvider            process.ValidatorsProvider
 	whiteListRequest              process.WhiteListHandler
 	whiteListerVerifiedTxs        process.WhiteListHandler
-	apiTransactionByHashThrottler Throttler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -105,6 +104,7 @@ type Node struct {
 	singleSigner      crypto.SingleSigner
 	txSingleSigner    crypto.SingleSigner
 	multiSigner       crypto.MultiSigner
+	peerSigHandler    crypto.PeerSignatureHandler
 	forkDetector      process.ForkDetector
 
 	blkc               data.ChainHandler
@@ -132,17 +132,15 @@ type Node struct {
 	chainID               []byte
 	minTransactionVersion uint32
 
+	sizeCheckDelta        uint32
+	txSentCounter         uint32
+	inputAntifloodHandler P2PAntifloodHandler
+	txAcumulator          Accumulator
+
 	blockTracker             process.BlockTracker
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 
-	txStorageSize  uint32
-	sizeCheckDelta uint32
-
 	requestHandler process.RequestHandler
-
-	inputAntifloodHandler P2PAntifloodHandler
-	txAcumulator          Accumulator
-	txSentCounter         uint32
 
 	signatureSize int
 	publicKeySize int
@@ -268,7 +266,7 @@ func (n *Node) StartConsensus() error {
 		n.messenger,
 		n.shardCoordinator,
 		n.privKey,
-		n.singleSigner,
+		n.peerSigHandler,
 		n.dataPool.Headers(),
 		n.interceptorsContainer,
 	)
@@ -290,12 +288,11 @@ func (n *Node) StartConsensus() error {
 		BroadcastMessenger:       broadcastMessenger,
 		ConsensusState:           consensusState,
 		ForkDetector:             n.forkDetector,
-		KeyGenerator:             n.keyGen,
 		Marshalizer:              netInputMarshalizer,
 		Hasher:                   n.hasher,
 		Rounder:                  n.rounder,
 		ShardCoordinator:         n.shardCoordinator,
-		SingleSigner:             n.singleSigner,
+		PeerSignatureHandler:     n.peerSigHandler,
 		SyncTimer:                n.syncTimer,
 		HeaderSigVerifier:        n.headerSigVerifier,
 		HeaderIntegrityVerifier:  n.headerIntegrityVerifier,
@@ -1000,8 +997,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		AppStatusHandler:         n.appStatusHandler,
 		Storer:                   n.store.GetStorer(dataRetriever.HeartbeatUnit),
 		ValidatorStatistics:      n.validatorStatistics,
-		KeyGenerator:             n.keyGen,
-		SingleSigner:             n.singleSigner,
+		PeerSignatureHandler:     n.peerSigHandler,
 		PrivKey:                  n.privKey,
 		HardforkTrigger:          n.hardforkTrigger,
 		AntifloodHandler:         n.inputAntifloodHandler,

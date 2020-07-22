@@ -678,17 +678,6 @@ func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 	}
 }
 
-// WithApiTransactionByHashThrottler sets up the api transaction by hash throttler
-func WithApiTransactionByHashThrottler(throttler Throttler) Option {
-	return func(n *Node) error {
-		if throttler == nil {
-			return ErrNilApiTransactionByHashThrottler
-		}
-		n.apiTransactionByHashThrottler = throttler
-		return nil
-	}
-}
-
 // WithPeerHonestyHandler sets up a peer honesty handler for the Node
 func WithPeerHonestyHandler(peerHonestyHandler consensus.PeerHonestyHandler) Option {
 	return func(n *Node) error {
@@ -708,6 +697,17 @@ func WithWatchdogTimer(watchdog core.WatchdogTimer) Option {
 		}
 
 		n.watchdog = watchdog
+		return nil
+	}
+}
+
+// WithPeerSignatureHandler sets up a peerSignatureHandler for the Node
+func WithPeerSignatureHandler(peerSignatureHandler crypto.PeerSignatureHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(peerSignatureHandler) {
+			return ErrNilPeerSignatureHandler
+		}
+		n.peerSigHandler = peerSignatureHandler
 		return nil
 	}
 }

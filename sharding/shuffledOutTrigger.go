@@ -31,6 +31,9 @@ func NewShuffledOutTrigger(
 	if endProcessHandler == nil {
 		return nil, ErrNilEndOfProcessingHandler
 	}
+
+	log.Debug("shuffleOut trigger initialized with", "shardID", currentShardID)
+
 	return &shuffledOutTrigger{
 		ownPubKey:         ownPubKey,
 		currentShardID:    currentShardID,

@@ -18,3 +18,6 @@ const ReturnCodeInternalError ReturnCode = "internal_issue"
 
 // ReturnCodeRequestError defines a request which hasn't been executed successfully due to a bad request received
 const ReturnCodeRequestError ReturnCode = "bad_request"
+
+// ReturnCodeSystemBusy defines a request which hasn't been executed successfully due to too many requests
+const ReturnCodeSystemBusy ReturnCode = "system_busy"

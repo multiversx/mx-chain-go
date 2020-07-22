@@ -204,7 +204,7 @@ func TestElasticseachSaveTransactions(t *testing.T) {
 	}()
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveTransactions(body, header, txPool, 0)
+	elasticDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
 	require.True(t, strings.Contains(output.String(), "indexing bulk of transactions"))
 }
 
@@ -495,7 +495,7 @@ func TestUpdateTransaction(t *testing.T) {
 
 	body.MiniBlocks[0].ReceiverShardID = 1
 	// insert
-	esDatabase.SaveTransactions(body, header, txPool, 0)
+	esDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
 
 	header.TimeStamp = 1234
 	txPool = map[string]data.TransactionHandler{
@@ -506,7 +506,7 @@ func TestUpdateTransaction(t *testing.T) {
 	}
 
 	// update
-	esDatabase.SaveTransactions(body, header, txPool, 1)
+	esDatabase.SaveTransactions(body, header, txPool, 1, map[string]bool{})
 }
 
 func TestGetMultiple(t *testing.T) {
@@ -574,8 +574,8 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 	}
 	body.MiniBlocks[0].ReceiverShardID = 2
 	body.MiniBlocks[0].SenderShardID = 1
-	esDatabase.SaveMiniblocks(header, body)
-	esDatabase.SaveTransactions(body, header, txPool, 2)
+	isMBSInDB := esDatabase.SaveMiniblocks(header, body)
+	esDatabase.SaveTransactions(body, header, txPool, 2, isMBSInDB)
 
 	txPool = map[string]data.TransactionHandler{
 		string(txHash1): tx1,
@@ -583,8 +583,8 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 	}
 
 	header.ShardID = 1
-	esDatabase.SaveMiniblocks(header, body)
-	esDatabase.SaveTransactions(body, header, txPool, 0)
+	isMBSInDB = esDatabase.SaveMiniblocks(header, body)
+	esDatabase.SaveTransactions(body, header, txPool, 0, isMBSInDB)
 }
 
 func TestDoBulkRequestLimit(t *testing.T) {
@@ -629,7 +629,7 @@ func TestDoBulkRequestLimit(t *testing.T) {
 		body.MiniBlocks[0].ReceiverShardID = 2
 		body.MiniBlocks[0].SenderShardID = 1
 
-		esDatabase.SaveTransactions(body, header, txsPool, 2)
+		esDatabase.SaveTransactions(body, header, txsPool, 2, map[string]bool{})
 	}
 }
 

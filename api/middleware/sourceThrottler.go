@@ -1,10 +1,12 @@
 package middleware
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/gin-gonic/gin"
 )
 
@@ -33,7 +35,14 @@ func (st *sourceThrottler) MiddlewareHandlerFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		remoteAddr, _, err := net.SplitHostPort(c.Request.RemoteAddr)
 		if err != nil {
-			_ = c.AbortWithError(http.StatusInternalServerError, err)
+			c.AbortWithStatusJSON(
+				http.StatusInternalServerError,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: err.Error(),
+					Code:  shared.ReturnCodeInternalError,
+				},
+			)
 			return
 		}
 
@@ -44,7 +53,14 @@ func (st *sourceThrottler) MiddlewareHandlerFunc() gin.HandlerFunc {
 		st.mutRequests.Unlock()
 
 		if isQuotaReached {
-			c.AbortWithStatus(http.StatusTooManyRequests)
+			c.AbortWithStatusJSON(
+				http.StatusTooManyRequests,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: fmt.Sprintf("%s for address %s", ErrTooManyRequests.Error(), remoteAddr),
+					Code:  shared.ReturnCodeSystemBusy,
+				},
+			)
 			return
 		}
 

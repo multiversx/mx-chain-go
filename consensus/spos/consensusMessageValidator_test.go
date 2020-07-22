@@ -493,7 +493,9 @@ func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
 		},
 	}
 	workerArgs := createDefaultWorkerArgs()
-	workerArgs.SingleSigner = signer
+	workerArgs.PeerSignatureHandler = &mock.PeerSignatureHandler{
+		Signer: signer,
+	}
 	workerArgs.ConsensusState.RoundIndex = 10
 	wrk, _ := spos.NewWorker(workerArgs)
 

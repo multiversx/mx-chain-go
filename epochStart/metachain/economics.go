@@ -21,26 +21,28 @@ const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
 
 type economics struct {
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	store            dataRetriever.StorageService
-	shardCoordinator sharding.Coordinator
-	rewardsHandler   process.RewardsHandler
-	roundTime        process.RoundTimeDurationHandler
-	genesisEpoch     uint32
-	genesisNonce     uint64
+	marshalizer        marshal.Marshalizer
+	hasher             hashing.Hasher
+	store              dataRetriever.StorageService
+	shardCoordinator   sharding.Coordinator
+	rewardsHandler     process.RewardsHandler
+	roundTime          process.RoundTimeDurationHandler
+	genesisEpoch       uint32
+	genesisNonce       uint64
+	genesisTotalSupply *big.Int
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
 type ArgsNewEpochEconomics struct {
-	Marshalizer      marshal.Marshalizer
-	Hasher           hashing.Hasher
-	Store            dataRetriever.StorageService
-	ShardCoordinator sharding.Coordinator
-	RewardsHandler   process.RewardsHandler
-	RoundTime        process.RoundTimeDurationHandler
-	GenesisEpoch     uint32
-	GenesisNonce     uint64
+	Marshalizer        marshal.Marshalizer
+	Hasher             hashing.Hasher
+	Store              dataRetriever.StorageService
+	ShardCoordinator   sharding.Coordinator
+	RewardsHandler     process.RewardsHandler
+	RoundTime          process.RoundTimeDurationHandler
+	GenesisEpoch       uint32
+	GenesisNonce       uint64
+	GenesisTotalSupply *big.Int
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -63,17 +65,22 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	if check.IfNil(args.RoundTime) {
 		return nil, process.ErrNilRounder
 	}
+	if args.GenesisTotalSupply == nil {
+		return nil, epochStart.ErrNilGenesisTotalSupply
+	}
 
 	e := &economics{
-		marshalizer:      args.Marshalizer,
-		hasher:           args.Hasher,
-		store:            args.Store,
-		shardCoordinator: args.ShardCoordinator,
-		rewardsHandler:   args.RewardsHandler,
-		roundTime:        args.RoundTime,
-		genesisEpoch:     args.GenesisEpoch,
-		genesisNonce:     args.GenesisNonce,
+		marshalizer:        args.Marshalizer,
+		hasher:             args.Hasher,
+		store:              args.Store,
+		shardCoordinator:   args.ShardCoordinator,
+		rewardsHandler:     args.RewardsHandler,
+		roundTime:          args.RoundTime,
+		genesisEpoch:       args.GenesisEpoch,
+		genesisNonce:       args.GenesisNonce,
+		genesisTotalSupply: big.NewInt(0).Set(args.GenesisTotalSupply),
 	}
+
 	return e, nil
 }
 
@@ -109,12 +116,8 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(e.shardCoordinator.NumberOfShards()+1))
 	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
-	inflationRate, err := e.computeInflationRate(prevEpochEconomics.TotalSupply, prevEpochEconomics.NodePrice)
-	if err != nil {
-		return nil, err
-	}
-
-	rwdPerBlock := e.computeRewardsPerBlock(prevEpochEconomics.TotalSupply, maxBlocksInEpoch, inflationRate)
+	inflationRate := e.computeInflationRate(metaBlock.GetRound())
+	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate)
 	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 
 	newTokens := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.AccumulatedFeesInEpoch)
@@ -186,11 +189,12 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 	rwdPerBlock.Sub(rwdPerBlock, averageLeaderRewardPerBlock)
 }
 
-// compute inflation rate from totalSupply and totalStaked
-func (e *economics) computeInflationRate(_ *big.Int, _ *big.Int) (float64, error) {
-	//TODO: use prevTotalSupply and nodePrice (number of eligible + number of waiting)
-	// for epoch which ends now to compute inflation rate according to formula provided by L.
-	return e.rewardsHandler.MaxInflationRate(), nil
+// compute inflation rate from genesisTotalSupply and economics settings for that year
+func (e *economics) computeInflationRate(currentRound uint64) float64 {
+	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
+	roundsPerYear := numberOfDaysInYear * roundsPerDay
+	yearsIndex := uint32(currentRound/roundsPerYear) + 1
+	return e.rewardsHandler.MaxInflationRate(yearsIndex)
 }
 
 // compute rewards per block from according to inflation rate and total supply from previous block and maxBlocksPerEpoch

@@ -11,6 +11,7 @@ type StorerStub struct {
 	RemoveCalled       func(key []byte) error
 	ClearCacheCalled   func()
 	DestroyUnitCalled  func() error
+	RangeKeysCalled    func(handler func(key []byte, val []byte) bool)
 }
 
 // GetFromEpoch -
@@ -61,6 +62,13 @@ func (ss *StorerStub) ClearCache() {
 // DestroyUnit -
 func (ss *StorerStub) DestroyUnit() error {
 	return ss.DestroyUnitCalled()
+}
+
+// RangeKeys -
+func (ss *StorerStub) RangeKeys(handler func(key []byte, val []byte) bool) {
+	if ss.RangeKeysCalled != nil {
+		ss.RangeKeysCalled(handler)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -64,32 +64,20 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-func TestStartNode_FailsWithoutFacade(t *testing.T) {
-	t.Parallel()
-	ws := startNodeServer(nil)
-	defer func() {
-		r := recover()
-		assert.Nil(t, r, "Not providing elrondFacade context should panic")
-	}()
-	req, _ := http.NewRequest("GET", "/node/start", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-}
-
 //------- Heartbeatstatus
 
-func TestHeartbeatStatus_FailsWithoutFacade(t *testing.T) {
+func TestHeartbeatStatus_NilContextShouldError(t *testing.T) {
 	t.Parallel()
-
 	ws := startNodeServer(nil)
-	defer func() {
-		r := recover()
 
-		assert.NotNil(t, r, "Not providing elrondFacade context should panic")
-	}()
 	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
 }
 
 func TestHeartbeatstatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
@@ -157,16 +145,18 @@ func TestHeartbeatstatus(t *testing.T) {
 	assert.NotEqual(t, "", statusRsp.Message)
 }
 
-func TestStatistics_FailsWithoutFacade(t *testing.T) {
+func TestStatistics_NilContextShouldError(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
-	defer func() {
-		r := recover()
-		assert.NotNil(t, r, "Not providing elrondFacade context should panic")
-	}()
+
 	req, _ := http.NewRequest("GET", "/node/statistics", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
 }
 
 func TestStatistics_FailsWithWrongFacadeTypeConversion(t *testing.T) {
@@ -209,6 +199,20 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, statisticsRsp.Statistics.NrOfShards, nrOfShards)
 }
 
+func TestStatusMetrics_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/node/status", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
+}
+
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
@@ -235,6 +239,20 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
 	assert.True(t, keyAndValueFoundInResponse)
 	assert.False(t, strings.Contains(respStr, p2pKey))
+}
+
+func TestP2PStatusMetrics_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/node/p2pstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
 }
 
 func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
@@ -265,6 +283,20 @@ func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 
 	assert.False(t, strings.Contains(respStr, key))
+}
+
+func TestQueryDebug_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("POST", "/node/debug", bytes.NewBuffer(nil))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
 }
 
 func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
@@ -327,6 +359,20 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Contains(t, queryResponse.Result, str1)
 	assert.Contains(t, queryResponse.Result, str2)
+}
+
+func TestPeerInfo_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/node/peerinfo?pid=asasdasd", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
 }
 
 func TestPeerInfo_WrongFacadeShouldErr(t *testing.T) {
@@ -439,7 +485,7 @@ func startNodeServerWithFacade(facade interface{}) *gin.Engine {
 	ws.Use(cors.Default())
 	if facade != nil {
 		ws.Use(func(c *gin.Context) {
-			c.Set("elrondFacade", facade)
+			c.Set("facade", facade)
 		})
 	}
 

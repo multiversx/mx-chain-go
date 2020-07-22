@@ -22,7 +22,7 @@ func createDefaultConfig() config.P2PConfig {
 			Enabled:                          true,
 			RefreshIntervalInSec:             1,
 			RoutingTableRefreshIntervalInSec: 1,
-			RandezVous:                       "/erd/kad/1.0.0",
+			ProtocolID:                       "/erd/kad/1.0.0",
 			InitialPeerList:                  nil,
 			BucketSize:                       100,
 		},
@@ -101,6 +101,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	}
 
 	testCounters(t, nodesMap, 1, 1, numShards*2)
+	testUnknownPeers(t, nodesMap)
 }
 
 func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
@@ -178,6 +179,18 @@ func testCounters(
 			assert.Equal(t, globalTopicMessagesCount, n.CountGlobalMessages())
 			assert.Equal(t, intraTopicMessagesCount, n.CountIntraShardMessages())
 			assert.Equal(t, crossTopicMessagesCount, n.CountCrossShardMessages())
+		}
+	}
+}
+
+func testUnknownPeers(
+	t *testing.T,
+	nodesMap map[uint32][]*integrationTests.TestP2PNode,
+) {
+
+	for _, nodes := range nodesMap {
+		for _, n := range nodes {
+			assert.Equal(t, 1, len(n.Messenger.GetConnectedPeersInfo().UnknownPeers))
 		}
 	}
 }

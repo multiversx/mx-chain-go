@@ -1433,6 +1433,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
+		node.WithPeerSignatureHandler(&mock.PeerSignatureHandler{}),
 	)
 
 	err := n.StartConsensus()

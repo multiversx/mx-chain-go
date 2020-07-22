@@ -135,10 +135,11 @@ type Config struct {
 	VmMarshalizer               TypeConfig
 	TxSignMarshalizer           TypeConfig
 
-	PublicKeyShardId CacheConfig
-	PublicKeyPeerId  CacheConfig
-	PeerIdShardId    CacheConfig
-	PeerHonesty      CacheConfig
+	PublicKeyShardId      CacheConfig
+	PublicKeyPeerId       CacheConfig
+	PeerIdShardId         CacheConfig
+	PublicKeyPIDSignature CacheConfig
+	PeerHonesty           CacheConfig
 
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig
@@ -164,7 +165,7 @@ type Config struct {
 // StoragePruningConfig will hold settings relates to storage pruning
 type StoragePruningConfig struct {
 	Enabled             bool
-	FullArchive         bool
+	CleanOldEpochsData  bool
 	NumEpochsToKeep     uint64
 	NumActivePersisters uint64
 }
@@ -219,11 +220,18 @@ type TrieStorageManagerConfig struct {
 	MaxSnapshots       uint8
 }
 
-// WebServerAntifloodConfig will hold the anti-lflooding parameters for the web server
+// EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines
+type EndpointsThrottlersConfig struct {
+	Endpoint         string
+	MaxNumGoRoutines int32
+}
+
+// WebServerAntifloodConfig will hold the anti-flooding parameters for the web server
 type WebServerAntifloodConfig struct {
 	SimultaneousRequests         uint32
 	SameSourceRequests           uint32
 	SameSourceResetIntervalInSec uint32
+	EndpointsThrottlers          []EndpointsThrottlersConfig
 }
 
 // BlackListConfig will hold the p2p peer black list threshold values
@@ -304,8 +312,10 @@ type VirtualMachineOutOfProcessConfig struct {
 // HardforkConfig holds the configuration for the hardfork trigger
 type HardforkConfig struct {
 	ExportStateStorageConfig     StorageConfig
+	ExportKeysStorageConfig      StorageConfig
 	ExportTriesStorageConfig     StorageConfig
 	ImportStateStorageConfig     StorageConfig
+	ImportKeysStorageConfig      StorageConfig
 	PublicKeyToListenFrom        string
 	ImportFolder                 string
 	StartRound                   uint64

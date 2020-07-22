@@ -177,11 +177,11 @@ func createTxWithPayload(senderTag int, nonce int, payloadLength int) *dummyTx {
 
 	return &dummyTx{
 		Transaction: transaction.Transaction{
-			SndAddr: []byte(sender),
+			SndAddr: sender,
 			Nonce:   uint64(nonce),
 			Data:    make([]byte, payloadLength),
 		},
-		hash: []byte(hash),
+		hash: hash,
 	}
 }
 
@@ -217,7 +217,10 @@ func pprofHeap(scenario *scenario, step string) {
 		panic(fmt.Sprintf("pprofHeap: %s", err))
 	}
 
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		panic(fmt.Sprintf("cannot close file: %s", err.Error()))
+	}()
 
 	err = pprof.WriteHeapProfile(file)
 	if err != nil {

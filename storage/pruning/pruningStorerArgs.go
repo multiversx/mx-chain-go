@@ -18,7 +18,7 @@ type StorerArgs struct {
 	NumOfEpochsToKeep     uint32
 	NumOfActivePersisters uint32
 	StartingEpoch         uint32
-	PruningEnabled        bool
-	FullArchive           bool
 	MaxBatchSize          int
+	PruningEnabled        bool
+	CleanOldEpochsData    bool
 }

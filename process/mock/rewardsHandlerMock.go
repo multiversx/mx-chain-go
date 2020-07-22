@@ -30,7 +30,7 @@ func (rhm *RewardsHandlerMock) MinInflationRate() float64 {
 }
 
 // MaxInflationRate -
-func (rhm *RewardsHandlerMock) MaxInflationRate() float64 {
+func (rhm *RewardsHandlerMock) MaxInflationRate(uint32) float64 {
 	return rhm.MaxInflationRateCalled()
 }
 

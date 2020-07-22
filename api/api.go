@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"net/http"
 	"reflect"
 
@@ -51,7 +52,8 @@ type ginWriter struct {
 }
 
 func (gv *ginWriter) Write(p []byte) (n int, err error) {
-	log.Debug("gin server", "message", string(p))
+	trimmed := bytes.TrimSpace(p)
+	log.Trace("gin server", "message", string(trimmed))
 
 	return len(p), nil
 }
@@ -60,7 +62,8 @@ type ginErrorWriter struct {
 }
 
 func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
-	log.Debug("gin server", "error", string(p))
+	trimmed := bytes.TrimSpace(p)
+	log.Trace("gin server", "error", string(trimmed))
 
 	return len(p), nil
 }
@@ -76,6 +79,7 @@ func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, pro
 	}
 	ws = gin.Default()
 	ws.Use(cors.Default())
+	ws.Use(middleware.WithFacade(elrondFacade))
 	for _, proc := range processors {
 		if check.IfNil(proc) {
 			continue
@@ -94,51 +98,44 @@ func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, pro
 	return ws.Run(elrondFacade.RestApiInterface())
 }
 
-func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondFacade middleware.ElrondHandler) {
+func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondFacade middleware.Handler) {
 	nodeRoutes := ws.Group("/node")
-	nodeRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	wrappedNodeRouter, err := wrapper.NewRouterWrapper("node", nodeRoutes, routesConfig)
 	if err == nil {
 		node.Routes(wrappedNodeRouter)
 	}
 
 	addressRoutes := ws.Group("/address")
-	addressRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	wrappedAddressRouter, err := wrapper.NewRouterWrapper("address", addressRoutes, routesConfig)
 	if err == nil {
 		address.Routes(wrappedAddressRouter)
 	}
 
 	networkRoutes := ws.Group("/network")
-	networkRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	wrappedNetworkRoutes, err := wrapper.NewRouterWrapper("network", networkRoutes, routesConfig)
 	if err == nil {
 		network.Routes(wrappedNetworkRoutes)
 	}
 
 	txRoutes := ws.Group("/transaction")
-	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	wrappedTransactionRouter, err := wrapper.NewRouterWrapper("transaction", txRoutes, routesConfig)
 	if err == nil {
 		transaction.Routes(wrappedTransactionRouter)
 	}
 
 	vmValuesRoutes := ws.Group("/vm-values")
-	vmValuesRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	wrappedVmValuesRouter, err := wrapper.NewRouterWrapper("vm-values", vmValuesRoutes, routesConfig)
 	if err == nil {
 		vmValues.Routes(wrappedVmValuesRouter)
 	}
 
 	validatorRoutes := ws.Group("/validator")
-	validatorRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	wrappedValidatorsRouter, err := wrapper.NewRouterWrapper("validator", validatorRoutes, routesConfig)
 	if err == nil {
 		valStats.Routes(wrappedValidatorsRouter)
 	}
 
 	hardforkRoutes := ws.Group("/hardfork")
-	hardforkRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	wrappedHardforkRouter, err := wrapper.NewRouterWrapper("hardfork", hardforkRoutes, routesConfig)
 	if err == nil {
 		hardfork.Routes(wrappedHardforkRouter)

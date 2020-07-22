@@ -1,6 +1,7 @@
 package facade
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -36,10 +38,10 @@ const DefaultRestInterface = "localhost:8080"
 const DefaultRestPortOff = "off"
 
 var _ = address.FacadeHandler(&nodeFacade{})
-var _ = hardfork.TriggerHardforkHandler(&nodeFacade{})
+var _ = hardfork.FacadeHandler(&nodeFacade{})
 var _ = node.FacadeHandler(&nodeFacade{})
-var _ = transactionApi.TxService(&nodeFacade{})
-var _ = validator.ValidatorsStatisticsApiHandler(&nodeFacade{})
+var _ = transactionApi.FacadeHandler(&nodeFacade{})
+var _ = validator.FacadeHandler(&nodeFacade{})
 var _ = vmValues.FacadeHandler(&nodeFacade{})
 
 var log = logger.GetOrCreate("facade")
@@ -66,9 +68,12 @@ type nodeFacade struct {
 	syncer                 ntp.SyncTimer
 	tpsBenchmark           *statistics.TpsBenchmark
 	config                 config.FacadeConfig
-	wsAntifloodConfig      config.WebServerAntifloodConfig
 	apiRoutesConfig        config.ApiRoutesConfig
+	endpointsThrottlers    map[string]core.Throttler
+	wsAntifloodConfig      config.WebServerAntifloodConfig
 	restAPIServerDebugMode bool
+	ctx                    context.Context
+	cancelFunc             func()
 }
 
 // NewNodeFacade creates a new Facade with a NodeWrapper
@@ -92,14 +97,38 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		return nil, fmt.Errorf("%w, SameSourceResetIntervalInSec should not be 0", ErrInvalidValue)
 	}
 
-	return &nodeFacade{
+	throttlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
+
+	nf := &nodeFacade{
 		node:                   arg.Node,
 		apiResolver:            arg.ApiResolver,
 		restAPIServerDebugMode: arg.RestAPIServerDebugMode,
 		wsAntifloodConfig:      arg.WsAntifloodConfig,
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
-	}, nil
+		endpointsThrottlers:    throttlersMap,
+	}
+	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
+
+	return nf, nil
+}
+
+func computeEndpointsNumGoRoutinesThrottlers(webServerAntiFloodConfig config.WebServerAntifloodConfig) map[string]core.Throttler {
+	throttlersMap := make(map[string]core.Throttler)
+	for _, endpointSetting := range webServerAntiFloodConfig.EndpointsThrottlers {
+		newThrottler, err := throttler.NewNumGoRoutinesThrottler(endpointSetting.MaxNumGoRoutines)
+		if err != nil {
+			log.Warn("error when setting the maximum go routines throttler for endpoint",
+				"endpoint", endpointSetting.Endpoint,
+				"max go routines", endpointSetting.MaxNumGoRoutines,
+				"error", err,
+			)
+			continue
+		}
+		throttlersMap[endpointSetting.Endpoint] = newThrottler
+	}
+
+	return throttlersMap
 }
 
 // SetSyncer sets the current syncer
@@ -191,11 +220,16 @@ func (nf *nodeFacade) createMiddlewareLimiters() ([]api.MiddlewareProcessor, err
 }
 
 func (nf *nodeFacade) sourceLimiterReset(reset resetHandler) {
+	betweenResetDuration := time.Second * time.Duration(nf.wsAntifloodConfig.SameSourceResetIntervalInSec)
 	for {
-		time.Sleep(time.Second * time.Duration(nf.wsAntifloodConfig.SameSourceResetIntervalInSec))
-
-		log.Trace("calling reset on WS source limiter")
-		reset.Reset()
+		select {
+		case <-time.After(betweenResetDuration):
+			log.Trace("calling reset on WS source limiter")
+			reset.Reset()
+		case <-nf.ctx.Done():
+			log.Debug("closing nodeFacade.sourceLimiterReset go routine")
+			return
+		}
 	}
 }
 
@@ -310,6 +344,22 @@ func (nf *nodeFacade) GetQueryHandler(name string) (debug.QueryHandler, error) {
 // GetPeerInfo returns the peer info of a provided pid
 func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return nf.node.GetPeerInfo(pid)
+}
+
+// GetThrottlerForEndpoint returns the throttler for a given endpoint if found
+func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool) {
+	throttlerForEndpoint, ok := nf.endpointsThrottlers[endpoint]
+	isThrottlerOk := ok && throttlerForEndpoint != nil
+
+	return throttlerForEndpoint, isThrottlerOk
+}
+
+// Close will cleanup started go routines
+// TODO use this close method
+func (nf *nodeFacade) Close() error {
+	nf.cancelFunc()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -411,7 +411,7 @@ func NewTestProcessorNodeWithFullGenesis(
 		tpn.Messenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.SingleSigner,
+		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 	)
@@ -496,6 +496,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		MaxComputableRounds: 1000,
 		RewardsHandler:      tpn.EconomicsData,
 		NodesSetup:          tpn.NodesSetup,
+		GenesisNonce:        tpn.BlockChain.GetGenesisHeader().GetNonce(),
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -540,7 +541,30 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.Messenger,
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
-		tpn.OwnAccount.SingleSigner,
+		tpn.OwnAccount.PeerSigHandler,
+		tpn.DataPool.Headers(),
+		tpn.InterceptorsContainer,
+	)
+	tpn.setGenesisBlock()
+	tpn.initNode()
+	tpn.addHandlersForCounters()
+	tpn.addGenesisBlocksIntoStorage()
+}
+
+// InitializeProcessors will reinitialize processors
+func (tpn *TestProcessorNode) InitializeProcessors() {
+	tpn.initValidatorStatistics()
+	tpn.initBlockTracker()
+	tpn.initInnerProcessors()
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
+	tpn.initBlockProcessor(stateCheckpointModulus)
+	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
+		TestMarshalizer,
+		TestHasher,
+		tpn.Messenger,
+		tpn.ShardCoordinator,
+		tpn.OwnAccount.SkTxSign,
+		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
 	)
@@ -596,9 +620,14 @@ func CreateEconomicsData() *economics.EconomicsData {
 	economicsData, _ := economics.NewEconomicsData(
 		&config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
-				TotalSupply:      "2000000000000000000000",
-				MinimumInflation: 0,
-				MaximumInflation: 0.05,
+				GenesisTotalSupply: "2000000000000000000000",
+				MinimumInflation:   0,
+				YearSettings: []*config.YearSetting{
+					{
+						Year:             0,
+						MaximumInflation: 0.01,
+					},
+				},
 			},
 			RewardsSettings: config.RewardsSettings{
 				LeaderPercentage:    0.1,
@@ -797,6 +826,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			Finality:             1,
 			EpochStartNotifier:   tpn.EpochStartNotifier,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			Rounder:              tpn.Rounder,
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -1286,12 +1316,13 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
 		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
-			Marshalizer:      TestMarshalizer,
-			Hasher:           TestHasher,
-			Store:            tpn.Storage,
-			ShardCoordinator: tpn.ShardCoordinator,
-			RewardsHandler:   tpn.EconomicsData,
-			RoundTime:        tpn.Rounder,
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			Store:              tpn.Storage,
+			ShardCoordinator:   tpn.ShardCoordinator,
+			RewardsHandler:     tpn.EconomicsData,
+			RoundTime:          tpn.Rounder,
+			GenesisTotalSupply: tpn.EconomicsData.GenesisTotalSupply(),
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
@@ -1353,6 +1384,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				Finality:             1,
 				EpochStartNotifier:   tpn.EpochStartNotifier,
 				PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
+				Rounder:              tpn.Rounder,
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -1492,9 +1524,9 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 			atomic.AddInt32(&tpn.CounterMbRecv, 1)
 		}
 
-		tpn.DataPool.UnsignedTransactions().RegisterHandler(txHandler)
-		tpn.DataPool.Transactions().RegisterHandler(txHandler)
-		tpn.DataPool.RewardTransactions().RegisterHandler(txHandler)
+		tpn.DataPool.UnsignedTransactions().RegisterOnAdded(txHandler)
+		tpn.DataPool.Transactions().RegisterOnAdded(txHandler)
+		tpn.DataPool.RewardTransactions().RegisterOnAdded(txHandler)
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
 		tpn.DataPool.MiniBlocks().RegisterHandler(mbHandlers, core.UniqueIdentifier())
 	}
@@ -1547,7 +1579,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
 	blockHeader.SetChainID(tpn.ChainID)
 	blockHeader.SetSoftwareVersion(SoftwareVersion)
-	blockHeader.SetTimeStamp(round * uint64(tpn.Rounder.TimeDuration().Seconds()))
+
+	genesisRound := tpn.BlockChain.GetGenesisHeader().GetRound()
+	blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.Rounder.TimeDuration().Seconds()))
 
 	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {

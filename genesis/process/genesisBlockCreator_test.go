@@ -126,7 +126,7 @@ func createMockArgument(
 
 	arg.AccountsParser, err = parsing.NewAccountsParser(
 		genesisFilename,
-		arg.Economics.TotalSupply(),
+		arg.Economics.GenesisTotalSupply(),
 		arg.PubkeyConv,
 		&mock.KeyGeneratorStub{},
 	)
@@ -192,7 +192,7 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 	)
 	hardForkGbc, err := NewGenesisBlockCreator(newArgs)
 	assert.Nil(t, err)
-	err = hardForkGbc.computeDNSAddressesIfHardFork()
+	err = hardForkGbc.computeDNSAddresses()
 	assert.Nil(t, err)
 
 	mapAfterHardForkAddresses, err := newArgs.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)

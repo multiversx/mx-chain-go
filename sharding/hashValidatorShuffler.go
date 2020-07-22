@@ -19,10 +19,10 @@ type shuffleNodesArg struct {
 	additionalLeaving []Validator
 	newNodes          []Validator
 	randomness        []byte
+	distributor       ValidatorsDistributor
 	nodesMeta         uint32
 	nodesPerShard     uint32
 	nbShards          uint32
-	distributor       ValidatorsDistributor
 }
 
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
@@ -30,14 +30,14 @@ type randHashShuffler struct {
 	// TODO: remove the references to this constant and the distributor
 	// when reinitialization of node in new shard is implemented
 	shuffleBetweenShards bool
-	validatorDistributor ValidatorsDistributor
 
-	adaptivity        bool
-	nodesShard        uint32
-	nodesMeta         uint32
-	shardHysteresis   uint32
-	metaHysteresis    uint32
-	mutShufflerParams sync.RWMutex
+	adaptivity           bool
+	nodesShard           uint32
+	nodesMeta            uint32
+	shardHysteresis      uint32
+	metaHysteresis       uint32
+	mutShufflerParams    sync.RWMutex
+	validatorDistributor ValidatorsDistributor
 }
 
 // NewHashValidatorsShuffler creates a validator shuffler that uses a hash between validator key and a given
@@ -176,7 +176,6 @@ func removeNodesFromMap(
 }
 
 func removeNodesFromShard(existingNodes map[uint32][]Validator, leavingNodes []Validator, shard uint32, nbToRemove int) ([]Validator, int) {
-	vList := existingNodes[shard]
 	if len(leavingNodes) < nbToRemove {
 		nbToRemove = len(leavingNodes)
 	}

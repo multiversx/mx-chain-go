@@ -109,7 +109,7 @@ func NewSmartContractResultPreprocessor(
 	}
 
 	scr.chRcvAllScrs = make(chan bool)
-	scr.scrPool.RegisterHandler(scr.receivedSmartContractResult)
+	scr.scrPool.RegisterOnAdded(scr.receivedSmartContractResult)
 	scr.scrForBlock.txHashAndInfo = make(map[string]*txInfo)
 
 	return scr, nil

@@ -15,22 +15,22 @@
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = false
 
-   # If this flag is set to true, the node won't delete any database between epochs
-   FullArchive = false
+   # If this flag is set to false, the node won't delete any database between epochs
+   CleanOldEpochsData = true
 
-   # NumEpochsToKeep - if the flag above is set to false, this will set the number of epochs to keep in the storage.
+   # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
    NumEpochsToKeep = 4
 
-   # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works for both
-   # full archive or not nodes. In case of a node which doesn't have a full archive, it has to be smaller or equal
-   # to the NumOfEpochsToKeep flag
+   # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works even if
+   # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
+   # smaller or equal to the NumOfEpochsToKeep flag
    NumActivePersisters = 3
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Name = "MiniBlocksStorage"
-        Capacity = 300
+        Capacity = 1000
         Type = "SizeLRU"
         SizeInBytes = 104857600 #100MB
     [MiniBlocksStorage.DB]
@@ -70,7 +70,8 @@
     [BootstrapStorage.Cache]
         Name = "BootstrapStorage"
         Capacity = 1000
-        Type = "LRU"
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
     [BootstrapStorage.DB]
         FilePath = "BootstrapData"
         Type = "LvlDBSerial"
@@ -94,14 +95,14 @@
 [TxStorage]
     [TxStorage.Cache]
         Name = "TxStorage"
-        Capacity = 75000
+        Capacity = 500000
         Type = "SizeLRU"
         SizeInBytes = 209715200 #200MB
     [TxStorage.DB]
         FilePath = "Transactions"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 20000
+        MaxBatchSize = 30000
         MaxOpenFiles = 10
 
 [TxLogsStorage]
@@ -120,7 +121,7 @@
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
         Name = "UnsignedTransactionStorage"
-        Capacity = 75000
+        Capacity = 250000
         Type = "SizeLRU"
         SizeInBytes = 104857600 #100MB
     [UnsignedTransactionStorage.DB]
@@ -184,7 +185,7 @@
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
         Name = "AccountsTrieStorage"
-        Capacity = 75000
+        Capacity = 500000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
     [AccountsTrieStorage.DB]
@@ -240,7 +241,7 @@
 
 [TxBlockBodyDataPool]
     Name = "TxBlockBodyDataPool"
-    Capacity = 300
+    Capacity = 1000
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
 
@@ -299,6 +300,12 @@
 [PublicKeyShardId]
     Name = "PublicKeyShardId"
     Capacity = 30000
+    Type = "LRU"
+
+#PublicKeyPIDSignature is the cache that is used to map a public key to a peerId-signature pair.
+[PublicKeyPIDSignature]
+    Name = "PublicKeyPIDSignature"
+    Capacity = 3000
     Type = "LRU"
 
 #PeerIdShardId is the fallback cache used in network sharding to allow direct connection between peer id and shard.
@@ -383,6 +390,10 @@
         SameSourceRequests = 10000
         # SameSourceResetIntervalInSec time frame between counter reset, in seconds
         SameSourceResetIntervalInSec = 1
+        # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
+        EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
+                               { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
+                               { Endpoint = "/transaction/send-multiple", MaxNumGoRoutines = 2 }]
     [Antiflood.TxAccumulator]
         # MaxAllowedTimeInMilliseconds is used as a time frame in which the node gathers transactions.
         # After this period, collected transactions will be sent on the p2p topics
@@ -506,7 +517,7 @@
     EnableTrigger = true
     EnableTriggerFromP2P = true
     PublicKeyToListenFrom = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
-	CloseAfterExportInMinutes = 10
+	CloseAfterExportInMinutes = 10000
 	AfterHardFork = false
 	ImportFolder = "export"
 	StartRound = 10000
@@ -520,6 +531,17 @@
             Type = "LRU"
         [Hardfork.ExportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+    [Hardfork.ExportKeysStorageConfig]
+        [Hardfork.ExportKeysStorageConfig.Cache]
+            Name = "HardFork.ExportKeysStorageConfig"
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ExportKeysStorageConfig.DB]
+            FilePath = "ExportKeysStorageConfig/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
@@ -542,6 +564,17 @@
             Type = "LRU"
         [Hardfork.ImportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+	[Hardfork.ImportKeysStorageConfig]
+	    [Hardfork.ImportKeysStorageConfig.Cache]
+            Name = "HardFork.ImportKeysStorageConfig"
+            Capacity = 5000
+            Type = "LRU"
+        [Hardfork.ImportKeysStorageConfig.DB]
+            FilePath = "ExportKeysStorageConfig/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
