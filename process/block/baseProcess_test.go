@@ -297,7 +297,6 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			FeeHandler:        &mock.FeeAccumulatorStub{},
 			Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
 			RequestHandler:    &mock.RequestHandlerStub{},
-			Core:              &mock.ServiceContainerMock{},
 			BlockChainHook:    &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:     &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger: &mock.EpochStartTriggerStub{},
@@ -312,6 +311,8 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 			BlockChain:         blkc,
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Indexer:            &mock.IndexerMock{},
+			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
 			Version:            "softwareVersion",
 		},
 	}

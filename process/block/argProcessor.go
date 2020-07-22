@@ -2,7 +2,8 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -27,7 +28,6 @@ type ArgBaseProcessor struct {
 	FeeHandler             process.TransactionFeeHandler
 	Uint64Converter        typeConverters.Uint64ByteSliceConverter
 	RequestHandler         process.RequestHandler
-	Core                   serviceContainer.Core
 	BlockChainHook         process.BlockChainHookHandler
 	TxCoordinator          process.TransactionCoordinator
 	EpochStartTrigger      process.EpochStartTriggerHandler
@@ -39,6 +39,8 @@ type ArgBaseProcessor struct {
 	BlockChain             data.ChainHandler
 	StateCheckpointModulus uint
 	BlockSizeThrottler     process.BlockSizeThrottler
+	Indexer                indexer.Indexer
+	TpsBenchmark           statistics.TPSBenchmark
 	Version                string
 }
 

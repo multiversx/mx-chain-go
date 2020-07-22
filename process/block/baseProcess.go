@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -71,6 +73,9 @@ type baseProcessor struct {
 	stateCheckpointModulus uint
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
+
+	indexer      indexer.Indexer
+	tpsBenchmark statistics.TPSBenchmark
 }
 
 type bootStorerDataArgs struct {
@@ -401,6 +406,12 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
+	}
+	if check.IfNil(arguments.Indexer) {
+		return process.ErrNilIndexer
+	}
+	if check.IfNil(arguments.TpsBenchmark) {
+		return process.ErrNilTpsBenchmark
 	}
 	if len(arguments.Version) == 0 {
 		return process.ErrEmptySoftwareVersion
