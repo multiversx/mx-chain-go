@@ -140,7 +140,7 @@ func TestHistoryRepository_GetTransaction(t *testing.T) {
 	args.HistoryStorer = &mock.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 			if epoch == epoch {
-				historyTx := &HistoryTransaction{
+				historyTx := &TransactionsGroupMetadata{
 					Round: round,
 				}
 				historyTxBytes, _ := json.Marshal(historyTx)

@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. historyTransaction.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. transactionsGroupMetadata.proto
 
 package fullHistory
 
@@ -37,7 +37,7 @@ type HistoryTransactionsData struct {
 // HistoryTransactionWithEpoch is a structure for a history transaction that also contain epoch
 type HistoryTransactionWithEpoch struct {
 	Epoch uint32
-	*HistoryTransaction
+	*TransactionsGroupMetadata
 }
 
 type historyProcessor struct {
@@ -119,15 +119,15 @@ func (hp *historyProcessor) saveMiniblockData(historyTxsData *HistoryTransaction
 		status = core.TxStatusPartiallyExecuted
 	}
 
-	historyTx := buildTransaction(historyTxsData.HeaderHandler, historyTxsData.HeaderHash, mbHash, mb.ReceiverShardID, mb.SenderShardID, status)
-	historyTxBytes, err := hp.marshalizer.Marshal(historyTx)
+	transactionsMetadata := buildTransactionsGroupMetadata(historyTxsData.HeaderHandler, historyTxsData.HeaderHash, mbHash, mb.ReceiverShardID, mb.SenderShardID, status)
+	transactionsMetadataBytes, err := hp.marshalizer.Marshal(transactionsMetadata)
 	if err != nil {
 		log.Warn("cannot marshal history transaction", "error", err.Error())
 		return err
 	}
 
 	for _, txHash := range mb.TxHashes {
-		err = hp.saveTransactionData(historyTxBytes, txHash, epoch)
+		err = hp.saveTransactionMetadata(transactionsMetadataBytes, txHash, epoch)
 		if err != nil {
 			log.Warn("cannot save in storage",
 				"hash", string(txHash),
@@ -138,7 +138,7 @@ func (hp *historyProcessor) saveMiniblockData(historyTxsData *HistoryTransaction
 	return nil
 }
 
-func (hp *historyProcessor) saveTransactionData(historyTxBytes []byte, txHash []byte, epoch uint32) error {
+func (hp *historyProcessor) saveTransactionMetadata(historyTxBytes []byte, txHash []byte, epoch uint32) error {
 	err := hp.hashEpochStorer.SaveEpoch(txHash, epoch)
 	if err != nil {
 		return fmt.Errorf("epochHashProcessor:cannot save transaction hash %w", err)
@@ -152,15 +152,15 @@ func (hp *historyProcessor) saveTransactionData(historyTxBytes []byte, txHash []
 	return nil
 }
 
-func buildTransaction(
+func buildTransactionsGroupMetadata(
 	headerHandler data.HeaderHandler,
 	headerHash []byte,
 	mbHash []byte,
 	rcvShardID uint32,
 	sndShardID uint32,
 	status core.TransactionStatus,
-) *HistoryTransaction {
-	return &HistoryTransaction{
+) *TransactionsGroupMetadata {
+	return &TransactionsGroupMetadata{
 		HeaderHash:  headerHash,
 		MbHash:      mbHash,
 		Round:       headerHandler.GetRound(),
@@ -183,15 +183,15 @@ func (hp *historyProcessor) GetTransaction(hash []byte) (*HistoryTransactionWith
 		return nil, err
 	}
 
-	historyTx := &HistoryTransaction{}
+	historyTx := &TransactionsGroupMetadata{}
 	err = hp.marshalizer.Unmarshal(historyTx, historyTxBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	return &HistoryTransactionWithEpoch{
-		Epoch:              epoch,
-		HistoryTransaction: historyTx,
+		Epoch:                     epoch,
+		TransactionsGroupMetadata: historyTx,
 	}, nil
 }
 

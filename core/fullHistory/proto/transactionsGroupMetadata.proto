@@ -7,8 +7,8 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-//HistoryTransaction is used to store information about a history transaction
-message HistoryTransaction {
+// TransactionsGroupMetadata is used to store information about a history transaction
+message TransactionsGroupMetadata {
     uint32 RcvShardID  = 1;
     uint32 SndShardID  = 2;
     uint64 Round       = 3;
