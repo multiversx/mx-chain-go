@@ -230,9 +230,9 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
 	}
 
-	err = sc.guardUpgradePermission(acntSnd, acntDst, vmInput)
+	err = sc.checkUpgradePermission(acntSnd, acntDst, vmInput)
 	if err != nil {
-		log.Debug("...", "error", err.Error())
+		log.Debug("checkUpgradePermission", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot)
 	}
 
@@ -1229,7 +1229,7 @@ func (sc *scProcessor) processSimpleSCR(
 	return sc.accounts.SaveAccount(dstAcc)
 }
 
-func (sc *scProcessor) guardUpgradePermission(caller state.UserAccountHandler, contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
+func (sc *scProcessor) checkUpgradePermission(caller state.UserAccountHandler, contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
 	isUpgradeCalled := vmInput.Function == upgradeFunctionName
 	if !isUpgradeCalled {
 		return nil
