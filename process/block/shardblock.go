@@ -9,7 +9,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -31,7 +30,6 @@ type shardProcessor struct {
 	chRcvAllMetaHdrs  chan bool
 
 	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
-	core                serviceContainer.Core
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -75,12 +73,13 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
 		blockChain:             arguments.BlockChain,
 		feeHandler:             arguments.FeeHandler,
+		indexer:                arguments.Indexer,
+		tpsBenchmark:           arguments.TpsBenchmark,
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),
 	}
 
 	sp := shardProcessor{
-		core:          arguments.Core,
 		baseProcessor: base,
 	}
 
@@ -504,7 +503,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	header data.HeaderHandler,
 	lastBlockHeader data.HeaderHandler,
 ) {
-	if check.IfNil(sp.core) || check.IfNil(sp.core.Indexer()) {
+	if sp.indexer.IsNilIndexer() {
 		return
 	}
 	if check.IfNil(header) {
@@ -577,9 +576,9 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes, nil)
+	go sp.indexer.SaveBlock(body, header, txPool, signersIndexes, nil)
 
-	indexRoundInfo(sp.core.Indexer(), sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
+	indexRoundInfo(sp.indexer, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
