@@ -30,6 +30,9 @@ var log = logger.GetOrCreate("process/smartcontract")
 
 const executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
 
+// TODO: Move to vm-common.
+const upgradeFunctionName = "upgradeContract"
+
 var zero = big.NewInt(0)
 
 type scProcessor struct {
@@ -225,6 +228,12 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 		returnMessage = "cannot create VMInput, check the transaction data field"
 		log.Debug("create vm call input error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
+	}
+
+	err = sc.guardUpgradePermission(acntSnd, acntDst, vmInput)
+	if err != nil {
+		log.Debug("...", "error", err.Error())
+		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot)
 	}
 
 	executedBuiltIn, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
@@ -1218,6 +1227,22 @@ func (sc *scProcessor) processSimpleSCR(
 	}
 
 	return sc.accounts.SaveAccount(dstAcc)
+}
+
+func (sc *scProcessor) guardUpgradePermission(caller state.UserAccountHandler, contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
+	isUpgradeCalled := vmInput.Function == upgradeFunctionName
+	if !isUpgradeCalled {
+		return nil
+	}
+
+	callerAddress := caller.AddressBytes()
+	ownerAddress := contract.GetOwnerAddress()
+	isCallerOwner := bytes.Equal(callerAddress, ownerAddress)
+	if isCallerOwner {
+		return nil
+	}
+
+	return ErrUpgradeNotAllowed
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
