@@ -856,3 +856,6 @@ var ErrTransactionIsNotWhitelisted = errors.New("transaction is not whitelisted"
 
 // ErrInterceptedDataNotForCurrentShard signals that intercepted data is not for current shard
 var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for current shard")
+
+// ErrSmartContractDeploymentIsDisabled signals that smart contract deployment was disabled
+var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment is disabled")

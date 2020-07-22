@@ -1251,6 +1251,7 @@ func newShardBlockProcessor(
 		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  txLogsProcessor,
 		TxTypeHandler:    txTypeHandler,
+		DisableDeploy:    config.GeneralSettings.DisableDeploy,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
