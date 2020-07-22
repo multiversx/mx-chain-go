@@ -3,9 +3,16 @@ package upgrades
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -186,4 +193,126 @@ func TestUpgrades_CounterCannotBeUpgradedByNonOwner(t *testing.T) {
 	err = context.UpgradeSC("../testdata/counter/output/counter.wasm", "")
 	require.Equal(t, fmt.Errorf("upgrade not allowed"), err)
 	require.Equal(t, uint64(2), context.QuerySCInt("get", [][]byte{}))
+}
+
+func TestUpgrades_TrialAndError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 0
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := []int{0, 1}
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	alice := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	bob := []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	integrationTests.MintAddress(nodes[0].AccntState, alice, initialVal)
+	integrationTests.MintAddress(nodes[0].AccntState, bob, initialVal)
+
+	deployTxData := fmt.Sprintf("%s@%s@0100", arwen.GetSCCode("../testdata/hello-v1/output/answer.wasm"), hex.EncodeToString(factory.ArwenVirtualMachine))
+	upgradeTxData := fmt.Sprintf("upgradeContract@%s@0100", arwen.GetSCCode("../testdata/hello-v2/output/answer.wasm"))
+
+	// Deploy the smart contract. Alice is the owner
+	addTxToPool(&transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  make([]byte, 32),
+		SndAddr:  alice,
+		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
+		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1,
+		ChainID:  integrationTests.ChainID,
+		Version:  integrationTests.MinTransactionVersion,
+		Data:     []byte(deployTxData),
+	}, nodes)
+
+	scAddress, _ := nodes[0].BlockchainHook.NewAddress(alice, 0, factory.ArwenVirtualMachine)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	require.Equal(t, []byte{24}, query(t, nodes[0], scAddress, "getUltimateAnswer"))
+
+	// Upgrade as Bob - upgrade should fail, since Alice is the owner
+	addTxToPool(&transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  scAddress,
+		SndAddr:  bob,
+		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
+		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1,
+		ChainID:  integrationTests.ChainID,
+		Version:  integrationTests.MinTransactionVersion,
+		Data:     []byte(upgradeTxData),
+	}, nodes)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	require.Equal(t, []byte{24}, query(t, nodes[0], scAddress, "getUltimateAnswer"))
+
+	// Now upgrade as Alice, should work
+	addTxToPool(&transaction.Transaction{
+		Nonce:    1,
+		Value:    big.NewInt(0),
+		RcvAddr:  scAddress,
+		SndAddr:  alice,
+		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
+		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1,
+		ChainID:  integrationTests.ChainID,
+		Version:  integrationTests.MinTransactionVersion,
+		Data:     []byte(upgradeTxData),
+	}, nodes)
+
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	require.Equal(t, []byte{42}, query(t, nodes[0], scAddress, "getUltimateAnswer"))
+}
+
+func addTxToPool(tx *transaction.Transaction, nodes []*integrationTests.TestProcessorNode) {
+	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
+	sourceShard := nodes[0].ShardCoordinator.ComputeId(tx.SndAddr)
+
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != sourceShard {
+			continue
+		}
+
+		cacheIdentifier := process.ShardCacherIdentifier(sourceShard, sourceShard)
+		node.DataPool.Transactions().AddData(txHash, tx, tx.Size(), cacheIdentifier)
+	}
+}
+
+func query(t *testing.T, node *integrationTests.TestProcessorNode, scAddress []byte, function string) []byte {
+	scQuery := node.SCQueryService
+	vmOutput, err := scQuery.ExecuteQuery(&process.SCQuery{
+		ScAddress: scAddress,
+		FuncName:  function,
+		Arguments: [][]byte{},
+	})
+
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+	return vmOutput.ReturnData[0]
 }
