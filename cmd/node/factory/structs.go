@@ -9,8 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -124,7 +125,6 @@ type processComponentsFactoryArgs struct {
 	state                     *mainFactory.StateComponents
 	network                   *mainFactory.NetworkComponents
 	tries                     *mainFactory.TriesComponents
-	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
 	whiteListHandler          process.WhiteListHandler
 	whiteListerVerifiedTxs    process.WhiteListHandler
@@ -147,6 +147,8 @@ type processComponentsFactoryArgs struct {
 	version                   string
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
+	indexer                   indexer.Indexer
+	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               fullHistory.HistoryRepository
 }
 
@@ -167,7 +169,6 @@ func NewProcessComponentsFactoryArgs(
 	state *mainFactory.StateComponents,
 	network *mainFactory.NetworkComponents,
 	tries *mainFactory.TriesComponents,
-	coreServiceContainer serviceContainer.Core,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
@@ -188,6 +189,8 @@ func NewProcessComponentsFactoryArgs(
 	version string,
 	importStartHandler update.ImportStartHandler,
 	workingDir string,
+	indexer indexer.Indexer,
+	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo fullHistory.HistoryRepository,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
@@ -206,7 +209,6 @@ func NewProcessComponentsFactoryArgs(
 		state:                     state,
 		network:                   network,
 		tries:                     tries,
-		coreServiceContainer:      coreServiceContainer,
 		requestedItemsHandler:     requestedItemsHandler,
 		whiteListHandler:          whiteListHandler,
 		whiteListerVerifiedTxs:    whiteListerVerifiedTxs,
@@ -228,6 +230,8 @@ func NewProcessComponentsFactoryArgs(
 		version:                   version,
 		importStartHandler:        importStartHandler,
 		workingDir:                workingDir,
+		indexer:                   indexer,
+		tpsBenchmark:              tpsBenchmark,
 		historyRepo:               historyRepo,
 	}
 }
@@ -467,7 +471,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		headerValidator,
 		blockTracker,
 		pendingMiniBlocksHandler,
-		txLogsProcessor,
 	)
 	if err != nil {
 		return nil, err
@@ -1056,7 +1059,6 @@ func newBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
-	txLogsProcessor process.TransactionLogProcessor,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1071,7 +1073,6 @@ func newBlockProcessor(
 			processArgs.coreData,
 			processArgs.state,
 			forkDetector,
-			processArgs.coreServiceContainer,
 			processArgs.economicsData,
 			processArgs.rounder,
 			epochStartTrigger,
@@ -1082,9 +1083,11 @@ func newBlockProcessor(
 			blockTracker,
 			processArgs.minSizeInBytes,
 			processArgs.maxSizeInBytes,
-			txLogsProcessor,
-			processArgs.version,
+			processArgs.txLogsProcessor,
 			processArgs.smartContractParser,
+			processArgs.indexer,
+			processArgs.tpsBenchmark,
+			processArgs.version,
 			processArgs.historyRepo,
 		)
 	}
@@ -1097,7 +1100,6 @@ func newBlockProcessor(
 			processArgs.coreData,
 			processArgs.state,
 			forkDetector,
-			processArgs.coreServiceContainer,
 			processArgs.economicsData,
 			validatorStatisticsProcessor,
 			processArgs.rounder,
@@ -1113,8 +1115,10 @@ func newBlockProcessor(
 			processArgs.maxSizeInBytes,
 			processArgs.ratingsData,
 			processArgs.nodesConfig,
-			txLogsProcessor,
+			processArgs.txLogsProcessor,
 			processArgs.systemSCConfig,
+			processArgs.indexer,
+			processArgs.tpsBenchmark,
 			processArgs.version,
 			processArgs.historyRepo,
 		)
@@ -1132,7 +1136,6 @@ func newShardBlockProcessor(
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
-	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
@@ -1144,8 +1147,10 @@ func newShardBlockProcessor(
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
 	txLogsProcessor process.TransactionLogProcessor,
-	version string,
 	smartContractParser genesis.InitialSmartContractParser,
+	indexer indexer.Indexer,
+	tpsBenchmark statistics.TPSBenchmark,
+	version string,
 	historyRepository fullHistory.HistoryRepository,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
@@ -1369,7 +1374,6 @@ func newShardBlockProcessor(
 		NodesCoordinator:       nodesCoordinator,
 		Uint64Converter:        core.Uint64ByteSliceConverter,
 		RequestHandler:         requestHandler,
-		Core:                   coreServiceContainer,
 		BlockChainHook:         vmFactory.BlockChainHookImpl(),
 		TxCoordinator:          txCoordinator,
 		Rounder:                rounder,
@@ -1382,6 +1386,8 @@ func newShardBlockProcessor(
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockSizeThrottler:     blockSizeThrottler,
+		Indexer:                indexer,
+		TpsBenchmark:           tpsBenchmark,
 		HistoryRepository:      historyRepository,
 	}
 	arguments := block.ArgShardProcessor{
@@ -1409,7 +1415,6 @@ func newMetaBlockProcessor(
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
-	coreServiceContainer serviceContainer.Core,
 	economicsData *economics.EconomicsData,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	rounder consensus.Rounder,
@@ -1427,6 +1432,8 @@ func newMetaBlockProcessor(
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	txLogsProcessor process.TransactionLogProcessor,
 	systemSCConfig *config.SystemSmartContractsConfig,
+	indexer indexer.Indexer,
+	tpsBenchmark statistics.TPSBenchmark,
 	version string,
 	historyRepository fullHistory.HistoryRepository,
 ) (process.BlockProcessor, error) {
@@ -1701,7 +1708,6 @@ func newMetaBlockProcessor(
 		NodesCoordinator:       nodesCoordinator,
 		Uint64Converter:        core.Uint64ByteSliceConverter,
 		RequestHandler:         requestHandler,
-		Core:                   coreServiceContainer,
 		BlockChainHook:         vmFactory.BlockChainHookImpl(),
 		TxCoordinator:          txCoordinator,
 		EpochStartTrigger:      epochStartTrigger,
@@ -1714,6 +1720,8 @@ func newMetaBlockProcessor(
 		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockSizeThrottler:     blockSizeThrottler,
+		Indexer:                indexer,
+		TpsBenchmark:           tpsBenchmark,
 		HistoryRepository:      historyRepository,
 	}
 	arguments := block.ArgMetaProcessor{
