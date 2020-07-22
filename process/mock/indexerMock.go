@@ -34,7 +34,6 @@ func (im *IndexerMock) SaveMetaBlock(_ data.HeaderHandler, _ []uint64) {
 
 // UpdateTPS -
 func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
-	panic("implement me")
 }
 
 // SaveRoundsInfos -
@@ -53,5 +52,5 @@ func (im *IndexerMock) IsInterfaceNil() bool {
 
 // IsNilIndexer -
 func (im *IndexerMock) IsNilIndexer() bool {
-	return true
+	return false
 }
