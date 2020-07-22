@@ -13,7 +13,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
+const (
+	hexPath    = "/hex"
+	stringPath = "/string"
+	intPath    = "/int"
+	queryPath  = "/query"
+)
+
+// FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	ExecuteSCQuery(*process.SCQuery) (*vmcommon.VMOutput, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
@@ -29,10 +36,10 @@ type VMValueRequest struct {
 
 // Routes defines address related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodPost, "/hex", getHex)
-	router.RegisterHandler(http.MethodPost, "/string", getString)
-	router.RegisterHandler(http.MethodPost, "/int", getInt)
-	router.RegisterHandler(http.MethodPost, "/query", executeQuery)
+	router.RegisterHandler(http.MethodPost, hexPath, getHex)
+	router.RegisterHandler(http.MethodPost, stringPath, getString)
+	router.RegisterHandler(http.MethodPost, intPath, getInt)
+	router.RegisterHandler(http.MethodPost, queryPath, executeQuery)
 }
 
 // getHex returns the data as bytes, hex-encoded
@@ -79,7 +86,12 @@ func executeQuery(context *gin.Context) {
 }
 
 func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
-	facade, ok := context.MustGet("elrondFacade").(FacadeHandler)
+	efObj, ok := context.Get("facade")
+	if !ok {
+		return nil, errors.ErrNilAppContext
+	}
+
+	ef, ok := efObj.(FacadeHandler)
 	if !ok {
 		return nil, errors.ErrInvalidAppContext
 	}
@@ -90,12 +102,12 @@ func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, errors.ErrInvalidJSONRequest
 	}
 
-	command, err := createSCQuery(facade, &request)
+	command, err := createSCQuery(ef, &request)
 	if err != nil {
 		return nil, err
 	}
 
-	vmOutput, err := facade.ExecuteSCQuery(command)
+	vmOutput, err := ef.ExecuteSCQuery(command)
 	if err != nil {
 		return nil, err
 	}

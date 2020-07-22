@@ -2,6 +2,8 @@ package crypto
 
 import (
 	"crypto/cipher"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // A Scalar represents a scalar value by which
@@ -112,7 +114,7 @@ type Suite interface {
 	Random
 	// CreateKeyPair creates a scalar and a point pair that can be used in asymmetric cryptography
 	CreateKeyPair() (Scalar, Point)
-	// IsPointValid returns nil if point is valid otherwise error. Zero is reported also as invalid
+	// CheckPointValid returns nil if point is valid otherwise error. Zero is reported also as invalid
 	CheckPointValid(pointBytes []byte) error
 	// GetUnderlyingSuite returns the library suite that crypto.Suite wraps
 	GetUnderlyingSuite() interface{}
@@ -214,4 +216,12 @@ type LowLevelSignerBLS interface {
 	AggregateSignatures(suite Suite, signatures [][]byte, pubKeysSigners []PublicKey) ([]byte, error)
 	// VerifyAggregatedSig verifies the validity of an aggregated signature over a given message
 	VerifyAggregatedSig(suite Suite, pubKeys []PublicKey, aggSigBytes []byte, msg []byte) error
+}
+
+// PeerSignatureHandler is a wrapper over SingleSigner that buffers the peer signatures.
+// When it needs to sign or to verify a signature, it searches the buffer first.
+type PeerSignatureHandler interface {
+	VerifyPeerSignature(pk []byte, pid core.PeerID, signature []byte) error
+	GetPeerSignature(key PrivateKey, pid []byte) ([]byte, error)
+	IsInterfaceNil() bool
 }

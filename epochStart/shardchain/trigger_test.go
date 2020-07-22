@@ -49,6 +49,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		RequestHandler:       &mock.RequestHandlerStub{},
 		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
 		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
+		Rounder:              &mock.RounderStub{},
 	}
 }
 
@@ -251,6 +252,17 @@ func TestNewEpochStartTrigger_NilBlockHeaderUnitStorageErr(t *testing.T) {
 
 	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrNilShardHeaderStorage, err)
+}
+
+func TestNewEpochStartTrigger_NilRounderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.Rounder = nil
+	epochStartTrigger, err := NewEpochStartTrigger(args)
+
+	assert.Nil(t, epochStartTrigger)
+	assert.Equal(t, epochStart.ErrNilRounder, err)
 }
 
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {

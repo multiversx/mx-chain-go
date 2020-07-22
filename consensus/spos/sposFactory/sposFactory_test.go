@@ -131,7 +131,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		return 0
 	}
 	privateKey := &mock.PrivateKeyMock{}
-	singleSigner := &mock.SingleSignerMock{}
+	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptosContainer := &mock.InterceptorsContainerStub{}
 	bm, err := sposFactory.GetBroadcastMessenger(
@@ -140,7 +140,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		messenger,
 		shardCoord,
 		privateKey,
-		singleSigner,
+		peerSigHandler,
 		headersSubscriber,
 		interceptosContainer,
 	)
@@ -160,7 +160,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		return core.MetachainShardId
 	}
 	privateKey := &mock.PrivateKeyMock{}
-	singleSigner := &mock.SingleSignerMock{}
+	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptosContainer := &mock.InterceptorsContainerStub{}
 	bm, err := sposFactory.GetBroadcastMessenger(
@@ -169,7 +169,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		messenger,
 		shardCoord,
 		privateKey,
-		singleSigner,
+		peerSigHandler,
 		headersSubscriber,
 		interceptosContainer,
 	)

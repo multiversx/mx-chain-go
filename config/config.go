@@ -135,10 +135,11 @@ type Config struct {
 	VmMarshalizer               TypeConfig
 	TxSignMarshalizer           TypeConfig
 
-	PublicKeyShardId CacheConfig
-	PublicKeyPeerId  CacheConfig
-	PeerIdShardId    CacheConfig
-	PeerHonesty      CacheConfig
+	PublicKeyShardId      CacheConfig
+	PublicKeyPeerId       CacheConfig
+	PeerIdShardId         CacheConfig
+	PublicKeyPIDSignature CacheConfig
+	PeerHonesty           CacheConfig
 
 	Antiflood           AntifloodConfig
 	ResourceStats       ResourceStatsConfig

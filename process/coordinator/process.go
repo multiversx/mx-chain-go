@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 )
 
 var _ process.TransactionCoordinator = (*transactionCoordinator)(nil)
@@ -45,11 +46,12 @@ type transactionCoordinator struct {
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
 
-	onRequestMiniBlock   func(shardId uint32, mbHash []byte)
-	gasHandler           process.GasHandler
-	feeHandler           process.TransactionFeeHandler
-	blockSizeComputation preprocess.BlockSizeComputationHandler
-	balanceComputation   preprocess.BalanceComputationHandler
+	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
+	gasHandler            process.GasHandler
+	feeHandler            process.TransactionFeeHandler
+	blockSizeComputation  preprocess.BlockSizeComputationHandler
+	balanceComputation    preprocess.BalanceComputationHandler
+	requestedItemsHandler process.TimeCacher
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -145,6 +147,9 @@ func NewTransactionCoordinator(
 		}
 		tc.interimProcessors[value] = interProc
 	}
+
+	tc.requestedItemsHandler = timecache.NewTimeCache(core.MaxWaitingTimeToReceiveRequestedItem)
+	tc.miniBlockPool.RegisterHandler(tc.receivedMiniBlock, core.UniqueIdentifier())
 
 	return tc, nil
 }
@@ -780,12 +785,46 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 		return
 	}
 
+	tc.requestedItemsHandler.Sweep()
+
 	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
 	for key, senderShardId := range crossMiniBlockHashes {
 		obj, _ := tc.miniBlockPool.Peek([]byte(key))
 		if obj == nil {
 			go tc.onRequestMiniBlock(senderShardId, []byte(key))
+			_ = tc.requestedItemsHandler.Add(key)
 		}
+	}
+}
+
+func (tc *transactionCoordinator) receivedMiniBlock(key []byte, value interface{}) {
+	if key == nil {
+		return
+	}
+
+	if !tc.requestedItemsHandler.Has(string(key)) {
+		return
+	}
+
+	miniBlock, ok := value.(*block.MiniBlock)
+	if !ok {
+		log.Warn("transactionCoordinator.receivedMiniBlock", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	log.Trace("transactionCoordinator.receivedMiniBlock", "hash", key)
+
+	preproc := tc.getPreProcessor(miniBlock.Type)
+	if check.IfNil(preproc) {
+		log.Warn("transactionCoordinator.receivedMiniBlock",
+			"error", fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type))
+		return
+	}
+
+	numTxsRequested := preproc.RequestTransactionsForMiniBlock(miniBlock)
+	if numTxsRequested > 0 {
+		log.Debug("transactionCoordinator.receivedMiniBlock", "hash", key,
+			"num txs requested", numTxsRequested)
 	}
 }
 
