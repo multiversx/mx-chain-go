@@ -34,6 +34,7 @@ type esdt struct {
 	eSDTSCAddress   []byte
 	marshalizer     marshal.Marshalizer
 	hasher          hashing.Hasher
+	disabled        bool
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -71,6 +72,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		eSDTSCAddress:   args.ESDTSCAddress,
 		hasher:          args.Hasher,
 		marshalizer:     args.Marshalizer,
+		disabled:        args.ESDTSCConfig.Disabled,
 	}, nil
 }
 
@@ -80,9 +82,16 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 
-	switch args.Function {
-	case core.SCDeployInitFunctionName:
+	if args.Function == core.SCDeployInitFunctionName {
 		return e.init(args)
+	}
+
+	if e.disabled {
+		e.eei.AddReturnMessage("ESDT SC disabled")
+		return vmcommon.UserError
+	}
+
+	switch args.Function {
 	case "issue":
 		return e.issue(args)
 	case "issueProtected":
@@ -229,47 +238,47 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 	return nil
 }
 
-func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) burn(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	//TODO: implement me
 	return vmcommon.Ok
 }
 
-func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) mint(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	//TODO: implement me
 	return vmcommon.Ok
 }
 
-func (e *esdt) freeze(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) freeze(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	//TODO: implement me
 	return vmcommon.Ok
 }
 
-func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) wipe(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	//TODO: implement me
 	return vmcommon.Ok
 }
 
-func (e *esdt) pause(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) pause(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	//TODO: implement me
 	return vmcommon.Ok
 }
 
-func (e *esdt) unpause(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) unpause(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	//TODO: implement me
 	return vmcommon.Ok
 }
 
-func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) configChange(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	//TODO: implement me
 	return vmcommon.Ok
 }
 
-func (e *esdt) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) claim(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	//TODO: implement me
 	return vmcommon.Ok
 }
 
-func (e *esdt) esdtControlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) esdtControlChanges(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	//TODO: implement me
 	return vmcommon.Ok
 }

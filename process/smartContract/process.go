@@ -43,6 +43,7 @@ type scProcessor struct {
 	argsParser       process.ArgumentsParser
 	builtInFunctions process.BuiltInFunctionContainer
 	disableDeploy    bool
+	disableBuiltIn   bool
 
 	scrForwarder  process.IntermediateTransactionHandler
 	txFeeHandler  process.TransactionFeeHandler
@@ -71,6 +72,7 @@ type ArgsNewSmartContractProcessor struct {
 	BuiltInFunctions process.BuiltInFunctionContainer
 	TxLogsProcessor  process.TransactionLogProcessor
 	DisableDeploy    bool
+	DisableBuiltIn   bool
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -138,6 +140,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		builtInFunctions: args.BuiltInFunctions,
 		txLogsProcessor:  args.TxLogsProcessor,
 		disableDeploy:    args.DisableDeploy,
+		disableBuiltIn:   args.DisableBuiltIn,
 	}
 
 	return sc, nil
@@ -354,6 +357,10 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	builtIn, err := sc.builtInFunctions.Get(vmInput.Function)
 	if err != nil {
 		return false, nil
+	}
+
+	if sc.disableBuiltIn {
+		return true, process.ErrBuiltInfFunctionsAreDisabled
 	}
 
 	// TODO: returned error should be protocol error - vmOutput error must be used for user errors

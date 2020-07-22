@@ -1257,6 +1257,7 @@ func newShardBlockProcessor(
 		TxLogsProcessor:  txLogsProcessor,
 		TxTypeHandler:    txTypeHandler,
 		DisableDeploy:    config.GeneralSettings.DisableDeploy,
+		DisableBuiltIn:   config.GeneralSettings.DisableBuiltInFunctions,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

@@ -306,6 +306,44 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	require.Equal(t, process.ErrSmartContractDeploymentIsDisabled, GetLatestTestError(sc))
 }
 
+func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
+	t.Parallel()
+
+	vmContainer := &mock.VMContainerMock{}
+	argParser := NewArgumentParser()
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = &mock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
+		return nil
+	}}
+	arguments.VmContainer = vmContainer
+	arguments.ArgsParser = argParser
+	arguments.DisableBuiltIn = true
+	funcName := "builtIn"
+	_ = arguments.BuiltInFunctions.Add(funcName, &mock.BuiltInFunctionStub{})
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Data = []byte(funcName + "@0500@0000")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+
+	vm := &mock.VMExecutionHandlerStub{}
+	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+		return vm, nil
+	}
+
+	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
+	require.Equal(t, process.ErrBuiltInfFunctionsAreDisabled, err)
+
+	_, err = sc.ExecuteSmartContractTransaction(tx, nil, acntSrc)
+	require.Equal(t, process.ErrBuiltInfFunctionsAreDisabled, err)
+}
+
 func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	t.Parallel()
 
