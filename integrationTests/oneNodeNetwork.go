@@ -86,13 +86,6 @@ func (network *oneNodeNetwork) Continue(t *testing.T, numRounds int) {
 func (network *oneNodeNetwork) AddTxToPool(tx *transaction.Transaction) {
 	txHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, tx)
 	sourceShard := network.Node.ShardCoordinator.ComputeId(tx.SndAddr)
-
-	for _, node := range network.Nodes {
-		if node.ShardCoordinator.SelfId() != sourceShard {
-			continue
-		}
-
-		cacheIdentifier := process.ShardCacherIdentifier(sourceShard, sourceShard)
-		node.DataPool.Transactions().AddData(txHash, tx, tx.Size(), cacheIdentifier)
-	}
+	cacheIdentifier := process.ShardCacherIdentifier(sourceShard, sourceShard)
+	network.Node.DataPool.Transactions().AddData(txHash, tx, tx.Size(), cacheIdentifier)
 }
