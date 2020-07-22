@@ -12,7 +12,7 @@
    StartInEpochEnabled = true
 
    # DisableDeploy represents the flag to enable/disable deployment of smart contracts
-   DisableDeploy = true
+   DisableDeploy = false
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
