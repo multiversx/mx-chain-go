@@ -862,3 +862,6 @@ var ErrNilIndexer = errors.New("indexer is nil")
 
 // ErrNilTpsBenchmark signals that tps benchmark object is nil
 var ErrNilTpsBenchmark = errors.New("tps benchmark object is nil")
+
+// ErrSmartContractDeploymentIsDisabled signals that smart contract deployment was disabled
+var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment is disabled")
