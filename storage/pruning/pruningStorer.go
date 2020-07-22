@@ -364,6 +364,80 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 
 }
 
+// GetBulkFromEpoch will return a slice of keys only in the persister for the given epoch
+func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+	ps.lock.RLock()
+	pd, exists := ps.persistersMapByEpoch[epoch]
+	ps.lock.RUnlock()
+	if !exists {
+		log.Warn("GetBulkFromEpoch - persister not found", "epoch", epoch)
+	}
+
+	var persisterForEpoch storage.Persister
+	var err error
+	if exists && pd.isClosed {
+		persisterForEpoch, err = ps.persisterFactory.Create(pd.path)
+		if err != nil {
+			log.Debug("open old persister", "error", err.Error())
+			return nil, err
+		}
+		defer func() {
+			err = persisterForEpoch.Close()
+			if err != nil {
+				log.Debug("persister.Close()", "error", err.Error())
+			}
+		}()
+		err = persisterForEpoch.Init()
+		if err != nil {
+			log.Debug("init old persister", "error", err.Error())
+			return nil, err
+		}
+	}
+
+	returnMap := make(map[string][]byte, 0)
+	for _, key := range keys {
+		v, ok := ps.cacher.Get(key)
+		if ok {
+			returnMap[string(key)] = v.([]byte)
+			continue
+		}
+
+		if exists {
+			if !pd.getIsClosed() {
+				val, err := pd.persister.Get(key)
+				if err != nil {
+					log.Warn("cannot get from active persister",
+						"key", key,
+						"error", err.Error(),
+					)
+					continue
+				}
+
+				returnMap[string(key)] = val
+				continue
+			}
+
+			res, err := persisterForEpoch.Get(key)
+			if err != nil {
+				log.Warn("cannot get from opened persister",
+					"hash", hex.EncodeToString(key),
+					"error", err.Error(),
+				)
+			}
+
+			returnMap[string(key)] = res
+			continue
+		}
+		log.Warn("get from closed persister",
+			"id", ps.identifier,
+			"epoch", epoch,
+			"key", key,
+			"error", err.Error())
+	}
+
+	return returnMap, nil
+}
+
 // SearchFirst will search a given key in all the active persisters, from the newest to the oldest
 func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)

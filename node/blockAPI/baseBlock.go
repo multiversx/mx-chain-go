@@ -60,20 +60,20 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 	txType string,
 	unit dataRetriever.UnitType,
 ) []*transaction.ApiTransactionResult {
-	txs := make([]*transaction.ApiTransactionResult, 0)
-	for idx := 0; idx < len(miniblock.TxHashes); idx++ {
-		txBytes, err := bap.getFromStorerWithEpoch(unit, miniblock.TxHashes[idx], epoch)
-		if err != nil {
-			log.Warn("cannot get from storage transaction",
-				"hash", hex.EncodeToString(miniblock.TxHashes[idx]),
-				"error", err.Error())
-			continue
-		}
+	storer := bap.store.GetStorer(unit)
+	marshalizedTxs, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
+	if err != nil {
+		log.Warn("cannot get from storage transactions",
+			"error", err.Error())
+		return nil
+	}
 
+	txs := make([]*transaction.ApiTransactionResult, 0)
+	for txHash, txBytes := range marshalizedTxs {
 		tx, err := bap.unmarshalTx(txBytes, txType)
 		if err != nil {
 			log.Warn("cannot unmarshal transaction",
-				"hash", hex.EncodeToString(miniblock.TxHashes[idx]),
+				"hash", hex.EncodeToString([]byte(txHash)),
 				"error", err.Error())
 			continue
 		}
