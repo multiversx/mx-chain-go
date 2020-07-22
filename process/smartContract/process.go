@@ -45,6 +45,7 @@ type scProcessor struct {
 	vmContainer      process.VirtualMachinesContainer
 	argsParser       process.ArgumentsParser
 	builtInFunctions process.BuiltInFunctionContainer
+	disableDeploy    bool
 
 	scrForwarder  process.IntermediateTransactionHandler
 	txFeeHandler  process.TransactionFeeHandler
@@ -72,6 +73,7 @@ type ArgsNewSmartContractProcessor struct {
 	GasHandler       process.GasHandler
 	BuiltInFunctions process.BuiltInFunctionContainer
 	TxLogsProcessor  process.TransactionLogProcessor
+	DisableDeploy    bool
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -138,6 +140,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		gasHandler:       args.GasHandler,
 		builtInFunctions: args.BuiltInFunctions,
 		txLogsProcessor:  args.TxLogsProcessor,
+		disableDeploy:    args.DisableDeploy,
 	}
 
 	return sc, nil
@@ -614,6 +617,11 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
+
+	if sc.disableDeploy {
+		log.Trace("deploy is disabled")
+		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, process.ErrSmartContractDeploymentIsDisabled.Error(), []byte(""), snapshot)
+	}
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
