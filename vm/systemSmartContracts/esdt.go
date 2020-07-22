@@ -107,7 +107,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.esdtControlChanges(args)
 	}
 
-	return vmcommon.Ok
+	e.eei.AddReturnMessage("invalid method to call")
+	return vmcommon.FunctionNotFound
 }
 
 func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -126,24 +127,30 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 func (e *esdt) issueProtected(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, e.ownerAddress) {
+		e.eei.AddReturnMessage("issueProtected can be called by whitelisted address only")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 3 {
+		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
 	if len(args.Arguments[0]) < len(args.CallerAddr) {
+		e.eei.AddReturnMessage("token name length not in parameters")
 		return vmcommon.FunctionWrongSignature
 	}
 	if args.CallValue.Cmp(e.baseIssuingCost) != 0 {
+		e.eei.AddReturnMessage("callValue not equals with baseIssuingCost")
 		return vmcommon.OutOfFunds
 	}
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTIssue)
 	if err != nil {
+		e.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
 	}
 
 	err = e.issueToken(args.Arguments[0], args.Arguments[1:])
 	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
@@ -152,37 +159,59 @@ func (e *esdt) issueProtected(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 
 func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) < 2 {
+		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
 	if len(args.Arguments[0]) < minLengthForTokenName || len(args.Arguments[0]) > maxLengthForTokenName {
+		e.eei.AddReturnMessage("token name length not in parameters")
 		return vmcommon.FunctionWrongSignature
 	}
 	if args.CallValue.Cmp(e.baseIssuingCost) != 0 {
+		e.eei.AddReturnMessage("callValue not equals with baseIssuingCost")
 		return vmcommon.OutOfFunds
 	}
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTIssue)
 	if err != nil {
+		e.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
 	}
 
 	err = e.issueToken(args.CallerAddr, args.Arguments)
 	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
 }
 
+func isTokenNameHumanReadable(tokenName []byte) bool {
+	for _, ch := range tokenName {
+		isSmallCharacter := ch >= 'a' && ch <= 'z'
+		isBigCharacter := ch >= 'A' && ch <= 'Z'
+		isNumber := ch >= '0' && ch <= '9'
+		isReadable := isSmallCharacter || isBigCharacter || isNumber
+		if !isReadable {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 	tokenName := arguments[0]
 	initialSupply := big.NewInt(0).SetBytes(arguments[1])
-	if initialSupply.Cmp(big.NewInt(0)) < 0 {
-		return vm.ErrNegativeInitialSupply
+	if initialSupply.Cmp(big.NewInt(0)) <= 0 {
+		return vm.ErrNegativeOrZeroInitialSupply
 	}
 
 	data := e.eei.GetStorage(tokenName)
 	if len(data) > 0 {
 		return vm.ErrTokenAlreadyRegistered
+	}
+
+	if !isTokenNameHumanReadable(tokenName) {
+		return vm.ErrTokenNameNotHumanReadable
 	}
 
 	newESDTToken := &ESDTData{
