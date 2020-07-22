@@ -301,7 +301,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	err = prepareGenesisBlock(args, genesisBlocks)
+	err = setGenesisHeader(args, genesisBlocks)
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +343,19 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
-	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
+
+	log.Debug("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
+
+	genesisMetaBlock, ok := genesisBlocks[core.MetachainShardId]
+	if !ok {
+		return nil, errors.New("genesis meta block does not exist")
+	}
+
+	genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	err = prepareGenesisBlock(args, genesisBlocks)
+	if err != nil {
+		return nil, err
+	}
 
 	bootStr := args.data.Store.GetStorer(dataRetriever.BootstrapUnit)
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(args.coreData.InternalMarshalizer, bootStr)
@@ -496,10 +508,24 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}, nil
 }
 
+func setGenesisHeader(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
+	genesisBlock, ok := genesisBlocks[args.shardCoordinator.SelfId()]
+	if !ok {
+		return errors.New("genesis block does not exist")
+	}
+
+	err := args.data.Blkc.SetGenesisHeader(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
 	genesisBlock, ok := genesisBlocks[args.shardCoordinator.SelfId()]
 	if !ok {
-		return errors.New("genesis block does not exists")
+		return errors.New("genesis block does not exist")
 	}
 
 	genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlock)
@@ -921,6 +947,9 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	smartContractParser := args.smartContractParser
 	economicsData := args.economicsData
 
+	genesisVmConfig := args.mainConfig.VirtualMachineConfig
+	genesisVmConfig.OutOfProcessEnabled = false
+
 	arg := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              uint64(nodesSetup.StartTime),
 		StartEpochNum:            args.startEpochNum,
@@ -940,7 +969,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		SmartContractParser:      smartContractParser,
 		ValidatorAccounts:        stateComponents.PeerAccounts,
 		GasMap:                   args.gasSchedule,
-		VirtualMachineConfig:     args.mainConfig.VirtualMachineConfig,
+		VirtualMachineConfig:     genesisVmConfig,
 		TxLogsProcessor:          args.txLogsProcessor,
 		HardForkConfig:           args.mainConfig.Hardfork,
 		TrieStorageManagers:      args.tries.TrieStorageManagers,
