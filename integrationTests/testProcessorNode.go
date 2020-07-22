@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -1249,7 +1250,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		FeeHandler:       tpn.FeeAccumulator,
 		Uint64Converter:  TestUint64Converter,
 		RequestHandler:   tpn.RequestHandler,
-		Core:             nil,
 		BlockChainHook:   tpn.BlockchainHook,
 		HeaderValidator:  tpn.HeaderValidator,
 		Rounder:          tpn.Rounder,
@@ -1263,6 +1263,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
+		Indexer:                indexer.NewNilIndexer(),
+		TpsBenchmark:           &testscommon.TpsBenchmarkMock{},
 		Version:                string(SoftwareVersion),
 	}
 
@@ -1402,7 +1404,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	}
 
 	if err != nil {
-		log.Error("error creating blockprocessor", "error", err.Error())
+		panic(fmt.Sprintf("error creating blockprocessor: %s", err.Error()))
 	}
 }
 
