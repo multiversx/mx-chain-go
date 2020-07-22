@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -104,6 +103,8 @@ func CreateMockArgumentsMultiShard() blproc.ArgShardProcessor {
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
 	arguments.BlockChain = blockchain.NewBlockChain()
 	_ = arguments.BlockChain.SetGenesisHeader(&block.Header{Nonce: 0})
+	arguments.Indexer = &mock.IndexerMock{}
+	arguments.TpsBenchmark = &testscommon.TpsBenchmarkMock{}
 
 	return arguments
 }
@@ -1846,15 +1847,11 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	saveBlockCalledMutex := sync.Mutex{}
 
 	arguments := CreateMockArgumentsMultiShard()
-	arguments.Core = &mock.ServiceContainerMock{
-		IndexerCalled: func() indexer.Indexer {
-			return &mock.IndexerMock{
-				SaveBlockCalled: func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler) {
-					saveBlockCalledMutex.Lock()
-					saveBlockCalled = txPool
-					saveBlockCalledMutex.Unlock()
-				},
-			}
+	arguments.Indexer = &mock.IndexerMock{
+		SaveBlockCalled: func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler) {
+			saveBlockCalledMutex.Lock()
+			saveBlockCalled = txPool
+			saveBlockCalledMutex.Unlock()
 		},
 	}
 	arguments.DataPool = tdp
