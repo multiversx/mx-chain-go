@@ -515,6 +515,10 @@ func TestAccount(
 ) *big.Int {
 
 	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddressBytes)
+	if senderRecovAccount == nil {
+		return big.NewInt(0)
+	}
+
 	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
 
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())

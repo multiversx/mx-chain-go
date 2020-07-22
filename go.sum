@@ -5,6 +5,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.28 h1:SZhFDTPpb4tyDXS9NpnPfdBfF0vkRDZZouWrRW6A1WY=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.28/go.mod h1:XWHCfuJEIDkQtMjviXKaa4CviiXkrnhhIigLcAM582U=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.29-0.20200721173624-52398bfab337 h1:Fh8tohIlbS3RRhOQjYfg0ruLlixAmWqaEUKT3HC2q0A=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.29-0.20200721173624-52398bfab337/go.mod h1:l8zTpntonQ25+MEa4XtnYnxXfK5JzoGzHfaEg0Kh09A=
 github.com/ElrondNetwork/big-int-util v0.0.5 h1:e/9kK++9ZH/SdIYqLSUPRFYrDZmDWDgff3/7SCydq5I=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.3 h1:j2LtPrNJuerannC1cQDE79STvi/P04gd61sNYo04Zf0=
@@ -18,7 +20,10 @@ github.com/ElrondNetwork/elrond-vm-common v0.1.22-0.20200720100823-d37ba1c475a0 
 github.com/ElrondNetwork/elrond-vm-common v0.1.22-0.20200720100823-d37ba1c475a0/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-common v0.1.22-0.20200721095743-9c43254d3fe1 h1:mN1s1c01orEZl5xdsqrquyzKnf6AzPamZJyRNEg8suI=
 github.com/ElrondNetwork/elrond-vm-common v0.1.22-0.20200721095743-9c43254d3fe1/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
+github.com/ElrondNetwork/elrond-vm-common v0.1.23-0.20200722095946-b07133f70a01 h1:DF+Pgqr1eoQAPj/PlAMuifVe3fXhqtpdnVOWl6nz/BY=
+github.com/ElrondNetwork/elrond-vm-common v0.1.23-0.20200722095946-b07133f70a01/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-util v0.3.4/go.mod h1:lCXk+AyNVXLet06PzCMBQb/iEWTSxGIoSXOTb6GeWjA=
+github.com/ElrondNetwork/elrond-vm-util v0.3.5-0.20200721120725-388e63f80f87/go.mod h1:skrUGjBkN3YBuk5bIGDgrb7I8TBpxN6ckTX0MtT/RMk=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
