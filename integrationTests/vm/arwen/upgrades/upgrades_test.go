@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -196,109 +195,144 @@ func TestUpgrades_CounterCannotBeUpgradedByNonOwner(t *testing.T) {
 	require.Equal(t, uint64(2), context.QuerySCInt("get", [][]byte{}))
 }
 
-func TestUpgrades_TrialAndError(t *testing.T) {
+func TestUpgrades_HelloTrialAndError(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
-	nodesPerShard := 1
-	numMetachainNodes := 0
-
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
-	nodes := integrationTests.CreateNodes(
-		numOfShards,
-		nodesPerShard,
-		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
-	)
-
-	idxProposers := []int{0, 1}
-	integrationTests.DisplayAndStartNodes(nodes)
-
-	defer func() {
-		_ = advertiser.Close()
-		for _, n := range nodes {
-			_ = n.Messenger.Close()
-		}
-	}()
-
-	initialVal := big.NewInt(10000000000000)
-	integrationTests.MintAllNodes(nodes, initialVal)
-
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
+	network := integrationTests.NewOneNodeNetwork()
+	network.Start()
+	defer network.Stop()
 
 	alice := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	bob := []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-	integrationTests.MintAddress(nodes[0].AccntState, alice, initialVal)
-	integrationTests.MintAddress(nodes[0].AccntState, bob, initialVal)
+	network.Mint(alice, big.NewInt(10000000000000))
+	network.Mint(bob, big.NewInt(10000000000000))
+
+	network.GoToRoundOne()
 
 	deployTxData := fmt.Sprintf("%s@%s@0100", arwen.GetSCCode("../testdata/hello-v1/output/answer.wasm"), hex.EncodeToString(factory.ArwenVirtualMachine))
 	upgradeTxData := fmt.Sprintf("upgradeContract@%s@0100", arwen.GetSCCode("../testdata/hello-v2/output/answer.wasm"))
-	minGasPrice := nodes[0].EconomicsData.GetMinGasPrice()
-	gasLimit := nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1
 
 	// Deploy the smart contract. Alice is the owner
-	addTxToPool(&transaction.Transaction{
+	network.AddTxToPool(&transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
 		RcvAddr:  vm.CreateEmptyAddress(),
 		SndAddr:  alice,
-		GasPrice: minGasPrice,
-		GasLimit: gasLimit,
+		GasPrice: network.GetMinGasPrice(),
+		GasLimit: network.MaxGasLimitPerBlock(),
 		Data:     []byte(deployTxData),
-	}, nodes)
+	})
 
-	scAddress, _ := nodes[0].BlockchainHook.NewAddress(alice, 0, factory.ArwenVirtualMachine)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
-	require.Equal(t, []byte{24}, query(t, nodes[0], scAddress, "getUltimateAnswer"))
+	scAddress, _ := network.Node.BlockchainHook.NewAddress(alice, 0, factory.ArwenVirtualMachine)
+	network.Continue(t, 1)
+	require.Equal(t, []byte{24}, query(t, network.Node, scAddress, "getUltimateAnswer"))
 
 	// Upgrade as Bob - upgrade should fail, since Alice is the owner
-	addTxToPool(&transaction.Transaction{
+	network.AddTxToPool(&transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
 		RcvAddr:  scAddress,
 		SndAddr:  bob,
-		GasPrice: minGasPrice,
-		GasLimit: gasLimit,
+		GasPrice: network.GetMinGasPrice(),
+		GasLimit: network.MaxGasLimitPerBlock(),
 		Data:     []byte(upgradeTxData),
-	}, nodes)
+	})
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
-	require.Equal(t, []byte{24}, query(t, nodes[0], scAddress, "getUltimateAnswer"))
+	network.Continue(t, 1)
+	require.Equal(t, []byte{24}, query(t, network.Node, scAddress, "getUltimateAnswer"))
 
 	// Now upgrade as Alice, should work
-	addTxToPool(&transaction.Transaction{
+	network.AddTxToPool(&transaction.Transaction{
 		Nonce:    1,
 		Value:    big.NewInt(0),
 		RcvAddr:  scAddress,
 		SndAddr:  alice,
-		GasPrice: minGasPrice,
-		GasLimit: gasLimit,
+		GasPrice: network.GetMinGasPrice(),
+		GasLimit: network.MaxGasLimitPerBlock(),
 		Data:     []byte(upgradeTxData),
-	}, nodes)
+	})
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
-	require.Equal(t, []byte{42}, query(t, nodes[0], scAddress, "getUltimateAnswer"))
+	network.Continue(t, 1)
+	require.Equal(t, []byte{42}, query(t, network.Node, scAddress, "getUltimateAnswer"))
 }
 
-func addTxToPool(tx *transaction.Transaction, nodes []*integrationTests.TestProcessorNode) {
-	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
-	sourceShard := nodes[0].ShardCoordinator.ComputeId(tx.SndAddr)
-
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != sourceShard {
-			continue
-		}
-
-		cacheIdentifier := process.ShardCacherIdentifier(sourceShard, sourceShard)
-		node.DataPool.Transactions().AddData(txHash, tx, tx.Size(), cacheIdentifier)
+func TestUpgrades_CounterTrialAndError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
+
+	network := integrationTests.NewOneNodeNetwork()
+	network.Start()
+	defer network.Stop()
+
+	alice := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	bob := []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	network.Mint(alice, big.NewInt(10000000000000))
+	network.Mint(bob, big.NewInt(10000000000000))
+
+	network.GoToRoundOne()
+
+	deployTxData := fmt.Sprintf("%s@%s@0100", arwen.GetSCCode("../testdata/counter/output/counter.wasm"), hex.EncodeToString(factory.ArwenVirtualMachine))
+	upgradeTxData := fmt.Sprintf("upgradeContract@%s@0100", arwen.GetSCCode("../testdata/counter/output/counter.wasm"))
+
+	// Deploy the smart contract. Alice is the owner
+	network.AddTxToPool(&transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  vm.CreateEmptyAddress(),
+		SndAddr:  alice,
+		GasPrice: network.GetMinGasPrice(),
+		GasLimit: network.MaxGasLimitPerBlock(),
+		Data:     []byte(deployTxData),
+	})
+
+	scAddress, _ := network.Node.BlockchainHook.NewAddress(alice, 0, factory.ArwenVirtualMachine)
+	network.Continue(t, 1)
+	require.Equal(t, []byte{1}, query(t, network.Node, scAddress, "get"))
+
+	// Increment the counter (could be either Bob or Alice)
+	network.AddTxToPool(&transaction.Transaction{
+		Nonce:    1,
+		Value:    big.NewInt(0),
+		RcvAddr:  scAddress,
+		SndAddr:  alice,
+		GasPrice: network.GetMinGasPrice(),
+		GasLimit: network.MaxGasLimitPerBlock(),
+		Data:     []byte("increment"),
+	})
+
+	network.Continue(t, 1)
+	require.Equal(t, []byte{2}, query(t, network.Node, scAddress, "get"))
+
+	// Upgrade as Bob - upgrade should fail, since Alice is the owner (init() not executed, state not reset)
+	network.AddTxToPool(&transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  scAddress,
+		SndAddr:  bob,
+		GasPrice: network.GetMinGasPrice(),
+		GasLimit: network.MaxGasLimitPerBlock(),
+		Data:     []byte(upgradeTxData),
+	})
+
+	network.Continue(t, 1)
+	require.Equal(t, []byte{2}, query(t, network.Node, scAddress, "get"))
+
+	// Now upgrade as Alice, should work (state is reset by init())
+	network.AddTxToPool(&transaction.Transaction{
+		Nonce:    2,
+		Value:    big.NewInt(0),
+		RcvAddr:  scAddress,
+		SndAddr:  alice,
+		GasPrice: network.GetMinGasPrice(),
+		GasLimit: network.MaxGasLimitPerBlock(),
+		Data:     []byte(upgradeTxData),
+	})
+
+	network.Continue(t, 1)
+	require.Equal(t, []byte{1}, query(t, network.Node, scAddress, "get"))
 }
 
 func query(t *testing.T, node *integrationTests.TestProcessorNode, scAddress []byte, function string) []byte {
