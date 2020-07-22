@@ -446,6 +446,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		ChainID:                 ChainID,
 		NodesSetup:              &mock.NodesSetupStub{},
 		MinTransactionVersion:   MinTransactionVersion,
+		HistoryRepository:       &mock.HistoryRepositoryStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
