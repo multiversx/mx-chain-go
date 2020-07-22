@@ -369,9 +369,6 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
-	if !exists {
-		log.Warn("GetBulkFromEpoch - persister not found", "epoch", epoch)
-	}
 
 	var persisterForEpoch storage.Persister
 	var err error
