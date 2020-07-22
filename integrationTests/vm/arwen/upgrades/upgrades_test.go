@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -239,17 +240,17 @@ func TestUpgrades_TrialAndError(t *testing.T) {
 
 	deployTxData := fmt.Sprintf("%s@%s@0100", arwen.GetSCCode("../testdata/hello-v1/output/answer.wasm"), hex.EncodeToString(factory.ArwenVirtualMachine))
 	upgradeTxData := fmt.Sprintf("upgradeContract@%s@0100", arwen.GetSCCode("../testdata/hello-v2/output/answer.wasm"))
+	minGasPrice := nodes[0].EconomicsData.GetMinGasPrice()
+	gasLimit := nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1
 
 	// Deploy the smart contract. Alice is the owner
 	addTxToPool(&transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
-		RcvAddr:  make([]byte, 32),
+		RcvAddr:  vm.CreateEmptyAddress(),
 		SndAddr:  alice,
-		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
-		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1,
-		ChainID:  integrationTests.ChainID,
-		Version:  integrationTests.MinTransactionVersion,
+		GasPrice: minGasPrice,
+		GasLimit: gasLimit,
 		Data:     []byte(deployTxData),
 	}, nodes)
 
@@ -263,10 +264,8 @@ func TestUpgrades_TrialAndError(t *testing.T) {
 		Value:    big.NewInt(0),
 		RcvAddr:  scAddress,
 		SndAddr:  bob,
-		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
-		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1,
-		ChainID:  integrationTests.ChainID,
-		Version:  integrationTests.MinTransactionVersion,
+		GasPrice: minGasPrice,
+		GasLimit: gasLimit,
 		Data:     []byte(upgradeTxData),
 	}, nodes)
 
@@ -279,10 +278,8 @@ func TestUpgrades_TrialAndError(t *testing.T) {
 		Value:    big.NewInt(0),
 		RcvAddr:  scAddress,
 		SndAddr:  alice,
-		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
-		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1,
-		ChainID:  integrationTests.ChainID,
-		Version:  integrationTests.MinTransactionVersion,
+		GasPrice: minGasPrice,
+		GasLimit: gasLimit,
 		Data:     []byte(upgradeTxData),
 	}, nodes)
 
