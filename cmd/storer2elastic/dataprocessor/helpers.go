@@ -60,6 +60,14 @@ func (dp *dataProcessor) processValidatorsForEpoch(epoch uint32, metaBlock *bloc
 	for shardID := range dp.nodesCoordinators {
 		dp.nodesCoordinators[shardID].EpochStartPrepare(metaBlock, peerBlock)
 	}
+
+	validatorsPubKeys, err := dp.nodesCoordinators[core.MetachainShardId].GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil || len(validatorsPubKeys) == 0 {
+		log.Warn("cannot get all eligible validatorsPubKeys", "epoch", epoch)
+		return
+	}
+
+	dp.elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
 }
 
 func (dp *dataProcessor) canIndexHeaderNow(hdr data.HeaderHandler) bool {

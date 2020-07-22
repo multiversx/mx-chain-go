@@ -380,8 +380,22 @@ func (dp *dataProcessor) indexHeader(persisters *persistersHolder, dbInfo *datab
 	}
 	notarizedHdrs := dp.computeNotarizedHeaders(hdr)
 	dp.elasticIndexer.SaveBlock(body, hdr, txPool, singersIndexes, notarizedHdrs)
+	dp.indexRoundInfo(singersIndexes, hdr)
+
 	log.Info("indexed header", "epoch", hdr.GetEpoch(), "shard", hdr.GetShardID(), "nonce", hdr.GetNonce())
 	return nil
+}
+
+func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.HeaderHandler) {
+	ri := indexer.RoundInfo{
+		Index:            hdr.GetRound(),
+		SignersIndexes:   signersIndexes,
+		BlockWasProposed: false,
+		ShardId:          hdr.GetShardID(),
+		Timestamp:        time.Duration(hdr.GetTimeStamp()),
+	}
+
+	dp.elasticIndexer.SaveRoundsInfos([]indexer.RoundInfo{ri})
 }
 
 func (dp *dataProcessor) getShardIDs() []uint32 {
