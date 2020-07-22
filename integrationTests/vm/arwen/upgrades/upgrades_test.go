@@ -133,3 +133,19 @@ func TestUpgrades_ParentAndChildContracts(t *testing.T) {
 	err = context.ExecuteSC(owner, "upgradeChild@"+childUpgradedCode)
 	require.Nil(t, err)
 }
+
+func TestUpgrades_UpgradeDelegationContract(t *testing.T) {
+	context := arwen.SetupTestContext(t)
+	defer context.Close()
+
+	delegationWasmPath := "../testdata/delegation/delegation.wasm"
+	delegationInitParams := "0000000000000000000000000000000000000000000000000000000000000000@0064@0064@0064"
+
+	context.GasLimit = 21600000
+	err := context.DeploySC(delegationWasmPath, delegationInitParams)
+	require.Equal(t, fmt.Errorf("execution failed"), err)
+
+	context.GasLimit = 21700000
+	err = context.DeploySC(delegationWasmPath, delegationInitParams)
+	require.Nil(t, err)
+}

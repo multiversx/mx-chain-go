@@ -39,6 +39,8 @@ type TestContext struct {
 	Bob   testParticipant
 	Carol testParticipant
 
+	GasLimit uint64
+
 	ScAddress      []byte
 	ScCodeMetadata vmcommon.CodeMetadata
 	Accounts       *state.AccountsDB
@@ -145,8 +147,13 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		RcvAddr:  vm.CreateEmptyAddress(),
 		SndAddr:  owner.Address,
 		GasPrice: 1,
-		GasLimit: math.MaxInt32,
+		GasLimit: context.GasLimit,
 		Data:     []byte(txData),
+	}
+
+	// Add default gas limit for tests
+	if tx.GasLimit == 0 {
+		tx.GasLimit = math.MaxUint32
 	}
 
 	_, err := context.TxProcessor.ProcessTransaction(tx)
