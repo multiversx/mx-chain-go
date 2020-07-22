@@ -2406,7 +2406,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 
 func checkGeneralConfig(config *config.Config) error {
 	if config.EpochStartConfig.ShuffleBetweenShards && !config.GeneralSettings.StartInEpochEnabled {
-		return errors.New("shuffle between shards is set to true, but start in epoch is false")
+		return errors.New("incompatible configured parameters, startInEpoch cannot be false when shuffling is true")
 	}
 
 	return nil
