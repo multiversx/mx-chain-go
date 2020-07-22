@@ -137,7 +137,7 @@ func TestUpgrades_UpgradeDelegationContract(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestUpgrades_UpgradeDelegationContract_NotAllowedIfNotOwner(t *testing.T) {
+func TestUpgrades_DelegationCannotBeUpgradedByNonOwner(t *testing.T) {
 	context := arwen.SetupTestContext(t)
 	defer context.Close()
 
