@@ -58,7 +58,8 @@ type ArgsExporter struct {
 	MultiSigner              crypto.MultiSigner
 	NodesCoordinator         sharding.NodesCoordinator
 	SingleSigner             crypto.SingleSigner
-	AddressPubkeyConverter   core.PubkeyConverter
+	AddressPubKeyConverter   core.PubkeyConverter
+	ValidatorPubKeyConverter core.PubkeyConverter
 	BlockKeyGen              crypto.KeyGenerator
 	KeyGen                   crypto.KeyGenerator
 	BlockSigner              crypto.SingleSigner
@@ -100,7 +101,8 @@ type exportHandlerFactory struct {
 	blockKeyGen              crypto.KeyGenerator
 	keyGen                   crypto.KeyGenerator
 	blockSigner              crypto.SingleSigner
-	addressPubkeyConverter   core.PubkeyConverter
+	addressPubKeyConverter   core.PubkeyConverter
+	validatorPubKeyConverter core.PubkeyConverter
 	headerSigVerifier        process.InterceptedHeaderSigVerifier
 	headerIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
 	validityAttester         process.ValidityAttester
@@ -164,8 +166,11 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.SingleSigner) {
 		return nil, update.ErrNilSingleSigner
 	}
-	if check.IfNil(args.AddressPubkeyConverter) {
-		return nil, update.ErrNilPubkeyConverter
+	if check.IfNil(args.AddressPubKeyConverter) {
+		return nil, fmt.Errorf("%w for addresses", update.ErrNilPubKeyConverter)
+	}
+	if check.IfNil(args.ValidatorPubKeyConverter) {
+		return nil, fmt.Errorf("%w for validators", update.ErrNilPubKeyConverter)
 	}
 	if check.IfNil(args.BlockKeyGen) {
 		return nil, update.ErrNilBlockKeyGen
@@ -222,7 +227,8 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		multiSigner:              args.MultiSigner,
 		nodesCoordinator:         args.NodesCoordinator,
 		singleSigner:             args.SingleSigner,
-		addressPubkeyConverter:   args.AddressPubkeyConverter,
+		addressPubKeyConverter:   args.AddressPubKeyConverter,
+		validatorPubKeyConverter: args.ValidatorPubKeyConverter,
 		blockKeyGen:              args.BlockKeyGen,
 		keyGen:                   args.KeyGen,
 		blockSigner:              args.BlockSigner,
@@ -403,11 +409,14 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	hs, err := storing.NewHardforkStorer(arg)
 
 	argsExporter := genesis.ArgsNewStateExporter{
-		ShardCoordinator: e.shardCoordinator,
-		StateSyncer:      stateSyncer,
-		Marshalizer:      e.marshalizer,
-		HardforkStorer:   hs,
-		Hasher:           e.hasher,
+		ShardCoordinator:         e.shardCoordinator,
+		StateSyncer:              stateSyncer,
+		Marshalizer:              e.marshalizer,
+		HardforkStorer:           hs,
+		Hasher:                   e.hasher,
+		ExportFolder:             e.exportFolder,
+		ValidatorPubKeyConverter: e.validatorPubKeyConverter,
+		AddressPubKeyConverter:   e.addressPubKeyConverter,
 	}
 	exportHandler, err := genesis.NewStateExporter(argsExporter)
 	if err != nil {
@@ -448,7 +457,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		BlockSingleSigner:       e.blockSigner,
 		MultiSigner:             e.multiSigner,
 		DataPool:                e.dataPool,
-		AddressPubkeyConverter:  e.addressPubkeyConverter,
+		AddressPubkeyConverter:  e.addressPubKeyConverter,
 		MaxTxNonceDeltaAllowed:  math.MaxInt32,
 		TxFeeHandler:            &disabled.FeeHandler{},
 		BlockBlackList:          timecache.NewTimeCache(time.Second),

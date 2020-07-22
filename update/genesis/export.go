@@ -3,12 +3,16 @@ package genesis
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"path/filepath"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -19,19 +23,25 @@ var _ update.ExportHandler = (*stateExport)(nil)
 
 // ArgsNewStateExporter defines the arguments needed to create new state exporter
 type ArgsNewStateExporter struct {
-	ShardCoordinator sharding.Coordinator
-	StateSyncer      update.StateSyncer
-	Marshalizer      marshal.Marshalizer
-	Hasher           hashing.Hasher
-	HardforkStorer   update.HardforkStorer
+	ShardCoordinator         sharding.Coordinator
+	StateSyncer              update.StateSyncer
+	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	HardforkStorer           update.HardforkStorer
+	ExportFolder             string
+	AddressPubKeyConverter   core.PubkeyConverter
+	ValidatorPubKeyConverter core.PubkeyConverter
 }
 
 type stateExport struct {
-	stateSyncer      update.StateSyncer
-	shardCoordinator sharding.Coordinator
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	hardforkStorer   update.HardforkStorer
+	stateSyncer              update.StateSyncer
+	shardCoordinator         sharding.Coordinator
+	marshalizer              marshal.Marshalizer
+	hasher                   hashing.Hasher
+	hardforkStorer           update.HardforkStorer
+	exportFolder             string
+	addressPubKeyConverter   core.PubkeyConverter
+	validatorPubKeyConverter core.PubkeyConverter
 }
 
 var log = logger.GetOrCreate("update/genesis")
@@ -53,13 +63,25 @@ func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
 	if check.IfNil(args.HardforkStorer) {
 		return nil, update.ErrNilHardforkStorer
 	}
+	if len(args.ExportFolder) == 0 {
+		return nil, update.ErrEmptyExportFolderPath
+	}
+	if check.IfNil(args.AddressPubKeyConverter) {
+		return nil, fmt.Errorf("%w for address", sharding.ErrNilPubkeyConverter)
+	}
+	if check.IfNil(args.ValidatorPubKeyConverter) {
+		return nil, fmt.Errorf("%w for validators", sharding.ErrNilPubkeyConverter)
+	}
 
 	se := &stateExport{
-		stateSyncer:      args.StateSyncer,
-		shardCoordinator: args.ShardCoordinator,
-		marshalizer:      args.Marshalizer,
-		hasher:           args.Hasher,
-		hardforkStorer:   args.HardforkStorer,
+		stateSyncer:              args.StateSyncer,
+		shardCoordinator:         args.ShardCoordinator,
+		marshalizer:              args.Marshalizer,
+		hasher:                   args.Hasher,
+		hardforkStorer:           args.HardforkStorer,
+		exportFolder:             args.ExportFolder,
+		addressPubKeyConverter:   args.AddressPubKeyConverter,
+		validatorPubKeyConverter: args.ValidatorPubKeyConverter,
 	}
 
 	return se, nil
@@ -187,15 +209,20 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	// no need to export validator account
-	// TODO: export validatorAccount trie to nodeSetup.json with all ratings
-	if accType == ValidatorAccount {
-		return nil
-	}
-
 	leaves, err := trie.GetAllLeaves()
 	if err != nil {
 		return err
+	}
+
+	// no need to export validator account
+	// TODO: export validatorAccount trie to nodeSetup.json with all ratings
+	if accType == ValidatorAccount {
+		validatorData, err := getValidatorDataFromLeaves(leaves, se.shardCoordinator, se.marshalizer)
+		if err != nil {
+			return err
+		}
+
+		return se.exportInitialNodesJson(validatorData)
 	}
 
 	if shId > se.shardCoordinator.NumberOfShards() && shId != core.MetachainShardId {
@@ -315,6 +342,30 @@ func (se *stateExport) exportTx(key string, tx data.TransactionHandler) error {
 	}
 
 	return nil
+}
+
+func (se *stateExport) exportInitialNodesJson(validators map[uint32][]*state.ValidatorInfo) error {
+	acceptedListsForExport := []core.PeerType{core.EligibleList, core.WaitingList, core.JailedList}
+	initialNodes := make([]sharding.InitialNode, 0)
+
+	for _, validatorsInShard := range validators {
+		for _, validator := range validatorsInShard {
+			if shouldExportValidator(validator, acceptedListsForExport) {
+				initialNodes = append(initialNodes, sharding.InitialNode{
+					PubKey:        se.validatorPubKeyConverter.Encode(validator.GetPublicKey()),
+					Address:       se.addressPubKeyConverter.Encode(validator.GetRewardAddress()),
+					InitialRating: validator.GetRating(),
+				})
+			}
+		}
+	}
+
+	initialNodesBytes, err := json.MarshalIndent(initialNodes, "", "")
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(filepath.Join(se.exportFolder, "initialNodes.json"), initialNodesBytes, 0755)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

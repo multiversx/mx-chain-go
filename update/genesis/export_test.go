@@ -5,9 +5,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
@@ -163,4 +165,54 @@ func TestExportAll(t *testing.T) {
 	assert.True(t, transactionsWereWrote)
 	assert.True(t, miniblocksWereWrote)
 	assert.True(t, metablockWasWrote)
+}
+
+func TestStateExport_ExportTrie(t *testing.T) {
+	t.Parallel()
+
+	testFolderName := "testFiles"
+	_ = os.Mkdir(testFolderName, 0777)
+
+	defer func() {
+		_ = os.RemoveAll(testFolderName)
+	}()
+
+	hs := &mock.HardforkStorerStub{
+		WriteCalled: func(identifier string, key []byte, value []byte) error {
+
+			return nil
+		},
+	}
+
+	pubKeyConv := &mock.PubkeyConverterStub{
+		EncodeCalled: func(pkBytes []byte) string {
+			return string(pkBytes)
+		},
+	}
+
+	args := ArgsNewStateExporter{
+		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
+		Marshalizer:              &mock.MarshalizerMock{},
+		StateSyncer:              &mock.SyncStateStub{},
+		HardforkStorer:           hs,
+		Hasher:                   &mock.HasherMock{},
+		ExportFolder:             testFolderName,
+		AddressPubKeyConverter:   pubKeyConv,
+		ValidatorPubKeyConverter: pubKeyConv,
+	}
+
+	trie := &mock.TrieStub{
+		GetAllLeavesCalled: func() (map[string][]byte, error) {
+			mm := &mock.MarshalizerMock{}
+			valInfo := &state.ValidatorInfo{List: string(core.EligibleList)}
+			pacB, _ := mm.Marshal(valInfo)
+			return map[string][]byte{"test": pacB}, nil
+		},
+	}
+
+	stateExporter, _ := NewStateExporter(args)
+	require.False(t, check.IfNil(stateExporter))
+
+	err := stateExporter.exportTrie("test@1@9", trie)
+	require.NoError(t, err)
 }

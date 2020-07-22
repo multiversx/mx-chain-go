@@ -583,11 +583,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.AddressPubkeyConverter)
 	if err != nil {
-		return fmt.Errorf("%w for AddressPubkeyConverter", err)
+		return fmt.Errorf("%w for AddressPubKeyConverter", err)
 	}
 	validatorPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.ValidatorPubkeyConverter)
 	if err != nil {
-		return fmt.Errorf("%w for AddressPubkeyConverter", err)
+		return fmt.Errorf("%w for ValidatorPubkeyConverter", err)
 	}
 
 	//TODO when refactoring main, maybe initialize economics data before this line
@@ -1974,7 +1974,8 @@ func createHardForkTrigger(
 		MultiSigner:              crypto.MultiSigner,
 		NodesCoordinator:         nodesCoordinator,
 		SingleSigner:             crypto.TxSingleSigner,
-		AddressPubkeyConverter:   stateComponents.AddressPubkeyConverter,
+		AddressPubKeyConverter:   stateComponents.AddressPubkeyConverter,
+		ValidatorPubKeyConverter: stateComponents.ValidatorPubkeyConverter,
 		BlockKeyGen:              keyGen,
 		KeyGen:                   crypto.TxSignKeyGen,
 		BlockSigner:              crypto.SingleSigner,
