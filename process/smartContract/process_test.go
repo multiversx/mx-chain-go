@@ -273,6 +273,39 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	require.Equal(t, createError, GetLatestTestError(sc))
 }
 
+func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
+	t.Parallel()
+
+	vmContainer := &mock.VMContainerMock{}
+	argParser := NewArgumentParser()
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = &mock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
+		return nil
+	}}
+	arguments.VmContainer = vmContainer
+	arguments.ArgsParser = argParser
+	arguments.DisableDeploy = true
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().Len())
+	tx.Data = []byte("abba@0500@0000")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+
+	vm := &mock.VMExecutionHandlerStub{}
+	vmContainer.GetCalled = func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+		return vm, nil
+	}
+
+	_, _ = sc.DeploySmartContract(tx, acntSrc)
+	require.Equal(t, process.ErrSmartContractDeploymentIsDisabled, GetLatestTestError(sc))
+}
+
 func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	t.Parallel()
 
