@@ -181,9 +181,9 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 	testFolderName := "testFilesExportNodes"
 	_ = os.Mkdir(testFolderName, 0777)
 
-	//defer func() {
-	//	_ = os.RemoveAll(testFolderName)
-	//}()
+	defer func() {
+		_ = os.RemoveAll(testFolderName)
+	}()
 
 	hs := &mock.HardforkStorerStub{
 		WriteCalled: func(identifier string, key []byte, value []byte) error {
