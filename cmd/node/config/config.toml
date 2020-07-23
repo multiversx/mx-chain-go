@@ -14,7 +14,7 @@
    # DisableDeploy represents the flag to enable/disable deployment of smart contracts
    DisableDeploy = false
 
-   # DisableBuiltInFunctions represents the flag to enable/disable built in function calls
+   # DisableBuiltInFunctions represents the flag to enable/disable built in functions calls
    DisableBuiltInFunctions = false
 
 [StoragePruning]
