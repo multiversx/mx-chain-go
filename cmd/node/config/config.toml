@@ -15,7 +15,7 @@
    DisableDeploy = false
 
    # DisableBuitInFunction represents the flag to enable/disable built in function calls
-   DisableBuitInFunction = false
+   DisableBuitInFunction = true
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
