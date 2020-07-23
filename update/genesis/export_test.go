@@ -89,6 +89,7 @@ func TestNewStateExporter(t *testing.T) {
 				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
 				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
 				ExportFolder:             "test",
+				GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 			},
 			exError: nil,
 		},
@@ -160,6 +161,7 @@ func TestExportAll(t *testing.T) {
 		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
 		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
 		ExportFolder:             "test",
+		GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 	}
 
 	stateExporter, _ := NewStateExporter(args)
@@ -173,15 +175,15 @@ func TestExportAll(t *testing.T) {
 	assert.True(t, metablockWasWrote)
 }
 
-func TestStateExport_ExportTrie(t *testing.T) {
+func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 	t.Parallel()
 
 	testFolderName := "testFilesExportNodes"
 	_ = os.Mkdir(testFolderName, 0777)
 
-	defer func() {
-		_ = os.RemoveAll(testFolderName)
-	}()
+	//defer func() {
+	//	_ = os.RemoveAll(testFolderName)
+	//}()
 
 	hs := &mock.HardforkStorerStub{
 		WriteCalled: func(identifier string, key []byte, value []byte) error {
@@ -205,6 +207,7 @@ func TestStateExport_ExportTrie(t *testing.T) {
 		ExportFolder:             testFolderName,
 		AddressPubKeyConverter:   pubKeyConv,
 		ValidatorPubKeyConverter: pubKeyConv,
+		GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
 	}
 
 	trie := &mock.TrieStub{
@@ -216,9 +219,11 @@ func TestStateExport_ExportTrie(t *testing.T) {
 		},
 	}
 
-	stateExporter, _ := NewStateExporter(args)
+	stateExporter, err := NewStateExporter(args)
+	require.NoError(t, err)
+
 	require.False(t, check.IfNil(stateExporter))
 
-	err := stateExporter.exportTrie("test@1@9", trie)
+	err = stateExporter.exportTrie("test@1@9", trie)
 	require.NoError(t, err)
 }

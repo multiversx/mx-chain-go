@@ -235,3 +235,6 @@ var ErrNilRounder = errors.New("nil rounder")
 
 // ErrEmptyExportFolderPath signals that the provided export folder's length is empty
 var ErrEmptyExportFolderPath = errors.New("empty export folder path")
+
+// ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
+var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")

@@ -70,6 +70,7 @@ type ArgsExporter struct {
 	OutputAntifloodHandler   process.P2PAntifloodHandler
 	ChainID                  []byte
 	Rounder                  process.Rounder
+	GenesisNodesSetupHandler update.GenesisNodesSetupHandler
 }
 
 type exportHandlerFactory struct {
@@ -111,6 +112,7 @@ type exportHandlerFactory struct {
 	outputAntifloodHandler   process.P2PAntifloodHandler
 	chainID                  []byte
 	rounder                  process.Rounder
+	genesisNodesSetupHandler update.GenesisNodesSetupHandler
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -202,6 +204,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.Rounder) {
 		return nil, update.ErrNilRounder
 	}
+	if check.IfNil(args.GenesisNodesSetupHandler) {
+		return nil, update.ErrNilGenesisNodesSetupHandler
+	}
 
 	e := &exportHandlerFactory{
 		txSignMarshalizer:        args.TxSignMarshalizer,
@@ -240,6 +245,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		maxTrieLevelInMemory:     args.MaxTrieLevelInMemory,
 		chainID:                  args.ChainID,
 		rounder:                  args.Rounder,
+		genesisNodesSetupHandler: args.GenesisNodesSetupHandler,
 	}
 
 	return e, nil
@@ -417,6 +423,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		ExportFolder:             e.exportFolder,
 		ValidatorPubKeyConverter: e.validatorPubKeyConverter,
 		AddressPubKeyConverter:   e.addressPubKeyConverter,
+		GenesisNodesSetupHandler: e.genesisNodesSetupHandler,
 	}
 	exportHandler, err := genesis.NewStateExporter(argsExporter)
 	if err != nil {

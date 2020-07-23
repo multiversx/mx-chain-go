@@ -31,6 +31,7 @@ type ArgsNewStateExporter struct {
 	ExportFolder             string
 	AddressPubKeyConverter   core.PubkeyConverter
 	ValidatorPubKeyConverter core.PubkeyConverter
+	GenesisNodesSetupHandler update.GenesisNodesSetupHandler
 }
 
 type stateExport struct {
@@ -42,6 +43,7 @@ type stateExport struct {
 	exportFolder             string
 	addressPubKeyConverter   core.PubkeyConverter
 	validatorPubKeyConverter core.PubkeyConverter
+	genesisNodesSetupHandler update.GenesisNodesSetupHandler
 }
 
 var log = logger.GetOrCreate("update/genesis")
@@ -72,6 +74,9 @@ func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
 	if check.IfNil(args.ValidatorPubKeyConverter) {
 		return nil, fmt.Errorf("%w for validators", sharding.ErrNilPubkeyConverter)
 	}
+	if check.IfNil(args.GenesisNodesSetupHandler) {
+		return nil, update.ErrNilGenesisNodesSetupHandler
+	}
 
 	se := &stateExport{
 		stateSyncer:              args.StateSyncer,
@@ -82,6 +87,7 @@ func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
 		exportFolder:             args.ExportFolder,
 		addressPubKeyConverter:   args.AddressPubKeyConverter,
 		validatorPubKeyConverter: args.ValidatorPubKeyConverter,
+		genesisNodesSetupHandler: args.GenesisNodesSetupHandler,
 	}
 
 	return se, nil
@@ -222,7 +228,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 			return err
 		}
 
-		return se.exportInitialNodesJson(validatorData)
+		return se.exportNodesSetupJson(validatorData)
 	}
 
 	if shId > se.shardCoordinator.NumberOfShards() && shId != core.MetachainShardId {
@@ -344,14 +350,14 @@ func (se *stateExport) exportTx(key string, tx data.TransactionHandler) error {
 	return nil
 }
 
-func (se *stateExport) exportInitialNodesJson(validators map[uint32][]*state.ValidatorInfo) error {
+func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.ValidatorInfo) error {
 	acceptedListsForExport := []core.PeerType{core.EligibleList, core.WaitingList, core.JailedList}
-	initialNodes := make([]sharding.InitialNode, 0)
+	initialNodes := make([]*sharding.InitialNode, 0)
 
 	for _, validatorsInShard := range validators {
 		for _, validator := range validatorsInShard {
 			if shouldExportValidator(validator, acceptedListsForExport) {
-				initialNodes = append(initialNodes, sharding.InitialNode{
+				initialNodes = append(initialNodes, &sharding.InitialNode{
 					PubKey:        se.validatorPubKeyConverter.Encode(validator.GetPublicKey()),
 					Address:       se.addressPubKeyConverter.Encode(validator.GetRewardAddress()),
 					InitialRating: validator.GetRating(),
@@ -360,12 +366,27 @@ func (se *stateExport) exportInitialNodesJson(validators map[uint32][]*state.Val
 		}
 	}
 
-	initialNodesBytes, err := json.MarshalIndent(initialNodes, "", "")
+	genesisNodesSetupHandler := se.genesisNodesSetupHandler
+	nodesSetup := &sharding.NodesSetup{
+		StartTime:                   genesisNodesSetupHandler.GetStartTime(),
+		RoundDuration:               genesisNodesSetupHandler.GetRoundDuration(),
+		ConsensusGroupSize:          genesisNodesSetupHandler.GetShardConsensusGroupSize(),
+		MinNodesPerShard:            genesisNodesSetupHandler.MinNumberOfShardNodes(),
+		ChainID:                     genesisNodesSetupHandler.GetChainId(),
+		MinTransactionVersion:       genesisNodesSetupHandler.GetMinTransactionVersion(),
+		MetaChainConsensusGroupSize: genesisNodesSetupHandler.GetMetaConsensusGroupSize(),
+		MetaChainMinNodes:           genesisNodesSetupHandler.MinNumberOfMetaNodes(),
+		Hysteresis:                  genesisNodesSetupHandler.GetHysteresis(),
+		Adaptivity:                  genesisNodesSetupHandler.GetAdaptivity(),
+		InitialNodes:                initialNodes,
+	}
+
+	nodesSetupBytes, err := json.MarshalIndent(nodesSetup, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(se.exportFolder, "initialNodes.json"), initialNodesBytes, 0755)
+	return ioutil.WriteFile(filepath.Join(se.exportFolder, "nodesSetup.json"), nodesSetupBytes, 0755)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

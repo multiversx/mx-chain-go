@@ -590,8 +590,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
+	exportFolder := filepath.Join(workingDir, generalConfig.Hardfork.ImportFolder)
+	nodesSetupPath := ctx.GlobalString(nodesFile.Name)
+	if generalConfig.Hardfork.AfterHardFork {
+		if core.DoesFileExist(filepath.Join(exportFolder, "nodesSetup.json")) {
+			nodesSetupPath = exportFolder
+		}
+	}
 	genesisNodesConfig, err := sharding.NewNodesSetup(
-		ctx.GlobalString(nodesFile.Name),
+		nodesSetupPath,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
 	)
@@ -1223,6 +1230,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		chanStopNodeProcess,
 		epochStartNotifier,
 		importStartHandler,
+		genesisNodesConfig,
 		workingDir,
 	)
 	if err != nil {
@@ -1916,6 +1924,7 @@ func createHardForkTrigger(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	epochNotifier factory.EpochStartNotifier,
 	importStartHandler update.ImportStartHandler,
+	nodesSetup update.GenesisNodesSetupHandler,
 	workingDir string,
 ) (node.HardforkTrigger, error) {
 
@@ -1969,6 +1978,7 @@ func createHardForkTrigger(
 		ValidityAttester:         process.BlockTracker,
 		ChainID:                  coreData.ChainID,
 		Rounder:                  process.Rounder,
+		GenesisNodesSetupHandler: nodesSetup,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {

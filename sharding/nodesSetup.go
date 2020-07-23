@@ -319,6 +319,26 @@ func (ns *NodesSetup) MinNumberOfNodes() uint32 {
 	return ns.nrOfShards*ns.MinNodesPerShard + ns.MetaChainMinNodes
 }
 
+// MinNumberOfShardNodes returns the minimum number of nodes per shard
+func (ns *NodesSetup) MinNumberOfShardNodes() uint32 {
+	return ns.MinNodesPerShard
+}
+
+// MinNumberOfMetaNodes returns the minimum number of nodes in metachain
+func (ns *NodesSetup) MinNumberOfMetaNodes() uint32 {
+	return ns.MetaChainMinNodes
+}
+
+// GetHysteresis returns the value hysteresis value
+func (ns *NodesSetup) GetHysteresis() float32 {
+	return ns.Hysteresis
+}
+
+// GetAdaptivity returns the value of the adaptivity boolean flag
+func (ns *NodesSetup) GetAdaptivity() bool {
+	return ns.Adaptivity
+}
+
 // GetShardIDForPubKey returns the allocated shard ID from public key
 func (ns *NodesSetup) GetShardIDForPubKey(pubKey []byte) (uint32, error) {
 	for _, in := range ns.InitialNodes {
