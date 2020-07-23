@@ -519,11 +519,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", configurationFileName)
 
-	err = checkGeneralConfig(generalConfig)
-	if err != nil {
-		return err
-	}
-
 	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
 	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
 	if err != nil {
@@ -831,7 +826,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig.MetaChainMinNodes,
 		genesisNodesConfig.Hysteresis,
 		genesisNodesConfig.Adaptivity,
-		generalConfig.EpochStartConfig.ShuffleBetweenShards,
+		true,
 	)
 
 	destShardIdAsObserver, err := processDestinationShardAsObserver(preferencesConfig.Preferences)
@@ -2358,12 +2353,4 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
-}
-
-func checkGeneralConfig(config *config.Config) error {
-	if config.EpochStartConfig.ShuffleBetweenShards && !config.GeneralSettings.StartInEpochEnabled {
-		return errors.New("incompatible configured parameters, startInEpoch cannot be false when shuffling is true")
-	}
-
-	return nil
 }
