@@ -54,9 +54,6 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 
 // GetBulkFromEpoch -
 func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
-	sm.mut.Lock()
-	defer sm.mut.Unlock()
-
 	retValue := map[string][]byte{}
 	for _, key := range keys {
 		value, err := sm.Get(key)
