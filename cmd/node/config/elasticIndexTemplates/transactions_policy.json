@@ -8,7 +8,7 @@
         "actions": [
           {
             "rollover": {
-              "min_size": "100mb"
+              "min_size": "1gb"
             }
           }
         ],
@@ -16,7 +16,7 @@
           {
             "state_name": "warm",
             "conditions": {
-              "min_size": "100mb"
+              "min_size": "1gb"
             }
           }
         ]
