@@ -131,6 +131,12 @@ var ErrVotedForAProposalThatNotBeginsYet = errors.New("voted for a proposal that
 // ErrNilPublicKey signals that nil public key has been provided
 var ErrNilPublicKey = errors.New("nil public key")
 
+// ErrInvalidWaitingList signals that waiting list is invalid
+var ErrInvalidWaitingList = errors.New("invalid waiting list")
+
+// ErrElementNotFound signals that element not found
+var ErrElementNotFound = errors.New("element not found")
+
 // ErrInvalidUnJailCost signals that provided unjail cost is invalid
 var ErrInvalidUnJailCost = errors.New("invalid unjail cost")
 
