@@ -90,7 +90,7 @@ func getBlockByNonce(c *gin.Context) {
 }
 
 func getBlockByHash(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(BlockService)
+	ef, ok := c.MustGet("facade").(BlockService)
 	if !ok {
 		shared.RespondWithInvalidAppContext(c)
 		return
