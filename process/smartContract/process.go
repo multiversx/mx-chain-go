@@ -241,11 +241,8 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 
 	executedBuiltIn, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
 	if err != nil {
-		// QUESTION FOR REVIEW: before, this was log.Debug() and, in our tests, resulted in a lot of:
-		// "processed built in functions error error = insufficient funds",
-		// Is it OK to have this new condition on log.Debug() here?
 		if !executedBuiltIn {
-			log.Debug("processed built in functions error", "error", err.Error())
+			log.Trace("processed built in functions error", "error", err.Error())
 		}
 
 		return vmcommon.UserError, err
@@ -1250,7 +1247,7 @@ func (sc *scProcessor) checkUpgradePermission(caller state.UserAccountHandler, c
 		return nil
 	}
 
-	return ErrUpgradeNotAllowed
+	return process.ErrUpgradeNotAllowed
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

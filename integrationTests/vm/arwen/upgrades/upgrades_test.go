@@ -151,7 +151,7 @@ func TestUpgrades_DelegationCannotBeUpgradedByNonOwner(t *testing.T) {
 
 	context.Owner = context.Alice
 	err = context.UpgradeSC(delegationWasmPath, delegationUpgradeParams)
-	require.Equal(t, fmt.Errorf("upgrade not allowed"), err)
+	require.Equal(t, process.ErrUpgradeNotAllowed, err)
 }
 
 func TestUpgrades_HelloCannotBeUpgradedByNonOwner(t *testing.T) {
@@ -170,7 +170,7 @@ func TestUpgrades_HelloCannotBeUpgradedByNonOwner(t *testing.T) {
 	// Alice states that she is the owner of the contract (though she is not)
 	context.Owner = context.Alice
 	err = context.UpgradeSC("../testdata/hello-v2/output/answer.wasm", "")
-	require.Equal(t, fmt.Errorf("upgrade not allowed"), err)
+	require.Equal(t, process.ErrUpgradeNotAllowed, err)
 	require.Equal(t, uint64(24), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 }
 
@@ -191,7 +191,7 @@ func TestUpgrades_CounterCannotBeUpgradedByNonOwner(t *testing.T) {
 	// Neither code, nor storage get modified
 	context.Owner = context.Alice
 	err = context.UpgradeSC("../testdata/counter/output/counter.wasm", "")
-	require.Equal(t, fmt.Errorf("upgrade not allowed"), err)
+	require.Equal(t, process.ErrUpgradeNotAllowed, err)
 	require.Equal(t, uint64(2), context.QuerySCInt("get", [][]byte{}))
 }
 

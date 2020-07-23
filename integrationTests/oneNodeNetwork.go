@@ -26,66 +26,74 @@ func NewOneNodeNetwork() *oneNodeNetwork {
 	nodesPerShard := 1
 	numMetachainNodes := 0
 
-	network := &oneNodeNetwork{
+	n := &oneNodeNetwork{
 		advertiser:   CreateMessengerWithKadDht(""),
 		IdxProposers: make([]int, numOfShards+1),
 	}
 
-	network.Nodes = CreateNodes(
+	n.Nodes = CreateNodes(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		GetConnectableAddress(network.advertiser),
+		GetConnectableAddress(n.advertiser),
 	)
 
 	for i := 0; i < numOfShards; i++ {
-		network.IdxProposers[i] = i * nodesPerShard
+		n.IdxProposers[i] = i * nodesPerShard
 	}
 
-	network.Node = network.Nodes[0]
-	network.IdxProposers[numOfShards] = numOfShards * nodesPerShard
+	n.Node = n.Nodes[0]
+	n.IdxProposers[numOfShards] = numOfShards * nodesPerShard
 
-	return network
+	return n
 }
 
-func (network *oneNodeNetwork) Start() {
-	_ = network.advertiser.Bootstrap()
-	DisplayAndStartNodes(network.Nodes)
+// Start starts the test network
+func (n *oneNodeNetwork) Start() {
+	_ = n.advertiser.Bootstrap()
+	DisplayAndStartNodes(n.Nodes)
 }
 
-func (network *oneNodeNetwork) Stop() {
+// Stop stops the test network
+func (n *oneNodeNetwork) Stop() {
 	defer func() {
-		_ = network.advertiser.Close()
-		for _, n := range network.Nodes {
+		_ = n.advertiser.Close()
+		for _, n := range n.Nodes {
 			_ = n.Messenger.Close()
 		}
 	}()
 }
 
-func (network *oneNodeNetwork) Mint(address []byte, value *big.Int) {
-	MintAddress(network.Node.AccntState, address, value)
+// Mint mints the given address
+func (n *oneNodeNetwork) Mint(address []byte, value *big.Int) {
+	MintAddress(n.Node.AccntState, address, value)
 }
 
-func (network *oneNodeNetwork) GetMinGasPrice() uint64 {
-	return network.Node.EconomicsData.GetMinGasPrice()
+// GetMinGasPrice returns the min gas price
+func (n *oneNodeNetwork) GetMinGasPrice() uint64 {
+	return n.Node.EconomicsData.GetMinGasPrice()
 }
 
-func (network *oneNodeNetwork) MaxGasLimitPerBlock() uint64 {
-	return network.Node.EconomicsData.MaxGasLimitPerBlock(0) - 1
+// GetMinGasPrice returns the max gas per block
+func (n *oneNodeNetwork) MaxGasLimitPerBlock() uint64 {
+	return n.Node.EconomicsData.MaxGasLimitPerBlock(0) - 1
 }
 
-func (network *oneNodeNetwork) GoToRoundOne() {
-	network.Round = IncrementAndPrintRound(network.Round)
-	network.Nonce++
+// GoToRoundOne advances processing to block and round 1
+func (n *oneNodeNetwork) GoToRoundOne() {
+	n.Round = IncrementAndPrintRound(n.Round)
+	n.Nonce++
 }
 
-func (network *oneNodeNetwork) Continue(t *testing.T, numRounds int) {
-	network.Nonce, network.Round = WaitOperationToBeDone(t, network.Nodes, numRounds, network.Nonce, network.Round, network.IdxProposers)
+// Continue advances processing with a number of rounds
+func (n *oneNodeNetwork) Continue(t *testing.T, numRounds int) {
+	n.Nonce, n.Round = WaitOperationToBeDone(t, n.Nodes, numRounds, n.Nonce, n.Round, n.IdxProposers)
 }
 
-func (network *oneNodeNetwork) AddTxToPool(tx *transaction.Transaction) {
+// AddTxToPool adds a transaction to the pool (skips signature checks and interceptors)
+func (n *oneNodeNetwork) AddTxToPool(tx *transaction.Transaction) {
 	txHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, tx)
-	sourceShard := network.Node.ShardCoordinator.ComputeId(tx.SndAddr)
+	sourceShard := n.Node.ShardCoordinator.ComputeId(tx.SndAddr)
 	cacheIdentifier := process.ShardCacherIdentifier(sourceShard, sourceShard)
-	network.Node.DataPool.Transactions().AddData(txHash, tx, tx.Size(), cacheIdentifier)
+	n.Node.DataPool.Transactions().AddData(txHash, tx, tx.Size(), cacheIdentifier)
 }
