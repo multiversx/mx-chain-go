@@ -529,8 +529,8 @@ type BlockSizeThrottler interface {
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
 	LeaderPercentage() float64
-	CommunityPercentage() float64
-	CommunityAddress() string
+	ProtocolSustainabilityPercentage() float64
+	ProtocolSustainabilityAddress() string
 	MinInflationRate() float64
 	MaxInflationRate(year uint32) float64
 	IsInterfaceNil() bool
@@ -568,13 +568,6 @@ type TransactionWithFeeHandler interface {
 	GetData() []byte
 	GetRcvAddr() []byte
 	GetValue() *big.Int
-}
-
-// EconomicsAddressesHandler will return information about economics addresses
-type EconomicsAddressesHandler interface {
-	CommunityAddress() string
-	BurnAddress() string
-	IsInterfaceNil() bool
 }
 
 // SmartContractToProtocolHandler is able to translate data from smart contract state into protocol changes

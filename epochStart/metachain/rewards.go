@@ -28,25 +28,25 @@ var zero = big.NewInt(0)
 
 // ArgsNewRewardsCreator defines the arguments structure needed to create a new rewards creator
 type ArgsNewRewardsCreator struct {
-	ShardCoordinator    sharding.Coordinator
-	PubkeyConverter     core.PubkeyConverter
-	RewardsStorage      storage.Storer
-	MiniBlockStorage    storage.Storer
-	Hasher              hashing.Hasher
-	Marshalizer         marshal.Marshalizer
-	DataPool            dataRetriever.PoolsHolder
-	CommunityAddress    string
-	NodesConfigProvider epochStart.NodesConfigProvider
+	ShardCoordinator              sharding.Coordinator
+	PubkeyConverter               core.PubkeyConverter
+	RewardsStorage                storage.Storer
+	MiniBlockStorage              storage.Storer
+	Hasher                        hashing.Hasher
+	Marshalizer                   marshal.Marshalizer
+	DataPool                      dataRetriever.PoolsHolder
+	ProtocolSustainabilityAddress string
+	NodesConfigProvider           epochStart.NodesConfigProvider
 }
 
 type rewardsCreator struct {
-	currTxs             dataRetriever.TransactionCacher
-	shardCoordinator    sharding.Coordinator
-	pubkeyConverter     core.PubkeyConverter
-	rewardsStorage      storage.Storer
-	miniBlockStorage    storage.Storer
-	communityAddress    []byte
-	nodesConfigProvider epochStart.NodesConfigProvider
+	currTxs                       dataRetriever.TransactionCacher
+	shardCoordinator              sharding.Coordinator
+	pubkeyConverter               core.PubkeyConverter
+	rewardsStorage                storage.Storer
+	miniBlockStorage              storage.Storer
+	protocolSustainabilityAddress []byte
+	nodesConfigProvider           epochStart.NodesConfigProvider
 
 	hasher                         hashing.Hasher
 	marshalizer                    marshal.Marshalizer
@@ -83,21 +83,21 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 	if check.IfNil(args.DataPool) {
 		return nil, epochStart.ErrNilDataPoolsHolder
 	}
-	if len(args.CommunityAddress) == 0 {
-		return nil, epochStart.ErrNilCommunityAddress
+	if len(args.ProtocolSustainabilityAddress) == 0 {
+		return nil, epochStart.ErrNilProtocolSustainabilityAddress
 	}
 	if check.IfNil(args.NodesConfigProvider) {
 		return nil, epochStart.ErrNilNodesConfigProvider
 	}
 
-	address, err := args.PubkeyConverter.Decode(args.CommunityAddress)
+	address, err := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
 	if err != nil {
-		log.Warn("invalid community reward address", "err", err, "provided address", args.CommunityAddress)
+		log.Warn("invalid protocol sustainability reward address", "err", err, "provided address", args.ProtocolSustainabilityAddress)
 		return nil, err
 	}
-	communityShardID := args.ShardCoordinator.ComputeId(address)
-	if communityShardID == core.MetachainShardId {
-		return nil, epochStart.ErrCommunityAddressInMetachain
+	protocolSustainabilityShardID := args.ShardCoordinator.ComputeId(address)
+	if protocolSustainabilityShardID == core.MetachainShardId {
+		return nil, epochStart.ErrProtocolSustainabilityAddressInMetachain
 	}
 
 	currTxsCache, err := dataPool.NewCurrentBlockPool()
@@ -106,16 +106,16 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 	}
 
 	rc := &rewardsCreator{
-		currTxs:             currTxsCache,
-		shardCoordinator:    args.ShardCoordinator,
-		pubkeyConverter:     args.PubkeyConverter,
-		rewardsStorage:      args.RewardsStorage,
-		hasher:              args.Hasher,
-		marshalizer:         args.Marshalizer,
-		miniBlockStorage:    args.MiniBlockStorage,
-		dataPool:            args.DataPool,
-		communityAddress:    address,
-		nodesConfigProvider: args.NodesConfigProvider,
+		currTxs:                       currTxsCache,
+		shardCoordinator:              args.ShardCoordinator,
+		pubkeyConverter:               args.PubkeyConverter,
+		rewardsStorage:                args.RewardsStorage,
+		hasher:                        args.Hasher,
+		marshalizer:                   args.Marshalizer,
+		miniBlockStorage:              args.MiniBlockStorage,
+		dataPool:                      args.DataPool,
+		protocolSustainabilityAddress: address,
+		nodesConfigProvider:           args.NodesConfigProvider,
 	}
 
 	return rc, nil
@@ -144,25 +144,25 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 		miniBlocks[i].TxHashes = make([][]byte, 0)
 	}
 
-	communityRwdTx, communityShardId, err := rc.createCommunityRewardTransaction(metaBlock)
+	protocolSustainabilityRwdTx, protocolSustainabilityShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
 	if err != nil {
 		return nil, err
 	}
 
 	rc.fillRewardsPerBlockPerNode(&metaBlock.EpochStart.Economics)
-	err = rc.addValidatorRewardsToMiniBlocks(validatorsInfo, metaBlock, miniBlocks, communityRwdTx)
+	err = rc.addValidatorRewardsToMiniBlocks(validatorsInfo, metaBlock, miniBlocks, protocolSustainabilityRwdTx)
 	if err != nil {
 		return nil, err
 	}
 
-	if communityRwdTx.Value.Cmp(zero) > 0 {
-		communityRwdHash, err := core.CalculateHash(rc.marshalizer, rc.hasher, communityRwdTx)
-		if err != nil {
-			return nil, err
+	if protocolSustainabilityRwdTx.Value.Cmp(zero) > 0 {
+		protocolSustainabilityRwdHash, errHash := core.CalculateHash(rc.marshalizer, rc.hasher, protocolSustainabilityRwdTx)
+		if errHash != nil {
+			return nil, errHash
 		}
 
-		rc.currTxs.AddTx(communityRwdHash, communityRwdTx)
-		miniBlocks[communityShardId].TxHashes = append(miniBlocks[communityShardId].TxHashes, communityRwdHash)
+		rc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
+		miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
 	}
 
 	for shId := uint32(0); shId < rc.shardCoordinator.NumberOfShards(); shId++ {
@@ -198,9 +198,9 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	metaBlock *block.MetaBlock,
 	miniBlocks block.MiniBlockSlice,
-	communityRwdTx *rewardTx.RewardTx,
+	protocolSustainabilityRwdTx *rewardTx.RewardTx,
 ) error {
-	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo, communityRwdTx)
+	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo, protocolSustainabilityRwdTx)
 	for _, rwdInfo := range rwdAddrValidatorInfo {
 		rwdTx, rwdTxHash, err := rc.createRewardFromRwdInfo(rwdInfo, metaBlock)
 		if err != nil {
@@ -212,7 +212,7 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 
 		shardId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
 		if shardId == core.MetachainShardId {
-			communityRwdTx.Value.Add(communityRwdTx.Value, rwdTx.Value)
+			protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, rwdTx.Value)
 			continue
 		}
 
@@ -223,24 +223,24 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 	return nil
 }
 
-func (rc *rewardsCreator) createCommunityRewardTransaction(
+func (rc *rewardsCreator) createProtocolSustainabilityRewardTransaction(
 	metaBlock *block.MetaBlock,
 ) (*rewardTx.RewardTx, uint32, error) {
 
-	shardID := rc.shardCoordinator.ComputeId(rc.communityAddress)
-	communityRwdTx := &rewardTx.RewardTx{
+	shardID := rc.shardCoordinator.ComputeId(rc.protocolSustainabilityAddress)
+	protocolSustainabilityRwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
-		Value:   big.NewInt(0).Set(metaBlock.EpochStart.Economics.RewardsForCommunity),
-		RcvAddr: rc.communityAddress,
+		Value:   big.NewInt(0).Set(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability),
+		RcvAddr: rc.protocolSustainabilityAddress,
 		Epoch:   metaBlock.Epoch,
 	}
 
-	return communityRwdTx, shardID, nil
+	return protocolSustainabilityRwdTx, shardID, nil
 }
 
 func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
-	communityRwd *rewardTx.RewardTx,
+	protocolSustainabilityRwd *rewardTx.RewardTx,
 ) map[string]*rewardInfoData {
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
@@ -251,7 +251,7 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 			protocolRewardValue := big.NewInt(0).Mul(rewardsPerBlockPerNodeForShard, big.NewInt(0).SetUint64(uint64(validatorInfo.NumSelectedInSuccessBlocks)))
 
 			if validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorFailure == 0 {
-				communityRwd.Value.Add(communityRwd.Value, protocolRewardValue)
+				protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
 				continue
 			}
 

@@ -749,8 +749,8 @@ var ErrNilVmInput = errors.New("nil vm input")
 // ErrNilDnsAddresses signals that nil dns addresses map was provided
 var ErrNilDnsAddresses = errors.New("nil dns addresses map")
 
-// ErrNilCommunityAddress signals that a nil community address was provided
-var ErrNilCommunityAddress = errors.New("nil community address")
+// ErrNilProtocolSustainabilityAddress signals that a nil protocol sustainability address was provided
+var ErrNilProtocolSustainabilityAddress = errors.New("nil protocol sustainability address")
 
 // ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
 var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")

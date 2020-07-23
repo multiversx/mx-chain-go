@@ -145,7 +145,7 @@ var MinTransactionVersion = uint32(999)
 // SoftwareVersion is the software version identifier used in integration tests, processing nodes
 var SoftwareVersion = []byte("intT")
 
-var testCommunityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+var testProtocolSustainabilityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
@@ -631,9 +631,9 @@ func CreateEconomicsData() *economics.EconomicsData {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:    0.1,
-				DeveloperPercentage: 0.1,
-				CommunityAddress:    testCommunityAddress,
+				LeaderPercentage:              0.1,
+				DeveloperPercentage:           0.1,
+				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -1334,15 +1334,15 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.ArgsNewRewardsCreator{
-			ShardCoordinator:    tpn.ShardCoordinator,
-			PubkeyConverter:     TestAddressPubkeyConverter,
-			RewardsStorage:      rewardsStorage,
-			MiniBlockStorage:    miniBlockStorage,
-			Hasher:              TestHasher,
-			Marshalizer:         TestMarshalizer,
-			DataPool:            tpn.DataPool,
-			CommunityAddress:    testCommunityAddress,
-			NodesConfigProvider: tpn.NodesCoordinator,
+			ShardCoordinator:              tpn.ShardCoordinator,
+			PubkeyConverter:               TestAddressPubkeyConverter,
+			RewardsStorage:                rewardsStorage,
+			MiniBlockStorage:              miniBlockStorage,
+			Hasher:                        TestHasher,
+			Marshalizer:                   TestMarshalizer,
+			DataPool:                      tpn.DataPool,
+			ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+			NodesConfigProvider:           tpn.NodesCoordinator,
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 

@@ -16,29 +16,29 @@ var _ process.FeeHandler = (*EconomicsData)(nil)
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	leaderPercentage         float64
-	communityPercentage      float64
-	communityAddress         string
-	maxGasLimitPerBlock      uint64
-	maxGasLimitPerMetaBlock  uint64
-	gasPerDataByte           uint64
-	dataLimitForBaseCalc     uint64
-	minGasPrice              uint64
-	minGasLimit              uint64
-	genesisNodePrice         *big.Int
-	unBondPeriod             uint64
-	developerPercentage      float64
-	genesisTotalSupply       *big.Int
-	minInflation             float64
-	minStep                  *big.Int
-	unJailPrice              *big.Int
-	auctionEnableNonce       uint64
-	stakeEnableNonce         uint64
-	numRoundsWithoutBleed    uint64
-	bleedPercentagePerRound  float64
-	maximumPercentageToBleed float64
-	yearSettings             map[uint32]*config.YearSetting
-	mutYearSettings          sync.RWMutex
+	leaderPercentage                 float64
+	protocolSustainabilityPercentage float64
+	protocolSustainabilityAddress    string
+	maxGasLimitPerBlock              uint64
+	maxGasLimitPerMetaBlock          uint64
+	gasPerDataByte                   uint64
+	dataLimitForBaseCalc             uint64
+	minGasPrice                      uint64
+	minGasLimit                      uint64
+	genesisNodePrice                 *big.Int
+	unBondPeriod                     uint64
+	developerPercentage              float64
+	genesisTotalSupply               *big.Int
+	minInflation                     float64
+	minStep                          *big.Int
+	unJailPrice                      *big.Int
+	auctionEnableNonce               uint64
+	stakeEnableNonce                 uint64
+	numRoundsWithoutBleed            uint64
+	bleedPercentagePerRound          float64
+	maximumPercentageToBleed         float64
+	yearSettings                     map[uint32]*config.YearSetting
+	mutYearSettings                  sync.RWMutex
 }
 
 // NewEconomicsData will create and object with information about economics parameters
@@ -58,27 +58,27 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 	}
 
 	ed := &EconomicsData{
-		leaderPercentage:         economics.RewardsSettings.LeaderPercentage,
-		communityPercentage:      economics.RewardsSettings.CommunityPercentage,
-		communityAddress:         economics.RewardsSettings.CommunityAddress,
-		maxGasLimitPerBlock:      data.maxGasLimitPerBlock,
-		maxGasLimitPerMetaBlock:  data.maxGasLimitPerMetaBlock,
-		minGasPrice:              data.minGasPrice,
-		minGasLimit:              data.minGasLimit,
-		genesisNodePrice:         data.genesisNodePrice,
-		unBondPeriod:             data.unBondPeriod,
-		gasPerDataByte:           data.gasPerDataByte,
-		dataLimitForBaseCalc:     data.dataLimitForBaseCalc,
-		developerPercentage:      economics.RewardsSettings.DeveloperPercentage,
-		minInflation:             economics.GlobalSettings.MinimumInflation,
-		genesisTotalSupply:       data.genesisTotalSupply,
-		minStep:                  data.minStep,
-		auctionEnableNonce:       data.auctionEnableNonce,
-		stakeEnableNonce:         data.stakeEnableNonce,
-		numRoundsWithoutBleed:    data.numRoundsWithoutBleed,
-		bleedPercentagePerRound:  data.bleedPercentagePerRound,
-		maximumPercentageToBleed: data.maximumPercentageToBleed,
-		unJailPrice:              data.unJailPrice,
+		leaderPercentage:                 economics.RewardsSettings.LeaderPercentage,
+		protocolSustainabilityPercentage: economics.RewardsSettings.ProtocolSustainabilityPercentage,
+		protocolSustainabilityAddress:    economics.RewardsSettings.ProtocolSustainabilityAddress,
+		maxGasLimitPerBlock:              data.maxGasLimitPerBlock,
+		maxGasLimitPerMetaBlock:          data.maxGasLimitPerMetaBlock,
+		minGasPrice:                      data.minGasPrice,
+		minGasLimit:                      data.minGasLimit,
+		genesisNodePrice:                 data.genesisNodePrice,
+		unBondPeriod:                     data.unBondPeriod,
+		gasPerDataByte:                   data.gasPerDataByte,
+		dataLimitForBaseCalc:             data.dataLimitForBaseCalc,
+		developerPercentage:              economics.RewardsSettings.DeveloperPercentage,
+		minInflation:                     economics.GlobalSettings.MinimumInflation,
+		genesisTotalSupply:               data.genesisTotalSupply,
+		minStep:                          data.minStep,
+		auctionEnableNonce:               data.auctionEnableNonce,
+		stakeEnableNonce:                 data.stakeEnableNonce,
+		numRoundsWithoutBleed:            data.numRoundsWithoutBleed,
+		bleedPercentagePerRound:          data.bleedPercentagePerRound,
+		maximumPercentageToBleed:         data.maximumPercentageToBleed,
+		unJailPrice:                      data.unJailPrice,
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
@@ -203,7 +203,7 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 func checkValues(economics *config.EconomicsConfig) error {
 	if isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.CommunityPercentage) ||
+		isPercentageInvalid(economics.RewardsSettings.ProtocolSustainabilityPercentage) ||
 		isPercentageInvalid(economics.GlobalSettings.MinimumInflation) {
 		return process.ErrInvalidRewardsPercentages
 	}
@@ -214,8 +214,8 @@ func checkValues(economics *config.EconomicsConfig) error {
 		}
 	}
 
-	if len(economics.RewardsSettings.CommunityAddress) == 0 {
-		return process.ErrNilCommunityAddress
+	if len(economics.RewardsSettings.ProtocolSustainabilityAddress) == 0 {
+		return process.ErrNilProtocolSustainabilityAddress
 	}
 
 	return nil
@@ -320,14 +320,14 @@ func (ed *EconomicsData) DeveloperPercentage() float64 {
 	return ed.developerPercentage
 }
 
-// CommunityPercentage will return the community percentage value
-func (ed *EconomicsData) CommunityPercentage() float64 {
-	return ed.communityPercentage
+// ProtocolSustainabilityPercentage will return the protocol sustainability percentage value
+func (ed *EconomicsData) ProtocolSustainabilityPercentage() float64 {
+	return ed.protocolSustainabilityPercentage
 }
 
-// CommunityAddress will return the community address
-func (ed *EconomicsData) CommunityAddress() string {
-	return ed.communityAddress
+// ProtocolSustainabilityAddress will return the protocol sustainability address
+func (ed *EconomicsData) ProtocolSustainabilityAddress() string {
+	return ed.protocolSustainabilityAddress
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed
