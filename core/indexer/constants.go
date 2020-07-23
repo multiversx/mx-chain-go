@@ -12,6 +12,7 @@ const maxNumberOfDocumentsGet = 5000
 const txIndex = "transactions"
 const txPolicy = "transactions_policy"
 const blockIndex = "blocks"
+const blockPolicy = "blocks_policy"
 const miniblocksIndex = "miniblocks"
 const tpsIndex = "tps"
 const validatorsIndex = "validators"

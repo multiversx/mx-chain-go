@@ -1,21 +1,25 @@
 package indexer
 
 import (
+	"bytes"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
 type elasticIndexer struct {
 	*txDatabaseProcessor
 
 	dataNodesCount uint32
-
 	elasticClient  *elasticClient
-	firehoseClient *firehoseClient
 }
 
 // NewElasticIndexer creates an elasticsearch es and handles saving
@@ -27,16 +31,8 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (ElasticIndexer, error) {
 		return nil, err
 	}
 
-	fc, err := newFirehoseClient(&firehoseConfig{
-		Region: awsRegion,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	ei := &elasticIndexer{
 		elasticClient: ec,
-		firehoseClient: fc,
 	}
 
 	ei.txDatabaseProcessor = newTxDatabaseProcessor(
@@ -62,12 +58,48 @@ func (ei *elasticIndexer) SaveHeader(
 	notarizedHeadersHashes []string,
 	txsSize int,
 ) {
+	var buff bytes.Buffer
 
+	serializedBlock, headerHash := ei.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
+
+	buff.Grow(len(serializedBlock))
+	_, err := buff.Write(serializedBlock)
+	if err != nil {
+		log.Warn("elastic search: save header, write", "error", err.Error())
+	}
+
+	req := &esapi.IndexRequest{
+		Index:      blockIndex,
+		DocumentID: hex.EncodeToString(headerHash),
+		Body:       bytes.NewReader(buff.Bytes()),
+		Refresh:    "true",
+	}
+
+	err = ei.elasticClient.DoRequest(req)
+	if err != nil {
+		log.Warn("indexer: could not index block header", "error", err.Error())
+		return
+	}
 }
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
-func (ei *elasticIndexer) SaveMiniblocks(header data.HeaderHandler, body *block.Body) {
+func (ei *elasticIndexer) SaveMiniblocks(header data.HeaderHandler, body *block.Body) map[string]bool {
+	miniblocks := ei.getMiniblocks(header, body)
+	if miniblocks == nil {
+		log.Warn("indexer: could not index miniblocks")
+		return make(map[string]bool)
+	}
+	if len(miniblocks) == 0 {
+		return make(map[string]bool)
+	}
 
+	buff, mbHashDb := serializeBulkMiniBlocks(header.GetShardID(), miniblocks, ei.foundedObjMap)
+	err := ei.elasticClient.DoBulkRequest(&buff, miniblocksIndex)
+	if err != nil {
+		log.Warn("indexing bulk of miniblocks", "error", err.Error())
+	}
+
+	return mbHashDb
 }
 
 // SaveTransactions will prepare and save information about a transactions in elasticsearch server
@@ -76,23 +108,28 @@ func (ei *elasticIndexer) SaveTransactions(
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
 	selfShardID uint32,
+    mbsInDb map[string]bool,
 ) {
 	txs := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
-	buffSlice := serializeTransactions(txs, selfShardID, ei.foundedObjMap)
+	buffSlice := serializeTransactions(txs, selfShardID, ei.foundedObjMap, mbsInDb)
 
 	for idx := range buffSlice {
-		ei.firehoseClient.PutBulkRecord(&buffSlice[idx])
-		//err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], txIndex)
-		//if err != nil {
-		//	log.Warn("indexer indexing bulk of transactions",
-		//		"error", err.Error())
-		//	continue
-		//}
+		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], txIndex)
+		if err != nil {
+			log.Warn("indexer indexing bulk of transactions",
+				"error", err.Error())
+			continue
+		}
 	}
 }
 
 func (ei *elasticIndexer) init(arguments ElasticIndexerArgs) error {
 	err := ei.setDataNodesCount()
+	if err != nil {
+		return err
+	}
+
+	err = ei.createOpenDistroTemplates(arguments.IndexTemplates)
 	if err != nil {
 		return err
 	}
@@ -112,14 +149,38 @@ func (ei *elasticIndexer) init(arguments ElasticIndexerArgs) error {
 		return err
 	}
 
+	err = ei.setInitialAliases()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (ei *elasticIndexer) createIndexPolicies(indexPolicies map[string]io.Reader) error {
 	txp := getTemplateByName(txPolicy, indexPolicies)
-
 	if txp != nil {
 		err := ei.elasticClient.CheckAndCreatePolicy(txPolicy, txp)
+		if err != nil {
+			return err
+		}
+	}
+
+	blockp := getTemplateByName(blockPolicy, indexPolicies)
+	if blockp != nil {
+		err := ei.elasticClient.CheckAndCreatePolicy(blockPolicy, blockp)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ei *elasticIndexer) createOpenDistroTemplates(indexTemplates map[string]io.Reader) error {
+	opendistroTemplate := getTemplateByName("opendistro", indexTemplates)
+	if opendistroTemplate != nil {
+		err := ei.elasticClient.CheckAndCreateTemplate("opendistro", opendistroTemplate)
 		if err != nil {
 			return err
 		}
@@ -129,18 +190,25 @@ func (ei *elasticIndexer) createIndexPolicies(indexPolicies map[string]io.Reader
 }
 
 func (ei *elasticIndexer) createIndexTemplates(indexTemplates map[string]io.Reader) error {
-	opendistroTemplate := getTemplateByName("opendistro", indexTemplates)
-	if opendistroTemplate != nil {
-		err := ei.elasticClient.CheckAndCreateTemplate("opendistro", opendistroTemplate)
+	txTemplate := getTemplateByName(txIndex, indexTemplates)
+	if txTemplate != nil {
+		err := ei.elasticClient.CheckAndCreateTemplate(txIndex, txTemplate)
 		if err != nil {
 			return err
 		}
 	}
 
-	txTemplate := getTemplateByName(txIndex, indexTemplates)
+	blocksTemplate := getTemplateByName(blockIndex, indexTemplates)
+	if blocksTemplate != nil {
+		err := ei.elasticClient.CheckAndCreateTemplate(blockIndex, blocksTemplate)
+		if err != nil {
+			return err
+		}
+	}
 
-	if txTemplate != nil {
-		err := ei.elasticClient.CheckAndCreateTemplate(txIndex, txTemplate)
+	miniblocksTemplate := getTemplateByName(miniblocksIndex, indexTemplates)
+	if miniblocksTemplate != nil {
+		err := ei.elasticClient.CheckAndCreateTemplate(miniblocksIndex, miniblocksTemplate)
 		if err != nil {
 			return err
 		}
@@ -156,6 +224,40 @@ func (ei *elasticIndexer) createIndexes() error {
 		return err
 	}
 
+	firstBlocksIndexName :=  fmt.Sprintf("%s-000001", blockIndex)
+	err = ei.elasticClient.CheckAndCreateIndex(firstBlocksIndexName)
+	if err != nil {
+		return err
+	}
+
+	firstMiniBlocksIndexName :=  fmt.Sprintf("%s-000001", miniblocksIndex)
+	err = ei.elasticClient.CheckAndCreateIndex(firstMiniBlocksIndexName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ei *elasticIndexer) setInitialAliases() error {
+	firstTxIndexName := fmt.Sprintf("%s-000001", txIndex)
+	err := ei.elasticClient.CheckAndCreateAlias(txIndex, firstTxIndexName)
+	if err != nil {
+		return err
+	}
+
+	firstBlocksIndexName :=  fmt.Sprintf("%s-000001", blockIndex)
+	err = ei.elasticClient.CheckAndCreateAlias(blockIndex, firstBlocksIndexName)
+	if err != nil {
+		return err
+	}
+
+	firstMiniBlocksIndexName :=  fmt.Sprintf("%s-000001", miniblocksIndex)
+	err = ei.elasticClient.CheckAndCreateAlias(miniblocksIndex, firstMiniBlocksIndexName)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -166,7 +268,7 @@ func (ei *elasticIndexer) setDataNodesCount() error {
 	}
 
 	decRes := &elasticNodesInfo{}
-	err = ei.elasticClient.parseResponse(infoRes, decRes)
+	err = ei.elasticClient.parseResponse(infoRes, decRes, ei.elasticClient.elasticDefaultErrorResponseHandler)
 	if err != nil {
 		return err
 	}
@@ -188,7 +290,121 @@ func (ei *elasticIndexer) setDataNodesCountFromESResponse(eni *elasticNodesInfo)
 }
 
 func (ei *elasticIndexer) foundedObjMap(hashes []string, index string) (map[string]bool, error) {
-	return nil, nil
+	if len(hashes) == 0 {
+		return make(map[string]bool), nil
+	}
+
+	response, err := ei.elasticClient.DoMultiGet(getDocumentsByIDsQuery(hashes), index)
+	if err != nil {
+		return nil, err
+	}
+
+	return getDecodedResponseMultiGet(response), nil
+}
+
+func (ei *elasticIndexer) getMiniblocks(header data.HeaderHandler, body *block.Body) []*Miniblock {
+	headerHash, err := core.CalculateHash(ei.marshalizer, ei.hasher, header)
+	if err != nil {
+		log.Warn("indexer: could not calculate header hash", "error", err.Error())
+		return nil
+	}
+
+	encodedHeaderHash := hex.EncodeToString(headerHash)
+
+	miniblocks := make([]*Miniblock, 0)
+	for _, miniblock := range body.MiniBlocks {
+		mbHash, errComputeHash := core.CalculateHash(ei.marshalizer, ei.hasher, miniblock)
+		if errComputeHash != nil {
+			log.Warn("internal error computing hash", "error", errComputeHash)
+
+			continue
+		}
+
+		encodedMbHash := hex.EncodeToString(mbHash)
+
+		mb := &Miniblock{
+			Hash:            encodedMbHash,
+			SenderShardID:   miniblock.SenderShardID,
+			ReceiverShardID: miniblock.ReceiverShardID,
+			Type:            miniblock.Type.String(),
+		}
+
+		if mb.SenderShardID == header.GetShardID() {
+			mb.SenderBlockHash = encodedHeaderHash
+		} else {
+			mb.ReceiverBlockHash = encodedHeaderHash
+		}
+
+		if mb.SenderShardID == mb.ReceiverShardID {
+			mb.ReceiverBlockHash = encodedHeaderHash
+		}
+
+		miniblocks = append(miniblocks, mb)
+	}
+
+	return miniblocks
+}
+
+func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(
+	header data.HeaderHandler,
+	signersIndexes []uint64,
+	body *block.Body,
+	notarizedHeadersHashes []string,
+	sizeTxs int,
+) ([]byte, []byte) {
+	headerBytes, err := ei.marshalizer.Marshal(header)
+	if err != nil {
+		log.Debug("indexer: marshal header", "error", err)
+		return nil, nil
+	}
+	bodyBytes, err := ei.marshalizer.Marshal(body)
+	if err != nil {
+		log.Debug("indexer: marshal body", "error", err)
+		return nil, nil
+	}
+
+	blockSizeInBytes := len(headerBytes) + len(bodyBytes)
+
+	miniblocksHashes := make([]string, 0)
+	for _, miniblock := range body.MiniBlocks {
+		mbHash, errComputeHash := core.CalculateHash(ei.marshalizer, ei.hasher, miniblock)
+		if errComputeHash != nil {
+			log.Warn("internal error computing hash", "error", errComputeHash)
+
+			continue
+		}
+
+		encodedMbHash := hex.EncodeToString(mbHash)
+		miniblocksHashes = append(miniblocksHashes, encodedMbHash)
+	}
+
+	headerHash := ei.hasher.Compute(string(headerBytes))
+	elasticBlock := Block{
+		Nonce:                 header.GetNonce(),
+		Round:                 header.GetRound(),
+		Epoch:                 header.GetEpoch(),
+		ShardID:               header.GetShardID(),
+		Hash:                  hex.EncodeToString(headerHash),
+		MiniBlocksHashes:      miniblocksHashes,
+		NotarizedBlocksHashes: notarizedHeadersHashes,
+		Proposer:              signersIndexes[0],
+		Validators:            signersIndexes,
+		PubKeyBitmap:          hex.EncodeToString(header.GetPubKeysBitmap()),
+		Size:                  int64(blockSizeInBytes),
+		SizeTxs:               int64(sizeTxs),
+		Timestamp:             time.Duration(header.GetTimeStamp()),
+		TxCount:               header.GetTxCount(),
+		StateRootHash:         hex.EncodeToString(header.GetRootHash()),
+		PrevHash:              hex.EncodeToString(header.GetPrevHash()),
+	}
+
+	serializedBlock, err := json.Marshal(elasticBlock)
+	if err != nil {
+		log.Debug("indexer: marshal", "error", "could not marshal elastic header")
+		return nil, nil
+	}
+
+	return serializedBlock, headerHash
 }
 
 func getTemplateByName(templateName string, templateList map[string]io.Reader) io.Reader {

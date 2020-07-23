@@ -1,18 +1,13 @@
 package indexer
 
 import (
-	"io"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.GetOrCreate("core/indexer")
@@ -20,23 +15,6 @@ var log = logger.GetOrCreate("core/indexer")
 // Options structure holds the indexer's configuration options
 type Options struct {
 	TxIndexingEnabled bool
-}
-
-//ElasticIndexerArgs is struct that is used to store all components that are needed to create a indexer
-type ElasticIndexerArgs struct {
-	ShardId                  uint32
-	Url                      string
-	UserName                 string
-	Password                 string
-	Marshalizer              marshal.Marshalizer
-	Hasher                   hashing.Hasher
-	EpochStartNotifier       sharding.EpochStartEventNotifier
-	NodesCoordinator         sharding.NodesCoordinator
-	AddressPubkeyConverter   core.PubkeyConverter
-	ValidatorPubkeyConverter core.PubkeyConverter
-	IndexTemplates           map[string]io.Reader
-	IndexPolicies            map[string]io.Reader
-	Options                  *Options
 }
 
 type dataDispatcher struct {
@@ -89,10 +67,9 @@ func (d *dataDispatcher) SaveBlock(
 		return
 	}
 
-	d.elasticIndexer.SaveMiniblocks(headerHandler, body)
-
+	mbsInDb := d.elasticIndexer.SaveMiniblocks(headerHandler, body)
 	if d.options.TxIndexingEnabled {
-		d.elasticIndexer.SaveTransactions(body, headerHandler, txPool, headerHandler.GetShardID())
+		d.elasticIndexer.SaveTransactions(body, headerHandler, txPool, headerHandler.GetShardID(), mbsInDb)
 	}
 }
 

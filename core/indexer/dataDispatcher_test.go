@@ -1,7 +1,6 @@
 package indexer
 
 import (
-	"context"
 	"crypto/rand"
 	"fmt"
 	"io"
@@ -16,22 +15,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/firehose"
 )
 
 func TestDataDispatcher(t *testing.T) {
+	t.Skip("this is not a short test")
 	indexTemplates := make(map[string]io.Reader)
 	indexPolicies  := make(map[string]io.Reader)
 	opendistroTemplate, _ := core.OpenFile("./testdata/opendistro.json")
 	indexTemplates["opendistro"] = opendistroTemplate
 	transactionsTemplate, _ := core.OpenFile("./testdata/transactions.json")
 	indexTemplates["transactions"] = transactionsTemplate
+	blocksTemplate, _ := core.OpenFile("./testdata/blocks.json")
+	indexTemplates["blocks"] = blocksTemplate
+	miniblocksTemplate, _ := core.OpenFile("./testdata/miniblocks.json")
+	indexTemplates["miniblocks"] = miniblocksTemplate
 	transactionsPolicy, _ := core.OpenFile("./testdata/transactions_policy.json")
 	indexPolicies["transactions_policy"] = transactionsPolicy
+	blocksPolicy, _ := core.OpenFile("./testdata/blocks_policy.json")
+	indexPolicies["blocks_policy"] = blocksPolicy
 
 	dispatcher, err := NewDataDispatcher(ElasticIndexerArgs{
 		Url: "https://search-corcotest-cbtcxoexobkqz4guopvhb64yta.us-east-1.es.amazonaws.com",
@@ -51,13 +52,16 @@ func TestDataDispatcher(t *testing.T) {
 	// Generate transaction and hashes
 	numTransactions := 1
 	dataSize := 1000
-	for i := 0; i < 1000; i++ {
+	signers := []uint64{395,207,16,99,358,292,258,362,161,247,1,137,91,309,30,92,166,361,158,301,218,80,108,392,153,343,110,133,351,316,5,305,248,123,327,322,97,86,215,212,289,250,229,13,237,20,269,37,243,29,236,155,338,257,375,142,129,93,234,195,377,311,170}
+	for i := 0; i < 100; i++ {
 		if i > 0 && i%20 == 0 {
 			time.Sleep(time.Second*30)
 		}
 		txs, hashes := generateTransactions(numTransactions, dataSize)
 
-		header := &dataBlock.Header{}
+		header := &dataBlock.Header{
+			Nonce: uint64(i),
+		}
 		txsPool := make(map[string]data.TransactionHandler)
 		for j := 0; j < numTransactions; j++ {
 			txsPool[hashes[j]] = &txs[j]
@@ -79,23 +83,7 @@ func TestDataDispatcher(t *testing.T) {
 		body.MiniBlocks[0].ReceiverShardID = 2
 		body.MiniBlocks[0].SenderShardID = 1
 
-		dispatcher.SaveBlock(body, header, txsPool, nil, nil)
-	}
-}
-
-func TestKinesis(t *testing.T) {
-	ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelFn()
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(endpoints.UsEast1RegionID),
-	}))
-	f := firehose.New(sess)
-	params := &firehose.ListDeliveryStreamsInput{}
-	_, err := f.ListDeliveryStreamsWithContext(ctx, params, func(r *request.Request) {
-		r.Handlers.Validate.RemoveByName("core.ValidateParametersHandler")
-	})
-	if err != nil {
-		t.Errorf("expect no error, got %v", err)
+		dispatcher.SaveBlock(body, header, txsPool, signers, []string{"aaaaa", "bbbb"})
 	}
 }
 
