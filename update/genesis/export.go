@@ -69,10 +69,10 @@ func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
 		return nil, update.ErrEmptyExportFolderPath
 	}
 	if check.IfNil(args.AddressPubKeyConverter) {
-		return nil, fmt.Errorf("%w for address", sharding.ErrNilPubkeyConverter)
+		return nil, fmt.Errorf("%w for address", update.ErrNilPubKeyConverter)
 	}
 	if check.IfNil(args.ValidatorPubKeyConverter) {
-		return nil, fmt.Errorf("%w for validators", sharding.ErrNilPubkeyConverter)
+		return nil, fmt.Errorf("%w for validators", update.ErrNilPubKeyConverter)
 	}
 	if check.IfNil(args.GenesisNodesSetupHandler) {
 		return nil, update.ErrNilGenesisNodesSetupHandler
