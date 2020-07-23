@@ -714,6 +714,14 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.UserError
 }
 
+func (r *stakingSC) addToWaitingList(blsKey []byte) {
+
+}
+
+func (r *stakingSC) removeFromWaitingList(blsKey []byte) {
+
+}
+
 // IsInterfaceNil verifies if the underlying object is nil or not
 func (r *stakingSC) IsInterfaceNil() bool {
 	return r == nil
