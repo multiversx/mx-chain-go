@@ -71,6 +71,10 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	output = e.Execute(vmInput)
 
 	assert.Equal(t, vmcommon.Ok, output)
+
+	vmInput.Arguments[0] = []byte("01234567891&*@")
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
 }
 
 func TestEsdt_ExecuteInit(t *testing.T) {

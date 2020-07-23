@@ -236,7 +236,11 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	executedBuiltIn, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
-		return vmcommon.UserError, err
+		errIfError := sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
+		if errIfError != nil {
+			return vmcommon.UserError, errIfError
+		}
+		return vmcommon.UserError, process.ErrFailedTransaction
 	}
 	if executedBuiltIn {
 		return vmcommon.Ok, nil
