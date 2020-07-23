@@ -11,7 +11,7 @@ import (
 )
 
 // ------------ Test ManagedHeartbeatComponents --------------------
-func TestManagedHeartbeatComponentsComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+func TestManagedHeartbeatComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	heartbeatArgs := getDefaultHeartbeatComponents()
 	heartbeatArgs.Config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = 0
 	managedHeartbeatComponents, err := factory.NewManagedHeartbeatComponents(heartbeatArgs)
@@ -21,7 +21,7 @@ func TestManagedHeartbeatComponentsComponents_CreateWithInvalidArgs_ShouldErr(t 
 	require.Nil(t, managedHeartbeatComponents.Monitor())
 }
 
-func TestManagedHeartbeatComponentsComponents_Create_ShouldWork(t *testing.T) {
+func TestManagedHeartbeatComponents_Create_ShouldWork(t *testing.T) {
 	heartbeatArgs := getDefaultHeartbeatComponents()
 	managedHeartbeatComponents, err := factory.NewManagedHeartbeatComponents(heartbeatArgs)
 	require.NoError(t, err)
@@ -38,7 +38,7 @@ func TestManagedHeartbeatComponentsComponents_Create_ShouldWork(t *testing.T) {
 	require.NotNil(t, managedHeartbeatComponents.Storer())
 }
 
-func TestManagedHeartbeatComponentsComponents_Close(t *testing.T) {
+func TestManagedHeartbeatComponents_Close(t *testing.T) {
 	heartbeatArgs := getDefaultHeartbeatComponents()
 	managedHeartbeatComponents, _ := factory.NewManagedHeartbeatComponents(heartbeatArgs)
 	err := managedHeartbeatComponents.Create()
@@ -50,7 +50,7 @@ func TestManagedHeartbeatComponentsComponents_Close(t *testing.T) {
 }
 
 // ------------ Test HeartbeatComponents --------------------
-func TestHeartbeatComponentsComponents_Close_ShouldWork(t *testing.T) {
+func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	heartbeatArgs := getDefaultHeartbeatComponents()
