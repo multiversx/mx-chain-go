@@ -81,11 +81,14 @@ func TestNewStateExporter(t *testing.T) {
 		{
 			name: "Ok",
 			args: ArgsNewStateExporter{
-				Marshalizer:      &mock.MarshalizerMock{},
-				ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-				StateSyncer:      &mock.SyncStateStub{},
-				HardforkStorer:   &mock.HardforkStorerStub{},
-				Hasher:           &mock.HasherStub{},
+				Marshalizer:              &mock.MarshalizerMock{},
+				ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
+				StateSyncer:              &mock.SyncStateStub{},
+				HardforkStorer:           &mock.HardforkStorerStub{},
+				Hasher:                   &mock.HasherStub{},
+				AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
+				ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+				ExportFolder:             "test",
 			},
 			exError: nil,
 		},
@@ -149,11 +152,14 @@ func TestExportAll(t *testing.T) {
 	}
 
 	args := ArgsNewStateExporter{
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		Marshalizer:      &mock.MarshalizerMock{},
-		StateSyncer:      stateSyncer,
-		HardforkStorer:   hs,
-		Hasher:           &mock.HasherMock{},
+		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
+		Marshalizer:              &mock.MarshalizerMock{},
+		StateSyncer:              stateSyncer,
+		HardforkStorer:           hs,
+		Hasher:                   &mock.HasherMock{},
+		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
+		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+		ExportFolder:             "test",
 	}
 
 	stateExporter, _ := NewStateExporter(args)
@@ -170,7 +176,7 @@ func TestExportAll(t *testing.T) {
 func TestStateExport_ExportTrie(t *testing.T) {
 	t.Parallel()
 
-	testFolderName := "testFiles"
+	testFolderName := "testFilesExportNodes"
 	_ = os.Mkdir(testFolderName, 0777)
 
 	defer func() {
