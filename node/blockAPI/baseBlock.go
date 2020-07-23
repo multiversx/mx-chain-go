@@ -77,6 +77,7 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 				"error", err.Error())
 			continue
 		}
+		tx.Hash = hex.EncodeToString([]byte(txHash))
 
 		txs = append(txs, tx)
 	}

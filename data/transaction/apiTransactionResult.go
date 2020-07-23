@@ -5,6 +5,7 @@ import "github.com/ElrondNetwork/elrond-go/core"
 // ApiTransactionResult is the data transfer object which will be returned on the get transaction by hash endpoint
 type ApiTransactionResult struct {
 	Type       string                 `json:"type"`
+	Hash       string                 `json:"hash,omitempty"`
 	Nonce      uint64                 `json:"nonce,omitempty"`
 	Round      uint64                 `json:"round,omitempty"`
 	Epoch      uint32                 `json:"epoch,omitempty"`
