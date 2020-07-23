@@ -64,7 +64,7 @@ func NewStakingSmartContract(
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
 	}
-	if args.StakingSCConfig.WaitingNodesPercentage < 0 {
+	if args.StakingSCConfig.MaxNumberOfNodesForStake < 0 {
 		return nil, vm.ErrNegativeWaitingNodesPercentage
 	}
 	if args.StakingSCConfig.BleedPercentagePerRound < 0 {
@@ -72,6 +72,9 @@ func NewStakingSmartContract(
 	}
 	if args.StakingSCConfig.MaximumPercentageToBleed < 0 {
 		return nil, vm.ErrNegativeMaximumPercentageToBleed
+	}
+	if args.MinNumNodes > args.StakingSCConfig.MaxNumberOfNodesForStake {
+		return nil, vm.ErrInvalidMaxNumberOfNodes
 	}
 
 	reg := &stakingSC{
@@ -84,6 +87,7 @@ func NewStakingSmartContract(
 		maximumPercentageToBleed: args.StakingSCConfig.MaximumPercentageToBleed,
 		gasCost:                  args.GasCost,
 		minNumNodes:              args.MinNumNodes,
+		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:              args.Marshalizer,
 	}
 	ok := true
@@ -92,8 +96,6 @@ func NewStakingSmartContract(
 	if !ok || reg.stakeValue.Cmp(zero) < 0 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
-
-	reg.maxNumNodes = reg.minNumNodes + uint64(float64(reg.minNumNodes)*args.StakingSCConfig.WaitingNodesPercentage)
 
 	return reg, nil
 }

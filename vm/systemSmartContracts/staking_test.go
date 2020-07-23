@@ -37,7 +37,8 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 			NumRoundsWithoutBleed:                0,
 			MaximumPercentageToBleed:             0,
 			BleedPercentagePerRound:              0,
-			WaitingNodesPercentage:               1,
+			MaxNumberOfNodesForStake:             10,
+			NodesToSelectInAuction:               100,
 			ActivateBLSPubKeyMessageVerification: false,
 		},
 	}

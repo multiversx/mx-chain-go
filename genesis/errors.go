@@ -154,3 +154,6 @@ var ErrTooManyDNSContracts = errors.New("too many DNS contracts")
 
 // ErrSmartContractWasNotDeployed signals that smart contract was not deployed
 var ErrSmartContractWasNotDeployed = errors.New("smart contract was not deployed")
+
+// ErrBLSKeyNotStaked signals that bls staking was not successful
+var ErrBLSKeyNotStaked = errors.New("bls key not staked")

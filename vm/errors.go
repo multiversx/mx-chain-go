@@ -142,3 +142,6 @@ var ErrNegativeBleedPercentagePerRound = errors.New("negative bleed percentage p
 
 // ErrNegativeMaximumPercentageToBleed signals that negative maximum percentage to bleed has been provided
 var ErrNegativeMaximumPercentageToBleed = errors.New("negative maximum percentage to bleed")
+
+// ErrInvalidMaxNumberOfNodes signals that invalid number of max number of nodes has been provided
+var ErrInvalidMaxNumberOfNodes = errors.New("invalid number of max number of nodes")

@@ -19,7 +19,8 @@ type StakingSystemSCConfig struct {
 	NumRoundsWithoutBleed                uint64
 	MaximumPercentageToBleed             float64
 	BleedPercentagePerRound              float64
-	WaitingNodesPercentage               float64
+	MaxNumberOfNodesForStake             uint64
+	NodesToSelectInAuction               uint64
 	ActivateBLSPubKeyMessageVerification bool
 }
 

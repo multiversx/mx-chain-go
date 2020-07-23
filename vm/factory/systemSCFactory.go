@@ -129,8 +129,6 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 }
 
 func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, error) {
-	nodesToSelect := scf.nodesConfigProvider.MinNumberOfNodes() +
-		uint32(float64(scf.nodesConfigProvider.MinNumberOfNodes())*scf.systemSCConfig.StakingSystemSCConfig.WaitingNodesPercentage)
 	args := systemSmartContracts.ArgsStakingAuctionSmartContract{
 		Eei:                scf.systemEI,
 		SigVerifier:        scf.sigVerifier,
@@ -139,7 +137,7 @@ func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, err
 		AuctionSCAddress:   AuctionSCAddress,
 		GasCost:            scf.gasCost,
 		Marshalizer:        scf.marshalizer,
-		NumOfNodesToSelect: uint64(nodesToSelect),
+		NumOfNodesToSelect: scf.systemSCConfig.StakingSystemSCConfig.NodesToSelectInAuction,
 		GenesisTotalSupply: scf.economics.GenesisTotalSupply(),
 	}
 	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
