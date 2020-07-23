@@ -18,6 +18,10 @@ func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map
 	panic("implement me")
 }
 
+// RevertIndexedBlock -
+func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler) {
+}
+
 // SetTxLogsProcessor will do nothing
 func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 

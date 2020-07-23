@@ -19,6 +19,10 @@ func NewNilIndexer() *NilIndexer {
 func (ni *NilIndexer) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string) {
 }
 
+// RevertIndexedBlock will do nothing
+func (ni *NilIndexer) RevertIndexedBlock(_ data.HeaderHandler) {
+}
+
 // SetTxLogsProcessor will do nothing
 func (ni *NilIndexer) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }

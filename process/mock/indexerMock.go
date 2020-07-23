@@ -46,6 +46,10 @@ func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 	panic("implement me")
 }
 
+// RevertIndexedBlock -
+func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (im *IndexerMock) IsInterfaceNil() bool {
 	return im == nil

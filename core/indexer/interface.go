@@ -12,6 +12,7 @@ import (
 type Indexer interface {
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string)
+	RevertIndexedBlock(header data.HeaderHandler)
 	SaveRoundsInfos(roundsInfos []RoundInfo)
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)

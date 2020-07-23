@@ -1385,6 +1385,15 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	return nil
 }
 
+// RevertIndexedBlock -
+func (mp *metaProcessor) RevertIndexedBlock(header data.HeaderHandler) {
+	if mp.core == nil || mp.core.Indexer() == nil {
+		return
+	}
+
+	mp.core.Indexer().RevertIndexedBlock(header)
+}
+
 func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {
 	valueStoredI, ok := mp.shardsHeadersNonce.Load(key)
 	if !ok {

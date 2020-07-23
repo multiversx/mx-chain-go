@@ -339,6 +339,18 @@ func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	return nil
 }
 
+// RevertIndexedBlock should removed indexed info for reverted block
+func (sp *shardProcessor) RevertIndexedBlock(header data.HeaderHandler) {
+	if check.IfNil(sp.core) || check.IfNil(sp.core.Indexer()) {
+		return
+	}
+	if check.IfNil(header) {
+		return
+	}
+
+	sp.core.Indexer().RevertIndexedBlock(header)
+}
+
 func (sp *shardProcessor) checkEpochCorrectness(
 	header *block.Header,
 ) error {

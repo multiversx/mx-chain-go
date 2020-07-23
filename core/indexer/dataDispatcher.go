@@ -73,6 +73,11 @@ func (d *dataDispatcher) SaveBlock(
 	}
 }
 
+// RevertIndexedBlock -
+func (d *dataDispatcher) RevertIndexedBlock(header data.HeaderHandler) {
+	
+}
+
 // SaveRoundsInfos will save data about a slice of rounds on elasticsearch
 func (d *dataDispatcher) SaveRoundsInfos(roundsInfos []RoundInfo) {
 
