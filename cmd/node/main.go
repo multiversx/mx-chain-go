@@ -593,8 +593,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	exportFolder := filepath.Join(workingDir, generalConfig.Hardfork.ImportFolder)
 	nodesSetupPath := ctx.GlobalString(nodesFile.Name)
 	if generalConfig.Hardfork.AfterHardFork {
-		if core.DoesFileExist(filepath.Join(exportFolder, "nodesSetup.json")) {
-			nodesSetupPath = exportFolder
+		exportFolderNodesSetupPath := filepath.Join(exportFolder, core.NodesSetupJsonFileName)
+		if core.DoesFileExist(exportFolderNodesSetupPath) {
+			nodesSetupPath = exportFolderNodesSetupPath
 		}
 	}
 	genesisNodesConfig, err := sharding.NewNodesSetup(

@@ -220,8 +220,6 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	// no need to export validator account
-	// TODO: export validatorAccount trie to nodeSetup.json with all ratings
 	if accType == ValidatorAccount {
 		validatorData, err := getValidatorDataFromLeaves(leaves, se.shardCoordinator, se.marshalizer)
 		if err != nil {
@@ -360,7 +358,7 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 				initialNodes = append(initialNodes, &sharding.InitialNode{
 					PubKey:        se.validatorPubKeyConverter.Encode(validator.GetPublicKey()),
 					Address:       se.addressPubKeyConverter.Encode(validator.GetRewardAddress()),
-					InitialRating: validator.GetRating(),
+					InitialRating: validator.GetTempRating(),
 				})
 			}
 		}
@@ -386,7 +384,7 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(se.exportFolder, "nodesSetup.json"), nodesSetupBytes, 0755)
+	return ioutil.WriteFile(filepath.Join(se.exportFolder, core.NodesSetupJsonFileName), nodesSetupBytes, 0755)
 }
 
 // IsInterfaceNil returns true if underlying object is nil
