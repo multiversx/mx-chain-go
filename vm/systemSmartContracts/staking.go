@@ -714,12 +714,18 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.UserError
 }
 
+const waitingListKey = "waitingList"
+
 func (r *stakingSC) addToWaitingList(blsKey []byte) {
 
 }
 
 func (r *stakingSC) removeFromWaitingList(blsKey []byte) {
 
+}
+
+func (r *stakingSC) getFirstFromWaitingList() []byte {
+	return nil
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not
