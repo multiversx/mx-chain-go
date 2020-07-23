@@ -126,32 +126,32 @@ func (ei *elasticIndexer) SaveTransactions(
 func (ei *elasticIndexer) init(arguments ElasticIndexerArgs) error {
 	err := ei.setDataNodesCount()
 	if err != nil {
-		return err
+		return nil
 	}
 
 	err = ei.createOpenDistroTemplates(arguments.IndexTemplates)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	err = ei.createIndexPolicies(arguments.IndexPolicies)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	err = ei.createIndexTemplates(arguments.IndexTemplates)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	err = ei.createIndexes()
 	if err != nil {
-		return err
+		return nil
 	}
 
 	err = ei.setInitialAliases()
 	if err != nil {
-		return err
+		return nil
 	}
 
 	return nil
