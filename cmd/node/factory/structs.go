@@ -1264,6 +1264,8 @@ func newShardBlockProcessor(
 		TxLogsProcessor:  txLogsProcessor,
 		TxTypeHandler:    txTypeHandler,
 		DisableDeploy:    config.GeneralSettings.DisableDeploy,
+		DisableBuiltIn:   config.GeneralSettings.DisableBuiltInFunctions,
+		BadTxForwarder:   badTxInterim,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1493,6 +1495,11 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	badTxForwarder, err := interimProcContainer.Get(dataBlock.InvalidBlock)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
 		ShardCoordinator: shardCoordinator,
@@ -1530,6 +1537,7 @@ func newMetaBlockProcessor(
 		GasHandler:       gasHandler,
 		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  txLogsProcessor,
+		BadTxForwarder:   badTxForwarder,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
