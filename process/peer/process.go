@@ -832,6 +832,11 @@ func (vs *validatorStatistics) savePeerAccountData(
 	peerType core.PeerType,
 	index uint32,
 ) error {
+	//TODO : remove this log before merging or change it to a lower level
+	log.Debug("validatorStatistics - savePeerAccountData",
+		"pubkey", node.PubKeyBytes(),
+		"reward address", node.AddressBytes(),
+		"initial rating", node.GetInitialRating())
 	err := peerAccount.SetRewardAddress(node.AddressBytes())
 	if err != nil {
 		return err

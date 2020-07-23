@@ -329,7 +329,7 @@ func (ns *NodesSetup) MinNumberOfMetaNodes() uint32 {
 	return ns.MetaChainMinNodes
 }
 
-// GetHysteresis returns the value hysteresis value
+// GetHysteresis returns the hysteresis value
 func (ns *NodesSetup) GetHysteresis() float32 {
 	return ns.Hysteresis
 }

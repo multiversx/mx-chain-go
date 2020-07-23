@@ -358,7 +358,7 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 				initialNodes = append(initialNodes, &sharding.InitialNode{
 					PubKey:        se.validatorPubKeyConverter.Encode(validator.GetPublicKey()),
 					Address:       se.addressPubKeyConverter.Encode(validator.GetRewardAddress()),
-					InitialRating: validator.GetTempRating(),
+					InitialRating: validator.GetRating(),
 				})
 			}
 		}
