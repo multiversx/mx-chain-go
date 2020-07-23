@@ -196,6 +196,7 @@ type GeneralSettingsConfig struct {
 	MaxComputableRounds      uint64
 	StartInEpochEnabled      bool
 	DisableDeploy            bool
+	DisableBuiltInFunctions  bool
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade

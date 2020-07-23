@@ -236,6 +236,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		return nil, err
 	}
 
+	badTxForwarder, err := interimProcContainer.Get(block.InvalidBlock)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  arg.PubkeyConv,
 		ShardCoordinator: arg.ShardCoordinator,
@@ -270,6 +275,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		GasHandler:       gasHandler,
 		BuiltInFunctions: virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  arg.TxLogsProcessor,
+		BadTxForwarder:   badTxForwarder,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
