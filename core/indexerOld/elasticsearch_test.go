@@ -1,4 +1,4 @@
-package indexer_old_test
+package indexerOld_test
 
 import (
 	"bytes"

@@ -7,7 +7,7 @@ require (
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
 	github.com/ElrondNetwork/elrond-vm-common v0.1.21
-	github.com/aws/aws-sdk-go v1.33.5
+	github.com/aws/aws-sdk-go v1.33.5 // indirect
 	github.com/beevik/ntp v0.2.0
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d

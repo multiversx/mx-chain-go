@@ -1,4 +1,4 @@
-package indexer_old
+package indexerOld
 
 import (
 	"fmt"

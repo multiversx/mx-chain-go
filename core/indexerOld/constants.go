@@ -1,4 +1,4 @@
-package indexer_old
+package indexerOld
 
 const txsBulkSizeThreshold = 900000 // 0.9MB
 
