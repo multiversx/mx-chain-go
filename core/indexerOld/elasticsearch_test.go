@@ -11,7 +11,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexerOld"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
@@ -33,14 +33,14 @@ func newTestMetaBlock() *block.MetaBlock {
 	}
 }
 
-func NewElasticIndexerArguments() indexer_old.ElasticIndexerArgs {
-	return indexer_old.ElasticIndexerArgs{
+func NewElasticIndexerArguments() indexerOld.ElasticIndexerArgs {
+	return indexerOld.ElasticIndexerArgs{
 		Url:                      "url",
 		UserName:                 "user",
 		Password:                 "password",
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &mock.HasherMock{},
-		Options:                  &indexer_old.Options{},
+		Options:                  &indexerOld.Options{},
 		NodesCoordinator:         &mock.NodesCoordinatorMock{},
 		EpochStartNotifier:       &mock.EpochStartNotifierStub{},
 		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
@@ -52,7 +52,7 @@ func TestElasticIndexer_NewIndexerWithNilUrlShouldError(t *testing.T) {
 
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ""
-	ei, err := indexer_old.NewElasticIndexer(arguments)
+	ei, err := indexerOld.NewElasticIndexer(arguments)
 
 	require.Nil(t, ei)
 	require.Equal(t, core.ErrNilUrl, err)
@@ -61,7 +61,7 @@ func TestElasticIndexer_NewIndexerWithNilUrlShouldError(t *testing.T) {
 func TestElasticIndexer_NewIndexerWithNilMarsharlizerShouldError(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.Marshalizer = nil
-	ei, err := indexer_old.NewElasticIndexer(arguments)
+	ei, err := indexerOld.NewElasticIndexer(arguments)
 
 	require.Nil(t, ei)
 	require.Equal(t, core.ErrNilMarshalizer, err)
@@ -70,7 +70,7 @@ func TestElasticIndexer_NewIndexerWithNilMarsharlizerShouldError(t *testing.T) {
 func TestElasticIndexer_NewIndexerWithNilHasherShouldError(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.Hasher = nil
-	ei, err := indexer_old.NewElasticIndexer(arguments)
+	ei, err := indexerOld.NewElasticIndexer(arguments)
 
 	require.Nil(t, ei)
 	require.Equal(t, core.ErrNilHasher, err)
@@ -79,7 +79,7 @@ func TestElasticIndexer_NewIndexerWithNilHasherShouldError(t *testing.T) {
 func TestElasticIndexer_NewIndexerWithNilNodesCoordinatorShouldErr(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.NodesCoordinator = nil
-	ei, err := indexer_old.NewElasticIndexer(arguments)
+	ei, err := indexerOld.NewElasticIndexer(arguments)
 
 	require.Nil(t, ei)
 	require.Equal(t, core.ErrNilNodesCoordinator, err)
@@ -88,7 +88,7 @@ func TestElasticIndexer_NewIndexerWithNilNodesCoordinatorShouldErr(t *testing.T)
 func TestElasticIndexer_NewIndexerWithNilEpochStartNotifierShouldErr(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.EpochStartNotifier = nil
-	ei, err := indexer_old.NewElasticIndexer(arguments)
+	ei, err := indexerOld.NewElasticIndexer(arguments)
 
 	require.Nil(t, ei)
 	require.Equal(t, core.ErrNilEpochStartNotifier, err)
@@ -109,7 +109,7 @@ func TestElasticIndexer_NewIndexerWithCorrectParamsShouldWork(t *testing.T) {
 
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ts.URL
-	ei, err := indexer_old.NewElasticIndexer(arguments)
+	ei, err := indexerOld.NewElasticIndexer(arguments)
 	require.Nil(t, err)
 	require.False(t, check.IfNil(ei))
 	require.False(t, ei.IsNilIndexer())
@@ -120,7 +120,7 @@ func TestNewElasticIndexerIncorrectUrl(t *testing.T) {
 
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = url
-	ind, err := indexer_old.NewElasticIndexer(arguments)
+	ind, err := indexerOld.NewElasticIndexer(arguments)
 	require.Nil(t, ind)
 	require.NotNil(t, err)
 }
@@ -139,7 +139,7 @@ func TestElasticIndexer_UpdateTPS(t *testing.T) {
 		_ = logger.SetLogLevel("core/indexer:INFO")
 	}()
 
-	ei, err := indexer_old.NewElasticIndexer(arguments)
+	ei, err := indexerOld.NewElasticIndexer(arguments)
 	require.Nil(t, err)
 
 	tpsBench := mock.TpsBenchmarkMock{}
@@ -163,7 +163,7 @@ func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
 		_ = logger.SetLogLevel("core/indexer:INFO")
 	}()
 
-	ei, err := indexer_old.NewElasticIndexer(arguments)
+	ei, err := indexerOld.NewElasticIndexer(arguments)
 	require.Nil(t, err)
 
 	ei.UpdateTPS(nil)
@@ -178,7 +178,7 @@ func TestElasticIndexer_SaveBlockNilHeaderHandler(t *testing.T) {
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ts.URL
-	ei, _ := indexer_old.NewElasticIndexer(arguments)
+	ei, _ := indexerOld.NewElasticIndexer(arguments)
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
@@ -186,7 +186,7 @@ func TestElasticIndexer_SaveBlockNilHeaderHandler(t *testing.T) {
 	}()
 
 	ei.SaveBlock(&block.Body{MiniBlocks: []*block.MiniBlock{}}, nil, nil, nil, nil)
-	require.True(t, strings.Contains(output.String(), indexer_old.ErrNoHeader.Error()))
+	require.True(t, strings.Contains(output.String(), indexerOld.ErrNoHeader.Error()))
 }
 
 func TestElasticIndexer_SaveBlockNilBodyHandler(t *testing.T) {
@@ -197,7 +197,7 @@ func TestElasticIndexer_SaveBlockNilBodyHandler(t *testing.T) {
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ts.URL
-	ei, _ := indexer_old.NewElasticIndexer(arguments)
+	ei, _ := indexerOld.NewElasticIndexer(arguments)
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
@@ -205,7 +205,7 @@ func TestElasticIndexer_SaveBlockNilBodyHandler(t *testing.T) {
 	}()
 
 	ei.SaveBlock(nil, nil, nil, nil, nil)
-	require.True(t, strings.Contains(output.String(), indexer_old.ErrBodyTypeAssertion.Error()))
+	require.True(t, strings.Contains(output.String(), indexerOld.ErrBodyTypeAssertion.Error()))
 }
 
 func TestElasticIndexer_SaveRoundInfo(t *testing.T) {
@@ -217,14 +217,14 @@ func TestElasticIndexer_SaveRoundInfo(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
 	arguments.Url = ts.URL
-	ei, _ := indexer_old.NewElasticIndexer(arguments)
+	ei, _ := indexerOld.NewElasticIndexer(arguments)
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
 		_ = logger.SetLogLevel("core/indexer:INFO")
 	}()
 
-	ei.SaveRoundsInfos([]indexer_old.RoundInfo{})
+	ei.SaveRoundsInfos([]indexerOld.RoundInfo{})
 	require.Empty(t, output.String())
 }
 
@@ -237,7 +237,7 @@ func TestElasticIndexer_SaveValidatorsPubKeys(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ts.URL
 	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
-	ei, _ := indexer_old.NewElasticIndexer(arguments)
+	ei, _ := indexerOld.NewElasticIndexer(arguments)
 
 	valPubKey := make(map[uint32][][]byte)
 
@@ -284,7 +284,7 @@ func TestElasticIndexer_EpochChange(t *testing.T) {
 		},
 	}
 
-	ei, _ := indexer_old.NewElasticIndexer(arguments)
+	ei, _ := indexerOld.NewElasticIndexer(arguments)
 	assert.NotNil(t, ei)
 
 	epochChangeNotifier.NotifyAll(&block.Header{Nonce: 1, Epoch: testEpoch})
@@ -339,7 +339,7 @@ func TestElasticIndexer_EpochChangeValidators(t *testing.T) {
 		},
 	}
 
-	ei, _ := indexer_old.NewElasticIndexer(arguments)
+	ei, _ := indexerOld.NewElasticIndexer(arguments)
 	assert.NotNil(t, ei)
 
 	wg.Add(1)

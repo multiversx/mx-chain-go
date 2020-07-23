@@ -18,7 +18,7 @@ type subroundStartRound struct {
 	processingThresholdPercentage int
 	executeStoredMessages         func()
 
-	indexer indexer_old.Indexer
+	indexer indexer.Indexer
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
@@ -39,7 +39,7 @@ func NewSubroundStartRound(
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
 		executeStoredMessages:         executeStoredMessages,
-		indexer:                       indexer_old.NewNilIndexer(),
+		indexer:                       indexer.NewNilIndexer(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -65,7 +65,7 @@ func checkNewSubroundStartRoundParams(
 }
 
 // SetIndexer method set indexer
-func (sr *subroundStartRound) SetIndexer(indexer indexer_old.Indexer) {
+func (sr *subroundStartRound) SetIndexer(indexer indexer.Indexer) {
 	sr.indexer = indexer
 }
 
@@ -216,7 +216,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 	round := sr.Rounder().Index()
 
-	roundInfo := indexer_old.RoundInfo{
+	roundInfo := indexer.RoundInfo{
 		Index:            uint64(round),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -224,7 +224,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
 	}
 
-	go sr.indexer.SaveRoundsInfos([]indexer_old.RoundInfo{roundInfo})
+	go sr.indexer.SaveRoundsInfos([]indexer.RoundInfo{roundInfo})
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

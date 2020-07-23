@@ -18,7 +18,7 @@ type factory struct {
 	worker         spos.WorkerHandler
 
 	appStatusHandler core.AppStatusHandler
-	indexer          indexer_old.Indexer
+	indexer          indexer.Indexer
 	chainID          []byte
 	currentPid       core.PeerID
 }
@@ -87,7 +87,7 @@ func (fct *factory) SetAppStatusHandler(ash core.AppStatusHandler) error {
 }
 
 // SetIndexer method will update the value of the factory's indexer
-func (fct *factory) SetIndexer(indexer indexer_old.Indexer) {
+func (fct *factory) SetIndexer(indexer indexer.Indexer) {
 	fct.indexer = indexer
 }
 

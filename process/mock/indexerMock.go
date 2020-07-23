@@ -24,7 +24,7 @@ func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatab
 }
 
 // SaveValidatorsRating --
-func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexer_old.ValidatorRatingInfo) {
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexer.ValidatorRatingInfo) {
 
 }
 
@@ -38,7 +38,7 @@ func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveRoundsInfos -
-func (im *IndexerMock) SaveRoundsInfos(_ []indexer_old.RoundInfo) {
+func (im *IndexerMock) SaveRoundsInfos(_ []indexer.RoundInfo) {
 }
 
 // SaveValidatorsPubKeys -

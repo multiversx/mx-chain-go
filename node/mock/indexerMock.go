@@ -28,12 +28,12 @@ func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveRoundsInfos -
-func (im *IndexerMock) SaveRoundsInfos(_ []indexer_old.RoundInfo) {
+func (im *IndexerMock) SaveRoundsInfos(_ []indexer.RoundInfo) {
 	panic("implement me")
 }
 
 // SaveValidatorsRating --
-func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexer_old.ValidatorRatingInfo) {
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexer.ValidatorRatingInfo) {
 
 }
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -198,7 +199,7 @@ func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.
 		Code:          string(sc.Code),
 		Data:          decodedData,
 		PreTxHash:     hex.EncodeToString(sc.PrevTxHash),
-		CallType:      string(sc.CallType),
+		CallType:      strconv.Itoa(int(sc.CallType)),
 		CodeMetadata:  string(sc.CodeMetadata),
 		ReturnMessage: string(sc.ReturnMessage),
 	}
@@ -350,34 +351,13 @@ func serializeTransactions(
 	return buffSlice
 }
 
-
-func buildBulksOfHashes(hashes []string) [][]string {
-	bulks := make([][]string, (len(hashes)/maxNumberOfDocumentsGet)+1)
-	for i := 0; i < len(bulks); i++ {
-		if i == len(bulks)-1 {
-			bulks[i] = append(bulks[i], hashes[i*maxNumberOfDocumentsGet:]...)
-			continue
-		}
-
-		bulks[i] = append(bulks[i], hashes[i*maxNumberOfDocumentsGet:(i+1)*maxNumberOfDocumentsGet]...)
-	}
-
-	return bulks
-}
-
-func mergeMaps(m1, m2 map[string]bool) {
-	for key, value := range m2 {
-		m1[key] = value
-	}
-}
-
 func prepareSerializedDataForATransaction(
 	tx *Transaction,
 	selfShardID uint32,
-	existsInDb bool,
+	isMBOfTxInDB bool,
 ) (meta []byte, serializedData []byte) {
 	var err error
-	if existsInDb {
+	if isMBOfTxInDB {
 		if !isCrossShardDstMe(tx, selfShardID) || tx.Status == txStatusInvalid {
 			return
 		}

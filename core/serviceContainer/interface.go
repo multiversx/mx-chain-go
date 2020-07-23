@@ -8,7 +8,7 @@ import (
 // Core interface will abstract all the subpackage functionalities and will
 //  provide access to it's members where needed
 type Core interface {
-	Indexer() indexer_old.Indexer
+	Indexer() indexer.Indexer
 	TPSBenchmark() statistics.TPSBenchmark
 	IsInterfaceNil() bool
 }

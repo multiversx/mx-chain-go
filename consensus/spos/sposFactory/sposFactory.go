@@ -21,7 +21,7 @@ func GetSubroundsFactory(
 	worker spos.WorkerHandler,
 	consensusType string,
 	appStatusHandler core.AppStatusHandler,
-	indexer indexer_old.Indexer,
+	indexer indexer.Indexer,
 	chainID []byte,
 	currentPid core.PeerID,
 ) (spos.SubroundsFactory, error) {

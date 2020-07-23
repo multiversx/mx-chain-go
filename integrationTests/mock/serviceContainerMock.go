@@ -7,12 +7,12 @@ import (
 
 // ServiceContainerMock is a mock implementation of the Core interface
 type ServiceContainerMock struct {
-	IndexerCalled      func() indexer_old.Indexer
+	IndexerCalled      func() indexer.Indexer
 	TPSBenchmarkCalled func() statistics.TPSBenchmark
 }
 
 // Indexer returns a mock implementation for core.Indexer
-func (scm *ServiceContainerMock) Indexer() indexer_old.Indexer {
+func (scm *ServiceContainerMock) Indexer() indexer.Indexer {
 	if scm.IndexerCalled != nil {
 		return scm.IndexerCalled()
 	}
