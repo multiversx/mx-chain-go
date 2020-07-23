@@ -66,7 +66,8 @@ func getValueForKey(dataFromResponse interface{}, key string) string {
 		return ""
 	}
 
-	if valueI, ok := dataMap[key]; ok {
+	valueI, okCast := dataMap[key]
+	if okCast {
 		return fmt.Sprintf("%v", valueI)
 	}
 	return ""
@@ -289,7 +290,7 @@ func startNodeServer(handler address.FacadeHandler) *gin.Engine {
 	ws.Use(cors.Default())
 	addressRoutes := ws.Group("/address")
 	if handler != nil {
-		addressRoutes.Use(middleware.WithElrondFacade(handler))
+		addressRoutes.Use(middleware.WithTestingElrondFacade(handler))
 	}
 	addressRoute, _ := wrapper.NewRouterWrapper("address", addressRoutes, getRoutesConfig())
 	address.Routes(addressRoute)

@@ -69,6 +69,11 @@ func (cdb *countingDB) GetCounter() int {
 	return cdb.nrOfPut
 }
 
+// RangeKeys will call the handler on all (key, value) pairs
+func (cdb *countingDB) RangeKeys(handler func(key []byte, value []byte) bool) {
+	cdb.db.RangeKeys(handler)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (cdb *countingDB) IsInterfaceNil() bool {
 	return cdb == nil

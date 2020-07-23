@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
@@ -20,6 +21,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 )
@@ -57,6 +60,7 @@ type cryptoComponents struct {
 	txSingleSigner      crypto.SingleSigner
 	blockSingleSigner   crypto.SingleSigner
 	multiSigner         crypto.MultiSigner
+	peerSignHandler     crypto.PeerSignatureHandler
 	blockSignKeyGen     crypto.KeyGenerator
 	txSignKeyGen        crypto.KeyGenerator
 	messageSignVerifier vm.MessageSignVerifier
@@ -128,10 +132,22 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		}
 	}
 
+	cacheConfig := ccf.config.PublicKeyPIDSignature
+	cachePkPIDSignature, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
+	if err != nil {
+		return nil, err
+	}
+
+	peerSigHandler, err := peerSignatureHandler.NewPeerSignatureHandler(cachePkPIDSignature, singleSigner, blockSignKeyGen)
+	if err != nil {
+		return nil, err
+	}
+
 	return &cryptoComponents{
 		txSingleSigner:      txSingleSigner,
 		blockSingleSigner:   singleSigner,
 		multiSigner:         multiSigner,
+		peerSignHandler:     peerSigHandler,
 		blockSignKeyGen:     blockSignKeyGen,
 		txSignKeyGen:        txSignKeyGen,
 		messageSignVerifier: messageSignVerifier,

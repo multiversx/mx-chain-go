@@ -161,6 +161,18 @@ func (mcc *managedCryptoComponents) MultiSigner() crypto.MultiSigner {
 	return mcc.cryptoComponents.multiSigner
 }
 
+// PeerSignatureHandler returns the peer signature handler
+func (mcc *managedCryptoComponents) PeerSignatureHandler() crypto.PeerSignatureHandler {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
+
+	return mcc.cryptoComponents.peerSignHandler
+}
+
 // SetMultiSigner sets the block multi-signer
 func (mcc *managedCryptoComponents) SetMultiSigner(ms crypto.MultiSigner) error {
 	mcc.mutCryptoComponents.Lock()

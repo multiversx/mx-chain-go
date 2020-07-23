@@ -457,7 +457,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 
 	hardForkConfig := pcf.coreFactoryArgs.Config.Hardfork
 	ratingEnabledEpoch := uint32(0)
-	if pcf.importStartHandler.ShouldStartImport() {
+	if hardForkConfig.AfterHardFork {
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
@@ -518,6 +518,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 			Validity:             process.MetaBlockValidity,
 			Finality:             process.BlockFinality,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			Rounder:              pcf.rounder,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {

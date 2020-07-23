@@ -409,7 +409,11 @@ func getCryptoArgs(coreComponents factory.CoreComponentsHolder) factory.CryptoCo
 			GeneralSettings: config.GeneralSettingsConfig{ChainID: "undefined"},
 			Consensus:       config.ConsensusConfig{Type: "bls"},
 			MultisigHasher:  config.TypeConfig{Type: "blake2b"},
-			Hasher:          config.TypeConfig{Type: "blake2b"},
+			PublicKeyPIDSignature: config.CacheConfig{
+				Capacity: 1000,
+				Type:     "LRU",
+			},
+			Hasher: config.TypeConfig{Type: "blake2b"},
 		},
 		SkIndex:                              0,
 		ValidatorKeyPemFileName:              "validatorKey.pem",

@@ -81,6 +81,10 @@ func (sm *StorerMock) Close() error {
 	return nil
 }
 
+// RangeKeys -
+func (sm *StorerMock) RangeKeys(_ func(key []byte, val []byte) bool) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sm *StorerMock) IsInterfaceNil() bool {
 	return sm == nil

@@ -23,6 +23,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	hasher := mock.HasherMock{}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptorsContainer := createInterceptorContainer()
+	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
 
 	return broadcast.MetaChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -31,7 +32,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			Messenger:                  messengerMock,
 			PrivateKey:                 privateKeyMock,
 			ShardCoordinator:           shardCoordinatorMock,
-			SingleSigner:               singleSignerMock,
+			PeerSignatureHandler:       peerSigHandler,
 			HeadersSubscriber:          headersSubscriber,
 			InterceptorsContainer:      interceptorsContainer,
 			MaxValidatorDelayCacheSize: 2,
@@ -76,13 +77,13 @@ func TestMetaChainMessenger_NewMetaChainMessengerNilShardCoordinatorShouldFail(t
 	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
 
-func TestMetaChainMessenger_NewMetaChainMessengerNilSingleSignerShouldFail(t *testing.T) {
+func TestMetaChainMessenger_NewMetaChainMessengerNilPeerSignatureHandlerShouldFail(t *testing.T) {
 	args := createDefaultMetaChainArgs()
-	args.SingleSigner = nil
+	args.PeerSignatureHandler = nil
 	mcm, err := broadcast.NewMetaChainMessenger(args)
 
 	assert.Nil(t, mcm)
-	assert.Equal(t, spos.ErrNilSingleSigner, err)
+	assert.Equal(t, spos.ErrNilPeerSignatureHandler, err)
 }
 
 func TestMetaChainMessenger_NewMetaChainMessengerShouldWork(t *testing.T) {

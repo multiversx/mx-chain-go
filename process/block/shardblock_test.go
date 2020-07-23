@@ -1392,7 +1392,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 
 	tdp.Headers().AddHeader(metaHash, meta)
 
-	sp.CheckAndRequestIfMetaHeadersMissing(2)
+	sp.CheckAndRequestIfMetaHeadersMissing()
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, int32(1), atomic.LoadInt32(&hdrNoncesRequestCalled))
 	assert.Equal(t, err, process.ErrTimeIsOut)

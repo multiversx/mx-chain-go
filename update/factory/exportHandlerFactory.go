@@ -1,7 +1,9 @@
 package factory
 
 import (
+	"fmt"
 	"math"
+	"os"
 	"path"
 	"time"
 
@@ -21,8 +23,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/files"
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
+	"github.com/ElrondNetwork/elrond-go/update/storing"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
@@ -41,6 +43,7 @@ type ArgsExporter struct {
 	ExportFolder             string
 	ExportTriesStorageConfig config.StorageConfig
 	ExportStateStorageConfig config.StorageConfig
+	ExportStateKeysConfig    config.StorageConfig
 	MaxTrieLevelInMemory     uint
 	WhiteListHandler         process.WhiteListHandler
 	WhiteListerVerifiedTxs   process.WhiteListHandler
@@ -51,6 +54,7 @@ type ArgsExporter struct {
 	ValidityAttester         process.ValidityAttester
 	InputAntifloodHandler    process.P2PAntifloodHandler
 	OutputAntifloodHandler   process.P2PAntifloodHandler
+	Rounder                  process.Rounder
 }
 
 type exportHandlerFactory struct {
@@ -66,6 +70,7 @@ type exportHandlerFactory struct {
 	exportFolder             string
 	exportTriesStorageConfig config.StorageConfig
 	exportStateStorageConfig config.StorageConfig
+	exportStateKeysConfig    config.StorageConfig
 	maxTrieLevelInMemory     uint
 	whiteListHandler         process.WhiteListHandler
 	whiteListerVerifiedTxs   process.WhiteListHandler
@@ -80,6 +85,7 @@ type exportHandlerFactory struct {
 	resolverContainer        dataRetriever.ResolversContainer
 	inputAntifloodHandler    process.P2PAntifloodHandler
 	outputAntifloodHandler   process.P2PAntifloodHandler
+	rounder                  process.Rounder
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -171,6 +177,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.OutputAntifloodHandler) {
 		return nil, update.ErrNilAntiFloodHandler
 	}
+	if check.IfNil(args.Rounder) {
+		return nil, update.ErrNilRounder
+	}
 
 	e := &exportHandlerFactory{
 		CoreComponents:           args.CoreComponents,
@@ -185,6 +194,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		exportFolder:             args.ExportFolder,
 		exportTriesStorageConfig: args.ExportTriesStorageConfig,
 		exportStateStorageConfig: args.ExportStateStorageConfig,
+		exportStateKeysConfig:    args.ExportStateKeysConfig,
 		interceptorsContainer:    args.InterceptorsContainer,
 		whiteListHandler:         args.WhiteListHandler,
 		whiteListerVerifiedTxs:   args.WhiteListerVerifiedTxs,
@@ -197,6 +207,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
 		maxTrieLevelInMemory:     args.MaxTrieLevelInMemory,
+		rounder:                  args.Rounder,
 	}
 
 	return e, nil
@@ -225,6 +236,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Validity:             process.MetaBlockValidity,
 		Finality:             process.BlockFinality,
 		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
+		Rounder:              e.rounder,
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {
@@ -290,6 +302,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		StorageService:   e.storageService,
 		Cache:            e.dataPool.Headers(),
 		Marshalizer:      e.CoreComponents.InternalMarshalizer(),
+		Hasher:           e.CoreComponents.Hasher(),
 		EpochHandler:     epochHandler,
 		RequestHandler:   e.requestHandler,
 		Uint64Converter:  e.CoreComponents.Uint64ByteSliceConverter(),
@@ -342,25 +355,32 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	exportStore, err := createFinalExportStorage(e.exportStateStorageConfig, e.exportFolder)
+	err = e.prepareFolders(e.exportFolder)
 	if err != nil {
 		return nil, err
 	}
 
-	argsWriter := files.ArgsNewMultiFileWriter{
-		ExportFolder: e.exportFolder,
-		ExportStore:  exportStore,
-	}
-	writer, err := files.NewMultiFileWriter(argsWriter)
+	keysStorer, err := createStorer(e.exportStateKeysConfig, e.exportFolder)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w while creating keys storer", err)
 	}
+	keysVals, err := createStorer(e.exportStateStorageConfig, e.exportFolder)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating keys-values storer", err)
+	}
+
+	arg := storing.ArgHardforkStorer{
+		KeysStore:   keysStorer,
+		KeyValue:    keysVals,
+		Marshalizer: e.CoreComponents.InternalMarshalizer(),
+	}
+	hs, err := storing.NewHardforkStorer(arg)
 
 	argsExporter := genesis.ArgsNewStateExporter{
 		ShardCoordinator: e.shardCoordinator,
 		StateSyncer:      stateSyncer,
 		Marshalizer:      e.CoreComponents.InternalMarshalizer(),
-		Writer:           writer,
+		HardforkStorer:   hs,
 		Hasher:           e.CoreComponents.Hasher(),
 	}
 	exportHandler, err := genesis.NewStateExporter(argsExporter)
@@ -375,6 +395,15 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	return exportHandler, nil
+}
+
+func (e *exportHandlerFactory) prepareFolders(folder string) error {
+	err := os.RemoveAll(folder)
+	if err != nil {
+		return err
+	}
+
+	return os.MkdirAll(folder, os.ModePerm)
 }
 
 func (e *exportHandlerFactory) createInterceptors() error {
@@ -414,7 +443,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 	return nil
 }
 
-func createFinalExportStorage(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
+func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
 	accountsTrieStorage, err := storageUnit.NewStorageUnitFromConf(
