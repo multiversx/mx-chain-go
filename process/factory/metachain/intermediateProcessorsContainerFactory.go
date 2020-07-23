@@ -75,6 +75,16 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 		return nil, err
 	}
 
+	interproc, err = ppcm.createBadTransactionsIntermediateProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(block.InvalidBlock, interproc)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
@@ -87,6 +97,19 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 		ppcm.store,
 		block.SmartContractResultBlock,
 		ppcm.poolsHolder.CurrentBlockTxs(),
+	)
+
+	return irp, err
+}
+
+func (ppcm *intermediateProcessorsContainerFactory) createBadTransactionsIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
+	irp, err := postprocess.NewOneMiniBlockPostProcessor(
+		ppcm.hasher,
+		ppcm.marshalizer,
+		ppcm.shardCoordinator,
+		ppcm.store,
+		block.InvalidBlock,
+		dataRetriever.TransactionUnit,
 	)
 
 	return irp, err

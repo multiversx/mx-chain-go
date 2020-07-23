@@ -104,8 +104,8 @@ var ErrNilHasher = errors.New("nil Hasher")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
-// ErrNegativeInitialSupply signals that negative initial supply has been provided
-var ErrNegativeInitialSupply = errors.New("negative initial supply was provided")
+// ErrNegativeOrZeroInitialSupply signals that negative initial supply has been provided
+var ErrNegativeOrZeroInitialSupply = errors.New("negative initial supply was provided")
 
 // ErrTokenAlreadyRegistered signals that token was already registered
 var ErrTokenAlreadyRegistered = errors.New("token was already registered")
@@ -145,3 +145,6 @@ var ErrNegativeMaximumPercentageToBleed = errors.New("negative maximum percentag
 
 // ErrInvalidMaxNumberOfNodes signals that invalid number of max number of nodes has been provided
 var ErrInvalidMaxNumberOfNodes = errors.New("invalid number of max number of nodes")
+
+// ErrTokenNameNotHumanReadable signals that token name is not human readable
+var ErrTokenNameNotHumanReadable = errors.New("token name is not human readable")
