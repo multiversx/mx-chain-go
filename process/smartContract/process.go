@@ -1216,14 +1216,6 @@ func (sc *scProcessor) processSimpleSCR(
 	scResult *smartContractResult.SmartContractResult,
 	dstAcc state.UserAccountHandler,
 ) error {
-	outputAccount := &vmcommon.OutputAccount{
-		Code:         scResult.Code,
-		CodeMetadata: scResult.CodeMetadata,
-		Address:      scResult.RcvAddr,
-	}
-
-	sc.updateSmartContractCode(dstAcc, outputAccount, scResult)
-
 	if scResult.Value != nil {
 		err := dstAcc.AddToBalance(scResult.Value)
 		if err != nil {
