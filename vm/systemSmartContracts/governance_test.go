@@ -284,7 +284,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldWork(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 }
 
-func TestGovernanceContract_ExecuteWhiteListProposalShouldWorkDisabled(t *testing.T) {
+func TestGovernanceContract_ExecuteWhiteListProposalShouldNOTWorkDisabled(t *testing.T) {
 	t.Parallel()
 
 	gitHubCommit := []byte("0123456789012345678901234567890123456789")
@@ -309,7 +309,6 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldWorkDisabled(t *testin
 				require.Equal(t, stopNonce, genProposal.EndVoteNonce)
 				require.Equal(t, callerAddr, genProposal.IssuerAddress)
 				require.False(t, genProposal.Voted)
-
 				return
 			}
 

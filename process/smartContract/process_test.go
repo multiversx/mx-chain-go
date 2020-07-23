@@ -338,10 +338,10 @@ func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
 	}
 
 	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
-	require.Equal(t, process.ErrBuiltInfFunctionsAreDisabled, err)
+	require.Equal(t, process.ErrFailedTransaction, err)
 
 	_, err = sc.ExecuteSmartContractTransaction(tx, nil, acntSrc)
-	require.Equal(t, process.ErrBuiltInfFunctionsAreDisabled, err)
+	require.Equal(t, process.ErrFailedTransaction, err)
 }
 
 func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
