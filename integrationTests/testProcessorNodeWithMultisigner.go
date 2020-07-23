@@ -308,9 +308,16 @@ func CreateNodesWithNodesCoordinatorFactory(
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 	waitingMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(waitingMap)
 
-	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
-		return validatorsMap, waitingMap
-	}}
+	numNodes := nbShards*nodesPerShard + nbMetaNodes
+
+	nodesSetup := &mock.NodesSetupStub{
+		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+			return validatorsMap, waitingMap
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return uint32(numNodes)
+		},
+	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 

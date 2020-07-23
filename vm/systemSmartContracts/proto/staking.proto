@@ -23,8 +23,9 @@ message StakedData {
 
 message StakingNodesConfig {
 	int64 MinNumNodes = 1 [(gogoproto.jsontag) = "MinNumNodes"];
-	int64 StakedNodes = 2 [(gogoproto.jsontag) = "StakedNodes"];
-	int64 JailedNodes = 3 [(gogoproto.jsontag) = "JailedNodes"];
+	int64 MaxNumNodes = 2 [(gogoproto.jsontag) = "MaxNumNodes"];
+	int64 StakedNodes = 3 [(gogoproto.jsontag) = "StakedNodes"];
+	int64 JailedNodes = 4 [(gogoproto.jsontag) = "JailedNodes"];
 }
 
 message ElementInList {

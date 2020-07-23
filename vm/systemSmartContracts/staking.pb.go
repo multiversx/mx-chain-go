@@ -149,8 +149,9 @@ func (m *StakedData) GetJailed() bool {
 
 type StakingNodesConfig struct {
 	MinNumNodes int64 `protobuf:"varint,1,opt,name=MinNumNodes,proto3" json:"MinNumNodes"`
-	StakedNodes int64 `protobuf:"varint,2,opt,name=StakedNodes,proto3" json:"StakedNodes"`
-	JailedNodes int64 `protobuf:"varint,3,opt,name=JailedNodes,proto3" json:"JailedNodes"`
+	MaxNumNodes int64 `protobuf:"varint,2,opt,name=MaxNumNodes,proto3" json:"MaxNumNodes"`
+	StakedNodes int64 `protobuf:"varint,3,opt,name=StakedNodes,proto3" json:"StakedNodes"`
+	JailedNodes int64 `protobuf:"varint,4,opt,name=JailedNodes,proto3" json:"JailedNodes"`
 }
 
 func (m *StakingNodesConfig) Reset()      { *m = StakingNodesConfig{} }
@@ -184,6 +185,13 @@ var xxx_messageInfo_StakingNodesConfig proto.InternalMessageInfo
 func (m *StakingNodesConfig) GetMinNumNodes() int64 {
 	if m != nil {
 		return m.MinNumNodes
+	}
+	return 0
+}
+
+func (m *StakingNodesConfig) GetMaxNumNodes() int64 {
+	if m != nil {
+		return m.MaxNumNodes
 	}
 	return 0
 }
@@ -443,6 +451,9 @@ func (this *StakingNodesConfig) Equal(that interface{}) bool {
 	if this.MinNumNodes != that1.MinNumNodes {
 		return false
 	}
+	if this.MaxNumNodes != that1.MaxNumNodes {
+		return false
+	}
 	if this.StakedNodes != that1.StakedNodes {
 		return false
 	}
@@ -535,9 +546,10 @@ func (this *StakingNodesConfig) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 7)
+	s := make([]string, 0, 8)
 	s = append(s, "&systemSmartContracts.StakingNodesConfig{")
 	s = append(s, "MinNumNodes: "+fmt.Sprintf("%#v", this.MinNumNodes)+",\n")
+	s = append(s, "MaxNumNodes: "+fmt.Sprintf("%#v", this.MaxNumNodes)+",\n")
 	s = append(s, "StakedNodes: "+fmt.Sprintf("%#v", this.StakedNodes)+",\n")
 	s = append(s, "JailedNodes: "+fmt.Sprintf("%#v", this.JailedNodes)+",\n")
 	s = append(s, "}")
@@ -694,10 +706,15 @@ func (m *StakingNodesConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if m.JailedNodes != 0 {
 		i = encodeVarintStaking(dAtA, i, uint64(m.JailedNodes))
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x20
 	}
 	if m.StakedNodes != 0 {
 		i = encodeVarintStaking(dAtA, i, uint64(m.StakedNodes))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.MaxNumNodes != 0 {
+		i = encodeVarintStaking(dAtA, i, uint64(m.MaxNumNodes))
 		i--
 		dAtA[i] = 0x10
 	}
@@ -860,6 +877,9 @@ func (m *StakingNodesConfig) Size() (n int) {
 	if m.MinNumNodes != 0 {
 		n += 1 + sovStaking(uint64(m.MinNumNodes))
 	}
+	if m.MaxNumNodes != 0 {
+		n += 1 + sovStaking(uint64(m.MaxNumNodes))
+	}
 	if m.StakedNodes != 0 {
 		n += 1 + sovStaking(uint64(m.StakedNodes))
 	}
@@ -942,6 +962,7 @@ func (this *StakingNodesConfig) String() string {
 	}
 	s := strings.Join([]string{`&StakingNodesConfig{`,
 		`MinNumNodes:` + fmt.Sprintf("%v", this.MinNumNodes) + `,`,
+		`MaxNumNodes:` + fmt.Sprintf("%v", this.MaxNumNodes) + `,`,
 		`StakedNodes:` + fmt.Sprintf("%v", this.StakedNodes) + `,`,
 		`JailedNodes:` + fmt.Sprintf("%v", this.JailedNodes) + `,`,
 		`}`,
@@ -1328,6 +1349,25 @@ func (m *StakingNodesConfig) Unmarshal(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxNumNodes", wireType)
+			}
+			m.MaxNumNodes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MaxNumNodes |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StakedNodes", wireType)
 			}
 			m.StakedNodes = 0
@@ -1345,7 +1385,7 @@ func (m *StakingNodesConfig) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field JailedNodes", wireType)
 			}

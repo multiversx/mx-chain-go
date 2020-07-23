@@ -2,6 +2,7 @@ package factory
 
 import (
 	"errors"
+	"math/big"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -472,9 +473,15 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	conversionBase := 10
+	genesisNodePrice, ok := big.NewInt(0).SetString(args.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
+	if !ok {
+		return nil, errors.New("invalid genesis node price")
+	}
+
 	nodesSetupChecker, err := checking.NewNodesSetupChecker(
 		args.accountsParser,
-		args.economicsData.GenesisNodePrice(),
+		genesisNodePrice,
 		args.validatorPubkeyConverter,
 		args.crypto.BlockSignKeyGen,
 	)
@@ -1257,6 +1264,8 @@ func newShardBlockProcessor(
 		TxLogsProcessor:  txLogsProcessor,
 		TxTypeHandler:    txTypeHandler,
 		DisableDeploy:    config.GeneralSettings.DisableDeploy,
+		DisableBuiltIn:   config.GeneralSettings.DisableBuiltInFunctions,
+		BadTxForwarder:   badTxInterim,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1484,6 +1493,11 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	badTxForwarder, err := interimProcContainer.Get(dataBlock.InvalidBlock)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
 		ShardCoordinator: shardCoordinator,
@@ -1521,6 +1535,7 @@ func newMetaBlockProcessor(
 		GasHandler:       gasHandler,
 		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  txLogsProcessor,
+		BadTxForwarder:   badTxForwarder,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

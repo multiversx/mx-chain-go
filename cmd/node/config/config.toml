@@ -14,6 +14,9 @@
    # DisableDeploy represents the flag to enable/disable deployment of smart contracts
    DisableDeploy = false
 
+   # DisableBuiltInFunctions represents the flag to enable/disable built in functions calls
+   DisableBuiltInFunctions = false
+
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = false

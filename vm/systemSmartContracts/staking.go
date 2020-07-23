@@ -9,6 +9,7 @@ import (
 	"math/big"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -23,7 +24,7 @@ const nodesConfigKey = "nodesConfig"
 
 type stakingSC struct {
 	eei                      vm.SystemEI
-	minStakeValue            *big.Int
+	stakeValue               *big.Int
 	unBondPeriod             uint64
 	stakeAccessAddr          []byte
 	jailAccessAddr           []byte
@@ -31,35 +32,26 @@ type stakingSC struct {
 	bleedPercentagePerRound  float64
 	maximumPercentageToBleed float64
 	gasCost                  vm.GasCost
-	minNumNodes              int64
+	minNumNodes              uint64
+	maxNumNodes              uint64
 	marshalizer              marshal.Marshalizer
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
 type ArgsNewStakingSmartContract struct {
-	MinNumNodes              uint32
-	MinStakeValue            *big.Int
-	UnBondPeriod             uint64
-	Eei                      vm.SystemEI
-	StakingAccessAddr        []byte
-	JailAccessAddr           []byte
-	NumRoundsWithoutBleed    uint64
-	BleedPercentagePerRound  float64
-	MaximumPercentageToBleed float64
-	GasCost                  vm.GasCost
-	Marshalizer              marshal.Marshalizer
+	StakingSCConfig   config.StakingSystemSCConfig
+	MinNumNodes       uint64
+	Eei               vm.SystemEI
+	StakingAccessAddr []byte
+	JailAccessAddr    []byte
+	GasCost           vm.GasCost
+	Marshalizer       marshal.Marshalizer
 }
 
 // NewStakingSmartContract creates a staking smart contract
 func NewStakingSmartContract(
 	args ArgsNewStakingSmartContract,
 ) (*stakingSC, error) {
-	if args.MinStakeValue == nil {
-		return nil, vm.ErrNilInitialStakeValue
-	}
-	if args.MinStakeValue.Cmp(big.NewInt(0)) < 1 {
-		return nil, vm.ErrNegativeInitialStakeValue
-	}
 	if check.IfNil(args.Eei) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
@@ -72,20 +64,39 @@ func NewStakingSmartContract(
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
 	}
+	if args.StakingSCConfig.MaxNumberOfNodesForStake < 0 {
+		return nil, vm.ErrNegativeWaitingNodesPercentage
+	}
+	if args.StakingSCConfig.BleedPercentagePerRound < 0 {
+		return nil, vm.ErrNegativeBleedPercentagePerRound
+	}
+	if args.StakingSCConfig.MaximumPercentageToBleed < 0 {
+		return nil, vm.ErrNegativeMaximumPercentageToBleed
+	}
+	if args.MinNumNodes > args.StakingSCConfig.MaxNumberOfNodesForStake {
+		return nil, vm.ErrInvalidMaxNumberOfNodes
+	}
 
 	reg := &stakingSC{
-		minStakeValue:            big.NewInt(0).Set(args.MinStakeValue),
 		eei:                      args.Eei,
-		unBondPeriod:             args.UnBondPeriod,
+		unBondPeriod:             args.StakingSCConfig.UnBondPeriod,
 		stakeAccessAddr:          args.StakingAccessAddr,
 		jailAccessAddr:           args.JailAccessAddr,
-		numRoundsWithoutBleed:    args.NumRoundsWithoutBleed,
-		bleedPercentagePerRound:  args.BleedPercentagePerRound,
-		maximumPercentageToBleed: args.MaximumPercentageToBleed,
+		numRoundsWithoutBleed:    args.StakingSCConfig.NumRoundsWithoutBleed,
+		bleedPercentagePerRound:  args.StakingSCConfig.BleedPercentagePerRound,
+		maximumPercentageToBleed: args.StakingSCConfig.MaximumPercentageToBleed,
 		gasCost:                  args.GasCost,
-		minNumNodes:              int64(args.MinNumNodes),
+		minNumNodes:              args.MinNumNodes,
+		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:              args.Marshalizer,
 	}
+	ok := true
+	conversionBase := 10
+	reg.stakeValue, ok = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
+	if !ok || reg.stakeValue.Cmp(zero) < 0 {
+		return nil, vm.ErrNegativeInitialStakeValue
+	}
+
 	return reg, nil
 }
 
@@ -140,25 +151,27 @@ func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {
 }
 
 func (r *stakingSC) getConfig() *StakingNodesConfig {
-	config := &StakingNodesConfig{
-		MinNumNodes: r.minNumNodes,
+	stakeConfig := &StakingNodesConfig{
+		MinNumNodes: int64(r.minNumNodes),
+		MaxNumNodes: int64(r.maxNumNodes),
 	}
 	configData := r.eei.GetStorage([]byte(nodesConfigKey))
 	if len(configData) == 0 {
-		return config
+		return stakeConfig
 	}
 
-	err := r.marshalizer.Unmarshal(config, configData)
+	err := r.marshalizer.Unmarshal(stakeConfig, configData)
 	if err != nil {
 		log.Warn("unmarshal error on getConfig function, returning baseConfig",
 			"error", err.Error(),
 		)
 		return &StakingNodesConfig{
-			MinNumNodes: r.minNumNodes,
+			MinNumNodes: int64(r.minNumNodes),
+			MaxNumNodes: int64(r.maxNumNodes),
 		}
 	}
 
-	return config
+	return stakeConfig
 }
 
 func (r *stakingSC) setConfig(config *StakingNodesConfig) {
@@ -174,36 +187,41 @@ func (r *stakingSC) setConfig(config *StakingNodesConfig) {
 }
 
 func (r *stakingSC) addToStakedNodes() {
-	config := r.getConfig()
-	config.StakedNodes++
-	r.setConfig(config)
+	stakeConfig := r.getConfig()
+	stakeConfig.StakedNodes++
+	r.setConfig(stakeConfig)
 }
 
 func (r *stakingSC) removeFromStakedNodes() {
-	config := r.getConfig()
-	if config.StakedNodes > 0 {
-		config.StakedNodes--
+	stakeConfig := r.getConfig()
+	if stakeConfig.StakedNodes > 0 {
+		stakeConfig.StakedNodes--
 	}
-	r.setConfig(config)
+	r.setConfig(stakeConfig)
 }
 
 func (r *stakingSC) addToJailedNodes() {
-	config := r.getConfig()
-	config.JailedNodes++
-	r.setConfig(config)
+	stakeConfig := r.getConfig()
+	stakeConfig.JailedNodes++
+	r.setConfig(stakeConfig)
 }
 
 func (r *stakingSC) removeFromJailedNodes() {
-	config := r.getConfig()
-	if config.JailedNodes > 0 {
-		config.JailedNodes--
+	stakeConfig := r.getConfig()
+	if stakeConfig.JailedNodes > 0 {
+		stakeConfig.JailedNodes--
 	}
-	r.setConfig(config)
+	r.setConfig(stakeConfig)
 }
 
 func (r *stakingSC) numSpareNodes() int64 {
-	config := r.getConfig()
-	return config.StakedNodes - config.JailedNodes - config.MinNumNodes
+	stakeConfig := r.getConfig()
+	return stakeConfig.StakedNodes - stakeConfig.JailedNodes - stakeConfig.MinNumNodes
+}
+
+func (r *stakingSC) canStake() bool {
+	stakeConfig := r.getConfig()
+	return stakeConfig.StakedNodes < stakeConfig.MaxNumNodes
 }
 
 func (r *stakingSC) canUnStake() bool {
@@ -447,10 +465,13 @@ func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	epoch := r.eei.BlockChainHook().CurrentEpoch()
 	epochData := fmt.Sprintf("epoch_%d", epoch)
 
-	r.eei.SetStorage([]byte(epochData), r.minStakeValue.Bytes())
+	r.eei.SetStorage([]byte(epochData), r.stakeValue.Bytes())
 
-	config := &StakingNodesConfig{MinNumNodes: r.minNumNodes}
-	r.setConfig(config)
+	stakeConfig := &StakingNodesConfig{
+		MinNumNodes: int64(r.minNumNodes),
+		MaxNumNodes: int64(r.maxNumNodes),
+	}
+	r.setConfig(stakeConfig)
 
 	return vmcommon.Ok
 }
@@ -470,8 +491,8 @@ func (r *stakingSC) setStakeValueForCurrentEpoch(args *vmcommon.ContractCallInpu
 	epochData := fmt.Sprintf("epoch_%d", epoch)
 
 	inputStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
-	if inputStakeValue.Cmp(r.minStakeValue) < 0 {
-		inputStakeValue.Set(r.minStakeValue)
+	if inputStakeValue.Cmp(r.stakeValue) < 0 {
+		inputStakeValue.Set(r.stakeValue)
 	}
 
 	r.eei.SetStorage([]byte(epochData), inputStakeValue.Bytes())
@@ -488,8 +509,8 @@ func (r *stakingSC) getStakeValueForCurrentEpoch() *big.Int {
 	stakeValueBytes := r.eei.GetStorage([]byte(epochData))
 	stakeValue.SetBytes(stakeValueBytes)
 
-	if stakeValue.Cmp(r.minStakeValue) < 0 {
-		stakeValue.Set(r.minStakeValue)
+	if stakeValue.Cmp(r.stakeValue) < 0 {
+		stakeValue.Set(r.stakeValue)
 	}
 
 	return stakeValue
@@ -513,6 +534,11 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	}
 
 	if !onlyRegister {
+		if !r.canStake() {
+			r.eei.AddReturnMessage("staking is full")
+			return vmcommon.UserError
+		}
+
 		if !registrationData.Staked {
 			r.addToStakedNodes()
 		}
