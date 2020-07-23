@@ -54,7 +54,7 @@ func TestUpgrades_HelloDoesNotUpgradeWhenNotUpgradeable(t *testing.T) {
 	fmt.Println("Upgrade to v2 will not be performed")
 
 	err = context.UpgradeSC("../testdata/hello-v2/output/answer.wasm", "")
-	require.Nil(t, err)
+	require.Equal(t, process.ErrUpgradeNotAllowed, err)
 	require.Equal(t, uint64(24), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 }
 
@@ -79,7 +79,7 @@ func TestUpgrades_HelloUpgradesToNotUpgradeable(t *testing.T) {
 	fmt.Println("Upgrade to v3, should not be possible")
 
 	err = context.UpgradeSC("../testdata/hello-v3/output/answer.wasm", "")
-	require.Nil(t, err)
+	require.Equal(t, process.ErrUpgradeNotAllowed, err)
 	require.Equal(t, uint64(42), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 }
 
@@ -129,6 +129,7 @@ func TestUpgrades_UpgradeDelegationContract(t *testing.T) {
 	delegationInitParams := "0000000000000000000000000000000000000000000000000000000000000000@0064@0064@0064"
 	delegationUpgradeParams := "0000000000000000000000000000000000000000000000000000000000000000@0080@0080@0080"
 
+	context.ScCodeMetadata.Upgradeable = true
 	context.GasLimit = 21700000
 	err := context.DeploySC(delegationWasmPath, delegationInitParams)
 	require.Nil(t, err)
@@ -306,7 +307,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 	network.Continue(t, 1)
 	require.Equal(t, []byte{2}, query(t, network.Node, scAddress, "get"))
 
-	// Upgrade as Bob - upgrade should fail, since Alice is the owner (init() not executed, state not reset)
+	// Upgrade as Bob - upgrade should fail, since Alice is the owner (counter.init() not executed, state not reset)
 	network.AddTxToPool(&transaction.Transaction{
 		Nonce:    0,
 		Value:    big.NewInt(0),
@@ -320,7 +321,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 	network.Continue(t, 1)
 	require.Equal(t, []byte{2}, query(t, network.Node, scAddress, "get"))
 
-	// Now upgrade as Alice, should work (state is reset by init())
+	// Now upgrade as Alice, should work (state is reset by counter.init())
 	network.AddTxToPool(&transaction.Transaction{
 		Nonce:    2,
 		Value:    big.NewInt(0),
