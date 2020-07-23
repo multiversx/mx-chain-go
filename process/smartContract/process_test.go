@@ -57,6 +57,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		PubkeyConv:      createMockPubkeyConverter(),
 		Coordinator:     mock.NewMultiShardsCoordinatorMock(5),
 		ScrForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:  &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler:    &mock.FeeAccumulatorStub{},
 		TxLogsProcessor: &mock.TxLogsProcessorStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
@@ -338,9 +339,6 @@ func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
 	}
 
 	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
-	require.Equal(t, process.ErrFailedTransaction, err)
-
-	_, err = sc.ExecuteSmartContractTransaction(tx, nil, acntSrc)
 	require.Equal(t, process.ErrFailedTransaction, err)
 }
 
