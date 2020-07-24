@@ -101,6 +101,12 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 
 	require.Equal(t, process.ErrFailedTransaction, err)
 	require.Equal(t, process.ErrAccountNotPayable, testContext.GetLatestError())
+	vm.TestAccount(
+		t,
+		testContext.Accounts,
+		ownerAddressBytes,
+		ownerNonce+1,
+		big.NewInt(0).Set(ownerBalance))
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -109,7 +115,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		t,
 		ownerAddressBytes,
 		vm.CreateEmptyAddress(),
-		ownerNonce,
+		ownerNonce+1,
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
@@ -128,7 +134,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		t,
 		testContext.Accounts,
 		ownerAddressBytes,
-		ownerNonce+1,
+		ownerNonce+2,
 		big.NewInt(0).SetUint64(expectedBalance))
 
 	expectedBalance = transferOnCalls.Uint64()

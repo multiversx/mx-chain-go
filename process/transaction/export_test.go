@@ -18,10 +18,6 @@ func (txProc *txProcessor) CheckTxValues(tx *transaction.Transaction, acntSnd, a
 	return txProc.checkTxValues(tx, acntSnd, acntDst)
 }
 
-func (txProc *txProcessor) MoveBalances(acntSrc, acntDst state.UserAccountHandler, value *big.Int) error {
-	return txProc.moveBalances(acntSrc, acntDst, value)
-}
-
 func (txProc *txProcessor) IncreaseNonce(acntSrc state.UserAccountHandler) {
 	acntSrc.IncreaseNonce(1)
 }
