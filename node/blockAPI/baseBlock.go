@@ -2,6 +2,8 @@ package blockAPI
 
 import (
 	"encoding/hex"
+	"fmt"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
@@ -48,7 +50,7 @@ func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epo
 	case block.RewardsBlock:
 		return bap.getTxsFromMiniblock(miniBlock, epoch, "reward", dataRetriever.RewardTransactionUnit)
 	case block.SmartContractResultBlock:
-		return bap.getTxsFromMiniblock(miniBlock, epoch, "unsignedTx", dataRetriever.UnsignedTransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, epoch, "unsigned", dataRetriever.UnsignedTransactionUnit)
 	default:
 		return nil
 	}
@@ -61,13 +63,16 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 	unit dataRetriever.UnitType,
 ) []*transaction.ApiTransactionResult {
 	storer := bap.store.GetStorer(unit)
+	start := time.Now()
 	marshalizedTxs, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
 	if err != nil {
 		log.Warn("cannot get from storage transactions",
 			"error", err.Error())
-		return nil
+		return []*transaction.ApiTransactionResult{}
 	}
+	log.Warn(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
 
+	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
 	for txHash, txBytes := range marshalizedTxs {
 		tx, err := bap.unmarshalTx(txBytes, txType)
@@ -81,6 +86,7 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 
 		txs = append(txs, tx)
 	}
+	log.Warn(fmt.Sprintf("UnmarshalTransactions took %s", time.Since(start)))
 
 	return txs
 }

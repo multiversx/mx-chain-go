@@ -17,9 +17,9 @@ type transactionType string
 
 const (
 	normalTx   transactionType = "normal"
-	unsignedTx transactionType = "unsignedTx"
+	unsignedTx transactionType = "unsigned"
 	rewardTx   transactionType = "reward"
-	invalidTx  transactionType = "invalidTx"
+	invalidTx  transactionType = "invalid"
 )
 
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and
