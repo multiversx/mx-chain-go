@@ -99,7 +99,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 
 	_, err := testContext.TxProcessor.ProcessTransaction(tx)
 
-	require.Equal(t, process.ErrAccountNotPayable, err)
+	require.Equal(t, process.ErrFailedTransaction, err)
 	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
