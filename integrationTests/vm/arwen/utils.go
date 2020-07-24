@@ -26,7 +26,7 @@ import (
 const VMTypeHex = "0500"
 
 // DummyCodeMetadataHex -
-const DummyCodeMetadataHex = "0100"
+const DummyCodeMetadataHex = "0102"
 
 // TestContext -
 type TestContext struct {
