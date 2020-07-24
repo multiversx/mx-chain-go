@@ -77,17 +77,17 @@ func NewInterceptedRewardTransaction(
 }
 
 func (inRTx *InterceptedRewardTransaction) processFields(rewardTxBuff []byte) error {
+	inRTx.hash = inRTx.hasher.Compute(string(rewardTxBuff))
+
+	inRTx.rcvShard = inRTx.coordinator.ComputeId(inRTx.rTx.RcvAddr)
+	inRTx.sndShard = core.MetachainShardId
+
 	//TODO: Activate the following commented code after the first system tests will prove that the txPoolsCleaner
 	//component works well and deletes all the received rewards transactions after they becomes too old
 	//if inRTx.coordinator.SelfId() == core.MetachainShardId {
 	//	inRTx.isForCurrentShard = false
 	//	return nil
 	//}
-
-	inRTx.hash = inRTx.hasher.Compute(string(rewardTxBuff))
-
-	inRTx.rcvShard = inRTx.coordinator.ComputeId(inRTx.rTx.RcvAddr)
-	inRTx.sndShard = core.MetachainShardId
 
 	isForCurrentShardRecv := inRTx.rcvShard == inRTx.coordinator.SelfId()
 	isForCurrentShardSender := inRTx.sndShard == inRTx.coordinator.SelfId()
