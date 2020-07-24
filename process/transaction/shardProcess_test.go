@@ -845,7 +845,7 @@ func testProcessCheck(t *testing.T, nonce uint64, value *big.Int) {
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, saveAccountCalled)
+	assert.Equal(t, 1, saveAccountCalled)
 }
 
 func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
