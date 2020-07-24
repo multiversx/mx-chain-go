@@ -399,7 +399,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	}
 
 	if !check.IfNil(acntSnd) && sc.disableBuiltIn {
-		return true, process.ErrBuiltInfFunctionsAreDisabled
+		return true, process.ErrBuiltInFunctionsAreDisabled
 	}
 
 	// TODO: returned error should be protocol error - vmOutput error must be used for user errors
