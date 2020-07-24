@@ -4,6 +4,24 @@ package config
 type SystemSmartContractsConfig struct {
 	ESDTSystemSCConfig       ESDTSystemSCConfig
 	GovernanceSystemSCConfig GovernanceSystemSCConfig
+	StakingSystemSCConfig    StakingSystemSCConfig
+}
+
+// StakingSystemSCConfig will hold the staking system smart contract settings
+type StakingSystemSCConfig struct {
+	GenesisNodePrice                     string
+	MinStakeValue                        string
+	UnJailValue                          string
+	MinStepValue                         string
+	UnBondPeriod                         uint64
+	AuctionEnableNonce                   uint64
+	StakeEnableNonce                     uint64
+	NumRoundsWithoutBleed                uint64
+	MaximumPercentageToBleed             float64
+	BleedPercentagePerRound              float64
+	MaxNumberOfNodesForStake             uint64
+	NodesToSelectInAuction               uint64
+	ActivateBLSPubKeyMessageVerification bool
 }
 
 // ESDTSystemSCConfig defines a set of constant to initialize the esdt system smart contract
