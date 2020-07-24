@@ -34,7 +34,7 @@ var zero = big.NewInt(0)
 
 type scProcessor struct {
 	accounts         state.AccountsAdapter
-	tempAccounts     process.TemporaryAccountsHandler
+	blockChainHook   process.BlockChainHookHandler
 	pubkeyConv       core.PubkeyConverter
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
@@ -62,7 +62,7 @@ type ArgsNewSmartContractProcessor struct {
 	Hasher           hashing.Hasher
 	Marshalizer      marshal.Marshalizer
 	AccountsDB       state.AccountsAdapter
-	TempAccounts     process.TemporaryAccountsHandler
+	BlockChainHook   process.BlockChainHookHandler
 	PubkeyConv       core.PubkeyConverter
 	Coordinator      sharding.Coordinator
 	ScrForwarder     process.IntermediateTransactionHandler
@@ -94,7 +94,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.AccountsDB) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(args.TempAccounts) {
+	if check.IfNil(args.BlockChainHook) {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
 	if check.IfNil(args.PubkeyConv) {
@@ -134,7 +134,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		hasher:           args.Hasher,
 		marshalizer:      args.Marshalizer,
 		accounts:         args.AccountsDB,
-		tempAccounts:     args.TempAccounts,
+		blockChainHook:   args.BlockChainHook,
 		pubkeyConv:       args.PubkeyConv,
 		shardCoordinator: args.Coordinator,
 		scrForwarder:     args.ScrForwarder,
@@ -198,8 +198,6 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	tx data.TransactionHandler,
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
-	defer sc.tempAccounts.CleanTempAccounts()
-
 	err := sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		log.Debug("process sc payment error", "error", err.Error())
@@ -223,13 +221,6 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	var vmOutput *vmcommon.VMOutput
 	var executedBuiltIn bool
 	snapshot := sc.accounts.JournalLen()
-
-	err = sc.prepareSmartContractCall(tx, acntSnd)
-	if err != nil {
-		returnMessage = "cannot prepare smart contract call"
-		log.Debug("prepare smart contract call error", "error", err.Error())
-		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
-	}
 
 	var vmInput *vmcommon.ContractCallInput
 	vmInput, err = sc.createVMCallInput(tx)
@@ -597,22 +588,8 @@ func (sc *scProcessor) addBackTxValues(
 	return nil
 }
 
-func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.UserAccountHandler) error {
-	nonce := tx.GetNonce()
-	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
-		nonce = acntSnd.GetNonce()
-	}
-
-	txValue := big.NewInt(0).Set(tx.GetValue())
-	sc.tempAccounts.AddTempAccount(tx.GetSndAddr(), txValue, nonce)
-
-	return nil
-}
-
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (vmcommon.ReturnCode, error) {
-	defer sc.tempAccounts.CleanTempAccounts()
-
 	err := sc.checkTxValidity(tx)
 	if err != nil {
 		log.Debug("invalid transaction", "error", err.Error())
@@ -648,12 +625,6 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	if sc.disableDeploy {
 		log.Trace("deploy is disabled")
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, process.ErrSmartContractDeploymentIsDisabled.Error(), []byte(""), snapshot)
-	}
-
-	err = sc.prepareSmartContractCall(tx, acntSnd)
-	if err != nil {
-		log.Debug("Transaction error", "error", err.Error())
-		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
 	vmInput, vmType, err := sc.createVMDeployInput(tx)
@@ -1246,27 +1217,26 @@ func (sc *scProcessor) processSimpleSCR(
 	scResult *smartContractResult.SmartContractResult,
 	dstAcc state.UserAccountHandler,
 ) error {
+	if scResult.Value.Cmp(zero) <= 0 {
+		return nil
+	}
+
 	metadata := vmcommon.CodeMetadataFromBytes(dstAcc.GetCodeMetadata())
-	if !metadata.Payable && scResult.Value != nil{
+	if !metadata.Payable {
 		return process.ErrAccountNotPayable
 	}
 
-	outputAccount := &vmcommon.OutputAccount{
-		Code:         scResult.Code,
-		CodeMetadata: scResult.CodeMetadata,
-		Address:      scResult.RcvAddr,
-	}
-
-	sc.updateSmartContractCode(dstAcc, outputAccount, scResult)
-
-	if scResult.Value != nil {
-		err := dstAcc.AddToBalance(scResult.Value)
-		if err != nil {
-			return err
-		}
+	err := dstAcc.AddToBalance(scResult.Value)
+	if err != nil {
+		return err
 	}
 
 	return sc.accounts.SaveAccount(dstAcc)
+}
+
+// IsPayable returns if address is payable, smart contract ca set to false
+func (sc *scProcessor) IsPayable(address []byte) (bool, error) {
+	return sc.blockChainHook.IsPayable(address)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

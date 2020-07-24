@@ -311,9 +311,13 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	err = txProc.checkDestinationIsPayable(acntDst)
+	isPayable, err := txProc.scProcessor.IsPayable(adrDst)
 	if err != nil {
 		return err
+	}
+	if !isPayable {
+		// TODO treat execution here
+		return nil
 	}
 
 	err = txProc.checkIfValidTxToMetaChain(tx, acntSrc, adrDst)
@@ -642,24 +646,6 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (txProc *txProcessor) checkDestinationIsPayable(acntDst state.UserAccountHandler) error {
-	// If acc is nil, it means the account is in another shard, we let that shard check for payable
-	if acntDst == nil {
-		return nil
-	}
-
-	if !core.IsSmartContractAddress(acntDst.AddressBytes()) {
-		return nil
-	}
-
-	metadata := vmcommon.CodeMetadataFromBytes(acntDst.GetCodeMetadata())
-	if !metadata.Payable {
-		return process.ErrAccountNotPayable
 	}
 
 	return nil

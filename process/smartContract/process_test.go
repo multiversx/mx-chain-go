@@ -53,7 +53,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 				return nil
 			},
 		},
-		TempAccounts:    &mock.TemporaryAccountsHandlerMock{},
+		BlockChainHook:  &mock.TemporaryAccountsHandlerMock{},
 		PubkeyConv:      createMockPubkeyConverter(),
 		Coordinator:     mock.NewMultiShardsCoordinatorMock(5),
 		ScrForwarder:    &mock.IntermediateTransactionHandlerMock{},
@@ -154,7 +154,7 @@ func TestNewSmartContractProcessorNilFakeAccountsHandler(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.TempAccounts = nil
+	arguments.BlockChainHook = nil
 	sc, err := NewSmartContractProcessor(arguments)
 
 	require.Nil(t, sc)
@@ -1543,7 +1543,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1609,7 +1609,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -1651,7 +1651,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -1689,7 +1689,7 @@ func TestScProcessor_ProcessSmartContractResultNilScr(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -1712,7 +1712,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -1731,7 +1731,7 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -1755,7 +1755,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -1781,7 +1781,7 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -1815,7 +1815,7 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -1852,7 +1852,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -1895,7 +1895,7 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
@@ -1948,7 +1948,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 	executeCalled := false
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	arguments.VmContainer = &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
@@ -2021,7 +2021,7 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 	executeCalled := false
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.TempAccounts = fakeAccountsHandler
+	arguments.BlockChainHook = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	arguments.VmContainer = &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {

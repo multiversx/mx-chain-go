@@ -265,7 +265,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		Hasher:           arg.Hasher,
 		Marshalizer:      arg.Marshalizer,
 		AccountsDB:       arg.Accounts,
-		TempAccounts:     virtualMachineFactory.BlockChainHookImpl(),
+		BlockChainHook:   virtualMachineFactory.BlockChainHookImpl(),
 		PubkeyConv:       arg.PubkeyConv,
 		Coordinator:      arg.ShardCoordinator,
 		ScrForwarder:     scForwarder,
