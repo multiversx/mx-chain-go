@@ -955,7 +955,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	economicsData := args.economicsData
 
 	genesisVmConfig := args.mainConfig.VirtualMachineConfig
-	genesisVmConfig.OutOfProcessEnabled = false
+	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
 
 	arg := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              uint64(nodesSetup.StartTime),
