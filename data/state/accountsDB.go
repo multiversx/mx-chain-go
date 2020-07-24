@@ -26,6 +26,9 @@ type AccountsDB struct {
 	dataTries    TriesHolder
 	entries      []JournalEntry
 	mutOp        sync.RWMutex
+
+	numCheckpoints      uint
+	numCheckpointsMutex sync.RWMutex
 }
 
 var log = logger.GetOrCreate("state")
@@ -59,6 +62,7 @@ func NewAccountsDB(
 		mutOp:                  sync.RWMutex{},
 		dataTries:              NewDataTriesHolder(),
 		obsoleteDataTrieHashes: make(map[string][][]byte),
+		numCheckpoints:         0,
 	}, nil
 }
 
@@ -820,6 +824,8 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		adb.mainTrie.TakeSnapshot(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash)
 		adb.mainTrie.ExitSnapshotMode()
+
+		adb.increaseNumCheckpoints()
 	}()
 }
 
@@ -856,7 +862,15 @@ func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 		adb.mainTrie.SetCheckpoint(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash)
 		adb.mainTrie.ExitSnapshotMode()
+
+		adb.increaseNumCheckpoints()
 	}()
+}
+
+func (adb *AccountsDB) increaseNumCheckpoints() {
+	adb.numCheckpointsMutex.Lock()
+	adb.numCheckpoints++
+	adb.numCheckpointsMutex.Unlock()
 }
 
 // IsPruningEnabled returns true if state pruning is enabled
@@ -883,6 +897,14 @@ func (adb *AccountsDB) GetAllLeaves(rootHash []byte) (map[string][]byte, error) 
 	}
 
 	return allAccounts, nil
+}
+
+// GetNumCheckpoints returns the total number of state checkpoints
+func (adb *AccountsDB) GetNumCheckpoints() uint {
+	adb.numCheckpointsMutex.RLock()
+	defer adb.numCheckpointsMutex.RUnlock()
+
+	return adb.numCheckpoints
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

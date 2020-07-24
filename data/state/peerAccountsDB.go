@@ -43,6 +43,7 @@ func NewPeerAccountsDB(
 			entries:        make([]JournalEntry, 0),
 			dataTries:      NewDataTriesHolder(),
 			mutOp:          sync.RWMutex{},
+			numCheckpoints: 0,
 		},
 	}, nil
 }
@@ -53,6 +54,8 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	adb.mainTrie.EnterSnapshotMode()
 	adb.mainTrie.TakeSnapshot(rootHash)
 	adb.mainTrie.ExitSnapshotMode()
+
+	adb.increaseNumCheckpoints()
 }
 
 // SetStateCheckpoint triggers the checkpointing process of the state trie
@@ -61,6 +64,8 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	adb.mainTrie.EnterSnapshotMode()
 	adb.mainTrie.SetCheckpoint(rootHash)
 	adb.mainTrie.ExitSnapshotMode()
+
+	adb.increaseNumCheckpoints()
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB

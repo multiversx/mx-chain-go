@@ -125,6 +125,7 @@ type AccountsAdapter interface {
 	Commit() ([]byte, error)
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
+	GetNumCheckpoints() uint
 
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
