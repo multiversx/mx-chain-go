@@ -377,15 +377,22 @@ func (sdp *standardDelegationProcessor) executeVerify(smartContracts []genesis.I
 }
 
 func (sdp *standardDelegationProcessor) verify(sc genesis.InitialSmartContractHandler) error {
+	sw := core.NewStopWatch()
+
+	sw.Start("verifyStakedValue")
 	err := sdp.verifyStakedValue(sc)
 	if err != nil {
 		return fmt.Errorf("%w for verifyStakedValue", err)
 	}
+	sw.Stop("verifyStakedValue")
 
+	sw.Start("verifyRegisteredNodes")
 	err = sdp.verifyRegisteredNodes(sc)
 	if err != nil {
 		return fmt.Errorf("%w for verifyRegisteredNodes", err)
 	}
+	sw.Stop("verifyRegisteredNodes")
+	log.Debug("standardDelegationProcessor.verify time measurements", sw.GetMeasurements()...)
 
 	return nil
 }
