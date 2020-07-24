@@ -868,6 +868,12 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	setOriginalTxHash(scr, txHash, tx)
+	if scr.Value == nil {
+		scr.Value = big.NewInt(0)
+	}
+	if scr.Value.Cmp(zero) > 0 {
+		scr.OriginalSender = tx.GetSndAddr()
+	}
 
 	return scr
 }
@@ -910,6 +916,10 @@ func (sc *scProcessor) createSmartContractResult(
 	result := &smartContractResult.SmartContractResult{}
 
 	result.Value = outAcc.BalanceDelta
+	if result.Value == nil {
+		result.Value = big.NewInt(0)
+	}
+
 	result.Nonce = outAcc.Nonce
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = tx.GetRcvAddr()
@@ -925,6 +935,10 @@ func (sc *scProcessor) createSmartContractResult(
 	result.PrevTxHash = txHash
 	result.CallType = outAcc.CallType
 	setOriginalTxHash(result, txHash, tx)
+
+	if result.Value.Cmp(zero) > 0 {
+		result.OriginalSender = tx.GetSndAddr()
+	}
 
 	return result
 }
@@ -1221,12 +1235,15 @@ func (sc *scProcessor) processSimpleSCR(
 		return nil
 	}
 
-	metadata := vmcommon.CodeMetadataFromBytes(dstAcc.GetCodeMetadata())
-	if !metadata.Payable {
+	isPayable, err := sc.IsPayable(scResult.RcvAddr)
+	if err != nil {
+		return err
+	}
+	if !isPayable && !bytes.Equal(scResult.RcvAddr, scResult.OriginalSender) {
 		return process.ErrAccountNotPayable
 	}
 
-	err := dstAcc.AddToBalance(scResult.Value)
+	err = dstAcc.AddToBalance(scResult.Value)
 	if err != nil {
 		return err
 	}

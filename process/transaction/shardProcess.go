@@ -134,6 +134,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		txProc.pubkeyConv,
 	)
 
+	txType := txProc.txTypeHandler.ComputeTransactionType(tx)
 	err = txProc.checkTxValues(tx, acntSnd, acntDst)
 	if err != nil {
 		if errors.Is(err, process.ErrInsufficientFunds) {
@@ -153,10 +154,12 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return vmcommon.UserError, err
 	}
 
-	txType := txProc.txTypeHandler.ComputeTransactionType(tx)
 	switch txType {
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(tx, tx.SndAddr, tx.RcvAddr)
+		if err != nil {
+			return vmcommon.UserError, txProc.executeAfterFailedMoveBalanceTransaction(tx, acntSnd, err)
+		}
 		return vmcommon.Ok, err
 	case process.SCDeployment:
 		return txProc.processSCDeployment(tx, tx.SndAddr)
@@ -169,6 +172,36 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 	}
 
 	return vmcommon.UserError, process.ErrWrongTransaction
+}
+
+func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
+	tx *transaction.Transaction,
+	acntSnd state.UserAccountHandler,
+	txError error,
+) error {
+	switch txError {
+	case process.ErrInvalidMetaTransaction:
+		return txProc.executingFailedTransaction(tx, acntSnd, txError)
+	case process.ErrAccountNotPayable:
+		snapshot := txProc.accounts.JournalLen()
+		txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+		if err != nil {
+			return err
+		}
+
+		err = txProc.scProcessor.ProcessIfError(acntSnd, txHash, tx, txError.Error(), nil, snapshot)
+		if err != nil {
+			return err
+		}
+
+		if check.IfNil(acntSnd) {
+			return nil
+		}
+
+		return process.ErrFailedTransaction
+	default:
+		return txError
+	}
 }
 
 func (txProc *txProcessor) executingFailedTransaction(
@@ -282,7 +315,6 @@ func (txProc *txProcessor) processTxFee(
 
 func (txProc *txProcessor) checkIfValidTxToMetaChain(
 	tx *transaction.Transaction,
-	acntSnd state.UserAccountHandler,
 	adrDst []byte,
 ) error {
 
@@ -293,7 +325,7 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 
 	// it is not allowed to send transactions to metachain if those are not of type smart contract
 	if len(tx.GetData()) == 0 {
-		return txProc.executingFailedTransaction(tx, acntSnd, process.ErrInvalidMetaTransaction)
+		return process.ErrInvalidMetaTransaction
 	}
 
 	return nil
@@ -316,11 +348,10 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 	if !isPayable {
-		// TODO treat execution here
-		return nil
+		return process.ErrAccountNotPayable
 	}
 
-	err = txProc.checkIfValidTxToMetaChain(tx, acntSrc, adrDst)
+	err = txProc.checkIfValidTxToMetaChain(tx, adrDst)
 	if err != nil {
 		return err
 	}
@@ -525,6 +556,7 @@ func (txProc *txProcessor) processUserTx(
 		return 0, err
 	}
 
+	txType := txProc.txTypeHandler.ComputeTransactionType(userTx)
 	err = txProc.checkTxValues(userTx, acntSnd, acntDst)
 	if err != nil {
 		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
@@ -539,7 +571,6 @@ func (txProc *txProcessor) processUserTx(
 	scrFromTx := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, txHash)
 
 	returnCode := vmcommon.Ok
-	txType := txProc.txTypeHandler.ComputeTransactionType(scrFromTx)
 	switch txType {
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(userTx, userTx.SndAddr, userTx.RcvAddr)
@@ -551,6 +582,16 @@ func (txProc *txProcessor) processUserTx(
 		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
 	default:
 		err = process.ErrWrongTransaction
+		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
+			userTx.SndAddr,
+			relayerAdr,
+			relayedTxValue,
+			relayedNonce,
+			txHash,
+			err.Error())
+	}
+
+	if errors.Is(err, process.ErrInvalidMetaTransaction) || errors.Is(err, process.ErrAccountNotPayable) {
 		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
 			userTx.SndAddr,
 			relayerAdr,

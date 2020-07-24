@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -132,7 +131,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccountGetAccFromAddressErr(t *testing.
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
 	}
@@ -146,7 +145,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccountWrongTypeShouldErr(t *testing.T)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return &mock.PeerAccountHandlerMock{}, nil
 		},
 	}
@@ -161,7 +160,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccount(t *testing.T) {
 	expectedAccount, _ := state.NewUserAccount([]byte("1234"))
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return expectedAccount, nil
 		},
 	}
@@ -172,7 +171,6 @@ func TestBlTestBlockChainHookImpl_GetUserAccount(t *testing.T) {
 	assert.Equal(t, expectedAccount, acc)
 }
 
-
 func TestBlockChainHookImpl_GetStorageAccountErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -180,7 +178,7 @@ func TestBlockChainHookImpl_GetStorageAccountErrorsShouldErr(t *testing.T) {
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
 	}
@@ -202,7 +200,7 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
 	}
@@ -212,35 +210,6 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, variableValue, value)
-}
-
-func TestBlockChainHookImpl_CleanFakeAccounts(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	address := []byte("test")
-	bh.AddTempAccount(address, big.NewInt(10), 10)
-	bh.CleanTempAccounts()
-
-	acc := bh.TempAccount(address)
-	assert.Nil(t, acc)
-}
-
-func TestBlockChainHookImpl_CreateAndGetFakeAccounts(t *testing.T) {
-	t.Parallel()
-
-	args := createMockVMAccountsArguments()
-	bh, _ := hooks.NewBlockChainHookImpl(args)
-
-	address := []byte("test")
-	nonce := uint64(10)
-	bh.AddTempAccount(address, big.NewInt(10), nonce)
-
-	acc := bh.TempAccount(address)
-	assert.NotNil(t, acc)
-	assert.Equal(t, nonce, acc.GetNonce())
 }
 
 func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
@@ -409,7 +378,7 @@ func TestBlockChainHookImpl_IsPayableNormalAccount(t *testing.T) {
 	args := createMockVMAccountsArguments()
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 	isPayable, err := bh.IsPayable([]byte("address"))
-	assert.False(t, isPayable)
+	assert.True(t, isPayable)
 	assert.Nil(t, err)
 }
 
@@ -417,6 +386,13 @@ func TestBlockChainHookImpl_IsPayableSCNonPayable(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
+	args.Accounts = &mock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			acc := &mock.AccountWrapMock{}
+			acc.SetCodeMetadata([]byte{0, 0})
+			return acc, nil
+		},
+	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 	isPayable, err := bh.IsPayable(make([]byte, 32))
 	assert.False(t, isPayable)
@@ -428,8 +404,8 @@ func TestBlockChainHookImpl_IsPayablePayable(t *testing.T) {
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
-			acc :=  &mock.AccountWrapMock{}
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+			acc := &mock.AccountWrapMock{}
 			acc.SetCodeMetadata([]byte{0, vmcommon.METADATA_PAYABLE})
 			return acc, nil
 		},
