@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -1011,6 +1012,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler)
+	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      tpn.VMContainer,
@@ -1028,11 +1030,11 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		GasHandler:       tpn.GasHandler,
 		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		BadTxForwarder:   badBlocksHandler,
 	}
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(argsNewScProcessor)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
-	badBlocskHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(
 		tpn.AccntState,
 		TestHasher,
@@ -1045,7 +1047,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		txTypeHandler,
 		tpn.EconomicsData,
 		receiptsHandler,
-		badBlocskHandler,
+		badBlocksHandler,
 		tpn.ArgsParser,
 		tpn.ScrForwarder,
 	)
@@ -1153,6 +1155,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler)
+	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      tpn.VMContainer,
 		ArgsParser:       tpn.ArgsParser,
@@ -1169,6 +1172,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		GasHandler:       tpn.GasHandler,
 		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		BadTxForwarder:   badBlocksHandler,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor
@@ -1249,7 +1253,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		FeeHandler:       tpn.FeeAccumulator,
 		Uint64Converter:  TestUint64Converter,
 		RequestHandler:   tpn.RequestHandler,
-		Core:             nil,
 		BlockChainHook:   tpn.BlockchainHook,
 		HeaderValidator:  tpn.HeaderValidator,
 		Rounder:          tpn.Rounder,
@@ -1263,6 +1266,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
+		Indexer:                indexer.NewNilIndexer(),
+		TpsBenchmark:           &testscommon.TpsBenchmarkMock{},
 		Version:                string(SoftwareVersion),
 	}
 
@@ -1402,7 +1407,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	}
 
 	if err != nil {
-		log.Error("error creating blockprocessor", "error", err.Error())
+		panic(fmt.Sprintf("error creating blockprocessor: %s", err.Error()))
 	}
 }
 

@@ -859,3 +859,15 @@ var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for 
 
 // ErrAccountNotPayable will be sent when trying to send money to a non-payable account
 var ErrAccountNotPayable = errors.New("sending value to non payable contract")
+
+// ErrNilIndexer signals that indexer is nil
+var ErrNilIndexer = errors.New("indexer is nil")
+
+// ErrNilTpsBenchmark signals that tps benchmark object is nil
+var ErrNilTpsBenchmark = errors.New("tps benchmark object is nil")
+
+// ErrSmartContractDeploymentIsDisabled signals that smart contract deployment was disabled
+var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment is disabled")
+
+// ErrBuiltInfFunctionsAreDisabled signals that built in functions are disabled
+var ErrBuiltInfFunctionsAreDisabled = errors.New("built in functions are disabled")
