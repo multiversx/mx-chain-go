@@ -377,26 +377,28 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 		return nil, errors.New("persister does not exits")
 	}
 
-	var persisterForEpoch storage.Persister
+	var persisterToRead storage.Persister
 	var err error
-
-	if pd.isClosed {
-		persisterForEpoch, err = ps.persisterFactory.Create(pd.path)
+	if pd.getIsClosed() {
+		// TODO add a mutex when a persisterToRead is created
+		persisterToRead, err = ps.persisterFactory.Create(pd.path)
 		if err != nil {
 			log.Debug("open old persister", "error", err.Error())
 			return nil, err
 		}
 		defer func() {
-			err = persisterForEpoch.Close()
+			err = persisterToRead.Close()
 			if err != nil {
 				log.Debug("persister.Close()", "error", err.Error())
 			}
 		}()
-		err = persisterForEpoch.Init()
+		err = persisterToRead.Init()
 		if err != nil {
 			log.Debug("init old persister", "error", err.Error())
 			return nil, err
 		}
+	} else {
+		persisterToRead = pd.persister
 	}
 
 	returnMap := make(map[string][]byte, 0)
@@ -407,23 +409,9 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 			continue
 		}
 
-		if !pd.getIsClosed() {
-			val, err := pd.persister.Get(key)
-			if err != nil {
-				log.Warn("cannot get from active persister",
-					"key", key,
-					"error", err.Error(),
-				)
-				continue
-			}
-
-			returnMap[string(key)] = val
-			continue
-		}
-
-		res, err := persisterForEpoch.Get(key)
+		res, err := persisterToRead.Get(key)
 		if err != nil {
-			log.Warn("cannot get from opened persister",
+			log.Warn("cannot get from persister",
 				"hash", hex.EncodeToString(key),
 				"error", err.Error(),
 			)

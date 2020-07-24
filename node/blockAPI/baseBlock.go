@@ -70,7 +70,7 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 			"error", err.Error())
 		return []*transaction.ApiTransactionResult{}
 	}
-	log.Warn(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
+	log.Debug(fmt.Sprintf("GetBulkFromEpoch took %s", time.Since(start)))
 
 	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
@@ -86,7 +86,7 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 
 		txs = append(txs, tx)
 	}
-	log.Warn(fmt.Sprintf("UnmarshalTransactions took %s", time.Since(start)))
+	log.Debug(fmt.Sprintf("UnmarshalTransactions took %s", time.Since(start)))
 
 	return txs
 }

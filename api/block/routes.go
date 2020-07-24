@@ -79,7 +79,7 @@ func getBlockByNonce(c *gin.Context) {
 
 	start := time.Now()
 	block, err := ef.GetBlockByNonce(nonce, withTxs)
-	log.Warn(fmt.Sprintf("GetBlockByNonce took %s", time.Since(start)))
+	log.Debug(fmt.Sprintf("GetBlockByNonce took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -120,7 +120,7 @@ func getBlockByHash(c *gin.Context) {
 
 	start := time.Now()
 	block, err := ef.GetBlockByHash(hash, withTxs)
-	log.Warn(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
+	log.Debug(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,
