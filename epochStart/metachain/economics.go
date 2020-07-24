@@ -2,12 +2,15 @@ package metachain
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -150,7 +153,84 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		PrevEpochStartHash:  prevEpochStartHash,
 	}
 
+	e.printEconomicsData(
+		metaBlock,
+		prevEpochEconomics,
+		inflationRate,
+		newTokens,
+		computedEconomics,
+		totalRewardsToBeDistributed,
+		totalNumBlocksInEpoch,
+		rwdPerBlock,
+		rewardsForProtocolSustainability,
+	)
+
 	return &computedEconomics, nil
+}
+
+func (e *economics) printEconomicsData(
+	metaBlock *block.MetaBlock,
+	prevEpochEconomics block.Economics,
+	inflationRate float64,
+	newTokens *big.Int,
+	computedEconomics block.Economics,
+	totalRewardsToBeDistributed *big.Int,
+	totalNumBlocksInEpoch uint64,
+	rwdPerBlock *big.Int,
+	rewardsForProtocolSustainability *big.Int,
+) {
+	header := []string{"identifier", "", "value"}
+
+	rewardsForLeaders := core.GetPercentageOfValue(metaBlock.AccumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentage())
+	maxSupplyLength := len(prevEpochEconomics.TotalSupply.String())
+	lines := []*display.LineData{
+		e.newDisplayLine("epoch", "",
+			e.alignRight(fmt.Sprintf("%d", metaBlock.Epoch), maxSupplyLength)),
+		e.newDisplayLine("inflation rate", "",
+			e.alignRight(fmt.Sprintf("%.6f", inflationRate), maxSupplyLength)),
+		e.newDisplayLine("previous total supply", "(1)",
+			e.alignRight(prevEpochEconomics.TotalSupply.String(), maxSupplyLength)),
+		e.newDisplayLine("new tokens", "(2)",
+			e.alignRight(newTokens.String(), maxSupplyLength)),
+		e.newDisplayLine("current total supply", "(1+2)",
+			e.alignRight(computedEconomics.TotalSupply.String(), maxSupplyLength)),
+		e.newDisplayLine("accumulated fees in epoch", "(3)",
+			e.alignRight(metaBlock.AccumulatedFeesInEpoch.String(), maxSupplyLength)),
+		e.newDisplayLine("total rewards to be distributed", "(4)",
+			e.alignRight(totalRewardsToBeDistributed.String(), maxSupplyLength)),
+		e.newDisplayLine("total num blocks in epoch", "(5)",
+			e.alignRight(fmt.Sprintf("%d", totalNumBlocksInEpoch), maxSupplyLength)),
+		e.newDisplayLine("dev fees in epoch", "(6)",
+			e.alignRight(metaBlock.DevFeesInEpoch.String(), maxSupplyLength)),
+		e.newDisplayLine("leader fees in epoch", "(7)",
+			e.alignRight(rewardsForLeaders.String(), maxSupplyLength)),
+		e.newDisplayLine("reward per block", "(8)",
+			e.alignRight(rwdPerBlock.String(), maxSupplyLength)),
+		e.newDisplayLine("percent for protocol sustainability", "(9)",
+			e.alignRight(fmt.Sprintf("%.6f", e.rewardsHandler.ProtocolSustainabilityPercentage()), maxSupplyLength)),
+		e.newDisplayLine("reward for protocol sustainability", "(4 * 9)",
+			e.alignRight(rewardsForProtocolSustainability.String(), maxSupplyLength)),
+	}
+
+	str, err := display.CreateTableString(header, lines)
+	if err != nil {
+		log.Error("economics.printEconomicsData", "error", err)
+		return
+	}
+
+	log.Debug("computed economics data\n" + str)
+}
+
+func (e *economics) alignRight(val string, maxLen int) string {
+	if len(val) >= maxLen {
+		return val
+	}
+
+	return strings.Repeat(" ", maxLen-len(val)) + val
+}
+
+func (e *economics) newDisplayLine(values ...string) *display.LineData {
+	return display.NewLineData(false, values)
 }
 
 // compute the rewards for protocol sustainability - percentage from total rewards

@@ -639,16 +639,16 @@ func printEconomicsData(eb *block.Economics, hitRate float64, numBlocksTotal int
 }
 
 func intToErd(value int) *big.Int {
-	denomination, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+	denom, _ := big.NewInt(0).SetString("1000000000000000000", 10)
 
-	return big.NewInt(0).Mul(denomination, big.NewInt(int64(value)))
+	return big.NewInt(0).Mul(denom, big.NewInt(int64(value)))
 }
 
 func denomination(value *big.Int) string {
-	denomination, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+	denom, _ := big.NewInt(0).SetString("1000000000000000000", 10)
 	cpValue := big.NewInt(0).Set(value)
 
-	return cpValue.Div(cpValue, denomination).String()
+	return cpValue.Div(cpValue, denom).String()
 }
 
 func getArguments() ArgsNewEpochEconomics {
