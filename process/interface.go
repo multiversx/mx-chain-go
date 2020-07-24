@@ -535,13 +535,6 @@ type EndOfEpochEconomics interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorSettingsHandler defines the functionality which is needed for validators' settings
-type ValidatorSettingsHandler interface {
-	UnBondPeriod() uint64
-	GenesisNodePrice() *big.Int
-	IsInterfaceNil() bool
-}
-
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
 	DeveloperPercentage() float64

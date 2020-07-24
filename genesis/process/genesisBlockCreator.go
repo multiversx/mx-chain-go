@@ -2,6 +2,7 @@ package process
 
 import (
 	"fmt"
+	"math/big"
 	"path"
 	"path/filepath"
 
@@ -51,6 +52,13 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 		shardCreatorHandler: CreateShardGenesisBlock,
 		metaCreatorHandler:  CreateMetaGenesisBlock,
 	}
+
+	conversionBase := 10
+	nodePrice, ok := big.NewInt(0).SetString(arg.SystemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
+	if !ok || nodePrice.Cmp(zero) <= 0 {
+		return nil, genesis.ErrInvalidInitialNodePrice
+	}
+	gbc.arg.GenesisNodePrice = big.NewInt(0).Set(nodePrice)
 
 	if mustDoHardForkImportProcess(gbc.arg) {
 		err = gbc.createHardForkImportHandler()

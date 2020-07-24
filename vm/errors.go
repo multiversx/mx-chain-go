@@ -38,9 +38,6 @@ var ErrNilCryptoHook = errors.New("crypto hook is nil")
 // ErrNilOrEmptyKey signals that key is nil or empty
 var ErrNilOrEmptyKey = errors.New("nil or empty key")
 
-// ErrNilInitialStakeValue signals that nil initial stake value was provided
-var ErrNilInitialStakeValue = errors.New("initial stake value is nil")
-
 // ErrNilEconomicsData signals that nil economics data has been provided
 var ErrNilEconomicsData = errors.New("nil economics data")
 
@@ -82,9 +79,6 @@ var ErrOnExecutionAtStakingSC = errors.New("execution error at staking sc")
 
 // ErrNilAuctionSmartContractAddress signals that auction smart contract address is nil
 var ErrNilAuctionSmartContractAddress = errors.New("nil auction smart contract address")
-
-// ErrNilValidatorSettings signals that validator settings is nil
-var ErrNilValidatorSettings = errors.New("nil validator settings")
 
 // ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
 var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")
@@ -136,6 +130,21 @@ var ErrVotedForAProposalThatNotBeginsYet = errors.New("voted for a proposal that
 
 // ErrNilPublicKey signals that nil public key has been provided
 var ErrNilPublicKey = errors.New("nil public key")
+
+// ErrInvalidUnJailCost signals that provided unjail cost is invalid
+var ErrInvalidUnJailCost = errors.New("invalid unjail cost")
+
+// ErrNegativeWaitingNodesPercentage signals that negative waiting nodes percentage was provided
+var ErrNegativeWaitingNodesPercentage = errors.New("negative waiting nodes percentage")
+
+// ErrNegativeBleedPercentagePerRound signals that negative bleed percentage per round has been provided
+var ErrNegativeBleedPercentagePerRound = errors.New("negative bleed percentage per round")
+
+// ErrNegativeMaximumPercentageToBleed signals that negative maximum percentage to bleed has been provided
+var ErrNegativeMaximumPercentageToBleed = errors.New("negative maximum percentage to bleed")
+
+// ErrInvalidMaxNumberOfNodes signals that invalid number of max number of nodes has been provided
+var ErrInvalidMaxNumberOfNodes = errors.New("invalid number of max number of nodes")
 
 // ErrTokenNameNotHumanReadable signals that token name is not human readable
 var ErrTokenNameNotHumanReadable = errors.New("token name is not human readable")
