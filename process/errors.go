@@ -869,5 +869,8 @@ var ErrNilTpsBenchmark = errors.New("tps benchmark object is nil")
 // ErrSmartContractDeploymentIsDisabled signals that smart contract deployment was disabled
 var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment is disabled")
 
-// ErrBuiltInfFunctionsAreDisabled signals that built in functions are disabled
-var ErrBuiltInfFunctionsAreDisabled = errors.New("built in functions are disabled")
+// ErrUpgradeNotAllowed signals that upgrade is not allowed
+var ErrUpgradeNotAllowed = errors.New("upgrade is allowed only for owner")
+
+// ErrBuiltInFunctionsAreDisabled signals that built in functions are disabled
+var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled")
