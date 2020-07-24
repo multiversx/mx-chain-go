@@ -18,7 +18,8 @@ The go implementation for the Elrond Network testnet
 
 ## Installation and running
 
-In order to join the network as an observer or as a validator, the required steps are explained below:
+In order to join the network as an observer or as a validator, the required steps to **build from source and setup explicitly** are explained below. 
+Alternatively, in order to use the Docker Image, jump to [Using the Docker Image](#using-the-docker-image).
 
 ### Step 1: install & configure go:
 The installation of go should proceed as shown in official golang installation guide https://golang.org/doc/install . In order to run the node, minimum golang version should be 1.12.4.
@@ -106,6 +107,22 @@ sudo cp protoc-gen-gogoslick /usr/bin/
 ```
 
 Done
+
+## Using the Docker Image
+
+The following command runs a Node using the **latest** [Docker image](https://hub.docker.com/r/elrondnetwork/elrond-go-node) and maps a container folder to a local one that holds the necessary configuration:
+
+```
+docker run -d -v /absolute/path/to/config/:/data/ elrondnetwork/elrond-go-node:latest \
+ --nodes-setup-file="/data/nodesSetup.json" \
+ --p2p-config="/data/config/p2p.toml" \
+ --validator-key-pem-file="/data/keys/validatorKey.pem"
+ ```
+
+ In the snippet above, make sure you adjust the path to a valid configuration folder and also provide the appropriate command line arguments to the Node. For more details go to [Node CLI](https://docs.elrond.com/validators/node-cli).
+
+ In order to run a container using the latest **development** version instead, use the image **`elrondnetwork/elrond-go-node:devlatest`**. Furthermore, in order to use a specific release or tagged branch, use the image **`elrondnetwork/elrond-go-node:<tag>`**.
+
 
 ## Progress
 

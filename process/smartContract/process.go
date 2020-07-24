@@ -42,12 +42,15 @@ type scProcessor struct {
 	vmContainer      process.VirtualMachinesContainer
 	argsParser       process.ArgumentsParser
 	builtInFunctions process.BuiltInFunctionContainer
+	disableDeploy    bool
+	disableBuiltIn   bool
 
-	scrForwarder  process.IntermediateTransactionHandler
-	txFeeHandler  process.TransactionFeeHandler
-	economicsFee  process.FeeHandler
-	txTypeHandler process.TxTypeHandler
-	gasHandler    process.GasHandler
+	badTxForwarder process.IntermediateTransactionHandler
+	scrForwarder   process.IntermediateTransactionHandler
+	txFeeHandler   process.TransactionFeeHandler
+	economicsFee   process.FeeHandler
+	txTypeHandler  process.TxTypeHandler
+	gasHandler     process.GasHandler
 
 	txLogsProcessor process.TransactionLogProcessor
 }
@@ -69,6 +72,9 @@ type ArgsNewSmartContractProcessor struct {
 	GasHandler       process.GasHandler
 	BuiltInFunctions process.BuiltInFunctionContainer
 	TxLogsProcessor  process.TransactionLogProcessor
+	BadTxForwarder   process.IntermediateTransactionHandler
+	DisableDeploy    bool
+	DisableBuiltIn   bool
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -118,6 +124,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.TxLogsProcessor) {
 		return nil, process.ErrNilTxLogsProcessor
 	}
+	if check.IfNil(args.BadTxForwarder) {
+		return nil, process.ErrNilBadTxHandler
+	}
 
 	sc := &scProcessor{
 		vmContainer:      args.VmContainer,
@@ -135,6 +144,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		gasHandler:       args.GasHandler,
 		builtInFunctions: args.BuiltInFunctions,
 		txLogsProcessor:  args.TxLogsProcessor,
+		disableDeploy:    args.DisableDeploy,
+		disableBuiltIn:   args.DisableBuiltIn,
+		badTxForwarder:   args.BadTxForwarder,
 	}
 
 	return sc, nil
@@ -229,7 +241,10 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 
 	executedBuiltIn, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
 	if err != nil {
-		log.Debug("processed built in functions error", "error", err.Error())
+		log.Trace("processed built in functions error", "error", err.Error())
+		if executedBuiltIn {
+			return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, err.Error(), snapshot)
+		}
 		return vmcommon.UserError, err
 	}
 	if executedBuiltIn {
@@ -341,6 +356,27 @@ func (sc *scProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error
 	return nil
 }
 
+func (sc *scProcessor) resolveFailedTransaction(
+	acntSnd state.UserAccountHandler,
+	tx data.TransactionHandler,
+	txHash []byte,
+	errorMessage string,
+	snapshot int,
+) error {
+
+	err := sc.ProcessIfError(acntSnd, txHash, tx, errorMessage, []byte(errorMessage), snapshot)
+	if err != nil {
+		return err
+	}
+
+	err = sc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+	if err != nil {
+		return err
+	}
+
+	return process.ErrFailedTransaction
+}
+
 func (sc *scProcessor) resolveBuiltInFunctions(
 	txHash []byte,
 	tx data.TransactionHandler,
@@ -351,6 +387,10 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	builtIn, err := sc.builtInFunctions.Get(vmInput.Function)
 	if err != nil {
 		return false, nil
+	}
+
+	if !check.IfNil(acntSnd) && sc.disableBuiltIn {
+		return true, process.ErrBuiltInfFunctionsAreDisabled
 	}
 
 	// TODO: returned error should be protocol error - vmOutput error must be used for user errors
@@ -393,7 +433,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	if !check.IfNil(acntSnd) {
 		err = acntSnd.AddToBalance(scrForSender.Value)
 		if err != nil {
-			return true, err
+			return false, err
 		}
 	}
 
@@ -402,7 +442,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
-		return true, err
+		return false, err
 	}
 
 	if check.IfNil(acntSnd) {
@@ -413,7 +453,12 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
-	return true, sc.saveAccounts(acntSnd, acntDst)
+	err = sc.saveAccounts(acntSnd, acntDst)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // ProcessIfError creates a smart contract result, consumed the gas and returns the value to the user
@@ -599,6 +644,11 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
+
+	if sc.disableDeploy {
+		log.Trace("deploy is disabled")
+		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, process.ErrSmartContractDeploymentIsDisabled.Error(), []byte(""), snapshot)
+	}
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
