@@ -1749,6 +1749,60 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
+	t.Parallel()
+
+	userAcc, _ := state.NewUserAccount([]byte("recv address"))
+	accountsDB := &mock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+			if bytes.Equal(address, userAcc.Address) {
+				return userAcc, nil
+			}
+			return state.NewEmptyUserAccount(), nil
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return nil
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
+		},
+	}
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = accountsDB
+	arguments.Coordinator = shardCoordinator
+	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{
+		IsPayableCalled: func(address []byte) (bool, error) {
+			return false, nil
+		},
+	}
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	scr := smartContractResult.SmartContractResult{
+		RcvAddr: userAcc.Address,
+		SndAddr: []byte("snd addr"),
+		Value:   big.NewInt(0),
+	}
+	returnCode, err := sc.ProcessSmartContractResult(&scr)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+
+	scr.Value = big.NewInt(10)
+	returnCode, err = sc.ProcessSmartContractResult(&scr)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.True(t, userAcc.GetBalance().Cmp(zero) == 0)
+
+	scr.OriginalSender = scr.RcvAddr
+	returnCode, err = sc.ProcessSmartContractResult(&scr)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.True(t, userAcc.GetBalance().Cmp(scr.Value) == 0)
+}
+
 func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 	t.Parallel()
 
