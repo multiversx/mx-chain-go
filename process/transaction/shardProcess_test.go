@@ -759,6 +759,109 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 	testProcessCheck(t, 0, big.NewInt(0))
 }
 
+func TestTxProcessor_ProcessMoveBalanceToSmartNonPayableContract(t *testing.T) {
+	t.Parallel()
+
+	saveAccountCalled := 0
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, 32)
+	tx.Value = big.NewInt(0)
+
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		return 0
+	}
+
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
+	assert.Nil(t, err)
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	assert.Nil(t, err)
+
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+		saveAccountCalled++
+		return nil
+	}
+
+	execTx, _ := txproc.NewTxProcessor(
+		adb,
+		mock.HasherMock{},
+		createMockPubkeyConverter(),
+		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
+		shardCoordinator,
+		&mock.SCProcessorMock{
+			IsPayableCalled: func(address []byte) (bool, error) {
+				return false, nil
+			},
+		},
+		&mock.FeeAccumulatorStub{},
+		&mock.TxTypeHandlerMock{},
+		feeHandlerMock(),
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+	)
+
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.Equal(t, process.ErrFailedTransaction, err)
+}
+
+func TestTxProcessor_ProcessMoveBalanceToSmartPayableContract(t *testing.T) {
+	t.Parallel()
+
+	saveAccountCalled := 0
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, 32)
+	tx.Value = big.NewInt(0)
+
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		return 0
+	}
+
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
+	assert.Nil(t, err)
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	assert.Nil(t, err)
+
+	acntDst.CodeMetadata = []byte{0, vmcommon.METADATA_PAYABLE}
+
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+		saveAccountCalled++
+		return nil
+	}
+
+	execTx, _ := txproc.NewTxProcessor(
+		adb,
+		mock.HasherMock{},
+		createMockPubkeyConverter(),
+		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
+		shardCoordinator,
+		&mock.SCProcessorMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.TxTypeHandlerMock{},
+		feeHandlerMock(),
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+		&mock.ArgumentParserMock{},
+		&mock.IntermediateTransactionHandlerMock{},
+	)
+
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, saveAccountCalled)
+}
+
 func testProcessCheck(t *testing.T, nonce uint64, value *big.Int) {
 	saveAccountCalled := 0
 	shardCoordinator := mock.NewOneShardCoordinatorMock()

@@ -98,13 +98,13 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		"")
 
 	_, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(t, err)
+
+	require.Equal(t, process.ErrFailedTransaction, err)
 	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	ownerNonce++
 	tx = vm.CreateTx(
 		t,
 		ownerAddressBytes,
@@ -123,7 +123,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := ownerBalance.Uint64() - 2*transferOnCalls.Uint64()
+	expectedBalance := ownerBalance.Uint64() - transferOnCalls.Uint64()
 	vm.TestAccount(
 		t,
 		testContext.Accounts,
@@ -131,7 +131,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		ownerNonce+1,
 		big.NewInt(0).SetUint64(expectedBalance))
 
-	expectedBalance = 2 * transferOnCalls.Uint64()
+	expectedBalance = transferOnCalls.Uint64()
 	vm.TestAccount(
 		t,
 		testContext.Accounts,
