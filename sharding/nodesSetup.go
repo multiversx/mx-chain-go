@@ -11,7 +11,7 @@ import (
 var _ GenesisNodesSetupHandler = (*NodesSetup)(nil)
 var _ GenesisNodeInfoHandler = (*NodeInfo)(nil)
 
-const defaultInitialRating = uint32(50)
+const defaultInitialRating = uint32(5000001)
 
 // InitialNode holds data from json
 type InitialNode struct {
