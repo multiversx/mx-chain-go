@@ -112,19 +112,19 @@ func checkForNil(args ArgBlockChainHook) error {
 func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error) {
 	defer stopMeasure(startMeasure("GetUserAccount"))
 
-	var dstAccount state.UserAccountHandler
 	dstShardId := bh.shardCoordinator.ComputeId(address)
-	if dstShardId == bh.shardCoordinator.SelfId() {
-		acc, err := bh.accounts.LoadAccount(address)
-		if err != nil {
-			return nil, err
-		}
+	if dstShardId != bh.shardCoordinator.SelfId() {
+		return nil, nil
+	}
 
-		var ok bool
-		dstAccount, ok = acc.(state.UserAccountHandler)
-		if !ok {
-			return nil, process.ErrWrongTypeAssertion
-		}
+	acc, err := bh.accounts.LoadAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	dstAccount, ok := acc.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
 	}
 
 	return dstAccount, nil
@@ -351,7 +351,7 @@ func (bh *BlockChainHookImpl) IsSmartContract(address []byte) bool {
 	return core.IsSmartContractAddress(address)
 }
 
-// IsPayable checks weather the provided address can receive ERD or not
+// IsPayable checks whether the provided address can receive ERD or not
 func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
 	if !bh.IsSmartContract(address) {
 		return true, nil
