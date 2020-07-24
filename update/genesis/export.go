@@ -226,7 +226,15 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 			return err
 		}
 
-		return se.exportNodesSetupJson(validatorData)
+		nodesSetupFilePath := filepath.Join(se.exportFolder, core.NodesSetupJsonFileName)
+		err = se.exportNodesSetupJson(validatorData)
+		if err == nil {
+			log.Debug("hardfork nodesSetup.json exported successfully", "file path", nodesSetupFilePath)
+		} else {
+			log.Warn("hardfork nodesSetup.json not exported", "file path", nodesSetupFilePath, "error", err)
+		}
+
+		return err
 	}
 
 	if shId > se.shardCoordinator.NumberOfShards() && shId != core.MetachainShardId {

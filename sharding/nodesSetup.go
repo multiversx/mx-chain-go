@@ -113,6 +113,12 @@ func NewNodesSetup(
 	nodes.processShardAssignment()
 	nodes.createInitialNodesInfo()
 
+	//TODO: delete this log before merging:
+	log.Debug("nodes setup",
+		"start time", nodes.StartTime,
+		"chain id", nodes.ChainID,
+		"round duration", nodes.RoundDuration,
+		"min tx version", nodes.MinTransactionVersion)
 	return nodes, nil
 }
 
