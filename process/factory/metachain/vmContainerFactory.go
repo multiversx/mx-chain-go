@@ -120,13 +120,13 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 
 	argsNewSystemScFactory := systemVMFactory.ArgsNewSystemSCFactory{
 		SystemEI:            systemEI,
-		ValidatorSettings:   vmf.economics,
 		SigVerifier:         vmf.messageSigVerifier,
 		GasMap:              vmf.gasSchedule,
 		NodesConfigProvider: vmf.nodesConfigProvider,
 		Hasher:              vmf.hasher,
 		Marshalizer:         vmf.marshalizer,
 		SystemSCConfig:      vmf.systemSCConfig,
+		Economics:           vmf.economics,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {

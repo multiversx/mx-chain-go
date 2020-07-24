@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
@@ -62,7 +64,9 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	///////////------- send stake tx and check sender's balance
 	var txData string
-	nodePrice := big.NewInt(0).Set(nodes[0].EconomicsData.GenesisNodePrice())
+	genesisBlock := nodes[0].GenesisBlocks[core.MetachainShardId]
+	metaBlock := genesisBlock.(*block.MetaBlock)
+	nodePrice := big.NewInt(0).Set(metaBlock.EpochStart.Economics.NodePrice)
 	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
@@ -94,7 +98,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	/////////----- wait for unbond period
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBondPeriod()), nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	////////----- send unBond
 	for index, node := range nodes {
@@ -172,7 +176,9 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	nonce++
 
 	///////////------- send stake tx and check sender's balance
-	nodePrice := big.NewInt(0).Set(nodes[0].EconomicsData.GenesisNodePrice())
+	genesisBlock := nodes[0].GenesisBlocks[core.MetachainShardId]
+	metaBlock := genesisBlock.(*block.MetaBlock)
+	nodePrice := big.NewInt(0).Set(metaBlock.EpochStart.Economics.NodePrice)
 	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 	var txData string
 	for index, node := range nodes {
@@ -211,7 +217,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	/////////----- wait for unbound period
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBondPeriod()), nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	////////----- send unBound
 	for index, node := range nodes {
@@ -358,7 +364,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 }
 
 func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9499987910)
+	expectedValue := big.NewInt(0).SetUint64(9999986910)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
