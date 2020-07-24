@@ -60,6 +60,7 @@ func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint6
 		TotalStakeValue: big.NewInt(0).SetUint64(totalStakeValue),
 		LockedStake:     big.NewInt(0).SetUint64(totalStakeValue),
 		MaxStakePerNode: big.NewInt(0).SetUint64(maxStakePerNode),
+		WaitingStake:    big.NewInt(0),
 	}
 
 	keys := make([][]byte, 0)
@@ -1087,6 +1088,7 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 		LockedStake:     nodePrice,
 		MaxStakePerNode: nodePrice,
 		NumStaked:       1,
+		WaitingStake:    big.NewInt(0),
 	}
 
 	atArgParser := parsers.NewCallArgsParser()
@@ -1266,6 +1268,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		LockedStake:     nodePrice,
 		MaxStakePerNode: nodePrice,
 		NumStaked:       1,
+		WaitingStake:    big.NewInt(0),
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
 	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
@@ -1480,6 +1483,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 		TotalStakeValue: stakeValue,
 		LockedStake:     stakeValue,
 		MaxStakePerNode: stakeValue,
+		WaitingStake:    big.NewInt(0),
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
 	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
@@ -1571,6 +1575,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 		LockedStake:     valueStakedByTheCaller,
 		MaxStakePerNode: valueStakedByTheCaller,
 		NumStaked:       1,
+		WaitingStake:    big.NewInt(0),
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
 	eei.SetSCAddress(args.AuctionSCAddress)

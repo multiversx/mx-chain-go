@@ -708,13 +708,14 @@ func (s *stakingAuctionSC) activateStakingFor(
 	rewardAddress []byte,
 ) {
 	numStaked := uint64(registrationData.NumStaked)
+	numWaiting := uint64(registrationData.NumWaiting)
 	for i := uint64(0); numStaked < numQualified && i < uint64(len(blsKeys)); i++ {
 		stakedData, err := s.getStakedData(blsKeys[i])
 		if err != nil {
 			continue
 		}
 
-		if stakedData.Staked {
+		if stakedData.Staked || stakedData.Waiting {
 			continue
 		}
 
@@ -737,6 +738,7 @@ func (s *stakingAuctionSC) activateStakingFor(
 			s.eei.AddReturnMessage(fmt.Sprintf("key put into waiting list %s", hex.EncodeToString(blsKeys[i])))
 			s.eei.Finish(blsKeys[i])
 			s.eei.Finish([]byte{waiting})
+			numWaiting++
 			continue
 		}
 
@@ -745,6 +747,8 @@ func (s *stakingAuctionSC) activateStakingFor(
 
 	registrationData.NumStaked = uint32(numStaked)
 	registrationData.LockedStake.Mul(fixedStakeValue, big.NewInt(0).SetUint64(numStaked))
+	registrationData.NumWaiting = uint32(numWaiting)
+	registrationData.WaitingStake.Mul(fixedStakeValue, big.NewInt(0).SetUint64(numWaiting))
 }
 
 func (s *stakingAuctionSC) executeOnStakingSC(data []byte) (*vmcommon.VMOutput, error) {
@@ -761,6 +765,7 @@ func (s *stakingAuctionSC) getOrCreateRegistrationData(key []byte) (*AuctionData
 		TotalStakeValue: big.NewInt(0),
 		LockedStake:     big.NewInt(0),
 		MaxStakePerNode: big.NewInt(0),
+		WaitingStake:    big.NewInt(0),
 	}
 
 	if len(data) > 0 {
@@ -950,7 +955,14 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	unBondedKeys := make([][]byte, 0)
 	totalUnBond := big.NewInt(0)
+	totalWaiting := big.NewInt(0)
 	for _, blsKey := range blsKeys {
+		nodeData, err := s.getStakedData(blsKey)
+		if err != nil {
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s, error: %s", hex.EncodeToString(blsKey), err.Error()))
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
+		}
 		// returns what value is still under the selected bls key
 		vmOutput, err := s.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
 		if err != nil {
@@ -976,17 +988,36 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 			unBondValue.Set(auctionConfig.NodePrice)
 		}
 
-		_ = totalUnBond.Add(totalUnBond, unBondValue)
 		unBondedKeys = append(unBondedKeys, blsKey)
+		if nodeData.Waiting {
+			totalWaiting.Add(totalWaiting, unBondValue)
+			if registrationData.NumWaiting > 0 {
+				registrationData.NumWaiting -= 1
+			}
+			continue
+		}
+		totalUnBond.Add(totalUnBond, unBondValue)
 	}
 
 	if registrationData.LockedStake.Cmp(totalUnBond) < 0 {
-		totalUnBond.Set(registrationData.LockedStake)
+		s.eei.AddReturnMessage("contract error on unBond function")
+		return vmcommon.UserError
+	}
+	if registrationData.WaitingStake.Cmp(totalWaiting) < 0 {
+		s.eei.AddReturnMessage("contract error on unBond function")
+		return vmcommon.UserError
 	}
 
-	_ = registrationData.LockedStake.Sub(registrationData.LockedStake, totalUnBond)
-	_ = registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, totalUnBond)
+	registrationData.LockedStake.Sub(registrationData.LockedStake, totalUnBond)
+	registrationData.WaitingStake.Sub(registrationData.WaitingStake, totalWaiting)
+	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, totalUnBond)
+	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, totalWaiting)
+	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
+		s.eei.AddReturnMessage("contract error on unBond function")
+		return vmcommon.UserError
+	}
 
+	totalUnBond.Add(totalUnBond, totalWaiting)
 	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
 	if err != nil {
 		s.eei.AddReturnMessage("transfer error on unBond function")
@@ -1044,6 +1075,7 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	zero := big.NewInt(0)
 	claimable := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
+	claimable.Sub(claimable, registrationData.WaitingStake)
 	if claimable.Cmp(zero) <= 0 {
 		return vmcommon.Ok
 	}

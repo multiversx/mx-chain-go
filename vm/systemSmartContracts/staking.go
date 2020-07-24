@@ -545,7 +545,15 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 				r.eei.AddReturnMessage("error while adding to waiting")
 				return vmcommon.UserError
 			}
+			registrationData.Waiting = true
 			r.eei.Finish([]byte{waiting})
+
+			err = r.saveStakingData(args.Arguments[0], registrationData)
+			if err != nil {
+				r.eei.AddReturnMessage("cannot save staking registered data: error " + err.Error())
+				return vmcommon.UserError
+			}
+
 			return vmcommon.Ok
 		}
 
@@ -660,6 +668,7 @@ func (r *stakingSC) moveFirstFromWaitingToStaked(blsKey []byte) error {
 		return vm.ErrInvalidWaitingList
 	}
 
+	nodeData.Waiting = false
 	nodeData.Staked = true
 	nodeData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
 	stakeValue := r.getStakeValueForCurrentEpoch()
