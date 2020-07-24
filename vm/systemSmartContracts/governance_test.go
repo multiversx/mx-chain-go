@@ -284,6 +284,54 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldWork(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 }
 
+func TestGovernanceContract_ExecuteWhiteListProposalShouldNOTWorkDisabled(t *testing.T) {
+	t.Parallel()
+
+	gitHubCommit := []byte("0123456789012345678901234567890123456789")
+	startNonce := uint64(100)
+	stopNonce := uint64(1000)
+	callerAddr := []byte("addr1")
+	args := createMockGovernanceArgs()
+	args.Eei = &mock.SystemEIStub{
+		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+			return &mock.BlockChainHookStub{
+				CurrentNonceCalled: func() uint64 {
+					return 1
+				},
+			}
+		},
+		SetStorageCalled: func(key []byte, value []byte) {
+			if strings.Contains(string(key), string(proposalPrefix)) {
+				genProposal := &GeneralProposal{}
+				_ = json.Unmarshal(value, genProposal)
+				require.Equal(t, gitHubCommit, genProposal.GitHubCommit)
+				require.Equal(t, startNonce, genProposal.StartVoteNonce)
+				require.Equal(t, stopNonce, genProposal.EndVoteNonce)
+				require.Equal(t, callerAddr, genProposal.IssuerAddress)
+				require.False(t, genProposal.Voted)
+				return
+			}
+
+			whiteListProp := &WhiteListProposal{}
+			_ = json.Unmarshal(value, whiteListProp)
+			require.Equal(t, whiteListProp.WhiteListAddress, callerAddr)
+		},
+	}
+	args.GovernanceConfig.Disabled = true
+	gsc, _ := NewGovernanceContract(args)
+	gsc.ownerAddress = callerAddr
+
+	callInput := createVMInput(big.NewInt(100), "whiteList", callerAddr, []byte("addr2"))
+	callInput.Arguments = [][]byte{
+		gitHubCommit,
+		[]byte(fmt.Sprintf("%d", startNonce)),
+		[]byte(fmt.Sprintf("%d", stopNonce)),
+	}
+
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+}
+
 func TestGovernanceContract_ExecuteHardfork(t *testing.T) {
 	t.Parallel()
 

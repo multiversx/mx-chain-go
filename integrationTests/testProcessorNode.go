@@ -260,8 +260,8 @@ func CreatePkBytes(numShards uint32) map[uint32][]byte {
 	pk := []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
 	pksbytes := make(map[uint32][]byte, numShards+1)
 	for i := uint32(0); i < numShards; i++ {
-		pksbytes[i] = make([]byte, 128)
-		pksbytes[i] = pk
+		pksbytes[i] = make([]byte, len(pk))
+		copy(pksbytes[i], pk)
 		pksbytes[i][0] = byte(i)
 	}
 
@@ -286,6 +286,7 @@ func newBaseTestProcessorNode(
 	pksBytes := CreatePkBytes(maxShards)
 	address := make([]byte, 32)
 	address = []byte("afafafafafafafafafafafafafafafaf")
+	numNodes := uint32(len(pksBytes))
 
 	nodesSetup := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
@@ -300,6 +301,9 @@ func newBaseTestProcessorNode(
 			list := make([]sharding.GenesisNodeInfoHandler, 0)
 			list = append(list, mock.NewNodeInfo(address, pksBytes[shardId], shardId))
 			return list, nil, nil
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return numNodes
 		},
 	}
 	nodesCoordinator := &mock.NodesCoordinatorMock{
@@ -441,8 +445,12 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                 ChainID,
-		NodesSetup:              &mock.NodesSetupStub{},
-		MinTransactionVersion:   MinTransactionVersion,
+		NodesSetup: &mock.NodesSetupStub{
+			MinNumberOfNodesCalled: func() uint32 {
+				return 1
+			},
+		},
+		MinTransactionVersion: MinTransactionVersion,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -482,7 +490,11 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData)
 
 	if check.IfNil(tpn.NodesSetup) {
-		tpn.NodesSetup = &mock.NodesSetupStub{}
+		tpn.NodesSetup = &mock.NodesSetupStub{
+			MinNumberOfNodesCalled: func() uint32 {
+				return tpn.ShardCoordinator.NumberOfShards() * 2
+			},
+		}
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
@@ -642,18 +654,6 @@ func CreateEconomicsData() *economics.EconomicsData {
 				MinGasLimit:             minGasLimit,
 				GasPerDataByte:          "1",
 				DataLimitForBaseCalc:    "10000",
-			},
-			ValidatorSettings: config.ValidatorSettings{
-				GenesisNodePrice:         "500000000",
-				UnBondPeriod:             "5",
-				TotalSupply:              "200000000000",
-				MinStepValue:             "100000",
-				AuctionEnableNonce:       "100000",
-				StakeEnableNonce:         "0",
-				NumRoundsWithoutBleed:    "1000",
-				MaximumPercentageToBleed: "0.5",
-				BleedPercentagePerRound:  "0.00001",
-				UnJailValue:              "1000",
 			},
 		},
 	)
@@ -1012,6 +1012,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler)
+	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      tpn.VMContainer,
@@ -1029,11 +1030,11 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		GasHandler:       tpn.GasHandler,
 		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		BadTxForwarder:   badBlocksHandler,
 	}
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(argsNewScProcessor)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
-	badBlocskHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(
 		tpn.AccntState,
 		TestHasher,
@@ -1046,7 +1047,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		txTypeHandler,
 		tpn.EconomicsData,
 		receiptsHandler,
-		badBlocskHandler,
+		badBlocksHandler,
 		tpn.ArgsParser,
 		tpn.ScrForwarder,
 	)
@@ -1135,6 +1136,21 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinPassThreshold: 50,
 				MinVetoThreshold: 50,
 			},
+			StakingSystemSCConfig: config.StakingSystemSCConfig{
+				GenesisNodePrice:                     "1000",
+				UnJailValue:                          "10",
+				MinStepValue:                         "10",
+				MinStakeValue:                        "1",
+				UnBondPeriod:                         1,
+				AuctionEnableNonce:                   1000000,
+				StakeEnableNonce:                     0,
+				NumRoundsWithoutBleed:                1,
+				MaximumPercentageToBleed:             1,
+				BleedPercentagePerRound:              1,
+				MaxNumberOfNodesForStake:             100,
+				NodesToSelectInAuction:               100,
+				ActivateBLSPubKeyMessageVerification: false,
+			},
 		},
 		tpn.PeerState,
 	)
@@ -1154,6 +1170,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler)
+	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      tpn.VMContainer,
 		ArgsParser:       tpn.ArgsParser,
@@ -1170,6 +1187,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		GasHandler:       tpn.GasHandler,
 		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		BadTxForwarder:   badBlocksHandler,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor

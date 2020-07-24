@@ -48,6 +48,7 @@ type governanceContract struct {
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
 	governanceConfig    config.GovernanceSystemSCConfig
+	disabled            bool
 }
 
 // NewGovernanceContract creates a new governance smart contract
@@ -78,6 +79,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
 		governanceConfig:    args.GovernanceConfig,
+		disabled:            args.GovernanceConfig.Disabled,
 	}, nil
 }
 
@@ -87,9 +89,16 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return vmcommon.UserError
 	}
 
-	switch args.Function {
-	case core.SCDeployInitFunctionName:
+	if args.Function == core.SCDeployInitFunctionName {
 		return g.init(args)
+	}
+
+	if g.disabled {
+		g.eei.AddReturnMessage("Governance SC disabled")
+		return vmcommon.UserError
+	}
+
+	switch args.Function {
 	case "whiteList":
 		return g.whiteListProposal(args)
 	case "hardFork":

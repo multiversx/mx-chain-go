@@ -868,3 +868,6 @@ var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment
 
 // ErrUpgradeNotAllowed signals that upgrade is not allowed
 var ErrUpgradeNotAllowed = errors.New("upgrade is allowed only for owner")
+
+// ErrBuiltInfFunctionsAreDisabled signals that built in functions are disabled
+var ErrBuiltInfFunctionsAreDisabled = errors.New("built in functions are disabled")
