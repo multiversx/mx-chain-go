@@ -77,7 +77,7 @@ type baseProcessor struct {
 
 	indexer      indexer.Indexer
 	tpsBenchmark statistics.TPSBenchmark
-	historyRepo            fullHistory.HistoryRepository
+	historyRepo  fullHistory.HistoryRepository
 }
 
 type bootStorerDataArgs struct {
@@ -1204,10 +1204,6 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 }
 
 func (bp *baseProcessor) saveHistoryData(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) {
-	if !bp.historyRepo.IsEnabled() {
-		return
-	}
-
 	historyTransactionData := &fullHistory.HistoryTransactionsData{
 		HeaderHash:    headerHash,
 		HeaderHandler: header,

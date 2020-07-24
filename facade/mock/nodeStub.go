@@ -2,9 +2,9 @@ package mock
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/api/block"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"

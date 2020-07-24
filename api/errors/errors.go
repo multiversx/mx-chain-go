@@ -46,10 +46,10 @@ var ErrInvalidQueryParameter = errors.New("invalid query parameter")
 // ErrValidationEmptyBlockHash signals an empty block hash was provided
 var ErrValidationEmptyBlockHash = errors.New("block hash is empty")
 
-// ErrGetTransaction signals an error happened trying to fetch a transaction
+// ErrGetTransaction signals an error happening when trying to fetch a transaction
 var ErrGetTransaction = errors.New("getting transaction failed")
 
-// ErrGetBlock signals an error happened trying to fetch a block
+// ErrGetBlock signals an error happening when trying to fetch a block
 var ErrGetBlock = errors.New("getting block failed")
 
 // ErrQueryError signals a general query error

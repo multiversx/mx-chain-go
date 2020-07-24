@@ -2,6 +2,7 @@ package pruning
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"runtime/debug"
@@ -369,10 +370,17 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
+	if !exists {
+		log.Warn("get from removed persister",
+			"id", ps.identifier,
+			"epoch", epoch)
+		return nil, errors.New("persister does not exits")
+	}
 
 	var persisterForEpoch storage.Persister
 	var err error
-	if exists && pd.isClosed {
+
+	if pd.isClosed {
 		persisterForEpoch, err = ps.persisterFactory.Create(pd.path)
 		if err != nil {
 			log.Debug("open old persister", "error", err.Error())
@@ -399,37 +407,30 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 			continue
 		}
 
-		if exists {
-			if !pd.getIsClosed() {
-				val, err := pd.persister.Get(key)
-				if err != nil {
-					log.Warn("cannot get from active persister",
-						"key", key,
-						"error", err.Error(),
-					)
-					continue
-				}
-
-				returnMap[string(key)] = val
+		if !pd.getIsClosed() {
+			val, err := pd.persister.Get(key)
+			if err != nil {
+				log.Warn("cannot get from active persister",
+					"key", key,
+					"error", err.Error(),
+				)
 				continue
 			}
 
-			res, err := persisterForEpoch.Get(key)
-			if err != nil {
-				log.Warn("cannot get from opened persister",
-					"hash", hex.EncodeToString(key),
-					"error", err.Error(),
-				)
-			}
-
-			returnMap[string(key)] = res
+			returnMap[string(key)] = val
 			continue
 		}
-		log.Warn("get from closed persister",
-			"id", ps.identifier,
-			"epoch", epoch,
-			"key", key,
-			"error", err.Error())
+
+		res, err := persisterForEpoch.Get(key)
+		if err != nil {
+			log.Warn("cannot get from opened persister",
+				"hash", hex.EncodeToString(key),
+				"error", err.Error(),
+			)
+			continue
+		}
+
+		returnMap[string(key)] = res
 	}
 
 	return returnMap, nil

@@ -1,9 +1,5 @@
 package fullHistory
 
-import (
-	"errors"
-)
-
 type nilHistoryRepository struct {
 }
 
@@ -12,21 +8,19 @@ func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 	return new(nilHistoryRepository), nil
 }
 
-var errNilHistoryRepositoryImplementation = errors.New("this is a nil implementation of history processor")
-
 // PutTransactionsData returns a not implemented error
 func (nhr *nilHistoryRepository) PutTransactionsData(_ *HistoryTransactionsData) error {
-	return errNilHistoryRepositoryImplementation
+	return nil
 }
 
 // GetTransaction returns a not implemented error
 func (nhr *nilHistoryRepository) GetTransaction(_ []byte) (*HistoryTransactionWithEpoch, error) {
-	return nil, errNilHistoryRepositoryImplementation
+	return nil, nil
 }
 
 // GetEpochForHash returns a not implemented error
 func (nhr *nilHistoryRepository) GetEpochForHash(_ []byte) (uint32, error) {
-	return 0, errNilHistoryRepositoryImplementation
+	return 0, nil
 }
 
 // IsEnabled -

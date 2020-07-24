@@ -2,6 +2,8 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -28,6 +30,16 @@ type historyRepositoryFactory struct {
 
 // NewHistoryRepositoryFactory creates an instance of historyRepositoryFactory
 func NewHistoryRepositoryFactory(args *ArgsHistoryRepositoryFactory) (fullHistory.HistoryRepositoryFactory, error) {
+	if check.IfNil(args.Marshalizer) {
+		return nil, core.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return nil, core.ErrNilHasher
+	}
+	if check.IfNil(args.Store) {
+		return nil, core.ErrNilStore
+	}
+
 	return &historyRepositoryFactory{
 		selfShardID:       args.SelfShardID,
 		fullHistoryConfig: args.FullHistoryConfig,

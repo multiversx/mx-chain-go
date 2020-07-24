@@ -3,7 +3,6 @@
 package fullHistory
 
 import (
-	"errors"
 	"fmt"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -16,7 +15,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.GetOrCreate("core/fullHistory")
+var (
+	log                   = logger.GetOrCreate("core/fullHistory")
+	errInvalidBodyHandler = fmt.Errorf("cannot convert bodyHandler in body")
+)
 
 // HistoryRepositoryArguments is a structure that stores all components that are needed to a history processor
 type HistoryRepositoryArguments struct {
@@ -78,7 +80,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcess
 func (hp *historyProcessor) PutTransactionsData(historyTxsData *HistoryTransactionsData) error {
 	body, ok := historyTxsData.BodyHandler.(*block.Body)
 	if !ok {
-		return errors.New("cannot convert bodyHandler in body")
+		return errInvalidBodyHandler
 	}
 
 	epoch := historyTxsData.HeaderHandler.GetEpoch()

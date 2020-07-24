@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
@@ -16,6 +18,8 @@ const (
 	getBlockByNoncePath = "/by-nonce/:nonce"
 	getBlockByHashPath  = "/by-hash/:hash"
 )
+
+var log = logger.GetOrCreate("api/block")
 
 // BlockService interface defines methods that can be used from `elrondFacade` context variable
 type BlockService interface {
@@ -73,7 +77,9 @@ func getBlockByNonce(c *gin.Context) {
 		return
 	}
 
+	start := time.Now()
 	block, err := ef.GetBlockByNonce(nonce, withTxs)
+	log.Warn(fmt.Sprintf("GetBlockByNonce took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,
@@ -112,7 +118,9 @@ func getBlockByHash(c *gin.Context) {
 		return
 	}
 
+	start := time.Now()
 	block, err := ef.GetBlockByHash(hash, withTxs)
+	log.Warn(fmt.Sprintf("GetBlockByHash took %s", time.Since(start)))
 	if err != nil {
 		shared.RespondWith(
 			c,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/data"
 	rewardTxData "github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -70,42 +71,34 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 		// this should never happen because transaction was found in history storer should be also found in transaction
 		// storer
 		log.Warn("node transaction: cannot find transaction in storage")
-		return &transaction.ApiTransactionResult{
-			Epoch:      historyTx.Epoch,
-			MBHash:     hex.EncodeToString(historyTx.MbHash),
-			BlockHash:  hex.EncodeToString(historyTx.HeaderHash),
-			RcvShard:   historyTx.RcvShardID,
-			SndShard:   historyTx.SndShardID,
-			Round:      historyTx.Round,
-			BlockNonce: historyTx.HeaderNonce,
-		}, nil
+		return putHistoryFieldsInTransaction(nil, historyTx), nil
 	}
 
 	tx, err := n.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		// this should never happen
 		log.Warn("node transaction: cannot unmarshal transaction", "error", err.Error())
-		return &transaction.ApiTransactionResult{
-			Epoch:      historyTx.Epoch,
-			MBHash:     hex.EncodeToString(historyTx.MbHash),
-			BlockHash:  hex.EncodeToString(historyTx.HeaderHash),
-			RcvShard:   historyTx.RcvShardID,
-			SndShard:   historyTx.SndShardID,
-			Round:      historyTx.Round,
-			BlockNonce: historyTx.HeaderNonce,
-		}, nil
+		return putHistoryFieldsInTransaction(nil, historyTx), nil
 	}
 
 	// merge data about transaction from history storer and transaction storer
-	tx.Epoch = historyTx.Epoch
-	tx.MBHash = hex.EncodeToString(historyTx.MbHash)
-	tx.BlockHash = hex.EncodeToString(historyTx.HeaderHash)
-	tx.RcvShard = historyTx.RcvShardID
-	tx.SndShard = historyTx.SndShardID
-	tx.Round = historyTx.Round
-	tx.BlockNonce = historyTx.HeaderNonce
-
+	tx = putHistoryFieldsInTransaction(tx, historyTx)
 	return tx, nil
+}
+
+func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, historyFields *fullHistory.HistoryTransactionWithEpoch) *transaction.ApiTransactionResult {
+	if tx == nil {
+		tx = &transaction.ApiTransactionResult{}
+	}
+
+	tx.Epoch = historyFields.Epoch
+	tx.MBHash = hex.EncodeToString(historyFields.MbHash)
+	tx.BlockHash = hex.EncodeToString(historyFields.HeaderHash)
+	tx.RcvShard = historyFields.RcvShardID
+	tx.SndShard = historyFields.SndShardID
+	tx.Round = historyFields.Round
+	tx.BlockNonce = historyFields.HeaderNonce
+	return tx
 }
 
 func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transactionType, bool) {
