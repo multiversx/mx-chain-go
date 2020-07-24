@@ -21,7 +21,7 @@ type SCProcessorMock struct {
 // IsPayable -
 func (sc *SCProcessorMock) IsPayable(address []byte) (bool, error) {
 	if sc.IsPayableCalled != nil {
-		return sc.IsPayable(address)
+		return sc.IsPayableCalled(address)
 	}
 	return true, nil
 }

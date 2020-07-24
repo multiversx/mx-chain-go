@@ -793,7 +793,11 @@ func TestTxProcessor_ProcessMoveBalanceToSmartNonPayableContract(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.MarshalizerMock{},
 		shardCoordinator,
-		&mock.SCProcessorMock{},
+		&mock.SCProcessorMock{
+			IsPayableCalled: func(address []byte) (bool, error) {
+				return false, nil
+			},
+		},
 		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{},
 		feeHandlerMock(),
@@ -804,7 +808,7 @@ func TestTxProcessor_ProcessMoveBalanceToSmartNonPayableContract(t *testing.T) {
 	)
 
 	_, err = execTx.ProcessTransaction(&tx)
-	assert.Equal(t, process.ErrAccountNotPayable, err)
+	assert.Equal(t, process.ErrFailedTransaction, err)
 }
 
 func TestTxProcessor_ProcessMoveBalanceToSmartPayableContract(t *testing.T) {
