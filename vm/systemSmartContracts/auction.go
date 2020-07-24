@@ -26,6 +26,7 @@ const (
 	ok uint8 = iota
 	invalidKey
 	failed
+	waiting
 )
 
 type stakingAuctionSC struct {
@@ -729,6 +730,13 @@ func (s *stakingAuctionSC) activateStakingFor(
 			s.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(blsKeys[i]), vmOutput.ReturnCode.String()))
 			s.eei.Finish(blsKeys[i])
 			s.eei.Finish([]byte{failed})
+			continue
+		}
+
+		if len(vmOutput.ReturnData) > 0 && bytes.Equal(vmOutput.ReturnData[0], []byte{waiting}) {
+			s.eei.AddReturnMessage(fmt.Sprintf("key put into waiting list %s", hex.EncodeToString(blsKeys[i])))
+			s.eei.Finish(blsKeys[i])
+			s.eei.Finish([]byte{waiting})
 			continue
 		}
 

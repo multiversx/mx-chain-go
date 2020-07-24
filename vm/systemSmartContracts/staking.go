@@ -534,13 +534,19 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	}
 
 	if !onlyRegister {
+		if registrationData.StakeValue.Cmp(stakeValue) < 0 {
+			registrationData.StakeValue.Set(stakeValue)
+		}
+
 		if !r.canStake() && !registrationData.Staked {
 			r.eei.AddReturnMessage("staking is full")
 			err = r.addToWaitingList(args.Arguments[0])
 			if err != nil {
 				r.eei.AddReturnMessage("error while adding to waiting")
+				return vmcommon.UserError
 			}
-			return vmcommon.UserError
+			r.eei.Finish([]byte{waiting})
+			return vmcommon.Ok
 		}
 
 		if !registrationData.Staked {
@@ -548,10 +554,6 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 		}
 		registrationData.Staked = true
 		registrationData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
-
-		if registrationData.StakeValue.Cmp(stakeValue) < 0 {
-			registrationData.StakeValue.Set(stakeValue)
-		}
 	}
 
 	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
@@ -699,6 +701,20 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 
+	if r.isInWaiting(args.Arguments[0]) {
+		err = r.removeFromWaitingList(args.Arguments[0])
+		if err != nil {
+			r.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		r.eei.SetStorage(args.Arguments[0], nil)
+		r.eei.Finish(registrationData.StakeValue.Bytes())
+		r.eei.Finish(big.NewInt(0).SetUint64(uint64(registrationData.UnStakedEpoch)).Bytes())
+
+		return vmcommon.Ok
+	}
+
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
 	if currentNonce-registrationData.UnStakedNonce < r.unBondPeriod {
 		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", blsKey))
@@ -714,12 +730,6 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	}
 	if r.eei.IsValidator(args.Arguments[0]) {
 		r.eei.AddReturnMessage("unbonding is not possible: the node with key " + blsKey + " is still a validator")
-		return vmcommon.UserError
-	}
-
-	err = r.removeFromWaitingList(args.Arguments[0])
-	if err != nil {
-		r.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
@@ -933,6 +943,12 @@ func (r *stakingSC) getWaitingListElement(key []byte) (*ElementInList, error) {
 	}
 
 	return element, nil
+}
+
+func (r *stakingSC) isInWaiting(blsKey []byte) bool {
+	waitingKey := r.createWaitingListKey(blsKey)
+	marshalledData := r.eei.GetStorage(waitingKey)
+	return len(marshalledData) > 0
 }
 
 func (r *stakingSC) saveWaitingListElement(key []byte, element *ElementInList) error {
