@@ -45,22 +45,7 @@ func (ted *TestEconomicsData) SetDataLimitForBaseCalc(dataLimitForBaseCalc uint6
 	ted.dataLimitForBaseCalc = dataLimitForBaseCalc
 }
 
-// SetGenesisNodePrice sets the genesis node price
-func (ted *TestEconomicsData) SetGenesisNodePrice(nodePrice *big.Int) {
-	ted.genesisNodePrice = nodePrice
-}
-
-// SetMinStep will set the min step value
-func (ted *TestEconomicsData) SetMinStep(minStep *big.Int) {
-	ted.minStep = minStep
-}
-
 // SetTotalSupply sets the total supply when booting the network
 func (ted *TestEconomicsData) SetTotalSupply(totalSupply *big.Int) {
 	ted.genesisTotalSupply = totalSupply
-}
-
-// SetUnJailPrice sets the un-jail price of a node
-func (ted *TestEconomicsData) SetUnJailPrice(unJailPrice *big.Int) {
-	ted.unJailPrice = unJailPrice
 }
