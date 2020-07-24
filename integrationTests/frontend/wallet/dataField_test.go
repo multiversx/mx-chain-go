@@ -68,7 +68,7 @@ func TestTxDataFieldContainingUTF8Characters(t *testing.T) {
 }
 
 func sign(tx *transaction.Transaction, signer crypto.SingleSigner, sk crypto.PrivateKey) []byte {
-	marshalizer := &marshal.TxJsonMarshalizer{}
+	marshalizer := &marshal.JsonMarshalizer{}
 	converter, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
 
 	ftx := &transaction.FrontendTransaction{
