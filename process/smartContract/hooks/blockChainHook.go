@@ -352,6 +352,10 @@ func (bh *BlockChainHookImpl) IsSmartContract(address []byte) bool {
 	return core.IsSmartContractAddress(address)
 }
 
+func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
+	return false, nil
+}
+
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
 ) (state.UserAccountHandler, state.UserAccountHandler, error) {

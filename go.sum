@@ -5,6 +5,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.29 h1:Ig94TJAAaYvUry73BwYtDYUKHLuRABPqaJ0eF4uRTt4=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.29/go.mod h1:GWVfm7OjE+8m+l7HDOFLm4tjyn7CHnw6ZSKWpQA1Pts=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.30-0.20200724124142-650d75337f2f h1:29ECHiCQH/LuKsTna1bxkcQytqMZ4EKWAYHYMFRH2Co=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.30-0.20200724124142-650d75337f2f/go.mod h1:RJeqWDEClKmJHIkmiB5bH5XcJ0CGwbJDHw1zMjo8qsE=
 github.com/ElrondNetwork/big-int-util v0.0.5 h1:e/9kK++9ZH/SdIYqLSUPRFYrDZmDWDgff3/7SCydq5I=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.3 h1:j2LtPrNJuerannC1cQDE79STvi/P04gd61sNYo04Zf0=
@@ -16,7 +18,10 @@ github.com/ElrondNetwork/elrond-vm-common v0.1.21 h1:GosUg0kc9mV9TpEqlsQKkQOikhR
 github.com/ElrondNetwork/elrond-vm-common v0.1.21/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-common v0.1.22 h1:+OA5o15WReArvNoqB/AVhBQehGJKQtACUV6IWsjyBZA=
 github.com/ElrondNetwork/elrond-vm-common v0.1.22/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
+github.com/ElrondNetwork/elrond-vm-common v0.1.23 h1:4tIzzVdpAI8FonCA1BrbNb+3lukKoyHUaoSOAZWvYnY=
+github.com/ElrondNetwork/elrond-vm-common v0.1.23/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-util v0.3.4/go.mod h1:lCXk+AyNVXLet06PzCMBQb/iEWTSxGIoSXOTb6GeWjA=
+github.com/ElrondNetwork/elrond-vm-util v0.3.5/go.mod h1:+ecDJZLTwN/yeRXXEqd+sa9WoalLsT4nFtQWCo0YKWA=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
 github.com/ElrondNetwork/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
