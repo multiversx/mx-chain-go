@@ -158,7 +158,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(tx, tx.SndAddr, tx.RcvAddr)
 		if err != nil {
-			return vmcommon.UserError, txProc.executeAfterFailedMoveBalanceTransaction(tx, acntSnd, err)
+			return vmcommon.UserError, txProc.executeAfterFailedMoveBalanceTransaction(tx, err)
 		}
 		return vmcommon.Ok, err
 	case process.SCDeployment:
@@ -176,9 +176,13 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 
 func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 	tx *transaction.Transaction,
-	acntSnd state.UserAccountHandler,
 	txError error,
 ) error {
+	acntSnd, err := txProc.getAccountFromAddress(tx.SndAddr)
+	if err != nil {
+		return err
+	}
+
 	switch txError {
 	case process.ErrInvalidMetaTransaction:
 		return txProc.executingFailedTransaction(tx, acntSnd, txError)
@@ -343,6 +347,25 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
+	txFee, err := txProc.processTxFee(tx, acntSrc, acntDst)
+	if err != nil {
+		return err
+	}
+
+	// is sender address in node shard
+	if !check.IfNil(acntSrc) {
+		acntSrc.IncreaseNonce(1)
+		err := acntSrc.SubFromBalance(tx.Value)
+		if err != nil {
+			return err
+		}
+
+		err = txProc.accounts.SaveAccount(acntSrc)
+		if err != nil {
+			return err
+		}
+	}
+
 	isPayable, err := txProc.scProcessor.IsPayable(adrDst)
 	if err != nil {
 		return err
@@ -356,19 +379,17 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	txFee, err := txProc.processTxFee(tx, acntSrc, acntDst)
-	if err != nil {
-		return err
-	}
+	// is receiver address in node shard
+	if !check.IfNil(acntDst) {
+		err := acntDst.AddToBalance(tx.Value)
+		if err != nil {
+			return err
+		}
 
-	err = txProc.moveBalances(acntSrc, acntDst, tx.GetValue())
-	if err != nil {
-		return err
-	}
-
-	// is sender address in node shard
-	if acntSrc != nil {
-		acntSrc.IncreaseNonce(1)
+		err = txProc.accounts.SaveAccount(acntDst)
+		if err != nil {
+			return err
+		}
 	}
 
 	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
@@ -382,24 +403,6 @@ func (txProc *txProcessor) processMoveBalance(
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(txFee, big.NewInt(0), txHash)
-
-	return txProc.saveAccounts(acntSrc, acntDst)
-}
-
-func (txProc *txProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
-	if !check.IfNil(acntSnd) {
-		err := txProc.accounts.SaveAccount(acntSnd)
-		if err != nil {
-			return err
-		}
-	}
-
-	if !check.IfNil(acntDst) {
-		err := txProc.accounts.SaveAccount(acntDst)
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
@@ -430,29 +433,6 @@ func (txProc *txProcessor) processSCInvoking(
 	}
 
 	return txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
-}
-
-func (txProc *txProcessor) moveBalances(
-	acntSrc, acntDst state.UserAccountHandler,
-	value *big.Int,
-) error {
-	// is sender address in node shard
-	if !check.IfNil(acntSrc) {
-		err := acntSrc.SubFromBalance(value)
-		if err != nil {
-			return err
-		}
-	}
-
-	// is receiver address in node shard
-	if !check.IfNil(acntDst) {
-		err := acntDst.AddToBalance(value)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (txProc *txProcessor) processRelayedTx(

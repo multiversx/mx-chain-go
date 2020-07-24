@@ -584,71 +584,6 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- moveBalances
-func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
-
-	adrDst := []byte{67}
-	acntDst, _ := state.NewUserAccount(adrDst)
-
-	execTx := *createTxProcessor()
-	err := execTx.MoveBalances(nil, acntDst, big.NewInt(0))
-	assert.Nil(t, err)
-}
-
-func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
-
-	adrSrc := []byte{65}
-	acntSrc, _ := state.NewUserAccount(adrSrc)
-
-	execTx := *createTxProcessor()
-	err := execTx.MoveBalances(acntSrc, nil, big.NewInt(0))
-
-	assert.Nil(t, err)
-}
-
-func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	adrSrc := []byte{65}
-	acntSrc, err := state.NewUserAccount(adrSrc)
-	assert.Nil(t, err)
-
-	adrDst := []byte{67}
-	acntDst, err := state.NewUserAccount(adrDst)
-	assert.Nil(t, err)
-
-	execTx := *createTxProcessor()
-
-	acntSrc.Balance = big.NewInt(64)
-	acntDst.Balance = big.NewInt(31)
-	err = execTx.MoveBalances(acntSrc, acntDst, big.NewInt(14))
-
-	assert.Nil(t, err)
-	assert.Equal(t, big.NewInt(50), acntSrc.Balance)
-	assert.Equal(t, big.NewInt(45), acntDst.Balance)
-}
-
-func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	adrSrc := []byte{65}
-	acntSrc, err := state.NewUserAccount(adrSrc)
-	assert.Nil(t, err)
-
-	acntDst := acntSrc
-
-	execTx := *createTxProcessor()
-
-	acntSrc.Balance = big.NewInt(64)
-
-	err = execTx.MoveBalances(acntSrc, acntDst, big.NewInt(1))
-	assert.Nil(t, err)
-	assert.Equal(t, big.NewInt(64), acntSrc.Balance)
-	assert.Equal(t, big.NewInt(64), acntDst.Balance)
-}
-
 //------- increaseNonce
 
 func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
@@ -910,7 +845,7 @@ func testProcessCheck(t *testing.T, nonce uint64, value *big.Int) {
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, saveAccountCalled)
+	assert.Equal(t, 2, saveAccountCalled)
 }
 
 func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
