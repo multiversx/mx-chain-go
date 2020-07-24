@@ -15,7 +15,7 @@ type BlockChainHookHandlerMock struct {
 // IsPayable -
 func (e *BlockChainHookHandlerMock) IsPayable(address []byte) (bool, error) {
 	if e.IsPayableCalled != nil {
-		return e.IsPayable(address)
+		return e.IsPayableCalled(address)
 	}
 	return true, nil
 }
