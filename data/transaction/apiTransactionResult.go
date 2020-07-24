@@ -13,7 +13,7 @@ type ApiTransactionResult struct {
 	Sender    string                 `json:"sender,omitempty"`
 	GasPrice  uint64                 `json:"gasPrice,omitempty"`
 	GasLimit  uint64                 `json:"gasLimit,omitempty"`
-	Data      string                 `json:"data,omitempty"`
+	Data      []byte                 `json:"data,omitempty"`
 	Code      string                 `json:"code,omitempty"`
 	Signature string                 `json:"signature,omitempty"`
 	Status    core.TransactionStatus `json:"status,omitempty"`

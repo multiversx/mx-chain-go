@@ -22,12 +22,12 @@ func TestInterceptedTxWhithoutDataField(t *testing.T) {
 		0,
 		value,
 		"erd12dnfhej64s6c56ka369gkyj3hwv5ms0y5rxgsk2k7hkd2vuk7rvqxkalsa",
-		"erd1r37vju4vtruk5nnxrudnfg2ajy64xr0ztceqhcljlce648a258wswwv9zy",
-		"0294d19f2699e049e3a535922205fe87a6b3ecd1c4f8662082fd9d1ba9b190f61c607269f7ae682eff95c517f214d49214d724b34416d7dff87ad069d73eae09",
+		"erd1nqxxd22yfgzgulvemred666gdgkzy3qa2qyxwyvvqp6v4ug5h5fs2vlxz4",
+		"595dbad31b1ef6e96ecc0ef66f1b51ee7a2308059fd222b7d9c9a709541467454097de68879a48f762afa9d553a997bcb733368c6e4bafc5b3ae535dd5c07f02",
 		10,
 		100000,
-		[]byte(""),
-		integrationTests.ChainID,
+		[]byte("!!!!!"),
+		[]byte("test chain ID"),
 		integrationTests.MinTransactionVersion,
 	)
 }

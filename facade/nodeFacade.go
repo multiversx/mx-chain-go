@@ -251,7 +251,7 @@ func (nf *nodeFacade) CreateTransaction(
 	senderHex string,
 	gasPrice uint64,
 	gasLimit uint64,
-	txData string,
+	txData []byte,
 	signatureHex string,
 	chainID string,
 	version uint32,

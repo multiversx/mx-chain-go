@@ -1490,7 +1490,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		TestAddressPubkeyConverter.Encode(tx.SndAddr),
 		tx.GasPrice,
 		tx.GasLimit,
-		string(tx.Data),
+		tx.Data,
 		hex.EncodeToString(tx.Signature),
 		string(tx.ChainID),
 		tx.Version,
