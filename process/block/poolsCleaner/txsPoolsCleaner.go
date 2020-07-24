@@ -3,6 +3,7 @@ package poolsCleaner
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -136,7 +137,10 @@ func (tpc *txsPoolsCleaner) receivedBlockTx(key []byte, value interface{}) {
 
 	wrappedTx, ok := value.(*txcache.WrappedTransaction)
 	if !ok {
-		log.Warn("txsPoolsCleaner.receivedBlockTx", "error", process.ErrWrongTypeAssertion)
+		log.Warn("txsPoolsCleaner.receivedBlockTx",
+			"error", process.ErrWrongTypeAssertion,
+			"found type", fmt.Sprintf("%T", value),
+		)
 		return
 	}
 
@@ -152,7 +156,10 @@ func (tpc *txsPoolsCleaner) receivedRewardTx(key []byte, value interface{}) {
 
 	tx, ok := value.(data.TransactionHandler)
 	if !ok {
-		log.Warn("txsPoolsCleaner.receivedRewardTx", "error", process.ErrWrongTypeAssertion)
+		log.Warn("txsPoolsCleaner.receivedRewardTx",
+			"error", process.ErrWrongTypeAssertion,
+			"found type", fmt.Sprintf("%T", value),
+		)
 		return
 	}
 
@@ -175,7 +182,10 @@ func (tpc *txsPoolsCleaner) receivedUnsignedTx(key []byte, value interface{}) {
 
 	tx, ok := value.(data.TransactionHandler)
 	if !ok {
-		log.Warn("txsPoolsCleaner.receivedUnsignedTx", "error", process.ErrWrongTypeAssertion)
+		log.Warn("txsPoolsCleaner.receivedUnsignedTx",
+			"error", process.ErrWrongTypeAssertion,
+			"found type", fmt.Sprintf("%T", value),
+		)
 		return
 	}
 
