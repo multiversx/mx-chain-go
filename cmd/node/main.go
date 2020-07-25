@@ -613,7 +613,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if generalConfig.Hardfork.AfterHardFork {
 		log.Debug("changed genesis time after hardfork",
-			"original genesis time", genesisNodesConfig.StartTime,
+			"old genesis time", genesisNodesConfig.StartTime,
 			"new genesis time", generalConfig.Hardfork.GenesisTime)
 		genesisNodesConfig.StartTime = generalConfig.Hardfork.GenesisTime
 	}
