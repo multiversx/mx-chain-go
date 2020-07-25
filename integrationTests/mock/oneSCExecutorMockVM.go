@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var errNilValue = errors.New("nil value provided")
@@ -86,6 +86,7 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCreate(input *vmcommon.ContractCr
 
 	scOutputAccount := &vmcommon.OutputAccount{
 		Nonce:        0,
+		CodeMetadata: input.ContractCodeMetadata,
 		Code:         input.ContractCode,
 		BalanceDelta: input.CallValue,
 		Address:      newSCAddr,
