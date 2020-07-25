@@ -314,6 +314,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			Indexer:            &mock.IndexerMock{},
 			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
 			Version:            "softwareVersion",
+			HistoryRepository:  &mock.HistoryRepositoryStub{},
 		},
 	}
 
@@ -1019,7 +1020,7 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsE
 
 	requestedNonces = make([]uint64, 0)
 	rounder.RoundIndex = process.MaxHeaderRequestsAllowed + 5
-	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {
@@ -1031,7 +1032,7 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsE
 
 	requestedNonces = make([]uint64, 0)
 	rounder.RoundIndex = 5
-	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {
@@ -1089,7 +1090,7 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 
 	requestedNonces = make([]uint64, 0)
 	rounder.RoundIndex = 15
-	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {
@@ -1101,7 +1102,7 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 
 	requestedNonces = make([]uint64, 0)
 	rounder.RoundIndex = process.MaxHeaderRequestsAllowed + 10
-	sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
 	sort.Slice(requestedNonces, func(i, j int) bool {
