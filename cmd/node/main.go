@@ -1216,6 +1216,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		version,
 		importStartHandler,
+		coreComponents.Uint64ByteSliceConverter,
 		workingDir,
 		elasticIndexer,
 		tpsBenchmark,
