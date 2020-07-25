@@ -21,6 +21,7 @@ const (
 	heartbeatStatusPath = "/heartbeatstatus"
 	statisticsPath      = "/statistics"
 	statusPath          = "/status"
+	metricsPath         = "/metrics"
 	p2pStatusPath       = "/p2pstatus"
 	debugPath           = "/debug"
 	peerInfoPath        = "/peerinfo"
@@ -72,6 +73,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, statisticsPath, Statistics)
 	router.RegisterHandler(http.MethodGet, statusPath, StatusMetrics)
 	router.RegisterHandler(http.MethodGet, p2pStatusPath, P2pStatusMetrics)
+	router.RegisterHandler(http.MethodGet, metricsPath, PrometheusMetrics)
 	router.RegisterHandler(http.MethodPost, debugPath, QueryDebug)
 	router.RegisterHandler(http.MethodGet, peerInfoPath, PeerInfo)
 	// placeholder for custom routes
@@ -298,5 +300,19 @@ func PeerInfo(c *gin.Context) {
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
+	)
+}
+
+// PrometheusMetrics is the endpoint which will return the data in the way that prometheus expects them
+func PrometheusMetrics(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	metrics := facade.StatusMetrics().StatusMetricsWithoutP2PPrometheusString()
+	c.String(
+		http.StatusOK,
+		metrics,
 	)
 }
