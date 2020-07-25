@@ -2,10 +2,20 @@ package mock
 
 // StatusMetricsStub -
 type StatusMetricsStub struct {
-	StatusMetricsMapWithoutP2PCalled func() map[string]interface{}
-	StatusP2pMetricsMapCalled        func() map[string]interface{}
-	ConfigMetricsCalled              func() map[string]interface{}
-	NetworkMetricsCalled             func() map[string]interface{}
+	StatusMetricsMapWithoutP2PCalled              func() map[string]interface{}
+	StatusP2pMetricsMapCalled                     func() map[string]interface{}
+	ConfigMetricsCalled                           func() map[string]interface{}
+	NetworkMetricsCalled                          func() map[string]interface{}
+	StatusMetricsWithoutP2PPrometheusStringCalled func() string
+}
+
+// StatusMetricsWithoutP2PPrometheusString -
+func (sms *StatusMetricsStub) StatusMetricsWithoutP2PPrometheusString() string {
+	if sms.StatusMetricsWithoutP2PPrometheusStringCalled != nil {
+		return sms.StatusMetricsWithoutP2PPrometheusStringCalled()
+	}
+
+	return "metric 10"
 }
 
 // ConfigMetrics -
