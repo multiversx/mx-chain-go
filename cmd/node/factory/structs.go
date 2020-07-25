@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -17,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -148,7 +150,9 @@ type processComponentsFactoryArgs struct {
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
 	indexer                   indexer.Indexer
+	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
+	historyRepo               fullHistory.HistoryRepository
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -187,9 +191,11 @@ func NewProcessComponentsFactoryArgs(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	version string,
 	importStartHandler update.ImportStartHandler,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	workingDir string,
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
+	historyRepo fullHistory.HistoryRepository,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -227,9 +233,11 @@ func NewProcessComponentsFactoryArgs(
 		systemSCConfig:            systemSCConfig,
 		version:                   version,
 		importStartHandler:        importStartHandler,
+		uint64Converter:           uint64Converter,
 		workingDir:                workingDir,
 		indexer:                   indexer,
 		tpsBenchmark:              tpsBenchmark,
+		historyRepo:               historyRepo,
 	}
 }
 
@@ -552,15 +560,25 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 		return err
 	}
 
+	nonceToByteSlice := args.uint64Converter.ToByteSlice(genesisBlock.GetNonce())
 	if args.shardCoordinator.SelfId() == core.MetachainShardId {
 		errNotCritical := args.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis metablock", "error", errNotCritical.Error())
 		}
+		errNotCritical = args.data.Store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
+		if errNotCritical != nil {
+			log.Error("error storing genesis metablock (nonce-hash)", "error", errNotCritical.Error())
+		}
 	} else {
 		errNotCritical := args.data.Store.Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
+		}
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(genesisBlock.GetShardID())
+		errNotCritical = args.data.Store.Put(hdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
+		if errNotCritical != nil {
+			log.Error("error storing genesis shard header (nonce-hash)", "error", errNotCritical.Error())
 		}
 	}
 
@@ -955,7 +973,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	economicsData := args.economicsData
 
 	genesisVmConfig := args.mainConfig.VirtualMachineConfig
-	genesisVmConfig.OutOfProcessEnabled = false
+	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
 
 	arg := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              uint64(nodesSetup.StartTime),
@@ -1091,6 +1109,7 @@ func newBlockProcessor(
 			processArgs.indexer,
 			processArgs.tpsBenchmark,
 			processArgs.version,
+			processArgs.historyRepo,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1122,6 +1141,7 @@ func newBlockProcessor(
 			processArgs.indexer,
 			processArgs.tpsBenchmark,
 			processArgs.version,
+			processArgs.historyRepo,
 		)
 	}
 
@@ -1152,6 +1172,7 @@ func newShardBlockProcessor(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
+	historyRepository fullHistory.HistoryRepository,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -1253,7 +1274,7 @@ func newShardBlockProcessor(
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
 		AccountsDB:       stateComponents.AccountsAdapter,
-		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		BlockChainHook:   vmFactory.BlockChainHookImpl(),
 		PubkeyConv:       stateComponents.AddressPubkeyConverter,
 		Coordinator:      shardCoordinator,
 		ScrForwarder:     scForwarder,
@@ -1390,6 +1411,7 @@ func newShardBlockProcessor(
 		BlockSizeThrottler:     blockSizeThrottler,
 		Indexer:                indexer,
 		TpsBenchmark:           tpsBenchmark,
+		HistoryRepository:      historyRepository,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1436,6 +1458,7 @@ func newMetaBlockProcessor(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
+	historyRepository fullHistory.HistoryRepository,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1525,7 +1548,7 @@ func newMetaBlockProcessor(
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
 		AccountsDB:       stateComponents.AccountsAdapter,
-		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		BlockChainHook:   vmFactory.BlockChainHookImpl(),
 		PubkeyConv:       stateComponents.AddressPubkeyConverter,
 		Coordinator:      shardCoordinator,
 		ScrForwarder:     scForwarder,
@@ -1728,6 +1751,7 @@ func newMetaBlockProcessor(
 		BlockSizeThrottler:     blockSizeThrottler,
 		Indexer:                indexer,
 		TpsBenchmark:           tpsBenchmark,
+		HistoryRepository:      historyRepository,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,

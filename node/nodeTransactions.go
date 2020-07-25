@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/data"
 	rewardTxData "github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -16,9 +17,9 @@ type transactionType string
 
 const (
 	normalTx   transactionType = "normal"
-	unsignedTx transactionType = "unsignedTx"
-	rewardTx   transactionType = "rewardTx"
-	invalidTx  transactionType = "invalidTx"
+	unsignedTx transactionType = "unsigned"
+	rewardTx   transactionType = "reward"
+	invalidTx  transactionType = "invalid"
 )
 
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and
@@ -29,6 +30,14 @@ func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult,
 		return nil, err
 	}
 
+	if n.historyRepository.IsEnabled() {
+		return n.getFullHistoryTransaction(hash)
+	}
+
+	return n.getTransaction(hash)
+}
+
+func (n *Node) getTransaction(hash []byte) (*transaction.ApiTransactionResult, error) {
 	txObj, txType, found := n.getTxObjFromDataPool(hash)
 	if found {
 		return n.castObjToTransaction(txObj, txType)
@@ -40,6 +49,56 @@ func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult,
 	}
 
 	return nil, fmt.Errorf("transaction not found")
+}
+
+func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransactionResult, error) {
+	// get transaction from pool
+	txObj, txType, found := n.getTxObjFromDataPool(hash)
+	if found {
+		// transaction is in pool return information directly because in history storer
+		// there are no additional information about the transaction
+		return n.castObjToTransaction(txObj, txType)
+	}
+
+	historyTx, err := n.historyRepository.GetTransaction(hash)
+	if err != nil {
+		// transaction is not in history storer
+		return nil, err
+	}
+
+	txBytes, txType, found := n.getTxBytesFromStorageByEpoch(hash, historyTx.Epoch)
+	if !found {
+		// this should never happen because transaction was found in history storer should be also found in transaction
+		// storer
+		log.Warn("node transaction: cannot find transaction in storage")
+		return putHistoryFieldsInTransaction(nil, historyTx), nil
+	}
+
+	tx, err := n.unmarshalTransaction(txBytes, txType)
+	if err != nil {
+		// this should never happen
+		log.Warn("node transaction: cannot unmarshal transaction", "error", err.Error())
+		return putHistoryFieldsInTransaction(nil, historyTx), nil
+	}
+
+	// merge data about transaction from history storer and transaction storer
+	tx = putHistoryFieldsInTransaction(tx, historyTx)
+	return tx, nil
+}
+
+func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, historyFields *fullHistory.HistoryTransactionWithEpoch) *transaction.ApiTransactionResult {
+	if tx == nil {
+		tx = &transaction.ApiTransactionResult{}
+	}
+
+	tx.Epoch = historyFields.Epoch
+	tx.MBHash = hex.EncodeToString(historyFields.MbHash)
+	tx.BlockHash = hex.EncodeToString(historyFields.HeaderHash)
+	tx.RcvShard = historyFields.RcvShardID
+	tx.SndShard = historyFields.SndShardID
+	tx.Round = historyFields.Round
+	tx.BlockNonce = historyFields.HeaderNonce
+	return tx
 }
 
 func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transactionType, bool) {
@@ -97,6 +156,28 @@ func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transactionType, bool
 
 	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	txBytes, err = unsignedTxsStorer.SearchFirst(hash)
+	if err == nil {
+		return txBytes, unsignedTx, true
+	}
+
+	return nil, invalidTx, false
+}
+
+func (n *Node) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transactionType, bool) {
+	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
+	txBytes, err := txsStorer.GetFromEpoch(hash, epoch)
+	if err == nil {
+		return txBytes, normalTx, true
+	}
+
+	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
+	txBytes, err = rewardTxsStorer.GetFromEpoch(hash, epoch)
+	if err == nil {
+		return txBytes, rewardTx, true
+	}
+
+	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	txBytes, err = unsignedTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
 		return txBytes, unsignedTx, true
 	}

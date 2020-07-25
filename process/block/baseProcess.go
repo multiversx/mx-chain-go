@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -76,6 +77,7 @@ type baseProcessor struct {
 
 	indexer      indexer.Indexer
 	tpsBenchmark statistics.TPSBenchmark
+	historyRepo  fullHistory.HistoryRepository
 }
 
 type bootStorerDataArgs struct {
@@ -412,6 +414,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.TpsBenchmark) {
 		return process.ErrNilTpsBenchmark
+	}
+	if check.IfNil(arguments.HistoryRepository) {
+		return process.ErrNilHistoryRepository
 	}
 	if len(arguments.Version) == 0 {
 		return process.ErrEmptySoftwareVersion
@@ -1196,4 +1201,18 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	time.Sleep(waitTime)
 
 	bp.txCoordinator.RequestMiniBlocks(headerHandler)
+}
+
+func (bp *baseProcessor) saveHistoryData(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) {
+	historyTransactionData := &fullHistory.HistoryTransactionsData{
+		HeaderHash:    headerHash,
+		HeaderHandler: header,
+		BodyHandler:   body,
+	}
+
+	err := bp.historyRepo.PutTransactionsData(historyTransactionData)
+	if err != nil {
+		log.Warn("history processor: cannot save transaction data",
+			"error", err.Error())
+	}
 }
