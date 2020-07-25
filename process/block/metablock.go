@@ -106,6 +106,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		tpsBenchmark:           arguments.TpsBenchmark,
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),
+		historyRepo:            arguments.HistoryRepository,
 	}
 
 	mp := metaProcessor{
@@ -1084,6 +1085,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.tpsBenchmark.Update(header)
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	mp.saveHistoryData(headerHash, headerHandler, bodyHandler)
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 

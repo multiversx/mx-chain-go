@@ -1,0 +1,20 @@
+export HYSTERESIS=0.21
+export NUM_OF_SHARDS=2
+export NUM_NODES_SHARD=4
+export NUM_NODES_METACHAIN=4
+export CONSENSUS_GROUP_SIZE=3
+export METACHAIN_CONSENSUS_GROUP_SIZE=3
+
+# TXGen config.toml SCENARIOS:
+# Scenarios is the list of scenarios that txgen will start with.
+# All values: ["basic", "erc20", "stake", "esdt", "badNonce", "highLoad"]
+export TXGEN_CONFIG_SCENARIOS='"basic"'
+
+# TXGen start current values:
+# SCENARIOS: the commands get piped into parallel, look at https://www.gnu.org/software/parallel/parallel_cheat.pdf
+# ["/go/elrond-txgen-go/scripts/basic.sh", "/go/elrond-txgen-go/scripts/erc20.sh", "/go/elrond-txgen-go/scripts/stake.sh", "/go/elrond-txgen-go/scripts/esdt.sh", "/go/elrond-txgen-go/scripts/badNonce.sh", "/go/elrond-txgen-go/scripts/highLoad.sh"]
+# Input multiple values like: "/go/elrond-txgen-go/scripts/basic.sh /go/elrond-txgen-go/scripts/erc20.sh /go/elrond-txgen-go/scripts/stake.sh /go/elrond-txgen-go/scripts/esdt.sh /go/elrond-txgen-go/scripts/badNonce.sh /go/elrond-txgen-go/scripts/highLoad.sh"
+export SCENARIOS="/go/elrond-txgen-go/scripts/basic.sh"
+
+export PROXY_MINTING_VALUE=20000000000
+export PROXY_NUM_ACCOUNTS=50
