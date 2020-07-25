@@ -53,6 +53,7 @@ type rewardsCreator struct {
 	dataPool                       dataRetriever.PoolsHolder
 	mapRewardsPerBlockPerValidator map[uint32]*big.Int
 	accumulatedRewards             *big.Int
+	protocolSustainability         *big.Int
 }
 
 type rewardInfoData struct {
@@ -118,6 +119,7 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 		protocolSustainabilityAddress: address,
 		nodesConfigProvider:           args.NodesConfigProvider,
 		accumulatedRewards:            big.NewInt(0),
+		protocolSustainability:        big.NewInt(0),
 	}
 
 	return rc, nil
@@ -128,6 +130,7 @@ func (rc *rewardsCreator) clean() {
 	rc.mapRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
 	rc.currTxs.Clean()
 	rc.accumulatedRewards = big.NewInt(0)
+	rc.protocolSustainability = big.NewInt(0)
 }
 
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
@@ -161,7 +164,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	rc.accumulatedRewards.Add(rc.accumulatedRewards, protocolSustainabilityRwdTx.Value)
 	difference := big.NewInt(0).Sub(metaBlock.EpochStart.Economics.TotalToDistribute, rc.accumulatedRewards)
 	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, difference)
-	metaBlock.EpochStart.Economics.RewardsForProtocolSustainability.Set(protocolSustainabilityRwdTx.Value)
+	rc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
 
 	protocolSustainabilityRwdHash, errHash := core.CalculateHash(rc.marshalizer, rc.hasher, protocolSustainabilityRwdTx)
 	if errHash != nil {
@@ -308,9 +311,9 @@ func (rc *rewardsCreator) createRewardFromRwdInfo(
 	return rwdTx, rwdTxHash, nil
 }
 
-// GetSumOfAllRewards returns the sum of all rewards
-func (rc *rewardsCreator) GetSumOfAllRewards() *big.Int {
-	return rc.accumulatedRewards
+// GetProtocolSustainabilityRewards returns the sum of all rewards
+func (rc *rewardsCreator) GetProtocolSustainabilityRewards() *big.Int {
+	return rc.protocolSustainability
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct

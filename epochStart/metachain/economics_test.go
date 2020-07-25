@@ -466,7 +466,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 			DevFeesInEpoch:         devFeesInEpoch,
 		}
 
-		err := ec.VerifyRewardsPerBlock(&mb)
+		err := ec.VerifyRewardsPerBlock(&mb, nil)
 		assert.Nil(t, err)
 	}
 }

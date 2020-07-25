@@ -17,13 +17,13 @@ type EpochRewardsCreatorStub struct {
 	DeleteTxsFromStorageCalled     func(metaBlock *block.MetaBlock, body *block.Body)
 	RemoveBlockDataFromPoolsCalled func(metaBlock *block.MetaBlock, body *block.Body)
 	GetRewardsTxsCalled            func(body *block.Body) map[string]data.TransactionHandler
-	GetSumOfAllRewardsCalled       func() *big.Int
+	GetProtocolSustainCalled       func() *big.Int
 }
 
-// GetSumOfAllRewards -
-func (e *EpochRewardsCreatorStub) GetSumOfAllRewards() *big.Int {
-	if e.GetSumOfAllRewardsCalled != nil {
-		return e.GetSumOfAllRewardsCalled()
+// GetProtocolSustainabilityRewards -
+func (e *EpochRewardsCreatorStub) GetProtocolSustainabilityRewards() *big.Int {
+	if e.GetProtocolSustainCalled != nil {
+		return e.GetProtocolSustainCalled()
 	}
 	return big.NewInt(0)
 }

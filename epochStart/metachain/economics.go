@@ -349,9 +349,7 @@ func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, e
 }
 
 // VerifyRewardsPerBlock checks whether rewards per block value was correctly computed
-func (e *economics) VerifyRewardsPerBlock(
-	metaBlock *block.MetaBlock,
-) error {
+func (e *economics) VerifyRewardsPerBlock(metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int) error {
 	if !metaBlock.IsStartOfEpochBlock() {
 		return nil
 	}
@@ -359,6 +357,7 @@ func (e *economics) VerifyRewardsPerBlock(
 	if err != nil {
 		return err
 	}
+	computedEconomics.RewardsForProtocolSustainability.Set(correctedProtocolSustainability)
 	computedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, computedEconomics)
 	if err != nil {
 		return err

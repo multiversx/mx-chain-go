@@ -531,7 +531,7 @@ type RewardsHandler interface {
 // EndOfEpochEconomics defines the functionality that is needed to compute end of epoch economics data
 type EndOfEpochEconomics interface {
 	ComputeEndOfEpochEconomics(metaBlock *block.MetaBlock) (*block.Economics, error)
-	VerifyRewardsPerBlock(metaBlock *block.MetaBlock) error
+	VerifyRewardsPerBlock(metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int) error
 	IsInterfaceNil() bool
 }
 
@@ -741,7 +741,7 @@ type EpochStartDataCreator interface {
 type EpochStartRewardsCreator interface {
 	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
-	GetSumOfAllRewards() *big.Int
+	GetProtocolSustainabilityRewards() *big.Int
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
 	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
