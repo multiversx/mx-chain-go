@@ -860,6 +860,9 @@ var ErrTransactionIsNotWhitelisted = errors.New("transaction is not whitelisted"
 // ErrInterceptedDataNotForCurrentShard signals that intercepted data is not for current shard
 var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for current shard")
 
+// ErrAccountNotPayable will be sent when trying to send money to a non-payable account
+var ErrAccountNotPayable = errors.New("sending value to non payable contract")
+
 // ErrNilIndexer signals that indexer is nil
 var ErrNilIndexer = errors.New("indexer is nil")
 
@@ -869,5 +872,8 @@ var ErrNilTpsBenchmark = errors.New("tps benchmark object is nil")
 // ErrSmartContractDeploymentIsDisabled signals that smart contract deployment was disabled
 var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment is disabled")
 
-// ErrBuiltInfFunctionsAreDisabled signals that built in functions are disabled
-var ErrBuiltInfFunctionsAreDisabled = errors.New("built in functions are disabled")
+// ErrUpgradeNotAllowed signals that upgrade is not allowed
+var ErrUpgradeNotAllowed = errors.New("upgrade is allowed only for owner")
+
+// ErrBuiltInFunctionsAreDisabled signals that built in functions are disabled
+var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled")

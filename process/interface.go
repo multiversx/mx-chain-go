@@ -146,6 +146,7 @@ type SmartContractProcessor interface {
 	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error
+	IsPayable(address []byte) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -428,10 +429,11 @@ type PendingMiniBlocksHandler interface {
 
 // BlockChainHookHandler defines the actions which should be performed by implementation
 type BlockChainHookHandler interface {
-	TemporaryAccountsHandler
+	IsPayable(address []byte) (bool, error)
 	SetCurrentHeader(hdr data.HeaderHandler)
 	GetBuiltInFunctions() BuiltInFunctionContainer
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	IsInterfaceNil() bool
 }
 
 // Interceptor defines what a data interceptor should do
@@ -503,16 +505,6 @@ type ArgumentsParser interface {
 
 	CreateDataFromStorageUpdate(storageUpdates []*vmcommon.StorageUpdate) string
 	GetStorageUpdates(data string) ([]*vmcommon.StorageUpdate, error)
-	IsInterfaceNil() bool
-}
-
-// TemporaryAccountsHandler defines the functionality to create temporary accounts and pass to VM.
-// This holder will contain usually one account from shard X that calls a SC in shard Y
-// so when executing the code in shard Y, this impl will hold an ephemeral copy of the sender account from shard X
-type TemporaryAccountsHandler interface {
-	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
-	CleanTempAccounts()
-	TempAccount(address []byte) state.AccountHandler
 	IsInterfaceNil() bool
 }
 
