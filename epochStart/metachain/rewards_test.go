@@ -473,37 +473,6 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 	assert.True(t, putMbWasCalled)
 }
 
-func TestRewardsCreator_addValidatorRewardsToMiniBlocksZeroValueShouldNotAdd(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	rwdc, _ := NewEpochStartRewardsCreator(args)
-
-	epochStartEconomics := getDefaultEpochStart()
-	epochStartEconomics.Economics.RewardsForProtocolSustainability = big.NewInt(0)
-	epochStartEconomics.Economics.RewardsPerBlock = big.NewInt(0)
-
-	mb := &block.MetaBlock{
-		EpochStart: epochStartEconomics,
-	}
-
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(0),
-		},
-	}
-
-	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
-	mbs, err := rwdc.CreateRewardsMiniBlocks(mb, valInfo)
-	assert.Nil(t, err)
-	for _, mb := range mbs {
-		assert.Equal(t, 0, len(mb.TxHashes))
-	}
-}
-
 func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	t.Parallel()
 

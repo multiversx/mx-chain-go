@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -15,6 +17,15 @@ type EpochRewardsCreatorStub struct {
 	DeleteTxsFromStorageCalled     func(metaBlock *block.MetaBlock, body *block.Body)
 	RemoveBlockDataFromPoolsCalled func(metaBlock *block.MetaBlock, body *block.Body)
 	GetRewardsTxsCalled            func(body *block.Body) map[string]data.TransactionHandler
+	GetSumOfAllRewardsCalled       func() *big.Int
+}
+
+// GetSumOfAllRewards -
+func (e *EpochRewardsCreatorStub) GetSumOfAllRewards() *big.Int {
+	if e.GetSumOfAllRewardsCalled != nil {
+		return e.GetSumOfAllRewardsCalled()
+	}
+	return big.NewInt(0)
 }
 
 // CreateRewardsMiniBlocks -

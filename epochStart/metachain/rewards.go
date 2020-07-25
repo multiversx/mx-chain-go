@@ -52,6 +52,7 @@ type rewardsCreator struct {
 	marshalizer                    marshal.Marshalizer
 	dataPool                       dataRetriever.PoolsHolder
 	mapRewardsPerBlockPerValidator map[uint32]*big.Int
+	accumulatedRewards             *big.Int
 }
 
 type rewardInfoData struct {
@@ -116,6 +117,7 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 		dataPool:                      args.DataPool,
 		protocolSustainabilityAddress: address,
 		nodesConfigProvider:           args.NodesConfigProvider,
+		accumulatedRewards:            big.NewInt(0),
 	}
 
 	return rc, nil
@@ -125,6 +127,7 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 func (rc *rewardsCreator) clean() {
 	rc.mapRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
 	rc.currTxs.Clean()
+	rc.accumulatedRewards = big.NewInt(0)
 }
 
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
@@ -155,15 +158,18 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 		return nil, err
 	}
 
-	if protocolSustainabilityRwdTx.Value.Cmp(zero) > 0 {
-		protocolSustainabilityRwdHash, errHash := core.CalculateHash(rc.marshalizer, rc.hasher, protocolSustainabilityRwdTx)
-		if errHash != nil {
-			return nil, errHash
-		}
+	rc.accumulatedRewards.Add(rc.accumulatedRewards, protocolSustainabilityRwdTx.Value)
+	difference := big.NewInt(0).Sub(metaBlock.EpochStart.Economics.TotalToDistribute, rc.accumulatedRewards)
+	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, difference)
+	metaBlock.EpochStart.Economics.RewardsForProtocolSustainability.Set(protocolSustainabilityRwdTx.Value)
 
-		rc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
-		miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
+	protocolSustainabilityRwdHash, errHash := core.CalculateHash(rc.marshalizer, rc.hasher, protocolSustainabilityRwdTx)
+	if errHash != nil {
+		return nil, errHash
 	}
+
+	rc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
+	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
 
 	for shId := uint32(0); shId < rc.shardCoordinator.NumberOfShards(); shId++ {
 		sort.Slice(miniBlocks[shId].TxHashes, func(i, j int) bool {
@@ -210,6 +216,7 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 			continue
 		}
 
+		rc.accumulatedRewards.Add(rc.accumulatedRewards, rwdTx.Value)
 		shardId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
 		if shardId == core.MetachainShardId {
 			protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, rwdTx.Value)
@@ -292,6 +299,11 @@ func (rc *rewardsCreator) createRewardFromRwdInfo(
 	log.Trace("rewardTx", "address", []byte(rwdInfo.address), "value", rwdTx.Value.String(), "hash", rwdTxHash)
 
 	return rwdTx, rwdTxHash, nil
+}
+
+// GetSumOfAllRewards returns the sum of all rewards
+func (rc *rewardsCreator) GetSumOfAllRewards() *big.Int {
+	return rc.accumulatedRewards
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct

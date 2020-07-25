@@ -340,11 +340,6 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.epochEconomics.VerifyRewardsPerBlock(header)
-	if err != nil {
-		return err
-	}
-
 	currentRootHash, err := mp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
 		return err
@@ -371,6 +366,11 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	}
 
 	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
+	if err != nil {
+		return err
+	}
+
+	err = mp.epochEconomics.VerifyRewardsPerBlock(header)
 	if err != nil {
 		return err
 	}
