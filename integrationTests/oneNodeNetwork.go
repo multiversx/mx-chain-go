@@ -6,61 +6,35 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type oneNodeNetwork struct {
-	advertiser   p2p.Messenger
-	Nodes        []*TestProcessorNode
-	IdxProposers []int
-	Round        uint64
-	Nonce        uint64
+	Round uint64
+	Nonce uint64
 
 	Node *TestProcessorNode
 }
 
 // NewOneNodeNetwork creates a one-node network, useful for some integration tests
 func NewOneNodeNetwork() *oneNodeNetwork {
-	numOfShards := 1
-	nodesPerShard := 1
-	numMetachainNodes := 0
+	n := &oneNodeNetwork{}
 
-	n := &oneNodeNetwork{
-		advertiser:   CreateMessengerWithKadDht(""),
-		IdxProposers: make([]int, numOfShards+1),
-	}
-
-	n.Nodes = CreateNodes(
-		numOfShards,
-		nodesPerShard,
-		numMetachainNodes,
-		GetConnectableAddress(n.advertiser),
+	nodes := CreateNodes(
+		1,
+		1,
+		0,
+		"address",
 	)
 
-	for i := 0; i < numOfShards; i++ {
-		n.IdxProposers[i] = i * nodesPerShard
-	}
-
-	n.Node = n.Nodes[0]
-	n.IdxProposers[numOfShards] = numOfShards * nodesPerShard
-
+	n.Node = nodes[0]
 	return n
-}
-
-// Start starts the test network
-func (n *oneNodeNetwork) Start() {
-	_ = n.advertiser.Bootstrap()
-	DisplayAndStartNodes(n.Nodes)
 }
 
 // Stop stops the test network
 func (n *oneNodeNetwork) Stop() {
 	defer func() {
-		_ = n.advertiser.Close()
-		for _, n := range n.Nodes {
-			_ = n.Messenger.Close()
-		}
+		_ = n.Node.Messenger.Close()
 	}()
 }
 
@@ -87,7 +61,7 @@ func (n *oneNodeNetwork) GoToRoundOne() {
 
 // Continue advances processing with a number of rounds
 func (n *oneNodeNetwork) Continue(t *testing.T, numRounds int) {
-	n.Nonce, n.Round = WaitOperationToBeDone(t, n.Nodes, numRounds, n.Nonce, n.Round, n.IdxProposers)
+	n.Nonce, n.Round = WaitOperationToBeDone(t, []*TestProcessorNode{n.Node}, numRounds, n.Nonce, n.Round, []int{0})
 }
 
 // AddTxToPool adds a transaction to the pool (skips signature checks and interceptors)

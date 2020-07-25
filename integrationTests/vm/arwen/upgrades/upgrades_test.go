@@ -202,7 +202,6 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 	}
 
 	network := integrationTests.NewOneNodeNetwork()
-	network.Start()
 	defer network.Stop()
 
 	alice := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
@@ -265,7 +264,6 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 	}
 
 	network := integrationTests.NewOneNodeNetwork()
-	network.Start()
 	defer network.Stop()
 
 	alice := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
