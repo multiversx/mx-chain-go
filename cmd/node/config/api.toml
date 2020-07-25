@@ -6,6 +6,9 @@
         # /node/status will return all metrics stored inside a node
         { Name = "/status", Open = true },
 
+        # /node/metrics will return all metrics stored inside a node in the format that Prometheus expects them
+        { Name = "/metrics", Open = true },
+
         # /node/heartbeatstatus will return all heartbeats messages from the nodes in the network
         { Name = "/heartbeatstatus", Open = true },
 
@@ -92,4 +95,13 @@
 
          # /transaction/:txhash will return the transaction in JSON format based on its hash
          { Name = "/:txhash", Open = true },
+	]
+
+[APIPackages.block]
+	Routes = [
+	    # /block/by-nonce/:nonce will return the block in JSON format based on its nonce
+	    { Name = "/by-nonce/:nonce", Open = true },
+
+	    # /block/by-hash/:hash will return the block in JSON format based on its nonce
+	    { Name = "/by-hash/:hash", Open = true },
 	]

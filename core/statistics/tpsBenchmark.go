@@ -4,12 +4,15 @@ import (
 	"math/big"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
+
+var log = logger.GetOrCreate("statistics")
 
 // defaultBlockNumber is used to identify the default value of the value representing the block number fetched from storage.
 // it is used to signal that no value was read from storage and the check for not updating total number of processed
@@ -302,6 +305,16 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 			peakTPS:          shardPeakTPS,
 			lastBlockTxCount: header.TxCount,
 		}
+
+		log.Debug("TpsBenchmark.updateStatistics",
+			"shard", updatedShardStats.shardID,
+			"block", updatedShardStats.currentBlockNonce,
+			"avgTPS", updatedShardStats.averageTPS,
+			"peakTPS", updatedShardStats.peakTPS,
+			"lastBlockTxCount", updatedShardStats.lastBlockTxCount,
+			"avgBlockTxCount", updatedShardStats.averageBlockTxCount,
+			"totalProcessedTxCount", updatedShardStats.totalProcessedTxCount,
+		)
 
 		s.shardStatistics[shardInfo.ShardID] = updatedShardStats
 	}

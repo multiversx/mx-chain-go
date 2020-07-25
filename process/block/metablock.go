@@ -11,7 +11,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -28,7 +27,6 @@ var _ process.BlockProcessor = (*metaProcessor)(nil)
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	core                         serviceContainer.Core
 	scDataGetter                 external.SCQueryService
 	scToProtocol                 process.SmartContractToProtocolHandler
 	epochStartDataCreator        process.EpochStartDataCreator
@@ -104,12 +102,14 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		dataPool:               arguments.DataPool,
 		blockChain:             arguments.BlockChain,
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
+		indexer:                arguments.Indexer,
+		tpsBenchmark:           arguments.TpsBenchmark,
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),
+		historyRepo:            arguments.HistoryRepository,
 	}
 
 	mp := metaProcessor{
-		core:                         arguments.Core,
 		baseProcessor:                base,
 		headersCounter:               NewHeaderCounter(),
 		scDataGetter:                 arguments.SCDataGetter,
@@ -509,14 +509,11 @@ func (mp *metaProcessor) indexBlock(
 	notarizedHeadersHashes []string,
 	rewardsTxs map[string]data.TransactionHandler,
 ) {
-	if mp.core == nil || mp.core.Indexer() == nil {
+	if mp.indexer.IsNilIndexer() {
 		return
 	}
-	// Update tps benchmarks in the DB
-	tpsBenchmark := mp.core.TPSBenchmark()
-	if tpsBenchmark != nil {
-		go mp.core.Indexer().UpdateTPS(tpsBenchmark)
-	}
+
+	go mp.indexer.UpdateTPS(mp.tpsBenchmark)
 
 	txPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	scPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
@@ -558,15 +555,15 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	go mp.core.Indexer().SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
+	go mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
 
-	indexRoundInfo(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
+	indexRoundInfo(mp.indexer, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 
 	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
 		return
 	}
 
-	indexValidatorsRating(mp.core.Indexer(), mp.validatorStatisticsProcessor, metaBlock)
+	indexValidatorsRating(mp.indexer, mp.validatorStatisticsProcessor, metaBlock)
 }
 
 // RestoreBlockIntoPools restores the block into associated pools
@@ -1086,11 +1083,9 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
-	if mp.core != nil && mp.core.TPSBenchmark() != nil {
-		mp.core.TPSBenchmark().Update(header)
-	}
-
+	mp.tpsBenchmark.Update(header)
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	mp.saveHistoryData(headerHash, headerHandler, bodyHandler)
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
@@ -1106,6 +1101,7 @@ func (mp *metaProcessor) CommitBlock(
 		headerHash,
 		numShardHeadersFromPool,
 		mp.blockTracker,
+		uint64(mp.rounder.TimeDuration().Seconds()),
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -1323,10 +1319,9 @@ func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBl
 
 // getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage
 func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body) (rewardsTx map[string]data.TransactionHandler) {
-	if check.IfNil(mp.core) || check.IfNil(mp.core.Indexer()) {
+	if mp.indexer.IsNilIndexer() {
 		return
 	}
-
 	if !header.IsStartOfEpochBlock() {
 		return
 	}
