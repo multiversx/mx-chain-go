@@ -107,7 +107,10 @@ func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc []byte) (state.UserA
 	return userAcc, nil
 }
 
-func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {
+func (txProc *baseTxProcessor) checkTxValues(
+	tx *transaction.Transaction,
+	acntSnd, acntDst state.UserAccountHandler,
+) error {
 	err := txProc.checkUserNames(tx, acntSnd, acntDst)
 	if err != nil {
 		return err

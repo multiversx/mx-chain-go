@@ -2,11 +2,11 @@ package mock
 
 // RewardsHandlerMock -
 type RewardsHandlerMock struct {
-	MaxInflationRateCalled    func() float64
-	MinInflationRateCalled    func() float64
-	LeaderPercentageCalled    func() float64
-	CommunityPercentageCalled func() float64
-	CommunityAddressCalled    func() string
+	MaxInflationRateCalled                 func() float64
+	MinInflationRateCalled                 func() float64
+	LeaderPercentageCalled                 func() float64
+	ProtocolSustainabilityPercentageCalled func() float64
+	ProtocolSustainabilityAddressCalled    func() string
 }
 
 // LeaderPercentage -
@@ -14,14 +14,14 @@ func (rhm *RewardsHandlerMock) LeaderPercentage() float64 {
 	return rhm.LeaderPercentageCalled()
 }
 
-// CommunityPercentage will return the community percentage value
-func (rhm *RewardsHandlerMock) CommunityPercentage() float64 {
-	return rhm.CommunityPercentageCalled()
+// ProtocolSustainabilityPercentage will return the protocol sustainability percentage value
+func (rhm *RewardsHandlerMock) ProtocolSustainabilityPercentage() float64 {
+	return rhm.ProtocolSustainabilityPercentageCalled()
 }
 
-// CommunityAddress will return the community address
-func (rhm *RewardsHandlerMock) CommunityAddress() string {
-	return rhm.CommunityAddressCalled()
+// ProtocolSustainabilityAddress will return the protocol sustainability address
+func (rhm *RewardsHandlerMock) ProtocolSustainabilityAddress() string {
+	return rhm.ProtocolSustainabilityAddressCalled()
 }
 
 // MinInflationRate -

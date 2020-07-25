@@ -13,6 +13,11 @@ func (ns *nilStorer) GetFromEpoch(_ []byte, _ uint32) ([]byte, error) {
 	return nil, nil
 }
 
+// GetBulkFromEpoch will do nothing
+func (ns *nilStorer) GetBulkFromEpoch(_ [][]byte, _ uint32) (map[string][]byte, error) {
+	return nil, nil
+}
+
 // HasInEpoch will do nothing
 func (ns *nilStorer) HasInEpoch(_ []byte, _ uint32) error {
 	return nil

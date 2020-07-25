@@ -191,7 +191,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		Hasher:         testHasher,
 		Marshalizer:    testMarshalizer,
 		AccountsDB:     accnts,
-		TempAccounts:   blockChainHook,
+		BlockChainHook: blockChainHook,
 		PubkeyConv:     pubkeyConv,
 		Coordinator:    oneShardCoordinator,
 		ScrForwarder:   &mock.IntermediateTransactionHandlerMock{},
@@ -328,7 +328,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Hasher:         testHasher,
 		Marshalizer:    testMarshalizer,
 		AccountsDB:     accnts,
-		TempAccounts:   blockChainHook,
+		BlockChainHook: blockChainHook,
 		PubkeyConv:     pubkeyConv,
 		Coordinator:    oneShardCoordinator,
 		ScrForwarder:   &mock.IntermediateTransactionHandlerMock{},
@@ -517,6 +517,10 @@ func TestAccount(
 ) *big.Int {
 
 	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddressBytes)
+	if senderRecovAccount == nil {
+		return big.NewInt(0)
+	}
+
 	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
 
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())

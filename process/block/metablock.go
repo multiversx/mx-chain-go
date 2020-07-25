@@ -106,6 +106,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		tpsBenchmark:           arguments.TpsBenchmark,
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),
+		historyRepo:            arguments.HistoryRepository,
 	}
 
 	mp := metaProcessor{
@@ -339,11 +340,6 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.epochEconomics.VerifyRewardsPerBlock(header)
-	if err != nil {
-		return err
-	}
-
 	currentRootHash, err := mp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
 		return err
@@ -370,6 +366,11 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	}
 
 	err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
+	if err != nil {
+		return err
+	}
+
+	err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
 	if err != nil {
 		return err
 	}
@@ -731,6 +732,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 	if err != nil {
 		return nil, err
 	}
+	metaBlock.EpochStart.Economics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
 
 	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorsInfo)
 	if err != nil {
@@ -1084,6 +1086,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.tpsBenchmark.Update(header)
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	mp.saveHistoryData(headerHash, headerHandler, bodyHandler)
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 

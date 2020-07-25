@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -74,8 +75,6 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	var metachainHeaderUnit *pruning.PruningStorer
 	var unsignedTxUnit *pruning.PruningStorer
 	var rewardTxUnit *pruning.PruningStorer
-	var metaHdrHashNonceUnit *pruning.PruningStorer
-	var shardHdrHashNonceUnit *pruning.PruningStorer
 	var bootstrapUnit *pruning.PruningStorer
 	var txLogsUnit *pruning.PruningStorer
 	var err error
@@ -139,15 +138,29 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, metachainHeaderUnit)
 
-	metaHdrHashNonceUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.MetaHdrNonceHashStorage)
-	metaHdrHashNonceUnit, err = pruning.NewPruningStorer(metaHdrHashNonceUnitArgs)
+	// metaHdrHashNonce is static
+	metaHdrHashNonceUnitConfig := GetDBFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.DB)
+	shardID := core.GetShardIDString(psf.shardCoordinator.SelfId())
+	dbPath := psf.pathManager.PathForStatic(shardID, psf.generalConfig.MetaHdrNonceHashStorage.DB.FilePath)
+	metaHdrHashNonceUnitConfig.FilePath = dbPath
+	metaHdrHashNonceUnit, err := storageUnit.NewStorageUnitFromConf(
+		GetCacherFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.Cache),
+		metaHdrHashNonceUnitConfig,
+		GetBloomFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, metaHdrHashNonceUnit)
 
-	shardHdrHashNonceUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ShardHdrNonceHashStorage)
-	shardHdrHashNonceUnit, err = pruning.NewShardedPruningStorer(shardHdrHashNonceUnitArgs, psf.shardCoordinator.SelfId())
+	// shardHdrHashNonce storer is static
+	shardHdrHashNonceConfig := GetDBFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.DB)
+	shardID = core.GetShardIDString(psf.shardCoordinator.SelfId())
+	dbPath = psf.pathManager.PathForStatic(shardID, psf.generalConfig.ShardHdrNonceHashStorage.DB.FilePath) + shardID
+	shardHdrHashNonceConfig.FilePath = dbPath
+	shardHdrHashNonceUnit, err := storageUnit.NewStorageUnitFromConf(
+		GetCacherFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.Cache),
+		shardHdrHashNonceConfig,
+		GetBloomFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +168,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 
 	heartbeatDbConfig := GetDBFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.DB)
 	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
-	dbPath := psf.pathManager.PathForStatic(shardId, psf.generalConfig.Heartbeat.HeartbeatStorage.DB.FilePath)
+	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.Heartbeat.HeartbeatStorage.DB.FilePath)
 	heartbeatDbConfig.FilePath = dbPath
 	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
 		GetCacherFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.Cache),
@@ -209,6 +222,19 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 
+	historyTxUnit, hashEpochUnit, err := psf.createHistoryStorersIfNeeded()
+	if err != nil {
+		return nil, err
+	}
+
+	if psf.generalConfig.FullHistory.Enabled {
+		successfullyCreatedStorers = append(successfullyCreatedStorers, historyTxUnit)
+		store.AddStorer(dataRetriever.TransactionHistoryUnit, historyTxUnit)
+
+		successfullyCreatedStorers = append(successfullyCreatedStorers, hashEpochUnit)
+		store.AddStorer(dataRetriever.EpochByHashUnit, hashEpochUnit)
+	}
+
 	return store, err
 }
 
@@ -217,11 +243,9 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	var metaBlockUnit *pruning.PruningStorer
 	var headerUnit *pruning.PruningStorer
 	var txUnit *pruning.PruningStorer
-	var metaHdrHashNonceUnit *pruning.PruningStorer
 	var miniBlockUnit *pruning.PruningStorer
 	var unsignedTxUnit *pruning.PruningStorer
 	var rewardTxUnit *pruning.PruningStorer
-	var shardHdrHashNonceUnits []*pruning.PruningStorer
 	var bootstrapUnit *pruning.PruningStorer
 	var txLogsUnit *pruning.PruningStorer
 	var err error
@@ -252,26 +276,40 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, headerUnit)
 
-	metaHdrHashNonceUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.MetaHdrNonceHashStorage)
-	metaHdrHashNonceUnit, err = pruning.NewPruningStorer(metaHdrHashNonceUnitArgs)
+	// metaHdrHashNonce is static
+	metaHdrHashNonceUnitConfig := GetDBFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.DB)
+	shardID := core.GetShardIDString(core.MetachainShardId)
+	dbPath := psf.pathManager.PathForStatic(shardID, psf.generalConfig.MetaHdrNonceHashStorage.DB.FilePath)
+	metaHdrHashNonceUnitConfig.FilePath = dbPath
+	metaHdrHashNonceUnit, err := storageUnit.NewStorageUnitFromConf(
+		GetCacherFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.Cache),
+		metaHdrHashNonceUnitConfig,
+		GetBloomFromConfig(psf.generalConfig.MetaHdrNonceHashStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, metaHdrHashNonceUnit)
 
-	shardHdrHashNonceUnits = make([]*pruning.PruningStorer, psf.shardCoordinator.NumberOfShards())
+	shardHdrHashNonceUnits := make([]*storageUnit.Unit, psf.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < psf.shardCoordinator.NumberOfShards(); i++ {
-		shardHdrHashNonceUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ShardHdrNonceHashStorage)
-		shardHdrHashNonceUnits[i], err = pruning.NewShardedPruningStorer(shardHdrHashNonceUnitArgs, i)
+		shardHdrHashNonceConfig := GetDBFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.DB)
+		shardID = core.GetShardIDString(core.MetachainShardId)
+		dbPath = psf.pathManager.PathForStatic(shardID, psf.generalConfig.ShardHdrNonceHashStorage.DB.FilePath) + fmt.Sprintf("%d", i)
+		shardHdrHashNonceConfig.FilePath = dbPath
+		shardHdrHashNonceUnits[i], err = storageUnit.NewStorageUnitFromConf(
+			GetCacherFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.Cache),
+			shardHdrHashNonceConfig,
+			GetBloomFromConfig(psf.generalConfig.ShardHdrNonceHashStorage.Bloom))
 		if err != nil {
 			return nil, err
 		}
+
 		successfullyCreatedStorers = append(successfullyCreatedStorers, shardHdrHashNonceUnits[i])
 	}
 
 	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
 	heartbeatDbConfig := GetDBFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.DB)
-	dbPath := psf.pathManager.PathForStatic(shardId, psf.generalConfig.Heartbeat.HeartbeatStorage.DB.FilePath)
+	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.Heartbeat.HeartbeatStorage.DB.FilePath)
 	heartbeatDbConfig.FilePath = dbPath
 	heartbeatStorageUnit, err := storageUnit.NewStorageUnitFromConf(
 		GetCacherFromConfig(psf.generalConfig.Heartbeat.HeartbeatStorage.Cache),
@@ -354,7 +392,46 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 
+	historyTxUnit, hashEpochUnit, err := psf.createHistoryStorersIfNeeded()
+	if err != nil {
+		return nil, err
+	}
+
+	if psf.generalConfig.FullHistory.Enabled {
+		successfullyCreatedStorers = append(successfullyCreatedStorers, historyTxUnit)
+		store.AddStorer(dataRetriever.TransactionHistoryUnit, historyTxUnit)
+
+		successfullyCreatedStorers = append(successfullyCreatedStorers, hashEpochUnit)
+		store.AddStorer(dataRetriever.EpochByHashUnit, hashEpochUnit)
+	}
+
 	return store, err
+}
+
+func (psf *StorageServiceFactory) createHistoryStorersIfNeeded() (*pruning.PruningStorer, *storageUnit.Unit, error) {
+	if !psf.generalConfig.FullHistory.Enabled {
+		return nil, nil, nil
+	}
+
+	historyTxsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.FullHistory.HistoryTransactionStorageConfig)
+	historyTxUnit, err := pruning.NewPruningStorer(historyTxsUnitArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hashEpochDbConfig := GetDBFromConfig(psf.generalConfig.FullHistory.HashEpochStorageConfig.DB)
+	shardID := core.GetShardIDString(psf.shardCoordinator.SelfId())
+	dbPath := psf.pathManager.PathForStatic(shardID, psf.generalConfig.FullHistory.HashEpochStorageConfig.DB.FilePath)
+	hashEpochDbConfig.FilePath = dbPath
+	hashEpochUnit, err := storageUnit.NewStorageUnitFromConf(
+		GetCacherFromConfig(psf.generalConfig.FullHistory.HashEpochStorageConfig.Cache),
+		hashEpochDbConfig,
+		GetBloomFromConfig(psf.generalConfig.FullHistory.HashEpochStorageConfig.Bloom))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return historyTxUnit, hashEpochUnit, nil
 }
 
 func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.StorageConfig) *pruning.StorerArgs {

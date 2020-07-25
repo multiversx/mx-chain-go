@@ -13,6 +13,11 @@ type StorerMock struct {
 	data map[string][]byte
 }
 
+// RangeKeys -
+func (sm *StorerMock) RangeKeys(_ func(_ []byte, _ []byte) bool) {
+	panic("implement me")
+}
+
 // NewStorerMock -
 func NewStorerMock() *StorerMock {
 	return &StorerMock{
@@ -47,13 +52,27 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 	return sm.Get(key)
 }
 
+// GetBulkFromEpoch -
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
+	retValue := map[string][]byte{}
+	for _, key := range keys {
+		value, err := sm.Get(key)
+		if err != nil {
+			continue
+		}
+		retValue[string(key)] = value
+	}
+
+	return retValue, nil
+}
+
 // HasInEpoch -
-func (sm *StorerMock) HasInEpoch(key []byte, epoch uint32) error {
+func (sm *StorerMock) HasInEpoch(_ []byte, _ uint32) error {
 	return errors.New("not implemented")
 }
 
 // SearchFirst -
-func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
+func (sm *StorerMock) SearchFirst(_ []byte) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -63,12 +82,12 @@ func (sm *StorerMock) Close() error {
 }
 
 // Has -
-func (sm *StorerMock) Has(key []byte) error {
+func (sm *StorerMock) Has(_ []byte) error {
 	return errors.New("not implemented")
 }
 
 // Remove -
-func (sm *StorerMock) Remove(key []byte) error {
+func (sm *StorerMock) Remove(_ []byte) error {
 	return errors.New("not implemented")
 }
 
