@@ -96,3 +96,12 @@
          # /transaction/:txhash will return the transaction in JSON format based on its hash
          { Name = "/:txhash", Open = true },
 	]
+
+[APIPackages.block]
+	Routes = [
+	    # /block/by-nonce/:nonce will return the block in JSON format based on its nonce
+	    { Name = "/by-nonce/:nonce", Open = true },
+
+	    # /block/by-hash/:hash will return the block in JSON format based on its nonce
+	    { Name = "/by-hash/:hash", Open = true },
+	]

@@ -182,7 +182,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		TxSignMarshalizer:          integrationTests.TestTxSignMarshalizer,
 		Hasher:                     integrationTests.TestHasher,
 		Messenger:                  nodeToJoinLate.Messenger,
-		GeneralConfig:              getGeneralConfig(),
+		GeneralConfig:              generalConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              integrationTests.CreateEconomicsData(),
 		SingleSigner:               &mock.SignerMock{},
