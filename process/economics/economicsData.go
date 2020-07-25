@@ -15,20 +15,20 @@ var _ process.FeeHandler = (*EconomicsData)(nil)
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	leaderPercentage        float64
-	protocolSustainabilityPercentage     float64
-	protocolSustainabilityAddress        string
-	maxGasLimitPerBlock     uint64
-	maxGasLimitPerMetaBlock uint64
-	gasPerDataByte          uint64
-	dataLimitForBaseCalc    uint64
-	minGasPrice             uint64
-	minGasLimit             uint64
-	developerPercentage     float64
-	genesisTotalSupply      *big.Int
-	minInflation            float64
-	yearSettings            map[uint32]*config.YearSetting
-	mutYearSettings         sync.RWMutex
+	leaderPercentage                 float64
+	protocolSustainabilityPercentage float64
+	protocolSustainabilityAddress    string
+	maxGasLimitPerBlock              uint64
+	maxGasLimitPerMetaBlock          uint64
+	gasPerDataByte                   uint64
+	dataLimitForBaseCalc             uint64
+	minGasPrice                      uint64
+	minGasLimit                      uint64
+	developerPercentage              float64
+	genesisTotalSupply               *big.Int
+	minInflation                     float64
+	yearSettings                     map[uint32]*config.YearSetting
+	mutYearSettings                  sync.RWMutex
 }
 
 // NewEconomicsData will create and object with information about economics parameters
@@ -48,18 +48,18 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 	}
 
 	ed := &EconomicsData{
-		leaderPercentage:        economics.RewardsSettings.LeaderPercentage,
-		protocolSustainabilityPercentage:     economics.RewardsSettings.CommunityPercentage,
-		protocolSustainabilityAddress:        economics.RewardsSettings.CommunityAddress,
-		maxGasLimitPerBlock:     data.maxGasLimitPerBlock,
-		maxGasLimitPerMetaBlock: data.maxGasLimitPerMetaBlock,
-		minGasPrice:             data.minGasPrice,
-		minGasLimit:             data.minGasLimit,
-		gasPerDataByte:          data.gasPerDataByte,
-		dataLimitForBaseCalc:    data.dataLimitForBaseCalc,
-		developerPercentage:     economics.RewardsSettings.DeveloperPercentage,
-		minInflation:            economics.GlobalSettings.MinimumInflation,
-		genesisTotalSupply:      data.genesisTotalSupply,
+		leaderPercentage:                 economics.RewardsSettings.LeaderPercentage,
+		protocolSustainabilityPercentage: economics.RewardsSettings.ProtocolSustainabilityPercentage,
+		protocolSustainabilityAddress:    economics.RewardsSettings.ProtocolSustainabilityAddress,
+		maxGasLimitPerBlock:              data.maxGasLimitPerBlock,
+		maxGasLimitPerMetaBlock:          data.maxGasLimitPerMetaBlock,
+		minGasPrice:                      data.minGasPrice,
+		minGasLimit:                      data.minGasLimit,
+		gasPerDataByte:                   data.gasPerDataByte,
+		dataLimitForBaseCalc:             data.dataLimitForBaseCalc,
+		developerPercentage:              economics.RewardsSettings.DeveloperPercentage,
+		minInflation:                     economics.GlobalSettings.MinimumInflation,
+		genesisTotalSupply:               data.genesisTotalSupply,
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
