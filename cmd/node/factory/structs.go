@@ -973,7 +973,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	economicsData := args.economicsData
 
 	genesisVmConfig := args.mainConfig.VirtualMachineConfig
-	genesisVmConfig.OutOfProcessEnabled = false
+	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
 
 	arg := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              uint64(nodesSetup.StartTime),
@@ -1274,7 +1274,7 @@ func newShardBlockProcessor(
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
 		AccountsDB:       stateComponents.AccountsAdapter,
-		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		BlockChainHook:   vmFactory.BlockChainHookImpl(),
 		PubkeyConv:       stateComponents.AddressPubkeyConverter,
 		Coordinator:      shardCoordinator,
 		ScrForwarder:     scForwarder,
@@ -1548,7 +1548,7 @@ func newMetaBlockProcessor(
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
 		AccountsDB:       stateComponents.AccountsAdapter,
-		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		BlockChainHook:   vmFactory.BlockChainHookImpl(),
 		PubkeyConv:       stateComponents.AddressPubkeyConverter,
 		Coordinator:      shardCoordinator,
 		ScrForwarder:     scForwarder,
