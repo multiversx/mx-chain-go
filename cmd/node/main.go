@@ -721,7 +721,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ShardCoordinator:                     genesisShardCoordinator,
 		KeyGen:                               cryptoParams.KeyGenerator,
 		PrivKey:                              cryptoParams.PrivateKey,
-		ActivateBLSPubKeyMessageVerification: economicsConfig.ValidatorSettings.ActivateBLSPubKeyMessageVerification,
+		ActivateBLSPubKeyMessageVerification: systemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 	}
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoArgs)
 	if err != nil {
@@ -1215,6 +1215,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		version,
 		importStartHandler,
+		coreComponents.Uint64ByteSliceConverter,
 		workingDir,
 		elasticIndexer,
 		tpsBenchmark,

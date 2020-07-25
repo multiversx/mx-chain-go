@@ -2,6 +2,7 @@ package factory
 
 import (
 	"errors"
+	"math/big"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -16,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -147,6 +149,7 @@ type processComponentsFactoryArgs struct {
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
 	indexer                   indexer.Indexer
+	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
 }
 
@@ -186,6 +189,7 @@ func NewProcessComponentsFactoryArgs(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	version string,
 	importStartHandler update.ImportStartHandler,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	workingDir string,
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
@@ -226,6 +230,7 @@ func NewProcessComponentsFactoryArgs(
 		systemSCConfig:            systemSCConfig,
 		version:                   version,
 		importStartHandler:        importStartHandler,
+		uint64Converter:           uint64Converter,
 		workingDir:                workingDir,
 		indexer:                   indexer,
 		tpsBenchmark:              tpsBenchmark,
@@ -472,9 +477,15 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	conversionBase := 10
+	genesisNodePrice, ok := big.NewInt(0).SetString(args.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
+	if !ok {
+		return nil, errors.New("invalid genesis node price")
+	}
+
 	nodesSetupChecker, err := checking.NewNodesSetupChecker(
 		args.accountsParser,
-		args.economicsData.GenesisNodePrice(),
+		genesisNodePrice,
 		args.validatorPubkeyConverter,
 		args.crypto.BlockSignKeyGen,
 	)
@@ -545,15 +556,25 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 		return err
 	}
 
+	nonceToByteSlice := args.uint64Converter.ToByteSlice(genesisBlock.GetNonce())
 	if args.shardCoordinator.SelfId() == core.MetachainShardId {
 		errNotCritical := args.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis metablock", "error", errNotCritical.Error())
 		}
+		errNotCritical = args.data.Store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
+		if errNotCritical != nil {
+			log.Error("error storing genesis metablock (nonce-hash)", "error", errNotCritical.Error())
+		}
 	} else {
 		errNotCritical := args.data.Store.Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
+		}
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(genesisBlock.GetShardID())
+		errNotCritical = args.data.Store.Put(hdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
+		if errNotCritical != nil {
+			log.Error("error storing genesis shard header (nonce-hash)", "error", errNotCritical.Error())
 		}
 	}
 

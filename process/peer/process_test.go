@@ -71,18 +71,6 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				GasPerDataByte:          "1",
 				DataLimitForBaseCalc:    "10000",
 			},
-			ValidatorSettings: config.ValidatorSettings{
-				GenesisNodePrice:         "500",
-				UnBondPeriod:             "5",
-				TotalSupply:              "200000000000",
-				MinStepValue:             "100000",
-				AuctionEnableNonce:       "100000",
-				StakeEnableNonce:         "100000",
-				NumRoundsWithoutBleed:    "1000",
-				MaximumPercentageToBleed: "0.5",
-				BleedPercentagePerRound:  "0.00001",
-				UnJailValue:              "1000",
-			},
 		},
 	)
 
