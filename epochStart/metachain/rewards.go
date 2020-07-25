@@ -186,12 +186,12 @@ func (rc *rewardsCreator) fillRewardsPerBlockPerNode(economicsData *block.Econom
 	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
 		consensusSize := big.NewInt(int64(rc.nodesConfigProvider.ConsensusGroupSize(i)))
 		rc.mapRewardsPerBlockPerValidator[i] = big.NewInt(0).Div(economicsData.RewardsPerBlock, consensusSize)
-		log.Trace("rewardsPerBlockPerValidator", "shardID", i, "value", rc.mapRewardsPerBlockPerValidator[i].String())
+		log.Debug("rewardsPerBlockPerValidator", "shardID", i, "value", rc.mapRewardsPerBlockPerValidator[i].String())
 	}
 
 	consensusSize := big.NewInt(int64(rc.nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
 	rc.mapRewardsPerBlockPerValidator[core.MetachainShardId] = big.NewInt(0).Div(economicsData.RewardsPerBlock, consensusSize)
-	log.Trace("rewardsPerBlockPerValidator", "shardID", core.MetachainShardId, "value", rc.mapRewardsPerBlockPerValidator[core.MetachainShardId].String())
+	log.Debug("rewardsPerBlockPerValidator", "shardID", core.MetachainShardId, "value", rc.mapRewardsPerBlockPerValidator[core.MetachainShardId].String())
 }
 
 func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
@@ -289,7 +289,14 @@ func (rc *rewardsCreator) createRewardFromRwdInfo(
 		return nil, nil, err
 	}
 
-	log.Trace("rewardTx", "address", []byte(rwdInfo.address), "value", rwdTx.Value.String(), "hash", rwdTxHash)
+	//TODO change this to trace
+	log.Debug("rewardTx",
+		"address", []byte(rwdInfo.address),
+		"value", rwdTx.Value.String(),
+		"hash", rwdTxHash,
+		"accumulatedFees", rwdInfo.accumulatedFees,
+		"protocolRewards", rwdInfo.protocolRewards,
+	)
 
 	return rwdTx, rwdTxHash, nil
 }
