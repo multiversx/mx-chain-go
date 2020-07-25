@@ -117,7 +117,7 @@ func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccou
 		return nil, nil
 	}
 
-	acc, err := bh.accounts.LoadAccount(address)
+	acc, err := bh.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, err
 	}
@@ -358,6 +358,9 @@ func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
 	}
 
 	userAcc, err := bh.GetUserAccount(address)
+	if err == state.ErrAccNotFound {
+		return false, nil
+	}
 	if err != nil {
 		return false, err
 	}

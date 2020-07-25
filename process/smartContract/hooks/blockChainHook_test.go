@@ -131,7 +131,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccountGetAccFromAddressErr(t *testing.
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
 	}
@@ -145,7 +145,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccountWrongTypeShouldErr(t *testing.T)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return &mock.PeerAccountHandlerMock{}, nil
 		},
 	}
@@ -160,7 +160,7 @@ func TestBlTestBlockChainHookImpl_GetUserAccount(t *testing.T) {
 	expectedAccount, _ := state.NewUserAccount([]byte("1234"))
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return expectedAccount, nil
 		},
 	}
@@ -178,7 +178,7 @@ func TestBlockChainHookImpl_GetStorageAccountErrorsShouldErr(t *testing.T) {
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
 	}
@@ -200,7 +200,7 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
 	}
@@ -387,7 +387,7 @@ func TestBlockChainHookImpl_IsPayableSCNonPayable(t *testing.T) {
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			acc := &mock.AccountWrapMock{}
 			acc.SetCodeMetadata([]byte{0, 0})
 			return acc, nil
@@ -404,7 +404,7 @@ func TestBlockChainHookImpl_IsPayablePayable(t *testing.T) {
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
-		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			acc := &mock.AccountWrapMock{}
 			acc.SetCodeMetadata([]byte{0, vmcommon.METADATA_PAYABLE})
 			return acc, nil
