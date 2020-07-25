@@ -481,6 +481,51 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 	assert.Equal(t, testVal, res)
 }
 
+func TestNewPruningStorer_GetBulkFromEpoch(t *testing.T) {
+	t.Parallel()
+
+	persistersByPath := make(map[string]storage.Persister)
+	persistersByPath["Epoch_0"] = memorydb.New()
+	args := getDefaultArgs()
+	args.DbPath = "Epoch_0"
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if _, ok := persistersByPath[path]; ok {
+				return persistersByPath[path], nil
+			}
+			newPers := memorydb.New()
+			persistersByPath[path] = newPers
+
+			return newPers, nil
+		},
+	}
+	args.NumOfActivePersisters = 1
+	ps, _ := pruning.NewPruningStorer(args)
+
+	// add a key and then make 2 epoch changes so the data won't be available anymore
+	testKey1, testKey2 := []byte("key1"), []byte("key2")
+	testVal1, testVal2 := []byte("value1"), []byte("value2")
+	err := ps.Put(testKey1, testVal1)
+	assert.Nil(t, err)
+	err = ps.Put(testKey2, testVal2)
+	assert.Nil(t, err)
+
+	ps.ClearCache()
+
+	// now change the epoch so the first persister will be closed as only one persister is active at a moment.
+	err = ps.ChangeEpochSimple(1)
+	assert.Nil(t, err)
+
+	ps.ClearCache()
+
+	// check if data is still available after searching in closed activePersisters
+	res, err := ps.GetBulkFromEpoch([][]byte{testKey1, testKey2}, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, testVal1, res[string(testKey1)])
+	assert.Equal(t, testVal2, res[string(testKey2)])
+}
+
 func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t *testing.T) {
 	t.Parallel()
 

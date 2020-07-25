@@ -1,6 +1,7 @@
 package statusHandler
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 
@@ -124,6 +125,23 @@ func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
 	})
 
 	return statusMetricsMap
+}
+
+// StatusMetricsWithoutP2PPrometheusString returns the metrics in a string format which respects prometheus style
+func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() string {
+	shardID := sm.loadUint64Metric(core.MetricShardId)
+	metrics := sm.StatusMetricsMapWithoutP2P()
+	stringBuilder := strings.Builder{}
+	for key, value := range metrics {
+		_, isUint64 := value.(uint64)
+		_, isInt64 := value.(int64)
+		isNumericValue := isUint64 || isInt64
+		if isNumericValue {
+			stringBuilder.WriteString(fmt.Sprintf("%s{%s=\"%d\"} %v\n", key, core.MetricShardId, shardID, value))
+		}
+	}
+
+	return stringBuilder.String()
 }
 
 // ConfigMetrics will return metrics related to current configuration

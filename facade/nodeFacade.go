@@ -6,9 +6,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
@@ -352,6 +353,16 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 	isThrottlerOk := ok && throttlerForEndpoint != nil
 
 	return throttlerForEndpoint, isThrottlerOk
+}
+
+// GetBlockByHash return the block for a given hash
+func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error) {
+	return nf.node.GetBlockByHash(hash, withTxs)
+}
+
+// GetBlockByNonce returns the block for a given nonce
+func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error) {
+	return nf.node.GetBlockByNonce(nonce, withTxs)
 }
 
 // Close will cleanup started go routines
