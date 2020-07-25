@@ -22,7 +22,7 @@ var log = logger.GetOrCreate("vm/systemsmartcontracts")
 const ownerKey = "owner"
 const nodesConfigKey = "nodesConfig"
 const waitingListHeadKey = "waitingList"
-const waitingElementPrefix = "w"
+const waitingElementPrefix = "w_"
 
 type stakingSC struct {
 	eei                      vm.SystemEI
@@ -638,7 +638,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 func (r *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) error {
 	waitingElementKey := r.createWaitingListKey(blsKey)
 	elementInList, err := r.getWaitingListElement(waitingElementKey)
-	if err != nil {
+	if err == nil {
 		// node in waiting - remove from it - and that's it
 		return r.removeFromWaitingList(blsKey)
 	}
@@ -810,7 +810,6 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	}
 
 	if registrationData.Staked {
-		log.Debug("account already staked, re-staking is invalid")
 		return vmcommon.Ok
 	}
 
