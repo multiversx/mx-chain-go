@@ -190,6 +190,23 @@ func (u *Unit) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 	return u.Get(key)
 }
 
+// GetBulkFromEpoch will call the Get method for all keys as this storer doesn't handle epochs
+func (u *Unit) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
+	retMap := make(map[string][]byte, 0)
+	for _, key := range keys {
+		value, err := u.Get(key)
+		if err != nil {
+			log.Warn("cannot get key from unit",
+				"key", key,
+				"error", err.Error(),
+			)
+			continue
+		}
+		retMap[string(key)] = value
+	}
+	return retMap, nil
+}
+
 // Has checks if the key is in the Unit.
 // It first checks the cache. If it is not found, it checks the bloom filter
 // and if present it checks the db
