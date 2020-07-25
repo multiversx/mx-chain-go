@@ -21,6 +21,8 @@ var log = logger.GetOrCreate("vm/systemsmartcontracts")
 
 const ownerKey = "owner"
 const nodesConfigKey = "nodesConfig"
+const waitingListHeadKey = "waitingList"
+const waitingElementPrefix = "w"
 
 type stakingSC struct {
 	eei                      vm.SystemEI
@@ -609,12 +611,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		r.eei.AddReturnMessage("unStake is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
-	err = r.removeFromWaitingList(args.Arguments[0])
-	if err != nil {
-		r.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	err = r.moveFirstFromWaitingToStaked(args.Arguments[0])
+	err = r.moveFirstFromWaitingToStakedIfNeeded(args.Arguments[0])
 	if err != nil {
 		r.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -638,7 +635,14 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) moveFirstFromWaitingToStaked(blsKey []byte) error {
+func (r *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) error {
+	waitingElementKey := r.createWaitingListKey(blsKey)
+	elementInList, err := r.getWaitingListElement(waitingElementKey)
+	if err != nil {
+		// node in waiting - remove from it - and that's it
+		return r.removeFromWaitingList(blsKey)
+	}
+
 	waitingList, err := r.getWaitingListHead()
 	if err != nil {
 		return err
@@ -646,21 +650,16 @@ func (r *stakingSC) moveFirstFromWaitingToStaked(blsKey []byte) error {
 	if waitingList.Length == 0 {
 		return nil
 	}
-
-	elementInList, err := r.getWaitingListElement(waitingList.FirstKey)
+	elementInList, err = r.getWaitingListElement(waitingList.FirstKey)
 	if err != nil {
 		return err
 	}
-	if bytes.Equal(blsKey, elementInList.BLSPublicKey) {
-		return nil
-	}
-
 	err = r.removeFromWaitingList(elementInList.BLSPublicKey)
 	if err != nil {
 		return err
 	}
 
-	nodeData, err := r.getOrCreateRegisteredData(blsKey)
+	nodeData, err := r.getOrCreateRegisteredData(elementInList.BLSPublicKey)
 	if err != nil {
 		return err
 	}
@@ -820,9 +819,6 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.UserError
 }
 
-const waitingListKey = "waitingList"
-const waitingElementPrefix = "w"
-
 func (r *stakingSC) addToWaitingList(blsKey []byte) error {
 	inWaitingListKey := r.createWaitingListKey(blsKey)
 	marshalledData := r.eei.GetStorage(inWaitingListKey)
@@ -847,17 +843,26 @@ func (r *stakingSC) addToWaitingList(blsKey []byte) error {
 		return r.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
 	}
 
-	prevLastElement, err := r.getWaitingListElement(waitingList.LastKey)
+	oldLastKey := make([]byte, len(waitingList.LastKey))
+	copy(oldLastKey, waitingList.LastKey)
+
+	lastElement, err := r.getWaitingListElement(waitingList.LastKey)
 	if err != nil {
 		return err
 	}
-	prevLastElement.NextKey = inWaitingListKey
+	lastElement.NextKey = inWaitingListKey
 	elementInWaiting := &ElementInList{
 		BLSPublicKey: blsKey,
-		PreviousKey:  waitingList.LastKey,
+		PreviousKey:  oldLastKey,
 		NextKey:      make([]byte, 0),
 	}
 
+	err = r.saveWaitingListElement(oldLastKey, lastElement)
+	if err != nil {
+		return err
+	}
+
+	waitingList.LastKey = inWaitingListKey
 	return r.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
 }
 
@@ -893,7 +898,7 @@ func (r *stakingSC) removeFromWaitingList(blsKey []byte) error {
 	}
 	waitingList.Length -= 1
 	if waitingList.Length == 0 {
-		r.eei.SetStorage([]byte(waitingListKey), nil)
+		r.eei.SetStorage([]byte(waitingListHeadKey), nil)
 		return nil
 	}
 	if bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey) {
@@ -920,13 +925,6 @@ func (r *stakingSC) removeFromWaitingList(blsKey []byte) error {
 	nextElement, err := r.getWaitingListElement(elementToRemove.NextKey)
 	if err != nil {
 		return err
-	}
-
-	if waitingList.Length == 1 {
-		nextElement.PreviousKey = elementToRemove.NextKey
-		waitingList.FirstKey = elementToRemove.NextKey
-		waitingList.LastKey = elementToRemove.NextKey
-		return r.saveElementAndList(elementToRemove.NextKey, nextElement, waitingList)
 	}
 
 	nextElement.PreviousKey = elementToRemove.PreviousKey
@@ -976,7 +974,7 @@ func (r *stakingSC) getWaitingListHead() (*WaitingList, error) {
 		LastKey:  make([]byte, 0),
 		Length:   0,
 	}
-	marshalledData := r.eei.GetStorage([]byte(waitingListKey))
+	marshalledData := r.eei.GetStorage([]byte(waitingListHeadKey))
 	if len(marshalledData) == 0 {
 		return waitingList, nil
 	}
@@ -995,12 +993,12 @@ func (r *stakingSC) saveWaitingListHead(waitingList *WaitingList) error {
 		return err
 	}
 
-	r.eei.SetStorage([]byte(waitingListKey), marshalledData)
+	r.eei.SetStorage([]byte(waitingListHeadKey), marshalledData)
 	return nil
 }
 
 func (r *stakingSC) createWaitingListKey(blsKey []byte) []byte {
-	return []byte(string(blsKey) + waitingElementPrefix)
+	return []byte(waitingElementPrefix + string(blsKey))
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

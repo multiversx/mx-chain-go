@@ -1000,11 +1000,11 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	if registrationData.LockedStake.Cmp(totalUnBond) < 0 {
-		s.eei.AddReturnMessage("contract error on unBond function")
+		s.eei.AddReturnMessage("contract error on unBond function, lockedStake < totalUnBond")
 		return vmcommon.UserError
 	}
 	if registrationData.WaitingStake.Cmp(totalWaiting) < 0 {
-		s.eei.AddReturnMessage("contract error on unBond function")
+		s.eei.AddReturnMessage("contract error on unBond function, waitngStake < totalWaitingToUnBond")
 		return vmcommon.UserError
 	}
 
@@ -1013,7 +1013,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, totalUnBond)
 	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, totalWaiting)
 	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
-		s.eei.AddReturnMessage("contract error on unBond function")
+		s.eei.AddReturnMessage("contract error on unBond function, total stake < 0")
 		return vmcommon.UserError
 	}
 
