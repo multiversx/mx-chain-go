@@ -30,16 +30,3 @@
     MinGasLimit = "50000"
     GasPerDataByte = "1500"
     DataLimitForBaseCalc = "10000"
-
-[ValidatorSettings]
-    GenesisNodePrice = "2500000000000000000000" #2.5KERD
-    UnBondPeriod = "400"
-    MinStepValue = "10000000000000000000"
-    TotalSupply = "20000000000000000000000000" #20MIL ERD
-    AuctionEnableNonce = "100000000000"
-    StakeEnableNonce = "0"
-    NumRoundsWithoutBleed = "100"
-    MaximumPercentageToBleed = "0.5"
-    BleedPercentagePerRound = "0.00001"
-    UnJailValue = "2500000000000000000" #0.1% of genesis node price
-    ActivateBLSPubKeyMessageVerification = false #TODO set to true before mainnet

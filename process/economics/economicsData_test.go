@@ -38,18 +38,6 @@ func createDummyEconomicsConfig() *config.EconomicsConfig {
 			GasPerDataByte:          "1",
 			DataLimitForBaseCalc:    "100000000",
 		},
-		ValidatorSettings: config.ValidatorSettings{
-			GenesisNodePrice:         "500000000",
-			UnBondPeriod:             "100000",
-			TotalSupply:              "200000000000",
-			MinStepValue:             "100000",
-			AuctionEnableNonce:       "100000",
-			StakeEnableNonce:         "100000",
-			NumRoundsWithoutBleed:    "1000",
-			MaximumPercentageToBleed: "0.5",
-			BleedPercentagePerRound:  "0.00001",
-			UnJailValue:              "1000",
-		},
 	}
 }
 
