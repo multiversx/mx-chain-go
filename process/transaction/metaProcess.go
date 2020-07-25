@@ -1,8 +1,6 @@
 package transaction
 
 import (
-	"errors"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -94,14 +92,6 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 
 	err = txProc.checkTxValues(tx, acntSnd, acntDst)
 	if err != nil {
-		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
-			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
-			if errProcessIfErr != nil {
-				return 0, errProcessIfErr
-			}
-			return vmcommon.UserError, nil
-		}
-
 		return 0, err
 	}
 

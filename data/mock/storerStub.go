@@ -2,22 +2,28 @@ package mock
 
 // StorerStub -
 type StorerStub struct {
-	PutCalled          func(key, data []byte) error
-	GetCalled          func(key []byte) ([]byte, error)
-	GetFromEpochCalled func(key []byte, epoch uint32) ([]byte, error)
-	HasCalled          func(key []byte) error
-	HasInEpochCalled   func(key []byte, epoch uint32) error
-	SearchFirstCalled  func(key []byte) ([]byte, error)
-	RemoveCalled       func(key []byte) error
-	ClearCacheCalled   func()
-	CloseCalled        func() error
-	DestroyUnitCalled  func() error
-	RangeKeysCalled    func(handler func(key []byte, val []byte) bool)
+	PutCalled              func(key, data []byte) error
+	GetCalled              func(key []byte) ([]byte, error)
+	GetFromEpochCalled     func(key []byte, epoch uint32) ([]byte, error)
+	HasCalled              func(key []byte) error
+	HasInEpochCalled       func(key []byte, epoch uint32) error
+	SearchFirstCalled      func(key []byte) ([]byte, error)
+	RemoveCalled           func(key []byte) error
+	ClearCacheCalled       func()
+	CloseCalled            func() error
+	DestroyUnitCalled      func() error
+	RangeKeysCalled        func(handler func(key []byte, val []byte) bool)
+	GetBulkFromEpochCalled func(keys [][]byte, epoch uint32) (map[string][]byte, error)
 }
 
 // GetFromEpoch -
 func (ss *StorerStub) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	return ss.GetFromEpochCalled(key, epoch)
+}
+
+// GetBulkFromEpoch -
+func (ss *StorerStub) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+	return ss.GetBulkFromEpochCalled(keys, epoch)
 }
 
 // HasInEpoch -

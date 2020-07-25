@@ -27,6 +27,7 @@ type BlockChainHookStub struct {
 	ProcessBuiltInFunctionCalled  func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	GetBuiltinFunctionNamesCalled func() vmcommon.FunctionNames
 	GetAllStateCalled             func(address []byte) (map[string][]byte, error)
+	IsPayableCalled               func(address []byte) (bool, error)
 }
 
 // GetAccount -
@@ -199,4 +200,13 @@ func (b *BlockChainHookStub) GetBuiltinFunctionNames() vmcommon.FunctionNames {
 	}
 
 	return make(vmcommon.FunctionNames)
+}
+
+// IsPayable -
+func (b *BlockChainHookStub) IsPayable(address []byte) (bool, error) {
+	if b.IsPayableCalled != nil {
+		return b.IsPayableCalled(address)
+	}
+
+	return true, nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -151,6 +152,7 @@ type processComponentsFactoryArgs struct {
 	indexer                   indexer.Indexer
 	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
+	historyRepo               fullHistory.HistoryRepository
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -193,6 +195,7 @@ func NewProcessComponentsFactoryArgs(
 	workingDir string,
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
+	historyRepo fullHistory.HistoryRepository,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -234,6 +237,7 @@ func NewProcessComponentsFactoryArgs(
 		workingDir:                workingDir,
 		indexer:                   indexer,
 		tpsBenchmark:              tpsBenchmark,
+		historyRepo:               historyRepo,
 	}
 }
 
@@ -969,7 +973,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	economicsData := args.economicsData
 
 	genesisVmConfig := args.mainConfig.VirtualMachineConfig
-	genesisVmConfig.OutOfProcessEnabled = false
+	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
 
 	arg := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              uint64(nodesSetup.StartTime),
@@ -1105,6 +1109,7 @@ func newBlockProcessor(
 			processArgs.indexer,
 			processArgs.tpsBenchmark,
 			processArgs.version,
+			processArgs.historyRepo,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1136,6 +1141,7 @@ func newBlockProcessor(
 			processArgs.indexer,
 			processArgs.tpsBenchmark,
 			processArgs.version,
+			processArgs.historyRepo,
 		)
 	}
 
@@ -1166,6 +1172,7 @@ func newShardBlockProcessor(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
+	historyRepository fullHistory.HistoryRepository,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -1267,7 +1274,7 @@ func newShardBlockProcessor(
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
 		AccountsDB:       stateComponents.AccountsAdapter,
-		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		BlockChainHook:   vmFactory.BlockChainHookImpl(),
 		PubkeyConv:       stateComponents.AddressPubkeyConverter,
 		Coordinator:      shardCoordinator,
 		ScrForwarder:     scForwarder,
@@ -1404,6 +1411,7 @@ func newShardBlockProcessor(
 		BlockSizeThrottler:     blockSizeThrottler,
 		Indexer:                indexer,
 		TpsBenchmark:           tpsBenchmark,
+		HistoryRepository:      historyRepository,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1450,6 +1458,7 @@ func newMetaBlockProcessor(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
+	historyRepository fullHistory.HistoryRepository,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1539,7 +1548,7 @@ func newMetaBlockProcessor(
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
 		AccountsDB:       stateComponents.AccountsAdapter,
-		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		BlockChainHook:   vmFactory.BlockChainHookImpl(),
 		PubkeyConv:       stateComponents.AddressPubkeyConverter,
 		Coordinator:      shardCoordinator,
 		ScrForwarder:     scForwarder,
@@ -1742,6 +1751,7 @@ func newMetaBlockProcessor(
 		BlockSizeThrottler:     blockSizeThrottler,
 		Indexer:                indexer,
 		TpsBenchmark:           tpsBenchmark,
+		HistoryRepository:      historyRepository,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,

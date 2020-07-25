@@ -28,6 +28,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
@@ -1161,6 +1163,23 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	historyRepoFactoryArgs := &historyFactory.ArgsHistoryRepositoryFactory{
+		SelfShardID:       shardCoordinator.SelfId(),
+		FullHistoryConfig: generalConfig.FullHistory,
+		Hasher:            coreComponents.Hasher,
+		Marshalizer:       coreComponents.InternalMarshalizer,
+		Store:             dataComponents.Store,
+	}
+	historyRepositoryFactory, err := historyFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
+	if err != nil {
+		return err
+	}
+
+	historyRepository, err := historyRepositoryFactory.Create()
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		&coreArgs,
@@ -1201,6 +1220,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		workingDir,
 		elasticIndexer,
 		tpsBenchmark,
+		historyRepository,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1268,6 +1288,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		hardForkTrigger,
+		historyRepository,
 	)
 	if err != nil {
 		return err
@@ -2024,6 +2045,7 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
+	historyRepository fullHistory.HistoryRepository,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2144,6 +2166,7 @@ func createNode(
 		node.WithPeerHonestyHandler(peerHonestyHandler),
 		node.WithWatchdogTimer(watchdogTimer),
 		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler),
+		node.WithHistoryRepository(historyRepository),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
