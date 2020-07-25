@@ -697,15 +697,18 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 
 	blsKeyBytes := make([]byte, 2*len(args.Arguments[0]))
 	_ = hex.Encode(blsKeyBytes, args.Arguments[0])
-	blsKey := string(blsKeyBytes)
+	encodedBlsKey := string(blsKeyBytes)
 
 	if len(registrationData.RewardAddress) == 0 {
-		r.eei.AddReturnMessage(fmt.Sprintf("cannot unBond key %s that is not registered", blsKey))
+		r.eei.AddReturnMessage(fmt.Sprintf("cannot unBond key %s that is not registered", encodedBlsKey))
 		return vmcommon.UserError
 	}
-
 	if registrationData.Staked {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s which is staked", blsKey))
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s which is staked", encodedBlsKey))
+		return vmcommon.UserError
+	}
+	if registrationData.JailedRound != math.MaxUint64 {
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for jailed key %s", encodedBlsKey))
 		return vmcommon.UserError
 	}
 
@@ -725,11 +728,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
 	if currentNonce-registrationData.UnStakedNonce < r.unBondPeriod {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", blsKey))
-		return vmcommon.UserError
-	}
-	if registrationData.JailedRound != math.MaxUint64 {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for jailed key %s", blsKey))
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", encodedBlsKey))
 		return vmcommon.UserError
 	}
 	if !r.canUnBond() {
@@ -737,7 +736,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if r.eei.IsValidator(args.Arguments[0]) {
-		r.eei.AddReturnMessage("unbonding is not possible: the node with key " + blsKey + " is still a validator")
+		r.eei.AddReturnMessage("unbonding is not possible: the node with key " + encodedBlsKey + " is still a validator")
 		return vmcommon.UserError
 	}
 
