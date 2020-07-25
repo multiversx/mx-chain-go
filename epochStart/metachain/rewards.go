@@ -161,8 +161,9 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 		return nil, err
 	}
 
-	rc.accumulatedRewards.Add(rc.accumulatedRewards, protocolSustainabilityRwdTx.Value)
-	difference := big.NewInt(0).Sub(metaBlock.EpochStart.Economics.TotalToDistribute, rc.accumulatedRewards)
+	totalWithoutDevelopers := big.NewInt(0).Sub(metaBlock.EpochStart.Economics.TotalToDistribute, metaBlock.DevFeesInEpoch)
+	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
+	log.Debug("arithmetic difference in end of epoch rewards economics", "value", difference)
 	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, difference)
 	rc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
 
@@ -245,6 +246,7 @@ func (rc *rewardsCreator) createProtocolSustainabilityRewardTransaction(
 		Epoch:   metaBlock.Epoch,
 	}
 
+	rc.accumulatedRewards.Add(rc.accumulatedRewards, protocolSustainabilityRwdTx.Value)
 	return protocolSustainabilityRwdTx, shardID, nil
 }
 
