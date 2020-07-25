@@ -22,7 +22,7 @@ type Transaction struct {
 	GasPrice             uint64        `json:"gasPrice"`
 	GasLimit             uint64        `json:"gasLimit"`
 	GasUsed              uint64        `json:"gasUsed"`
-	Data                 string        `json:"data"`
+	Data                 []byte        `json:"data"`
 	Signature            string        `json:"signature"`
 	Timestamp            time.Duration `json:"timestamp"`
 	Status               string        `json:"status"`
@@ -53,10 +53,10 @@ type ScResult struct {
 	Sender        string `json:"sender"`
 	Receiver      string `json:"receiver"`
 	Code          string `json:"code"`
-	Data          string `json:"data"`
+	Data          []byte `json:"data"`
 	PreTxHash     string `json:"prevTxHash"`
 	CallType      string `json:"callType"`
-	CodeMetadata  string `json:"codeMetaData"`
+	CodeMetadata  []byte `json:"codeMetaData"`
 	ReturnMessage string `json:"returnMessage"`
 }
 
