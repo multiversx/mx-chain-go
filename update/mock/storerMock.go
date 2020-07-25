@@ -25,6 +25,20 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 	return sm.Get(key)
 }
 
+// GetBulkFromEpoch -
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
+	retValue := map[string][]byte{}
+	for _, key := range keys {
+		value, err := sm.Get(key)
+		if err != nil {
+			continue
+		}
+		retValue[string(key)] = value
+	}
+
+	return retValue, nil
+}
+
 // HasInEpoch -
 func (sm *StorerMock) HasInEpoch(key []byte, _ uint32) error {
 	return sm.Has(key)

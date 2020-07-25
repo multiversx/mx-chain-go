@@ -114,7 +114,7 @@ The following command runs a Node using the **latest** [Docker image](https://hu
 
 ```
 docker run -d -v /absolute/path/to/config/:/data/ elrondnetwork/elrond-go-node:latest \
- --node-setup-file="/data/nodesSetup.json" \
+ --nodes-setup-file="/data/nodesSetup.json" \
  --p2p-config="/data/config/p2p.toml" \
  --validator-key-pem-file="/data/keys/validatorKey.pem"
  ```

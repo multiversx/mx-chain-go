@@ -26,7 +26,7 @@ import (
 const VMTypeHex = "0500"
 
 // DummyCodeMetadataHex -
-const DummyCodeMetadataHex = "0100"
+const DummyCodeMetadataHex = "0102"
 
 // TestContext -
 type TestContext struct {
@@ -38,6 +38,8 @@ type TestContext struct {
 	Alice testParticipant
 	Bob   testParticipant
 	Carol testParticipant
+
+	GasLimit uint64
 
 	ScAddress      []byte
 	ScCodeMetadata vmcommon.CodeMetadata
@@ -145,8 +147,13 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		RcvAddr:  vm.CreateEmptyAddress(),
 		SndAddr:  owner.Address,
 		GasPrice: 1,
-		GasLimit: math.MaxInt32,
+		GasLimit: context.GasLimit,
 		Data:     []byte(txData),
+	}
+
+	// Add default gas limit for tests
+	if tx.GasLimit == 0 {
+		tx.GasLimit = math.MaxUint32
 	}
 
 	_, err := context.TxProcessor.ProcessTransaction(tx)
