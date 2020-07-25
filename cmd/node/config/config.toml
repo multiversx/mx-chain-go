@@ -613,3 +613,25 @@
     StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
     PollingIntervalInMinutes = 65
 
+[FullHistory]
+    Enabled = false
+    [FullHistory.HistoryTransactionStorageConfig.Cache]
+        Name = "FullHistory.HistoryTransactionsConfig"
+        Capacity = 20000
+        Type = "LRU"
+    [FullHistory.HistoryTransactionStorageConfig.DB]
+        FilePath = "FullHistory.HistoryTransactions/MainDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+    [FullHistory.HashEpochStorageConfig.Cache]
+        Name = "HashEpochStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [FullHistory.HashEpochStorageConfig.DB]
+        FilePath = "HashEpochDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10

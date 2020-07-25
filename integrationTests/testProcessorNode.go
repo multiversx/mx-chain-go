@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
@@ -251,8 +252,9 @@ type TestProcessorNode struct {
 	ChainID               []byte
 	MinTransactionVersion uint32
 
-	ExportHandler update.ExportHandler
-	WaitTime      time.Duration
+	ExportHandler     update.ExportHandler
+	WaitTime          time.Duration
+	HistoryRepository fullHistory.HistoryRepository
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -340,6 +342,7 @@ func newBaseTestProcessorNode(
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
 		NodesSetup:              nodesSetup,
+		HistoryRepository:       &mock.HistoryRepositoryStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -451,7 +454,8 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 				return 1
 			},
 		},
-		MinTransactionVersion: MinTransactionVersion,
+		MinTransactionVersion:   MinTransactionVersion,
+		HistoryRepository:       &mock.HistoryRepositoryStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -1021,7 +1025,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		Hasher:           TestHasher,
 		Marshalizer:      TestMarshalizer,
 		AccountsDB:       tpn.AccntState,
-		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		BlockChainHook:   vmFactory.BlockChainHookImpl(),
 		PubkeyConv:       TestAddressPubkeyConverter,
 		Coordinator:      tpn.ShardCoordinator,
 		ScrForwarder:     tpn.ScrForwarder,
@@ -1178,7 +1182,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Hasher:           TestHasher,
 		Marshalizer:      TestMarshalizer,
 		AccountsDB:       tpn.AccntState,
-		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		BlockChainHook:   vmFactory.BlockChainHookImpl(),
 		PubkeyConv:       TestAddressPubkeyConverter,
 		Coordinator:      tpn.ShardCoordinator,
 		ScrForwarder:     tpn.ScrForwarder,
@@ -1285,6 +1289,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		Indexer:                indexer.NewNilIndexer(),
 		TpsBenchmark:           &testscommon.TpsBenchmarkMock{},
 		Version:                string(SoftwareVersion),
+		HistoryRepository:      tpn.HistoryRepository,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1477,6 +1482,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithChainID(tpn.ChainID),
 		node.WithMinTransactionVersion(tpn.MinTransactionVersion),
+		node.WithHistoryRepository(tpn.HistoryRepository),
 	)
 	log.LogIfError(err)
 

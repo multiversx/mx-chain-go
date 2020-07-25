@@ -30,11 +30,14 @@ var log = logger.GetOrCreate("process/smartcontract")
 
 const executeDurationAlarmThreshold = time.Duration(100) * time.Millisecond
 
+// TODO: Move to vm-common.
+const upgradeFunctionName = "upgradeContract"
+
 var zero = big.NewInt(0)
 
 type scProcessor struct {
 	accounts         state.AccountsAdapter
-	tempAccounts     process.TemporaryAccountsHandler
+	blockChainHook   process.BlockChainHookHandler
 	pubkeyConv       core.PubkeyConverter
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
@@ -62,7 +65,7 @@ type ArgsNewSmartContractProcessor struct {
 	Hasher           hashing.Hasher
 	Marshalizer      marshal.Marshalizer
 	AccountsDB       state.AccountsAdapter
-	TempAccounts     process.TemporaryAccountsHandler
+	BlockChainHook   process.BlockChainHookHandler
 	PubkeyConv       core.PubkeyConverter
 	Coordinator      sharding.Coordinator
 	ScrForwarder     process.IntermediateTransactionHandler
@@ -94,7 +97,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.AccountsDB) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(args.TempAccounts) {
+	if check.IfNil(args.BlockChainHook) {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
 	if check.IfNil(args.PubkeyConv) {
@@ -134,7 +137,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		hasher:           args.Hasher,
 		marshalizer:      args.Marshalizer,
 		accounts:         args.AccountsDB,
-		tempAccounts:     args.TempAccounts,
+		blockChainHook:   args.BlockChainHook,
 		pubkeyConv:       args.PubkeyConv,
 		shardCoordinator: args.Coordinator,
 		scrForwarder:     args.ScrForwarder,
@@ -198,8 +201,6 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	tx data.TransactionHandler,
 	acntSnd, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
-	defer sc.tempAccounts.CleanTempAccounts()
-
 	err := sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		log.Debug("process sc payment error", "error", err.Error())
@@ -224,19 +225,18 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	var executedBuiltIn bool
 	snapshot := sc.accounts.JournalLen()
 
-	err = sc.prepareSmartContractCall(tx, acntSnd)
-	if err != nil {
-		returnMessage = "cannot prepare smart contract call"
-		log.Debug("prepare smart contract call error", "error", err.Error())
-		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
-	}
-
 	var vmInput *vmcommon.ContractCallInput
 	vmInput, err = sc.createVMCallInput(tx)
 	if err != nil {
 		returnMessage = "cannot create VMInput, check the transaction data field"
 		log.Debug("create vm call input error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
+	}
+
+	err = sc.checkUpgradePermission(acntSnd, acntDst, vmInput)
+	if err != nil {
+		log.Debug("checkUpgradePermission", "error", err.Error())
+		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot)
 	}
 
 	executedBuiltIn, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
@@ -390,7 +390,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	}
 
 	if !check.IfNil(acntSnd) && sc.disableBuiltIn {
-		return true, process.ErrBuiltInfFunctionsAreDisabled
+		return true, process.ErrBuiltInFunctionsAreDisabled
 	}
 
 	// TODO: returned error should be protocol error - vmOutput error must be used for user errors
@@ -597,22 +597,8 @@ func (sc *scProcessor) addBackTxValues(
 	return nil
 }
 
-func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.UserAccountHandler) error {
-	nonce := tx.GetNonce()
-	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
-		nonce = acntSnd.GetNonce()
-	}
-
-	txValue := big.NewInt(0).Set(tx.GetValue())
-	sc.tempAccounts.AddTempAccount(tx.GetSndAddr(), txValue, nonce)
-
-	return nil
-}
-
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (vmcommon.ReturnCode, error) {
-	defer sc.tempAccounts.CleanTempAccounts()
-
 	err := sc.checkTxValidity(tx)
 	if err != nil {
 		log.Debug("invalid transaction", "error", err.Error())
@@ -648,12 +634,6 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	if sc.disableDeploy {
 		log.Trace("deploy is disabled")
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, process.ErrSmartContractDeploymentIsDisabled.Error(), []byte(""), snapshot)
-	}
-
-	err = sc.prepareSmartContractCall(tx, acntSnd)
-	if err != nil {
-		log.Debug("Transaction error", "error", err.Error())
-		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
 	vmInput, vmType, err := sc.createVMDeployInput(tx)
@@ -897,6 +877,12 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	setOriginalTxHash(scr, txHash, tx)
+	if scr.Value == nil {
+		scr.Value = big.NewInt(0)
+	}
+	if scr.Value.Cmp(zero) > 0 {
+		scr.OriginalSender = tx.GetSndAddr()
+	}
 
 	return scr
 }
@@ -939,6 +925,10 @@ func (sc *scProcessor) createSmartContractResult(
 	result := &smartContractResult.SmartContractResult{}
 
 	result.Value = outAcc.BalanceDelta
+	if result.Value == nil {
+		result.Value = big.NewInt(0)
+	}
+
 	result.Nonce = outAcc.Nonce
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = tx.GetRcvAddr()
@@ -954,6 +944,10 @@ func (sc *scProcessor) createSmartContractResult(
 	result.PrevTxHash = txHash
 	result.CallType = outAcc.CallType
 	setOriginalTxHash(result, txHash, tx)
+
+	if result.Value.Cmp(zero) > 0 {
+		result.OriginalSender = tx.GetSndAddr()
+	}
 
 	return result
 }
@@ -1105,38 +1099,61 @@ func (sc *scProcessor) processSCOutputAccounts(
 	return scResults, nil
 }
 
+// updateSmartContractCode upgrades code for "direct" deployments & upgrades and for "indirect" deployments & upgrades
+// It receives:
+// 	(1) the account as found in the State
+//	(2) the account as returned in VM Output
+// 	(3) the transaction that, upon execution, produced the VM Output
 func (sc *scProcessor) updateSmartContractCode(
-	scAccount state.UserAccountHandler,
+	stateAccount state.UserAccountHandler,
 	outputAccount *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 ) {
 	if len(outputAccount.Code) == 0 {
 		return
 	}
+	if len(outputAccount.CodeMetadata) == 0 {
+		return
+	}
+	if !core.IsSmartContractAddress(outputAccount.Address) {
+		return
+	}
 
-	codeMetadata := vmcommon.CodeMetadataFromBytes(scAccount.GetCodeMetadata())
+	// This check is desirable (not required though) since currently both Arwen and IELE send the code in the output account even for "regular" execution
+	sameCode := bytes.Equal(outputAccount.Code, stateAccount.GetCode())
+	sameCodeMetadata := bytes.Equal(outputAccount.CodeMetadata, stateAccount.GetCodeMetadata())
+	if sameCode && sameCodeMetadata {
+		return
+	}
 
-	isDeployment := len(scAccount.GetCode()) == 0
+	transactionSender := tx.GetSndAddr()
+	currentOwner := stateAccount.GetOwnerAddress()
+	isSenderOwner := bytes.Equal(currentOwner, transactionSender)
+
+	noExistingCode := len(stateAccount.GetCode()) == 0
+	noExistingOwner := len(currentOwner) == 0
+	currentCodeMetadata := vmcommon.CodeMetadataFromBytes(stateAccount.GetCodeMetadata())
+	newCodeMetadata := vmcommon.CodeMetadataFromBytes(outputAccount.CodeMetadata)
+	isUpgradeable := currentCodeMetadata.Upgradeable
+	isDeployment := noExistingCode && noExistingOwner
+	isUpgrade := !isDeployment && isSenderOwner && isUpgradeable
+
 	if isDeployment {
-		scAccount.SetOwnerAddress(tx.GetSndAddr())
-		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
-		scAccount.SetCode(outputAccount.Code)
-		log.Trace("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address))
+		stateAccount.SetOwnerAddress(transactionSender)
+		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
+		stateAccount.SetCode(outputAccount.Code)
+		log.Info("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
 		return
 	}
 
-	isSenderOwner := bytes.Equal(scAccount.GetOwnerAddress(), tx.GetSndAddr())
-	isUpgrade := !isDeployment && isSenderOwner && codeMetadata.Upgradeable
 	if isUpgrade {
-		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
-		scAccount.SetCode(outputAccount.Code)
-		log.Trace("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address))
+		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
+		stateAccount.SetCode(outputAccount.Code)
+		log.Info("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
 		return
 	}
 
-	log.Trace("updateSmartContractCode() nothing changed", "address", outputAccount.Address)
 	// TODO: change to return some error when IELE is updated. Currently IELE sends the code in output account even for normal SC RUN
-	return
 }
 
 // delete accounts - only suicide by current SC or another SC called by current SC - protected by VM
@@ -1246,22 +1263,48 @@ func (sc *scProcessor) processSimpleSCR(
 	scResult *smartContractResult.SmartContractResult,
 	dstAcc state.UserAccountHandler,
 ) error {
-	outputAccount := &vmcommon.OutputAccount{
-		Code:         scResult.Code,
-		CodeMetadata: scResult.CodeMetadata,
-		Address:      scResult.RcvAddr,
+	if scResult.Value.Cmp(zero) <= 0 {
+		return nil
 	}
 
-	sc.updateSmartContractCode(dstAcc, outputAccount, scResult)
+	isPayable, err := sc.IsPayable(scResult.RcvAddr)
+	if err != nil {
+		return err
+	}
+	if !isPayable && !bytes.Equal(scResult.RcvAddr, scResult.OriginalSender) {
+		return process.ErrAccountNotPayable
+	}
 
-	if scResult.Value != nil {
-		err := dstAcc.AddToBalance(scResult.Value)
-		if err != nil {
-			return err
-		}
+	err = dstAcc.AddToBalance(scResult.Value)
+	if err != nil {
+		return err
 	}
 
 	return sc.accounts.SaveAccount(dstAcc)
+}
+
+func (sc *scProcessor) checkUpgradePermission(caller state.UserAccountHandler, contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
+	isUpgradeCalled := vmInput.Function == upgradeFunctionName
+	if !isUpgradeCalled {
+		return nil
+	}
+
+	codeMetadata := vmcommon.CodeMetadataFromBytes(contract.GetCodeMetadata())
+	isUpgradeable := codeMetadata.Upgradeable
+	callerAddress := caller.AddressBytes()
+	ownerAddress := contract.GetOwnerAddress()
+	isCallerOwner := bytes.Equal(callerAddress, ownerAddress)
+
+	if isUpgradeable && isCallerOwner {
+		return nil
+	}
+
+	return process.ErrUpgradeNotAllowed
+}
+
+// IsPayable returns if address is payable, smart contract ca set to false
+func (sc *scProcessor) IsPayable(address []byte) (bool, error) {
+	return sc.blockChainHook.IsPayable(address)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

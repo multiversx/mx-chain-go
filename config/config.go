@@ -160,6 +160,7 @@ type Config struct {
 	Health   HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
+	FullHistory           FullHistoryConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -330,6 +331,13 @@ type HardforkConfig struct {
 	EnableTriggerFromP2P         bool
 	MustImport                   bool
 	AfterHardFork                bool
+}
+
+// FullHistoryConfig holds the configuration for the full history node
+type FullHistoryConfig struct {
+	Enabled                         bool
+	HistoryTransactionStorageConfig StorageConfig
+	HashEpochStorageConfig          StorageConfig
 }
 
 // DebugConfig will hold debugging configuration
