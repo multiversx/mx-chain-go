@@ -28,7 +28,7 @@ const (
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
-		gasLimit uint64, data string, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
@@ -58,7 +58,7 @@ type SendTxRequest struct {
 	Sender    string `form:"sender" json:"sender"`
 	Receiver  string `form:"receiver" json:"receiver"`
 	Value     string `form:"value" json:"value"`
-	Data      string `form:"data" json:"data"`
+	Data      []byte `form:"data" json:"data"`
 	Nonce     uint64 `form:"nonce" json:"nonce"`
 	GasPrice  uint64 `form:"gasPrice" json:"gasPrice"`
 	GasLimit  uint64 `form:"gasLimit" json:"gasLimit"`

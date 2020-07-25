@@ -89,7 +89,7 @@ var TestMarshalizer = &marshal.GogoProtoMarshalizer{}
 var TestVmMarshalizer = &marshal.JsonMarshalizer{}
 
 // TestTxSignMarshalizer represents the marshalizer used in vm communication
-var TestTxSignMarshalizer = &marshal.TxJsonMarshalizer{}
+var TestTxSignMarshalizer = &marshal.JsonMarshalizer{}
 
 // TestAddressPubkeyConverter represents an address public key converter
 var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32)
@@ -1511,7 +1511,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		TestAddressPubkeyConverter.Encode(tx.SndAddr),
 		tx.GasPrice,
 		tx.GasLimit,
-		string(tx.Data),
+		tx.Data,
 		hex.EncodeToString(tx.Signature),
 		string(tx.ChainID),
 		tx.Version,
