@@ -520,8 +520,9 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		userNames[i] = userName
 	}
 
-	_ = logger.SetLogLevel("process/smartcontract:TRACE")
-	nrRoundsToPropagateMultiShard := 20
+	time.Sleep(time.Second)
+
+	nrRoundsToPropagateMultiShard := 15
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	for i, player := range players {
