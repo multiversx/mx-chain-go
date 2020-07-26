@@ -90,7 +90,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	value := "10"
-	txData := "data"
+	txData := []byte("data")
 	hash := "hash"
 	facade := mock.Facade{
 		GetTransactionHandler: func(hash string) (i *tr.ApiTransactionResult, e error) {
@@ -123,7 +123,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	value := "10"
-	txData := "data"
+	txData := []byte("data")
 	wrongHash := "wronghash"
 	facade := mock.Facade{
 		GetTransactionHandler: func(hash string) (*tr.ApiTransactionResult, error) {
@@ -288,7 +288,7 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	errorString := "send transaction error"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32,
 		) (*tr.Transaction, []byte, error) {
 			return nil, nil, nil
 		},
@@ -333,7 +333,7 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	hexTxHash := "deadbeef"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32,
 		) (*tr.Transaction, []byte, error) {
 			txHash, _ := hex.DecodeString(hexTxHash)
 			return nil, txHash, nil
@@ -456,7 +456,7 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	sendBulkTxsWasCalled := false
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32,
 		) (*tr.Transaction, []byte, error) {
 			createTxWasCalled = true
 			return &tr.Transaction{}, make([]byte, 0), nil
@@ -475,7 +475,7 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
-		Data:      "",
+		Data:      make([]byte, 0),
 		Nonce:     0,
 		GasPrice:  0,
 		GasLimit:  0,
@@ -520,7 +520,7 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 	expectedGasLimit := uint64(37)
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32,
 		) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, nil, nil
 		},
@@ -534,7 +534,7 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
-		Data:      "",
+		Data:      make([]byte, 0),
 		Nonce:     0,
 		GasPrice:  0,
 		GasLimit:  0,

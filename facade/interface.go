@@ -3,6 +3,7 @@ package facade
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -26,7 +27,7 @@ type NodeHandler interface {
 
 	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data string, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 
 	//ValidateTransaction will validate a transaction
 	ValidateTransaction(tx *transaction.Transaction) error
@@ -57,6 +58,9 @@ type NodeHandler interface {
 
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
+
+	GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error)
+	GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests

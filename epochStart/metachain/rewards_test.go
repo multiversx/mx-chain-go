@@ -90,22 +90,22 @@ func TestNewEpochStartRewardsCreator_NilMarshalizer(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
-func TestNewEpochStartRewardsCreator_EmptyCommunityAddress(t *testing.T) {
+func TestNewEpochStartRewardsCreator_EmptyProtocolSustainabilityAddress(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	args.CommunityAddress = ""
+	args.ProtocolSustainabilityAddress = ""
 
 	rwd, err := NewEpochStartRewardsCreator(args)
 	assert.True(t, check.IfNil(rwd))
-	assert.Equal(t, epochStart.ErrNilCommunityAddress, err)
+	assert.Equal(t, epochStart.ErrNilProtocolSustainabilityAddress, err)
 }
 
-func TestNewEpochStartRewardsCreator_InvalidCommunityAddress(t *testing.T) {
+func TestNewEpochStartRewardsCreator_InvalidProtocolSustainabilityAddress(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	args.CommunityAddress = "xyz" // not a hex string
+	args.ProtocolSustainabilityAddress = "xyz" // not a hex string
 
 	rwd, err := NewEpochStartRewardsCreator(args)
 	assert.True(t, check.IfNil(rwd))
@@ -129,7 +129,8 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	rwd, _ := NewEpochStartRewardsCreator(args)
 
 	mb := &block.MetaBlock{
-		EpochStart: getDefaultEpochStart(),
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
 	}
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
@@ -171,6 +172,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksHashDoesNotMatch(t *testing.T) {
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			mbh,
 		},
+		DevFeesInEpoch: big.NewInt(0),
 	}
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
@@ -198,13 +200,19 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 	}
 	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
 
-	communityRewardTx := rewardTx.RewardTx{
+	mb := &block.MetaBlock{
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
+	}
+	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
 		RcvAddr: []byte{17},
 		Epoch:   0,
 	}
-	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, communityRewardTx)
+	mb.EpochStart.Economics.RewardsForProtocolSustainability.Set(protocolSustainabilityRewardTx.Value)
+	mb.EpochStart.Economics.TotalToDistribute.Set(big.NewInt(0).Add(rwdTx.Value, protocolSustainabilityRewardTx.Value))
+	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, protocolSustainabilityRewardTx)
 
 	bdy := block.MiniBlock{
 		TxHashes:        [][]byte{commRwdTxHash, rwdTxHash},
@@ -223,13 +231,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, bdy)
 	mbh.Hash = mbHash
 
-	mb := &block.MetaBlock{
-		EpochStart: getDefaultEpochStart(),
-		MiniBlockHeaders: []block.MiniBlockHeader{
-			mbh,
-			mbh,
-		},
-	}
+	mb.MiniBlockHeaders = []block.MiniBlockHeader{mbh, mbh}
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
 		{
@@ -257,13 +259,13 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 	}
 	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
 
-	communityRewardTx := rewardTx.RewardTx{
+	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
 		RcvAddr: []byte{17},
 		Epoch:   0,
 	}
-	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, communityRewardTx)
+	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, protocolSustainabilityRewardTx)
 
 	bdy := block.MiniBlock{
 		TxHashes:        [][]byte{commRwdTxHash, rwdTxHash},
@@ -286,7 +288,11 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			mbh,
 		},
+		DevFeesInEpoch: big.NewInt(0),
 	}
+	mb.EpochStart.Economics.RewardsForProtocolSustainability.Set(protocolSustainabilityRewardTx.Value)
+	mb.EpochStart.Economics.TotalToDistribute.Set(big.NewInt(0).Add(rwdTx.Value, protocolSustainabilityRewardTx.Value))
+
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
 		{
@@ -323,13 +329,13 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 	}
 	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
 
-	communityRewardTx := rewardTx.RewardTx{
+	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
 		RcvAddr: []byte{17},
 		Epoch:   0,
 	}
-	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, communityRewardTx)
+	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, protocolSustainabilityRewardTx)
 
 	bdy := block.MiniBlock{
 		TxHashes:        [][]byte{commRwdTxHash, rwdTxHash},
@@ -352,7 +358,11 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			mbh,
 		},
+		DevFeesInEpoch: big.NewInt(0),
 	}
+	mb.EpochStart.Economics.RewardsForProtocolSustainability.Set(protocolSustainabilityRewardTx.Value)
+	mb.EpochStart.Economics.TotalToDistribute.Set(big.NewInt(0).Add(rwdTx.Value, protocolSustainabilityRewardTx.Value))
+
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
 		{
@@ -374,7 +384,8 @@ func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 	rwd, _ := NewEpochStartRewardsCreator(args)
 
 	mb := &block.MetaBlock{
-		EpochStart: getDefaultEpochStart(),
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
 	}
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
@@ -430,7 +441,8 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 	rwd, _ := NewEpochStartRewardsCreator(args)
 
 	mb := &block.MetaBlock{
-		EpochStart: getDefaultEpochStart(),
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
 	}
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
@@ -471,37 +483,6 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 
 	assert.True(t, putRwdTxWasCalled)
 	assert.True(t, putMbWasCalled)
-}
-
-func TestRewardsCreator_addValidatorRewardsToMiniBlocksZeroValueShouldNotAdd(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	rwdc, _ := NewEpochStartRewardsCreator(args)
-
-	epochStartEconomics := getDefaultEpochStart()
-	epochStartEconomics.Economics.RewardsForCommunity = big.NewInt(0)
-	epochStartEconomics.Economics.RewardsPerBlock = big.NewInt(0)
-
-	mb := &block.MetaBlock{
-		EpochStart: epochStartEconomics,
-	}
-
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(0),
-		},
-	}
-
-	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
-	mbs, err := rwdc.CreateRewardsMiniBlocks(mb, valInfo)
-	assert.Nil(t, err)
-	for _, mb := range mbs {
-		assert.Equal(t, 0, len(mb.TxHashes))
-	}
 }
 
 func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
@@ -599,7 +580,7 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 	assert.Equal(t, rwdInfo.protocolRewards.Uint64(), protocolRewards)
 }
 
-func TestRewardsCreator_CreateCommunityRewardTransaction(t *testing.T) {
+func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
@@ -614,18 +595,19 @@ func TestRewardsCreator_CreateCommunityRewardTransaction(t *testing.T) {
 		Epoch:   0,
 	}
 
-	rwdTx, _, err := rwdc.createCommunityRewardTransaction(mb)
+	rwdTx, _, err := rwdc.createProtocolSustainabilityRewardTransaction(mb)
 	assert.Equal(t, expectedRewardTx, rwdTx)
 	assert.Nil(t, err)
 }
 
-func TestRewardsCreator_AddCommunityRewardToMiniBlocks(t *testing.T) {
+func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
 	rwdc, _ := NewEpochStartRewardsCreator(args)
 	metaBlk := &block.MetaBlock{
-		EpochStart: getDefaultEpochStart(),
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
 	}
 
 	miniBlocks := make(block.MiniBlockSlice, rwdc.shardCoordinator.NumberOfShards())
@@ -645,22 +627,25 @@ func TestRewardsCreator_AddCommunityRewardToMiniBlocks(t *testing.T) {
 	}
 	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, expectedRewardTx)
 	cloneMb.TxHashes = append(cloneMb.TxHashes, expectedRwdTxHash)
+	metaBlk.EpochStart.Economics.RewardsForProtocolSustainability.Set(expectedRewardTx.Value)
+	metaBlk.EpochStart.Economics.TotalToDistribute.Set(expectedRewardTx.Value)
 
 	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, make(map[uint32][]*state.ValidatorInfo))
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
 }
 
-func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToCommunityReward(t *testing.T) {
+func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilityReward(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
 	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(1, core.MetachainShardId)
 	rwdc, _ := NewEpochStartRewardsCreator(args)
 	metaBlk := &block.MetaBlock{
-		EpochStart: getDefaultEpochStart(),
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
 	}
-
+	metaBlk.EpochStart.Economics.TotalToDistribute = big.NewInt(10150)
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
 		{
@@ -676,36 +661,36 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToCommunityReward(t *te
 	assert.Equal(t, len(miniBlocks), 1)
 	assert.Equal(t, len(miniBlocks[0].TxHashes), 1)
 
-	expectedCommunityValue := big.NewInt(0).Add(metaBlk.EpochStart.Economics.RewardsForCommunity, metaBlk.EpochStart.Economics.RewardsPerBlock)
-	expectedCommunityValue.Add(expectedCommunityValue, big.NewInt(100))
-	communityReward, err := rwdc.currTxs.GetTx(miniBlocks[0].TxHashes[0])
+	expectedProtocolSustainabilityValue := big.NewInt(0).Add(metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, metaBlk.EpochStart.Economics.RewardsPerBlock)
+	expectedProtocolSustainabilityValue.Add(expectedProtocolSustainabilityValue, big.NewInt(100))
+	protocolSustainabilityReward, err := rwdc.currTxs.GetTx(miniBlocks[0].TxHashes[0])
 	assert.Nil(t, err)
-	assert.True(t, expectedCommunityValue.Cmp(communityReward.GetValue()) == 0)
+	assert.True(t, expectedProtocolSustainabilityValue.Cmp(protocolSustainabilityReward.GetValue()) == 0)
 }
 
 func getDefaultEpochStart() block.EpochStart {
 	return block.EpochStart{
 		Economics: block.Economics{
-			TotalSupply:         big.NewInt(10000),
-			TotalToDistribute:   big.NewInt(10000),
-			TotalNewlyMinted:    big.NewInt(10000),
-			RewardsPerBlock:     big.NewInt(10000),
-			NodePrice:           big.NewInt(10000),
-			RewardsForCommunity: big.NewInt(50),
+			TotalSupply:                      big.NewInt(10000),
+			TotalToDistribute:                big.NewInt(10000),
+			TotalNewlyMinted:                 big.NewInt(10000),
+			RewardsPerBlock:                  big.NewInt(10000),
+			NodePrice:                        big.NewInt(10000),
+			RewardsForProtocolSustainability: big.NewInt(50),
 		},
 	}
 }
 
 func getRewardsArguments() ArgsNewRewardsCreator {
 	return ArgsNewRewardsCreator{
-		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(2),
-		PubkeyConverter:     mock.NewPubkeyConverterMock(32),
-		RewardsStorage:      &mock.StorerStub{},
-		MiniBlockStorage:    &mock.StorerStub{},
-		Hasher:              &mock.HasherMock{},
-		Marshalizer:         &mock.MarshalizerMock{},
-		DataPool:            testscommon.NewPoolsHolderStub(),
-		CommunityAddress:    "11", // string hex => 17 decimal
-		NodesConfigProvider: &mock.NodesCoordinatorStub{},
+		ShardCoordinator:              mock.NewMultiShardsCoordinatorMock(2),
+		PubkeyConverter:               mock.NewPubkeyConverterMock(32),
+		RewardsStorage:                &mock.StorerStub{},
+		MiniBlockStorage:              &mock.StorerStub{},
+		Hasher:                        &mock.HasherMock{},
+		Marshalizer:                   &mock.MarshalizerMock{},
+		DataPool:                      testscommon.NewPoolsHolderStub(),
+		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
+		NodesConfigProvider:           &mock.NodesCoordinatorStub{},
 	}
 }

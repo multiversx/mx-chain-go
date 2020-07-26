@@ -6,7 +6,7 @@ extern "C"
 {
     void int64finish(long long value);
     void finish(byte *data, int length);
-    int createContract(byte *value, byte *code, int length, byte *result, int numArguments, byte *argumentsLengths, byte *data);
+    int createContract(long long gas, byte *value, byte *code, int codeSize, byte *newAddress, int numInitArgs, byte *initArgLengths, byte *initArgs);
     int getNumArguments();
     int getArgument(int argumentIndex, byte *argument);
     int getArgumentLength(int argumentIndex);
@@ -57,7 +57,7 @@ extern "C" void createChild()
     byte code[codeLength];
     getArgument(0, code);
     byte childAddress[32];
-    createContract(nullptr, code, codeLength, childAddress, 0, nullptr, nullptr);
+    createContract(15000000, nullptr, code, codeLength, childAddress, 0, nullptr, nullptr);
     storageStore((byte *)childContractAddressKey, 32, childAddress, 32);
 }
 

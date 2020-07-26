@@ -212,6 +212,7 @@ func TestReceivedBlockTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 func TestReceivedRewardTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 	t.Parallel()
 
+	sndAddr := []byte("sndAddr")
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
 		&mock.PubkeyConverterStub{},
 		&testscommon.PoolsHolderStub{
@@ -228,7 +229,10 @@ func TestReceivedRewardTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 	)
 
 	txKey := []byte("key")
-	txsPoolsCleaner.receivedRewardTx(txKey, nil)
+	tx := &transaction.Transaction{
+		SndAddr: sndAddr,
+	}
+	txsPoolsCleaner.receivedRewardTx(txKey, tx)
 	assert.NotNil(t, txsPoolsCleaner.mapTxsRounds[string(txKey)])
 }
 

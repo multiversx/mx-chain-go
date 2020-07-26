@@ -27,7 +27,7 @@ func GetGeneralConfig() config.Config {
 		EvictionWaitingList: config.EvictionWaitingListConfig{
 			Size: 100,
 			DB: config.DBConfig{
-				FilePath:          "EvictionWaitingList",
+				FilePath:          AddTimestampSuffix("EvictionWaitingList"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -35,7 +35,7 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		TrieSnapshotDB: config.DBConfig{
-			FilePath:          "TrieSnapshot",
+			FilePath:          AddTimestampSuffix("TrieSnapshot"),
 			Type:              string(storageUnit.MemoryDB),
 			BatchDelaySeconds: 30,
 			MaxBatchSize:      6,
@@ -44,7 +44,7 @@ func GetGeneralConfig() config.Config {
 		AccountsTrieStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "AccountsTrie/MainDB",
+				FilePath:          AddTimestampSuffix("AccountsTrie/MainDB"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -54,7 +54,7 @@ func GetGeneralConfig() config.Config {
 		PeerAccountsTrieStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "PeerAccountsTrie/MainDB",
+				FilePath:          AddTimestampSuffix("PeerAccountsTrie/MainDB"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -100,7 +100,7 @@ func GetGeneralConfig() config.Config {
 		TxStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "Transactions",
+				FilePath:          AddTimestampSuffix("Transactions"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -110,7 +110,7 @@ func GetGeneralConfig() config.Config {
 		MiniBlocksStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "MiniBlocks",
+				FilePath:          AddTimestampSuffix("MiniBlocks"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -120,7 +120,7 @@ func GetGeneralConfig() config.Config {
 		ShardHdrNonceHashStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "ShardHdrHashNonce",
+				FilePath:          AddTimestampSuffix("ShardHdrHashNonce"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -130,7 +130,7 @@ func GetGeneralConfig() config.Config {
 		MetaBlockStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "MetaBlock",
+				FilePath:          AddTimestampSuffix("MetaBlock"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -140,7 +140,7 @@ func GetGeneralConfig() config.Config {
 		MetaHdrNonceHashStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "MetaHdrHashNonce",
+				FilePath:          AddTimestampSuffix("MetaHdrHashNonce"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -150,7 +150,7 @@ func GetGeneralConfig() config.Config {
 		UnsignedTransactionStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "UnsignedTransactions",
+				FilePath:          AddTimestampSuffix("UnsignedTransactions"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -160,7 +160,7 @@ func GetGeneralConfig() config.Config {
 		RewardTxStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "RewardTransactions",
+				FilePath:          AddTimestampSuffix("RewardTransactions"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -170,7 +170,7 @@ func GetGeneralConfig() config.Config {
 		BlockHeaderStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "BlockHeaders",
+				FilePath:          AddTimestampSuffix("BlockHeaders"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -181,7 +181,7 @@ func GetGeneralConfig() config.Config {
 			HeartbeatStorage: config.StorageConfig{
 				Cache: getLRUCacheConfig(),
 				DB: config.DBConfig{
-					FilePath:          "HeartbeatStorage",
+					FilePath:          AddTimestampSuffix("HeartbeatStorage"),
 					Type:              string(storageUnit.MemoryDB),
 					BatchDelaySeconds: 30,
 					MaxBatchSize:      6,
@@ -192,7 +192,7 @@ func GetGeneralConfig() config.Config {
 		StatusMetricsStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "StatusMetricsStorageDB",
+				FilePath:          AddTimestampSuffix("StatusMetricsStorageDB"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -202,7 +202,7 @@ func GetGeneralConfig() config.Config {
 		PeerBlockBodyStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "PeerBlocks",
+				FilePath:          AddTimestampSuffix("PeerBlocks"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -212,7 +212,7 @@ func GetGeneralConfig() config.Config {
 		BootstrapStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "BootstrapData",
+				FilePath:          AddTimestampSuffix("BootstrapData"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 1,
 				MaxBatchSize:      6,
@@ -222,7 +222,7 @@ func GetGeneralConfig() config.Config {
 		TxLogsStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
-				FilePath:          "Logs",
+				FilePath:          AddTimestampSuffix("Logs"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 2,
 				MaxBatchSize:      100,
