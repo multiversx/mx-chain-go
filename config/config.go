@@ -160,6 +160,7 @@ type Config struct {
 	Health   HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
+	FullHistory           FullHistoryConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -196,6 +197,8 @@ type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec int
 	MaxComputableRounds      uint64
 	StartInEpochEnabled      bool
+	DisableDeploy            bool
+	DisableBuiltInFunctions  bool
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -327,6 +330,13 @@ type HardforkConfig struct {
 	EnableTriggerFromP2P         bool
 	MustImport                   bool
 	AfterHardFork                bool
+}
+
+// FullHistoryConfig holds the configuration for the full history node
+type FullHistoryConfig struct {
+	Enabled                         bool
+	HistoryTransactionStorageConfig StorageConfig
+	HashEpochStorageConfig          StorageConfig
 }
 
 // DebugConfig will hold debugging configuration

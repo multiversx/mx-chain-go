@@ -46,6 +46,12 @@ type SystemEI interface {
 	IsInterfaceNil() bool
 }
 
+// EconomicsHandler defines the methods to get data from the economics component
+type EconomicsHandler interface {
+	GenesisTotalSupply() *big.Int
+	IsInterfaceNil() bool
+}
+
 // ContextHandler defines the methods needed to execute system smart contracts
 type ContextHandler interface {
 	SystemEI
@@ -62,21 +68,6 @@ type ContextHandler interface {
 // MessageSignVerifier is used to verify if message was signed with given public key
 type MessageSignVerifier interface {
 	Verify(message []byte, signedMessage []byte, pubKey []byte) error
-	IsInterfaceNil() bool
-}
-
-// ValidatorSettingsHandler defines the functionality which is needed for validators' settings
-type ValidatorSettingsHandler interface {
-	UnBondPeriod() uint64
-	GenesisNodePrice() *big.Int
-	MinStepValue() *big.Int
-	UnJailValue() *big.Int
-	GenesisTotalSupply() *big.Int
-	AuctionEnableNonce() uint64
-	StakeEnableNonce() uint64
-	NumRoundsWithoutBleed() uint64
-	BleedPercentagePerRound() float64
-	MaximumPercentageToBleed() float64
 	IsInterfaceNil() bool
 }
 

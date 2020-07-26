@@ -2,6 +2,7 @@ package poolsCleaner
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -99,7 +100,10 @@ func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte, value interfac
 
 	miniBlock, ok := value.(*block.MiniBlock)
 	if !ok {
-		log.Warn("miniBlocksPoolsCleaner.receivedMiniBlock", "error", process.ErrWrongTypeAssertion)
+		log.Warn("miniBlocksPoolsCleaner.receivedMiniBlock",
+			"error", process.ErrWrongTypeAssertion,
+			"found type", fmt.Sprintf("%T", value),
+		)
 		return
 	}
 

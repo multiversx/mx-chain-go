@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -37,6 +38,11 @@ func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return false
+			},
+		}),
 	)
 	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -56,6 +62,11 @@ func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return false
+			},
+		}),
 	)
 	expectedTx, _ := getDummyRewardTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -76,6 +87,11 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) 
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return false
+			},
+		}),
 	)
 	expectedTx, _ := getUnsignedTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -102,11 +118,167 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return false
+			},
+		}),
 	)
 	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
+}
+
+func TestNode_GetFullHistoryTransaction(t *testing.T) {
+	t.Parallel()
+
+	dataPool := &testscommon.PoolsHolderStub{
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
+	}
+	storer := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			// getStorerStub contains a transaction that is created with getDummyNormalTx method
+			return getStorerStub(true)
+		},
+	}
+
+	blockHash := []byte("hash")
+	mbHash := []byte("mbHash")
+	epoch := uint32(10)
+	sndShard := uint32(1)
+	rcvShard := uint32(2)
+	round := uint64(123)
+	blockNonce := uint64(1001)
+	n, _ := node.NewNode(
+		node.WithDataPool(dataPool),
+		node.WithDataStore(storer),
+		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return true
+			},
+			GetTransactionCalled: func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
+				return &fullHistory.HistoryTransactionWithEpoch{
+					Epoch: epoch,
+					TransactionsGroupMetadata: &fullHistory.TransactionsGroupMetadata{
+						MbHash:      mbHash,
+						HeaderHash:  blockHash,
+						HeaderNonce: blockNonce,
+						SndShardID:  sndShard,
+						RcvShardID:  rcvShard,
+						Round:       round,
+					},
+				}, nil
+			},
+		}),
+	)
+
+	dummyTx, _ := getDummyNormalTx()
+	expectedTx := &transaction.ApiTransactionResult{
+		Type:       "normal",
+		Nonce:      dummyTx.Nonce,
+		Round:      round,
+		Epoch:      epoch,
+		Value:      dummyTx.Value.String(),
+		Receiver:   hex.EncodeToString(dummyTx.RcvAddr),
+		Sender:     hex.EncodeToString(dummyTx.SndAddr),
+		GasPrice:   dummyTx.GasPrice,
+		GasLimit:   dummyTx.GasLimit,
+		Data:       dummyTx.Data,
+		Code:       "",
+		Signature:  hex.EncodeToString(dummyTx.Signature),
+		SndShard:   sndShard,
+		RcvShard:   rcvShard,
+		BlockNonce: blockNonce,
+		MBHash:     hex.EncodeToString(mbHash),
+		BlockHash:  hex.EncodeToString(blockHash),
+		Status:     core.TxStatusExecuted,
+	}
+
+	// transaction that is returned shoud be the same with expectedTx because
+	// expectedTx is formated for a dummyTx( returned by method getDummyNormalTx
+	tx, err := n.GetTransaction("aaaa")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedTx, tx)
+}
+
+func TestNode_GetFullHistoryTransaction_TxInPoolShouldReturnItDirectly(t *testing.T) {
+	t.Parallel()
+
+	dataPool := &testscommon.PoolsHolderStub{
+		TransactionsCalled:         getCacherHandler(true, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
+	}
+	storer := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return getStorerStub(true)
+		},
+	}
+
+	n, _ := node.NewNode(
+		node.WithDataPool(dataPool),
+		node.WithDataStore(storer),
+		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return true
+			},
+		}),
+	)
+
+	dummyTx, _ := getDummyNormalTx()
+	expectedTx := &transaction.ApiTransactionResult{
+		Type:      "normal",
+		Nonce:     dummyTx.Nonce,
+		Value:     dummyTx.Value.String(),
+		Receiver:  hex.EncodeToString(dummyTx.RcvAddr),
+		Sender:    hex.EncodeToString(dummyTx.SndAddr),
+		GasPrice:  dummyTx.GasPrice,
+		GasLimit:  dummyTx.GasLimit,
+		Data:      dummyTx.Data,
+		Signature: hex.EncodeToString(dummyTx.Signature),
+		Status:    core.TxStatusPartiallyExecuted,
+	}
+
+	tx, err := n.GetTransaction("aaaa")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedTx, tx)
+}
+
+func TestNode_GetFullHistoryTransaction_TxNotInHistoryStorerShouldErr(t *testing.T) {
+	dataPool := &testscommon.PoolsHolderStub{
+		TransactionsCalled:         getCacherHandler(false, ""),
+		RewardTransactionsCalled:   getCacherHandler(false, ""),
+		UnsignedTransactionsCalled: getCacherHandler(false, ""),
+	}
+	expectedErr := errors.New("test err")
+	n, _ := node.NewNode(
+		node.WithDataPool(dataPool),
+		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return true
+			},
+			GetTransactionCalled: func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
+				return nil, expectedErr
+			},
+		}),
+	)
+
+	tx, err := n.GetTransaction("aaaa")
+	assert.Equal(t, expectedErr, err)
+	assert.Nil(t, tx)
+
 }
 
 func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
@@ -132,6 +304,11 @@ func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return false
+			},
+		}),
 	)
 	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -163,6 +340,11 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return false
+			},
+		}),
 	)
 	expectedTx, _ := getDummyNormalTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -199,6 +381,11 @@ func TestNode_GetTransaction_ShouldFindInStorageButErrorUnmarshaling(t *testing.
 			},
 		}, 0),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return false
+			},
+		}),
 	)
 	tx, err := n.GetTransaction("aaaa")
 	assert.Nil(t, tx)
@@ -221,6 +408,11 @@ func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
+		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+			IsEnabledCalled: func() bool {
+				return false
+			},
+		}),
 	)
 	tx, err := n.GetTransaction("aaaa")
 	assert.Nil(t, tx)
@@ -368,6 +560,13 @@ func getStorerStub(find bool) storage.Storer {
 			return nil
 		},
 		SearchFirstCalled: func(_ []byte) ([]byte, error) {
+			if !find {
+				return nil, errors.New("key not found")
+			}
+			_, txBytes := getDummyNormalTx()
+			return txBytes, nil
+		},
+		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 			if !find {
 				return nil, errors.New("key not found")
 			}

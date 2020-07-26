@@ -49,7 +49,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		return nil, err
 	}
 
-	err = setStakedData(arg, processors.txProcessor, nodesListSplitter)
+	err = setStakedData(arg, processors, nodesListSplitter)
 	if err != nil {
 		return nil, err
 	}
@@ -78,12 +78,13 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		Nonce:                  nonce,
 		Epoch:                  epoch,
 	}
+
 	header.EpochStart.Economics = block.Economics{
 		TotalSupply:       big.NewInt(0).Set(arg.Economics.GenesisTotalSupply()),
 		TotalToDistribute: big.NewInt(0),
 		TotalNewlyMinted:  big.NewInt(0),
 		RewardsPerBlock:   big.NewInt(0),
-		NodePrice:         big.NewInt(0).Set(arg.Economics.GenesisNodePrice()),
+		NodePrice:         big.NewInt(0).Set(arg.GenesisNodePrice),
 	}
 
 	validatorRootHash, err := arg.ValidatorAccounts.RootHash()
@@ -236,6 +237,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		return nil, err
 	}
 
+	badTxForwarder, err := interimProcContainer.Get(block.InvalidBlock)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  arg.PubkeyConv,
 		ShardCoordinator: arg.ShardCoordinator,
@@ -260,7 +266,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		Hasher:           arg.Hasher,
 		Marshalizer:      arg.Marshalizer,
 		AccountsDB:       arg.Accounts,
-		TempAccounts:     virtualMachineFactory.BlockChainHookImpl(),
+		BlockChainHook:   virtualMachineFactory.BlockChainHookImpl(),
 		PubkeyConv:       arg.PubkeyConv,
 		Coordinator:      arg.ShardCoordinator,
 		ScrForwarder:     scForwarder,
@@ -270,6 +276,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		GasHandler:       gasHandler,
 		BuiltInFunctions: virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  arg.TxLogsProcessor,
+		BadTxForwarder:   badTxForwarder,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
@@ -402,12 +409,18 @@ func deploySystemSmartContracts(
 // at genesis time
 func setStakedData(
 	arg ArgsGenesisBlockCreator,
-	txProcessor process.TransactionProcessor,
+	processors *genesisProcessors,
 	nodesListSplitter genesis.NodesListSplitter,
 ) error {
+
+	scQueryBlsKeys := &process.SCQuery{
+		ScAddress: vmFactory.StakingSCAddress,
+		FuncName:  "isStaked",
+	}
+
 	// create staking smart contract state for genesis - update fixed stake value from all
 	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
-	stakeValue := arg.Economics.GenesisNodePrice()
+	stakeValue := arg.GenesisNodePrice
 
 	stakedNodes := nodesListSplitter.GetAllNodes()
 	for _, nodeInfo := range stakedNodes {
@@ -422,9 +435,19 @@ func setStakedData(
 			Signature: nil,
 		}
 
-		_, err := txProcessor.ProcessTransaction(tx)
+		_, err := processors.txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err
+		}
+
+		scQueryBlsKeys.Arguments = [][]byte{nodeInfo.PubKeyBytes()}
+		vmOutput, err := processors.queryService.ExecuteQuery(scQueryBlsKeys)
+		if err != nil {
+			return err
+		}
+
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			return genesis.ErrBLSKeyNotStaked
 		}
 	}
 

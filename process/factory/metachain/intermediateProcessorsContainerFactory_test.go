@@ -128,5 +128,5 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 
 	container, err := ipcf.Create()
 	assert.Nil(t, err)
-	assert.Equal(t, 1, container.Len())
+	assert.Equal(t, 2, container.Len())
 }

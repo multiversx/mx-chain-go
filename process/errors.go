@@ -731,6 +731,9 @@ var ErrNilValidatorInfos = errors.New("nil validator infos")
 // ErrNilBlockSizeThrottler signals that block size throttler si nil
 var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
 
+// ErrNilHistoryRepository signals that history processor is nil
+var ErrNilHistoryRepository = errors.New("history repository is nil")
+
 // ErrInvalidMetaTransaction signals that meta transaction is invalid
 var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
 
@@ -749,8 +752,8 @@ var ErrNilVmInput = errors.New("nil vm input")
 // ErrNilDnsAddresses signals that nil dns addresses map was provided
 var ErrNilDnsAddresses = errors.New("nil dns addresses map")
 
-// ErrNilCommunityAddress signals that a nil community address was provided
-var ErrNilCommunityAddress = errors.New("nil community address")
+// ErrNilProtocolSustainabilityAddress signals that a nil protocol sustainability address was provided
+var ErrNilProtocolSustainabilityAddress = errors.New("nil protocol sustainability address")
 
 // ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
 var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
@@ -856,3 +859,21 @@ var ErrTransactionIsNotWhitelisted = errors.New("transaction is not whitelisted"
 
 // ErrInterceptedDataNotForCurrentShard signals that intercepted data is not for current shard
 var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for current shard")
+
+// ErrAccountNotPayable will be sent when trying to send money to a non-payable account
+var ErrAccountNotPayable = errors.New("sending value to non payable contract")
+
+// ErrNilIndexer signals that indexer is nil
+var ErrNilIndexer = errors.New("indexer is nil")
+
+// ErrNilTpsBenchmark signals that tps benchmark object is nil
+var ErrNilTpsBenchmark = errors.New("tps benchmark object is nil")
+
+// ErrSmartContractDeploymentIsDisabled signals that smart contract deployment was disabled
+var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment is disabled")
+
+// ErrUpgradeNotAllowed signals that upgrade is not allowed
+var ErrUpgradeNotAllowed = errors.New("upgrade is allowed only for owner")
+
+// ErrBuiltInFunctionsAreDisabled signals that built in functions are disabled
+var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled")
