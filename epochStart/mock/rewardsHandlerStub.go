@@ -2,11 +2,11 @@ package mock
 
 // RewardsHandlerStub -
 type RewardsHandlerStub struct {
-	LeaderPercentageCalled    func() float64
-	CommunityPercentageCalled func() float64
-	CommunityAddressCalled    func() string
-	MinInflationRateCalled    func() float64
-	MaxInflationRateCalled    func(year uint32) float64
+	LeaderPercentageCalled                 func() float64
+	ProtocolSustainabilityPercentageCalled func() float64
+	ProtocolSustainabilityAddressCalled    func() string
+	MinInflationRateCalled                 func() float64
+	MaxInflationRateCalled                 func(year uint32) float64
 }
 
 // LeaderPercentage -
@@ -18,19 +18,19 @@ func (r *RewardsHandlerStub) LeaderPercentage() float64 {
 	return 1
 }
 
-// CommunityPercentage will return the community percentage value
-func (r *RewardsHandlerStub) CommunityPercentage() float64 {
-	if r.CommunityPercentageCalled != nil {
-		return r.CommunityPercentageCalled()
+// ProtocolSustainabilityPercentage will return the protocol sustainability percentage value
+func (r *RewardsHandlerStub) ProtocolSustainabilityPercentage() float64 {
+	if r.ProtocolSustainabilityPercentageCalled != nil {
+		return r.ProtocolSustainabilityPercentageCalled()
 	}
 
 	return 0.1
 }
 
-// CommunityAddress will return the community address
-func (r *RewardsHandlerStub) CommunityAddress() string {
-	if r.CommunityAddressCalled != nil {
-		return r.CommunityAddressCalled()
+// ProtocolSustainabilityAddress will return the protocol sustainability address
+func (r *RewardsHandlerStub) ProtocolSustainabilityAddress() string {
+	if r.ProtocolSustainabilityAddressCalled != nil {
+		return r.ProtocolSustainabilityAddressCalled()
 	}
 
 	return "1111"

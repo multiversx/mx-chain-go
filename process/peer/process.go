@@ -335,7 +335,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	err = vs.updateValidatorInfo(
 		consensusGroup,
 		previousHeader.GetPubKeysBitmap(),
-		previousHeader.GetAccumulatedFees(),
+		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
 		previousHeader.GetShardID(),
 		consensusGroupEpoch)
 	if err != nil {
@@ -766,7 +766,13 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			return shardInfoErr
 		}
 
-		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap, h.AccumulatedFees, h.ShardID, epoch)
+		shardInfoErr = vs.updateValidatorInfo(
+			shardConsensus,
+			h.PubKeysBitmap,
+			big.NewInt(0).Sub(h.AccumulatedFees, h.DeveloperFees),
+			h.ShardID,
+			epoch,
+		)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}

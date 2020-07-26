@@ -1,9 +1,9 @@
 package indexer
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
-	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
@@ -92,7 +92,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		if nrScResult < minimumNumberOfSmartContractResults {
 			if len(transactions[hash].SmartContractResults) > 0 {
 				scResultData := transactions[hash].SmartContractResults[0].Data
-				if strings.Contains(scResultData, "@ok") {
+				if bytes.Contains(scResultData, []byte("@ok")) {
 					// ESDT contract calls generate just one smart contract result
 					continue
 				}
@@ -120,7 +120,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 
 func (tdp *txDatabaseProcessor) addScResultInfoInTx(scr *smartContractResult.SmartContractResult, tx *Transaction) *Transaction {
 	dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scr)
-	if tx.Sender != dbScResult.Receiver || dbScResult.Data == "" {
+	if tx.Sender != dbScResult.Receiver || len(dbScResult.Data) == 0 {
 		return tx
 	}
 

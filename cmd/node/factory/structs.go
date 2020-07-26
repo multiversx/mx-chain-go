@@ -1695,15 +1695,15 @@ func newMetaBlockProcessor(
 	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
 	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
-		ShardCoordinator:    shardCoordinator,
-		PubkeyConverter:     stateComponents.AddressPubkeyConverter,
-		RewardsStorage:      rewardsStorage,
-		MiniBlockStorage:    miniBlockStorage,
-		Hasher:              core.Hasher,
-		Marshalizer:         core.InternalMarshalizer,
-		DataPool:            data.Datapool,
-		CommunityAddress:    economicsData.CommunityAddress(),
-		NodesConfigProvider: nodesCoordinator,
+		ShardCoordinator:              shardCoordinator,
+		PubkeyConverter:               stateComponents.AddressPubkeyConverter,
+		RewardsStorage:                rewardsStorage,
+		MiniBlockStorage:              miniBlockStorage,
+		Hasher:                        core.Hasher,
+		Marshalizer:                   core.InternalMarshalizer,
+		DataPool:                      data.Datapool,
+		ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
+		NodesConfigProvider:           nodesCoordinator,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {

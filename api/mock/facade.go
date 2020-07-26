@@ -26,7 +26,7 @@ type Facade struct {
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data string, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler        func(tx *transaction.Transaction) error
 	SendBulkTransactionsHandler       func(txs []*transaction.Transaction) (uint64, error)
 	ExecuteSCQueryHandler             func(query *process.SCQuery) (*vmcommon.VMOutput, error)
@@ -104,7 +104,7 @@ func (f *Facade) CreateTransaction(
 	senderHex string,
 	gasPrice uint64,
 	gasLimit uint64,
-	data string,
+	data []byte,
 	signatureHex string,
 	chainID string,
 	version uint32,

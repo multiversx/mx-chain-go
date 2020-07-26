@@ -52,7 +52,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 		Nonce:     nonce,
 		PreTxHash: hex.EncodeToString(txHash),
 		Code:      string(code),
-		Data:      "",
+		Data:      make([]byte, 0),
 		Sender:    cp.addressPubkeyConverter.Encode(sndAddr),
 		Receiver:  cp.addressPubkeyConverter.Encode(rcvAddr),
 		Value:     "<nil>",
@@ -85,7 +85,7 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 		Status:   status,
 		Value:    "<nil>",
 		Sender:   fmt.Sprintf("%d", core.MetachainShardId),
-		Data:     "",
+		Data:     make([]byte, 0),
 	}
 
 	require.Equal(t, expectedTx, resultTx)
@@ -167,13 +167,13 @@ func TestInterpretAsString(t *testing.T) {
 	t.Parallel()
 
 	data1 := []byte("@75736572206572726f72@b099086f9bddfcb0a4f45bada01b528f0d1981d7e20344523a7e41a7d8e9c7a6")
-	expectedData1 := "@user error@b099086f9bddfcb0a4f45bada01b528f0d1981d7e20344523a7e41a7d8e9c7a6"
+	expectedData1 := []byte("@user error@b099086f9bddfcb0a4f45bada01b528f0d1981d7e20344523a7e41a7d8e9c7a6")
 
 	decodedData := decodeScResultData(data1)
 	require.Equal(t, expectedData1, decodedData)
 
 	data2 := append([]byte("@75736572206572726f72@"), 150, 160)
-	expectedData2 := "@user error"
+	expectedData2 := []byte("@user error")
 
 	decodedData = decodeScResultData(data2)
 	require.Equal(t, expectedData2, decodedData)
