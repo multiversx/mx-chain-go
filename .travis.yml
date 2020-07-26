@@ -60,8 +60,7 @@ after_deploy:
 deploy:
   provider: releases
   skip_cleanup: true
-  api_key:
-    secure: PVnsoQM0PWm+2dxXe3zNFIwtNUazJVxexXGzLUAsXuTlnNOGUoiLUDO2qWECVop/kkMPLhV+D1grtU+G8cHBWps4MD216sImGP5NuzBpE7wCRfQ6siW3aGv96AtnXVtDSS2JvDqgAgbaw9Kr+UYuT4ZakavCFiQye3PtMz+n7Ts3kVBqYoPTYOB/BGb+623sHMKmbfLNw2mNHLzrCm3EMxVtAKXCPctGVTXWTFpRCBkONBwjG7+hK5Rl2t7hXrtwub0+KWBelRsMOagW+aDYMBvv2cFZP43ihbUva9vHYa5SkpZn3IYhO95pGXs83XxXNs7pDXmNiwkdL03GQXWj7/W2iL0CP4I8jtETktrdyQCjdshNl2Ud2FE8/8i1Br2Y7P4/9spZF913nMtKxishcXMZpGZQ0ys023p94UpwVfra78HDYcLCKuZt8+TTomsiTrAZcZy0bM77zSuI9GcESZfqmJA+dBLMgtr57sUUqzUvKTfcVSq4nurBy9qWSrOYoo9fiIGzyPdtJblCil8gOUHzgRKSJDH30QnccjUKgJvVLrbEMa26fgUZGUS+3y8G8GrwAjOiNxtaBc0aHQ+vFG0B5lLIGMiwrPNXdz1P4WtHH67WiByPe2fdXUV5POpvwxwqwAg7ZM1EsToow7bwXJKE4CPBr/p/UJF1hljRe6I=
+  api_key: $GITHUB_OAUTH_TOKEN
   file: "$TRAVIS_BUILD_DIR/$ARCHIVE"
   draft: true
   on:
