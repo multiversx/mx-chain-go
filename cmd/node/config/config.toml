@@ -444,7 +444,7 @@
 
 # The marshalizer used in transaction signing
 [TxSignMarshalizer]
-   Type = "tx-json"
+   Type = "json"
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]

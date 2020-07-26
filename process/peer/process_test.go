@@ -59,9 +59,9 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:    0.1,
-				CommunityPercentage: 0.1,
-				CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+				LeaderPercentage:                 0.1,
+				ProtocolSustainabilityPercentage: 0.1,
+				ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     "10000000",
@@ -584,6 +584,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	cache[string(header.GetPrevHash())] = &block.MetaBlock{
 		PubKeysBitmap:   []byte{255, 255},
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 
@@ -638,6 +639,7 @@ func generateTestMetaBlockHeaders(cache map[string]data.HeaderHandler) (*block.M
 		Nonce:           1,
 		PubKeysBitmap:   []byte{255, 255},
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 		PrevRandSeed:    []byte("prevRandSeed"),
 	}
 
@@ -656,6 +658,7 @@ func generateTestShardBlockHeaders(cache map[string]data.HeaderHandler) (*block.
 		Nonce:           1,
 		PubKeysBitmap:   []byte{255, 255},
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 		PrevRandSeed:    []byte("prevRandSeed"),
 		RandSeed:        []byte("prevHeaderRandSeed"),
 	}
@@ -1223,7 +1226,9 @@ func shardDataFromHeader(headerHash []byte, prevHeader *block.Header) block.Shar
 		PrevHash:        prevHeader.PrevHash,
 		Nonce:           prevHeader.Nonce,
 		ShardID:         prevHeader.ShardID,
-		AccumulatedFees: big.NewInt(0)}
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+	}
 
 	return sd
 }
@@ -1749,6 +1754,7 @@ func getMetaHeaderHandler(randSeed []byte) *block.MetaBlock {
 		PrevHash:        randSeed,
 		PubKeysBitmap:   randSeed,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 }
 
@@ -1759,6 +1765,7 @@ func getShardHeaderHandler(randSeed []byte) *block.Header {
 		PrevHash:        randSeed,
 		PubKeysBitmap:   randSeed,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 }
 

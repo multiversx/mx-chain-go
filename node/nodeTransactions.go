@@ -248,7 +248,7 @@ func (n *Node) prepareNormalTx(tx *transaction.Transaction, status core.Transact
 		Sender:    n.addressPubkeyConverter.Encode(tx.SndAddr),
 		GasPrice:  tx.GasPrice,
 		GasLimit:  tx.GasLimit,
-		Data:      string(tx.Data),
+		Data:      tx.Data,
 		Signature: hex.EncodeToString(tx.Signature),
 		Status:    status,
 	}, nil
@@ -278,7 +278,7 @@ func (n *Node) prepareUnsignedTx(
 		Sender:    n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
 		GasPrice:  tx.GetGasPrice(),
 		GasLimit:  tx.GetGasLimit(),
-		Data:      string(tx.GetData()),
+		Data:      tx.GetData(),
 		Code:      string(tx.GetCode()),
 		Signature: "",
 		Status:    status,

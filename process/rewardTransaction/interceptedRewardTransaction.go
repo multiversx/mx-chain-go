@@ -82,6 +82,11 @@ func (inRTx *InterceptedRewardTransaction) processFields(rewardTxBuff []byte) er
 	inRTx.rcvShard = inRTx.coordinator.ComputeId(inRTx.rTx.RcvAddr)
 	inRTx.sndShard = core.MetachainShardId
 
+	if inRTx.coordinator.SelfId() == core.MetachainShardId {
+		inRTx.isForCurrentShard = false
+		return nil
+	}
+
 	isForCurrentShardRecv := inRTx.rcvShard == inRTx.coordinator.SelfId()
 	isForCurrentShardSender := inRTx.sndShard == inRTx.coordinator.SelfId()
 	inRTx.isForCurrentShard = isForCurrentShardRecv || isForCurrentShardSender

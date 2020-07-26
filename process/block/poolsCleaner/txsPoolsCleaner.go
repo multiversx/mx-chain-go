@@ -3,6 +3,7 @@ package poolsCleaner
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -136,22 +137,39 @@ func (tpc *txsPoolsCleaner) receivedBlockTx(key []byte, value interface{}) {
 
 	wrappedTx, ok := value.(*txcache.WrappedTransaction)
 	if !ok {
-		log.Warn("txsPoolsCleaner.receivedBlockTx", "error", process.ErrWrongTypeAssertion)
+		log.Warn("txsPoolsCleaner.receivedBlockTx",
+			"error", process.ErrWrongTypeAssertion,
+			"found type", fmt.Sprintf("%T", value),
+		)
 		return
 	}
 
 	tpc.processReceivedTx(key, wrappedTx.SenderShardID, wrappedTx.ReceiverShardID, blockTx)
 }
 
-func (tpc *txsPoolsCleaner) receivedRewardTx(key []byte, _ interface{}) {
+func (tpc *txsPoolsCleaner) receivedRewardTx(key []byte, value interface{}) {
 	if key == nil {
 		return
 	}
 
 	log.Trace("txsPoolsCleaner.receivedRewardTx", "hash", key)
 
+	tx, ok := value.(data.TransactionHandler)
+	if !ok {
+		log.Warn("txsPoolsCleaner.receivedRewardTx",
+			"error", process.ErrWrongTypeAssertion,
+			"found type", fmt.Sprintf("%T", value),
+		)
+		return
+	}
+
 	senderShardID := core.MetachainShardId
-	receiverShardID := tpc.shardCoordinator.SelfId()
+	receiverShardID, err := tpc.getShardFromAddress(tx.GetRcvAddr())
+	if err != nil {
+		log.Debug("txsPoolsCleaner.receivedRewardTx", "error", err.Error())
+		return
+	}
+
 	tpc.processReceivedTx(key, senderShardID, receiverShardID, rewardTx)
 }
 
@@ -164,7 +182,10 @@ func (tpc *txsPoolsCleaner) receivedUnsignedTx(key []byte, value interface{}) {
 
 	tx, ok := value.(data.TransactionHandler)
 	if !ok {
-		log.Warn("txsPoolsCleaner.receivedUnsignedTx", "error", process.ErrWrongTypeAssertion)
+		log.Warn("txsPoolsCleaner.receivedUnsignedTx",
+			"error", process.ErrWrongTypeAssertion,
+			"found type", fmt.Sprintf("%T", value),
+		)
 		return
 	}
 
