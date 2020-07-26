@@ -52,6 +52,20 @@ func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 	return val, nil
 }
 
+// GetBulkFromEpoch -
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
+	retValue := map[string][]byte{}
+	for _, key := range keys {
+		value, err := sm.Get(key)
+		if err != nil {
+			continue
+		}
+		retValue[string(key)] = value
+	}
+
+	return retValue, nil
+}
+
 // SearchFirst -
 func (sm *StorerMock) SearchFirst(_ []byte) ([]byte, error) {
 	return nil, errors.New("not implemented")
