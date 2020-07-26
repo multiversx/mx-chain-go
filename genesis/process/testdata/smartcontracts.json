@@ -10,8 +10,8 @@
     "owner": "0102030405060708090001020304050607080900010203040506070809000102",
     "filename": "testdata/delegation.wasm",
     "vm-type": "0500",
-    "init-parameters": "%auction_sc_address%@03E8@03E8@03E8",
+    "init-parameters": "%auction_sc_address%@03E8@00@030D40@030D40",
     "type": "delegation",
-    "version": "0.3.*"
+    "version": "0.4.*"
   }
 ]
