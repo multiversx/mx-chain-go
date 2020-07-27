@@ -1340,6 +1340,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 		},
 		ApiRoutesConfig: *apiRoutesConfig,
+		AccountsState:   stateComponents.AccountsAdapter,
+		PeerState:       stateComponents.PeerAccounts,
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)

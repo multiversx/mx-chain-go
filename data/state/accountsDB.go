@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -12,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
+
+const batchWriteDelay = time.Second * 2
 
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
@@ -868,6 +871,8 @@ func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 }
 
 func (adb *AccountsDB) increaseNumCheckpoints() {
+	time.Sleep(batchWriteDelay)
+
 	adb.numCheckpointsMutex.Lock()
 	adb.numCheckpoints++
 	adb.numCheckpointsMutex.Unlock()

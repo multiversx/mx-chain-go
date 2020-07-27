@@ -59,6 +59,8 @@ type ArgNodeFacade struct {
 	WsAntifloodConfig      config.WebServerAntifloodConfig
 	FacadeConfig           config.FacadeConfig
 	ApiRoutesConfig        config.ApiRoutesConfig
+	AccountsState          state.AccountsAdapter
+	PeerState              state.AccountsAdapter
 }
 
 // nodeFacade represents a facade for grouping the functionality for the node
@@ -72,6 +74,8 @@ type nodeFacade struct {
 	endpointsThrottlers    map[string]core.Throttler
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	restAPIServerDebugMode bool
+	accountsState          state.AccountsAdapter
+	peerState              state.AccountsAdapter
 	ctx                    context.Context
 	cancelFunc             func()
 }
@@ -96,6 +100,12 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if arg.WsAntifloodConfig.SameSourceResetIntervalInSec == 0 {
 		return nil, fmt.Errorf("%w, SameSourceResetIntervalInSec should not be 0", ErrInvalidValue)
 	}
+	if check.IfNil(arg.AccountsState) {
+		return nil, ErrNilAccountState
+	}
+	if check.IfNil(arg.PeerState) {
+		return nil, ErrNilPeerState
+	}
 
 	throttlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
 
@@ -107,6 +117,8 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
 		endpointsThrottlers:    throttlersMap,
+		accountsState:          arg.AccountsState,
+		peerState:              arg.PeerState,
 	}
 	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
@@ -360,6 +372,16 @@ func (nf *nodeFacade) Close() error {
 	nf.cancelFunc()
 
 	return nil
+}
+
+// GetNumCheckpointsFromAccountState returns the number of checkpoints of the account state
+func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint {
+	return nf.accountsState.GetNumCheckpoints()
+}
+
+// GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
+func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint {
+	return nf.peerState.GetNumCheckpoints()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -46,6 +46,8 @@ func createMockArguments() ArgNodeFacade {
 				},
 			},
 		}},
+		AccountsState: &mock.AccountsStub{},
+		PeerState:     &mock.AccountsStub{},
 	}
 }
 
