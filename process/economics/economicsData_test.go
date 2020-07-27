@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createDummyEconomicsConfig() *config.EconomicsConfig {
@@ -253,12 +254,12 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
 }
 
-func TestEconomicsData_TxWithWithEqualGasPriceLimitShouldWork(t *testing.T) {
+func TestEconomicsData_TxWithWithMinGasPriceAndLimitShouldWork(t *testing.T) {
 	t.Parallel()
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
-	maxGasLimitPerBlock := minGasLimit
+	maxGasLimitPerBlock := minGasLimit + 1
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
@@ -275,26 +276,41 @@ func TestEconomicsData_TxWithWithEqualGasPriceLimitShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
+func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerBlockShouldNotWork(t *testing.T) {
 	t.Parallel()
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
-	maxGasLimitPerBlock := minGasLimit + 1
+	maxGasLimitPerBlock := uint64(42)
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
 	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice + 1,
-		GasLimit: minGasLimit + 1,
+		GasLimit: maxGasLimitPerBlock,
 		Value:    big.NewInt(0),
 	}
-
 	err := economicsData.CheckValidityTxValues(tx)
+	require.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
 
-	assert.Nil(t, err)
+	tx = &transaction.Transaction{
+		GasPrice: minGasPrice + 1,
+		GasLimit: maxGasLimitPerBlock + 1,
+		Value:    big.NewInt(0),
+	}
+	err = economicsData.CheckValidityTxValues(tx)
+	require.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
+
+	tx = &transaction.Transaction{
+		GasPrice: minGasPrice + 1,
+		GasLimit: maxGasLimitPerBlock - 1,
+		Value:    big.NewInt(0),
+	}
+	err = economicsData.CheckValidityTxValues(tx)
+	require.Nil(t, err)
 }
 
 func TestEconomicsData_TxWithWithMoreValueThanGenesisSupplyShouldError(t *testing.T) {
@@ -302,7 +318,7 @@ func TestEconomicsData_TxWithWithMoreValueThanGenesisSupplyShouldError(t *testin
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
-	maxGasLimitPerBlock := minGasLimit + 1
+	maxGasLimitPerBlock := minGasLimit + 42
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
