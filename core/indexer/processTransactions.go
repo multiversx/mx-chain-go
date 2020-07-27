@@ -122,7 +122,7 @@ func (tdp *txDatabaseProcessor) addScResultInfoInTx(scr *smartContractResult.Sma
 	dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scr)
 	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 
-	if isSCRForSender(dbScResult, tx) {
+	if isSCRForSenderWithGasUsed(dbScResult, tx) {
 		gasUsed := tx.GasLimit - scr.GasLimit
 		tx.GasUsed = gasUsed
 	}
@@ -130,8 +130,12 @@ func (tdp *txDatabaseProcessor) addScResultInfoInTx(scr *smartContractResult.Sma
 	return tx
 }
 
-func isSCRForSender(dbScResult ScResult, tx *Transaction) bool {
-	return dbScResult.PreTxHash == tx.Hash
+func isSCRForSenderWithGasUsed(dbScResult ScResult, tx *Transaction) bool {
+	isForSender := dbScResult.Receiver == tx.Sender
+	isWithGasLimit := dbScResult.GasLimit != 0
+	isFromCurrentTx := dbScResult.PreTxHash == tx.Hash
+
+	return isFromCurrentTx && isForSender && isWithGasLimit
 }
 
 func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) TxLog {
