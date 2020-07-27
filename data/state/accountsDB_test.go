@@ -2,6 +2,7 @@ package state_test
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
@@ -113,6 +114,69 @@ func TestNewAccountsDB_OkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(adb))
+}
+
+func TestNewAccountsDB_SetsNumCheckpoints(t *testing.T) {
+	t.Parallel()
+
+	numCheckpointsKey := []byte("state checkpoint")
+	numCheckpoints := uint32(121)
+	db := mock.NewMemDbMock()
+
+	numCheckpointsVal := make([]byte, 4)
+	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
+	_ = db.Put(numCheckpointsKey, numCheckpointsVal)
+
+	adb, _ := state.NewAccountsDB(
+		&mock.TrieStub{
+			DatabaseCalled: func() data.DBWriteCacher {
+				return db
+			},
+		},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsFactoryStub{},
+	)
+
+	assert.Equal(t, numCheckpoints, adb.GetNumCheckpoints())
+}
+
+func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
+	t.Parallel()
+
+	numCheckpointsKey := []byte("state checkpoint")
+	numCheckpoints := 50
+	db := mock.NewMemDbMock()
+	adb, _ := state.NewAccountsDB(
+		&mock.TrieStub{
+			DatabaseCalled: func() data.DBWriteCacher {
+				return db
+			},
+			RecreateCalled: func(root []byte) (data.Trie, error) {
+				return &mock.TrieStub{
+					GetAllLeavesCalled: func() (map[string][]byte, error) {
+						return map[string][]byte{}, nil
+					},
+				}, nil
+			},
+		},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.AccountsFactoryStub{},
+	)
+
+	for i := 0; i < numCheckpoints; i++ {
+		adb.SetStateCheckpoint([]byte("rootHash"))
+	}
+
+	time.Sleep(time.Second * 2)
+
+	val, err := db.Get(numCheckpointsKey)
+	assert.Nil(t, err)
+
+	numCheckpointsRecovered := binary.BigEndian.Uint32(val)
+	assert.Equal(t, uint32(numCheckpoints), numCheckpointsRecovered)
+	assert.Equal(t, uint32(numCheckpoints), adb.GetNumCheckpoints())
 }
 
 //------- SaveAccount
