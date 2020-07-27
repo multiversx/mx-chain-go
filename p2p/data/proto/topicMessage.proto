@@ -8,6 +8,9 @@ option (gogoproto.stable_marshaler_all) = true;
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message TopicMessage{
-    bytes Payload   = 1;
-    int64 Timestamp = 2;
+    uint32 Version        = 1;
+    bytes  Payload        = 2;
+    int64  Timestamp      = 3;
+    bytes  Pk             = 4;
+    bytes  SignatureOnPid = 5;
 }
