@@ -461,9 +461,6 @@ var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
 // ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
 var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
 
-// ErrGasLimitTooHighInTx signals that a lower gas limit than required was provided
-var ErrGasLimitTooHighInTx = errors.New("gas limit too high in tx")
-
 // ErrHigherGasLimitRequiredInTx signals that a higher gas limit was required in tx
 var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx")
 
