@@ -211,14 +211,15 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 	}
 
 	requiredGasLimit := ed.ComputeGasLimit(tx)
-	if requiredGasLimit > tx.GetGasLimit() {
+	if tx.GetGasLimit() < requiredGasLimit {
 		return process.ErrInsufficientGasLimitInTx
 	}
 
-	if requiredGasLimit > ed.maxGasLimitPerBlock {
+	if tx.GetGasLimit() >= ed.maxGasLimitPerBlock {
 		return process.ErrHigherGasLimitRequiredInTx
 	}
 
+	// The following is required to mitigate a "big value" attack
 	if len(tx.GetValue().Bytes()) > len(ed.genesisTotalSupply.Bytes()) {
 		return process.ErrTxValueOutOfBounds
 	}
