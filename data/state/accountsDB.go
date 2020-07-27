@@ -2,9 +2,12 @@ package state
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -12,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
+
+var numCheckpointsKey = []byte("state checkpoint")
 
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
@@ -26,6 +31,8 @@ type AccountsDB struct {
 	dataTries    TriesHolder
 	entries      []JournalEntry
 	mutOp        sync.RWMutex
+
+	numCheckpoints uint32
 }
 
 var log = logger.GetOrCreate("state")
@@ -50,6 +57,7 @@ func NewAccountsDB(
 		return nil, ErrNilAccountFactory
 	}
 
+	numCheckpoints := getNumCheckpoints(trie)
 	return &AccountsDB{
 		mainTrie:               trie,
 		hasher:                 hasher,
@@ -59,7 +67,22 @@ func NewAccountsDB(
 		mutOp:                  sync.RWMutex{},
 		dataTries:              NewDataTriesHolder(),
 		obsoleteDataTrieHashes: make(map[string][][]byte),
+		numCheckpoints:         numCheckpoints,
 	}, nil
+}
+
+func getNumCheckpoints(trie data.Trie) uint32 {
+	val, err := trie.Database().Get(numCheckpointsKey)
+	if err != nil {
+		return 0
+	}
+
+	bytesForUint32 := 4
+	if len(val) < bytesForUint32 {
+		return 0
+	}
+
+	return binary.BigEndian.Uint32(val)
 }
 
 // ImportAccount saves the account in the trie. It does not modify
@@ -820,6 +843,8 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		adb.mainTrie.TakeSnapshot(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash)
 		adb.mainTrie.ExitSnapshotMode()
+
+		adb.increaseNumCheckpoints()
 	}()
 }
 
@@ -856,7 +881,23 @@ func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 		adb.mainTrie.SetCheckpoint(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash)
 		adb.mainTrie.ExitSnapshotMode()
+
+		adb.increaseNumCheckpoints()
 	}()
+}
+
+func (adb *AccountsDB) increaseNumCheckpoints() {
+	time.Sleep(time.Duration(adb.mainTrie.GetSnapshotDbBatchDelay()) * time.Second)
+	atomic.AddUint32(&adb.numCheckpoints, 1)
+
+	numCheckpoints := atomic.LoadUint32(&adb.numCheckpoints)
+	numCheckpointsVal := make([]byte, 4)
+	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
+
+	err := adb.mainTrie.Database().Put(numCheckpointsKey, numCheckpointsVal)
+	if err != nil {
+		log.Warn("could not add num checkpoints to database", "error", err)
+	}
 }
 
 // IsPruningEnabled returns true if state pruning is enabled
@@ -883,6 +924,11 @@ func (adb *AccountsDB) GetAllLeaves(rootHash []byte) (map[string][]byte, error) 
 	}
 
 	return allAccounts, nil
+}
+
+// GetNumCheckpoints returns the total number of state checkpoints
+func (adb *AccountsDB) GetNumCheckpoints() uint32 {
+	return atomic.LoadUint32(&adb.numCheckpoints)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
