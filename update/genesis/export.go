@@ -392,7 +392,7 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(se.exportFolder, core.NodesSetupJsonFileName), nodesSetupBytes, 0755)
+	return ioutil.WriteFile(filepath.Join(se.exportFolder, core.NodesSetupJsonFileName), nodesSetupBytes, 0664)
 }
 
 // IsInterfaceNil returns true if underlying object is nil
