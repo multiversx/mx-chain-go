@@ -7,7 +7,6 @@ import (
 	"path"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -33,8 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/storing"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
-
-var log = logger.GetOrCreate("update/factory")
 
 // ArgsExporter is the argument structure to create a new exporter
 type ArgsExporter struct {
@@ -258,7 +255,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	err := e.prepareFolders(e.exportFolder)
 	if err != nil {
-		log.Error("error while preparing export folder", "error", err)
 		return nil, err
 	}
 

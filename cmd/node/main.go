@@ -602,7 +602,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		nodesSetupPath = exportFolderNodesSetupPath
 	}
-	log.Debug("nodesSetup file", "path", nodesSetupPath)
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		nodesSetupPath,
 		addressPubkeyConverter,
