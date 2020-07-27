@@ -241,6 +241,11 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 
 // Create makes a new export handler
 func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
+	err := e.prepareFolders(e.exportFolder)
+	if err != nil {
+		return nil, err
+	}
+
 	argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
 		MiniBlocksPool: e.dataPool.MiniBlocks(),
 		Requesthandler: e.requestHandler,
@@ -377,11 +382,6 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Transactions: epochStartTransactionsSyncer,
 	}
 	stateSyncer, err := sync.NewSyncState(argsSyncState)
-	if err != nil {
-		return nil, err
-	}
-
-	err = e.prepareFolders(e.exportFolder)
 	if err != nil {
 		return nil, err
 	}
