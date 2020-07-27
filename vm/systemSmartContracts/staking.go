@@ -563,9 +563,9 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 		}
 		registrationData.Staked = true
 		registrationData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
+		registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	}
 
-	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	registrationData.RewardAddress = args.Arguments[1]
 
 	err = r.saveStakingData(args.Arguments[0], registrationData)
