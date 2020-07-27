@@ -7,6 +7,7 @@ import (
 	"path"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -32,6 +33,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/storing"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
+
+var log = logger.GetOrCreate("update/factory")
 
 // ArgsExporter is the argument structure to create a new exporter
 type ArgsExporter struct {
@@ -253,6 +256,12 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 
 // Create makes a new export handler
 func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
+	err := e.prepareFolders(e.exportFolder)
+	if err != nil {
+		log.Error("error while preparing export folder", "error", err)
+		return nil, err
+	}
+
 	argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
 		MiniBlocksPool: e.dataPool.MiniBlocks(),
 		Requesthandler: e.requestHandler,
@@ -389,11 +398,6 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Transactions: epochStartTransactionsSyncer,
 	}
 	stateSyncer, err := sync.NewSyncState(argsSyncState)
-	if err != nil {
-		return nil, err
-	}
-
-	err = e.prepareFolders(e.exportFolder)
 	if err != nil {
 		return nil, err
 	}
