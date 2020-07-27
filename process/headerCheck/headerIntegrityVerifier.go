@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type headerIntegrityVerifier struct {
@@ -28,6 +29,10 @@ func NewHeaderIntegrityVerifier(referenceChainID []byte) (*headerIntegrityVerifi
 
 // Verify will check the header's fields such as the chain ID or the software version
 func (h *headerIntegrityVerifier) Verify(hdr data.HeaderHandler) error {
+	if len(hdr.GetReserved()) > 0 {
+		return process.ErrReservedFieldNotSupportedYet
+	}
+
 	err := h.checkSoftwareVersion(hdr)
 	if err != nil {
 		return err
