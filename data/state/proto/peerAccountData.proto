@@ -44,8 +44,8 @@ message PeerAccountData {
     uint32 TempRating = 8;
     bytes AccumulatedFees = 9 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     uint32 NumSelectedInSuccessBlocks = 10;
-	uint32 IndexInList = 11;
-	string List        = 12;
+    uint32 IndexInList = 11;
+    string List = 12;
     uint32 ConsecutiveProposerMisses = 13;
     SignRate TotalValidatorSuccessRate = 14 [(gogoproto.nullable) = false];
     SignRate TotalLeaderSuccessRate = 15 [(gogoproto.nullable) = false];

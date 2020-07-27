@@ -571,6 +571,7 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 			"signed %", computedThreshold,
 			"validatorSuccess", validator.ValidatorSuccess,
 			"validatorFailure", validator.ValidatorFailure,
+			"validatorIgnored", validator.ValidatorIgnoredSignatures,
 			"new tempRating", newTempRating,
 			"old tempRating", validator.TempRating,
 		)
