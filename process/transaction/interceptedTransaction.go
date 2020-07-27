@@ -155,6 +155,8 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 		if err != nil {
 			return err
 		}
+
+		inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
 	}
 
 	return nil
@@ -275,8 +277,6 @@ func (inTx *InterceptedTransaction) verifySig(tx *transaction.Transaction) error
 	if err != nil {
 		return err
 	}
-
-	inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
 
 	return nil
 }
