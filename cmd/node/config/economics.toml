@@ -3,17 +3,17 @@
     GenesisTotalSupply = "20000000000000000000000000" #20MILERD
     MinimumInflation   = 0.0
     YearSettings = [
-        {Year = 1, MaximumInflation = 0.10845},
-        {Year = 2, MaximumInflation = 0.08754},
-        {Year = 3, MaximumInflation = 0.07102},
-        {Year = 4, MaximumInflation = 0.05747},
-        {Year = 5, MaximumInflation = 0.04599},
-        {Year = 6, MaximumInflation = 0.03597},
-        {Year = 7, MaximumInflation = 0.02701},
-        {Year = 8, MaximumInflation = 0.01878},
-        {Year = 9, MaximumInflation = 0.01106},
-        {Year = 10, MaximumInflation = 0.00365},
-        {Year = 11, MaximumInflation = 0.0},
+         {Year = 1, MaximumInflation  = 0.10845130},
+         {Year = 2, MaximumInflation  = 0.09703538},
+         {Year = 3, MaximumInflation  = 0.08561945},
+         {Year = 4, MaximumInflation  = 0.07420352},
+         {Year = 5, MaximumInflation  = 0.06278760},
+         {Year = 6, MaximumInflation  = 0.05137167},
+         {Year = 7, MaximumInflation  = 0.03995574},
+         {Year = 8, MaximumInflation  = 0.02853982},
+         {Year = 9, MaximumInflation  = 0.01712389},
+         {Year = 10, MaximumInflation = 0.00570796},
+         {Year = 11, MaximumInflation = 0.0},
     ]
     Denomination = 18 # represents the smallest erd subdivision (10^-X ERD for a denomination of X)
 

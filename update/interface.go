@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // StateSyncer interface defines the methods needed to sync and get all states
@@ -225,5 +226,24 @@ type HardforkStorer interface {
 	RangeKeys(handler func(identifier string, keys [][]byte) bool)
 	Get(identifier string, key []byte) ([]byte, error)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// GenesisNodesSetupHandler returns the genesis nodes info
+type GenesisNodesSetupHandler interface {
+	InitialNodesInfoForShard(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
+	InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	GetStartTime() int64
+	GetRoundDuration() uint64
+	GetChainId() string
+	GetMinTransactionVersion() uint32
+	GetShardConsensusGroupSize() uint32
+	GetMetaConsensusGroupSize() uint32
+	MinNumberOfShardNodes() uint32
+	MinNumberOfMetaNodes() uint32
+	GetHysteresis() float32
+	GetAdaptivity() bool
+	NumberOfShards() uint32
+	MinNumberOfNodes() uint32
 	IsInterfaceNil() bool
 }

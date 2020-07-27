@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -221,10 +222,17 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 
 	p2pKey := "a_p2p_specific_key"
 	statusMetricsProvider.SetStringValue(p2pKey, "p2p value")
+	numCheckpoints := 2
 
 	facade := mock.Facade{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
+	}
+	facade.GetNumCheckpointsFromPeerStateCalled = func() uint32 {
+		return uint32(numCheckpoints)
+	}
+	facade.GetNumCheckpointsFromAccountStateCalled = func() uint32 {
+		return uint32(numCheckpoints)
 	}
 
 	ws := startNodeServer(&facade)
@@ -239,6 +247,12 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
 	assert.True(t, keyAndValueFoundInResponse)
 	assert.False(t, strings.Contains(respStr, p2pKey))
+
+	keyAndValueFoundInResponse = strings.Contains(respStr, node.AccStateCheckpointsKey) && strings.Contains(respStr, strconv.Itoa(numCheckpoints))
+	assert.True(t, keyAndValueFoundInResponse)
+
+	keyAndValueFoundInResponse = strings.Contains(respStr, node.PeerStateCheckpointsKey) && strings.Contains(respStr, strconv.Itoa(numCheckpoints))
+	assert.True(t, keyAndValueFoundInResponse)
 }
 
 func TestP2PStatusMetrics_NilContextShouldError(t *testing.T) {

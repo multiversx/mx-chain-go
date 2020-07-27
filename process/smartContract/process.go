@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -369,9 +370,11 @@ func (sc *scProcessor) resolveFailedTransaction(
 		return err
 	}
 
-	err = sc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
-	if err != nil {
-		return err
+	if _, ok := tx.(*transaction.Transaction); ok {
+		err = sc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+		if err != nil {
+			return err
+		}
 	}
 
 	return process.ErrFailedTransaction
@@ -945,6 +948,7 @@ func (sc *scProcessor) createSmartContractResult(
 	result.CallType = outAcc.CallType
 	setOriginalTxHash(result, txHash, tx)
 
+	log.Trace("createSCR ", "data", string(result.Data))
 	if result.Value.Cmp(zero) > 0 {
 		result.OriginalSender = tx.GetSndAddr()
 	}
@@ -1007,6 +1011,8 @@ func (sc *scProcessor) createSCRForSender(
 	for _, retData := range returnData {
 		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
 	}
+
+	log.Trace("createSCRForSender ", "data", string(scTx.Data))
 
 	if check.IfNil(acntSnd) {
 		// cross shard move balance fee was already consumed at sender shard
@@ -1203,7 +1209,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		return 0, process.ErrNilSmartContractResult
 	}
 
-	log.Trace("scProcessor.ProcessSmartContractResult()", "sender", scr.GetSndAddr(), "receiver", scr.GetRcvAddr())
+	log.Trace("scProcessor.ProcessSmartContractResult()", "sender", scr.GetSndAddr(), "receiver", scr.GetRcvAddr(), "data", string(scr.GetData()))
 
 	var err error
 	returnCode := vmcommon.UserError

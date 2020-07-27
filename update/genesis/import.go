@@ -152,7 +152,7 @@ func (si *stateImport) importTransactions(identifier string, keys [][]byte) erro
 
 		tx, ok := object.(data.TransactionHandler)
 		if !ok {
-			err = fmt.Errorf("%w wanted a transaction handler", update.ErrWrongTypeAssertion)
+			err = fmt.Errorf("%w: wanted a transaction handler", update.ErrWrongTypeAssertion)
 			break
 		}
 
@@ -208,7 +208,7 @@ func (si *stateImport) importMiniBlocks(identifier string, keys [][]byte) error 
 
 		miniBlock, ok := object.(*block.MiniBlock)
 		if !ok {
-			err = fmt.Errorf("%w wanted a miniblock", update.ErrWrongTypeAssertion)
+			err = fmt.Errorf("%w: wanted a miniblock", update.ErrWrongTypeAssertion)
 			break
 		}
 

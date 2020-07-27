@@ -674,3 +674,8 @@ func logMapWithTrace(message string, paramName string, hashes data.ModifiedHashe
 		}
 	}
 }
+
+// GetSnapshotDbBatchDelay returns the batch write delay in seconds
+func (tr *patriciaMerkleTrie) GetSnapshotDbBatchDelay() int {
+	return tr.trieStorage.GetSnapshotDbBatchDelay()
+}

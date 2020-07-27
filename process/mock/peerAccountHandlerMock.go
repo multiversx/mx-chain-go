@@ -10,24 +10,26 @@ import (
 
 // PeerAccountHandlerMock -
 type PeerAccountHandlerMock struct {
-	IncreaseLeaderSuccessRateValue    uint32
-	DecreaseLeaderSuccessRateValue    uint32
-	IncreaseValidatorSuccessRateValue uint32
-	DecreaseValidatorSuccessRateValue uint32
+	IncreaseLeaderSuccessRateValue          uint32
+	DecreaseLeaderSuccessRateValue          uint32
+	IncreaseValidatorSuccessRateValue       uint32
+	DecreaseValidatorSuccessRateValue       uint32
+	IncreaseValidatorIgnoredSignaturesValue uint32
 
-	IncreaseLeaderSuccessRateCalled    func(uint32)
-	DecreaseLeaderSuccessRateCalled    func(uint32)
-	IncreaseValidatorSuccessRateCalled func(uint32)
-	DecreaseValidatorSuccessRateCalled func(uint32)
-	SetTempRatingCalled                func(uint32)
-	GetTempRatingCalled                func() uint32
-	SetAccumulatedFeesCalled           func(*big.Int)
-	GetAccumulatedFeesCalled           func() *big.Int
-	GetConsecutiveProposerMissesCalled func() uint32
-	SetConsecutiveProposerMissesCalled func(rating uint32)
-	SetListAndIndexCalled              func(shardID uint32, list string, index uint32)
-	GetListCalled                      func() string
-	GetUnStakedEpochCalled             func() uint32
+	IncreaseLeaderSuccessRateCalled              func(uint32)
+	DecreaseLeaderSuccessRateCalled              func(uint32)
+	IncreaseValidatorSuccessRateCalled           func(uint32)
+	DecreaseValidatorSuccessRateCalled           func(uint32)
+	IncreaseValidatorIgnoredSignaturesRateCalled func(uint32)
+	SetTempRatingCalled                          func(uint32)
+	GetTempRatingCalled                          func() uint32
+	SetAccumulatedFeesCalled                     func(*big.Int)
+	GetAccumulatedFeesCalled                     func() *big.Int
+	GetConsecutiveProposerMissesCalled           func() uint32
+	SetConsecutiveProposerMissesCalled           func(rating uint32)
+	SetListAndIndexCalled                        func(shardID uint32, list string, index uint32)
+	GetListCalled                                func() string
+	GetUnStakedEpochCalled                       func() uint32
 }
 
 // GetUnStakedEpoch -
@@ -141,6 +143,15 @@ func (p *PeerAccountHandlerMock) DecreaseValidatorSuccessRate(val uint32) {
 	p.DecreaseValidatorSuccessRateValue += val
 }
 
+// IncreaseValidatorIgnoredSignaturesRate -
+func (p *PeerAccountHandlerMock) IncreaseValidatorIgnoredSignaturesRate(val uint32) {
+	if p.IncreaseValidatorIgnoredSignaturesRateCalled != nil {
+		p.IncreaseValidatorIgnoredSignaturesRateCalled(val)
+		return
+	}
+	p.IncreaseValidatorIgnoredSignaturesValue += val
+}
+
 // GetNumSelectedInSuccessBlocks -
 func (p *PeerAccountHandlerMock) GetNumSelectedInSuccessBlocks() uint32 {
 	return 0
@@ -161,6 +172,11 @@ func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() state.SignRate {
 	return state.SignRate{}
 }
 
+// GetValidatorIgnoredSignaturesRate -
+func (p *PeerAccountHandlerMock) GetValidatorIgnoredSignaturesRate() uint32 {
+	return 0
+}
+
 // GetTotalLeaderSuccessRate -
 func (p *PeerAccountHandlerMock) GetTotalLeaderSuccessRate() state.SignRate {
 	return state.SignRate{}
@@ -169,6 +185,11 @@ func (p *PeerAccountHandlerMock) GetTotalLeaderSuccessRate() state.SignRate {
 // GetTotalValidatorSuccessRate -
 func (p *PeerAccountHandlerMock) GetTotalValidatorSuccessRate() state.SignRate {
 	return state.SignRate{}
+}
+
+// GetTotalValidatorIgnoredSignaturesRate -
+func (p *PeerAccountHandlerMock) GetTotalValidatorIgnoredSignaturesRate() uint32 {
+	return 0
 }
 
 // GetRating -

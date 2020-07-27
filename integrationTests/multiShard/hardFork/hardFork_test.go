@@ -441,7 +441,8 @@ func createHardForkExporter(
 			MultiSigner:              node.MultiSigner,
 			NodesCoordinator:         node.NodesCoordinator,
 			SingleSigner:             node.OwnAccount.SingleSigner,
-			AddressPubkeyConverter:   integrationTests.TestAddressPubkeyConverter,
+			AddressPubKeyConverter:   integrationTests.TestAddressPubkeyConverter,
+			ValidatorPubKeyConverter: integrationTests.TestValidatorPubkeyConverter,
 			BlockKeyGen:              node.OwnAccount.KeygenBlockSign,
 			KeyGen:                   node.OwnAccount.KeygenTxSign,
 			BlockSigner:              node.OwnAccount.BlockSingleSigner,
@@ -451,6 +452,7 @@ func createHardForkExporter(
 			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
 			Rounder:                  &mock.RounderMock{},
+			GenesisNodesSetupHandler: &mock.NodesSetupStub{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

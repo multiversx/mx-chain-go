@@ -11,10 +11,13 @@ import (
 var _ GenesisNodesSetupHandler = (*NodesSetup)(nil)
 var _ GenesisNodeInfoHandler = (*NodeInfo)(nil)
 
+const defaultInitialRating = uint32(5000001)
+
 // InitialNode holds data from json
 type InitialNode struct {
-	PubKey  string `json:"pubkey"`
-	Address string `json:"address"`
+	PubKey        string `json:"pubkey"`
+	Address       string `json:"address"`
+	InitialRating uint32 `json:"initialRating"`
 	NodeInfo
 }
 
@@ -24,6 +27,7 @@ type NodeInfo struct {
 	eligible      bool
 	pubKey        []byte
 	address       []byte
+	initialRating uint32
 }
 
 // AssignedShard gets the node assigned shard
@@ -39,6 +43,11 @@ func (ni *NodeInfo) AddressBytes() []byte {
 // PubKeyBytes gets the node public key as bytes
 func (ni *NodeInfo) PubKeyBytes() []byte {
 	return ni.pubKey
+}
+
+// GetInitialRating gets the initial rating for a node
+func (ni *NodeInfo) GetInitialRating() uint32 {
+	return ni.initialRating
 }
 
 // IsInterfaceNil returns true if underlying object is nil
@@ -104,6 +113,12 @@ func NewNodesSetup(
 	nodes.processShardAssignment()
 	nodes.createInitialNodesInfo()
 
+	//TODO: delete this log before merging:
+	log.Debug("nodes setup",
+		"start time", nodes.StartTime,
+		"chain id", nodes.ChainID,
+		"round duration", nodes.RoundDuration,
+		"min tx version", nodes.MinTransactionVersion)
 	return nodes, nil
 }
 
@@ -136,6 +151,12 @@ func (ns *NodesSetup) processConfig() error {
 			ns.InitialNodes[i].address = nil
 			return ErrCouldNotParseAddress
 		}
+
+		initialRating := ns.InitialNodes[i].InitialRating
+		if initialRating == uint32(0) {
+			initialRating = defaultInitialRating
+		}
+		ns.InitialNodes[i].initialRating = initialRating
 
 		ns.nrOfNodes++
 	}
@@ -218,7 +239,13 @@ func (ns *NodesSetup) createInitialNodesInfo() {
 	ns.waiting = make(map[uint32][]GenesisNodeInfoHandler, nrOfShardAndMeta)
 	for _, in := range ns.InitialNodes {
 		if in.pubKey != nil && in.address != nil {
-			nodeInfo := &NodeInfo{in.assignedShard, in.eligible, in.pubKey, in.address}
+			nodeInfo := &NodeInfo{
+				assignedShard: in.assignedShard,
+				eligible:      in.eligible,
+				pubKey:        in.pubKey,
+				address:       in.address,
+				initialRating: in.initialRating,
+			}
 			if in.eligible {
 				ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], nodeInfo)
 			} else {
@@ -296,6 +323,26 @@ func (ns *NodesSetup) NumberOfShards() uint32 {
 // MinNumberOfNodes returns the minimum number of nodes
 func (ns *NodesSetup) MinNumberOfNodes() uint32 {
 	return ns.nrOfShards*ns.MinNodesPerShard + ns.MetaChainMinNodes
+}
+
+// MinNumberOfShardNodes returns the minimum number of nodes per shard
+func (ns *NodesSetup) MinNumberOfShardNodes() uint32 {
+	return ns.MinNodesPerShard
+}
+
+// MinNumberOfMetaNodes returns the minimum number of nodes in metachain
+func (ns *NodesSetup) MinNumberOfMetaNodes() uint32 {
+	return ns.MetaChainMinNodes
+}
+
+// GetHysteresis returns the hysteresis value
+func (ns *NodesSetup) GetHysteresis() float32 {
+	return ns.Hysteresis
+}
+
+// GetAdaptivity returns the value of the adaptivity boolean flag
+func (ns *NodesSetup) GetAdaptivity() bool {
+	return ns.Adaptivity
 }
 
 // GetShardIDForPubKey returns the allocated shard ID from public key

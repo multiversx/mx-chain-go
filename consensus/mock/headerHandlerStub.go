@@ -18,6 +18,7 @@ type HeaderHandlerStub struct {
 	CloneCalled                      func() data.HeaderHandler
 	GetChainIDCalled                 func() []byte
 	CheckChainIDCalled               func(reference []byte) error
+	GetReservedCalled                func() []byte
 }
 
 // GetAccumulatedFees -
@@ -125,6 +126,15 @@ func (hhs *HeaderHandlerStub) GetChainID() []byte {
 // GetTxCount -
 func (hhs *HeaderHandlerStub) GetTxCount() uint32 {
 	return 0
+}
+
+// GetReserved -
+func (hhs *HeaderHandlerStub) GetReserved() []byte {
+	if hhs.GetReservedCalled != nil {
+		return hhs.GetReservedCalled()
+	}
+
+	return nil
 }
 
 // SetNonce -
