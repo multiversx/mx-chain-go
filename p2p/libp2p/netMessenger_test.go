@@ -1310,6 +1310,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 	innerMessage := &data.TopicMessage{
 		Payload:   []byte("data"),
 		Timestamp: time.Now().Unix(),
+		Version:   libp2p.CurrentTopicMessageVersion,
 	}
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	msg := &pubsub.Message{

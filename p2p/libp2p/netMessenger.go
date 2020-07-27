@@ -292,6 +292,7 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 
 func (netMes *networkMessenger) createMessageBytes(buff []byte) []byte {
 	message := &data.TopicMessage{
+		Version:   currentTopicMessageVersion,
 		Payload:   buff,
 		Timestamp: time.Now().Unix(),
 	}

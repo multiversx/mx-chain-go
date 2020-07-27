@@ -17,6 +17,8 @@ var BroadcastGoRoutines = broadcastGoRoutines
 var PubsubTimeCacheDuration = pubsubTimeCacheDuration
 var AcceptMessagesInAdvanceDuration = acceptMessagesInAdvanceDuration
 
+const CurrentTopicMessageVersion = currentTopicMessageVersion
+
 func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
 	netMes.p2pHost = newHost
 }
