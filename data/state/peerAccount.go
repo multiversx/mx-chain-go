@@ -87,7 +87,7 @@ func (pa *peerAccount) DecreaseValidatorSuccessRate(value uint32) {
 	pa.ValidatorSuccessRate.NumFailure += value
 }
 
-// DecreaseValidatorIgnoredSignaturesRate increases the account's number of ignored signatures in succes blocks
+// IncreaseValidatorIgnoredSignaturesRate increases the account's number of ignored signatures in successful blocks
 func (pa *peerAccount) IncreaseValidatorIgnoredSignaturesRate(value uint32) {
 	pa.ValidatorIgnoredSignaturesRate += value
 }
