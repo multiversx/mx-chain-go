@@ -77,8 +77,8 @@ type EvictionWaitingListConfig struct {
 type EpochStartConfig struct {
 	MinRoundsBetweenEpochs            int64
 	RoundsPerEpoch                    int64
-	ShuffledOutRestartThreshold       float64
-	ShuffleBetweenShards              bool
+	MinShuffledOutRestartThreshold    float64
+	MaxShuffledOutRestartThreshold    float64
 	MinNumConnectedPeersToStart       int
 	MinNumOfPeersToConsiderBlockValid int
 }
@@ -321,6 +321,7 @@ type HardforkConfig struct {
 	ImportKeysStorageConfig      StorageConfig
 	PublicKeyToListenFrom        string
 	ImportFolder                 string
+	GenesisTime                  int64
 	StartRound                   uint64
 	StartNonce                   uint64
 	CloseAfterExportInMinutes    uint32

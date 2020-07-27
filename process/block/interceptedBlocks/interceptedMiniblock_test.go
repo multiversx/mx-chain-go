@@ -121,6 +121,22 @@ func TestInterceptedMiniblock_ContainsNilHashShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilTxHash, err)
 }
 
+func TestInterceptedMiniblock_ReservedPopulateShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mb := createMockMiniblock()
+	mb.Reserved = []byte("r")
+	buff, _ := testMarshalizer.Marshal(mb)
+
+	arg := createDefaultMiniblockArgument()
+	arg.MiniblockBuff = buff
+	inMb, _ := interceptedBlocks.NewInterceptedMiniblock(arg)
+
+	err := inMb.CheckValidity()
+
+	assert.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
+}
+
 func TestInterceptedMiniblock_ShouldWork(t *testing.T) {
 	t.Parallel()
 

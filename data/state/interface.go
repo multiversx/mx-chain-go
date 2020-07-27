@@ -59,12 +59,15 @@ type PeerAccountHandler interface {
 	DecreaseLeaderSuccessRate(uint32)
 	IncreaseValidatorSuccessRate(uint32)
 	DecreaseValidatorSuccessRate(uint32)
+	IncreaseValidatorIgnoredSignaturesRate(uint32)
 	GetNumSelectedInSuccessBlocks() uint32
 	IncreaseNumSelectedInSuccessBlocks()
 	GetLeaderSuccessRate() SignRate
 	GetValidatorSuccessRate() SignRate
+	GetValidatorIgnoredSignaturesRate() uint32
 	GetTotalLeaderSuccessRate() SignRate
 	GetTotalValidatorSuccessRate() SignRate
+	GetTotalValidatorIgnoredSignaturesRate() uint32
 	SetListAndIndex(shardID uint32, list string, index uint32)
 	GetRating() uint32
 	SetRating(uint32)
@@ -125,6 +128,7 @@ type AccountsAdapter interface {
 	Commit() ([]byte, error)
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
+	GetNumCheckpoints() uint32
 
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error

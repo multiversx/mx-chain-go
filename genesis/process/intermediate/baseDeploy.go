@@ -84,8 +84,8 @@ func (dp *baseDeploy) deployForOneAddress(
 	if !accountExists {
 		return nil, fmt.Errorf("%w for SC ownerAddress %s, owner %s with nonce %d",
 			genesis.ErrAccountNotCreated,
-			scResultingAddressBytes,
-			ownerAddress,
+			dp.pubkeyConv.Encode(scResultingAddressBytes),
+			dp.pubkeyConv.Encode(ownerAddress),
 			nonce,
 		)
 	}

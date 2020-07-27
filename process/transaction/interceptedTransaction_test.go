@@ -28,6 +28,7 @@ var senderShard = uint32(2)
 var recvShard = uint32(3)
 var senderAddress = []byte("sender")
 var recvAddress = []byte("receiver")
+var sigBad = []byte("bad-signature")
 var sigOk = []byte("signature")
 
 func createMockPubkeyConverter() *mock.PubkeyConverterMock {
@@ -1152,4 +1153,84 @@ func TestInterceptedTransaction_IsInterfaceNil(t *testing.T) {
 	var txi *transaction.InterceptedTransaction
 
 	assert.True(t, check.IfNil(txi))
+}
+
+func TestRelayTransaction_NotAddedToWhitelistUntilIntegrityChecked(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(testscommon.NewCacherMock())
+
+	userTx := &dataTransaction.Transaction{
+		SndAddr:   recvAddress,
+		RcvAddr:   senderAddress,
+		Data:      []byte("hello"),
+		Value:     big.NewInt(10),
+		GasLimit:  3,
+		GasPrice:  4,
+		Signature: sigOk,
+		ChainID:   []byte("chain"),
+		Version:   1,
+	}
+
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("relayedTx@abba"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigBad,
+		ChainID:   []byte("chain"),
+		Version:   1,
+	}
+
+	// Bad signature -> not whitelisted
+	txi, _ := createInterceptedTxFromPlainTxWithArgParser(tx)
+	txi.SetWhitelistHandler(whiteListHandler)
+
+	err := txi.CheckValidity()
+	require.Equal(t, errSignerMockVerifySigFails, err)
+	require.False(t, whiteListHandler.IsWhiteListed(txi))
+
+	// Good wrapper signature, but user tx is not valid -> not whitelisted
+	tx.Signature = sigOk
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	txi.SetWhitelistHandler(whiteListHandler)
+
+	err = txi.CheckValidity()
+	require.NotNil(t, err)
+	require.False(t, whiteListHandler.IsWhiteListed(txi))
+
+	// Good wrapper signature, bad user tx signature -> not whitelisted
+	userTx.Signature = sigBad
+	userTxData, _ := marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	txi.SetWhitelistHandler(whiteListHandler)
+
+	err = txi.CheckValidity()
+	require.NotNil(t, err)
+	require.False(t, whiteListHandler.IsWhiteListed(txi))
+
+	// Good transaction -> whitelisted
+	userTx.Signature = sigOk
+	userTxData, _ = marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	txi.SetWhitelistHandler(whiteListHandler)
+
+	err = txi.CheckValidity()
+	require.Nil(t, err)
+	require.True(t, whiteListHandler.IsWhiteListed(txi))
+
+	// Good signature (regular transaction) -> whitelisted
+	tx.Data = []byte("test")
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	txi.SetWhitelistHandler(whiteListHandler)
+
+	err = txi.CheckValidity()
+	require.Nil(t, err)
+	require.True(t, whiteListHandler.IsWhiteListed(txi))
 }

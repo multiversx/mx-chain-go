@@ -120,19 +120,21 @@ func cloneValidatorAPIResponse(v *state.ValidatorApiResponse) *state.ValidatorAp
 		return nil
 	}
 	return &state.ValidatorApiResponse{
-		TempRating:               v.TempRating,
-		NumLeaderSuccess:         v.NumLeaderSuccess,
-		NumLeaderFailure:         v.NumLeaderFailure,
-		NumValidatorSuccess:      v.NumValidatorSuccess,
-		NumValidatorFailure:      v.NumValidatorFailure,
-		Rating:                   v.Rating,
-		RatingModifier:           v.RatingModifier,
-		TotalNumLeaderSuccess:    v.TotalNumLeaderSuccess,
-		TotalNumLeaderFailure:    v.TotalNumLeaderFailure,
-		TotalNumValidatorSuccess: v.TotalNumValidatorSuccess,
-		TotalNumValidatorFailure: v.TotalNumValidatorFailure,
-		ShardId:                  v.ShardId,
-		ValidatorStatus:          v.ValidatorStatus,
+		TempRating:                         v.TempRating,
+		NumLeaderSuccess:                   v.NumLeaderSuccess,
+		NumLeaderFailure:                   v.NumLeaderFailure,
+		NumValidatorSuccess:                v.NumValidatorSuccess,
+		NumValidatorFailure:                v.NumValidatorFailure,
+		NumValidatorIgnoredSignatures:      v.NumValidatorIgnoredSignatures,
+		Rating:                             v.Rating,
+		RatingModifier:                     v.RatingModifier,
+		TotalNumLeaderSuccess:              v.TotalNumLeaderSuccess,
+		TotalNumLeaderFailure:              v.TotalNumLeaderFailure,
+		TotalNumValidatorSuccess:           v.TotalNumValidatorSuccess,
+		TotalNumValidatorFailure:           v.TotalNumValidatorFailure,
+		TotalNumValidatorIgnoredSignatures: v.TotalNumValidatorIgnoredSignatures,
+		ShardId:                            v.ShardId,
+		ValidatorStatus:                    v.ValidatorStatus,
 	}
 }
 
@@ -226,19 +228,21 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 
 			strKey := vp.pubkeyConverter.Encode(validatorInfo.PublicKey)
 			newCache[strKey] = &state.ValidatorApiResponse{
-				NumLeaderSuccess:         validatorInfo.LeaderSuccess,
-				NumLeaderFailure:         validatorInfo.LeaderFailure,
-				NumValidatorSuccess:      validatorInfo.ValidatorSuccess,
-				NumValidatorFailure:      validatorInfo.ValidatorFailure,
-				TotalNumLeaderSuccess:    validatorInfo.TotalLeaderSuccess,
-				TotalNumLeaderFailure:    validatorInfo.TotalLeaderFailure,
-				TotalNumValidatorSuccess: validatorInfo.TotalValidatorSuccess,
-				TotalNumValidatorFailure: validatorInfo.TotalValidatorFailure,
-				RatingModifier:           validatorInfo.RatingModifier,
-				Rating:                   float32(validatorInfo.Rating) * 100 / float32(vp.maxRating),
-				TempRating:               float32(validatorInfo.TempRating) * 100 / float32(vp.maxRating),
-				ShardId:                  validatorInfo.ShardId,
-				ValidatorStatus:          validatorInfo.List,
+				NumLeaderSuccess:                   validatorInfo.LeaderSuccess,
+				NumLeaderFailure:                   validatorInfo.LeaderFailure,
+				NumValidatorSuccess:                validatorInfo.ValidatorSuccess,
+				NumValidatorFailure:                validatorInfo.ValidatorFailure,
+				NumValidatorIgnoredSignatures:      validatorInfo.ValidatorIgnoredSignatures,
+				TotalNumLeaderSuccess:              validatorInfo.TotalLeaderSuccess,
+				TotalNumLeaderFailure:              validatorInfo.TotalLeaderFailure,
+				TotalNumValidatorSuccess:           validatorInfo.TotalValidatorSuccess,
+				TotalNumValidatorFailure:           validatorInfo.TotalValidatorFailure,
+				TotalNumValidatorIgnoredSignatures: validatorInfo.TotalValidatorIgnoredSignatures,
+				RatingModifier:                     validatorInfo.RatingModifier,
+				Rating:                             float32(validatorInfo.Rating) * 100 / float32(vp.maxRating),
+				TempRating:                         float32(validatorInfo.TempRating) * 100 / float32(vp.maxRating),
+				ShardId:                            validatorInfo.ShardId,
+				ValidatorStatus:                    validatorInfo.List,
 			}
 		}
 	}

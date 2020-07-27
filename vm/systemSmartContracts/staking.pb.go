@@ -39,6 +39,8 @@ type StakedData struct {
 	JailedRound   uint64        `protobuf:"varint,8,opt,name=JailedRound,proto3" json:"JailedRound"`
 	JailedNonce   uint64        `protobuf:"varint,9,opt,name=JailedNonce,proto3" json:"JailedNonce"`
 	UnJailedNonce uint64        `protobuf:"varint,10,opt,name=UnJailedNonce,proto3" json:"UnJailedNonce"`
+	Jailed        bool          `protobuf:"varint,11,opt,name=Jailed,proto3" json:"Jailed"`
+	Waiting       bool          `protobuf:"varint,12,opt,name=Waiting,proto3" json:"Waiting"`
 }
 
 func (m *StakedData) Reset()      { *m = StakedData{} }
@@ -139,6 +141,20 @@ func (m *StakedData) GetUnJailedNonce() uint64 {
 	return 0
 }
 
+func (m *StakedData) GetJailed() bool {
+	if m != nil {
+		return m.Jailed
+	}
+	return false
+}
+
+func (m *StakedData) GetWaiting() bool {
+	if m != nil {
+		return m.Waiting
+	}
+	return false
+}
+
 type StakingNodesConfig struct {
 	MinNumNodes int64 `protobuf:"varint,1,opt,name=MinNumNodes,proto3" json:"MinNumNodes"`
 	MaxNumNodes int64 `protobuf:"varint,2,opt,name=MaxNumNodes,proto3" json:"MaxNumNodes"`
@@ -202,45 +218,168 @@ func (m *StakingNodesConfig) GetJailedNodes() int64 {
 	return 0
 }
 
+type ElementInList struct {
+	BLSPublicKey []byte `protobuf:"bytes,1,opt,name=BLSPublicKey,proto3" json:"BLSPublicKey"`
+	PreviousKey  []byte `protobuf:"bytes,2,opt,name=PreviousKey,proto3" json:"PreviousKey"`
+	NextKey      []byte `protobuf:"bytes,3,opt,name=NextKey,proto3" json:"NextKey"`
+}
+
+func (m *ElementInList) Reset()      { *m = ElementInList{} }
+func (*ElementInList) ProtoMessage() {}
+func (*ElementInList) Descriptor() ([]byte, []int) {
+	return fileDescriptor_289e7c8aea278311, []int{2}
+}
+func (m *ElementInList) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ElementInList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *ElementInList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ElementInList.Merge(m, src)
+}
+func (m *ElementInList) XXX_Size() int {
+	return m.Size()
+}
+func (m *ElementInList) XXX_DiscardUnknown() {
+	xxx_messageInfo_ElementInList.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ElementInList proto.InternalMessageInfo
+
+func (m *ElementInList) GetBLSPublicKey() []byte {
+	if m != nil {
+		return m.BLSPublicKey
+	}
+	return nil
+}
+
+func (m *ElementInList) GetPreviousKey() []byte {
+	if m != nil {
+		return m.PreviousKey
+	}
+	return nil
+}
+
+func (m *ElementInList) GetNextKey() []byte {
+	if m != nil {
+		return m.NextKey
+	}
+	return nil
+}
+
+type WaitingList struct {
+	FirstKey []byte `protobuf:"bytes,1,opt,name=FirstKey,proto3" json:"FirstKey"`
+	LastKey  []byte `protobuf:"bytes,2,opt,name=LastKey,proto3" json:"LastKey"`
+	Length   uint32 `protobuf:"varint,3,opt,name=Length,proto3" json:"Length"`
+}
+
+func (m *WaitingList) Reset()      { *m = WaitingList{} }
+func (*WaitingList) ProtoMessage() {}
+func (*WaitingList) Descriptor() ([]byte, []int) {
+	return fileDescriptor_289e7c8aea278311, []int{3}
+}
+func (m *WaitingList) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *WaitingList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *WaitingList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WaitingList.Merge(m, src)
+}
+func (m *WaitingList) XXX_Size() int {
+	return m.Size()
+}
+func (m *WaitingList) XXX_DiscardUnknown() {
+	xxx_messageInfo_WaitingList.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WaitingList proto.InternalMessageInfo
+
+func (m *WaitingList) GetFirstKey() []byte {
+	if m != nil {
+		return m.FirstKey
+	}
+	return nil
+}
+
+func (m *WaitingList) GetLastKey() []byte {
+	if m != nil {
+		return m.LastKey
+	}
+	return nil
+}
+
+func (m *WaitingList) GetLength() uint32 {
+	if m != nil {
+		return m.Length
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*StakedData)(nil), "proto.StakedData")
 	proto.RegisterType((*StakingNodesConfig)(nil), "proto.StakingNodesConfig")
+	proto.RegisterType((*ElementInList)(nil), "proto.ElementInList")
+	proto.RegisterType((*WaitingList)(nil), "proto.WaitingList")
 }
 
 func init() { proto.RegisterFile("staking.proto", fileDescriptor_289e7c8aea278311) }
 
 var fileDescriptor_289e7c8aea278311 = []byte{
-	// 480 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x93, 0xb1, 0x8e, 0xd3, 0x30,
-	0x18, 0xc7, 0xe3, 0x6b, 0xaf, 0x1c, 0x86, 0x0a, 0x11, 0x31, 0x44, 0x0c, 0x6e, 0xd5, 0xa9, 0xcb,
-	0x35, 0x42, 0x0c, 0x0c, 0x4c, 0xd7, 0x72, 0xc3, 0x21, 0x91, 0xc1, 0x15, 0x0c, 0x6c, 0x6e, 0xed,
-	0x73, 0xa3, 0x36, 0xf6, 0x29, 0x76, 0x74, 0xb0, 0xf1, 0x08, 0x3c, 0x06, 0xe2, 0x49, 0x18, 0x3b,
-	0x56, 0x42, 0x2a, 0xd7, 0x74, 0x41, 0x9d, 0xee, 0x11, 0x50, 0xec, 0x42, 0xbe, 0x30, 0xa5, 0xbf,
-	0xff, 0xa7, 0x9f, 0xf5, 0xe9, 0x6f, 0x17, 0x77, 0x8d, 0x65, 0xcb, 0x54, 0xc9, 0xd1, 0x4d, 0xae,
-	0xad, 0x0e, 0x4f, 0xdd, 0xe7, 0xf9, 0xb9, 0x4c, 0xed, 0xa2, 0x98, 0x8d, 0xe6, 0x3a, 0x8b, 0xa5,
-	0x96, 0x3a, 0x76, 0xf1, 0xac, 0xb8, 0x76, 0xe4, 0xc0, 0xfd, 0xf2, 0xd6, 0xe0, 0x67, 0x1b, 0xe3,
-	0xa9, 0x65, 0x4b, 0xc1, 0xdf, 0x30, 0xcb, 0xc2, 0x57, 0xb8, 0x4b, 0x85, 0x4c, 0x8d, 0x15, 0x79,
-	0xa2, 0xd5, 0x5c, 0x44, 0xa8, 0x8f, 0x86, 0xed, 0xf1, 0xd3, 0xc3, 0xb6, 0xd7, 0x1c, 0xd0, 0x26,
-	0x86, 0x2f, 0xf0, 0x23, 0x7f, 0x8c, 0xd7, 0x4e, 0x9c, 0xf6, 0xe4, 0xb0, 0xed, 0xc1, 0x98, 0x42,
-	0x08, 0x07, 0xb8, 0xe3, 0x31, 0x6a, 0xf5, 0xd1, 0xf0, 0x6c, 0x8c, 0x0f, 0xdb, 0xde, 0x31, 0xa1,
-	0xc7, 0x6f, 0xb5, 0xcf, 0x7b, 0x05, 0x0f, 0x6e, 0xd7, 0xfb, 0x34, 0x06, 0xb4, 0x89, 0x50, 0xbc,
-	0xbc, 0xd1, 0xf3, 0x45, 0x74, 0xda, 0x47, 0xc3, 0x6e, 0x53, 0x74, 0x03, 0xda, 0x44, 0xdf, 0xc0,
-	0x2d, 0xcb, 0xf9, 0x05, 0xe7, 0xb9, 0x30, 0x26, 0xea, 0xf4, 0xd1, 0xf0, 0xf1, 0xdf, 0x06, 0xc0,
-	0x80, 0x36, 0x31, 0x34, 0xc7, 0x22, 0x3f, 0xb0, 0x55, 0x21, 0xa2, 0x07, 0xce, 0x9a, 0x1e, 0xb6,
-	0x3d, 0x90, 0x7e, 0xff, 0xd5, 0xbb, 0xc8, 0x98, 0x5d, 0xc4, 0xb3, 0x54, 0x8e, 0xae, 0x94, 0x7d,
-	0x0d, 0xee, 0xea, 0x72, 0x95, 0x6b, 0xc5, 0x13, 0x61, 0x6f, 0x75, 0xbe, 0x8c, 0x85, 0xa3, 0x73,
-	0xa9, 0x63, 0xce, 0x2c, 0x1b, 0x8d, 0x53, 0x79, 0xa5, 0xec, 0x84, 0x55, 0x7d, 0x53, 0x70, 0x60,
-	0x55, 0xfb, 0x5b, 0x96, 0xae, 0x04, 0xa7, 0xba, 0x50, 0x3c, 0x3a, 0xab, 0x6b, 0x07, 0x31, 0x85,
-	0x50, 0x2b, 0xbe, 0xd0, 0x87, 0xff, 0x2b, 0xc7, 0x9b, 0x02, 0xe0, 0xcb, 0x84, 0x12, 0x86, 0xb7,
-	0x00, 0xb5, 0x26, 0x0e, 0xee, 0x10, 0x0e, 0xa7, 0xfe, 0x95, 0x26, 0x9a, 0x0b, 0x33, 0xd1, 0xea,
-	0x3a, 0x95, 0xd5, 0x0a, 0xef, 0x52, 0x95, 0x14, 0x99, 0x0b, 0xdd, 0x1b, 0x6b, 0xf9, 0x15, 0x40,
-	0x4c, 0x21, 0x38, 0x85, 0x7d, 0xfa, 0xa7, 0x9c, 0x00, 0xa5, 0x8e, 0x29, 0x04, 0xf8, 0x24, 0x2b,
-	0xa5, 0x55, 0x2b, 0x20, 0xa6, 0x10, 0x60, 0x37, 0x95, 0xd2, 0xae, 0x15, 0x10, 0x53, 0x08, 0xe3,
-	0x64, 0xbd, 0x23, 0xc1, 0x66, 0x47, 0x82, 0xfb, 0x1d, 0x41, 0x5f, 0x4a, 0x82, 0xbe, 0x95, 0x04,
-	0xfd, 0x28, 0x09, 0x5a, 0x97, 0x04, 0x6d, 0x4a, 0x82, 0xee, 0x4a, 0x82, 0x7e, 0x97, 0x24, 0xb8,
-	0x2f, 0x09, 0xfa, 0xba, 0x27, 0xc1, 0x7a, 0x4f, 0x82, 0xcd, 0x9e, 0x04, 0x1f, 0x9f, 0x99, 0xcf,
-	0xc6, 0x8a, 0x6c, 0x9a, 0xb1, 0xdc, 0x4e, 0xb4, 0xb2, 0x39, 0x9b, 0x5b, 0x33, 0xeb, 0xb8, 0xff,
-	0xe5, 0xcb, 0x3f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xa9, 0xb0, 0x85, 0x94, 0xde, 0x03, 0x00, 0x00,
+	// 643 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x94, 0xcf, 0x6f, 0xd3, 0x30,
+	0x14, 0xc7, 0xeb, 0x76, 0xbf, 0x70, 0x5b, 0x01, 0x11, 0x87, 0x88, 0x83, 0x53, 0x55, 0x42, 0xea,
+	0x65, 0xad, 0x10, 0x48, 0x1c, 0x38, 0xad, 0x63, 0x48, 0x83, 0x52, 0x4d, 0xae, 0x00, 0x89, 0x9b,
+	0xdb, 0x78, 0xa9, 0xb5, 0xd6, 0x9e, 0x12, 0x87, 0x6d, 0x37, 0xc4, 0x5f, 0xc0, 0x7f, 0xc0, 0x0d,
+	0x21, 0xfe, 0x12, 0x8e, 0x3b, 0xee, 0x14, 0xb6, 0xec, 0x82, 0x72, 0xda, 0x9f, 0x80, 0x62, 0xa7,
+	0xcd, 0x0b, 0x27, 0xbf, 0xef, 0xd7, 0xfe, 0xc4, 0xcf, 0xef, 0x3d, 0x05, 0xb7, 0x23, 0xcd, 0x4e,
+	0x84, 0x0c, 0xfa, 0xa7, 0xa1, 0xd2, 0xca, 0xd9, 0x34, 0xcb, 0xe3, 0xdd, 0x40, 0xe8, 0x79, 0x3c,
+	0xed, 0xcf, 0xd4, 0x72, 0x10, 0xa8, 0x40, 0x0d, 0x8c, 0x3d, 0x8d, 0x8f, 0x8d, 0x32, 0xc2, 0x44,
+	0x96, 0xea, 0xfe, 0xd8, 0xc4, 0x78, 0xa2, 0xd9, 0x09, 0xf7, 0x5f, 0x31, 0xcd, 0x9c, 0x17, 0xb8,
+	0x4d, 0x79, 0x20, 0x22, 0xcd, 0xc3, 0xb1, 0x92, 0x33, 0xee, 0xa2, 0x0e, 0xea, 0x6d, 0x0c, 0x1f,
+	0x66, 0x89, 0x57, 0xdd, 0xa0, 0x55, 0xe9, 0x3c, 0xc5, 0x4d, 0xfb, 0x19, 0x8b, 0xd5, 0x0d, 0x76,
+	0x3f, 0x4b, 0x3c, 0x68, 0x53, 0x28, 0x9c, 0x2e, 0xde, 0xb2, 0xd2, 0x6d, 0x74, 0x50, 0x6f, 0x67,
+	0x88, 0xb3, 0xc4, 0x2b, 0x1c, 0x5a, 0xac, 0x79, 0x3e, 0xef, 0x25, 0xfc, 0xf0, 0x46, 0x99, 0x4f,
+	0x65, 0x83, 0x56, 0x25, 0x04, 0x0f, 0x4e, 0xd5, 0x6c, 0xee, 0x6e, 0x76, 0x50, 0xaf, 0x5d, 0x05,
+	0xcd, 0x06, 0xad, 0x4a, 0x5b, 0x81, 0x33, 0x16, 0xfa, 0x7b, 0xbe, 0x1f, 0xf2, 0x28, 0x72, 0xb7,
+	0x3a, 0xa8, 0xd7, 0x5a, 0x55, 0x00, 0x6c, 0xd0, 0xaa, 0x74, 0xa2, 0xa2, 0x90, 0x1f, 0xd8, 0x22,
+	0xe6, 0xee, 0xb6, 0xa1, 0x26, 0x59, 0xe2, 0x01, 0xf7, 0xd7, 0x1f, 0x6f, 0x6f, 0xc9, 0xf4, 0x7c,
+	0x30, 0x15, 0x41, 0xff, 0x50, 0xea, 0x97, 0xa0, 0x57, 0x07, 0x8b, 0x50, 0x49, 0x7f, 0xcc, 0xf5,
+	0x99, 0x0a, 0x4f, 0x06, 0xdc, 0xa8, 0xdd, 0x40, 0x0d, 0x7c, 0xa6, 0x59, 0x7f, 0x28, 0x82, 0x43,
+	0xa9, 0xf7, 0x59, 0x5e, 0x6f, 0x0a, 0x3e, 0x98, 0x97, 0xfd, 0x0d, 0x13, 0x0b, 0xee, 0x53, 0x15,
+	0x4b, 0xdf, 0xdd, 0x29, 0xcb, 0x0e, 0x6c, 0x0a, 0x45, 0x89, 0xd8, 0x82, 0xde, 0xfb, 0x1f, 0x29,
+	0x3a, 0x05, 0x84, 0x2d, 0x26, 0x84, 0x30, 0xec, 0x02, 0xc4, 0xaa, 0x32, 0x6f, 0xb1, 0x95, 0x6e,
+	0xb3, 0x6c, 0x71, 0x91, 0x4c, 0xb1, 0x3a, 0x4f, 0xf0, 0xf6, 0x47, 0x26, 0xb4, 0x90, 0x81, 0xdb,
+	0x32, 0x87, 0x9a, 0x59, 0xe2, 0xad, 0x2c, 0xba, 0x0a, 0xba, 0xd7, 0x08, 0x3b, 0x13, 0x3b, 0xf0,
+	0x63, 0xe5, 0xf3, 0x68, 0x5f, 0xc9, 0x63, 0x11, 0xe4, 0xaf, 0x79, 0x27, 0xe4, 0x38, 0x5e, 0x1a,
+	0xd3, 0x8c, 0x6b, 0xc3, 0xbe, 0x06, 0xd8, 0x14, 0x0a, 0x83, 0xb0, 0xf3, 0x35, 0x52, 0x07, 0x48,
+	0x69, 0x53, 0x28, 0xe0, 0x74, 0xe7, 0x48, 0xa3, 0x44, 0x80, 0x4d, 0xa1, 0x80, 0x65, 0xce, 0x91,
+	0x8d, 0x12, 0x01, 0x36, 0x85, 0xa2, 0xfb, 0x1d, 0xe1, 0xf6, 0xc1, 0x82, 0x2f, 0xb9, 0xd4, 0x87,
+	0x72, 0x24, 0x22, 0xed, 0x3c, 0xc7, 0xad, 0xe1, 0x68, 0x72, 0x14, 0x4f, 0x17, 0x62, 0xf6, 0x96,
+	0x5f, 0x98, 0xe7, 0xb5, 0x86, 0x0f, 0xb2, 0xc4, 0xab, 0xf8, 0xb4, 0xa2, 0xf2, 0xab, 0x8f, 0x42,
+	0xfe, 0x59, 0xa8, 0x38, 0xca, 0xa1, 0xba, 0x81, 0xcc, 0xd5, 0xc0, 0xa6, 0x50, 0xe4, 0x4d, 0x18,
+	0xf3, 0x73, 0x9d, 0x1f, 0x6f, 0x98, 0xe3, 0xa6, 0x09, 0x85, 0x45, 0x57, 0x41, 0xf7, 0x2b, 0xc2,
+	0xcd, 0xa2, 0x21, 0x26, 0xbf, 0x1e, 0xde, 0x79, 0x2d, 0xc2, 0x48, 0x97, 0xb9, 0xb5, 0xb2, 0xc4,
+	0x5b, 0x7b, 0x74, 0x1d, 0xe5, 0x17, 0x8c, 0x98, 0x3d, 0x58, 0x2f, 0x2f, 0x28, 0x2c, 0xba, 0x0a,
+	0xf2, 0x81, 0x19, 0x71, 0x19, 0xe8, 0xb9, 0x49, 0xa3, 0x6d, 0x07, 0xc6, 0x3a, 0xb4, 0x58, 0x87,
+	0xe3, 0xcb, 0x1b, 0x52, 0xbb, 0xba, 0x21, 0xb5, 0xbb, 0x1b, 0x82, 0xbe, 0xa4, 0x04, 0xfd, 0x4c,
+	0x09, 0xfa, 0x9d, 0x12, 0x74, 0x99, 0x12, 0x74, 0x95, 0x12, 0x74, 0x9d, 0x12, 0xf4, 0x37, 0x25,
+	0xb5, 0xbb, 0x94, 0xa0, 0x6f, 0xb7, 0xa4, 0x76, 0x79, 0x4b, 0x6a, 0x57, 0xb7, 0xa4, 0xf6, 0xe9,
+	0x51, 0x74, 0x11, 0x69, 0xbe, 0x9c, 0x2c, 0x59, 0xa8, 0xf7, 0x95, 0xd4, 0x21, 0x9b, 0xe9, 0x68,
+	0xba, 0x65, 0xfe, 0x84, 0xcf, 0xfe, 0x05, 0x00, 0x00, 0xff, 0xff, 0xd9, 0xae, 0xe7, 0xac, 0x50,
+	0x05, 0x00, 0x00,
 }
 
 func (this *StakedData) Equal(that interface{}) bool {
@@ -295,6 +434,12 @@ func (this *StakedData) Equal(that interface{}) bool {
 	if this.UnJailedNonce != that1.UnJailedNonce {
 		return false
 	}
+	if this.Jailed != that1.Jailed {
+		return false
+	}
+	if this.Waiting != that1.Waiting {
+		return false
+	}
 	return true
 }
 func (this *StakingNodesConfig) Equal(that interface{}) bool {
@@ -330,11 +475,71 @@ func (this *StakingNodesConfig) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *ElementInList) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ElementInList)
+	if !ok {
+		that2, ok := that.(ElementInList)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.BLSPublicKey, that1.BLSPublicKey) {
+		return false
+	}
+	if !bytes.Equal(this.PreviousKey, that1.PreviousKey) {
+		return false
+	}
+	if !bytes.Equal(this.NextKey, that1.NextKey) {
+		return false
+	}
+	return true
+}
+func (this *WaitingList) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*WaitingList)
+	if !ok {
+		that2, ok := that.(WaitingList)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.FirstKey, that1.FirstKey) {
+		return false
+	}
+	if !bytes.Equal(this.LastKey, that1.LastKey) {
+		return false
+	}
+	if this.Length != that1.Length {
+		return false
+	}
+	return true
+}
 func (this *StakedData) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 14)
+	s := make([]string, 0, 16)
 	s = append(s, "&systemSmartContracts.StakedData{")
 	s = append(s, "RegisterNonce: "+fmt.Sprintf("%#v", this.RegisterNonce)+",\n")
 	s = append(s, "StakedNonce: "+fmt.Sprintf("%#v", this.StakedNonce)+",\n")
@@ -346,6 +551,8 @@ func (this *StakedData) GoString() string {
 	s = append(s, "JailedRound: "+fmt.Sprintf("%#v", this.JailedRound)+",\n")
 	s = append(s, "JailedNonce: "+fmt.Sprintf("%#v", this.JailedNonce)+",\n")
 	s = append(s, "UnJailedNonce: "+fmt.Sprintf("%#v", this.UnJailedNonce)+",\n")
+	s = append(s, "Jailed: "+fmt.Sprintf("%#v", this.Jailed)+",\n")
+	s = append(s, "Waiting: "+fmt.Sprintf("%#v", this.Waiting)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -359,6 +566,30 @@ func (this *StakingNodesConfig) GoString() string {
 	s = append(s, "MaxNumNodes: "+fmt.Sprintf("%#v", this.MaxNumNodes)+",\n")
 	s = append(s, "StakedNodes: "+fmt.Sprintf("%#v", this.StakedNodes)+",\n")
 	s = append(s, "JailedNodes: "+fmt.Sprintf("%#v", this.JailedNodes)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *ElementInList) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 7)
+	s = append(s, "&systemSmartContracts.ElementInList{")
+	s = append(s, "BLSPublicKey: "+fmt.Sprintf("%#v", this.BLSPublicKey)+",\n")
+	s = append(s, "PreviousKey: "+fmt.Sprintf("%#v", this.PreviousKey)+",\n")
+	s = append(s, "NextKey: "+fmt.Sprintf("%#v", this.NextKey)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *WaitingList) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 7)
+	s = append(s, "&systemSmartContracts.WaitingList{")
+	s = append(s, "FirstKey: "+fmt.Sprintf("%#v", this.FirstKey)+",\n")
+	s = append(s, "LastKey: "+fmt.Sprintf("%#v", this.LastKey)+",\n")
+	s = append(s, "Length: "+fmt.Sprintf("%#v", this.Length)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -390,6 +621,26 @@ func (m *StakedData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Waiting {
+		i--
+		if m.Waiting {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x60
+	}
+	if m.Jailed {
+		i--
+		if m.Jailed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
+	}
 	if m.UnJailedNonce != 0 {
 		i = encodeVarintStaking(dAtA, i, uint64(m.UnJailedNonce))
 		i--
@@ -499,6 +750,92 @@ func (m *StakingNodesConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *ElementInList) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ElementInList) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ElementInList) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.NextKey) > 0 {
+		i -= len(m.NextKey)
+		copy(dAtA[i:], m.NextKey)
+		i = encodeVarintStaking(dAtA, i, uint64(len(m.NextKey)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.PreviousKey) > 0 {
+		i -= len(m.PreviousKey)
+		copy(dAtA[i:], m.PreviousKey)
+		i = encodeVarintStaking(dAtA, i, uint64(len(m.PreviousKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.BLSPublicKey) > 0 {
+		i -= len(m.BLSPublicKey)
+		copy(dAtA[i:], m.BLSPublicKey)
+		i = encodeVarintStaking(dAtA, i, uint64(len(m.BLSPublicKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *WaitingList) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *WaitingList) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *WaitingList) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Length != 0 {
+		i = encodeVarintStaking(dAtA, i, uint64(m.Length))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.LastKey) > 0 {
+		i -= len(m.LastKey)
+		copy(dAtA[i:], m.LastKey)
+		i = encodeVarintStaking(dAtA, i, uint64(len(m.LastKey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.FirstKey) > 0 {
+		i -= len(m.FirstKey)
+		copy(dAtA[i:], m.FirstKey)
+		i = encodeVarintStaking(dAtA, i, uint64(len(m.FirstKey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintStaking(dAtA []byte, offset int, v uint64) int {
 	offset -= sovStaking(v)
 	base := offset
@@ -549,6 +886,12 @@ func (m *StakedData) Size() (n int) {
 	if m.UnJailedNonce != 0 {
 		n += 1 + sovStaking(uint64(m.UnJailedNonce))
 	}
+	if m.Jailed {
+		n += 2
+	}
+	if m.Waiting {
+		n += 2
+	}
 	return n
 }
 
@@ -569,6 +912,47 @@ func (m *StakingNodesConfig) Size() (n int) {
 	}
 	if m.JailedNodes != 0 {
 		n += 1 + sovStaking(uint64(m.JailedNodes))
+	}
+	return n
+}
+
+func (m *ElementInList) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.BLSPublicKey)
+	if l > 0 {
+		n += 1 + l + sovStaking(uint64(l))
+	}
+	l = len(m.PreviousKey)
+	if l > 0 {
+		n += 1 + l + sovStaking(uint64(l))
+	}
+	l = len(m.NextKey)
+	if l > 0 {
+		n += 1 + l + sovStaking(uint64(l))
+	}
+	return n
+}
+
+func (m *WaitingList) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.FirstKey)
+	if l > 0 {
+		n += 1 + l + sovStaking(uint64(l))
+	}
+	l = len(m.LastKey)
+	if l > 0 {
+		n += 1 + l + sovStaking(uint64(l))
+	}
+	if m.Length != 0 {
+		n += 1 + sovStaking(uint64(m.Length))
 	}
 	return n
 }
@@ -594,6 +978,8 @@ func (this *StakedData) String() string {
 		`JailedRound:` + fmt.Sprintf("%v", this.JailedRound) + `,`,
 		`JailedNonce:` + fmt.Sprintf("%v", this.JailedNonce) + `,`,
 		`UnJailedNonce:` + fmt.Sprintf("%v", this.UnJailedNonce) + `,`,
+		`Jailed:` + fmt.Sprintf("%v", this.Jailed) + `,`,
+		`Waiting:` + fmt.Sprintf("%v", this.Waiting) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -607,6 +993,30 @@ func (this *StakingNodesConfig) String() string {
 		`MaxNumNodes:` + fmt.Sprintf("%v", this.MaxNumNodes) + `,`,
 		`StakedNodes:` + fmt.Sprintf("%v", this.StakedNodes) + `,`,
 		`JailedNodes:` + fmt.Sprintf("%v", this.JailedNodes) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ElementInList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ElementInList{`,
+		`BLSPublicKey:` + fmt.Sprintf("%v", this.BLSPublicKey) + `,`,
+		`PreviousKey:` + fmt.Sprintf("%v", this.PreviousKey) + `,`,
+		`NextKey:` + fmt.Sprintf("%v", this.NextKey) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *WaitingList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&WaitingList{`,
+		`FirstKey:` + fmt.Sprintf("%v", this.FirstKey) + `,`,
+		`LastKey:` + fmt.Sprintf("%v", this.LastKey) + `,`,
+		`Length:` + fmt.Sprintf("%v", this.Length) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -873,6 +1283,46 @@ func (m *StakedData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Jailed", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Jailed = bool(v != 0)
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Waiting", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Waiting = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipStaking(dAtA[iNdEx:])
@@ -998,6 +1448,301 @@ func (m *StakingNodesConfig) Unmarshal(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.JailedNodes |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipStaking(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ElementInList) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowStaking
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ElementInList: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ElementInList: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BLSPublicKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthStaking
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BLSPublicKey = append(m.BLSPublicKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.BLSPublicKey == nil {
+				m.BLSPublicKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PreviousKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthStaking
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PreviousKey = append(m.PreviousKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.PreviousKey == nil {
+				m.PreviousKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthStaking
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NextKey = append(m.NextKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.NextKey == nil {
+				m.NextKey = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipStaking(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WaitingList) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowStaking
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WaitingList: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WaitingList: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FirstKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthStaking
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FirstKey = append(m.FirstKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.FirstKey == nil {
+				m.FirstKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastKey", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthStaking
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LastKey = append(m.LastKey[:0], dAtA[iNdEx:postIndex]...)
+			if m.LastKey == nil {
+				m.LastKey = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Length", wireType)
+			}
+			m.Length = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Length |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
