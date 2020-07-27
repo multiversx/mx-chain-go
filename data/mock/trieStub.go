@@ -188,7 +188,8 @@ func (ts *TrieStub) Database() data.DBWriteCacher {
 	if ts.DatabaseCalled != nil {
 		return ts.DatabaseCalled()
 	}
-	return nil
+
+	return NewMemDbMock()
 }
 
 // IsPruningEnabled -
@@ -215,4 +216,9 @@ func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
 	}
 
 	return nil, nil
+}
+
+// GetSnapshotDbBatchDelay -
+func (ts *TrieStub) GetSnapshotDbBatchDelay() int {
+	return 0
 }
