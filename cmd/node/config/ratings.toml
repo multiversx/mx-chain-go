@@ -36,7 +36,7 @@
     ConsecutiveMissedBlocksPenalty = 1.10
 
 [MetaChain.RatingSteps]
-    HoursToMaxRatingFromStartRating = 60
+    HoursToMaxRatingFromStartRating = 55
     ProposerValidatorImportance = 1.0
     ProposerDecreaseFactor = -4.0
     ValidatorDecreaseFactor = -4.0
