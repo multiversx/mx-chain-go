@@ -1004,7 +1004,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 	if registrationData.WaitingStake.Cmp(totalWaiting) < 0 {
-		s.eei.AddReturnMessage("contract error on unBond function, waitngStake < totalWaitingToUnBond")
+		s.eei.AddReturnMessage("contract error on unBond function, waitingStake < totalWaitingToUnBond")
 		return vmcommon.UserError
 	}
 
