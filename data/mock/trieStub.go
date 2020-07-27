@@ -3,8 +3,6 @@ package mock
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/genesis/mock"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -191,7 +189,7 @@ func (ts *TrieStub) Database() data.DBWriteCacher {
 		return ts.DatabaseCalled()
 	}
 
-	return mock.NewMemDbMock()
+	return NewMemDbMock()
 }
 
 // IsPruningEnabled -
