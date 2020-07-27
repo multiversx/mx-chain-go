@@ -549,7 +549,7 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		return nil
 	}
 
-	validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure)
+	validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure+validator.ValidatorIgnoredSignatures)
 	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
 
 	if computedThreshold <= signedThreshold {
@@ -1021,7 +1021,7 @@ func (vs *validatorStatistics) display(validatorKey string) {
 	}
 
 	log.Debug("validator statistics",
-		"pk", acc.GetBLSPublicKey(),
+		"pk", core.GetTrimmedPk(hex.EncodeToString(acc.GetBLSPublicKey())),
 		"leader fail", acc.GetLeaderSuccessRate().NumFailure,
 		"leader success", acc.GetLeaderSuccessRate().NumSuccess,
 		"val success", acc.GetValidatorSuccessRate().NumSuccess,
