@@ -544,6 +544,11 @@ func (tsm *trieStorageManager) IsPruningEnabled() bool {
 	return true
 }
 
+// GetSnapshotDbBatchDelay returns the batch write delay in seconds
+func (tsm *trieStorageManager) GetSnapshotDbBatchDelay() int {
+	return tsm.snapshotDbCfg.BatchDelaySeconds
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tsm *trieStorageManager) IsInterfaceNil() bool {
 	return tsm == nil

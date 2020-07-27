@@ -168,6 +168,7 @@ type Trie interface {
 	IsPruningEnabled() bool
 	EnterSnapshotMode()
 	ExitSnapshotMode()
+	GetSnapshotDbBatchDelay() int
 	IsInterfaceNil() bool
 	ClosePersister() error
 }
@@ -208,6 +209,7 @@ type StorageManager interface {
 	IsPruningEnabled() bool
 	EnterSnapshotMode()
 	ExitSnapshotMode()
+	GetSnapshotDbBatchDelay() int
 	IsInterfaceNil() bool
 }
 
