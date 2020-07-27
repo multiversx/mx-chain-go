@@ -668,6 +668,7 @@ func (r *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) error {
 
 	nodeData.Waiting = false
 	nodeData.Staked = true
+	nodeData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	nodeData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
 	stakeValue := r.getStakeValueForCurrentEpoch()
 	if nodeData.StakeValue.Cmp(stakeValue) < 0 {
