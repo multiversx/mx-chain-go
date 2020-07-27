@@ -436,7 +436,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	sender := ""
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := "-"
+	txData := []byte("-")
 	signature := "-"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
@@ -468,7 +468,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	sender := ""
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := "-"
+	txData := []byte("-")
 	signature := "-"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
@@ -502,7 +502,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	sender := "snd"
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := "-"
+	txData := []byte("-")
 	signature := "-"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
@@ -542,7 +542,7 @@ func TestCreateTransaction_InvalidChainIDShouldErr(t *testing.T) {
 	sender := "snd"
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := "-"
+	txData := []byte("-")
 	signature := "617eff4f"
 	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "", 1)
 	assert.Equal(t, node.ErrInvalidChainID, err)
@@ -578,7 +578,7 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 	sender := "snd"
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := "-"
+	txData := []byte("-")
 	signature := "617eff4f"
 	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "", 0)
 	assert.Equal(t, node.ErrInvalidTransactionVersion, err)
@@ -614,7 +614,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	sender := "snd"
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := "-"
+	txData := []byte("-")
 	signature := "617eff4f"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)

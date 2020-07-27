@@ -77,6 +77,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		tpsBenchmark:           arguments.TpsBenchmark,
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),
+		historyRepo:            arguments.HistoryRepository,
 	}
 
 	sp := shardProcessor{
@@ -851,6 +852,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
+	sp.saveHistoryData(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {

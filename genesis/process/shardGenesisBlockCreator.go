@@ -309,7 +309,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		Hasher:           arg.Hasher,
 		Marshalizer:      arg.Marshalizer,
 		AccountsDB:       arg.Accounts,
-		TempAccounts:     vmFactoryImpl.BlockChainHookImpl(),
+		BlockChainHook:   vmFactoryImpl.BlockChainHookImpl(),
 		PubkeyConv:       arg.PubkeyConv,
 		Coordinator:      arg.ShardCoordinator,
 		ScrForwarder:     scForwarder,
@@ -511,7 +511,7 @@ func increaseStakersNonces(processors *genesisProcessors, arg ArgsGenesisBlockCr
 		}
 
 		numNodesStaked := big.NewInt(0).Set(ia.GetStakingValue())
-		numNodesStaked.Div(numNodesStaked, arg.Economics.GenesisNodePrice())
+		numNodesStaked.Div(numNodesStaked, arg.GenesisNodePrice)
 
 		stakersCounter++
 		err = txExecutor.AddNonce(ia.AddressBytes(), numNodesStaked.Uint64())
@@ -540,7 +540,7 @@ func executeDelegation(
 		SmartContractParser: arg.SmartContractParser,
 		NodesListSplitter:   nodesListSplitter,
 		QueryService:        processors.queryService,
-		NodePrice:           arg.Economics.GenesisNodePrice(),
+		NodePrice:           arg.GenesisNodePrice,
 	}
 
 	delegationProcessor, err := intermediate.NewStandardDelegationProcessor(argDP)

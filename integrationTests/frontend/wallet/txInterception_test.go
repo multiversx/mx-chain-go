@@ -13,7 +13,7 @@ import (
 
 const mintingValue = "100000000"
 
-func TestInterceptedTxWhithoutDataField(t *testing.T) {
+func TestInterceptedTxWithoutDataField(t *testing.T) {
 	value := big.NewInt(0)
 	value.SetString("999", 10)
 
@@ -22,8 +22,8 @@ func TestInterceptedTxWhithoutDataField(t *testing.T) {
 		0,
 		value,
 		"erd12dnfhej64s6c56ka369gkyj3hwv5ms0y5rxgsk2k7hkd2vuk7rvqxkalsa",
-		"erd1r37vju4vtruk5nnxrudnfg2ajy64xr0ztceqhcljlce648a258wswwv9zy",
-		"0294d19f2699e049e3a535922205fe87a6b3ecd1c4f8662082fd9d1ba9b190f61c607269f7ae682eff95c517f214d49214d724b34416d7dff87ad069d73eae09",
+		"erd15xa6lw0g8uvnkl82p9p9ks5guvp02twuwky4m936lhtup4cppejsg2rv0g",
+		"9f0e3bccbe1815580e2f8db150405e2f88255aaf801cde204af8728ccd4d43d1ab82188a24050e00d1cc21f85eab251014e16984774957ce06d2060fd77e9f0f",
 		10,
 		100000,
 		[]byte(""),
@@ -32,7 +32,7 @@ func TestInterceptedTxWhithoutDataField(t *testing.T) {
 	)
 }
 
-func TestInterceptedTxWhithDataField(t *testing.T) {
+func TestInterceptedTxWithDataField(t *testing.T) {
 	value := big.NewInt(0)
 	value.SetString("999", 10)
 
@@ -41,8 +41,8 @@ func TestInterceptedTxWhithDataField(t *testing.T) {
 		0,
 		value,
 		"erd12dnfhej64s6c56ka369gkyj3hwv5ms0y5rxgsk2k7hkd2vuk7rvqxkalsa",
-		"erd14t6l0x27w4d4354sqfm40wuv9p0r49uzl9598eka290x9kws2nvqlkc36j",
-		"1e4692dffac8d6c3ca4115676f866e2ded9322b6ba6981853f48d737dd041e8b7255bd9d61636e060a1d9664d97c0f015a26a2cf2a7111a0f1a67c56d54ee902",
+		"erd1zc858kk5ln3pnkwfw4lwpx7ssj890vkdtg47tzw4uvkcmja3sv7sf8dsg3",
+		"7486cceda06922b047e0601576dec8c5bea8b29b89fe7ee268a27550e0dc9acde9dd3214bb4b64f6d273a95b2c5be8c9f83a57d8c35e74c11e4f376e60848801",
 		10,
 		100000,
 		[]byte("data@~`!@#$^&*()_=[]{};'<>?,./|<>><!!!!!"),

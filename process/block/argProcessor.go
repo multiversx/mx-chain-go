@@ -2,6 +2,7 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -42,6 +43,7 @@ type ArgBaseProcessor struct {
 	Indexer                indexer.Indexer
 	TpsBenchmark           statistics.TPSBenchmark
 	Version                string
+	HistoryRepository      fullHistory.HistoryRepository
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
