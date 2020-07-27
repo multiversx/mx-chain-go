@@ -28,10 +28,10 @@ const (
 )
 
 // AccStateCheckpointsKey is used as a key for the number of account state checkpoints in the api response
-const AccStateCheckpointsKey = "num_accounts_state_checkpoints"
+const AccStateCheckpointsKey = "erd_num_accounts_state_checkpoints"
 
 // PeerStateCheckpointsKey is used as a key for the number of peer state checkpoints in the api response
-const PeerStateCheckpointsKey = "num_peer_state_checkpoints"
+const PeerStateCheckpointsKey = "erd_num_peer_state_checkpoints"
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
