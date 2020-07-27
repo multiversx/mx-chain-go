@@ -321,6 +321,7 @@ type HardforkConfig struct {
 	ImportKeysStorageConfig      StorageConfig
 	PublicKeyToListenFrom        string
 	ImportFolder                 string
+	GenesisTime                  int64
 	StartRound                   uint64
 	StartNonce                   uint64
 	CloseAfterExportInMinutes    uint32
