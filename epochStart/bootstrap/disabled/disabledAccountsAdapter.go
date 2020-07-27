@@ -94,6 +94,11 @@ func (a *accountsAdapter) RecreateAllTries(_ []byte) (map[string]data.Trie, erro
 	return nil, nil
 }
 
+// GetNumCheckpoints -
+func (a *accountsAdapter) GetNumCheckpoints() uint32 {
+	return 0
+}
+
 // IsInterfaceNil -
 func (a *accountsAdapter) IsInterfaceNil() bool {
 	return a == nil
