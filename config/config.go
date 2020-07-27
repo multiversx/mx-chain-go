@@ -77,7 +77,8 @@ type EvictionWaitingListConfig struct {
 type EpochStartConfig struct {
 	MinRoundsBetweenEpochs            int64
 	RoundsPerEpoch                    int64
-	ShuffledOutRestartThreshold       float64
+	MinShuffledOutRestartThreshold    float64
+	MaxShuffledOutRestartThreshold    float64
 	MinNumConnectedPeersToStart       int
 	MinNumOfPeersToConsiderBlockValid int
 }
