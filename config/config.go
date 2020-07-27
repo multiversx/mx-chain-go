@@ -78,7 +78,6 @@ type EpochStartConfig struct {
 	MinRoundsBetweenEpochs            int64
 	RoundsPerEpoch                    int64
 	ShuffledOutRestartThreshold       float64
-	ShuffleBetweenShards              bool
 	MinNumConnectedPeersToStart       int
 	MinNumOfPeersToConsiderBlockValid int
 }
