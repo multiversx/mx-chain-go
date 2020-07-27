@@ -20,6 +20,7 @@ type HeaderHandlerStub struct {
 	CheckChainIDCalled               func(reference []byte) error
 	GetAccumulatedFeesCalled         func() *big.Int
 	GetDeveloperFeesCalled           func() *big.Int
+	GetReservedCalled                func() []byte
 }
 
 // GetAccumulatedFees -
@@ -137,6 +138,15 @@ func (hhs *HeaderHandlerStub) GetTxCount() uint32 {
 	panic("implement me")
 }
 
+// GetReserved -
+func (hhs *HeaderHandlerStub) GetReserved() []byte {
+	if hhs.GetReservedCalled != nil {
+		return hhs.GetReservedCalled()
+	}
+
+	return nil
+}
+
 // SetNonce -
 func (hhs *HeaderHandlerStub) SetNonce(_ uint64) {
 	panic("implement me")
@@ -233,5 +243,5 @@ func (hhs *HeaderHandlerStub) GetSoftwareVersion() []byte {
 }
 
 // SetSoftwareVersion -
-func (hhs *HeaderHandlerStub) SetSoftwareVersion(version []byte) {
+func (hhs *HeaderHandlerStub) SetSoftwareVersion(_ []byte) {
 }

@@ -92,10 +92,9 @@ func NewStakingSmartContract(
 		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:              args.Marshalizer,
 	}
-	ok := true
-	conversionBase := 10
-	reg.stakeValue, ok = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
-	if !ok || reg.stakeValue.Cmp(zero) < 0 {
+	conversionOk := true
+	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
+	if !conversionOk || reg.stakeValue.Cmp(zero) < 0 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
 
