@@ -29,6 +29,7 @@ message MiniBlock {
 	uint32         ReceiverShardID = 2;
 	uint32         SenderShardID   = 3;
 	Type           Type            = 4;
+	bytes          Reserved        = 5;
 }
 
 message MiniBlockHeader  {
@@ -37,6 +38,7 @@ message MiniBlockHeader  {
 	uint32 ReceiverShardID = 3; 
 	uint32 TxCount         = 4; 
 	Type   Type            = 5;
+	bytes  Reserved        = 6;
 }
 
 // PeerChange holds a change in one peer to shard assignation
@@ -71,6 +73,7 @@ message Header  {
 	bytes                    SoftwareVersion        = 21;
 	bytes                    AccumulatedFees        = 22 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	bytes                    DeveloperFees          = 23 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes                    Reserved               = 24;
 }
 
 message Body {
