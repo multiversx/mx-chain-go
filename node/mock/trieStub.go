@@ -173,7 +173,8 @@ func (ts *TrieStub) Database() data.DBWriteCacher {
 	if ts.DatabaseCalled != nil {
 		return ts.DatabaseCalled()
 	}
-	return nil
+
+	return NewStorerMock()
 }
 
 // GetDirtyHashes -

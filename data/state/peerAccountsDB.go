@@ -34,6 +34,7 @@ func NewPeerAccountsDB(
 		return nil, ErrNilAccountFactory
 	}
 
+	numCheckpoints := getNumCheckpoints(trie)
 	return &PeerAccountsDB{
 		&AccountsDB{
 			mainTrie:       trie,
@@ -43,7 +44,7 @@ func NewPeerAccountsDB(
 			entries:        make([]JournalEntry, 0),
 			dataTries:      NewDataTriesHolder(),
 			mutOp:          sync.RWMutex{},
-			numCheckpoints: 0,
+			numCheckpoints: numCheckpoints,
 		},
 	}, nil
 }

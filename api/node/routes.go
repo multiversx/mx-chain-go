@@ -27,6 +27,12 @@ const (
 	peerInfoPath        = "/peerinfo"
 )
 
+// AccStateCheckpointsKey is used as a key for the number of account state checkpoints in the api response
+const AccStateCheckpointsKey = "num_accounts_state_checkpoints"
+
+// PeerStateCheckpointsKey is used as a key for the number of peer state checkpoints in the api response
+const PeerStateCheckpointsKey = "num_peer_state_checkpoints"
+
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
@@ -46,18 +52,16 @@ type QueryDebugRequest struct {
 }
 
 type statisticsResponse struct {
-	LiveTPS                    float64                   `json:"liveTPS"`
-	PeakTPS                    float64                   `json:"peakTPS"`
-	BlockNumber                uint64                    `json:"blockNumber"`
-	RoundNumber                uint64                    `json:"roundNumber"`
-	RoundTime                  uint64                    `json:"roundTime"`
-	AverageBlockTxCount        *big.Int                  `json:"averageBlockTxCount"`
-	TotalProcessedTxCount      *big.Int                  `json:"totalProcessedTxCount"`
-	ShardStatistics            []shardStatisticsResponse `json:"shardStatistics"`
-	LastBlockTxCount           uint32                    `json:"lastBlockTxCount"`
-	NrOfShards                 uint32                    `json:"nrOfShards"`
-	NumAccountStateCheckpoints uint32                    `json:"numAccountStateCheckpoints"`
-	NumPeerStateCheckpoints    uint32                    `json:"numPeerStateCheckpoints"`
+	LiveTPS               float64                   `json:"liveTPS"`
+	PeakTPS               float64                   `json:"peakTPS"`
+	BlockNumber           uint64                    `json:"blockNumber"`
+	RoundNumber           uint64                    `json:"roundNumber"`
+	RoundTime             uint64                    `json:"roundTime"`
+	AverageBlockTxCount   *big.Int                  `json:"averageBlockTxCount"`
+	TotalProcessedTxCount *big.Int                  `json:"totalProcessedTxCount"`
+	ShardStatistics       []shardStatisticsResponse `json:"shardStatistics"`
+	LastBlockTxCount      uint32                    `json:"lastBlockTxCount"`
+	NrOfShards            uint32                    `json:"nrOfShards"`
 }
 
 type shardStatisticsResponse struct {
@@ -153,7 +157,7 @@ func Statistics(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"statistics": nodeStats(facade)},
+			Data:  gin.H{"statistics": statsFromTpsBenchmark(facade.TpsBenchmark())},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
@@ -168,6 +172,8 @@ func StatusMetrics(c *gin.Context) {
 	}
 
 	details := facade.StatusMetrics().StatusMetricsMapWithoutP2P()
+	details[AccStateCheckpointsKey] = facade.GetNumCheckpointsFromAccountState()
+	details[PeerStateCheckpointsKey] = facade.GetNumCheckpointsFromPeerState()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
@@ -196,9 +202,7 @@ func P2pStatusMetrics(c *gin.Context) {
 	)
 }
 
-func nodeStats(facade FacadeHandler) statisticsResponse {
-	tpsBenchmark := facade.TpsBenchmark()
-
+func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResponse {
 	sr := statisticsResponse{}
 	sr.LiveTPS = tpsBenchmark.LiveTPS()
 	sr.PeakTPS = tpsBenchmark.PeakTPS()
@@ -224,9 +228,6 @@ func nodeStats(facade FacadeHandler) statisticsResponse {
 			TotalProcessedTxCount: ss.TotalProcessedTxCount(),
 		}
 	}
-
-	sr.NumAccountStateCheckpoints = facade.GetNumCheckpointsFromAccountState()
-	sr.NumPeerStateCheckpoints = facade.GetNumCheckpointsFromPeerState()
 
 	return sr
 }

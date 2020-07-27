@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
+
+var numCheckpointsKey = []byte("state checkpoint")
 
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
@@ -54,6 +57,7 @@ func NewAccountsDB(
 		return nil, ErrNilAccountFactory
 	}
 
+	numCheckpoints := getNumCheckpoints(trie)
 	return &AccountsDB{
 		mainTrie:               trie,
 		hasher:                 hasher,
@@ -63,8 +67,23 @@ func NewAccountsDB(
 		mutOp:                  sync.RWMutex{},
 		dataTries:              NewDataTriesHolder(),
 		obsoleteDataTrieHashes: make(map[string][][]byte),
-		numCheckpoints:         0,
+		numCheckpoints:         numCheckpoints,
 	}, nil
+}
+
+func getNumCheckpoints(trie data.Trie) uint32 {
+	val, err := trie.Database().Get(numCheckpointsKey)
+	if err != nil {
+		return 0
+	}
+
+	numCheckpoints, err := strconv.Atoi(string(val))
+	if err != nil {
+		log.Warn("could not convert from byte array to uint32", "error", err, "value", val)
+		return 0
+	}
+
+	return uint32(numCheckpoints)
 }
 
 // ImportAccount saves the account in the trie. It does not modify
@@ -872,6 +891,12 @@ func (adb *AccountsDB) increaseNumCheckpoints() {
 	time.Sleep(time.Duration(adb.mainTrie.GetSnapshotDbBatchDelay()) * time.Second)
 
 	atomic.AddUint32(&adb.numCheckpoints, 1)
+	numCheckpoints := int(atomic.LoadUint32(&adb.numCheckpoints))
+
+	err := adb.mainTrie.Database().Put(numCheckpointsKey, []byte(strconv.Itoa(numCheckpoints)))
+	if err != nil {
+		log.Warn("could not add num checkpoints to database", "error", err)
+	}
 }
 
 // IsPruningEnabled returns true if state pruning is enabled
