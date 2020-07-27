@@ -1815,7 +1815,7 @@ func createNodesCoordinator(
 	maxDurationInterval := time.Millisecond * time.Duration(maxDurationBeforeStopProcess)
 
 	log.Debug("closing.NewShuffleOutCloser",
-		"maxDurationInterval", minDurationInterval,
+		"minDurationInterval", minDurationInterval,
 		"maxDurationInterval", maxDurationInterval,
 	)
 
