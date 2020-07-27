@@ -712,7 +712,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 
-	if r.isInWaiting(args.Arguments[0]) {
+	if r.isInWaiting(args.Arguments[0]) || registrationData.Waiting {
 		err = r.removeFromWaitingList(args.Arguments[0])
 		if err != nil {
 			r.eei.AddReturnMessage(err.Error())
