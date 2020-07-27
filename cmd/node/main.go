@@ -828,7 +828,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig.MetaChainMinNodes,
 		genesisNodesConfig.Hysteresis,
 		genesisNodesConfig.Adaptivity,
-		generalConfig.EpochStartConfig.ShuffleBetweenShards,
+		true,
 	)
 
 	destShardIdAsObserver, err := processDestinationShardAsObserver(preferencesConfig.Preferences)
