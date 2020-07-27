@@ -202,3 +202,8 @@ func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
 // SetNewHashes -
 func (ts *TrieStub) SetNewHashes(_ data.ModifiedHashes) {
 }
+
+// GetSnapshotDbBatchDelay -
+func (ts *TrieStub) GetSnapshotDbBatchDelay() int {
+	return 0
+}

@@ -27,6 +27,12 @@ const (
 	peerInfoPath        = "/peerinfo"
 )
 
+// AccStateCheckpointsKey is used as a key for the number of account state checkpoints in the api response
+const AccStateCheckpointsKey = "erd_num_accounts_state_checkpoints"
+
+// PeerStateCheckpointsKey is used as a key for the number of peer state checkpoints in the api response
+const PeerStateCheckpointsKey = "erd_num_peer_state_checkpoints"
+
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
@@ -34,6 +40,8 @@ type FacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetNumCheckpointsFromAccountState() uint32
+	GetNumCheckpointsFromPeerState() uint32
 	IsInterfaceNil() bool
 }
 
@@ -164,6 +172,8 @@ func StatusMetrics(c *gin.Context) {
 	}
 
 	details := facade.StatusMetrics().StatusMetricsMapWithoutP2P()
+	details[AccStateCheckpointsKey] = facade.GetNumCheckpointsFromAccountState()
+	details[PeerStateCheckpointsKey] = facade.GetNumCheckpointsFromPeerState()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
