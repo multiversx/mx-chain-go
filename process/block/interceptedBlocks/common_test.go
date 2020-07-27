@@ -377,6 +377,30 @@ func TestCheckMetaShardInfo_WrongMiniblockReceiverShardIdShouldErr(t *testing.T)
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
 
+func TestCheckMetaShardInfo_ReservedPopulatedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	miniBlock := block.MiniBlockHeader{
+		Hash:            make([]byte, 0),
+		ReceiverShardID: shardCoordinator.SelfId(),
+		SenderShardID:   shardCoordinator.SelfId(),
+		TxCount:         0,
+		Reserved:        []byte("r"),
+	}
+
+	sd := block.ShardData{
+		ShardID:               shardCoordinator.SelfId(),
+		HeaderHash:            nil,
+		ShardMiniBlockHeaders: []block.MiniBlockHeader{miniBlock},
+		TxCount:               0,
+	}
+
+	err := checkMetaShardInfo([]block.ShardData{sd}, shardCoordinator)
+
+	assert.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
+}
+
 func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -448,6 +472,24 @@ func TestCheckMiniblocks_WrongMiniblockReceiverShardIdShouldErr(t *testing.T) {
 	err := checkMiniblocks([]block.MiniBlockHeader{miniblockHeader}, shardCoordinator)
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
+}
+
+func TestCheckMiniblocks_ReservedPopulatedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	miniblockHeader := block.MiniBlockHeader{
+		Hash:            make([]byte, 0),
+		SenderShardID:   shardCoordinator.SelfId(),
+		ReceiverShardID: shardCoordinator.SelfId(),
+		TxCount:         0,
+		Type:            0,
+		Reserved:        []byte("r"),
+	}
+
+	err := checkMiniblocks([]block.MiniBlockHeader{miniblockHeader}, shardCoordinator)
+
+	assert.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
 }
 
 func TestCheckMiniblocks_OkValsShouldWork(t *testing.T) {
