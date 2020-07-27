@@ -2,9 +2,9 @@ package state_test
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -122,7 +122,10 @@ func TestNewAccountsDB_SetsNumCheckpoints(t *testing.T) {
 	numCheckpointsKey := []byte("state checkpoint")
 	numCheckpoints := uint32(121)
 	db := mock.NewMemDbMock()
-	_ = db.Put(numCheckpointsKey, []byte(strconv.Itoa(int(numCheckpoints))))
+
+	numCheckpointsVal := make([]byte, 4)
+	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
+	_ = db.Put(numCheckpointsKey, numCheckpointsVal)
 
 	adb, _ := state.NewAccountsDB(
 		&mock.TrieStub{
@@ -171,10 +174,8 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 	val, err := db.Get(numCheckpointsKey)
 	assert.Nil(t, err)
 
-	numCheckpointsRecovered, err := strconv.Atoi(string(val))
-	assert.Nil(t, err)
-	assert.Equal(t, numCheckpoints, numCheckpointsRecovered)
-
+	numCheckpointsRecovered := binary.BigEndian.Uint32(val)
+	assert.Equal(t, uint32(numCheckpoints), numCheckpointsRecovered)
 	assert.Equal(t, uint32(numCheckpoints), adb.GetNumCheckpoints())
 }
 

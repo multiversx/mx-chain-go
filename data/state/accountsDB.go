@@ -2,9 +2,9 @@ package state
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -77,13 +77,12 @@ func getNumCheckpoints(trie data.Trie) uint32 {
 		return 0
 	}
 
-	numCheckpoints, err := strconv.Atoi(string(val))
-	if err != nil {
-		log.Warn("could not convert from byte array to uint32", "error", err, "value", val)
+	bytesForUint32 := 4
+	if len(val) < bytesForUint32 {
 		return 0
 	}
 
-	return uint32(numCheckpoints)
+	return binary.BigEndian.Uint32(val)
 }
 
 // ImportAccount saves the account in the trie. It does not modify
@@ -889,11 +888,13 @@ func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 
 func (adb *AccountsDB) increaseNumCheckpoints() {
 	time.Sleep(time.Duration(adb.mainTrie.GetSnapshotDbBatchDelay()) * time.Second)
-
 	atomic.AddUint32(&adb.numCheckpoints, 1)
-	numCheckpoints := int(atomic.LoadUint32(&adb.numCheckpoints))
 
-	err := adb.mainTrie.Database().Put(numCheckpointsKey, []byte(strconv.Itoa(numCheckpoints)))
+	numCheckpoints := atomic.LoadUint32(&adb.numCheckpoints)
+	numCheckpointsVal := make([]byte, 4)
+	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
+
+	err := adb.mainTrie.Database().Put(numCheckpointsKey, numCheckpointsVal)
 	if err != nil {
 		log.Warn("could not add num checkpoints to database", "error", err)
 	}
