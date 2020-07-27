@@ -85,6 +85,11 @@ func (sms *StorageManagerStub) ExitSnapshotMode() {
 	}
 }
 
+// GetSnapshotDbBatchDelay -
+func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
+	return 0
+}
+
 // IsInterfaceNil --
 func (sms *StorageManagerStub) IsInterfaceNil() bool {
 	return sms == nil

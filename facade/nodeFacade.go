@@ -386,12 +386,12 @@ func (nf *nodeFacade) Close() error {
 }
 
 // GetNumCheckpointsFromAccountState returns the number of checkpoints of the account state
-func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint {
+func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 	return nf.accountsState.GetNumCheckpoints()
 }
 
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
-func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint {
+func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 	return nf.peerState.GetNumCheckpoints()
 }
 

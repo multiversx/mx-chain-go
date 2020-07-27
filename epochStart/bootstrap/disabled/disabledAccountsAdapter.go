@@ -95,7 +95,7 @@ func (a *accountsAdapter) RecreateAllTries(_ []byte) (map[string]data.Trie, erro
 }
 
 // GetNumCheckpoints -
-func (a *accountsAdapter) GetNumCheckpoints() uint {
+func (a *accountsAdapter) GetNumCheckpoints() uint32 {
 	return 0
 }
 

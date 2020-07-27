@@ -38,8 +38,8 @@ type Facade struct {
 	GetValueForKeyCalled                    func(address string, key string) (string, error)
 	GetPeerInfoCalled                       func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetThrottlerForEndpointCalled           func(endpoint string) (core.Throttler, bool)
-	GetNumCheckpointsFromAccountStateCalled func() uint
-	GetNumCheckpointsFromPeerStateCalled    func() uint
+	GetNumCheckpointsFromAccountStateCalled func() uint32
+	GetNumCheckpointsFromPeerStateCalled    func() uint32
 }
 
 // GetThrottlerForEndpoint -
@@ -175,7 +175,7 @@ func (f *Facade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 }
 
 // GetNumCheckpointsFromAccountState -
-func (f *Facade) GetNumCheckpointsFromAccountState() uint {
+func (f *Facade) GetNumCheckpointsFromAccountState() uint32 {
 	if f.GetNumCheckpointsFromAccountStateCalled != nil {
 		return f.GetNumCheckpointsFromAccountStateCalled()
 	}
@@ -184,7 +184,7 @@ func (f *Facade) GetNumCheckpointsFromAccountState() uint {
 }
 
 // GetNumCheckpointsFromPeerState -
-func (f *Facade) GetNumCheckpointsFromPeerState() uint {
+func (f *Facade) GetNumCheckpointsFromPeerState() uint32 {
 	if f.GetNumCheckpointsFromPeerStateCalled != nil {
 		return f.GetNumCheckpointsFromPeerStateCalled()
 	}

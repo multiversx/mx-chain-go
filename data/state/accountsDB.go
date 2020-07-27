@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -13,8 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
-
-const batchWriteDelay = time.Second * 2
 
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
@@ -30,8 +29,7 @@ type AccountsDB struct {
 	entries      []JournalEntry
 	mutOp        sync.RWMutex
 
-	numCheckpoints      uint
-	numCheckpointsMutex sync.RWMutex
+	numCheckpoints uint32
 }
 
 var log = logger.GetOrCreate("state")
@@ -871,11 +869,9 @@ func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 }
 
 func (adb *AccountsDB) increaseNumCheckpoints() {
-	time.Sleep(batchWriteDelay)
+	time.Sleep(time.Duration(adb.mainTrie.GetSnapshotDbBatchDelay()) * time.Second)
 
-	adb.numCheckpointsMutex.Lock()
-	adb.numCheckpoints++
-	adb.numCheckpointsMutex.Unlock()
+	atomic.AddUint32(&adb.numCheckpoints, 1)
 }
 
 // IsPruningEnabled returns true if state pruning is enabled
@@ -905,11 +901,8 @@ func (adb *AccountsDB) GetAllLeaves(rootHash []byte) (map[string][]byte, error) 
 }
 
 // GetNumCheckpoints returns the total number of state checkpoints
-func (adb *AccountsDB) GetNumCheckpoints() uint {
-	adb.numCheckpointsMutex.RLock()
-	defer adb.numCheckpointsMutex.RUnlock()
-
-	return adb.numCheckpoints
+func (adb *AccountsDB) GetNumCheckpoints() uint32 {
+	return atomic.LoadUint32(&adb.numCheckpoints)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

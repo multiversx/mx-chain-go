@@ -26,7 +26,7 @@ type AccountsStub struct {
 	IsPruningEnabledCalled   func() bool
 	GetAllLeavesCalled       func(rootHash []byte) (map[string][]byte, error)
 	RecreateAllTriesCalled   func(rootHash []byte) (map[string]data.Trie, error)
-	GetNumCheckpointsCalled  func() uint
+	GetNumCheckpointsCalled  func() uint32
 }
 
 // RecreateAllTries -
@@ -171,7 +171,7 @@ func (as *AccountsStub) IsPruningEnabled() bool {
 }
 
 // GetNumCheckpoints -
-func (as *AccountsStub) GetNumCheckpoints() uint {
+func (as *AccountsStub) GetNumCheckpoints() uint32 {
 	if as.GetNumCheckpointsCalled != nil {
 		return as.GetNumCheckpointsCalled()
 	}

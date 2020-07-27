@@ -34,8 +34,8 @@ type FacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetNumCheckpointsFromAccountState() uint
-	GetNumCheckpointsFromPeerState() uint
+	GetNumCheckpointsFromAccountState() uint32
+	GetNumCheckpointsFromPeerState() uint32
 	IsInterfaceNil() bool
 }
 
@@ -56,8 +56,8 @@ type statisticsResponse struct {
 	ShardStatistics            []shardStatisticsResponse `json:"shardStatistics"`
 	LastBlockTxCount           uint32                    `json:"lastBlockTxCount"`
 	NrOfShards                 uint32                    `json:"nrOfShards"`
-	NumAccountStateCheckpoints uint                      `json:"numAccountStateCheckpoints"`
-	NumPeerStateCheckpoints    uint                      `json:"numPeerStateCheckpoints"`
+	NumAccountStateCheckpoints uint32                    `json:"numAccountStateCheckpoints"`
+	NumPeerStateCheckpoints    uint32                    `json:"numPeerStateCheckpoints"`
 }
 
 type shardStatisticsResponse struct {
