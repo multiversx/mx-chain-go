@@ -120,18 +120,28 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 
 func (tdp *txDatabaseProcessor) addScResultInfoInTx(scr *smartContractResult.SmartContractResult, tx *Transaction) *Transaction {
 	dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scr)
-	if tx.Sender != dbScResult.Receiver || len(dbScResult.Data) == 0 {
-		return tx
-	}
+	// now all smart contract results that belongs to a transaction are indexed
+	//if tx.Sender != dbScResult.Receiver || len(dbScResult.Data) == 0 {
+	//	return tx
+	//}
 
 	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 
-	if dbScResult.GasLimit != 0 && dbScResult.Value != "0" {
+	if isSCWithGasUsed(dbScResult, tx) {
 		gasUsed := tx.GasLimit - scr.GasLimit
 		tx.GasUsed = gasUsed
 	}
 
 	return tx
+}
+
+func isSCWithGasUsed(dbScResult ScResult, tx *Transaction) bool {
+	isSCResultWithValue := dbScResult.Value != "0"
+	isSCResultWithGasLimit := dbScResult.GasLimit != 0
+	isSCForSender := tx.Sender == dbScResult.Receiver
+	isSCWithData := len(dbScResult.Data) != 0
+
+	return isSCResultWithGasLimit && isSCResultWithValue && isSCForSender && isSCWithData
 }
 
 func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) TxLog {

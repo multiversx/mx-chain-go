@@ -121,6 +121,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 	)
 
 	transactions := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	assert.Equal(t, 2, len(transactions[0].SmartContractResults))
 	assert.Equal(t, 7, len(transactions))
 
 }
