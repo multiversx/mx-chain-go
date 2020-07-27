@@ -470,7 +470,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		}
 	}()
 
-	numPlayers := 10
+	numPlayers := 6
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
@@ -493,6 +493,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		if genesisSC.GetType() == genesis.DNSType {
 			decodedValue, _ := hex.DecodeString(genesisSC.GetInitParameters())
 			dnsRegisterValue.SetBytes(decodedValue)
+			break
 		}
 	}
 
@@ -505,7 +506,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		return sortedDNSAddresses[i][31] < sortedDNSAddresses[j][31]
 	})
 
-	gasLimit := uint64(1000000)
+	gasLimit := uint64(200000)
 
 	userNames := make([]string, len(players))
 	for i, player := range players {
@@ -521,6 +522,8 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 		)
 		userNames[i] = userName
 	}
+
+	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 15
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)

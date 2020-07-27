@@ -581,11 +581,6 @@ func (txProc *txProcessor) processUserTx(
 			err.Error())
 	}
 
-	// coding error transaction is reverted completely by revert from txPreProcessor
-	if err != nil {
-		return 0, err
-	}
-
 	// no need to add the smart contract result From TX to the intermediate transactions in case of error
 	// returning value is resolved inside smart contract processor or above by executeFailedRelayedTransaction
 	if returnCode != vmcommon.Ok {
