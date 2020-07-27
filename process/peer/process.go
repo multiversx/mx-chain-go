@@ -903,6 +903,8 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 
 		peerAcc.SetTempRating(newRating)
 
+		vs.display(string(peerAcc.GetBLSPublicKey()))
+
 		err = vs.peerAdapter.SaveAccount(peerAcc)
 		if err != nil {
 			return err
@@ -1018,7 +1020,7 @@ func (vs *validatorStatistics) display(validatorKey string) {
 		return
 	}
 
-	log.Trace("validator statistics",
+	log.Debug("validator statistics",
 		"pk", acc.GetBLSPublicKey(),
 		"leader fail", acc.GetLeaderSuccessRate().NumFailure,
 		"leader success", acc.GetLeaderSuccessRate().NumSuccess,
