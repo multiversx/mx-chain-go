@@ -576,11 +576,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.AddressPubkeyConverter)
 	if err != nil {
-		return fmt.Errorf("%w for AddressPubkeyConverter", err)
+		return fmt.Errorf("%w for AddressPubKeyConverter", err)
 	}
 	validatorPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.ValidatorPubkeyConverter)
 	if err != nil {
-		return fmt.Errorf("%w for AddressPubkeyConverter", err)
+		return fmt.Errorf("%w for ValidatorPubkeyConverter", err)
 	}
 
 	//TODO when refactoring main, maybe initialize economics data before this line
@@ -592,15 +592,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
+	exportFolder := filepath.Join(workingDir, generalConfig.Hardfork.ImportFolder)
+	nodesSetupPath := ctx.GlobalString(nodesFile.Name)
+	if generalConfig.Hardfork.AfterHardFork {
+		exportFolderNodesSetupPath := filepath.Join(exportFolder, core.NodesSetupJsonFileName)
+		if !core.DoesFileExist(exportFolderNodesSetupPath) {
+			return fmt.Errorf("cannot find %s in the export folder", core.NodesSetupJsonFileName)
+		}
+
+		nodesSetupPath = exportFolderNodesSetupPath
+	}
 	genesisNodesConfig, err := sharding.NewNodesSetup(
-		ctx.GlobalString(nodesFile.Name),
+		nodesSetupPath,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
 	)
 	if err != nil {
 		return err
 	}
-	log.Debug("config", "file", ctx.GlobalString(nodesFile.Name))
+	log.Debug("config", "file", nodesSetupPath)
+
+	if generalConfig.Hardfork.AfterHardFork {
+		log.Debug("changed genesis time after hardfork",
+			"old genesis time", genesisNodesConfig.StartTime,
+			"new genesis time", generalConfig.Hardfork.GenesisTime)
+		genesisNodesConfig.StartTime = generalConfig.Hardfork.GenesisTime
+	}
 
 	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, nil)
 	syncer.StartSyncingTime()
@@ -1245,6 +1262,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		chanStopNodeProcess,
 		epochStartNotifier,
 		importStartHandler,
+		genesisNodesConfig,
 		workingDir,
 	)
 	if err != nil {
@@ -1953,6 +1971,7 @@ func createHardForkTrigger(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	epochNotifier factory.EpochStartNotifier,
 	importStartHandler update.ImportStartHandler,
+	nodesSetup update.GenesisNodesSetupHandler,
 	workingDir string,
 ) (node.HardforkTrigger, error) {
 
@@ -1993,7 +2012,8 @@ func createHardForkTrigger(
 		MultiSigner:              crypto.MultiSigner,
 		NodesCoordinator:         nodesCoordinator,
 		SingleSigner:             crypto.TxSingleSigner,
-		AddressPubkeyConverter:   stateComponents.AddressPubkeyConverter,
+		AddressPubKeyConverter:   stateComponents.AddressPubkeyConverter,
+		ValidatorPubKeyConverter: stateComponents.ValidatorPubkeyConverter,
 		BlockKeyGen:              keyGen,
 		KeyGen:                   crypto.TxSignKeyGen,
 		BlockSigner:              crypto.SingleSigner,
@@ -2005,6 +2025,7 @@ func createHardForkTrigger(
 		ValidityAttester:         process.BlockTracker,
 		ChainID:                  coreData.ChainID,
 		Rounder:                  process.Rounder,
+		GenesisNodesSetupHandler: nodesSetup,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {

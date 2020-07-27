@@ -22,6 +22,7 @@ type TrieStub struct {
 	GetAllHashesCalled          func() ([][]byte, error)
 	DatabaseCalled              func() data.DBWriteCacher
 	GetAllLeavesOnChannelCalled func() chan core.KeyValueHolder
+	GetAllLeavesCalled          func() (map[string][]byte, error)
 }
 
 // EnterSnapshotMode -
@@ -42,6 +43,10 @@ func (ts *TrieStub) SetCheckpoint(_ []byte) {
 
 // GetAllLeaves -
 func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
+	if ts.GetAllLeavesCalled != nil {
+		return ts.GetAllLeavesCalled()
+	}
+
 	return nil, nil
 }
 
