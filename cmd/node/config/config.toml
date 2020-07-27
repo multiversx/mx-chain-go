@@ -454,8 +454,6 @@
     # has been shuffled out has to restart its process in order to start in a new shard
     ShuffledOutRestartThreshold = 0.25
 
-    # ShuffleBetweenShards enables the shuffling of validators between shards at the end of epoch
-    ShuffleBetweenShards = true
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
 

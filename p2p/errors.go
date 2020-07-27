@@ -131,3 +131,9 @@ var ErrNilStatusHandler = errors.New("nil status handler")
 // ErrMessageUnmarshalError signals that an invalid message was received from a peer. There is no way to communicate
 // with such a peer as it does not respect the protocol
 var ErrMessageUnmarshalError = errors.New("message unmarshal error")
+
+// ErrUnsupportedFields signals that unsupported fields are provided
+var ErrUnsupportedFields = errors.New("unsupported fields")
+
+// ErrUnsupportedMessageVersion signals that an unsupported message version was detected
+var ErrUnsupportedMessageVersion = errors.New("unsupported message version")
