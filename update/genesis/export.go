@@ -1,11 +1,13 @@
 package genesis
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"sort"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -371,6 +373,17 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 			}
 		}
 	}
+
+	sort.Slice(initialNodes, func(i, j int) bool {
+		if initialNodes[i].AssignedShard() > initialNodes[j].AssignedShard() {
+			return true
+		}
+		if initialNodes[i].AssignedShard() < initialNodes[j].AssignedShard() {
+			return false
+		}
+
+		return bytes.Compare(initialNodes[i].PubKeyBytes(), initialNodes[j].PubKeyBytes()) > 0
+	})
 
 	genesisNodesSetupHandler := se.genesisNodesSetupHandler
 	nodesSetup := &sharding.NodesSetup{
