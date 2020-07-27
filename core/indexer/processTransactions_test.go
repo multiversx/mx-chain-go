@@ -54,10 +54,14 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 	scHash1 := []byte("scHash1")
 	scResult1 := &smartContractResult.SmartContractResult{
 		OriginalTxHash: txHash1,
+		PrevTxHash:     txHash1,
+		GasLimit:       1,
 	}
 	scHash2 := []byte("scHash2")
 	scResult2 := &smartContractResult.SmartContractResult{
 		OriginalTxHash: txHash1,
+		PrevTxHash:     txHash1,
+		GasLimit:       1,
 	}
 	scHash3 := []byte("scHash3")
 	scResult3 := &smartContractResult.SmartContractResult{
