@@ -75,7 +75,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	assert.True(t, stakedData.Staked)
 }
 
-func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondTheWaiting(t *testing.T) {
+func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T) {
 	t.Parallel()
 
 	stakerAddress := []byte("address")
