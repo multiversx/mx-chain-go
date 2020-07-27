@@ -20,14 +20,16 @@ message ValidatorApiResponse {
     uint32 NumLeaderFailure = 3 [(gogoproto.jsontag) = "numLeaderFailure"];
     uint32 NumValidatorSuccess = 4 [(gogoproto.jsontag) = "numValidatorSuccess"];
     uint32 NumValidatorFailure = 5 [(gogoproto.jsontag) = "numValidatorFailure"];
-    float Rating = 6 [(gogoproto.jsontag) = "rating"];
-    float RatingModifier = 7 [(gogoproto.jsontag) = "ratingModifier"];
-    uint32 TotalNumLeaderSuccess = 8 [(gogoproto.jsontag) = "totalNumLeaderSuccess"];
-    uint32 TotalNumLeaderFailure = 9 [(gogoproto.jsontag) = "totalNumLeaderFailure"];
-    uint32 TotalNumValidatorSuccess = 10 [(gogoproto.jsontag) = "totalNumValidatorSuccess"];
-    uint32 TotalNumValidatorFailure = 11 [(gogoproto.jsontag) = "totalNumValidatorFailure"];
-    uint32 ShardId = 12 [(gogoproto.jsontag) = "shardId"];
-    string ValidatorStatus = 13 [(gogoproto.jsontag) = "validatorStatus"];
+    uint32 NumValidatorIgnoredSignatures = 6 [(gogoproto.jsontag) = "numValidatorIgnoredSignatures"];
+    float Rating = 7 [(gogoproto.jsontag) = "rating"];
+    float RatingModifier = 8 [(gogoproto.jsontag) = "ratingModifier"];
+    uint32 TotalNumLeaderSuccess = 9 [(gogoproto.jsontag) = "totalNumLeaderSuccess"];
+    uint32 TotalNumLeaderFailure = 10 [(gogoproto.jsontag) = "totalNumLeaderFailure"];
+    uint32 TotalNumValidatorSuccess = 11 [(gogoproto.jsontag) = "totalNumValidatorSuccess"];
+    uint32 TotalNumValidatorFailure = 12 [(gogoproto.jsontag) = "totalNumValidatorFailure"];
+    uint32 TotalNumValidatorIgnoredSignatures = 13 [(gogoproto.jsontag) = "totalNumValidatorIgnoredSignatures"];
+    uint32 ShardId = 14 [(gogoproto.jsontag) = "shardId"];
+    string ValidatorStatus = 15 [(gogoproto.jsontag) = "validatorStatus"];
 }
 
 // PeerAccountData represents the data that defines the PeerAccount
@@ -37,15 +39,17 @@ message PeerAccountData {
     uint32 ShardId = 3;
     SignRate ValidatorSuccessRate = 4 [(gogoproto.nullable) = false];
     SignRate LeaderSuccessRate = 5 [(gogoproto.nullable) = false];
-    uint32 Rating = 6;
-    uint32 TempRating = 7;
-    bytes AccumulatedFees = 8 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    uint32 NumSelectedInSuccessBlocks = 9;
-	uint32 IndexInList = 10;
-	string List        = 11;
-    uint32 ConsecutiveProposerMisses = 12;
-    SignRate TotalValidatorSuccessRate = 13 [(gogoproto.nullable) = false];
-    SignRate TotalLeaderSuccessRate = 14 [(gogoproto.nullable) = false];
-    uint64 Nonce = 15;
-    uint32 UnStakedEpoch = 16;
+    uint32 ValidatorIgnoredSignaturesRate = 6;
+    uint32 Rating = 7;
+    uint32 TempRating = 8;
+    bytes AccumulatedFees = 9 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    uint32 NumSelectedInSuccessBlocks = 10;
+	uint32 IndexInList = 11;
+	string List        = 12;
+    uint32 ConsecutiveProposerMisses = 13;
+    SignRate TotalValidatorSuccessRate = 14 [(gogoproto.nullable) = false];
+    SignRate TotalLeaderSuccessRate = 15 [(gogoproto.nullable) = false];
+    uint32 TotalValidatorIgnoredSignaturesRate = 16;
+    uint64 Nonce = 17;
+    uint32 UnStakedEpoch = 18;
 }

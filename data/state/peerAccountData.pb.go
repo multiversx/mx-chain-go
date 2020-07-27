@@ -79,19 +79,21 @@ func (m *SignRate) GetNumFailure() uint32 {
 
 // ValidatorApiResponse represents the data which is fetched from each validator for returning it in API call
 type ValidatorApiResponse struct {
-	TempRating               float32 `protobuf:"fixed32,1,opt,name=TempRating,proto3" json:"tempRating"`
-	NumLeaderSuccess         uint32  `protobuf:"varint,2,opt,name=NumLeaderSuccess,proto3" json:"numLeaderSuccess"`
-	NumLeaderFailure         uint32  `protobuf:"varint,3,opt,name=NumLeaderFailure,proto3" json:"numLeaderFailure"`
-	NumValidatorSuccess      uint32  `protobuf:"varint,4,opt,name=NumValidatorSuccess,proto3" json:"numValidatorSuccess"`
-	NumValidatorFailure      uint32  `protobuf:"varint,5,opt,name=NumValidatorFailure,proto3" json:"numValidatorFailure"`
-	Rating                   float32 `protobuf:"fixed32,6,opt,name=Rating,proto3" json:"rating"`
-	RatingModifier           float32 `protobuf:"fixed32,7,opt,name=RatingModifier,proto3" json:"ratingModifier"`
-	TotalNumLeaderSuccess    uint32  `protobuf:"varint,8,opt,name=TotalNumLeaderSuccess,proto3" json:"totalNumLeaderSuccess"`
-	TotalNumLeaderFailure    uint32  `protobuf:"varint,9,opt,name=TotalNumLeaderFailure,proto3" json:"totalNumLeaderFailure"`
-	TotalNumValidatorSuccess uint32  `protobuf:"varint,10,opt,name=TotalNumValidatorSuccess,proto3" json:"totalNumValidatorSuccess"`
-	TotalNumValidatorFailure uint32  `protobuf:"varint,11,opt,name=TotalNumValidatorFailure,proto3" json:"totalNumValidatorFailure"`
-	ShardId                  uint32  `protobuf:"varint,12,opt,name=ShardId,proto3" json:"shardId"`
-	ValidatorStatus          string  `protobuf:"bytes,13,opt,name=ValidatorStatus,proto3" json:"validatorStatus"`
+	TempRating                         float32 `protobuf:"fixed32,1,opt,name=TempRating,proto3" json:"tempRating"`
+	NumLeaderSuccess                   uint32  `protobuf:"varint,2,opt,name=NumLeaderSuccess,proto3" json:"numLeaderSuccess"`
+	NumLeaderFailure                   uint32  `protobuf:"varint,3,opt,name=NumLeaderFailure,proto3" json:"numLeaderFailure"`
+	NumValidatorSuccess                uint32  `protobuf:"varint,4,opt,name=NumValidatorSuccess,proto3" json:"numValidatorSuccess"`
+	NumValidatorFailure                uint32  `protobuf:"varint,5,opt,name=NumValidatorFailure,proto3" json:"numValidatorFailure"`
+	NumValidatorIgnoredSignatures      uint32  `protobuf:"varint,6,opt,name=NumValidatorIgnoredSignatures,proto3" json:"numValidatorIgnoredSignatures"`
+	Rating                             float32 `protobuf:"fixed32,7,opt,name=Rating,proto3" json:"rating"`
+	RatingModifier                     float32 `protobuf:"fixed32,8,opt,name=RatingModifier,proto3" json:"ratingModifier"`
+	TotalNumLeaderSuccess              uint32  `protobuf:"varint,9,opt,name=TotalNumLeaderSuccess,proto3" json:"totalNumLeaderSuccess"`
+	TotalNumLeaderFailure              uint32  `protobuf:"varint,10,opt,name=TotalNumLeaderFailure,proto3" json:"totalNumLeaderFailure"`
+	TotalNumValidatorSuccess           uint32  `protobuf:"varint,11,opt,name=TotalNumValidatorSuccess,proto3" json:"totalNumValidatorSuccess"`
+	TotalNumValidatorFailure           uint32  `protobuf:"varint,12,opt,name=TotalNumValidatorFailure,proto3" json:"totalNumValidatorFailure"`
+	TotalNumValidatorIgnoredSignatures uint32  `protobuf:"varint,13,opt,name=TotalNumValidatorIgnoredSignatures,proto3" json:"totalNumValidatorIgnoredSignatures"`
+	ShardId                            uint32  `protobuf:"varint,14,opt,name=ShardId,proto3" json:"shardId"`
+	ValidatorStatus                    string  `protobuf:"bytes,15,opt,name=ValidatorStatus,proto3" json:"validatorStatus"`
 }
 
 func (m *ValidatorApiResponse) Reset()      { *m = ValidatorApiResponse{} }
@@ -157,6 +159,13 @@ func (m *ValidatorApiResponse) GetNumValidatorFailure() uint32 {
 	return 0
 }
 
+func (m *ValidatorApiResponse) GetNumValidatorIgnoredSignatures() uint32 {
+	if m != nil {
+		return m.NumValidatorIgnoredSignatures
+	}
+	return 0
+}
+
 func (m *ValidatorApiResponse) GetRating() float32 {
 	if m != nil {
 		return m.Rating
@@ -199,6 +208,13 @@ func (m *ValidatorApiResponse) GetTotalNumValidatorFailure() uint32 {
 	return 0
 }
 
+func (m *ValidatorApiResponse) GetTotalNumValidatorIgnoredSignatures() uint32 {
+	if m != nil {
+		return m.TotalNumValidatorIgnoredSignatures
+	}
+	return 0
+}
+
 func (m *ValidatorApiResponse) GetShardId() uint32 {
 	if m != nil {
 		return m.ShardId
@@ -215,22 +231,24 @@ func (m *ValidatorApiResponse) GetValidatorStatus() string {
 
 // PeerAccountData represents the data that defines the PeerAccount
 type PeerAccountData struct {
-	BLSPublicKey               []byte        `protobuf:"bytes,1,opt,name=BLSPublicKey,proto3" json:"BLSPublicKey,omitempty"`
-	RewardAddress              []byte        `protobuf:"bytes,2,opt,name=RewardAddress,proto3" json:"RewardAddress,omitempty"`
-	ShardId                    uint32        `protobuf:"varint,3,opt,name=ShardId,proto3" json:"ShardId,omitempty"`
-	ValidatorSuccessRate       SignRate      `protobuf:"bytes,4,opt,name=ValidatorSuccessRate,proto3" json:"ValidatorSuccessRate"`
-	LeaderSuccessRate          SignRate      `protobuf:"bytes,5,opt,name=LeaderSuccessRate,proto3" json:"LeaderSuccessRate"`
-	Rating                     uint32        `protobuf:"varint,6,opt,name=Rating,proto3" json:"Rating,omitempty"`
-	TempRating                 uint32        `protobuf:"varint,7,opt,name=TempRating,proto3" json:"TempRating,omitempty"`
-	AccumulatedFees            *math_big.Int `protobuf:"bytes,8,opt,name=AccumulatedFees,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFees,omitempty"`
-	NumSelectedInSuccessBlocks uint32        `protobuf:"varint,9,opt,name=NumSelectedInSuccessBlocks,proto3" json:"NumSelectedInSuccessBlocks,omitempty"`
-	IndexInList                uint32        `protobuf:"varint,10,opt,name=IndexInList,proto3" json:"IndexInList,omitempty"`
-	List                       string        `protobuf:"bytes,11,opt,name=List,proto3" json:"List,omitempty"`
-	ConsecutiveProposerMisses  uint32        `protobuf:"varint,12,opt,name=ConsecutiveProposerMisses,proto3" json:"ConsecutiveProposerMisses,omitempty"`
-	TotalValidatorSuccessRate  SignRate      `protobuf:"bytes,13,opt,name=TotalValidatorSuccessRate,proto3" json:"TotalValidatorSuccessRate"`
-	TotalLeaderSuccessRate     SignRate      `protobuf:"bytes,14,opt,name=TotalLeaderSuccessRate,proto3" json:"TotalLeaderSuccessRate"`
-	Nonce                      uint64        `protobuf:"varint,15,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
-	UnStakedEpoch              uint32        `protobuf:"varint,16,opt,name=UnStakedEpoch,proto3" json:"UnStakedEpoch,omitempty"`
+	BLSPublicKey                        []byte        `protobuf:"bytes,1,opt,name=BLSPublicKey,proto3" json:"BLSPublicKey,omitempty"`
+	RewardAddress                       []byte        `protobuf:"bytes,2,opt,name=RewardAddress,proto3" json:"RewardAddress,omitempty"`
+	ShardId                             uint32        `protobuf:"varint,3,opt,name=ShardId,proto3" json:"ShardId,omitempty"`
+	ValidatorSuccessRate                SignRate      `protobuf:"bytes,4,opt,name=ValidatorSuccessRate,proto3" json:"ValidatorSuccessRate"`
+	LeaderSuccessRate                   SignRate      `protobuf:"bytes,5,opt,name=LeaderSuccessRate,proto3" json:"LeaderSuccessRate"`
+	ValidatorIgnoredSignaturesRate      uint32        `protobuf:"varint,6,opt,name=ValidatorIgnoredSignaturesRate,proto3" json:"ValidatorIgnoredSignaturesRate,omitempty"`
+	Rating                              uint32        `protobuf:"varint,7,opt,name=Rating,proto3" json:"Rating,omitempty"`
+	TempRating                          uint32        `protobuf:"varint,8,opt,name=TempRating,proto3" json:"TempRating,omitempty"`
+	AccumulatedFees                     *math_big.Int `protobuf:"bytes,9,opt,name=AccumulatedFees,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFees,omitempty"`
+	NumSelectedInSuccessBlocks          uint32        `protobuf:"varint,10,opt,name=NumSelectedInSuccessBlocks,proto3" json:"NumSelectedInSuccessBlocks,omitempty"`
+	IndexInList                         uint32        `protobuf:"varint,11,opt,name=IndexInList,proto3" json:"IndexInList,omitempty"`
+	List                                string        `protobuf:"bytes,12,opt,name=List,proto3" json:"List,omitempty"`
+	ConsecutiveProposerMisses           uint32        `protobuf:"varint,13,opt,name=ConsecutiveProposerMisses,proto3" json:"ConsecutiveProposerMisses,omitempty"`
+	TotalValidatorSuccessRate           SignRate      `protobuf:"bytes,14,opt,name=TotalValidatorSuccessRate,proto3" json:"TotalValidatorSuccessRate"`
+	TotalLeaderSuccessRate              SignRate      `protobuf:"bytes,15,opt,name=TotalLeaderSuccessRate,proto3" json:"TotalLeaderSuccessRate"`
+	TotalValidatorIgnoredSignaturesRate uint32        `protobuf:"varint,16,opt,name=TotalValidatorIgnoredSignaturesRate,proto3" json:"TotalValidatorIgnoredSignaturesRate,omitempty"`
+	Nonce                               uint64        `protobuf:"varint,17,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
+	UnStakedEpoch                       uint32        `protobuf:"varint,18,opt,name=UnStakedEpoch,proto3" json:"UnStakedEpoch,omitempty"`
 }
 
 func (m *PeerAccountData) Reset()      { *m = PeerAccountData{} }
@@ -296,6 +314,13 @@ func (m *PeerAccountData) GetLeaderSuccessRate() SignRate {
 	return SignRate{}
 }
 
+func (m *PeerAccountData) GetValidatorIgnoredSignaturesRate() uint32 {
+	if m != nil {
+		return m.ValidatorIgnoredSignaturesRate
+	}
+	return 0
+}
+
 func (m *PeerAccountData) GetRating() uint32 {
 	if m != nil {
 		return m.Rating
@@ -359,6 +384,13 @@ func (m *PeerAccountData) GetTotalLeaderSuccessRate() SignRate {
 	return SignRate{}
 }
 
+func (m *PeerAccountData) GetTotalValidatorIgnoredSignaturesRate() uint32 {
+	if m != nil {
+		return m.TotalValidatorIgnoredSignaturesRate
+	}
+	return 0
+}
+
 func (m *PeerAccountData) GetNonce() uint64 {
 	if m != nil {
 		return m.Nonce
@@ -382,58 +414,63 @@ func init() {
 func init() { proto.RegisterFile("peerAccountData.proto", fileDescriptor_26bd0314afcce126) }
 
 var fileDescriptor_26bd0314afcce126 = []byte{
-	// 814 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x54, 0xcd, 0x6e, 0xeb, 0x44,
-	0x14, 0x8e, 0x2f, 0xf9, 0xb9, 0x9d, 0xfc, 0x95, 0x69, 0x7b, 0x71, 0xaf, 0xd0, 0x38, 0x8a, 0x40,
-	0xea, 0xe6, 0x26, 0x12, 0xec, 0xf8, 0x8f, 0x4b, 0xaf, 0x64, 0x68, 0x43, 0x35, 0x29, 0x08, 0xb1,
-	0x9b, 0xd8, 0x53, 0xc7, 0xaa, 0xe3, 0x89, 0xc6, 0xe3, 0x16, 0x76, 0x3c, 0x02, 0x8f, 0x81, 0x78,
-	0x0c, 0x56, 0x5d, 0x76, 0xd9, 0x95, 0xa1, 0xee, 0x06, 0x79, 0xd5, 0x07, 0x60, 0x71, 0x95, 0x71,
-	0x9c, 0xc6, 0xb1, 0x93, 0x55, 0x3c, 0xe7, 0xfb, 0xce, 0x97, 0xef, 0xcc, 0x9c, 0x73, 0xc0, 0xc1,
-	0x8c, 0x52, 0x3e, 0x30, 0x4d, 0x16, 0x78, 0xe2, 0x5b, 0x22, 0x48, 0x6f, 0xc6, 0x99, 0x60, 0xb0,
-	0x22, 0x7f, 0x5e, 0xbf, 0xb1, 0x1d, 0x31, 0x09, 0xc6, 0x3d, 0x93, 0x4d, 0xfb, 0x36, 0xb3, 0x59,
-	0x5f, 0x86, 0xc7, 0xc1, 0xa5, 0x3c, 0xc9, 0x83, 0xfc, 0x4a, 0xb2, 0xba, 0xdf, 0x81, 0x97, 0x23,
-	0xc7, 0xf6, 0x30, 0x11, 0x14, 0x22, 0x00, 0x86, 0xc1, 0x74, 0x14, 0x98, 0x26, 0xf5, 0x7d, 0x55,
-	0xe9, 0x28, 0x47, 0x4d, 0xbc, 0x12, 0x59, 0xe0, 0x6f, 0x89, 0xe3, 0x06, 0x9c, 0xaa, 0x2f, 0x96,
-	0xf8, 0x22, 0xd2, 0xfd, 0xbf, 0x0a, 0xf6, 0x7f, 0x22, 0xae, 0x63, 0x11, 0xc1, 0xf8, 0x60, 0xe6,
-	0x60, 0xea, 0xcf, 0x98, 0xe7, 0x53, 0xd8, 0x03, 0xe0, 0x82, 0x4e, 0x67, 0x98, 0x08, 0xc7, 0xb3,
-	0xa5, 0xf0, 0x0b, 0xbd, 0x15, 0x87, 0x1a, 0x10, 0xcb, 0x28, 0x5e, 0x61, 0xc0, 0x6f, 0xc0, 0xee,
-	0x30, 0x98, 0x9e, 0x52, 0x62, 0x51, 0x9e, 0xda, 0x91, 0x7f, 0xa7, 0xef, 0xc7, 0xa1, 0xb6, 0xeb,
-	0xad, 0x61, 0x38, 0xc7, 0xce, 0x28, 0xa4, 0x86, 0xdf, 0x2b, 0x50, 0x58, 0x60, 0x38, 0xc7, 0x86,
-	0x06, 0xd8, 0x1b, 0x06, 0xd3, 0x65, 0x39, 0xa9, 0x8d, 0xb2, 0x14, 0xf9, 0x20, 0x0e, 0xb5, 0x3d,
-	0x2f, 0x0f, 0xe3, 0xa2, 0x9c, 0x75, 0xa9, 0xd4, 0x4f, 0xa5, 0x58, 0x2a, 0xb5, 0x54, 0x94, 0x03,
-	0xbb, 0xa0, 0xba, 0xb8, 0xc5, 0xaa, 0xbc, 0x45, 0x10, 0x87, 0x5a, 0x95, 0x27, 0x37, 0xb8, 0x40,
-	0xe0, 0x67, 0xa0, 0x95, 0x7c, 0x9d, 0x31, 0xcb, 0xb9, 0x74, 0x28, 0x57, 0x6b, 0x92, 0x0b, 0xe3,
-	0x50, 0x6b, 0xf1, 0x0c, 0x82, 0xd7, 0x98, 0xf0, 0x07, 0x70, 0x70, 0xc1, 0x04, 0x71, 0x73, 0xd7,
-	0xff, 0x52, 0x9a, 0x3d, 0x8c, 0x43, 0xed, 0x40, 0x14, 0x11, 0x70, 0x71, 0x5e, 0x5e, 0x30, 0xad,
-	0x7e, 0x67, 0x93, 0x60, 0x5a, 0x7f, 0x71, 0x1e, 0xfc, 0x19, 0xa8, 0x29, 0x90, 0x7b, 0x1c, 0x20,
-	0x35, 0x3f, 0x8c, 0x43, 0x4d, 0x15, 0x1b, 0x38, 0x78, 0x63, 0x76, 0xa1, 0x72, 0xea, 0xb6, 0xbe,
-	0x45, 0x39, 0x35, 0xbc, 0x31, 0x1b, 0x7e, 0x0c, 0x6a, 0xa3, 0x09, 0xe1, 0x96, 0x61, 0xa9, 0x0d,
-	0x29, 0x54, 0x8f, 0x43, 0xad, 0xe6, 0x27, 0x21, 0x9c, 0x62, 0xf0, 0x4b, 0xd0, 0x7e, 0x36, 0x25,
-	0x88, 0x08, 0x7c, 0xb5, 0xd9, 0x51, 0x8e, 0x76, 0xf4, 0xbd, 0x38, 0xd4, 0xda, 0xd7, 0x59, 0x08,
-	0xaf, 0x73, 0xbb, 0x7f, 0x57, 0x41, 0xfb, 0x3c, 0xbb, 0x1a, 0x60, 0x17, 0x34, 0xf4, 0xd3, 0xd1,
-	0x79, 0x30, 0x76, 0x1d, 0xf3, 0x7b, 0xfa, 0x9b, 0x9c, 0xbd, 0x06, 0xce, 0xc4, 0xe0, 0x47, 0xa0,
-	0x89, 0xe9, 0x0d, 0xe1, 0xd6, 0xc0, 0xb2, 0x78, 0x3a, 0x6a, 0x0d, 0x9c, 0x0d, 0x42, 0xf5, 0xb9,
-	0x06, 0x39, 0x48, 0xcf, 0xb6, 0x8d, 0x95, 0xa9, 0x4f, 0x6f, 0x99, 0x08, 0x2a, 0x47, 0xa5, 0xfe,
-	0x49, 0x3b, 0x59, 0x34, 0xbd, 0x74, 0xcb, 0xe8, 0xe5, 0xdb, 0x50, 0x2b, 0xe1, 0xc2, 0x14, 0x78,
-	0x0c, 0xde, 0xcf, 0x76, 0xd5, 0x5c, 0xa7, 0xb2, 0x4d, 0x27, 0xcf, 0x87, 0xaf, 0x32, 0x33, 0xd2,
-	0x5c, 0xce, 0x05, 0xca, 0x6c, 0xa1, 0x5a, 0xb2, 0xbe, 0x56, 0xb6, 0x0e, 0x03, 0xed, 0x81, 0x69,
-	0x06, 0xd3, 0xc0, 0x25, 0x82, 0x5a, 0x6f, 0x29, 0x4d, 0xba, 0xbe, 0xa1, 0x9f, 0xfc, 0xf5, 0x8f,
-	0x36, 0x98, 0x12, 0x31, 0xe9, 0x8f, 0x1d, 0xbb, 0x67, 0x78, 0xe2, 0xf3, 0x95, 0x1d, 0x7b, 0xe2,
-	0x72, 0xe6, 0x59, 0x43, 0x2a, 0x6e, 0x18, 0xbf, 0xea, 0x53, 0x79, 0x7a, 0x63, 0xb3, 0xbe, 0x35,
-	0xdf, 0xcc, 0xba, 0x63, 0x1b, 0x9e, 0x38, 0x26, 0xbe, 0xa0, 0x1c, 0xaf, 0xab, 0xc3, 0xaf, 0xc0,
-	0xeb, 0xf9, 0x76, 0xa5, 0x2e, 0x35, 0x05, 0xb5, 0x0c, 0x6f, 0x51, 0x84, 0xee, 0x32, 0xf3, 0xca,
-	0x4f, 0x06, 0x04, 0x6f, 0x61, 0xc0, 0x0e, 0xa8, 0x1b, 0x9e, 0x45, 0x7f, 0x35, 0xbc, 0x53, 0xc7,
-	0x17, 0x49, 0xf7, 0xe3, 0xd5, 0x10, 0x84, 0xa0, 0x2c, 0xa1, 0x79, 0xfb, 0xee, 0x60, 0xf9, 0x0d,
-	0xbf, 0x00, 0x87, 0xc7, 0xf3, 0xad, 0x6c, 0x06, 0xc2, 0xb9, 0xa6, 0xe7, 0x9c, 0xcd, 0x98, 0x4f,
-	0xf9, 0x99, 0xe3, 0xfb, 0xd4, 0x4f, 0xda, 0x13, 0x6f, 0x26, 0xc0, 0x11, 0x38, 0x94, 0x6d, 0x5e,
-	0xf8, 0xe2, 0xcd, 0x6d, 0x2f, 0xb5, 0x39, 0x0f, 0x9e, 0x81, 0x57, 0x12, 0xcc, 0xbf, 0x7d, 0x6b,
-	0x9b, 0xe2, 0x86, 0x24, 0xb8, 0x0f, 0x2a, 0x43, 0xe6, 0x99, 0x54, 0x6d, 0x77, 0x94, 0xa3, 0x32,
-	0x4e, 0x0e, 0xf3, 0x36, 0xff, 0xd1, 0x1b, 0x09, 0x72, 0x45, 0xad, 0x93, 0x19, 0x33, 0x27, 0xea,
-	0xae, 0xac, 0x35, 0x1b, 0xd4, 0xbf, 0xbe, 0x7b, 0x40, 0xa5, 0xfb, 0x07, 0x54, 0x7a, 0x7a, 0x40,
-	0xca, 0xef, 0x11, 0x52, 0xfe, 0x8c, 0x90, 0x72, 0x1b, 0x21, 0xe5, 0x2e, 0x42, 0xca, 0x7d, 0x84,
-	0x94, 0x7f, 0x23, 0xa4, 0xfc, 0x17, 0xa1, 0xd2, 0x53, 0x84, 0x94, 0x3f, 0x1e, 0x51, 0xe9, 0xee,
-	0x11, 0x95, 0xee, 0x1f, 0x51, 0xe9, 0x97, 0x8a, 0x2f, 0x88, 0xa0, 0xe3, 0xaa, 0xb4, 0xfa, 0xe9,
-	0xbb, 0x00, 0x00, 0x00, 0xff, 0xff, 0x91, 0xee, 0x1d, 0x40, 0xa6, 0x07, 0x00, 0x00,
+	// 892 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x55, 0xcb, 0x72, 0xdb, 0x36,
+	0x14, 0x15, 0x53, 0xcb, 0x8f, 0x6b, 0x59, 0x72, 0x60, 0x3b, 0xa5, 0x33, 0x0d, 0xe8, 0xaa, 0x8f,
+	0xf1, 0x26, 0xd2, 0x4c, 0xbb, 0xeb, 0x5b, 0x74, 0xed, 0x19, 0xb6, 0xb6, 0xea, 0x81, 0xd2, 0x4e,
+	0xa7, 0x3b, 0x88, 0x44, 0x68, 0x8e, 0x25, 0x42, 0x03, 0x82, 0x4e, 0xbb, 0xeb, 0x27, 0xf4, 0x33,
+	0x3a, 0xfd, 0x92, 0x2c, 0xbd, 0xf4, 0xa2, 0x65, 0x6b, 0x79, 0xd3, 0xe1, 0x2a, 0x9f, 0x90, 0x11,
+	0x28, 0xca, 0xa2, 0x48, 0x31, 0x59, 0x91, 0xb8, 0xe7, 0xdc, 0x83, 0x0b, 0xdc, 0x07, 0x60, 0x6f,
+	0xc4, 0x98, 0xe8, 0xd8, 0x36, 0x0f, 0x7d, 0xf9, 0x2d, 0x95, 0xb4, 0x35, 0x12, 0x5c, 0x72, 0x54,
+	0x55, 0x9f, 0xc7, 0x4f, 0x5d, 0x4f, 0x5e, 0x84, 0xfd, 0x96, 0xcd, 0x87, 0x6d, 0x97, 0xbb, 0xbc,
+	0xad, 0xcc, 0xfd, 0xf0, 0xb9, 0x5a, 0xa9, 0x85, 0xfa, 0x4b, 0xbc, 0x9a, 0xdf, 0xc1, 0x7a, 0xcf,
+	0x73, 0x7d, 0x42, 0x25, 0x43, 0x18, 0xa0, 0x1b, 0x0e, 0x7b, 0xa1, 0x6d, 0xb3, 0x20, 0xd0, 0xb5,
+	0x03, 0xed, 0x70, 0x8b, 0xcc, 0x59, 0xa6, 0xf8, 0x09, 0xf5, 0x06, 0xa1, 0x60, 0xfa, 0x83, 0x19,
+	0x3e, 0xb5, 0x34, 0xff, 0x59, 0x87, 0xdd, 0x9f, 0xe8, 0xc0, 0x73, 0xa8, 0xe4, 0xa2, 0x33, 0xf2,
+	0x08, 0x0b, 0x46, 0xdc, 0x0f, 0x18, 0x6a, 0x01, 0x3c, 0x63, 0xc3, 0x11, 0xa1, 0xd2, 0xf3, 0x5d,
+	0x25, 0xfc, 0xc0, 0xac, 0xc7, 0x91, 0x01, 0x72, 0x66, 0x25, 0x73, 0x0c, 0xf4, 0x0d, 0x6c, 0x77,
+	0xc3, 0xe1, 0x29, 0xa3, 0x0e, 0x13, 0x69, 0x38, 0x6a, 0x3b, 0x73, 0x37, 0x8e, 0x8c, 0x6d, 0x7f,
+	0x01, 0x23, 0x39, 0x76, 0x46, 0x21, 0x0d, 0xf8, 0x9d, 0x02, 0x85, 0x29, 0x46, 0x72, 0x6c, 0x64,
+	0xc1, 0x4e, 0x37, 0x1c, 0xce, 0x8e, 0x93, 0x86, 0xb1, 0xa2, 0x44, 0xde, 0x8d, 0x23, 0x63, 0xc7,
+	0xcf, 0xc3, 0xa4, 0xc8, 0x67, 0x51, 0x2a, 0x8d, 0xa7, 0x5a, 0x2c, 0x95, 0x86, 0x54, 0xe4, 0x83,
+	0x5c, 0x78, 0x32, 0x6f, 0xb6, 0x5c, 0x9f, 0x0b, 0xe6, 0x4c, 0x32, 0x48, 0x65, 0x28, 0x58, 0xa0,
+	0xaf, 0x2a, 0xd1, 0xf7, 0xe3, 0xc8, 0x78, 0xe2, 0x97, 0x11, 0x49, 0xb9, 0x0e, 0x6a, 0xc2, 0xea,
+	0x34, 0x5d, 0x6b, 0x2a, 0x5d, 0x10, 0x47, 0xc6, 0xaa, 0x48, 0x52, 0x35, 0x45, 0xd0, 0x67, 0x50,
+	0x4f, 0xfe, 0xce, 0xb8, 0xe3, 0x3d, 0xf7, 0x98, 0xd0, 0xd7, 0x15, 0x17, 0xc5, 0x91, 0x51, 0x17,
+	0x19, 0x84, 0x2c, 0x30, 0xd1, 0x0f, 0xb0, 0xf7, 0x8c, 0x4b, 0x3a, 0xc8, 0xe5, 0x79, 0x43, 0x1d,
+	0x60, 0x3f, 0x8e, 0x8c, 0x3d, 0x59, 0x44, 0x20, 0xc5, 0x7e, 0x79, 0xc1, 0xf4, 0x9a, 0x61, 0x99,
+	0x60, 0x7a, 0xd1, 0xc5, 0x7e, 0xe8, 0x67, 0xd0, 0x53, 0x20, 0x57, 0x05, 0x9b, 0x4a, 0xf3, 0xbd,
+	0x38, 0x32, 0x74, 0xb9, 0x84, 0x43, 0x96, 0x7a, 0x17, 0x2a, 0xa7, 0xd1, 0xd6, 0x4a, 0x94, 0xd3,
+	0x80, 0x97, 0x7a, 0xa3, 0x2b, 0x68, 0xe6, 0xb0, 0x7c, 0x8d, 0x6c, 0xa9, 0x3d, 0x3e, 0x8e, 0x23,
+	0xa3, 0x29, 0xdf, 0xc8, 0x26, 0x6f, 0xa1, 0x88, 0x3e, 0x82, 0xb5, 0xde, 0x05, 0x15, 0x8e, 0xe5,
+	0xe8, 0x75, 0x25, 0xbe, 0x19, 0x47, 0xc6, 0x5a, 0x90, 0x98, 0x48, 0x8a, 0xa1, 0x2f, 0xa1, 0x71,
+	0x7f, 0x19, 0x92, 0xca, 0x30, 0xd0, 0x1b, 0x07, 0xda, 0xe1, 0x86, 0xb9, 0x13, 0x47, 0x46, 0xe3,
+	0x2a, 0x0b, 0x91, 0x45, 0x6e, 0xf3, 0xef, 0x35, 0x68, 0x9c, 0x67, 0x67, 0x1f, 0x6a, 0x42, 0xcd,
+	0x3c, 0xed, 0x9d, 0x87, 0xfd, 0x81, 0x67, 0x7f, 0xcf, 0x7e, 0x53, 0xc3, 0xa5, 0x46, 0x32, 0x36,
+	0xf4, 0x21, 0x6c, 0x11, 0xf6, 0x82, 0x0a, 0xa7, 0xe3, 0x38, 0x22, 0x9d, 0x25, 0x35, 0x92, 0x35,
+	0x22, 0xfd, 0xfe, 0x0c, 0x6a, 0x52, 0xdc, 0x87, 0x6d, 0xcd, 0x8d, 0xb5, 0x34, 0xbb, 0x54, 0x32,
+	0x35, 0x0b, 0x36, 0x3f, 0x69, 0x24, 0x93, 0xb4, 0x95, 0x8e, 0x51, 0x73, 0xe5, 0x65, 0x64, 0x54,
+	0x48, 0xa1, 0x0b, 0x3a, 0x82, 0x87, 0xd9, 0x6a, 0x9e, 0xe8, 0x54, 0xcb, 0x74, 0xf2, 0x7c, 0x74,
+	0x02, 0xb8, 0x24, 0x5f, 0x13, 0x45, 0x35, 0x05, 0xc8, 0x1b, 0x58, 0xe8, 0x51, 0xa6, 0xc7, 0xb7,
+	0x66, 0x7d, 0x8d, 0x33, 0xe3, 0x7a, 0x3d, 0x99, 0xf3, 0x73, 0xe3, 0x99, 0x43, 0xa3, 0x63, 0xdb,
+	0xe1, 0x30, 0x1c, 0x50, 0xc9, 0x9c, 0x13, 0xc6, 0x92, 0xae, 0xad, 0x99, 0xc7, 0x7f, 0xfd, 0x6b,
+	0x74, 0x86, 0x54, 0x5e, 0xb4, 0xfb, 0x9e, 0xdb, 0xb2, 0x7c, 0xf9, 0xf9, 0xdc, 0x63, 0x74, 0x3c,
+	0x10, 0xdc, 0x77, 0xba, 0x4c, 0xbe, 0xe0, 0xe2, 0xb2, 0xcd, 0xd4, 0xea, 0xa9, 0xcb, 0xdb, 0xce,
+	0xe4, 0x09, 0x33, 0x3d, 0xd7, 0xf2, 0xe5, 0x11, 0x0d, 0x24, 0x13, 0x64, 0x51, 0x1d, 0x7d, 0x05,
+	0x8f, 0x27, 0xcf, 0x10, 0x1b, 0x30, 0x5b, 0x32, 0xc7, 0xf2, 0xa7, 0x97, 0x61, 0x0e, 0xb8, 0x7d,
+	0x19, 0x24, 0x0d, 0x4e, 0x4a, 0x18, 0xe8, 0x00, 0x36, 0x2d, 0xdf, 0x61, 0xbf, 0x5a, 0xfe, 0xa9,
+	0x17, 0xc8, 0xa4, 0x7b, 0xc9, 0xbc, 0x09, 0x21, 0x58, 0x51, 0xd0, 0xa4, 0xfd, 0x36, 0x88, 0xfa,
+	0x47, 0x5f, 0xc0, 0xfe, 0xd1, 0xe4, 0xf9, 0xb2, 0x43, 0xe9, 0x5d, 0xb1, 0x73, 0xc1, 0x47, 0x3c,
+	0x60, 0xe2, 0xcc, 0x0b, 0x82, 0xb4, 0x87, 0xc8, 0x72, 0x02, 0xea, 0xc1, 0xbe, 0x6a, 0x9c, 0xc2,
+	0xca, 0xa9, 0x97, 0x65, 0x7c, 0xb9, 0x1f, 0x3a, 0x83, 0x47, 0x0a, 0xcc, 0xd7, 0x50, 0xa3, 0x4c,
+	0x71, 0x89, 0x13, 0x3a, 0x87, 0x0f, 0xb2, 0x7b, 0x15, 0x57, 0xd3, 0xb6, 0x3a, 0xeb, 0xdb, 0x50,
+	0xd1, 0x2e, 0x54, 0xbb, 0xdc, 0xb7, 0x99, 0xfe, 0xf0, 0x40, 0x3b, 0x5c, 0x21, 0xc9, 0x62, 0xd2,
+	0x80, 0x3f, 0xfa, 0x3d, 0x49, 0x2f, 0x99, 0x73, 0x3c, 0xe2, 0xf6, 0x85, 0x8e, 0x94, 0x62, 0xd6,
+	0x68, 0x7e, 0x7d, 0x7d, 0x8b, 0x2b, 0x37, 0xb7, 0xb8, 0xf2, 0xea, 0x16, 0x6b, 0xbf, 0x8f, 0xb1,
+	0xf6, 0xe7, 0x18, 0x6b, 0x2f, 0xc7, 0x58, 0xbb, 0x1e, 0x63, 0xed, 0x66, 0x8c, 0xb5, 0xff, 0xc6,
+	0x58, 0xfb, 0x7f, 0x8c, 0x2b, 0xaf, 0xc6, 0x58, 0xfb, 0xe3, 0x0e, 0x57, 0xae, 0xef, 0x70, 0xe5,
+	0xe6, 0x0e, 0x57, 0x7e, 0xa9, 0x06, 0x92, 0x4a, 0xd6, 0x5f, 0x55, 0x87, 0xff, 0xf4, 0x75, 0x00,
+	0x00, 0x00, 0xff, 0xff, 0x17, 0x9a, 0x79, 0xbe, 0x21, 0x09, 0x00, 0x00,
 }
 
 func (this *SignRate) Equal(that interface{}) bool {
@@ -497,6 +534,9 @@ func (this *ValidatorApiResponse) Equal(that interface{}) bool {
 	if this.NumValidatorFailure != that1.NumValidatorFailure {
 		return false
 	}
+	if this.NumValidatorIgnoredSignatures != that1.NumValidatorIgnoredSignatures {
+		return false
+	}
 	if this.Rating != that1.Rating {
 		return false
 	}
@@ -513,6 +553,9 @@ func (this *ValidatorApiResponse) Equal(that interface{}) bool {
 		return false
 	}
 	if this.TotalNumValidatorFailure != that1.TotalNumValidatorFailure {
+		return false
+	}
+	if this.TotalNumValidatorIgnoredSignatures != that1.TotalNumValidatorIgnoredSignatures {
 		return false
 	}
 	if this.ShardId != that1.ShardId {
@@ -557,6 +600,9 @@ func (this *PeerAccountData) Equal(that interface{}) bool {
 	if !this.LeaderSuccessRate.Equal(&that1.LeaderSuccessRate) {
 		return false
 	}
+	if this.ValidatorIgnoredSignaturesRate != that1.ValidatorIgnoredSignaturesRate {
+		return false
+	}
 	if this.Rating != that1.Rating {
 		return false
 	}
@@ -587,6 +633,9 @@ func (this *PeerAccountData) Equal(that interface{}) bool {
 	if !this.TotalLeaderSuccessRate.Equal(&that1.TotalLeaderSuccessRate) {
 		return false
 	}
+	if this.TotalValidatorIgnoredSignaturesRate != that1.TotalValidatorIgnoredSignaturesRate {
+		return false
+	}
 	if this.Nonce != that1.Nonce {
 		return false
 	}
@@ -610,19 +659,21 @@ func (this *ValidatorApiResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 17)
+	s := make([]string, 0, 19)
 	s = append(s, "&state.ValidatorApiResponse{")
 	s = append(s, "TempRating: "+fmt.Sprintf("%#v", this.TempRating)+",\n")
 	s = append(s, "NumLeaderSuccess: "+fmt.Sprintf("%#v", this.NumLeaderSuccess)+",\n")
 	s = append(s, "NumLeaderFailure: "+fmt.Sprintf("%#v", this.NumLeaderFailure)+",\n")
 	s = append(s, "NumValidatorSuccess: "+fmt.Sprintf("%#v", this.NumValidatorSuccess)+",\n")
 	s = append(s, "NumValidatorFailure: "+fmt.Sprintf("%#v", this.NumValidatorFailure)+",\n")
+	s = append(s, "NumValidatorIgnoredSignatures: "+fmt.Sprintf("%#v", this.NumValidatorIgnoredSignatures)+",\n")
 	s = append(s, "Rating: "+fmt.Sprintf("%#v", this.Rating)+",\n")
 	s = append(s, "RatingModifier: "+fmt.Sprintf("%#v", this.RatingModifier)+",\n")
 	s = append(s, "TotalNumLeaderSuccess: "+fmt.Sprintf("%#v", this.TotalNumLeaderSuccess)+",\n")
 	s = append(s, "TotalNumLeaderFailure: "+fmt.Sprintf("%#v", this.TotalNumLeaderFailure)+",\n")
 	s = append(s, "TotalNumValidatorSuccess: "+fmt.Sprintf("%#v", this.TotalNumValidatorSuccess)+",\n")
 	s = append(s, "TotalNumValidatorFailure: "+fmt.Sprintf("%#v", this.TotalNumValidatorFailure)+",\n")
+	s = append(s, "TotalNumValidatorIgnoredSignatures: "+fmt.Sprintf("%#v", this.TotalNumValidatorIgnoredSignatures)+",\n")
 	s = append(s, "ShardId: "+fmt.Sprintf("%#v", this.ShardId)+",\n")
 	s = append(s, "ValidatorStatus: "+fmt.Sprintf("%#v", this.ValidatorStatus)+",\n")
 	s = append(s, "}")
@@ -632,13 +683,14 @@ func (this *PeerAccountData) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 20)
+	s := make([]string, 0, 22)
 	s = append(s, "&state.PeerAccountData{")
 	s = append(s, "BLSPublicKey: "+fmt.Sprintf("%#v", this.BLSPublicKey)+",\n")
 	s = append(s, "RewardAddress: "+fmt.Sprintf("%#v", this.RewardAddress)+",\n")
 	s = append(s, "ShardId: "+fmt.Sprintf("%#v", this.ShardId)+",\n")
 	s = append(s, "ValidatorSuccessRate: "+strings.Replace(this.ValidatorSuccessRate.GoString(), `&`, ``, 1)+",\n")
 	s = append(s, "LeaderSuccessRate: "+strings.Replace(this.LeaderSuccessRate.GoString(), `&`, ``, 1)+",\n")
+	s = append(s, "ValidatorIgnoredSignaturesRate: "+fmt.Sprintf("%#v", this.ValidatorIgnoredSignaturesRate)+",\n")
 	s = append(s, "Rating: "+fmt.Sprintf("%#v", this.Rating)+",\n")
 	s = append(s, "TempRating: "+fmt.Sprintf("%#v", this.TempRating)+",\n")
 	s = append(s, "AccumulatedFees: "+fmt.Sprintf("%#v", this.AccumulatedFees)+",\n")
@@ -648,6 +700,7 @@ func (this *PeerAccountData) GoString() string {
 	s = append(s, "ConsecutiveProposerMisses: "+fmt.Sprintf("%#v", this.ConsecutiveProposerMisses)+",\n")
 	s = append(s, "TotalValidatorSuccessRate: "+strings.Replace(this.TotalValidatorSuccessRate.GoString(), `&`, ``, 1)+",\n")
 	s = append(s, "TotalLeaderSuccessRate: "+strings.Replace(this.TotalLeaderSuccessRate.GoString(), `&`, ``, 1)+",\n")
+	s = append(s, "TotalValidatorIgnoredSignaturesRate: "+fmt.Sprintf("%#v", this.TotalValidatorIgnoredSignaturesRate)+",\n")
 	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
 	s = append(s, "UnStakedEpoch: "+fmt.Sprintf("%#v", this.UnStakedEpoch)+",\n")
 	s = append(s, "}")
@@ -719,44 +772,54 @@ func (m *ValidatorApiResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.ValidatorStatus)
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(len(m.ValidatorStatus)))
 		i--
-		dAtA[i] = 0x6a
+		dAtA[i] = 0x7a
 	}
 	if m.ShardId != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.ShardId))
 		i--
-		dAtA[i] = 0x60
+		dAtA[i] = 0x70
+	}
+	if m.TotalNumValidatorIgnoredSignatures != 0 {
+		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.TotalNumValidatorIgnoredSignatures))
+		i--
+		dAtA[i] = 0x68
 	}
 	if m.TotalNumValidatorFailure != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.TotalNumValidatorFailure))
 		i--
-		dAtA[i] = 0x58
+		dAtA[i] = 0x60
 	}
 	if m.TotalNumValidatorSuccess != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.TotalNumValidatorSuccess))
 		i--
-		dAtA[i] = 0x50
+		dAtA[i] = 0x58
 	}
 	if m.TotalNumLeaderFailure != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.TotalNumLeaderFailure))
 		i--
-		dAtA[i] = 0x48
+		dAtA[i] = 0x50
 	}
 	if m.TotalNumLeaderSuccess != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.TotalNumLeaderSuccess))
 		i--
-		dAtA[i] = 0x40
+		dAtA[i] = 0x48
 	}
 	if m.RatingModifier != 0 {
 		i -= 4
 		encoding_binary.LittleEndian.PutUint32(dAtA[i:], uint32(math.Float32bits(float32(m.RatingModifier))))
 		i--
-		dAtA[i] = 0x3d
+		dAtA[i] = 0x45
 	}
 	if m.Rating != 0 {
 		i -= 4
 		encoding_binary.LittleEndian.PutUint32(dAtA[i:], uint32(math.Float32bits(float32(m.Rating))))
 		i--
-		dAtA[i] = 0x35
+		dAtA[i] = 0x3d
+	}
+	if m.NumValidatorIgnoredSignatures != 0 {
+		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.NumValidatorIgnoredSignatures))
+		i--
+		dAtA[i] = 0x30
 	}
 	if m.NumValidatorFailure != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.NumValidatorFailure))
@@ -812,12 +875,21 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x1
 		i--
-		dAtA[i] = 0x80
+		dAtA[i] = 0x90
 	}
 	if m.Nonce != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.Nonce))
 		i--
-		dAtA[i] = 0x78
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x88
+	}
+	if m.TotalValidatorIgnoredSignaturesRate != 0 {
+		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.TotalValidatorIgnoredSignaturesRate))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
 	}
 	{
 		size, err := m.TotalLeaderSuccessRate.MarshalToSizedBuffer(dAtA[:i])
@@ -828,7 +900,7 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x72
+	dAtA[i] = 0x7a
 	{
 		size, err := m.TotalValidatorSuccessRate.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -838,28 +910,28 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x6a
+	dAtA[i] = 0x72
 	if m.ConsecutiveProposerMisses != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.ConsecutiveProposerMisses))
 		i--
-		dAtA[i] = 0x60
+		dAtA[i] = 0x68
 	}
 	if len(m.List) > 0 {
 		i -= len(m.List)
 		copy(dAtA[i:], m.List)
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(len(m.List)))
 		i--
-		dAtA[i] = 0x5a
+		dAtA[i] = 0x62
 	}
 	if m.IndexInList != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.IndexInList))
 		i--
-		dAtA[i] = 0x50
+		dAtA[i] = 0x58
 	}
 	if m.NumSelectedInSuccessBlocks != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.NumSelectedInSuccessBlocks))
 		i--
-		dAtA[i] = 0x48
+		dAtA[i] = 0x50
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
@@ -871,14 +943,19 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x42
+	dAtA[i] = 0x4a
 	if m.TempRating != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.TempRating))
 		i--
-		dAtA[i] = 0x38
+		dAtA[i] = 0x40
 	}
 	if m.Rating != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.Rating))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.ValidatorIgnoredSignaturesRate != 0 {
+		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.ValidatorIgnoredSignaturesRate))
 		i--
 		dAtA[i] = 0x30
 	}
@@ -971,6 +1048,9 @@ func (m *ValidatorApiResponse) Size() (n int) {
 	if m.NumValidatorFailure != 0 {
 		n += 1 + sovPeerAccountData(uint64(m.NumValidatorFailure))
 	}
+	if m.NumValidatorIgnoredSignatures != 0 {
+		n += 1 + sovPeerAccountData(uint64(m.NumValidatorIgnoredSignatures))
+	}
 	if m.Rating != 0 {
 		n += 5
 	}
@@ -988,6 +1068,9 @@ func (m *ValidatorApiResponse) Size() (n int) {
 	}
 	if m.TotalNumValidatorFailure != 0 {
 		n += 1 + sovPeerAccountData(uint64(m.TotalNumValidatorFailure))
+	}
+	if m.TotalNumValidatorIgnoredSignatures != 0 {
+		n += 1 + sovPeerAccountData(uint64(m.TotalNumValidatorIgnoredSignatures))
 	}
 	if m.ShardId != 0 {
 		n += 1 + sovPeerAccountData(uint64(m.ShardId))
@@ -1020,6 +1103,9 @@ func (m *PeerAccountData) Size() (n int) {
 	n += 1 + l + sovPeerAccountData(uint64(l))
 	l = m.LeaderSuccessRate.Size()
 	n += 1 + l + sovPeerAccountData(uint64(l))
+	if m.ValidatorIgnoredSignaturesRate != 0 {
+		n += 1 + sovPeerAccountData(uint64(m.ValidatorIgnoredSignaturesRate))
+	}
 	if m.Rating != 0 {
 		n += 1 + sovPeerAccountData(uint64(m.Rating))
 	}
@@ -1048,8 +1134,11 @@ func (m *PeerAccountData) Size() (n int) {
 	n += 1 + l + sovPeerAccountData(uint64(l))
 	l = m.TotalLeaderSuccessRate.Size()
 	n += 1 + l + sovPeerAccountData(uint64(l))
+	if m.TotalValidatorIgnoredSignaturesRate != 0 {
+		n += 2 + sovPeerAccountData(uint64(m.TotalValidatorIgnoredSignaturesRate))
+	}
 	if m.Nonce != 0 {
-		n += 1 + sovPeerAccountData(uint64(m.Nonce))
+		n += 2 + sovPeerAccountData(uint64(m.Nonce))
 	}
 	if m.UnStakedEpoch != 0 {
 		n += 2 + sovPeerAccountData(uint64(m.UnStakedEpoch))
@@ -1084,12 +1173,14 @@ func (this *ValidatorApiResponse) String() string {
 		`NumLeaderFailure:` + fmt.Sprintf("%v", this.NumLeaderFailure) + `,`,
 		`NumValidatorSuccess:` + fmt.Sprintf("%v", this.NumValidatorSuccess) + `,`,
 		`NumValidatorFailure:` + fmt.Sprintf("%v", this.NumValidatorFailure) + `,`,
+		`NumValidatorIgnoredSignatures:` + fmt.Sprintf("%v", this.NumValidatorIgnoredSignatures) + `,`,
 		`Rating:` + fmt.Sprintf("%v", this.Rating) + `,`,
 		`RatingModifier:` + fmt.Sprintf("%v", this.RatingModifier) + `,`,
 		`TotalNumLeaderSuccess:` + fmt.Sprintf("%v", this.TotalNumLeaderSuccess) + `,`,
 		`TotalNumLeaderFailure:` + fmt.Sprintf("%v", this.TotalNumLeaderFailure) + `,`,
 		`TotalNumValidatorSuccess:` + fmt.Sprintf("%v", this.TotalNumValidatorSuccess) + `,`,
 		`TotalNumValidatorFailure:` + fmt.Sprintf("%v", this.TotalNumValidatorFailure) + `,`,
+		`TotalNumValidatorIgnoredSignatures:` + fmt.Sprintf("%v", this.TotalNumValidatorIgnoredSignatures) + `,`,
 		`ShardId:` + fmt.Sprintf("%v", this.ShardId) + `,`,
 		`ValidatorStatus:` + fmt.Sprintf("%v", this.ValidatorStatus) + `,`,
 		`}`,
@@ -1106,6 +1197,7 @@ func (this *PeerAccountData) String() string {
 		`ShardId:` + fmt.Sprintf("%v", this.ShardId) + `,`,
 		`ValidatorSuccessRate:` + strings.Replace(strings.Replace(this.ValidatorSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
 		`LeaderSuccessRate:` + strings.Replace(strings.Replace(this.LeaderSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
+		`ValidatorIgnoredSignaturesRate:` + fmt.Sprintf("%v", this.ValidatorIgnoredSignaturesRate) + `,`,
 		`Rating:` + fmt.Sprintf("%v", this.Rating) + `,`,
 		`TempRating:` + fmt.Sprintf("%v", this.TempRating) + `,`,
 		`AccumulatedFees:` + fmt.Sprintf("%v", this.AccumulatedFees) + `,`,
@@ -1115,6 +1207,7 @@ func (this *PeerAccountData) String() string {
 		`ConsecutiveProposerMisses:` + fmt.Sprintf("%v", this.ConsecutiveProposerMisses) + `,`,
 		`TotalValidatorSuccessRate:` + strings.Replace(strings.Replace(this.TotalValidatorSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
 		`TotalLeaderSuccessRate:` + strings.Replace(strings.Replace(this.TotalLeaderSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
+		`TotalValidatorIgnoredSignaturesRate:` + fmt.Sprintf("%v", this.TotalValidatorIgnoredSignaturesRate) + `,`,
 		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
 		`UnStakedEpoch:` + fmt.Sprintf("%v", this.UnStakedEpoch) + `,`,
 		`}`,
@@ -1337,6 +1430,25 @@ func (m *ValidatorApiResponse) Unmarshal(dAtA []byte) error {
 				}
 			}
 		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumValidatorIgnoredSignatures", wireType)
+			}
+			m.NumValidatorIgnoredSignatures = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumValidatorIgnoredSignatures |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 7:
 			if wireType != 5 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Rating", wireType)
 			}
@@ -1347,7 +1459,7 @@ func (m *ValidatorApiResponse) Unmarshal(dAtA []byte) error {
 			v = uint32(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
 			iNdEx += 4
 			m.Rating = float32(math.Float32frombits(v))
-		case 7:
+		case 8:
 			if wireType != 5 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RatingModifier", wireType)
 			}
@@ -1358,7 +1470,7 @@ func (m *ValidatorApiResponse) Unmarshal(dAtA []byte) error {
 			v = uint32(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
 			iNdEx += 4
 			m.RatingModifier = float32(math.Float32frombits(v))
-		case 8:
+		case 9:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalNumLeaderSuccess", wireType)
 			}
@@ -1377,7 +1489,7 @@ func (m *ValidatorApiResponse) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 9:
+		case 10:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalNumLeaderFailure", wireType)
 			}
@@ -1396,7 +1508,7 @@ func (m *ValidatorApiResponse) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 10:
+		case 11:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalNumValidatorSuccess", wireType)
 			}
@@ -1415,7 +1527,7 @@ func (m *ValidatorApiResponse) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 11:
+		case 12:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalNumValidatorFailure", wireType)
 			}
@@ -1434,7 +1546,26 @@ func (m *ValidatorApiResponse) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 12:
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalNumValidatorIgnoredSignatures", wireType)
+			}
+			m.TotalNumValidatorIgnoredSignatures = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TotalNumValidatorIgnoredSignatures |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 14:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ShardId", wireType)
 			}
@@ -1453,7 +1584,7 @@ func (m *ValidatorApiResponse) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 13:
+		case 15:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorStatus", wireType)
 			}
@@ -1693,6 +1824,25 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 6:
 			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorIgnoredSignaturesRate", wireType)
+			}
+			m.ValidatorIgnoredSignaturesRate = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ValidatorIgnoredSignaturesRate |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 7:
+			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Rating", wireType)
 			}
 			m.Rating = 0
@@ -1710,7 +1860,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 7:
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TempRating", wireType)
 			}
@@ -1729,7 +1879,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 8:
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field AccumulatedFees", wireType)
 			}
@@ -1767,7 +1917,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
-		case 9:
+		case 10:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NumSelectedInSuccessBlocks", wireType)
 			}
@@ -1786,7 +1936,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 10:
+		case 11:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field IndexInList", wireType)
 			}
@@ -1805,7 +1955,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 11:
+		case 12:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field List", wireType)
 			}
@@ -1837,7 +1987,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 			}
 			m.List = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 12:
+		case 13:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConsecutiveProposerMisses", wireType)
 			}
@@ -1856,7 +2006,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 13:
+		case 14:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalValidatorSuccessRate", wireType)
 			}
@@ -1889,7 +2039,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 14:
+		case 15:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalLeaderSuccessRate", wireType)
 			}
@@ -1922,7 +2072,26 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 15:
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalValidatorIgnoredSignaturesRate", wireType)
+			}
+			m.TotalValidatorIgnoredSignaturesRate = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TotalValidatorIgnoredSignaturesRate |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 17:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
 			}
@@ -1941,7 +2110,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 16:
+		case 18:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UnStakedEpoch", wireType)
 			}

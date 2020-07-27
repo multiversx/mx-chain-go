@@ -21,12 +21,14 @@ message ValidatorInfo {
     uint32 LeaderFailure = 10;
     uint32 ValidatorSuccess = 11;
     uint32 ValidatorFailure = 12;
-    uint32 NumSelectedInSuccessBlocks = 13;
-    bytes AccumulatedFees = 14 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    uint32 TotalLeaderSuccess = 15;
-    uint32 TotalLeaderFailure = 16;
-    uint32 TotalValidatorSuccess = 17;
-    uint32 TotalValidatorFailure = 18;
+    uint32 ValidatorIgnoredSignatures = 13;
+    uint32 NumSelectedInSuccessBlocks = 14;
+    bytes AccumulatedFees = 15 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    uint32 TotalLeaderSuccess = 16;
+    uint32 TotalLeaderFailure = 17;
+    uint32 TotalValidatorSuccess = 18;
+    uint32 TotalValidatorFailure = 19;
+    uint32 TotalValidatorIgnoredSignatures = 20;
 }
 
 // ShardValidatorInfo represents the data regarding a validator that is stored in the PeerMiniblocks
