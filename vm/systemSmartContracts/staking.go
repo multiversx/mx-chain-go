@@ -676,7 +676,7 @@ func (r *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) error {
 	}
 
 	r.addToStakedNodes()
-	return nil
+	return r.saveStakingData(elementInList.BLSPublicKey, nodeData)
 }
 
 func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -937,7 +937,7 @@ func (r *stakingSC) removeFromWaitingList(blsKey []byte) error {
 
 func (r *stakingSC) getWaitingListElement(key []byte) (*ElementInList, error) {
 	marshalledData := r.eei.GetStorage(key)
-	if len(marshalledData) != 0 {
+	if len(marshalledData) == 0 {
 		return nil, vm.ErrElementNotFound
 	}
 

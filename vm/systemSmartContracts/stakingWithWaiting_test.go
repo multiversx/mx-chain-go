@@ -16,8 +16,8 @@ import (
 func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	t.Parallel()
 
-	stakerAddress := big.NewInt(100)
-	stakerPubKey := big.NewInt(100)
+	stakerAddress := []byte("address")
+	stakerPubKey := []byte("blsPubKey")
 
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForAuction()
@@ -29,6 +29,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
+	argsStaking.StakingSCConfig.MaxNumberOfNodesForStake = 1
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
@@ -42,38 +43,34 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	sc, _ := NewStakingAuctionSmartContract(args)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
-	arguments.CallerAddr = stakerAddress.Bytes()
-	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey.Bytes(), []byte("signed")}
+	arguments.CallerAddr = stakerAddress
+	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey, []byte("signed")}
 	arguments.CallValue = big.NewInt(10000000)
 
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
+	blsKey2 := []byte("blsKey2")
 	arguments.Function = "stake"
-	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey.Bytes(), []byte("signed")}
-	arguments.CallValue = big.NewInt(0)
-	retCode = sc.Execute(arguments)
-	assert.Equal(t, vmcommon.Ok, retCode)
-
-	arguments.Function = "stake"
-	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey.Bytes(), []byte("signed")}
+	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), blsKey2, []byte("signed")}
 	arguments.CallValue = big.NewInt(10000000)
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	arguments.Function = "claim"
+	arguments.Function = "unStake"
+	arguments.Arguments = [][]byte{stakerPubKey}
 	arguments.CallValue = big.NewInt(0)
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	vmOutput := eei.CreateVMOutput()
-	assert.NotNil(t, vmOutput)
-	outputAccount := vmOutput.OutputAccounts[string(arguments.CallerAddr)]
-	assert.True(t, outputAccount.BalanceDelta.Cmp(big.NewInt(10000000)) == 0)
-
 	eei.SetSCAddress(args.StakingSCAddress)
-	marshalledData := eei.GetStorage(stakerPubKey.Bytes())
+	marshalledData := eei.GetStorage(stakerPubKey)
 	stakedData := &StakedData{}
+	_ = json.Unmarshal(marshalledData, stakedData)
+	assert.False(t, stakedData.Staked)
+
+	marshalledData = eei.GetStorage(blsKey2)
+	stakedData = &StakedData{}
 	_ = json.Unmarshal(marshalledData, stakedData)
 	assert.True(t, stakedData.Staked)
 }
