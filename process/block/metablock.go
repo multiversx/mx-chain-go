@@ -563,7 +563,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	go indexValidatorsRating(mp.indexer, mp.validatorStatisticsProcessor, metaBlock)
+	indexValidatorsRating(mp.indexer, mp.validatorStatisticsProcessor, metaBlock)
 }
 
 // RestoreBlockIntoPools restores the block into associated pools
