@@ -43,6 +43,7 @@ type HeaderHandler interface {
 	GetAccumulatedFees() *big.Int
 	GetDeveloperFees() *big.Int
 	GetEpochStartMetaHash() []byte
+	GetReserved() []byte
 
 	SetAccumulatedFees(value *big.Int)
 	SetDeveloperFees(value *big.Int)
