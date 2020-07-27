@@ -368,7 +368,7 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 	vals[1] = []*state.ValidatorInfo{val50, val51}
 	vals[0] = []*state.ValidatorInfo{val00, val01}
 	vals[2] = []*state.ValidatorInfo{val10, val11}
-	err = stateExporter.ExportNodesSetupJson(vals)
+	err = stateExporter.exportNodesSetupJson(vals)
 	require.Nil(t, err)
 
 	var nodesSetup sharding.NodesSetup
