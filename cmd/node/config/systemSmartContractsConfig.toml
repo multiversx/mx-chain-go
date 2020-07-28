@@ -1,15 +1,15 @@
 [StakingSystemSCConfig]
     GenesisNodePrice = "2500000000000000000000" #2.5KERD
     MinStakeValue = "100000000000000000000" #100ERD
-    UnBondPeriod = 40
+    UnBondPeriod = 400
     MinStepValue = "100000000000000000000"
     AuctionEnableNonce = 100000000000
     StakeEnableNonce = 0
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
-    MaxNumberOfNodesForStake = 28
-    NodesToSelectInAuction = 28
+    MaxNumberOfNodesForStake = 2169
+    NodesToSelectInAuction = 2169
     UnJailValue = "2500000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = false #TODO set to true before mainnet
 

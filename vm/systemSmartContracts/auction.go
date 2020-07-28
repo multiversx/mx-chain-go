@@ -966,7 +966,6 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		}
 
 		if len(vmOutput.ReturnData) < 2 || vmOutput.ReturnCode != vmcommon.Ok {
-			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s, error: %s", hex.EncodeToString(blsKey), vmOutput.ReturnCode.String()))
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
 			continue
