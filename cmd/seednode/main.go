@@ -214,6 +214,7 @@ func createNode(p2pConfig config.P2PConfig, marshalizer marshal.Marshalizer) (p2
 		Marshalizer:   marshalizer,
 		ListenAddress: libp2p.ListenAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
+		SyncTimer:     &libp2p.LocalSyncTimer{},
 	}
 
 	return libp2p.NewNetworkMessenger(arg)
