@@ -211,22 +211,24 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
-	txProcessor, _ := transaction.NewTxProcessor(
-		accnts,
-		testHasher,
-		pubkeyConv,
-		testMarshalizer,
-		testMarshalizer,
-		oneShardCoordinator,
-		scProcessor,
-		&mock.UnsignedTxHandlerMock{},
-		txTypeHandler,
-		&mock.FeeHandlerStub{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		smartContract.NewArgumentParser(),
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
+		Accounts:          accnts,
+		Hasher:            testHasher,
+		PubkeyConv:        pubkeyConv,
+		Marshalizer:       testMarshalizer,
+		SignMarshalizer:   testMarshalizer,
+		ShardCoordinator:  oneShardCoordinator,
+		ScProcessor:       scProcessor,
+		TxFeeHandler:      &mock.UnsignedTxHandlerMock{},
+		TxTypeHandler:     txTypeHandler,
+		EconomicsFee:      &mock.FeeHandlerStub{},
+		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:        smartContract.NewArgumentParser(),
+		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		DisabledRelayedTx: false,
+	}
+	txProcessor, _ := transaction.NewTxProcessor(argsNewTxProcessor)
 
 	return txProcessor
 }
@@ -349,22 +351,24 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
-	txProcessor, _ := transaction.NewTxProcessor(
-		accnts,
-		testHasher,
-		pubkeyConv,
-		testMarshalizer,
-		testMarshalizer,
-		oneShardCoordinator,
-		scProcessor,
-		&mock.UnsignedTxHandlerMock{},
-		txTypeHandler,
-		&mock.FeeHandlerStub{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		smartContract.NewArgumentParser(),
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
+		Accounts:          accnts,
+		Hasher:            testHasher,
+		PubkeyConv:        pubkeyConv,
+		Marshalizer:       testMarshalizer,
+		SignMarshalizer:   testMarshalizer,
+		ShardCoordinator:  oneShardCoordinator,
+		ScProcessor:       scProcessor,
+		TxFeeHandler:      &mock.UnsignedTxHandlerMock{},
+		TxTypeHandler:     txTypeHandler,
+		EconomicsFee:      &mock.FeeHandlerStub{},
+		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:        smartContract.NewArgumentParser(),
+		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		DisabledRelayedTx: false,
+	}
+	txProcessor, _ := transaction.NewTxProcessor(argsNewTxProcessor)
 
 	return txProcessor, scProcessor
 }

@@ -592,22 +592,24 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	transferOnCalls := big.NewInt(5)
 
 	_, _ = vm.CreateAccount(accnts, ownerAddressBytes, ownerNonce, ownerBalance)
-	txProc, _ := processTransaction.NewTxProcessor(
-		accnts,
-		testHasher,
-		pubkeyConv,
-		testMarshalizer,
-		testMarshalizer,
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
-		txTypeHandler,
-		feeHandler,
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		smartContract.NewArgumentParser(),
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
+		Accounts:          accnts,
+		Hasher:            testHasher,
+		PubkeyConv:        pubkeyConv,
+		Marshalizer:       testMarshalizer,
+		SignMarshalizer:   testMarshalizer,
+		ShardCoordinator:  shardCoordinator,
+		ScProcessor:       &mock.SCProcessorMock{},
+		TxFeeHandler:      &mock.UnsignedTxHandlerMock{},
+		TxTypeHandler:     txTypeHandler,
+		EconomicsFee:      &mock.FeeHandlerStub{},
+		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:        smartContract.NewArgumentParser(),
+		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		DisabledRelayedTx: false,
+	}
+	txProc, _ := processTransaction.NewTxProcessor(argsNewTxProcessor)
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)

@@ -60,7 +60,6 @@ func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint6
 		TotalStakeValue: big.NewInt(0).SetUint64(totalStakeValue),
 		LockedStake:     big.NewInt(0).SetUint64(totalStakeValue),
 		MaxStakePerNode: big.NewInt(0).SetUint64(maxStakePerNode),
-		WaitingStake:    big.NewInt(0),
 	}
 
 	keys := make([][]byte, 0)
@@ -410,9 +409,9 @@ func TestStakingAuctionSC_ExecuteStakeWithRewardAddress(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	eei.SetSCAddress(args.StakingSCAddress)
-	marshalledData := eei.GetStorage(stakerPubKey)
+	marshaledData := eei.GetStorage(stakerPubKey)
 	stakedData := &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, bytes.Equal(stakedData.RewardAddress, rwdAddress))
 }
 
@@ -569,9 +568,9 @@ func TestStakingAuctionSC_ExecuteStakeStakeClaim(t *testing.T) {
 	assert.True(t, outputAccount.BalanceDelta.Cmp(big.NewInt(10000000)) == 0)
 
 	eei.SetSCAddress(args.StakingSCAddress)
-	marshalledData := eei.GetStorage(stakerPubKey.Bytes())
+	marshaledData := eei.GetStorage(stakerPubKey.Bytes())
 	stakedData := &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 }
 
@@ -648,9 +647,9 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKeyAndRestake(t *testing.T
 	assert.True(t, outputAccount.BalanceDelta.Cmp(addToStakeValue) == 0)
 
 	eei.SetSCAddress(args.StakingSCAddress)
-	marshalledData := eei.GetStorage(stakerPubKey.Bytes())
+	marshaledData := eei.GetStorage(stakerPubKey.Bytes())
 	stakedData := &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 }
 
@@ -747,8 +746,8 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondUnStakeUnBondOneBlsPubKey(t *
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	eei.SetSCAddress(args.StakingSCAddress)
-	marshalledData := eei.GetStorage(stakerPubKey)
-	assert.Equal(t, 0, len(marshalledData))
+	marshaledData := eei.GetStorage(stakerPubKey)
+	assert.Equal(t, 0, len(marshaledData))
 }
 
 func TestStakingAuctionSC_ExecuteStakeChangeRewardAddresStakeUnStake(t *testing.T) {
@@ -810,15 +809,15 @@ func TestStakingAuctionSC_ExecuteStakeChangeRewardAddresStakeUnStake(t *testing.
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	eei.SetSCAddress(args.StakingSCAddress)
-	marshalledData := eei.GetStorage(stakerPubKey)
+	marshaledData := eei.GetStorage(stakerPubKey)
 	stakedData := &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 	assert.True(t, bytes.Equal(rewardAddress, stakedData.RewardAddress))
 
-	marshalledData = eei.GetStorage(blsKey2)
+	marshaledData = eei.GetStorage(blsKey2)
 	stakedData = &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 	assert.True(t, bytes.Equal(rewardAddress, stakedData.RewardAddress))
 }
@@ -896,9 +895,9 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndRestake(t *testin
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	eei.SetSCAddress(args.StakingSCAddress)
-	marshalledData := eei.GetStorage(stakerPubKey.Bytes())
+	marshaledData := eei.GetStorage(stakerPubKey.Bytes())
 	stakedData := &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 }
 
@@ -1087,8 +1086,7 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 		TotalStakeValue: nodePrice,
 		LockedStake:     nodePrice,
 		MaxStakePerNode: nodePrice,
-		NumStaked:       1,
-		WaitingStake:    big.NewInt(0),
+		NumRegistered:   1,
 	}
 
 	atArgParser := parsers.NewCallArgsParser()
@@ -1267,8 +1265,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		TotalStakeValue: nodePrice,
 		LockedStake:     nodePrice,
 		MaxStakePerNode: nodePrice,
-		NumStaked:       1,
-		WaitingStake:    big.NewInt(0),
+		NumRegistered:   1,
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
 	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
@@ -1483,7 +1480,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 		TotalStakeValue: stakeValue,
 		LockedStake:     stakeValue,
 		MaxStakePerNode: stakeValue,
-		WaitingStake:    big.NewInt(0),
+		NumRegistered:   1,
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
 	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
@@ -1574,8 +1571,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 		TotalStakeValue: valueStakedByTheCaller,
 		LockedStake:     valueStakedByTheCaller,
 		MaxStakePerNode: valueStakedByTheCaller,
-		NumStaked:       1,
-		WaitingStake:    big.NewInt(0),
+		NumRegistered:   1,
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
 	eei.SetSCAddress(args.AuctionSCAddress)

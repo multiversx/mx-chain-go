@@ -251,12 +251,12 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 		}
 	}
 
-	marshalledData, err := e.marshalizer.Marshal(newESDTToken)
+	marshaledData, err := e.marshalizer.Marshal(newESDTToken)
 	if err != nil {
 		return err
 	}
 
-	e.eei.SetStorage(tokenName, marshalledData)
+	e.eei.SetStorage(tokenName, marshaledData)
 
 	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenName) + "@" + hex.EncodeToString(initialSupply.Bytes())
 	err = e.eei.Transfer(owner, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
