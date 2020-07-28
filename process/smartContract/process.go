@@ -1294,6 +1294,9 @@ func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler,
 	if !isUpgradeCalled {
 		return nil
 	}
+	if check.IfNil(contract) {
+		return process.ErrUpgradeNotAllowed
+	}
 
 	codeMetadata := vmcommon.CodeMetadataFromBytes(contract.GetCodeMetadata())
 	isUpgradeable := codeMetadata.Upgradeable

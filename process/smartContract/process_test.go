@@ -2087,3 +2087,50 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 	userFinalValue.Add(userFinalValue, userReturnValue)
 	require.True(t, userAcc.GetBalance().Cmp(userFinalValue) == 0)
 }
+
+func TestScProcessor_checkUpgradePermission(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	// Not an upgrade
+	err = sc.checkUpgradePermission(nil, &vmcommon.ContractCallInput{})
+	require.Nil(t, err)
+
+	// Upgrade, nil contract passed (quite impossible though)
+	err = sc.checkUpgradePermission(nil, &vmcommon.ContractCallInput{Function: "upgradeContract"})
+	require.Equal(t, process.ErrUpgradeNotAllowed, err)
+
+	// Create a contract, owned by Alice
+	contract, err := state.NewUserAccount([]byte("contract"))
+	require.Nil(t, err)
+	contract.SetOwnerAddress([]byte("alice"))
+	// Not yet upgradeable
+	contract.SetCodeMetadata([]byte{0, 0})
+
+	// Upgrade as Alice, but not allowed (not upgradeable)
+	err = sc.checkUpgradePermission(contract, &vmcommon.ContractCallInput{Function: "upgradeContract", VMInput: vmcommon.VMInput{CallerAddr: []byte("alice")}})
+	require.Equal(t, process.ErrUpgradeNotAllowed, err)
+
+	// Upgrade as Bob, but not allowed
+	err = sc.checkUpgradePermission(contract, &vmcommon.ContractCallInput{Function: "upgradeContract", VMInput: vmcommon.VMInput{CallerAddr: []byte("bob")}})
+	require.Equal(t, process.ErrUpgradeNotAllowed, err)
+
+	// Mark as upgradeable
+	contract.SetCodeMetadata([]byte{1, 0})
+
+	// Upgrade as Alice, allowed
+	err = sc.checkUpgradePermission(contract, &vmcommon.ContractCallInput{Function: "upgradeContract", VMInput: vmcommon.VMInput{CallerAddr: []byte("alice")}})
+	require.Nil(t, err)
+
+	// Upgrade as Bob, but not allowed
+	err = sc.checkUpgradePermission(contract, &vmcommon.ContractCallInput{Function: "upgradeContract", VMInput: vmcommon.VMInput{CallerAddr: []byte("bob")}})
+	require.Equal(t, process.ErrUpgradeNotAllowed, err)
+
+	// Upgrade as nobody, not allowed
+	err = sc.checkUpgradePermission(contract, &vmcommon.ContractCallInput{Function: "upgradeContract", VMInput: vmcommon.VMInput{CallerAddr: nil}})
+	require.Equal(t, process.ErrUpgradeNotAllowed, err)
+}
