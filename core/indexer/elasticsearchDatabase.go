@@ -182,8 +182,6 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 		Hash:                  hex.EncodeToString(headerHash),
 		MiniBlocksHashes:      miniblocksHashes,
 		NotarizedBlocksHashes: notarizedHeadersHashes,
-		Proposer:              signersIndexes[0],
-		Validators:            signersIndexes,
 		PubKeyBitmap:          hex.EncodeToString(header.GetPubKeysBitmap()),
 		Size:                  int64(blockSizeInBytes),
 		SizeTxs:               int64(sizeTxs),
@@ -195,6 +193,11 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 
 	if header.GetNonce() == 0 {
 		elasticBlock.PrevHash = hex.EncodeToString(header.GetReserved())
+		elasticBlock.Proposer = 0
+		elasticBlock.Validators = []uint64{0}
+	} else {
+		elasticBlock.Proposer = signersIndexes[0]
+		elasticBlock.Validators = signersIndexes
 	}
 
 	serializedBlock, err := json.Marshal(elasticBlock)
