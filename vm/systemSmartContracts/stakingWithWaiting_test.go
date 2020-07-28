@@ -64,14 +64,14 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	eei.SetSCAddress(args.StakingSCAddress)
-	marshalledData := eei.GetStorage(stakerPubKey)
+	marshaledData := eei.GetStorage(stakerPubKey)
 	stakedData := &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 
-	marshalledData = eei.GetStorage(blsKey2)
+	marshaledData = eei.GetStorage(blsKey2)
 	stakedData = &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 }
 
@@ -131,13 +131,13 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 	assert.True(t, outputAccount.BalanceDelta.Cmp(big.NewInt(10000000)) == 0)
 
 	eei.SetSCAddress(args.StakingSCAddress)
-	marshalledData := eei.GetStorage(stakerPubKey)
+	marshaledData := eei.GetStorage(stakerPubKey)
 	stakedData := &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 
-	marshalledData = eei.GetStorage(blsKey2)
-	assert.Equal(t, 0, len(marshalledData))
+	marshaledData = eei.GetStorage(blsKey2)
+	assert.Equal(t, 0, len(marshaledData))
 }
 
 func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
@@ -197,14 +197,14 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	marshalledData := eei.GetStorageFromAddress(args.StakingSCAddress, stakerPubKey)
+	marshaledData := eei.GetStorageFromAddress(args.StakingSCAddress, stakerPubKey)
 	stakedData := &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 
-	marshalledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey2)
+	marshaledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey2)
 	stakedData = &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 
 	blsKey3 := []byte("blsKey3")
@@ -214,9 +214,9 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	marshalledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey3)
+	marshaledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey3)
 	stakedData = &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 	assert.True(t, stakedData.Waiting)
 
@@ -226,9 +226,9 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	marshalledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey2)
+	marshaledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey2)
 	stakedData = &StakedData{}
-	_ = json.Unmarshal(marshalledData, stakedData)
+	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 	assert.False(t, stakedData.Waiting)
 }

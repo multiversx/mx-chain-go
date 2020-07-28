@@ -491,17 +491,6 @@ func testExecuteVote(t *testing.T, vote []byte) {
 			}
 			return nodeDataBytes
 		},
-		ExecuteOnDestContextCalled: func(destination, sender []byte, value *big.Int, input []byte) (output *vmcommon.VMOutput, err error) {
-			autionData := &AuctionData{
-				NumRegistered: 1,
-			}
-			auctionDataBytes, _ := json.Marshal(autionData)
-
-			return &vmcommon.VMOutput{
-				ReturnCode: vmcommon.Ok,
-				ReturnData: [][]byte{auctionDataBytes},
-			}, nil
-		},
 	}
 
 	gsc, _ := NewGovernanceContract(args)

@@ -83,7 +83,7 @@ func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte 
 	return data
 }
 
-// GetStorage get the values saved for a certain key
+// GetStorage gets the values saved for a certain key
 func (host *vmContext) GetStorage(key []byte) []byte {
 	return host.GetStorageFromAddress(host.scAddress, key)
 }

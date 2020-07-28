@@ -782,26 +782,26 @@ func (g *governanceContract) revokeVotePower(_ *vmcommon.ContractCallInput) vmco
 }
 
 func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
-	marshalledData := g.eei.GetStorageFromAddress(g.auctionSCAddress, address)
-	if len(marshalledData) == 0 {
+	marshaledData := g.eei.GetStorageFromAddress(g.auctionSCAddress, address)
+	if len(marshaledData) == 0 {
 		return 0, nil
 	}
 
 	auctionData := &AuctionData{}
-	err := g.marshalizer.Unmarshal(auctionData, marshalledData)
+	err := g.marshalizer.Unmarshal(auctionData, marshaledData)
 	if err != nil {
 		return 0, err
 	}
 
 	numStakedNodes := uint32(0)
 	for _, blsKey := range auctionData.BlsPubKeys {
-		marshalledData = g.eei.GetStorageFromAddress(g.stakingSCAddress, blsKey)
-		if len(marshalledData) == 0 {
+		marshaledData = g.eei.GetStorageFromAddress(g.stakingSCAddress, blsKey)
+		if len(marshaledData) == 0 {
 			continue
 		}
 
 		nodeData := &StakedData{}
-		err = g.marshalizer.Unmarshal(nodeData, marshalledData)
+		err = g.marshalizer.Unmarshal(nodeData, marshaledData)
 		if err != nil {
 			return 0, err
 		}
@@ -811,7 +811,7 @@ func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
 		}
 	}
 
-	return auctionData.NumRegistered, nil
+	return numStakedNodes, nil
 }
 
 func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
