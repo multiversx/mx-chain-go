@@ -289,3 +289,9 @@ type Debugger interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// SyncTimer represent an entity able to tell the current time
+type SyncTimer interface {
+	CurrentTime() time.Time
+	IsInterfaceNil() bool
+}

@@ -335,22 +335,24 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		return nil, err
 	}
 
-	transactionProcessor, err := transaction.NewTxProcessor(
-		arg.Accounts,
-		arg.Hasher,
-		arg.PubkeyConv,
-		arg.Marshalizer,
-		arg.SignMarshalizer,
-		arg.ShardCoordinator,
-		scProcessor,
-		genesisFeeHandler,
-		txTypeHandler,
-		genesisFeeHandler,
-		receiptTxInterim,
-		badTxInterim,
-		smartContract.NewArgumentParser(),
-		scForwarder,
-	)
+	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
+		Accounts:          arg.Accounts,
+		Hasher:            arg.Hasher,
+		PubkeyConv:        arg.PubkeyConv,
+		Marshalizer:       arg.Marshalizer,
+		SignMarshalizer:   arg.SignMarshalizer,
+		ShardCoordinator:  arg.ShardCoordinator,
+		ScProcessor:       scProcessor,
+		TxFeeHandler:      genesisFeeHandler,
+		TxTypeHandler:     txTypeHandler,
+		EconomicsFee:      genesisFeeHandler,
+		ReceiptForwarder:  receiptTxInterim,
+		BadTxForwarder:    badTxInterim,
+		ArgsParser:        smartContract.NewArgumentParser(),
+		ScrForwarder:      scForwarder,
+		DisabledRelayedTx: false,
+	}
+	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}

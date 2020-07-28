@@ -63,17 +63,17 @@ func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 
 	esdtKey := append(esdt.keyPrefix, key...)
 	esdtToken := &ESDigitalToken{Value: big.NewInt(100)}
-	marshalledData, _ := marshalizer.Marshal(esdtToken)
-	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
+	marshaledData, _ := marshalizer.Marshal(esdtToken)
+	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	_, err = esdt.ProcessBuiltinFunction(accSnd, accDst, input)
 	assert.Nil(t, err)
-	marshalledData, _ = accSnd.DataTrieTracker().RetrieveValue(esdtKey)
-	_ = marshalizer.Unmarshal(esdtToken, marshalledData)
+	marshaledData, _ = accSnd.DataTrieTracker().RetrieveValue(esdtKey)
+	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
 	assert.True(t, esdtToken.Value.Cmp(big.NewInt(90)) == 0)
 
-	marshalledData, _ = accDst.DataTrieTracker().RetrieveValue(esdtKey)
-	_ = marshalizer.Unmarshal(esdtToken, marshalledData)
+	marshaledData, _ = accDst.DataTrieTracker().RetrieveValue(esdtKey)
+	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
 	assert.True(t, esdtToken.Value.Cmp(big.NewInt(10)) == 0)
 }
 
@@ -96,13 +96,13 @@ func TestESDTTransfer_ProcessBuiltInFunctionSenderInShard(t *testing.T) {
 
 	esdtKey := append(esdt.keyPrefix, key...)
 	esdtToken := &ESDigitalToken{Value: big.NewInt(100)}
-	marshalledData, _ := marshalizer.Marshal(esdtToken)
-	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
+	marshaledData, _ := marshalizer.Marshal(esdtToken)
+	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	_, err := esdt.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Nil(t, err)
-	marshalledData, _ = accSnd.DataTrieTracker().RetrieveValue(esdtKey)
-	_ = marshalizer.Unmarshal(esdtToken, marshalledData)
+	marshaledData, _ = accSnd.DataTrieTracker().RetrieveValue(esdtKey)
+	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
 	assert.True(t, esdtToken.Value.Cmp(big.NewInt(90)) == 0)
 }
 
@@ -127,7 +127,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionDestInShard(t *testing.T) {
 	assert.Nil(t, err)
 	esdtKey := append(esdt.keyPrefix, key...)
 	esdtToken := &ESDigitalToken{}
-	marshalledData, _ := accDst.DataTrieTracker().RetrieveValue(esdtKey)
-	_ = marshalizer.Unmarshal(esdtToken, marshalledData)
+	marshaledData, _ := accDst.DataTrieTracker().RetrieveValue(esdtKey)
+	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
 	assert.True(t, esdtToken.Value.Cmp(big.NewInt(10)) == 0)
 }

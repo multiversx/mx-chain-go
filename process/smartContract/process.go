@@ -234,7 +234,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
 	}
 
-	err = sc.checkUpgradePermission(acntSnd, acntDst, vmInput)
+	err = sc.checkUpgradePermission(acntDst, vmInput)
 	if err != nil {
 		log.Debug("checkUpgradePermission", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(err.Error()), snapshot)
@@ -1289,15 +1289,18 @@ func (sc *scProcessor) processSimpleSCR(
 	return sc.accounts.SaveAccount(dstAcc)
 }
 
-func (sc *scProcessor) checkUpgradePermission(caller state.UserAccountHandler, contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
+func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) error {
 	isUpgradeCalled := vmInput.Function == upgradeFunctionName
 	if !isUpgradeCalled {
 		return nil
 	}
+	if check.IfNil(contract) {
+		return process.ErrUpgradeNotAllowed
+	}
 
 	codeMetadata := vmcommon.CodeMetadataFromBytes(contract.GetCodeMetadata())
 	isUpgradeable := codeMetadata.Upgradeable
-	callerAddress := caller.AddressBytes()
+	callerAddress := vmInput.CallerAddr
 	ownerAddress := contract.GetOwnerAddress()
 	isCallerOwner := bytes.Equal(callerAddress, ownerAddress)
 

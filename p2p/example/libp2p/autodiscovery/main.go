@@ -33,6 +33,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 				Type: p2p.NilListSharder,
 			},
 		},
+		SyncTimer: &libp2p.LocalSyncTimer{},
 	}
 }
 

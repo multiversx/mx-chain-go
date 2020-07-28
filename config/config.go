@@ -199,6 +199,7 @@ type GeneralSettingsConfig struct {
 	StartInEpochEnabled      bool
 	DisableDeploy            bool
 	DisableBuiltInFunctions  bool
+	DisableRelayedTx         bool
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade

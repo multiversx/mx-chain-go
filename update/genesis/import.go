@@ -419,11 +419,11 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 		return si.saveRootHash(accountsDB, accType, shId, rootHash)
 	}
 
-	var marshalledData []byte
+	var marshaledData []byte
 	var address []byte
 	for i := 1; i < len(keys); i++ {
 		key := keys[i]
-		marshalledData, err = si.hardforkStorer.Get(identifier, key)
+		marshaledData, err = si.hardforkStorer.Get(identifier, key)
 		if err != nil {
 			break
 		}
@@ -437,7 +437,7 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 			break
 		}
 
-		err = si.unMarshalAndSaveAccount(accType, address, marshalledData, accountsDB, mainTrie)
+		err = si.unMarshalAndSaveAccount(accType, address, marshaledData, accountsDB, mainTrie)
 		if err != nil {
 			break
 		}
