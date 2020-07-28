@@ -27,6 +27,7 @@ type SystemEIStub struct {
 	IsValidatorCalled               func(blsKey []byte) bool
 	ExecuteOnDestContextCalled      func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
 	GetStorageFromAddressCalled     func(address []byte, key []byte) []byte
+	SetStorageForAddressCalled      func(address []byte, key []byte, value []byte)
 }
 
 // IsValidator -
@@ -153,6 +154,12 @@ func (s *SystemEIStub) GetStorageFromAddress(address []byte, key []byte) []byte 
 		return s.GetStorageFromAddressCalled(address, key)
 	}
 	return nil
+}
+
+func (s *SystemEIStub) SetStorageForAddress(address []byte, key []byte, value []byte) {
+	if s.SetStorageForAddressCalled != nil {
+		s.SetStorageForAddressCalled(address, key, value)
+	}
 }
 
 // SelfDestruct -

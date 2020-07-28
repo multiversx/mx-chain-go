@@ -458,6 +458,15 @@ func testExecuteVote(t *testing.T, vote []byte) {
 	validatorAddr := []byte("addr2")
 	callerAddr := []byte("addr1")
 	args := createMockGovernanceArgs()
+
+	autionData := &AuctionData{
+		NumRegistered: 1,
+		BlsPubKeys:    [][]byte{[]byte("blsPubKey")},
+	}
+	auctionDataBytes, _ := json.Marshal(autionData)
+	nodeData := &StakedData{Staked: true}
+	nodeDataBytes, _ := json.Marshal(nodeData)
+
 	args.Eei = &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
 			if bytes.Equal(key, append([]byte(validatorPrefix), validatorAddr...)) {
@@ -475,6 +484,12 @@ func testExecuteVote(t *testing.T, vote []byte) {
 			}
 			generalProposalBytes, _ := json.Marshal(generalProposal)
 			return generalProposalBytes
+		},
+		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
+			if bytes.Equal(key, validatorAddr) {
+				return auctionDataBytes
+			}
+			return nodeDataBytes
 		},
 		ExecuteOnDestContextCalled: func(destination, sender []byte, value *big.Int, input []byte) (output *vmcommon.VMOutput, err error) {
 			autionData := &AuctionData{
@@ -522,19 +537,28 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 	args := createMockGovernanceArgs()
 
 	eei.SetSCAddress([]byte("addr"))
-	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
-		return &mock.SystemSCStub{
-			ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-				auctionData := &AuctionData{
-					NumRegistered: 1,
-				}
 
-				auctionDataBytes, _ := json.Marshal(auctionData)
-				eei.Finish(auctionDataBytes)
-				return vmcommon.Ok
-			},
-		}, nil
-	}})
+	validatorAddress1 := []byte("vala1")
+	validatorAddress2 := []byte("vala2")
+	blsKey1 := []byte("blsKey1")
+	blsKey2 := []byte("blsKey2")
+	auctionData := &AuctionData{
+		NumRegistered: 1,
+		BlsPubKeys:    [][]byte{blsKey1},
+	}
+	auctionDataBytes, _ := json.Marshal(auctionData)
+	eei.SetStorageForAddress(args.AuctionSCAddress, validatorAddress1, auctionDataBytes)
+	auctionData = &AuctionData{
+		NumRegistered: 1,
+		BlsPubKeys:    [][]byte{blsKey2},
+	}
+	auctionDataBytes, _ = json.Marshal(auctionData)
+	eei.SetStorageForAddress(args.AuctionSCAddress, validatorAddress2, auctionDataBytes)
+
+	nodeData := &StakedData{Staked: true}
+	stakedDataBytes, _ := json.Marshal(nodeData)
+	eei.SetStorageForAddress(args.StakingSCAddress, blsKey1, stakedDataBytes)
+	eei.SetStorageForAddress(args.StakingSCAddress, blsKey2, stakedDataBytes)
 
 	args.Eei = eei
 	gsc, _ := NewGovernanceContract(args)
@@ -563,11 +587,9 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return startNonce + 1
 	}
-	validatorAddress1 := []byte("vala1")
 	voteProposal(t, gsc, validatorAddress1, secondWLAddr, recipientAddr, "yes")
 
 	// vote address 2
-	validatorAddress2 := []byte("vala2")
 	voteProposal(t, gsc, validatorAddress2, secondWLAddr, recipientAddr, "yes")
 
 	// close white list
