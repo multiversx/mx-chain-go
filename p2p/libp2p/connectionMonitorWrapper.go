@@ -52,7 +52,7 @@ func (cmw *connectionMonitorWrapper) Connected(netw network.Network, conn networ
 
 	pid := conn.RemotePeer()
 	if peerBlackList.IsDenied(core.PeerID(pid)) {
-		log.Debug("dropping connection to black listed peer",
+		log.Trace("dropping connection to blacklisted peer",
 			"pid", pid.Pretty(),
 		)
 		_ = conn.Close()
@@ -87,7 +87,7 @@ func (cmw *connectionMonitorWrapper) CheckConnectionsBlocking() {
 
 	for _, pid := range peers {
 		if peerDenialEvaluator.IsDenied(core.PeerID(pid)) {
-			log.Debug("dropping connection to black listed peer",
+			log.Trace("dropping connection to blacklisted peer",
 				"pid", pid.Pretty(),
 			)
 			_ = cmw.network.ClosePeer(pid)
