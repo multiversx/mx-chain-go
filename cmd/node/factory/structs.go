@@ -1302,22 +1302,24 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	transactionProcessor, err := transaction.NewTxProcessor(
-		stateComponents.AccountsAdapter,
-		core.Hasher,
-		stateComponents.AddressPubkeyConverter,
-		core.InternalMarshalizer,
-		core.TxSignMarshalizer,
-		shardCoordinator,
-		scProcessor,
-		txFeeHandler,
-		txTypeHandler,
-		economics,
-		receiptTxInterim,
-		badTxInterim,
-		argsParser,
-		scForwarder,
-	)
+	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
+		Accounts:          stateComponents.AccountsAdapter,
+		Hasher:            core.Hasher,
+		PubkeyConv:        stateComponents.AddressPubkeyConverter,
+		Marshalizer:       core.InternalMarshalizer,
+		SignMarshalizer:   core.TxSignMarshalizer,
+		ShardCoordinator:  shardCoordinator,
+		ScProcessor:       scProcessor,
+		TxFeeHandler:      txFeeHandler,
+		TxTypeHandler:     txTypeHandler,
+		EconomicsFee:      economics,
+		ReceiptForwarder:  receiptTxInterim,
+		BadTxForwarder:    badTxInterim,
+		ArgsParser:        argsParser,
+		ScrForwarder:      scForwarder,
+		DisabledRelayedTx: config.GeneralSettings.DisableRelayedTx,
+	}
+	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
