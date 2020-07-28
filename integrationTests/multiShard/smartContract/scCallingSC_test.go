@@ -102,6 +102,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 		txData := "doSomething"
 		integrationTests.CreateAndSendTransaction(node, big.NewInt(50), secondSCAddress, txData)
 	}
+	time.Sleep(time.Second)
 
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
 
@@ -837,6 +838,86 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		if vmOutput != nil {
 			assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
 		}
+	}
+}
+
+func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 3
+	numMetachainNodes := 0
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000000)
+	initialVal.Mul(initialVal, initialVal)
+	fmt.Printf("Initial minted sum: %s\n", initialVal.String())
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// mint smart contract holders
+	firstSCOwner := []byte("12345678901234567890123456789000")
+	secondSCOwner := []byte("99945678901234567890123456789001")
+
+	mintPubKey(firstSCOwner, initialVal, nodes)
+	mintPubKey(secondSCOwner, initialVal, nodes)
+
+	// deploy the smart contracts
+	_ = putDeploySCToDataPool("./testdata/first/first.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
+	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
+	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), "", nodes)
+	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
+
+	// Run two rounds, so the two SmartContracts get deployed.
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+
+	time.Sleep(time.Second)
+
+	// Create transactions that invoke "doSomething" from the second SC, which
+	// will execute an "asyncCall" to a method in the first SC which counts how
+	// many times it has been called. There will be as many transactions as there
+	// are nodes.
+	for _, node := range nodes {
+		txData := "doSomething@WRONG"
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(50), secondSCAddress, txData)
+	}
+	time.Sleep(time.Second)
+
+	nrRound := 3
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRound, nonce, round, idxProposers)
+
+	for _, node := range nodes {
+		assert.Equal(t, node.BlockChain.GetCurrentBlockHeader().GetNonce(), uint64(nrRound))
 	}
 }
 

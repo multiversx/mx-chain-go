@@ -1478,6 +1478,6 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	returnCode, err = execTx.ProcessTransaction(&tx)
-	assert.Nil(t, err)
+	assert.Equal(t, err, process.ErrFailedTransaction)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 }
