@@ -1185,9 +1185,17 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
 	args.DisabledRelayedTx = true
+	called := false
+	args.BadTxForwarder = &mock.IntermediateTransactionHandlerMock{
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+			called = true
+			return nil
+		},
+	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	returnCode, err := execTx.ProcessTransaction(&tx)
 	assert.Equal(t, err, process.ErrFailedTransaction)
 	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.True(t, called)
 }
