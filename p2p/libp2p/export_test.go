@@ -35,6 +35,10 @@ func (netMes *networkMessenger) PubsubCallback(handler p2p.MessageProcessor, top
 	return netMes.pubsubCallback(handler, topic)
 }
 
+func (netMes *networkMessenger) ValidMessageByTimestamp(msg p2p.MessageP2P) error {
+	return netMes.validMessageByTimestamp(msg)
+}
+
 func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message, fromConnectedPeer peer.ID) error {
 	return ds.processReceivedDirectMessage(message, fromConnectedPeer)
 }

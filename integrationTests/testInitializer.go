@@ -135,6 +135,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     createP2PConfig(initialAddresses),
+		SyncTimer:     &libp2p.LocalSyncTimer{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -157,6 +158,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
+		SyncTimer:     &libp2p.LocalSyncTimer{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -173,6 +175,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
+		SyncTimer:     &libp2p.LocalSyncTimer{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -202,6 +205,7 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
+		SyncTimer:     &libp2p.LocalSyncTimer{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
