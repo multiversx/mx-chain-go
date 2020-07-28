@@ -62,24 +62,29 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 	return &adb
 }
 
-func createTxProcessor() txproc.TxProcessor {
-	txProc, _ := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
+	args := txproc.ArgsNewTxProcessor{
+		Accounts:          &mock.AccountsStub{},
+		Hasher:            mock.HasherMock{},
+		PubkeyConv:        createMockPubkeyConverter(),
+		Marshalizer:       &mock.MarshalizerMock{},
+		SignMarshalizer:   &mock.MarshalizerMock{},
+		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
+		ScProcessor:       &mock.SCProcessorMock{},
+		TxFeeHandler:      &mock.FeeAccumulatorStub{},
+		TxTypeHandler:     &mock.TxTypeHandlerMock{},
+		EconomicsFee:      feeHandlerMock(),
+		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:        &mock.ArgumentParserMock{},
+		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		DisabledRelayedTx: false,
+	}
+	return args
+}
 
+func createTxProcessor() txproc.TxProcessor {
+	txProc, _ := txproc.NewTxProcessor(createArgsForTxProcessor())
 	return txProc
 }
 
@@ -88,22 +93,9 @@ func createTxProcessor() txproc.TxProcessor {
 func TestNewTxProcessor_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewTxProcessor(
-		nil,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = nil
+	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 	assert.Nil(t, txProc)
@@ -112,22 +104,9 @@ func TestNewTxProcessor_NilAccountsShouldErr(t *testing.T) {
 func TestNewTxProcessor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		nil,
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Hasher = nil
+	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilHasher, err)
 	assert.Nil(t, txProc)
@@ -136,22 +115,9 @@ func TestNewTxProcessor_NilHasherShouldErr(t *testing.T) {
 func TestNewTxProcessor_NilPubkeyConverterMockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		mock.HasherMock{},
-		nil,
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.PubkeyConv = nil
+	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 	assert.Nil(t, txProc)
@@ -160,22 +126,9 @@ func TestNewTxProcessor_NilPubkeyConverterMockShouldErr(t *testing.T) {
 func TestNewTxProcessor_NilMarshalizerMockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		nil,
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Marshalizer = nil
+	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, txProc)
@@ -184,22 +137,9 @@ func TestNewTxProcessor_NilMarshalizerMockShouldErr(t *testing.T) {
 func TestNewTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		nil,
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.ShardCoordinator = nil
+	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 	assert.Nil(t, txProc)
@@ -208,22 +148,9 @@ func TestNewTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		nil,
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.ScProcessor = nil
+	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
 	assert.Nil(t, txProc)
@@ -232,22 +159,9 @@ func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 func TestNewTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		nil,
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.TxFeeHandler = nil
+	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilUnsignedTxHandler, err)
 	assert.Nil(t, txProc)
@@ -256,22 +170,8 @@ func TestNewTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, txProc)
@@ -283,23 +183,9 @@ func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
 	t.Parallel()
 
 	adb := createAccountStub(nil, nil, nil, nil)
-
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	adr1 := []byte{65}
 	adr2 := []byte{67}
@@ -316,22 +202,9 @@ func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
 
 	adb := createAccountStub(nil, nil, nil, nil)
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	adr1 := []byte{65}
 	adr2 := []byte{67}
@@ -364,23 +237,10 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-
-	execTx, _ := txproc.NewTxProcessor(
-		&adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = &adb
+	args.ShardCoordinator = shardCoordinator
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		if bytes.Equal(address, adr2) {
@@ -423,22 +283,10 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
-	execTx, _ := txproc.NewTxProcessor(
-		&adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = &adb
+	args.ShardCoordinator = shardCoordinator
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		if bytes.Equal(address, adr1) {
@@ -466,22 +314,9 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 
 	adb := createAccountStub(adr1, adr2, acnt1, acnt2)
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	a1, a2, err := execTx.GetAccounts(adr1, adr2)
 	assert.Nil(t, err)
@@ -500,22 +335,9 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 
 	adb := createAccountStub(adr1, adr2, acnt1, acnt2)
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	a1, a2, err := execTx.GetAccounts(adr1, adr1)
 	assert.Nil(t, err)
@@ -617,22 +439,9 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 
 	adb := createAccountStub(nil, nil, nil, nil)
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
@@ -661,22 +470,9 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
@@ -720,27 +516,14 @@ func TestTxProcessor_ProcessMoveBalanceToSmartNonPayableContract(t *testing.T) {
 		saveAccountCalled++
 		return nil
 	}
-
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		&mock.SCProcessorMock{
-			IsPayableCalled: func(address []byte) (bool, error) {
-				return false, nil
-			},
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = &mock.SCProcessorMock{
+		IsPayableCalled: func(address []byte) (bool, error) {
+			return false, nil
 		},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrFailedTransaction, err)
@@ -775,22 +558,10 @@ func TestTxProcessor_ProcessMoveBalanceToSmartPayableContract(t *testing.T) {
 		return nil
 	}
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ShardCoordinator = shardCoordinator
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
@@ -826,22 +597,10 @@ func testProcessCheck(t *testing.T, nonce uint64, value *big.Int) {
 		return nil
 	}
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ShardCoordinator = shardCoordinator
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
@@ -870,22 +629,9 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 		return nil
 	}
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
@@ -918,22 +664,9 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 		return nil
 	}
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
@@ -979,22 +712,10 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 		},
 	}
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandler,
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.EconomicsFee = feeHandler
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
@@ -1039,26 +760,15 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		return 0, nil
 	}
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		scProcessorMock,
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{
-			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-				return process.SCInvoking
-			},
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.TxTypeHandler = &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+			return process.SCInvoking
 		},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
@@ -1098,24 +808,15 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		return vmcommon.UserError, process.ErrNoVM
 	}
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-		scProcessorMock,
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.TxTypeHandler = &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
 			return process.SCInvoking
-		}},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+		},
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrNoVM, err)
@@ -1171,22 +872,12 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		scProcessorMock,
-		&mock.FeeAccumulatorStub{},
-		computeType,
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.ShardCoordinator = shardCoordinator
+	args.TxTypeHandler = computeType
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
@@ -1199,26 +890,14 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 
 	moveBalanceFee := big.NewInt(50)
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
-	execTx, _ := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(2),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		&mock.FeeHandlerStub{
-			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
-				return moveBalanceFee
-			},
+	args := createArgsForTxProcessor()
+	args.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return moveBalanceFee
 		},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
+
 	tx := &transaction.Transaction{
 		RcvAddr:  []byte("aaa"),
 		SndAddr:  []byte("bbb"),
@@ -1242,26 +921,15 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 
 	moveBalanceFee := big.NewInt(50)
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
-	execTx, _ := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(2),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		&mock.FeeHandlerStub{
-			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
-				return moveBalanceFee
-			},
+
+	args := createArgsForTxProcessor()
+	args.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return moveBalanceFee
 		},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
+
 	tx := &transaction.Transaction{
 		RcvAddr:  []byte("aaa"),
 		SndAddr:  []byte("bbb"),
@@ -1307,26 +975,13 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 	t.Parallel()
 
 	moveBalanceFee := big.NewInt(50)
-	execTx, _ := txproc.NewTxProcessor(
-		&mock.AccountsStub{},
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(2),
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		&mock.FeeHandlerStub{
-			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
-				return moveBalanceFee
-			},
+	args := createArgsForTxProcessor()
+	args.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return moveBalanceFee
 		},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	tx := &transaction.Transaction{
@@ -1367,26 +1022,16 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, nil)
 	scProcessorMock := &mock.SCProcessorMock{}
 	shardC, _ := sharding.NewMultiShardCoordinator(5, 3)
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		createMockPubkeyConverter(),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		shardC,
-		scProcessorMock,
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{
-			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-				return process.MoveBalance
-			},
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.ShardCoordinator = shardC
+	args.TxTypeHandler = &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+			return process.MoveBalance
 		},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.ArgumentParserMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, err, process.ErrFailedTransaction)
@@ -1450,22 +1095,14 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
 
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		pubKeyConverter,
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		shardC,
-		scProcessorMock,
-		&mock.FeeAccumulatorStub{},
-		txTypeHandler,
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		smartContract.NewArgumentParser(),
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.ShardCoordinator = shardC
+	args.TxTypeHandler = txTypeHandler
+	args.PubkeyConv = pubKeyConverter
+	args.ArgsParser = smartContract.NewArgumentParser()
+	execTx, _ := txproc.NewTxProcessor(args)
 
 	returnCode, err := execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
@@ -1480,4 +1117,85 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	returnCode, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, err, process.ErrFailedTransaction)
 	assert.Equal(t, vmcommon.UserError, returnCode)
+}
+
+func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
+	t.Parallel()
+
+	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+
+	userAddr := []byte("user")
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("sSRC")
+	tx.RcvAddr = userAddr
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
+
+	userTx := transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(50),
+		RcvAddr:  []byte("sDST"),
+		SndAddr:  userAddr,
+		GasPrice: 1,
+		GasLimit: 1,
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	userTxMarshalled, _ := marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
+
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr)
+	acntSrc.Balance = big.NewInt(100)
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr)
+	acntDst.Balance = big.NewInt(10)
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
+	acntFinal.Balance = big.NewInt(10)
+
+	adb := &mock.AccountsStub{}
+	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		if bytes.Equal(address, tx.SndAddr) {
+			return acntSrc, nil
+		}
+		if bytes.Equal(address, tx.RcvAddr) {
+			return acntDst, nil
+		}
+		if bytes.Equal(address, userTx.RcvAddr) {
+			return acntFinal, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+	scProcessorMock := &mock.SCProcessorMock{}
+	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
+
+	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  pubKeyConverter,
+		ShardCoordinator: shardC,
+		BuiltInFuncNames: make(map[string]struct{}),
+		ArgumentParser:   parsers.NewCallArgsParser(),
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
+
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.ShardCoordinator = shardC
+	args.TxTypeHandler = txTypeHandler
+	args.PubkeyConv = pubKeyConverter
+	args.ArgsParser = smartContract.NewArgumentParser()
+	args.DisabledRelayedTx = true
+	called := false
+	args.BadTxForwarder = &mock.IntermediateTransactionHandlerMock{
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+			called = true
+			return nil
+		},
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	returnCode, err := execTx.ProcessTransaction(&tx)
+	assert.Equal(t, err, process.ErrFailedTransaction)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.True(t, called)
 }

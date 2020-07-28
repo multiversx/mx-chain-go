@@ -454,8 +454,8 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 				return 1
 			},
 		},
-		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		MinTransactionVersion: MinTransactionVersion,
+		HistoryRepository:     &mock.HistoryRepositoryStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -1040,22 +1040,24 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(argsNewScProcessor)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
-	tpn.TxProcessor, _ = transaction.NewTxProcessor(
-		tpn.AccntState,
-		TestHasher,
-		TestAddressPubkeyConverter,
-		TestMarshalizer,
-		TestTxSignMarshalizer,
-		tpn.ShardCoordinator,
-		tpn.ScProcessor,
-		tpn.FeeAccumulator,
-		txTypeHandler,
-		tpn.EconomicsData,
-		receiptsHandler,
-		badBlocksHandler,
-		tpn.ArgsParser,
-		tpn.ScrForwarder,
-	)
+	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
+		Accounts:          tpn.AccntState,
+		Hasher:            TestHasher,
+		PubkeyConv:        TestAddressPubkeyConverter,
+		Marshalizer:       TestMarshalizer,
+		SignMarshalizer:   TestTxSignMarshalizer,
+		ShardCoordinator:  tpn.ShardCoordinator,
+		ScProcessor:       tpn.ScProcessor,
+		TxFeeHandler:      tpn.FeeAccumulator,
+		TxTypeHandler:     txTypeHandler,
+		EconomicsFee:      tpn.EconomicsData,
+		ReceiptForwarder:  receiptsHandler,
+		BadTxForwarder:    badBlocksHandler,
+		ArgsParser:        tpn.ArgsParser,
+		ScrForwarder:      tpn.ScrForwarder,
+		DisabledRelayedTx: false,
+	}
+	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,

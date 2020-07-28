@@ -862,3 +862,6 @@ var ErrUpgradeNotAllowed = errors.New("upgrade is allowed only for owner")
 
 // ErrBuiltInFunctionsAreDisabled signals that built in functions are disabled
 var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled")
+
+// ErrRelayedTxDisabled signals that relayed tx are disabled
+var ErrRelayedTxDisabled = errors.New("relayed tx is disabled")
