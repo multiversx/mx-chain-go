@@ -799,6 +799,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		*generalConfig,
 		coreComponents.StatusHandler,
 		coreComponents.InternalMarshalizer,
+		syncer,
 	)
 	if err != nil {
 		return err
