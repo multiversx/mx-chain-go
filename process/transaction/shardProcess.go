@@ -207,6 +207,11 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 			return nil
 		}
 
+		err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+		if err != nil {
+			return err
+		}
+
 		return process.ErrFailedTransaction
 	default:
 		return txError
@@ -521,7 +526,7 @@ func (txProc *txProcessor) processRelayedTx(
 		return 0, err
 	}
 
-	return txProc.processUserTx(userTx, adrSrc, tx.Value, tx.Nonce, txHash)
+	return txProc.processUserTx(tx, userTx, adrSrc, tx.Value, tx.Nonce, txHash)
 }
 
 func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int) {
@@ -534,6 +539,7 @@ func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) (*b
 }
 
 func (txProc *txProcessor) processUserTx(
+	originalTx *transaction.Transaction,
 	userTx *transaction.Transaction,
 	relayerAdr []byte,
 	relayedTxValue *big.Int,
@@ -553,6 +559,7 @@ func (txProc *txProcessor) processUserTx(
 			relayerAdr,
 			relayedTxValue,
 			relayedNonce,
+			originalTx,
 			txHash,
 			err.Error())
 	}
@@ -576,6 +583,7 @@ func (txProc *txProcessor) processUserTx(
 			relayerAdr,
 			relayedTxValue,
 			relayedNonce,
+			originalTx,
 			txHash,
 			err.Error())
 	}
@@ -586,6 +594,7 @@ func (txProc *txProcessor) processUserTx(
 			relayerAdr,
 			relayedTxValue,
 			relayedNonce,
+			originalTx,
 			txHash,
 			err.Error())
 	}
@@ -632,6 +641,7 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 	relayerAdr []byte,
 	relayedTxValue *big.Int,
 	relayedNonce uint64,
+	originalTx *transaction.Transaction,
 	originalTxHash []byte,
 	errorMsg string,
 ) error {
@@ -661,16 +671,23 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 		return err
 	}
 
+	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
+	if err != nil {
+		return err
+	}
+
 	if !check.IfNil(relayerAcnt) {
 		err = relayerAcnt.AddToBalance(scrForRelayer.Value)
 		if err != nil {
 			return err
 		}
-	}
 
-	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
-	if err != nil {
-		return err
+		err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{originalTx})
+		if err != nil {
+			return err
+		}
+
+		return process.ErrFailedTransaction
 	}
 
 	return nil
