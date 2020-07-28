@@ -913,11 +913,10 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	nrRound := 3
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRound, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 3, nonce, round, idxProposers)
 
 	for _, node := range nodes {
-		assert.Equal(t, node.BlockChain.GetCurrentBlockHeader().GetNonce(), uint64(nrRound))
+		assert.Equal(t, 5, node.BlockChain.GetCurrentBlockHeader().GetNonce())
 	}
 }
 
