@@ -139,3 +139,96 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 	marshalledData = eei.GetStorage(blsKey2)
 	assert.Equal(t, 0, len(marshalledData))
 }
+
+func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
+	// Staking fist key will become staked
+	// Staking second key gets into the waiting list
+	// UnStaking first key will make the second key staked
+	// Stake third key will get into the waiting list
+	// UnStake the second key must make it unStaked
+	// UnBond for that key should not work first
+	// Wait unBond period and do unBond should work
+	t.Parallel()
+
+	stakerAddress := []byte("address")
+	stakerPubKey := []byte("blsPubKey")
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	args := createMockArgumentsForAuction()
+
+	atArgParser := parsers.NewCallArgsParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
+
+	argsStaking := createMockStakingScArguments()
+	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
+	argsStaking.Eei = eei
+	argsStaking.StakingSCConfig.UnBondPeriod = 100000
+	argsStaking.StakingSCConfig.MaxNumberOfNodesForStake = 1
+	stakingSC, _ := NewStakingSmartContract(argsStaking)
+
+	eei.SetSCAddress([]byte("addr"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSC, nil
+	}})
+
+	args.StakingSCConfig = argsStaking.StakingSCConfig
+	args.Eei = eei
+
+	sc, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "stake"
+	arguments.CallerAddr = stakerAddress
+	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey, []byte("signed")}
+	arguments.CallValue = big.NewInt(10000000)
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	blsKey2 := []byte("blsKey2")
+	arguments.Function = "stake"
+	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), blsKey2, []byte("signed")}
+	arguments.CallValue = big.NewInt(10000000)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	arguments.Function = "unStake"
+	arguments.Arguments = [][]byte{stakerPubKey}
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	marshalledData := eei.GetStorageFromAddress(args.StakingSCAddress, stakerPubKey)
+	stakedData := &StakedData{}
+	_ = json.Unmarshal(marshalledData, stakedData)
+	assert.False(t, stakedData.Staked)
+
+	marshalledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey2)
+	stakedData = &StakedData{}
+	_ = json.Unmarshal(marshalledData, stakedData)
+	assert.True(t, stakedData.Staked)
+
+	blsKey3 := []byte("blsKey3")
+	arguments.Function = "stake"
+	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), blsKey3, []byte("signed")}
+	arguments.CallValue = big.NewInt(10000000)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	marshalledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey3)
+	stakedData = &StakedData{}
+	_ = json.Unmarshal(marshalledData, stakedData)
+	assert.False(t, stakedData.Staked)
+	assert.True(t, stakedData.Waiting)
+
+	arguments.Function = "unStake"
+	arguments.Arguments = [][]byte{blsKey2}
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	marshalledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey2)
+	stakedData = &StakedData{}
+	_ = json.Unmarshal(marshalledData, stakedData)
+	assert.False(t, stakedData.Staked)
+	assert.False(t, stakedData.Waiting)
+}

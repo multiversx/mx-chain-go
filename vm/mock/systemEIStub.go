@@ -26,6 +26,7 @@ type SystemEIStub struct {
 	UseGasCalled                    func(gas uint64) error
 	IsValidatorCalled               func(blsKey []byte) bool
 	ExecuteOnDestContextCalled      func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
+	GetStorageFromAddressCalled     func(address []byte, key []byte) []byte
 }
 
 // IsValidator -
@@ -142,6 +143,14 @@ func (s *SystemEIStub) AddReturnMessage(msg string) {
 func (s *SystemEIStub) GetStorage(key []byte) []byte {
 	if s.GetStorageCalled != nil {
 		return s.GetStorageCalled(key)
+	}
+	return nil
+}
+
+// GetStorageFromAddress -
+func (s *SystemEIStub) GetStorageFromAddress(address []byte, key []byte) []byte {
+	if s.GetStorageFromAddressCalled != nil {
+		return s.GetStorageFromAddressCalled(address, key)
 	}
 	return nil
 }

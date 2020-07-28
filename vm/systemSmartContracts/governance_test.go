@@ -478,7 +478,7 @@ func testExecuteVote(t *testing.T, vote []byte) {
 		},
 		ExecuteOnDestContextCalled: func(destination, sender []byte, value *big.Int, input []byte) (output *vmcommon.VMOutput, err error) {
 			autionData := &AuctionData{
-				NumStaked: 1,
+				NumRegistered: 1,
 			}
 			auctionDataBytes, _ := json.Marshal(autionData)
 
@@ -526,7 +526,7 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 		return &mock.SystemSCStub{
 			ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 				auctionData := &AuctionData{
-					NumStaked: 1,
+					NumRegistered: 1,
 				}
 
 				auctionDataBytes, _ := json.Marshal(auctionData)

@@ -67,6 +67,22 @@ func (host *vmContext) SetSystemSCContainer(scContainer vm.SystemSCContainer) er
 	return nil
 }
 
+// GetStorageFromAddress gets the storage from address and key
+func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte {
+	if storageAdrMap, ok := host.storageUpdate[string(address)]; ok {
+		if value, isInMap := storageAdrMap[string(key)]; isInMap {
+			return value
+		}
+	}
+
+	data, err := host.blockChainHook.GetStorageData(address, key)
+	if err != nil {
+		return nil
+	}
+
+	return data
+}
+
 // GetStorage get the values saved for a certain key
 func (host *vmContext) GetStorage(key []byte) []byte {
 	if storageAdrMap, ok := host.storageUpdate[string(host.scAddress)]; ok {

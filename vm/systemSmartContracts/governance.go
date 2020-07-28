@@ -805,7 +805,7 @@ func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
 		return 0, err
 	}
 
-	return auctionData.NumStaked, nil
+	return auctionData.NumRegistered, nil
 }
 
 func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
