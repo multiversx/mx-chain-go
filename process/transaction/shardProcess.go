@@ -24,95 +24,100 @@ var _ process.TransactionProcessor = (*txProcessor)(nil)
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
-	txFeeHandler     process.TransactionFeeHandler
-	txTypeHandler    process.TxTypeHandler
-	receiptForwarder process.IntermediateTransactionHandler
-	badTxForwarder   process.IntermediateTransactionHandler
-	argsParser       process.ArgumentsParser
-	scrForwarder     process.IntermediateTransactionHandler
-	signMarshalizer  marshal.Marshalizer
+	txFeeHandler      process.TransactionFeeHandler
+	txTypeHandler     process.TxTypeHandler
+	receiptForwarder  process.IntermediateTransactionHandler
+	badTxForwarder    process.IntermediateTransactionHandler
+	argsParser        process.ArgumentsParser
+	scrForwarder      process.IntermediateTransactionHandler
+	signMarshalizer   marshal.Marshalizer
+	disabledRelayedTx bool
+}
+
+// ArgsNewTxProcessor defines defines the arguments needed for new tx processor
+type ArgsNewTxProcessor struct {
+	Accounts          state.AccountsAdapter
+	Hasher            hashing.Hasher
+	PubkeyConv        core.PubkeyConverter
+	Marshalizer       marshal.Marshalizer
+	SignMarshalizer   marshal.Marshalizer
+	ShardCoordinator  sharding.Coordinator
+	ScProcessor       process.SmartContractProcessor
+	TxFeeHandler      process.TransactionFeeHandler
+	TxTypeHandler     process.TxTypeHandler
+	EconomicsFee      process.FeeHandler
+	ReceiptForwarder  process.IntermediateTransactionHandler
+	BadTxForwarder    process.IntermediateTransactionHandler
+	ArgsParser        process.ArgumentsParser
+	ScrForwarder      process.IntermediateTransactionHandler
+	DisabledRelayedTx bool
 }
 
 // NewTxProcessor creates a new txProcessor engine
-func NewTxProcessor(
-	accounts state.AccountsAdapter,
-	hasher hashing.Hasher,
-	pubkeyConv core.PubkeyConverter,
-	marshalizer marshal.Marshalizer,
-	signMarshalizer marshal.Marshalizer,
-	shardCoordinator sharding.Coordinator,
-	scProcessor process.SmartContractProcessor,
-	txFeeHandler process.TransactionFeeHandler,
-	txTypeHandler process.TxTypeHandler,
-	economicsFee process.FeeHandler,
-	receiptForwarder process.IntermediateTransactionHandler,
-	badTxForwarder process.IntermediateTransactionHandler,
-	argsParser process.ArgumentsParser,
-	scrForwarder process.IntermediateTransactionHandler,
-) (*txProcessor, error) {
+func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 
-	if check.IfNil(accounts) {
+	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(pubkeyConv) {
+	if check.IfNil(args.PubkeyConv) {
 		return nil, process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(scProcessor) {
+	if check.IfNil(args.ScProcessor) {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if check.IfNil(txFeeHandler) {
+	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
-	if check.IfNil(txTypeHandler) {
+	if check.IfNil(args.TxTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
-	if check.IfNil(economicsFee) {
+	if check.IfNil(args.EconomicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(receiptForwarder) {
+	if check.IfNil(args.ReceiptForwarder) {
 		return nil, process.ErrNilReceiptHandler
 	}
-	if check.IfNil(badTxForwarder) {
+	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
 	}
-	if check.IfNil(argsParser) {
+	if check.IfNil(args.ArgsParser) {
 		return nil, process.ErrNilArgumentParser
 	}
-	if check.IfNil(scrForwarder) {
+	if check.IfNil(args.ScrForwarder) {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
-	if check.IfNil(signMarshalizer) {
+	if check.IfNil(args.SignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 
 	baseTxProcess := &baseTxProcessor{
-		accounts:         accounts,
-		shardCoordinator: shardCoordinator,
-		pubkeyConv:       pubkeyConv,
-		economicsFee:     economicsFee,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		scProcessor:      scProcessor,
+		accounts:         args.Accounts,
+		shardCoordinator: args.ShardCoordinator,
+		pubkeyConv:       args.PubkeyConv,
+		economicsFee:     args.EconomicsFee,
+		hasher:           args.Hasher,
+		marshalizer:      args.Marshalizer,
+		scProcessor:      args.ScProcessor,
 	}
 
 	return &txProcessor{
 		baseTxProcessor:  baseTxProcess,
-		txFeeHandler:     txFeeHandler,
-		txTypeHandler:    txTypeHandler,
-		receiptForwarder: receiptForwarder,
-		badTxForwarder:   badTxForwarder,
-		argsParser:       argsParser,
-		scrForwarder:     scrForwarder,
-		signMarshalizer:  signMarshalizer,
+		txFeeHandler:     args.TxFeeHandler,
+		txTypeHandler:    args.TxTypeHandler,
+		receiptForwarder: args.ReceiptForwarder,
+		badTxForwarder:   args.BadTxForwarder,
+		argsParser:       args.ArgsParser,
+		scrForwarder:     args.ScrForwarder,
+		signMarshalizer:  args.SignMarshalizer,
 	}, nil
 }
 
@@ -452,6 +457,10 @@ func (txProc *txProcessor) processRelayedTx(
 
 	if len(args) != 1 {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
+	}
+
+	if txProc.disabledRelayedTx {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxDisabled)
 	}
 
 	userTx := &transaction.Transaction{}
