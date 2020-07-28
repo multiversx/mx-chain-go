@@ -193,6 +193,10 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 		PrevHash:              hex.EncodeToString(header.GetPrevHash()),
 	}
 
+	if header.GetNonce() == 0 {
+		elasticBlock.PrevHash = hex.EncodeToString(header.GetReserved())
+	}
+
 	serializedBlock, err := json.Marshal(elasticBlock)
 	if err != nil {
 		log.Debug("indexer: marshal", "error", "could not marshal elastic header")
