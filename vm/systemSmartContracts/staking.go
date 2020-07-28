@@ -819,8 +819,8 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 
 func (r *stakingSC) addToWaitingList(blsKey []byte) error {
 	inWaitingListKey := r.createWaitingListKey(blsKey)
-	marshalledData := r.eei.GetStorage(inWaitingListKey)
-	if len(marshalledData) != 0 {
+	marshaledData := r.eei.GetStorage(inWaitingListKey)
+	if len(marshaledData) != 0 {
 		return nil
 	}
 
@@ -875,14 +875,14 @@ func (r *stakingSC) saveElementAndList(key []byte, element *ElementInList, waiti
 
 func (r *stakingSC) removeFromWaitingList(blsKey []byte) error {
 	inWaitingListKey := r.createWaitingListKey(blsKey)
-	marshalledData := r.eei.GetStorage(inWaitingListKey)
-	if len(marshalledData) == 0 {
+	marshaledData := r.eei.GetStorage(inWaitingListKey)
+	if len(marshaledData) == 0 {
 		return nil
 	}
 	r.eei.SetStorage(inWaitingListKey, nil)
 
 	elementToRemove := &ElementInList{}
-	err := r.marshalizer.Unmarshal(elementToRemove, marshalledData)
+	err := r.marshalizer.Unmarshal(elementToRemove, marshaledData)
 	if err != nil {
 		return err
 	}
@@ -936,13 +936,13 @@ func (r *stakingSC) removeFromWaitingList(blsKey []byte) error {
 }
 
 func (r *stakingSC) getWaitingListElement(key []byte) (*ElementInList, error) {
-	marshalledData := r.eei.GetStorage(key)
-	if len(marshalledData) == 0 {
+	marshaledData := r.eei.GetStorage(key)
+	if len(marshaledData) == 0 {
 		return nil, vm.ErrElementNotFound
 	}
 
 	element := &ElementInList{}
-	err := r.marshalizer.Unmarshal(element, marshalledData)
+	err := r.marshalizer.Unmarshal(element, marshaledData)
 	if err != nil {
 		return nil, err
 	}
@@ -952,17 +952,17 @@ func (r *stakingSC) getWaitingListElement(key []byte) (*ElementInList, error) {
 
 func (r *stakingSC) isInWaiting(blsKey []byte) bool {
 	waitingKey := r.createWaitingListKey(blsKey)
-	marshalledData := r.eei.GetStorage(waitingKey)
-	return len(marshalledData) > 0
+	marshaledData := r.eei.GetStorage(waitingKey)
+	return len(marshaledData) > 0
 }
 
 func (r *stakingSC) saveWaitingListElement(key []byte, element *ElementInList) error {
-	marshalledData, err := r.marshalizer.Marshal(element)
+	marshaledData, err := r.marshalizer.Marshal(element)
 	if err != nil {
 		return err
 	}
 
-	r.eei.SetStorage(key, marshalledData)
+	r.eei.SetStorage(key, marshaledData)
 	return nil
 }
 
@@ -972,12 +972,12 @@ func (r *stakingSC) getWaitingListHead() (*WaitingList, error) {
 		LastKey:  make([]byte, 0),
 		Length:   0,
 	}
-	marshalledData := r.eei.GetStorage([]byte(waitingListHeadKey))
-	if len(marshalledData) == 0 {
+	marshaledData := r.eei.GetStorage([]byte(waitingListHeadKey))
+	if len(marshaledData) == 0 {
 		return waitingList, nil
 	}
 
-	err := r.marshalizer.Unmarshal(waitingList, marshalledData)
+	err := r.marshalizer.Unmarshal(waitingList, marshaledData)
 	if err != nil {
 		return nil, err
 	}
@@ -986,12 +986,12 @@ func (r *stakingSC) getWaitingListHead() (*WaitingList, error) {
 }
 
 func (r *stakingSC) saveWaitingListHead(waitingList *WaitingList) error {
-	marshalledData, err := r.marshalizer.Marshal(waitingList)
+	marshaledData, err := r.marshalizer.Marshal(waitingList)
 	if err != nil {
 		return err
 	}
 
-	r.eei.SetStorage([]byte(waitingListHeadKey), marshalledData)
+	r.eei.SetStorage([]byte(waitingListHeadKey), marshaledData)
 	return nil
 }
 
