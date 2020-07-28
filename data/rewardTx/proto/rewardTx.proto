@@ -15,8 +15,8 @@ enum Type {
 	LeaderTx = 1;
 	// BurnTx identifies a burn reward tx type
 	BurnTx = 2;
-	// CommunityTx identifies a community reward tx type
-	CommunityTx = 3;
+	// ProtocolSustainabilityTx identifies a protocol sustainability reward tx type
+	ProtocolSustainabilityTx = 3;
 	// ProtocolRewardsTx identifies a protocol reward tx type
 	ProtocolRewardsTx = 4;
 	// ProtocolRewardsForMetaTx identifies a protocol reward for meta tx type

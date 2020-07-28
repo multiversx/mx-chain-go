@@ -596,10 +596,6 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
-	assert.Equal(t, 0, len(peerAccount.GetList()))
-
-	stakingData.RegisterNonce = 10
-	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.RegisterNonce)
 	assert.Equal(t, string(core.NewList), peerAccount.GetList())
 
 	stakingData.UnStakedNonce = 11

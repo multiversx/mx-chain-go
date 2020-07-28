@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const initRating = uint32(50)
+
 func TestNewSyncValidatorStatus_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -107,15 +109,15 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 			InitialNodesInfoForShardCalled: func(shardID uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error) {
 				if shardID == core.MetachainShardId {
 					return []sharding.GenesisNodeInfoHandler{
-							mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), core.MetachainShardId),
-							mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), core.MetachainShardId),
+							mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), core.MetachainShardId, initRating),
+							mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), core.MetachainShardId, initRating),
 						},
 						[]sharding.GenesisNodeInfoHandler{&mock.NodeInfoMock{}},
 						nil
 				}
 				return []sharding.GenesisNodeInfoHandler{
-						mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), 0),
-						mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), 0),
+						mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), 0, initRating),
+						mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), 0, initRating),
 					},
 					[]sharding.GenesisNodeInfoHandler{&mock.NodeInfoMock{}},
 					nil
@@ -123,16 +125,16 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 			InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
 				return map[uint32][]sharding.GenesisNodeInfoHandler{
 						0: {
-							mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), 0),
-							mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), 0),
+							mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), 0, initRating),
+							mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), 0, initRating),
 						},
 						core.MetachainShardId: {
-							mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), core.MetachainShardId),
-							mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), core.MetachainShardId),
+							mock.NewNodeInfo([]byte("addr0"), []byte("pubKey0"), core.MetachainShardId, initRating),
+							mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), core.MetachainShardId, initRating),
 						},
 					}, map[uint32][]sharding.GenesisNodeInfoHandler{0: {
-						mock.NewNodeInfo([]byte("addr2"), []byte("pubKey2"), 0),
-						mock.NewNodeInfo([]byte("addr3"), []byte("pubKey3"), 0),
+						mock.NewNodeInfo([]byte("addr2"), []byte("pubKey2"), 0, initRating),
+						mock.NewNodeInfo([]byte("addr3"), []byte("pubKey3"), 0, initRating),
 					}}
 			},
 			GetShardConsensusGroupSizeCalled: func() uint32 {

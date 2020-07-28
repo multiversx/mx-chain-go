@@ -17,6 +17,8 @@ var BroadcastGoRoutines = broadcastGoRoutines
 var PubsubTimeCacheDuration = pubsubTimeCacheDuration
 var AcceptMessagesInAdvanceDuration = acceptMessagesInAdvanceDuration
 
+const CurrentTopicMessageVersion = currentTopicMessageVersion
+
 func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
 	netMes.p2pHost = newHost
 }
@@ -31,6 +33,10 @@ func (netMes *networkMessenger) SetPeerDiscoverer(discoverer p2p.PeerDiscoverer)
 
 func (netMes *networkMessenger) PubsubCallback(handler p2p.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 	return netMes.pubsubCallback(handler, topic)
+}
+
+func (netMes *networkMessenger) ValidMessageByTimestamp(msg p2p.MessageP2P) error {
+	return netMes.validMessageByTimestamp(msg)
 }
 
 func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message, fromConnectedPeer peer.ID) error {

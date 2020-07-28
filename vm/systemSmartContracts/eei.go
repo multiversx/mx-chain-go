@@ -67,15 +67,15 @@ func (host *vmContext) SetSystemSCContainer(scContainer vm.SystemSCContainer) er
 	return nil
 }
 
-// GetStorage get the values saved for a certain key
-func (host *vmContext) GetStorage(key []byte) []byte {
-	if storageAdrMap, ok := host.storageUpdate[string(host.scAddress)]; ok {
+// GetStorageFromAddress gets the storage from address and key
+func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte {
+	if storageAdrMap, ok := host.storageUpdate[string(address)]; ok {
 		if value, isInMap := storageAdrMap[string(key)]; isInMap {
 			return value
 		}
 	}
 
-	data, err := host.blockChainHook.GetStorageData(host.scAddress, key)
+	data, err := host.blockChainHook.GetStorageData(address, key)
 	if err != nil {
 		return nil
 	}
@@ -83,10 +83,14 @@ func (host *vmContext) GetStorage(key []byte) []byte {
 	return data
 }
 
-// SetStorage saves the key value storage under the address
-func (host *vmContext) SetStorage(key []byte, value []byte) {
-	strAdr := string(host.scAddress)
+// GetStorage gets the values saved for a certain key
+func (host *vmContext) GetStorage(key []byte) []byte {
+	return host.GetStorageFromAddress(host.scAddress, key)
+}
 
+// SetStorageForAddress saves the key value storage under the address
+func (host *vmContext) SetStorageForAddress(address []byte, key []byte, value []byte) {
+	strAdr := string(address)
 	if _, ok := host.storageUpdate[strAdr]; !ok {
 		host.storageUpdate[strAdr] = make(map[string][]byte)
 	}
@@ -94,6 +98,11 @@ func (host *vmContext) SetStorage(key []byte, value []byte) {
 	length := len(value)
 	host.storageUpdate[strAdr][string(key)] = make([]byte, length)
 	copy(host.storageUpdate[strAdr][string(key)][:length], value[:length])
+}
+
+// SetStorage saves the key value storage under the address
+func (host *vmContext) SetStorage(key []byte, value []byte) {
+	host.SetStorageForAddress(host.scAddress, key, value)
 }
 
 // GetBalance returns the balance of the given address

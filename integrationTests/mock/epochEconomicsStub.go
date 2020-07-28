@@ -1,13 +1,15 @@
 package mock
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // EpochEconomicsStub -
 type EpochEconomicsStub struct {
 	ComputeEndOfEpochEconomicsCalled func(metaBlock *block.MetaBlock) (*block.Economics, error)
-	VerifyRewardsPerBlockCalled      func(metaBlock *block.MetaBlock) error
+	VerifyRewardsPerBlockCalled      func(metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int) error
 }
 
 // ComputeEndOfEpochEconomics -
@@ -19,9 +21,9 @@ func (e *EpochEconomicsStub) ComputeEndOfEpochEconomics(metaBlock *block.MetaBlo
 }
 
 // VerifyRewardsPerBlock -
-func (e *EpochEconomicsStub) VerifyRewardsPerBlock(metaBlock *block.MetaBlock) error {
+func (e *EpochEconomicsStub) VerifyRewardsPerBlock(metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int) error {
 	if e.VerifyRewardsPerBlockCalled != nil {
-		return e.VerifyRewardsPerBlockCalled(metaBlock)
+		return e.VerifyRewardsPerBlockCalled(metaBlock, correctedProtocolSustainability)
 	}
 	return nil
 }

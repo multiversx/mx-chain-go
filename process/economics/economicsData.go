@@ -15,20 +15,20 @@ var _ process.FeeHandler = (*EconomicsData)(nil)
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
-	leaderPercentage        float64
-	communityPercentage     float64
-	communityAddress        string
-	maxGasLimitPerBlock     uint64
-	maxGasLimitPerMetaBlock uint64
-	gasPerDataByte          uint64
-	dataLimitForBaseCalc    uint64
-	minGasPrice             uint64
-	minGasLimit             uint64
-	developerPercentage     float64
-	genesisTotalSupply      *big.Int
-	minInflation            float64
-	yearSettings            map[uint32]*config.YearSetting
-	mutYearSettings         sync.RWMutex
+	leaderPercentage                 float64
+	protocolSustainabilityPercentage float64
+	protocolSustainabilityAddress    string
+	maxGasLimitPerBlock              uint64
+	maxGasLimitPerMetaBlock          uint64
+	gasPerDataByte                   uint64
+	dataLimitForBaseCalc             uint64
+	minGasPrice                      uint64
+	minGasLimit                      uint64
+	developerPercentage              float64
+	genesisTotalSupply               *big.Int
+	minInflation                     float64
+	yearSettings                     map[uint32]*config.YearSetting
+	mutYearSettings                  sync.RWMutex
 }
 
 // NewEconomicsData will create and object with information about economics parameters
@@ -48,18 +48,18 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 	}
 
 	ed := &EconomicsData{
-		leaderPercentage:        economics.RewardsSettings.LeaderPercentage,
-		communityPercentage:     economics.RewardsSettings.CommunityPercentage,
-		communityAddress:        economics.RewardsSettings.CommunityAddress,
-		maxGasLimitPerBlock:     data.maxGasLimitPerBlock,
-		maxGasLimitPerMetaBlock: data.maxGasLimitPerMetaBlock,
-		minGasPrice:             data.minGasPrice,
-		minGasLimit:             data.minGasLimit,
-		gasPerDataByte:          data.gasPerDataByte,
-		dataLimitForBaseCalc:    data.dataLimitForBaseCalc,
-		developerPercentage:     economics.RewardsSettings.DeveloperPercentage,
-		minInflation:            economics.GlobalSettings.MinimumInflation,
-		genesisTotalSupply:      data.genesisTotalSupply,
+		leaderPercentage:                 economics.RewardsSettings.LeaderPercentage,
+		protocolSustainabilityPercentage: economics.RewardsSettings.ProtocolSustainabilityPercentage,
+		protocolSustainabilityAddress:    economics.RewardsSettings.ProtocolSustainabilityAddress,
+		maxGasLimitPerBlock:              data.maxGasLimitPerBlock,
+		maxGasLimitPerMetaBlock:          data.maxGasLimitPerMetaBlock,
+		minGasPrice:                      data.minGasPrice,
+		minGasLimit:                      data.minGasLimit,
+		gasPerDataByte:                   data.gasPerDataByte,
+		dataLimitForBaseCalc:             data.dataLimitForBaseCalc,
+		developerPercentage:              economics.RewardsSettings.DeveloperPercentage,
+		minInflation:                     economics.GlobalSettings.MinimumInflation,
+		genesisTotalSupply:               data.genesisTotalSupply,
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
@@ -126,7 +126,7 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 func checkValues(economics *config.EconomicsConfig) error {
 	if isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) ||
-		isPercentageInvalid(economics.RewardsSettings.CommunityPercentage) ||
+		isPercentageInvalid(economics.RewardsSettings.ProtocolSustainabilityPercentage) ||
 		isPercentageInvalid(economics.GlobalSettings.MinimumInflation) {
 		return process.ErrInvalidRewardsPercentages
 	}
@@ -137,8 +137,8 @@ func checkValues(economics *config.EconomicsConfig) error {
 		}
 	}
 
-	if len(economics.RewardsSettings.CommunityAddress) == 0 {
-		return process.ErrNilCommunityAddress
+	if len(economics.RewardsSettings.ProtocolSustainabilityAddress) == 0 {
+		return process.ErrNilProtocolSustainabilityAddress
 	}
 
 	return nil
@@ -211,14 +211,15 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 	}
 
 	requiredGasLimit := ed.ComputeGasLimit(tx)
-	if requiredGasLimit > tx.GetGasLimit() {
+	if tx.GetGasLimit() < requiredGasLimit {
 		return process.ErrInsufficientGasLimitInTx
 	}
 
-	if requiredGasLimit > ed.maxGasLimitPerBlock {
+	if tx.GetGasLimit() >= ed.maxGasLimitPerBlock {
 		return process.ErrHigherGasLimitRequiredInTx
 	}
 
+	// The following is required to mitigate a "big value" attack
 	if len(tx.GetValue().Bytes()) > len(ed.genesisTotalSupply.Bytes()) {
 		return process.ErrTxValueOutOfBounds
 	}
@@ -243,14 +244,14 @@ func (ed *EconomicsData) DeveloperPercentage() float64 {
 	return ed.developerPercentage
 }
 
-// CommunityPercentage will return the community percentage value
-func (ed *EconomicsData) CommunityPercentage() float64 {
-	return ed.communityPercentage
+// ProtocolSustainabilityPercentage will return the protocol sustainability percentage value
+func (ed *EconomicsData) ProtocolSustainabilityPercentage() float64 {
+	return ed.protocolSustainabilityPercentage
 }
 
-// CommunityAddress will return the community address
-func (ed *EconomicsData) CommunityAddress() string {
-	return ed.communityAddress
+// ProtocolSustainabilityAddress will return the protocol sustainability address
+func (ed *EconomicsData) ProtocolSustainabilityAddress() string {
+	return ed.protocolSustainabilityAddress
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed

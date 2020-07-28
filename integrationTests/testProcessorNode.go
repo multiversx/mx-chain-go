@@ -89,7 +89,7 @@ var TestMarshalizer = &marshal.GogoProtoMarshalizer{}
 var TestVmMarshalizer = &marshal.JsonMarshalizer{}
 
 // TestTxSignMarshalizer represents the marshalizer used in vm communication
-var TestTxSignMarshalizer = &marshal.TxJsonMarshalizer{}
+var TestTxSignMarshalizer = &marshal.JsonMarshalizer{}
 
 // TestAddressPubkeyConverter represents an address public key converter
 var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32)
@@ -146,7 +146,7 @@ var MinTransactionVersion = uint32(999)
 // SoftwareVersion is the software version identifier used in integration tests, processing nodes
 var SoftwareVersion = []byte("intT")
 
-var testCommunityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+var testProtocolSustainabilityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
@@ -294,14 +294,15 @@ func newBaseTestProcessorNode(
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
 			for i := uint32(0); i < maxShards; i++ {
-				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i))
+				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i, InitialRating))
 			}
-			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId], mock.NewNodeInfo(address, pksBytes[core.MetachainShardId], core.MetachainShardId))
+			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId],
+				mock.NewNodeInfo(address, pksBytes[core.MetachainShardId], core.MetachainShardId, InitialRating))
 			return oneMap, nil
 		},
 		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []sharding.GenesisNodeInfoHandler, handlers2 []sharding.GenesisNodeInfoHandler, err error) {
 			list := make([]sharding.GenesisNodeInfoHandler, 0)
-			list = append(list, mock.NewNodeInfo(address, pksBytes[shardId], shardId))
+			list = append(list, mock.NewNodeInfo(address, pksBytes[shardId], shardId, InitialRating))
 			return list, nil, nil
 		},
 		MinNumberOfNodesCalled: func() uint32 {
@@ -647,9 +648,9 @@ func CreateEconomicsData() *economics.EconomicsData {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:    0.1,
-				DeveloperPercentage: 0.1,
-				CommunityAddress:    testCommunityAddress,
+				LeaderPercentage:              0.1,
+				DeveloperPercentage:           0.1,
+				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -1354,15 +1355,15 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.ArgsNewRewardsCreator{
-			ShardCoordinator:    tpn.ShardCoordinator,
-			PubkeyConverter:     TestAddressPubkeyConverter,
-			RewardsStorage:      rewardsStorage,
-			MiniBlockStorage:    miniBlockStorage,
-			Hasher:              TestHasher,
-			Marshalizer:         TestMarshalizer,
-			DataPool:            tpn.DataPool,
-			CommunityAddress:    testCommunityAddress,
-			NodesConfigProvider: tpn.NodesCoordinator,
+			ShardCoordinator:              tpn.ShardCoordinator,
+			PubkeyConverter:               TestAddressPubkeyConverter,
+			RewardsStorage:                rewardsStorage,
+			MiniBlockStorage:              miniBlockStorage,
+			Hasher:                        TestHasher,
+			Marshalizer:                   TestMarshalizer,
+			DataPool:                      tpn.DataPool,
+			ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+			NodesConfigProvider:           tpn.NodesCoordinator,
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 
@@ -1511,7 +1512,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		TestAddressPubkeyConverter.Encode(tx.SndAddr),
 		tx.GasPrice,
 		tx.GasLimit,
-		string(tx.Data),
+		tx.Data,
 		hex.EncodeToString(tx.Signature),
 		string(tx.ChainID),
 		tx.Version,

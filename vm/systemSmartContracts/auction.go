@@ -26,6 +26,7 @@ const (
 	ok uint8 = iota
 	invalidKey
 	failed
+	waiting
 )
 
 type stakingAuctionSC struct {
@@ -706,14 +707,14 @@ func (s *stakingAuctionSC) activateStakingFor(
 	fixedStakeValue *big.Int,
 	rewardAddress []byte,
 ) {
-	numStaked := uint64(registrationData.NumStaked)
-	for i := uint64(0); numStaked < numQualified && i < uint64(len(blsKeys)); i++ {
+	numRegistered := uint64(registrationData.NumRegistered)
+	for i := uint64(0); numRegistered < numQualified && i < uint64(len(blsKeys)); i++ {
 		stakedData, err := s.getStakedData(blsKeys[i])
 		if err != nil {
 			continue
 		}
 
-		if stakedData.Staked {
+		if stakedData.Staked || stakedData.Waiting {
 			continue
 		}
 
@@ -732,11 +733,17 @@ func (s *stakingAuctionSC) activateStakingFor(
 			continue
 		}
 
-		numStaked++
+		if len(vmOutput.ReturnData) > 0 && bytes.Equal(vmOutput.ReturnData[0], []byte{waiting}) {
+			s.eei.AddReturnMessage(fmt.Sprintf("key put into waiting list %s", hex.EncodeToString(blsKeys[i])))
+			s.eei.Finish(blsKeys[i])
+			s.eei.Finish([]byte{waiting})
+		}
+
+		numRegistered++
 	}
 
-	registrationData.NumStaked = uint32(numStaked)
-	registrationData.LockedStake.Mul(fixedStakeValue, big.NewInt(0).SetUint64(numStaked))
+	registrationData.NumRegistered = uint32(numRegistered)
+	registrationData.LockedStake.Mul(fixedStakeValue, big.NewInt(0).SetUint64(numRegistered))
 }
 
 func (s *stakingAuctionSC) executeOnStakingSC(data []byte) (*vmcommon.VMOutput, error) {
@@ -854,7 +861,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 	}
 
 	for _, blsKey := range blsKeys {
-		if registrationData.NumStaked == 0 {
+		if registrationData.NumRegistered == 0 {
 			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s as it is not staked", hex.EncodeToString(blsKey)))
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
@@ -876,7 +883,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 			continue
 		}
 
-		registrationData.NumStaked -= 1
+		registrationData.NumRegistered -= 1
 	}
 
 	err = s.saveRegistrationData(args.CallerAddr, registrationData)
@@ -943,6 +950,12 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 	unBondedKeys := make([][]byte, 0)
 	totalUnBond := big.NewInt(0)
 	for _, blsKey := range blsKeys {
+		nodeData, err := s.getStakedData(blsKey)
+		if err != nil {
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s, error: %s", hex.EncodeToString(blsKey), err.Error()))
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
+		}
 		// returns what value is still under the selected bls key
 		vmOutput, err := s.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
 		if err != nil {
@@ -953,7 +966,6 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		}
 
 		if len(vmOutput.ReturnData) < 2 || vmOutput.ReturnCode != vmcommon.Ok {
-			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s, error: %s", hex.EncodeToString(blsKey), vmOutput.ReturnCode.String()))
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
 			continue
@@ -968,16 +980,25 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 			unBondValue.Set(auctionConfig.NodePrice)
 		}
 
-		_ = totalUnBond.Add(totalUnBond, unBondValue)
+		if nodeData.Waiting {
+			registrationData.NumRegistered -= 1
+		}
+
 		unBondedKeys = append(unBondedKeys, blsKey)
+		totalUnBond.Add(totalUnBond, unBondValue)
 	}
 
 	if registrationData.LockedStake.Cmp(totalUnBond) < 0 {
-		totalUnBond.Set(registrationData.LockedStake)
+		s.eei.AddReturnMessage("contract error on unBond function, lockedStake < totalUnBond")
+		return vmcommon.UserError
 	}
 
-	_ = registrationData.LockedStake.Sub(registrationData.LockedStake, totalUnBond)
-	_ = registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, totalUnBond)
+	registrationData.LockedStake.Sub(registrationData.LockedStake, totalUnBond)
+	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, totalUnBond)
+	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
+		s.eei.AddReturnMessage("contract error on unBond function, total stake < 0")
+		return vmcommon.UserError
+	}
 
 	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
 	if err != nil {

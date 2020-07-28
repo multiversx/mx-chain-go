@@ -189,7 +189,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 		Sender:     hex.EncodeToString(dummyTx.SndAddr),
 		GasPrice:   dummyTx.GasPrice,
 		GasLimit:   dummyTx.GasLimit,
-		Data:       string(dummyTx.Data),
+		Data:       dummyTx.Data,
 		Code:       "",
 		Signature:  hex.EncodeToString(dummyTx.Signature),
 		SndShard:   sndShard,
@@ -243,7 +243,7 @@ func TestNode_GetFullHistoryTransaction_TxInPoolShouldReturnItDirectly(t *testin
 		Sender:    hex.EncodeToString(dummyTx.SndAddr),
 		GasPrice:  dummyTx.GasPrice,
 		GasLimit:  dummyTx.GasLimit,
-		Data:      string(dummyTx.Data),
+		Data:      dummyTx.Data,
 		Signature: hex.EncodeToString(dummyTx.Signature),
 		Status:    core.TxStatusPartiallyExecuted,
 	}

@@ -70,6 +70,9 @@ var SyncDelay = time.Second * 2
 // P2pBootstrapDelay is used so that nodes have enough time to bootstrap
 var P2pBootstrapDelay = 5 * time.Second
 
+// InitialRating is used to initiate a node's info
+var InitialRating = uint32(50)
+
 var log = logger.GetOrCreate("integrationtests")
 
 // shuffler constants
@@ -132,6 +135,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     createP2PConfig(initialAddresses),
+		SyncTimer:     &libp2p.LocalSyncTimer{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -154,6 +158,7 @@ func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, protocolID strin
 		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
+		SyncTimer:     &libp2p.LocalSyncTimer{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -170,6 +175,7 @@ func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
+		SyncTimer:     &libp2p.LocalSyncTimer{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -199,6 +205,7 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 		Marshalizer:   TestMarshalizer,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
+		SyncTimer:     &libp2p.LocalSyncTimer{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -1821,7 +1828,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint
 	for shardId, shardNodesPks := range pubKeysMap {
 		var shardValidators []sharding.GenesisNodeInfoHandler
 		for i := 0; i < len(shardNodesPks); i++ {
-			v := mock.NewNodeInfo([]byte(shardNodesPks[i][:32]), []byte(shardNodesPks[i]), shardId)
+			v := mock.NewNodeInfo([]byte(shardNodesPks[i][:32]), []byte(shardNodesPks[i]), shardId, InitialRating)
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
@@ -1840,7 +1847,7 @@ func GenValidatorsFromPubKeysAndTxPubKeys(
 	for shardId, shardNodesPks := range blsPubKeysMap {
 		var shardValidators []sharding.GenesisNodeInfoHandler
 		for i := 0; i < len(shardNodesPks); i++ {
-			v := mock.NewNodeInfo([]byte(txPubKeysMap[shardId][i]), []byte(shardNodesPks[i]), shardId)
+			v := mock.NewNodeInfo([]byte(txPubKeysMap[shardId][i]), []byte(shardNodesPks[i]), shardId, InitialRating)
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators

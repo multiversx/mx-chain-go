@@ -59,9 +59,9 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:    0.1,
-				CommunityPercentage: 0.1,
-				CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+				LeaderPercentage:                 0.1,
+				ProtocolSustainabilityPercentage: 0.1,
+				ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     "10000000",
@@ -247,7 +247,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 	arguments.PeerAdapter = peerAdapters
 	arguments.NodesSetup = &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
 		oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
-		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0))
+		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0, 50))
 		return oneMap, oneMap
 	}}
 
@@ -269,7 +269,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 	arguments.PeerAdapter = peerAdapter
 	arguments.NodesSetup = &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
 		oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
-		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0))
+		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0, 50))
 		return oneMap, oneMap
 	}}
 	_, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -294,7 +294,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 	arguments := createMockArguments()
 	arguments.NodesSetup = &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
 		oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
-		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0))
+		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0, 50))
 		return oneMap, oneMap
 	}}
 	arguments.PeerAdapter = peerAdapter
@@ -584,6 +584,7 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 	cache[string(header.GetPrevHash())] = &block.MetaBlock{
 		PubKeysBitmap:   []byte{255, 255},
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 
@@ -631,6 +632,50 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	assert.Equal(t, uint32(1), validator.IncreaseValidatorSuccessRateValue)
 }
 
+func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesIgnoredSignatures_SameEpoch(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]sharding.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+	prevHeader, header := generateTestMetaBlockHeaders(cache)
+	prevHeader.PubKeysBitmap = []byte{5}
+	header.Round = prevHeader.Round + 1
+	header.Epoch = 1
+
+	v1 := mock.NewValidatorMock([]byte("pk1"))
+	v2 := mock.NewValidatorMock([]byte("pk2"))
+	v3 := mock.NewValidatorMock([]byte("pk3"))
+	v4 := mock.NewValidatorMock([]byte("pk4"))
+
+	prevHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, prevHeader.PrevRandSeed, prevHeader.Round, prevHeader.GetShardID(), prevHeader.Epoch)
+	prevHeaderConsensus := []sharding.Validator{v1, v2, v3}
+	consensusGroup[prevHeaderConsensusKey] = prevHeaderConsensus
+
+	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
+	currentHeaderConsensus := []sharding.Validator{v3, v4, v1}
+	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
+	assert.Nil(t, err)
+
+	pa1, _ := validatorStatistics.GetPeerAccount(v1.PubKey())
+	leader := pa1.(*mock.PeerAccountHandlerMock)
+	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	validatorIgnored := pa2.(*mock.PeerAccountHandlerMock)
+	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	validator := pa3.(*mock.PeerAccountHandlerMock)
+
+	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
+	assert.Equal(t, uint32(1), validatorIgnored.IncreaseValidatorIgnoredSignaturesValue)
+	assert.Equal(t, uint32(0), validatorIgnored.IncreaseValidatorSuccessRateValue)
+	assert.Equal(t, uint32(0), validatorIgnored.DecreaseValidatorSuccessRateValue)
+	assert.Equal(t, uint32(1), validator.IncreaseValidatorSuccessRateValue)
+}
+
 func generateTestMetaBlockHeaders(cache map[string]data.HeaderHandler) (*block.MetaBlock, *block.MetaBlock) {
 	prevHeader := &block.MetaBlock{
 		Round:           1,
@@ -638,6 +683,7 @@ func generateTestMetaBlockHeaders(cache map[string]data.HeaderHandler) (*block.M
 		Nonce:           1,
 		PubKeysBitmap:   []byte{255, 255},
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 		PrevRandSeed:    []byte("prevRandSeed"),
 	}
 
@@ -656,6 +702,7 @@ func generateTestShardBlockHeaders(cache map[string]data.HeaderHandler) (*block.
 		Nonce:           1,
 		PubKeysBitmap:   []byte{255, 255},
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 		PrevRandSeed:    []byte("prevRandSeed"),
 		RandSeed:        []byte("prevHeaderRandSeed"),
 	}
@@ -1223,7 +1270,9 @@ func shardDataFromHeader(headerHash []byte, prevHeader *block.Header) block.Shar
 		PrevHash:        prevHeader.PrevHash,
 		Nonce:           prevHeader.Nonce,
 		ShardID:         prevHeader.ShardID,
-		AccumulatedFees: big.NewInt(0)}
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+	}
 
 	return sd
 }
@@ -1749,6 +1798,7 @@ func getMetaHeaderHandler(randSeed []byte) *block.MetaBlock {
 		PrevHash:        randSeed,
 		PubKeysBitmap:   randSeed,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 }
 
@@ -1759,6 +1809,7 @@ func getShardHeaderHandler(randSeed []byte) *block.Header {
 		PrevHash:        randSeed,
 		PubKeysBitmap:   randSeed,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 }
 
@@ -1836,11 +1887,13 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 	assert.Equal(t, uint32(22), pa0.GetTotalValidatorSuccessRate().NumFailure)
 	assert.Equal(t, uint32(33), pa0.GetTotalLeaderSuccessRate().NumSuccess)
 	assert.Equal(t, uint32(44), pa0.GetTotalLeaderSuccessRate().NumFailure)
+	assert.Equal(t, uint32(55), pa0.GetTotalValidatorIgnoredSignaturesRate())
 
 	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NumSuccess)
 	assert.Equal(t, uint32(0), pa0.GetValidatorSuccessRate().NumFailure)
 	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NumSuccess)
 	assert.Equal(t, uint32(0), pa0.GetLeaderSuccessRate().NumFailure)
+	assert.Equal(t, uint32(0), pa0.GetValidatorIgnoredSignaturesRate())
 
 	assert.Equal(t, uint32(0), pa0.GetNumSelectedInSuccessBlocks())
 	assert.Equal(t, pa0.GetTempRating(), pa0.GetRating())
@@ -2280,10 +2333,12 @@ func compare(t *testing.T, peerAccount state.PeerAccountHandler, validatorInfo *
 	assert.Equal(t, peerAccount.GetBLSPublicKey(), validatorInfo.PublicKey)
 	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NumFailure, validatorInfo.ValidatorFailure)
 	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NumSuccess, validatorInfo.ValidatorSuccess)
+	assert.Equal(t, peerAccount.GetValidatorIgnoredSignaturesRate(), validatorInfo.ValidatorIgnoredSignatures)
 	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NumFailure, validatorInfo.LeaderFailure)
 	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NumSuccess, validatorInfo.LeaderSuccess)
 	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NumFailure, validatorInfo.TotalValidatorFailure)
 	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NumSuccess, validatorInfo.TotalValidatorSuccess)
+	assert.Equal(t, peerAccount.GetTotalValidatorIgnoredSignaturesRate(), validatorInfo.TotalValidatorIgnoredSignatures)
 	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NumFailure, validatorInfo.TotalLeaderFailure)
 	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NumSuccess, validatorInfo.TotalLeaderSuccess)
 	assert.Equal(t, peerAccount.GetList(), validatorInfo.List)
@@ -2308,6 +2363,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 			NumSuccess: 3,
 			NumFailure: 4,
 		},
+		ValidatorIgnoredSignaturesRate: 5,
 		TotalValidatorSuccessRate: state.SignRate{
 			NumSuccess: 10,
 			NumFailure: 20,
@@ -2316,11 +2372,12 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 			NumSuccess: 30,
 			NumFailure: 40,
 		},
-		NumSelectedInSuccessBlocks: 5,
-		Rating:                     51,
-		TempRating:                 61,
-		Nonce:                      7,
-		UnStakedEpoch:              core.DefaultUnstakedEpoch,
+		TotalValidatorIgnoredSignaturesRate: 50,
+		NumSelectedInSuccessBlocks:          5,
+		Rating:                              51,
+		TempRating:                          61,
+		Nonce:                               7,
+		UnStakedEpoch:                       core.DefaultUnstakedEpoch,
 	}
 
 	addr = addrBytesMeta

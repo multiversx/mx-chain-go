@@ -444,18 +444,17 @@
 
 # The marshalizer used in transaction signing
 [TxSignMarshalizer]
-   Type = "tx-json"
+   Type = "json"
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
     MinRoundsBetweenEpochs = 200
     RoundsPerEpoch         = 200
-    # ShuffledOutRestartThreshold represents the maximum duration of an epoch (in percentage) after a node which
+    # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
-    ShuffledOutRestartThreshold = 0.25
+    MinShuffledOutRestartThreshold = 0.05
+    MaxShuffledOutRestartThreshold = 0.25
 
-    # ShuffleBetweenShards enables the shuffling of validators between shards at the end of epoch
-    ShuffleBetweenShards = true
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
 
@@ -529,6 +528,7 @@
 	StartRound = 10000
 	StartNonce = 10000
 	StartEpoch = 100
+	GenesisTime = 0
 	ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
 	[Hardfork.ExportStateStorageConfig]
 	    [Hardfork.ExportStateStorageConfig.Cache]

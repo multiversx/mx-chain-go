@@ -21,6 +21,8 @@ var log = logger.GetOrCreate("vm/systemsmartcontracts")
 
 const ownerKey = "owner"
 const nodesConfigKey = "nodesConfig"
+const waitingListHeadKey = "waitingList"
+const waitingElementPrefix = "w_"
 
 type stakingSC struct {
 	eei                      vm.SystemEI
@@ -90,10 +92,9 @@ func NewStakingSmartContract(
 		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:              args.Marshalizer,
 	}
-	ok := true
-	conversionBase := 10
-	reg.stakeValue, ok = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
-	if !ok || reg.stakeValue.Cmp(zero) < 0 {
+	conversionOk := true
+	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
+	if !conversionOk || reg.stakeValue.Cmp(zero) < 0 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
 
@@ -534,9 +535,27 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	}
 
 	if !onlyRegister {
-		if !r.canStake() {
+		if registrationData.StakeValue.Cmp(stakeValue) < 0 {
+			registrationData.StakeValue.Set(stakeValue)
+		}
+
+		if !r.canStake() && !registrationData.Staked {
 			r.eei.AddReturnMessage("staking is full")
-			return vmcommon.UserError
+			err = r.addToWaitingList(args.Arguments[0])
+			if err != nil {
+				r.eei.AddReturnMessage("error while adding to waiting")
+				return vmcommon.UserError
+			}
+			registrationData.Waiting = true
+			r.eei.Finish([]byte{waiting})
+
+			err = r.saveStakingData(args.Arguments[0], registrationData)
+			if err != nil {
+				r.eei.AddReturnMessage("cannot save staking registered data: error " + err.Error())
+				return vmcommon.UserError
+			}
+
+			return vmcommon.Ok
 		}
 
 		if !registrationData.Staked {
@@ -544,13 +563,9 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 		}
 		registrationData.Staked = true
 		registrationData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
-
-		if registrationData.StakeValue.Cmp(stakeValue) < 0 {
-			registrationData.StakeValue.Set(stakeValue)
-		}
+		registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	}
 
-	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	registrationData.RewardAddress = args.Arguments[1]
 
 	err = r.saveStakingData(args.Arguments[0], registrationData)
@@ -595,6 +610,11 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		r.eei.AddReturnMessage("unStake is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
+	err = r.moveFirstFromWaitingToStakedIfNeeded(args.Arguments[0])
+	if err != nil {
+		r.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 	if !r.canUnStake() {
 		r.eei.AddReturnMessage("unStake is not possible as too many left")
 		return vmcommon.UserError
@@ -612,6 +632,51 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	}
 
 	return vmcommon.Ok
+}
+
+func (r *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) error {
+	waitingElementKey := r.createWaitingListKey(blsKey)
+	elementInList, err := r.getWaitingListElement(waitingElementKey)
+	if err == nil {
+		// node in waiting - remove from it - and that's it
+		return r.removeFromWaitingList(blsKey)
+	}
+
+	waitingList, err := r.getWaitingListHead()
+	if err != nil {
+		return err
+	}
+	if waitingList.Length == 0 {
+		return nil
+	}
+	elementInList, err = r.getWaitingListElement(waitingList.FirstKey)
+	if err != nil {
+		return err
+	}
+	err = r.removeFromWaitingList(elementInList.BLSPublicKey)
+	if err != nil {
+		return err
+	}
+
+	nodeData, err := r.getOrCreateRegisteredData(elementInList.BLSPublicKey)
+	if err != nil {
+		return err
+	}
+	if len(nodeData.RewardAddress) == 0 || nodeData.Staked {
+		return vm.ErrInvalidWaitingList
+	}
+
+	nodeData.Waiting = false
+	nodeData.Staked = true
+	nodeData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
+	nodeData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
+	stakeValue := r.getStakeValueForCurrentEpoch()
+	if nodeData.StakeValue.Cmp(stakeValue) < 0 {
+		nodeData.StakeValue.Set(stakeValue)
+	}
+
+	r.addToStakedNodes()
+	return r.saveStakingData(elementInList.BLSPublicKey, nodeData)
 }
 
 func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -632,25 +697,38 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 
 	blsKeyBytes := make([]byte, 2*len(args.Arguments[0]))
 	_ = hex.Encode(blsKeyBytes, args.Arguments[0])
-	blsKey := string(blsKeyBytes)
+	encodedBlsKey := string(blsKeyBytes)
 
 	if len(registrationData.RewardAddress) == 0 {
-		r.eei.AddReturnMessage(fmt.Sprintf("cannot unBond key %s that is not registered", blsKey))
+		r.eei.AddReturnMessage(fmt.Sprintf("cannot unBond key %s that is not registered", encodedBlsKey))
+		return vmcommon.UserError
+	}
+	if registrationData.Staked {
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s which is staked", encodedBlsKey))
+		return vmcommon.UserError
+	}
+	if registrationData.JailedRound != math.MaxUint64 {
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for jailed key %s", encodedBlsKey))
 		return vmcommon.UserError
 	}
 
-	if registrationData.Staked {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s which is staked", blsKey))
-		return vmcommon.UserError
+	if r.isInWaiting(args.Arguments[0]) || registrationData.Waiting {
+		err = r.removeFromWaitingList(args.Arguments[0])
+		if err != nil {
+			r.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		r.eei.SetStorage(args.Arguments[0], nil)
+		r.eei.Finish(registrationData.StakeValue.Bytes())
+		r.eei.Finish(big.NewInt(0).SetUint64(uint64(registrationData.UnStakedEpoch)).Bytes())
+
+		return vmcommon.Ok
 	}
 
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
 	if currentNonce-registrationData.UnStakedNonce < r.unBondPeriod {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", blsKey))
-		return vmcommon.UserError
-	}
-	if registrationData.JailedRound != math.MaxUint64 {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for jailed key %s", blsKey))
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", encodedBlsKey))
 		return vmcommon.UserError
 	}
 	if !r.canUnBond() {
@@ -658,7 +736,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if r.eei.IsValidator(args.Arguments[0]) {
-		r.eei.AddReturnMessage("unbonding is not possible: the node with key " + blsKey + " is still a validator")
+		r.eei.AddReturnMessage("unbonding is not possible: the node with key " + encodedBlsKey + " is still a validator")
 		return vmcommon.UserError
 	}
 
@@ -732,12 +810,193 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	}
 
 	if registrationData.Staked {
-		log.Debug("account already staked, re-staking is invalid")
 		return vmcommon.Ok
 	}
 
 	r.eei.AddReturnMessage("account not staked")
 	return vmcommon.UserError
+}
+
+func (r *stakingSC) addToWaitingList(blsKey []byte) error {
+	inWaitingListKey := r.createWaitingListKey(blsKey)
+	marshaledData := r.eei.GetStorage(inWaitingListKey)
+	if len(marshaledData) != 0 {
+		return nil
+	}
+
+	waitingList, err := r.getWaitingListHead()
+	if err != nil {
+		return err
+	}
+
+	waitingList.Length += 1
+	if waitingList.Length == 1 {
+		waitingList.FirstKey = inWaitingListKey
+		waitingList.LastKey = inWaitingListKey
+		elementInWaiting := &ElementInList{
+			BLSPublicKey: blsKey,
+			PreviousKey:  waitingList.LastKey,
+			NextKey:      make([]byte, 0),
+		}
+		return r.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
+	}
+
+	oldLastKey := make([]byte, len(waitingList.LastKey))
+	copy(oldLastKey, waitingList.LastKey)
+
+	lastElement, err := r.getWaitingListElement(waitingList.LastKey)
+	if err != nil {
+		return err
+	}
+	lastElement.NextKey = inWaitingListKey
+	elementInWaiting := &ElementInList{
+		BLSPublicKey: blsKey,
+		PreviousKey:  oldLastKey,
+		NextKey:      make([]byte, 0),
+	}
+
+	err = r.saveWaitingListElement(oldLastKey, lastElement)
+	if err != nil {
+		return err
+	}
+
+	waitingList.LastKey = inWaitingListKey
+	return r.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
+}
+
+func (r *stakingSC) saveElementAndList(key []byte, element *ElementInList, waitingList *WaitingList) error {
+	err := r.saveWaitingListElement(key, element)
+	if err != nil {
+		return err
+	}
+
+	return r.saveWaitingListHead(waitingList)
+}
+
+func (r *stakingSC) removeFromWaitingList(blsKey []byte) error {
+	inWaitingListKey := r.createWaitingListKey(blsKey)
+	marshaledData := r.eei.GetStorage(inWaitingListKey)
+	if len(marshaledData) == 0 {
+		return nil
+	}
+	r.eei.SetStorage(inWaitingListKey, nil)
+
+	elementToRemove := &ElementInList{}
+	err := r.marshalizer.Unmarshal(elementToRemove, marshaledData)
+	if err != nil {
+		return err
+	}
+
+	waitingList, err := r.getWaitingListHead()
+	if err != nil {
+		return err
+	}
+	if waitingList.Length == 0 {
+		return vm.ErrInvalidWaitingList
+	}
+	waitingList.Length -= 1
+	if waitingList.Length == 0 {
+		r.eei.SetStorage([]byte(waitingListHeadKey), nil)
+		return nil
+	}
+	if bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey) {
+		nextElement, err := r.getWaitingListElement(elementToRemove.NextKey)
+		if err != nil {
+			return err
+		}
+
+		nextElement.PreviousKey = elementToRemove.NextKey
+		waitingList.FirstKey = elementToRemove.NextKey
+		return r.saveElementAndList(elementToRemove.NextKey, nextElement, waitingList)
+	}
+
+	previousElement, err := r.getWaitingListElement(elementToRemove.PreviousKey)
+	if err != nil {
+		return err
+	}
+	if len(elementToRemove.NextKey) == 0 {
+		waitingList.LastKey = elementToRemove.PreviousKey
+		previousElement.NextKey = make([]byte, 0)
+		return r.saveElementAndList(elementToRemove.PreviousKey, previousElement, waitingList)
+	}
+
+	nextElement, err := r.getWaitingListElement(elementToRemove.NextKey)
+	if err != nil {
+		return err
+	}
+
+	nextElement.PreviousKey = elementToRemove.PreviousKey
+	previousElement.NextKey = elementToRemove.NextKey
+
+	err = r.saveWaitingListElement(elementToRemove.NextKey, nextElement)
+	if err != nil {
+		return err
+	}
+	return r.saveElementAndList(elementToRemove.PreviousKey, previousElement, waitingList)
+}
+
+func (r *stakingSC) getWaitingListElement(key []byte) (*ElementInList, error) {
+	marshaledData := r.eei.GetStorage(key)
+	if len(marshaledData) == 0 {
+		return nil, vm.ErrElementNotFound
+	}
+
+	element := &ElementInList{}
+	err := r.marshalizer.Unmarshal(element, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return element, nil
+}
+
+func (r *stakingSC) isInWaiting(blsKey []byte) bool {
+	waitingKey := r.createWaitingListKey(blsKey)
+	marshaledData := r.eei.GetStorage(waitingKey)
+	return len(marshaledData) > 0
+}
+
+func (r *stakingSC) saveWaitingListElement(key []byte, element *ElementInList) error {
+	marshaledData, err := r.marshalizer.Marshal(element)
+	if err != nil {
+		return err
+	}
+
+	r.eei.SetStorage(key, marshaledData)
+	return nil
+}
+
+func (r *stakingSC) getWaitingListHead() (*WaitingList, error) {
+	waitingList := &WaitingList{
+		FirstKey: make([]byte, 0),
+		LastKey:  make([]byte, 0),
+		Length:   0,
+	}
+	marshaledData := r.eei.GetStorage([]byte(waitingListHeadKey))
+	if len(marshaledData) == 0 {
+		return waitingList, nil
+	}
+
+	err := r.marshalizer.Unmarshal(waitingList, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return waitingList, nil
+}
+
+func (r *stakingSC) saveWaitingListHead(waitingList *WaitingList) error {
+	marshaledData, err := r.marshalizer.Marshal(waitingList)
+	if err != nil {
+		return err
+	}
+
+	r.eei.SetStorage([]byte(waitingListHeadKey), marshaledData)
+	return nil
+}
+
+func (r *stakingSC) createWaitingListKey(blsKey []byte) []byte {
+	return []byte(waitingElementPrefix + string(blsKey))
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

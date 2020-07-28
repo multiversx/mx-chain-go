@@ -15,30 +15,31 @@ import (
 )
 
 func createMockNodesHandler() *mock.InitialNodesHandlerStub {
+	initRating := uint32(50)
 	eligible := map[uint32][]sharding.GenesisNodeInfoHandler{
 		0: {
-			mock.NewNodeInfo([]byte("addr1"), []byte("pubkey1"), 0),
-			mock.NewNodeInfo([]byte("addr2"), []byte("pubkey2"), 0),
+			mock.NewNodeInfo([]byte("addr1"), []byte("pubkey1"), 0, initRating),
+			mock.NewNodeInfo([]byte("addr2"), []byte("pubkey2"), 0, initRating),
 		},
 		1: {
-			mock.NewNodeInfo([]byte("addr1"), []byte("pubkey3"), 1),
-			mock.NewNodeInfo([]byte("addr4"), []byte("pubkey4"), 1),
+			mock.NewNodeInfo([]byte("addr1"), []byte("pubkey3"), 1, initRating),
+			mock.NewNodeInfo([]byte("addr4"), []byte("pubkey4"), 1, initRating),
 		},
 		core.MetachainShardId: {
-			mock.NewNodeInfo([]byte("addr5"), []byte("pubkey5"), core.MetachainShardId),
-			mock.NewNodeInfo([]byte("addr6"), []byte("pubkey6"), core.MetachainShardId),
+			mock.NewNodeInfo([]byte("addr5"), []byte("pubkey5"), core.MetachainShardId, initRating),
+			mock.NewNodeInfo([]byte("addr6"), []byte("pubkey6"), core.MetachainShardId, initRating),
 		},
 	}
 
 	waiting := map[uint32][]sharding.GenesisNodeInfoHandler{
 		0: {
-			mock.NewNodeInfo([]byte("addr7"), []byte("pubkey7"), 0),
+			mock.NewNodeInfo([]byte("addr7"), []byte("pubkey7"), 0, initRating),
 		},
 		1: {
-			mock.NewNodeInfo([]byte("addr8"), []byte("pubkey8"), 1),
+			mock.NewNodeInfo([]byte("addr8"), []byte("pubkey8"), 1, initRating),
 		},
 		core.MetachainShardId: {
-			mock.NewNodeInfo([]byte("addr9"), []byte("pubkey9"), core.MetachainShardId),
+			mock.NewNodeInfo([]byte("addr9"), []byte("pubkey9"), core.MetachainShardId, initRating),
 		},
 	}
 
