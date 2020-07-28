@@ -109,14 +109,15 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	}
 
 	return &txProcessor{
-		baseTxProcessor:  baseTxProcess,
-		txFeeHandler:     args.TxFeeHandler,
-		txTypeHandler:    args.TxTypeHandler,
-		receiptForwarder: args.ReceiptForwarder,
-		badTxForwarder:   args.BadTxForwarder,
-		argsParser:       args.ArgsParser,
-		scrForwarder:     args.ScrForwarder,
-		signMarshalizer:  args.SignMarshalizer,
+		baseTxProcessor:   baseTxProcess,
+		txFeeHandler:      args.TxFeeHandler,
+		txTypeHandler:     args.TxTypeHandler,
+		receiptForwarder:  args.ReceiptForwarder,
+		badTxForwarder:    args.BadTxForwarder,
+		argsParser:        args.ArgsParser,
+		scrForwarder:      args.ScrForwarder,
+		signMarshalizer:   args.SignMarshalizer,
+		disabledRelayedTx: args.DisabledRelayedTx,
 	}, nil
 }
 

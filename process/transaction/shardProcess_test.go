@@ -1118,3 +1118,76 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 }
+
+func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
+	t.Parallel()
+
+	pubKeyConverter := mock.NewPubkeyConverterMock(4)
+
+	userAddr := []byte("user")
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("sSRC")
+	tx.RcvAddr = userAddr
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
+
+	userTx := transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(50),
+		RcvAddr:  []byte("sDST"),
+		SndAddr:  userAddr,
+		GasPrice: 1,
+		GasLimit: 1,
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	userTxMarshalled, _ := marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
+
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr)
+	acntSrc.Balance = big.NewInt(100)
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr)
+	acntDst.Balance = big.NewInt(10)
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
+	acntFinal.Balance = big.NewInt(10)
+
+	adb := &mock.AccountsStub{}
+	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		if bytes.Equal(address, tx.SndAddr) {
+			return acntSrc, nil
+		}
+		if bytes.Equal(address, tx.RcvAddr) {
+			return acntDst, nil
+		}
+		if bytes.Equal(address, userTx.RcvAddr) {
+			return acntFinal, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+	scProcessorMock := &mock.SCProcessorMock{}
+	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
+
+	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  pubKeyConverter,
+		ShardCoordinator: shardC,
+		BuiltInFuncNames: make(map[string]struct{}),
+		ArgumentParser:   parsers.NewCallArgsParser(),
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
+
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.ShardCoordinator = shardC
+	args.TxTypeHandler = txTypeHandler
+	args.PubkeyConv = pubKeyConverter
+	args.ArgsParser = smartContract.NewArgumentParser()
+	args.DisabledRelayedTx = true
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	returnCode, err := execTx.ProcessTransaction(&tx)
+	assert.Equal(t, err, process.ErrFailedTransaction)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+}
