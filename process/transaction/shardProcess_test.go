@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
@@ -1100,6 +1101,7 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	args.ShardCoordinator = shardC
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
+	args.ArgsParser = smartContract.NewArgumentParser()
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	returnCode, err := execTx.ProcessTransaction(&tx)
