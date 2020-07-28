@@ -3,7 +3,6 @@ package systemSmartContracts
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -782,30 +781,37 @@ func (g *governanceContract) revokeVotePower(_ *vmcommon.ContractCallInput) vmco
 	return vmcommon.UserError
 }
 
-func (g *governanceContract) executeOnAuctionSC(data []byte) (*vmcommon.VMOutput, error) {
-	return g.eei.ExecuteOnDestContext(g.stakingSCAddress, g.governanceSCAddress, big.NewInt(0), data)
-}
-
 func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
-	txData := "get" + "@" + hex.EncodeToString(address)
-	vmOutput, err := g.executeOnAuctionSC([]byte(txData))
-	if err != nil {
-		return 0, err
-	}
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return 0, vm.ErrNotEnoughQualifiedNodes
-	}
-	if len(vmOutput.ReturnData) == 0 {
-		return 0, vm.ErrNotEnoughQualifiedNodes
+	marshaledData := g.eei.GetStorageFromAddress(g.auctionSCAddress, address)
+	if len(marshaledData) == 0 {
+		return 0, nil
 	}
 
 	auctionData := &AuctionData{}
-	err = g.marshalizer.Unmarshal(auctionData, vmOutput.ReturnData[0])
+	err := g.marshalizer.Unmarshal(auctionData, marshaledData)
 	if err != nil {
 		return 0, err
 	}
 
-	return auctionData.NumStaked, nil
+	numStakedNodes := uint32(0)
+	for _, blsKey := range auctionData.BlsPubKeys {
+		marshaledData = g.eei.GetStorageFromAddress(g.stakingSCAddress, blsKey)
+		if len(marshaledData) == 0 {
+			continue
+		}
+
+		nodeData := &StakedData{}
+		err = g.marshalizer.Unmarshal(nodeData, marshaledData)
+		if err != nil {
+			return 0, err
+		}
+
+		if nodeData.Staked {
+			numStakedNodes++
+		}
+	}
+
+	return numStakedNodes, nil
 }
 
 func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
