@@ -826,17 +826,17 @@ func AdbEmulateBalanceTxExecution(accounts state.AccountsAdapter, acntSrc, acntD
 // CreateSimpleTxProcessor returns a transaction processor
 func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionProcessor {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	txProcessor, _ := txProc.NewTxProcessor(
-		accnts,
-		TestHasher,
-		TestAddressPubkeyConverter,
-		TestMarshalizer,
-		TestTxSignMarshalizer,
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
-		&mock.TxTypeHandlerMock{},
-		&mock.FeeHandlerStub{
+	argsNewTxProcessor := txProc.ArgsNewTxProcessor{
+		Accounts:         accnts,
+		Hasher:           TestHasher,
+		PubkeyConv:       TestAddressPubkeyConverter,
+		Marshalizer:      TestMarshalizer,
+		SignMarshalizer:  TestTxSignMarshalizer,
+		ShardCoordinator: shardCoordinator,
+		ScProcessor:      &mock.SCProcessorMock{},
+		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
+		TxTypeHandler:    &mock.TxTypeHandlerMock{},
+		EconomicsFee: &mock.FeeHandlerStub{
 			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 				return tx.GetGasLimit()
 			},
@@ -850,11 +850,13 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 				return fee
 			},
 		},
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		smartContract.NewArgumentParser(),
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:        smartContract.NewArgumentParser(),
+		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		DisabledRelayedTx: false,
+	}
+	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 
 	return txProcessor
 }

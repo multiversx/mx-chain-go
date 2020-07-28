@@ -55,7 +55,6 @@ type ArgsNewTxProcessor struct {
 
 // NewTxProcessor creates a new txProcessor engine
 func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
-
 	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
