@@ -310,6 +310,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlocks[core.MetachainShardId], nil, nil, nil)
+
 	err = setGenesisHeader(args, genesisBlocks)
 	if err != nil {
 		return nil, err
@@ -1003,6 +1005,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		BlockSignKeyGen:          args.crypto.BlockSignKeyGen,
 		ImportStartHandler:       args.importStartHandler,
 		WorkingDir:               workingDir,
+		GenesisString:            args.mainConfig.GeneralSettings.GenesisString,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)

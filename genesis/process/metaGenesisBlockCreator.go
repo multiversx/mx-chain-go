@@ -61,9 +61,15 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
 
+	magicDecoded, err := hex.DecodeString(arg.GenesisString)
+	if err != nil {
+		return nil, err
+	}
+	prevHash := arg.Hasher.Compute(arg.GenesisString)
+
 	header := &block.MetaBlock{
 		RootHash:               rootHash,
-		PrevHash:               rootHash,
+		PrevHash:               prevHash,
 		RandSeed:               rootHash,
 		PrevRandSeed:           rootHash,
 		AccumulatedFees:        big.NewInt(0),
@@ -77,6 +83,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		Round:                  round,
 		Nonce:                  nonce,
 		Epoch:                  epoch,
+		Reserved:               magicDecoded,
 	}
 
 	header.EpochStart.Economics = block.Economics{
