@@ -210,14 +210,8 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 
 	argParser := &mock.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.AccountsDB = &mock.AccountsStub{RevertToSnapshotCalled: func(snapshot int) error {
-		return nil
-	}}
 	arguments.VmContainer = &mock.VMContainerMock{}
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -232,8 +226,24 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 		return nil, parseError
 	}
 
-	_, _ = sc.DeploySmartContract(tx, acntSrc)
+	arguments.AccountsDB = &mock.AccountsStub{
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
+		},
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return acntSrc, nil
+		},
+	}
+
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
 	require.Equal(t, parseError, GetLatestTestError(sc))
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, uint64(1), acntSrc.GetNonce())
+	require.True(t, acntSrc.GetBalance().Cmp(tx.Value) == 0)
 }
 
 func TestScProcessor_DeploySmartContractRunError(t *testing.T) {

@@ -176,7 +176,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return txProc.processRelayedTx(tx, tx.SndAddr, tx.RcvAddr)
 	}
 
-	return vmcommon.UserError, process.ErrWrongTransaction
+	return vmcommon.UserError, txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
 }
 
 func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
