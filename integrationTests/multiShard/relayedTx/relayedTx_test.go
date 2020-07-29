@@ -97,12 +97,18 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *t
 	receiverAddress1 := []byte("12345678901234567890123456789012")
 	receiverAddress2 := []byte("12345678901234567890123456789011")
 
+	totalFees := big.NewInt(0)
+	relayerInitialValue := big.NewInt(0).Set(relayer.Balance)
 	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		for _, player := range players {
 			player.Nonce += 1
-			createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			relayerTx := createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			totalFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(relayerTx.GetGasPrice()), big.NewInt(0).SetUint64(relayerTx.GetGasLimit()))
+			totalFees.Add(totalFees, totalFee)
+			relayerTx = createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			totalFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(relayerTx.GetGasPrice()), big.NewInt(0).SetUint64(relayerTx.GetGasLimit()))
+			totalFees.Add(totalFees, totalFee)
 		}
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -129,6 +135,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *t
 		assert.True(t, account.GetBalance().Cmp(big.NewInt(0)) == 0)
 		assert.Equal(t, uint64(nrRoundsToTest)*2, account.GetNonce())
 	}
+
+	expectedBalance := big.NewInt(0).Sub(relayerInitialValue, totalFees)
+	relayerAccount := getUserAccount(nodes, relayer.Address)
+	assert.True(t, relayerAccount.GetBalance().Cmp(expectedBalance) == 0)
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing.T) {
