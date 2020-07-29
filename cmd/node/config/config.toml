@@ -12,13 +12,13 @@
    StartInEpochEnabled = true
 
    # DisableDeploy represents the flag to enable/disable deployment of smart contracts
-   DisableDeploy = true
+   DisableDeploy = false
 
    # DisableBuiltInFunctions represents the flag to enable/disable built in functions calls
-   DisableBuiltInFunctions = true
+   DisableBuiltInFunctions = false
 
    # DisableRelayedTx represents the flag to enable/disable relayed transaction standard
-   DisableRelayedTx = true
+   DisableRelayedTx = false
 
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"

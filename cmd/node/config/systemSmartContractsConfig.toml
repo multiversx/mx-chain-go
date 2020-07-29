@@ -4,7 +4,7 @@
     UnBondPeriod = 40
     MinStepValue = "100000000000000000000"
     AuctionEnableNonce = 100000000000
-    StakeEnableNonce = 100000000000
+    StakeEnableNonce = 0
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
@@ -16,7 +16,7 @@
 [ESDTSystemSCConfig]
     BaseIssuingCost = "5000000000000000000000" #5000ERD
     OwnerAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
-    Disabled = true
+    Disabled = false
 
 [GovernanceSystemSCConfig]
 	ProposalCost = "5000000000000000000000" #5000ERD
@@ -24,4 +24,4 @@
 	MinQuorum    = 400
 	MinPassThreshold = 300
 	MinVetoThreshold = 50
-	Disabled     = true
+	Disabled     = false
