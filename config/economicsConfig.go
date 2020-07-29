@@ -24,12 +24,13 @@ type RewardsSettings struct {
 
 // FeeSettings will hold economics fee settings
 type FeeSettings struct {
-	MaxGasLimitPerBlock     string
-	MaxGasLimitPerMetaBlock string
-	GasPerDataByte          string
-	DataLimitForBaseCalc    string
-	MinGasPrice             string
-	MinGasLimit             string
+	MaxGasLimitPerBlock       string
+	MaxGasLimitPerMetaBlock   string
+	GasPerDataByte            string
+	DataLimitForBaseCalc      string
+	MinGasPrice               string
+	MinGasLimit               string
+	MaxOverPayGasInPercentage float64
 }
 
 // EconomicsConfig will hold economics config
