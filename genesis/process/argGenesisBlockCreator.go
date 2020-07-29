@@ -48,7 +48,8 @@ type ArgsGenesisBlockCreator struct {
 	BlockSignKeyGen          crypto.KeyGenerator
 	ImportStartHandler       update.ImportStartHandler
 	WorkingDir               string
+	GenesisNodePrice         *big.Int
+	GenesisString            string
 	// created components
-	importHandler    update.ImportHandler
-	GenesisNodePrice *big.Int
+	importHandler update.ImportHandler
 }

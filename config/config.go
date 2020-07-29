@@ -200,6 +200,7 @@ type GeneralSettingsConfig struct {
 	DisableDeploy            bool
 	DisableBuiltInFunctions  bool
 	DisableRelayedTx         bool
+	GenesisString            string
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
