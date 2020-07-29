@@ -154,6 +154,26 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	assert.Equal(t, process.SCDeployment, txType)
 }
 
+func TestTxTypeHandler_ComputeTransactionTypeRecv0AddressWrongTransaction(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.NotNil(t, tth)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, createMockPubkeyConverter().Len())
+	tx.Data = nil
+	tx.Value = big.NewInt(45)
+
+	txType := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.InvalidTransaction, txType)
+}
+
 func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	t.Parallel()
 
