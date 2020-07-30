@@ -14,7 +14,7 @@
 
 # Elrond go
 
-The go implementation for the Elrond Network testnet
+The go implementation for the Elrond Network protocol
 
 ## Installation and running
 
