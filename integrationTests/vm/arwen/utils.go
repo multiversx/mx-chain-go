@@ -9,15 +9,24 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -27,6 +36,10 @@ const VMTypeHex = "0500"
 
 // DummyCodeMetadataHex -
 const DummyCodeMetadataHex = "0102"
+
+var marshalizer = &marshal.GogoProtoMarshalizer{}
+var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
+var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 // TestContext -
 type TestContext struct {
@@ -41,19 +54,25 @@ type TestContext struct {
 
 	GasLimit uint64
 
-	ScAddress      []byte
-	ScCodeMetadata vmcommon.CodeMetadata
-	Accounts       *state.AccountsDB
-	TxProcessor    process.TransactionProcessor
-	ScProcessor    process.SmartContractProcessor
-	QueryService   external.SCQueryService
-	VMContainer    process.VirtualMachinesContainer
+	ScAddress        []byte
+	ScCodeMetadata   vmcommon.CodeMetadata
+	Accounts         *state.AccountsDB
+	TxProcessor      process.TransactionProcessor
+	ScProcessor      process.SmartContractProcessor
+	QueryService     external.SCQueryService
+	VMContainer      process.VirtualMachinesContainer
+	BlockchainHook   *hooks.BlockChainHookImpl
+	RewardsProcessor RewardsProcessor
 }
 
 type testParticipant struct {
 	Nonce   uint64
 	Address []byte
 	Balance *big.Int
+}
+
+type RewardsProcessor interface {
+	ProcessRewardTransaction(rTx *rewardTx.RewardTx) error
 }
 
 // AddressHex will return the participant address in hex string format
@@ -72,15 +91,17 @@ func SetupTestContext(t *testing.T) TestContext {
 	gasSchedule, err := core.LoadGasScheduleConfig("../gasSchedule.toml")
 	require.Nil(t, err)
 
-	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(context.Accounts, gasSchedule)
-	context.TxProcessor, context.ScProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
-	context.ScAddress, _ = blockChainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
-	context.QueryService, _ = smartContract.NewSCQueryService(vmContainer, &mock.FeeHandlerStub{
+	context.VMContainer, context.BlockchainHook = createVMAndBlockchainHook(t, context.Accounts, gasSchedule)
+	context.TxProcessor, context.ScProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, context.VMContainer, context.BlockchainHook)
+	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
+	context.QueryService, _ = smartContract.NewSCQueryService(context.VMContainer, &mock.FeeHandlerStub{
 		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
 	})
-	context.VMContainer = vmContainer
+
+	context.RewardsProcessor, err = rewardTransaction.NewRewardTxProcessor(context.Accounts, pkConverter, oneShardCoordinator)
+	require.Nil(t, err)
 
 	require.NotNil(t, context.TxProcessor)
 	require.NotNil(t, context.ScProcessor)
@@ -88,6 +109,49 @@ func SetupTestContext(t *testing.T) TestContext {
 	require.NotNil(t, context.VMContainer)
 
 	return context
+}
+
+func createVMAndBlockchainHook(t *testing.T, accounts state.AccountsAdapter, gasSchedule map[string]map[string]uint64,
+) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasMap:          gasSchedule,
+		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     marshalizer,
+	}
+
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	blockchainMock := &mock.BlockChainMock{}
+	chainStorer := &mock.ChainStorerMock{}
+
+	args := hooks.ArgBlockChainHook{
+		Accounts:         accounts,
+		PubkeyConv:       pkConverter,
+		StorageService:   chainStorer,
+		BlockChain:       blockchainMock,
+		ShardCoordinator: oneShardCoordinator,
+		Marshalizer:      marshalizer,
+		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions: builtInFuncs,
+	}
+
+	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
+	vmFactory, err := shard.NewVMContainerFactory(
+		config.VirtualMachineConfig{
+			OutOfProcessEnabled: false,
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		},
+		maxGasLimitPerBlock,
+		gasSchedule,
+		args,
+	)
+	require.Nil(t, err)
+
+	vmContainer, err := vmFactory.Create()
+	require.Nil(t, err)
+
+	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+
+	return vmContainer, blockChainHook
 }
 
 // Close closes the test context
@@ -192,8 +256,13 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 		RcvAddr:  context.ScAddress,
 		SndAddr:  owner.Address,
 		GasPrice: 1,
-		GasLimit: math.MaxInt32,
+		GasLimit: context.GasLimit,
 		Data:     []byte(txData),
+	}
+
+	// Add default gas limit for tests
+	if tx.GasLimit == 0 {
+		tx.GasLimit = math.MaxUint32
 	}
 
 	_, err := context.TxProcessor.ProcessTransaction(tx)
@@ -233,18 +302,23 @@ func CreateDeployTxData(scCode string) string {
 
 // ExecuteSC -
 func (context *TestContext) ExecuteSC(sender *testParticipant, txData string) error {
-	return context.executeSCWithValue(sender, txData, big.NewInt(0))
+	return context.ExecuteSCWithValue(sender, txData, big.NewInt(0))
 }
 
-func (context *TestContext) executeSCWithValue(sender *testParticipant, txData string, value *big.Int) error {
+func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData string, value *big.Int) error {
 	tx := &transaction.Transaction{
 		Nonce:    sender.Nonce,
 		Value:    new(big.Int).Set(value),
 		RcvAddr:  context.ScAddress,
 		SndAddr:  sender.Address,
 		GasPrice: 1,
-		GasLimit: math.MaxInt32,
+		GasLimit: context.GasLimit,
 		Data:     []byte(txData),
+	}
+
+	// Add default gas limit for tests
+	if tx.GasLimit == 0 {
+		tx.GasLimit = math.MaxUint32
 	}
 
 	_, err := context.TxProcessor.ProcessTransaction(tx)
@@ -286,6 +360,12 @@ func (context *TestContext) QuerySCBytes(function string, args [][]byte) []byte 
 	return bytes
 }
 
+// QuerySCBigInt -
+func (context *TestContext) QuerySCBigInt(function string, args [][]byte) *big.Int {
+	bytes := context.querySC(function, args)
+	return big.NewInt(0).SetBytes(bytes)
+}
+
 func (context *TestContext) querySC(function string, args [][]byte) []byte {
 	query := process.SCQuery{
 		ScAddress: context.ScAddress,
@@ -298,6 +378,12 @@ func (context *TestContext) querySC(function string, args [][]byte) []byte {
 
 	firstResult := vmOutput.ReturnData[0]
 	return firstResult
+}
+
+// GoToEpoch -
+func (context *TestContext) GoToEpoch(epoch int) {
+	header := &block.Header{Nonce: uint64(epoch) * 100, Round: uint64(epoch) * 100, Epoch: uint32(epoch)}
+	context.BlockchainHook.SetCurrentHeader(header)
 }
 
 // GetLatestError -

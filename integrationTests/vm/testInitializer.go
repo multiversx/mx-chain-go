@@ -280,9 +280,6 @@ func CreateVMAndBlockchainHook(
 		BuiltInFunctions: builtInFuncs,
 	}
 
-	//Uncomment this to enable trace printing of the vm
-	//vm.SetTracePretty()
-
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	vmFactory, err := shard.NewVMContainerFactory(
 		config.VirtualMachineConfig{
