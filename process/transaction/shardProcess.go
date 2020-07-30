@@ -550,7 +550,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 		return err
 	}
 	if check.IfNil(userAcnt) {
-		return process.ErrNilAccountsAdapter
+		return process.ErrNilUserAccount
 	}
 	err = userAcnt.SubFromBalance(relayedTxValue)
 	if err != nil {

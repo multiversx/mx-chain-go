@@ -871,3 +871,6 @@ var ErrRelayedTxGasLimitMissmatch = errors.New("relayed tx gas limit higher then
 
 // ErrRelayedGasPriceMissmatch signals that relayed gas price is not equal with user tx
 var ErrRelayedGasPriceMissmatch = errors.New("relayed gas price missmatch")
+
+// ErrNilUserAccount signals that nil user account was provided
+var ErrNilUserAccount = errors.New("nil user account")

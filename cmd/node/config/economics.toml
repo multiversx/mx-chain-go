@@ -30,4 +30,3 @@
     MinGasLimit = "50000"
     GasPerDataByte = "1500"
     DataLimitForBaseCalc = "10000"
-    MaxOverPayGasInPercentage = 1.0 #fraction of value 1 - 100%
