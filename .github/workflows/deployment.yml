@@ -166,7 +166,7 @@ jobs:
           #gcloud container node-pools create ${{ github.sha }} --preemptible --cluster "$GKE_CLUSTER"
 
           #kubernetes regex for namepsace evaluation '[a-z0-9]([-a-z0-9]*[a-z0-9])?'
-          export NAMESPACE=$( echo ${{ github.sha }}/${{ github.ref }}/elrond | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
+          export NAMESPACE=$( echo ${{ github.sha }}/elrond/${{ github.ref }} | sed -e 's/[[:punct:]]/-/g' | awk '{print tolower(substr($0,0,63))}' )
           kubectl create namespace "$NAMESPACE"
 
           kubectl -n $NAMESPACE create configmap elrond-node-config \
