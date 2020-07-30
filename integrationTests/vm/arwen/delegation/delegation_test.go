@@ -19,11 +19,11 @@ func TestDelegation_Upgrade(t *testing.T) {
 
 	delegationWasmPathA := "../testdata/delegation/delegation_vA.wasm"
 	delegationWasmPathB := "../testdata/delegation/delegation_vB.wasm"
-	delegationInitParams := "0000000000000000000000000000000000000000000000000000000000000000@0064@0064@0064"
+	delegationInitParams := "0000000000000000000000000000000000000000000000000000000000000000@0080@00@0080@0080"
 	delegationUpgradeParams := "0000000000000000000000000000000000000000000000000000000000000000@0080@00@0080@0080"
 
 	context.ScCodeMetadata.Upgradeable = true
-	context.GasLimit = 21700000
+	context.GasLimit = 40000000
 
 	err := context.DeploySC(delegationWasmPathA, delegationInitParams)
 	require.Nil(t, err)
@@ -31,7 +31,7 @@ func TestDelegation_Upgrade(t *testing.T) {
 	require.Nil(t, err)
 	codeHashA := account.(state.UserAccountHandler).GetCodeHash()
 
-	context.GasLimit = 32000000
+	context.GasLimit = 21700000
 	err = context.UpgradeSC(delegationWasmPathB, delegationUpgradeParams)
 	require.Nil(t, err)
 	account, err = context.Accounts.GetExistingAccount(context.ScAddress)
