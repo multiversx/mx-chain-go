@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"runtime"
-	"syscall"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/config"
@@ -243,41 +241,44 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
-	dataIndexerArgs := dataprocessor.Args{
+	headerMarshalizer, err := databasereader.NewHeaderMarshalizer(marshalizer)
+	if err != nil {
+		return err
+	}
+
+	dataReplayerArgs := dataprocessor.DataReplayerArgs{
 		ElasticIndexer:           elasticIndexer,
 		DatabaseReader:           dbReader,
 		ShardCoordinator:         shardCoordinator,
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
-		GenesisNodesSetup:        genesisNodesConfig,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
+		HeaderMarshalizer:        headerMarshalizer,
 	}
-	dataIndexer, err := dataprocessor.New(dataIndexerArgs)
+
+	dataReplayer, err := dataprocessor.NewDataReplayer(dataReplayerArgs)
 	if err != nil {
 		return err
 	}
 
-	err = dataIndexer.Index(configuration.General.Timeout)
+	dataProcessor2, err := dataprocessor.NewDataProcessor(
+		dataprocessor.ArgsDataProcessor{
+			ElasticIndexer:    elasticIndexer,
+			DataReplayer:      dataReplayer,
+			GenesisNodesSetup: genesisNodesConfig,
+			Marshalizer:       marshalizer,
+			Hasher:            hasher,
+			ShardCoordinator:  shardCoordinator,
+		})
 	if err != nil {
 		return err
-	} else {
-		log.Info("indexing finished")
+	}
+	err = dataProcessor2.Index()
+	if err != nil {
+		return err
 	}
 
-	waitForUserToTerminateApp()
+	log.Info("finished indexing. app will close")
 
 	return nil
-}
-
-func waitForUserToTerminateApp() {
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	<-sigs
-
-	log.Info("terminating storer2elastic app at user's signal...")
-
-	// TODO : close opened DBs here
-
-	log.Info("storer2elastic application stopped")
 }

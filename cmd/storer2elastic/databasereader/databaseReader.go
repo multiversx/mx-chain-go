@@ -1,7 +1,6 @@
 package databasereader
 
 import (
-	"errors"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -19,6 +18,8 @@ var log = logger.GetOrCreate("databasereader")
 
 const shardBlocksStorer = "BlockHeaders"
 const metaHeadersStorer = "MetaBlock"
+const shardDirectoryPrefix = "Shard_"
+const epochDirectoryPrefix = "Epoch_"
 
 // DatabaseInfo holds data about a specific database
 type DatabaseInfo struct {
@@ -98,7 +99,7 @@ func (dr *databaseReader) GetDatabaseInfo() ([]*DatabaseInfo, error) {
 	}
 
 	if len(dbs) == 0 {
-		return nil, errors.New("no database found")
+		return nil, ErrNoDatabaseFound
 	}
 
 	sort.Slice(dbs, func(i, j int) bool {
@@ -124,7 +125,7 @@ func (dr *databaseReader) getShardDirectoriesForEpoch(dirEpoch string) ([]uint32
 
 	shardDirs := make([]string, 0, len(directoriesNames))
 	for _, dirName := range directoriesNames {
-		isShardDir := strings.HasPrefix(dirName, "Shard_")
+		isShardDir := strings.HasPrefix(dirName, shardDirectoryPrefix)
 		if !isShardDir {
 			continue
 		}
@@ -133,7 +134,7 @@ func (dr *databaseReader) getShardDirectoriesForEpoch(dirEpoch string) ([]uint32
 	}
 
 	for _, fileName := range shardDirs {
-		stringToSplitBy := "Shard_"
+		stringToSplitBy := shardDirectoryPrefix
 		splitSlice := strings.Split(fileName, stringToSplitBy)
 		if len(splitSlice) < 2 {
 			continue

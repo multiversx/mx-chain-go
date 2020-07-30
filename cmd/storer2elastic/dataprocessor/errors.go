@@ -34,3 +34,12 @@ var ErrNoMetachainDatabase = errors.New("no metachain database - cannot index")
 
 // ErrDatabaseInfoNotFound signals that a database information hasn't been found
 var ErrDatabaseInfoNotFound = errors.New("database info not found")
+
+// ErrNilHeaderMarshalizer signals that a nil header marshalizer has been provided
+var ErrNilHeaderMarshalizer = errors.New("nil header marshalizer")
+
+// ErrRangeIsOver signals that the range cannot be continued as the handler returned false
+var ErrRangeIsOver = errors.New("range is over")
+
+// ErrNilDataReplayer signals that a nil data replayer has been provided
+var ErrNilDataReplayer = errors.New("nil data replayer")

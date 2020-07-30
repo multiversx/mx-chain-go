@@ -1,8 +1,10 @@
 package dataprocessor
 
 import (
+	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -19,4 +21,17 @@ type DatabaseReaderHandler interface {
 type NodesCoordinator interface {
 	sharding.NodesCoordinator
 	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+}
+
+// HeaderMarshalizerHandler defines the actions that a header marshalizer has to do
+type HeaderMarshalizerHandler interface {
+	UnmarshalShardHeader(headerBytes []byte) (*block.Header, error)
+	UnmarshalMetaBlock(headerBytes []byte) (*block.MetaBlock, error)
+	IsInterfaceNil() bool
+}
+
+// DataReplayerHandler defines the actions that a data replayer has to do
+type DataReplayerHandler interface {
+	Range(handler func(persistedData storer2ElasticData.RoundPersistedData) bool) error
+	IsInterfaceNil() bool
 }

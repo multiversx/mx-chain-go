@@ -1,89 +1,112 @@
 package disabled
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var errNotImplemented = errors.New("not implemented")
+
 type disabledNodesCoordinator struct {
 }
 
+// NewNodesCoordinator returns a new instance of a disabledNodesCoordinator
 func NewNodesCoordinator() *disabledNodesCoordinator {
 	return &disabledNodesCoordinator{}
 }
 
+// ValidatorsWeights will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) ValidatorsWeights(validators []sharding.Validator) ([]uint32, error) {
-	panic("implement me")
+	return nil, errNotImplemented
 }
 
+// ComputeAdditionalLeaving will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]sharding.Validator, error) {
-	panic("implement me")
+	return nil, errNotImplemented
 }
 
+// GetChance will return a zero value
 func (d *disabledNodesCoordinator) GetChance(uint32) uint32 {
-	panic("implement me")
+	return 0
 }
 
+// GetValidatorsIndexes will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error) {
-	panic("implement me")
+	return nil, errNotImplemented
 }
 
+// GetAllEligibleValidatorsPublicKeys will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
-	panic("implement me")
+	return nil, errNotImplemented
 }
 
+// GetAllWaitingValidatorsPublicKeys will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
-	panic("implement me")
+	return nil, errNotImplemented
 }
 
+// GetAllLeavingValidatorsPublicKeys will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
-	panic("implement me")
+	return nil, errNotImplemented
 }
 
+// GetConsensusValidatorsPublicKeys will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
-	panic("implement me")
+	return nil, errNotImplemented
 }
 
+// GetOwnPublicKey will return an empty byte slice
 func (d *disabledNodesCoordinator) GetOwnPublicKey() []byte {
-	panic("implement me")
+	return make([]byte, 0)
 }
 
+// ComputeConsensusGroup will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
-	panic("implement me")
+	return nil, errNotImplemented
 }
 
+// GetValidatorWithPublicKey will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) GetValidatorWithPublicKey(publicKey []byte) (validator sharding.Validator, shardId uint32, err error) {
-	panic("implement me")
+	return nil, 0, errNotImplemented
 }
 
+// LoadState will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) LoadState(key []byte) error {
-	panic("implement me")
+	return errNotImplemented
 }
 
+// GetSavedStateKey will return an empty byte slice
 func (d *disabledNodesCoordinator) GetSavedStateKey() []byte {
-	panic("implement me")
+	return make([]byte, 0)
 }
 
+// ShardIdForEpoch will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, error) {
-	panic("implement me")
+	return 0, errNotImplemented
 }
 
+// ShuffleOutForEpoch won't do anything
 func (d *disabledNodesCoordinator) ShuffleOutForEpoch(_ uint32) {
-	panic("implement me")
 }
 
+// GetConsensusWhitelistedNodes will return an error that indicates that the function is not implemented
 func (d *disabledNodesCoordinator) GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error) {
-	panic("implement me")
+	return nil, errNotImplemented
 }
 
+// ConsensusGroupSize will return a zero value
 func (d *disabledNodesCoordinator) ConsensusGroupSize(uint32) int {
-	panic("implement me")
+	return 0
 }
 
+// GetNumTotalEligible will return a zero value
 func (d *disabledNodesCoordinator) GetNumTotalEligible() uint64 {
-	panic("implement me")
+	return 0
 }
 
+// IsInterfaceNil return true if there is no value under the interface
 func (d *disabledNodesCoordinator) IsInterfaceNil() bool {
 	return d == nil
 }

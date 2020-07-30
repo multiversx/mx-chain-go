@@ -21,7 +21,12 @@ func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler
 	if shardIDStr == fmt.Sprintf("%d", core.MetachainShardId) {
 		shardIDStr = "metachain"
 	}
-	persisterPath := filepath.Join(dr.dbPathWithChainID, fmt.Sprintf("Epoch_%d", dbInfo.Epoch), fmt.Sprintf("Shard_%s", shardIDStr), hdrStorer)
+	persisterPath := filepath.Join(
+		dr.dbPathWithChainID, fmt.Sprintf("%s%d", epochDirectoryPrefix, dbInfo.Epoch),
+		fmt.Sprintf("%s%s", shardDirectoryPrefix, shardIDStr),
+		hdrStorer,
+	)
+
 	hdrPersister, err := dr.persisterFactory.Create(persisterPath)
 	if err != nil {
 		return nil, err

@@ -16,3 +16,6 @@ var ErrNilDirectoryReader = errors.New("nil directory reader")
 
 // ErrNoHeader signals that no header has been found during database read
 var ErrNoHeader = errors.New("no header")
+
+// ErrNoDatabaseFound signals that no database has been found in the provided path
+var ErrNoDatabaseFound = errors.New("no database found")
