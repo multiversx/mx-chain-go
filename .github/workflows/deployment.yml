@@ -8,9 +8,9 @@ on:
   pull_request:
     branches: [master, development]
     types: [opened, ready_for_review, closed]
-#  push:
-#    branches:
-#      - prometheus-style-metrics-endpoint
+  push:
+    branches:
+      - prometheus-style-metrics-endpoint
 
 # Environment variables available to all jobs and steps in this workflows
 env:
