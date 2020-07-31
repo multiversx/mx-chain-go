@@ -61,6 +61,10 @@ type TestContext struct {
 	GasLimit    uint64
 	GasSchedule map[string]map[string]uint64
 
+	UnsignexTxHandler process.TransactionFeeHandler
+	EconomicsFee      process.FeeHandler
+	LastConsumedFee   uint64
+
 	ScAddress        []byte
 	ScCodeMetadata   vmcommon.CodeMetadata
 	Accounts         *state.AccountsDB
@@ -88,10 +92,10 @@ func (participant *testParticipant) AddressHex() string {
 }
 
 // SetupTestContext -
-func SetupTestContext(t *testing.T) TestContext {
+func SetupTestContext(t *testing.T) *TestContext {
 	var err error
 
-	context := TestContext{}
+	context := &TestContext{}
 	context.T = t
 	context.Round = 500
 
@@ -100,6 +104,7 @@ func SetupTestContext(t *testing.T) TestContext {
 	context.GasSchedule, err = core.LoadGasScheduleConfig("../gasSchedule.toml")
 	require.Nil(t, err)
 
+	context.initFeeHandlers()
 	context.initVMAndBlockchainHook()
 	context.initTxProcessorWithOneSCExecutorWithVMs()
 	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
@@ -118,6 +123,20 @@ func SetupTestContext(t *testing.T) TestContext {
 	require.NotNil(t, context.VMContainer)
 
 	return context
+}
+
+func (context *TestContext) initFeeHandlers() {
+	context.UnsignexTxHandler = &mock.UnsignedTxHandlerMock{
+		ProcessTransactionFeeCalled: func(cost *big.Int, hash []byte) {
+			context.LastConsumedFee = cost.Uint64()
+		},
+	}
+
+	context.EconomicsFee = &mock.FeeHandlerStub{
+		DeveloperPercentageCalled: func() float64 {
+			return 0.0
+		},
+	}
 }
 
 func (context *TestContext) initVMAndBlockchainHook() {
@@ -182,13 +201,9 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		Coordinator:    oneShardCoordinator,
 		ScrForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder: &mock.IntermediateTransactionHandlerMock{},
-		TxFeeHandler:   &mock.UnsignedTxHandlerMock{},
-		EconomicsFee: &mock.FeeHandlerStub{
-			DeveloperPercentageCalled: func() float64 {
-				return 0.0
-			},
-		},
-		TxTypeHandler: txTypeHandler,
+		TxFeeHandler:   context.UnsignexTxHandler,
+		EconomicsFee:   context.EconomicsFee,
+		TxTypeHandler:  txTypeHandler,
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
@@ -207,9 +222,9 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		SignMarshalizer:   marshalizer,
 		ShardCoordinator:  oneShardCoordinator,
 		ScProcessor:       context.ScProcessor,
-		TxFeeHandler:      &mock.UnsignedTxHandlerMock{},
+		TxFeeHandler:      context.UnsignexTxHandler,
 		TxTypeHandler:     txTypeHandler,
-		EconomicsFee:      &mock.FeeHandlerStub{},
+		EconomicsFee:      context.EconomicsFee,
 		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:        smartContract.NewArgumentParser(),

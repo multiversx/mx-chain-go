@@ -101,10 +101,12 @@ func TestDelegation_Claims(t *testing.T) {
 
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
+	require.Equal(t, 15518713, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(600), NewBalanceBig(context.GetAccountBalanceDelta(&context.Alice)))
 
 	err = context.ExecuteSC(&context.Bob, "claimRewards")
 	require.Nil(t, err)
+	require.Equal(t, 15077713, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 }
 
