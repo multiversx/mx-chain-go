@@ -768,11 +768,9 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 }
 
 func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
-	count := 0
 	persisters := make([]*persisterData, 0)
 	ps.lock.RLock()
 	for e := int(to); e >= int(from); e-- {
-		count++
 		p, ok := ps.persistersMapByEpoch[uint32(e)]
 		if !ok {
 			ps.lock.RUnlock()
@@ -798,8 +796,8 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 	ps.activePersisters = append(ps.activePersisters, reOpenedPersisters...)
 	ps.lock.Unlock()
 
-	if count > 0 {
-		log.Info("PruningStorer - extend stored epochs due to a stuck shard",
+	if len(reOpenedPersisters) > 0 {
+		log.Debug("PruningStorer - extend stored epochs due to a stuck shard",
 			"from epoch", from,
 			"to epoch", to)
 	}
