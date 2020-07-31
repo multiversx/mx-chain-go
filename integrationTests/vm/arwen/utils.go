@@ -1,7 +1,9 @@
 package arwen
 
 import (
+	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -42,6 +44,8 @@ const VMTypeHex = "0500"
 // DummyCodeMetadataHex -
 const DummyCodeMetadataHex = "0102"
 
+const maxGasLimit = 100000000000
+
 var marshalizer = &marshal.GogoProtoMarshalizer{}
 var hasher = sha256.Sha256{}
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
@@ -53,10 +57,11 @@ type TestContext struct {
 
 	Round uint64
 
-	Owner testParticipant
-	Alice testParticipant
-	Bob   testParticipant
-	Carol testParticipant
+	Owner        testParticipant
+	Alice        testParticipant
+	Bob          testParticipant
+	Carol        testParticipant
+	Participants []*testParticipant
 
 	GasLimit    uint64
 	GasSchedule map[string]map[string]uint64
@@ -108,11 +113,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context.initVMAndBlockchainHook()
 	context.initTxProcessorWithOneSCExecutorWithVMs()
 	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
-	context.QueryService, _ = smartContract.NewSCQueryService(context.VMContainer, &mock.FeeHandlerStub{
-		MaxGasLimitPerBlockCalled: func() uint64 {
-			return uint64(math.MaxUint64)
-		},
-	})
+	context.QueryService, _ = smartContract.NewSCQueryService(context.VMContainer, context.EconomicsFee)
 
 	context.RewardsProcessor, err = rewardTransaction.NewRewardTxProcessor(context.Accounts, pkConverter, oneShardCoordinator)
 	require.Nil(t, err)
@@ -135,6 +136,9 @@ func (context *TestContext) initFeeHandlers() {
 	context.EconomicsFee = &mock.FeeHandlerStub{
 		DeveloperPercentageCalled: func() float64 {
 			return 0.0
+		},
+		MaxGasLimitPerBlockCalled: func() uint64 {
+			return maxGasLimit
 		},
 	}
 }
@@ -162,13 +166,12 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		BuiltInFunctions: builtInFuncs,
 	}
 
-	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	vmFactoryConfig := config.VirtualMachineConfig{
 		OutOfProcessEnabled: false,
 		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(vmFactoryConfig, maxGasLimitPerBlock, context.GasSchedule, args)
+	vmFactory, err := shard.NewVMContainerFactory(vmFactoryConfig, maxGasLimit, context.GasSchedule, args)
 	require.Nil(context.T, err)
 
 	context.VMContainer, err = vmFactory.Create()
@@ -242,29 +245,28 @@ func (context *TestContext) Close() {
 }
 
 func (context *TestContext) initAccounts() {
-	initialNonce := uint64(1)
+	context.Accounts = vm.CreateInMemoryShardAccountsDB()
 
 	context.Owner = testParticipant{}
 	context.Owner.Address, _ = hex.DecodeString("d4105de8e44aee9d4be670401cec546e5df381028e805012386a05acf76518d9")
-	context.Owner.Nonce = initialNonce
+	context.Owner.Nonce = uint64(1)
 	context.Owner.BalanceSnapshot = big.NewInt(math.MaxInt64)
 
 	context.Alice = testParticipant{}
 	context.Alice.Address, _ = hex.DecodeString("0f36a982b79d3c1fda9b82a646a2b423cb3e7223cffbae73a4e3d2c1ea62ee5e")
-	context.Alice.Nonce = initialNonce
+	context.Alice.Nonce = uint64(1)
 	context.Alice.BalanceSnapshot = big.NewInt(math.MaxInt64)
 
 	context.Bob = testParticipant{}
 	context.Bob.Address, _ = hex.DecodeString("afb051dc3a1dfb029866730243c2cbc51d8b8ef15951e4da3929f9c8391f307a")
-	context.Bob.Nonce = initialNonce
+	context.Bob.Nonce = uint64(1)
 	context.Bob.BalanceSnapshot = big.NewInt(math.MaxInt64)
 
 	context.Carol = testParticipant{}
 	context.Carol.Address, _ = hex.DecodeString("5bdf4c81489bea69ba29cd3eea2670c1bb6cb5d922fa8cb6e17bca71dfdd49f0")
-	context.Carol.Nonce = initialNonce
+	context.Carol.Nonce = uint64(1)
 	context.Carol.BalanceSnapshot = big.NewInt(math.MaxInt64)
 
-	context.Accounts = vm.CreateInMemoryShardAccountsDB()
 	context.createAccount(&context.Owner)
 	context.createAccount(&context.Alice)
 	context.createAccount(&context.Bob)
@@ -274,6 +276,28 @@ func (context *TestContext) initAccounts() {
 func (context *TestContext) createAccount(participant *testParticipant) {
 	_, err := vm.CreateAccount(context.Accounts, participant.Address, participant.Nonce, participant.BalanceSnapshot)
 	require.Nil(context.T, err)
+}
+
+func (context *TestContext) InitAdditionalParticipants(num int) {
+	context.Participants = make([]*testParticipant, 0, num)
+
+	for i := 0; i < num; i++ {
+		participant := &testParticipant{
+			Nonce:           1,
+			BalanceSnapshot: NewBalance(10).Value,
+			Address:         createDummyAddress(i + 42),
+		}
+
+		context.Participants = append(context.Participants, participant)
+		context.createAccount(participant)
+	}
+}
+
+func createDummyAddress(addressTag int) []byte {
+	address := make([]byte, 32)
+	binary.LittleEndian.PutUint64(address, uint64(addressTag))
+	binary.LittleEndian.PutUint64(address[24:], uint64(addressTag))
+	return address
 }
 
 func (context *TestContext) TakeAccountBalanceSnapshot(participant *testParticipant) {
@@ -319,7 +343,7 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 
 	// Add default gas limit for tests
 	if tx.GasLimit == 0 {
-		tx.GasLimit = math.MaxUint32
+		tx.GasLimit = maxGasLimit
 	}
 
 	_, err := context.TxProcessor.ProcessTransaction(tx)
@@ -364,7 +388,7 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 
 	// Add default gas limit for tests
 	if tx.GasLimit == 0 {
-		tx.GasLimit = math.MaxUint32
+		tx.GasLimit = maxGasLimit
 	}
 
 	_, err := context.TxProcessor.ProcessTransaction(tx)
@@ -420,7 +444,7 @@ func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData s
 
 	// Add default gas limit for tests
 	if tx.GasLimit == 0 {
-		tx.GasLimit = math.MaxUint32
+		tx.GasLimit = maxGasLimit
 	}
 
 	_, err := context.TxProcessor.ProcessTransaction(tx)
@@ -499,4 +523,43 @@ func FormatHexNumber(number uint64) string {
 	str := hex.EncodeToString(bytes)
 
 	return str
+}
+
+// Balance -
+type Balance struct {
+	Value *big.Int
+}
+
+// NewBalance
+func NewBalance(n int) Balance {
+	result := big.NewInt(0)
+	_, _ = result.SetString("1000000000000000000", 10)
+	result.Mul(result, big.NewInt(int64(n)))
+	return Balance{Value: result}
+}
+
+// NewBalanceBig
+func NewBalanceBig(bi *big.Int) Balance {
+	return Balance{Value: bi}
+}
+
+// Times -
+func (b Balance) Times(n int) Balance {
+	result := b.Value.Mul(b.Value, big.NewInt(int64(n)))
+	return Balance{Value: result}
+}
+
+// ToHex -
+func (b Balance) ToHex() string {
+	return "00" + hex.EncodeToString(b.Value.Bytes())
+}
+
+// AlmostEquals -
+func RequireAlmostEquals(t *testing.T, expected Balance, actual Balance) {
+	precision := big.NewInt(0)
+	_, _ = precision.SetString("100000000000", 10)
+	delta := big.NewInt(0)
+	delta = delta.Sub(expected.Value, actual.Value)
+	delta = delta.Abs(delta)
+	require.True(t, delta.Cmp(precision) < 0, fmt.Sprintf("%s != %s", expected, actual))
 }

@@ -2,10 +2,12 @@ package delegation
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -13,6 +15,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/stretchr/testify/require"
 )
+
+var NewBalance = arwen.NewBalance
+var NewBalanceBig = arwen.NewBalanceBig
+var RequireAlmostEquals = arwen.RequireAlmostEquals
 
 func TestDelegation_Upgrade(t *testing.T) {
 	context := arwen.SetupTestContext(t)
@@ -46,21 +52,11 @@ func TestDelegation_Claims(t *testing.T) {
 	context := arwen.SetupTestContext(t)
 	defer context.Close()
 
-	delegationWasmPath := "../testdata/delegation/delegation.wasm"
-	delegationInitParams := "0000000000000000000000000000000000000000000000000000000000000000@03E8@00@030D40@030D40"
-
-	err := context.DeploySC(delegationWasmPath, delegationInitParams)
-	require.Nil(t, err)
-
 	// Genesis
-	err = context.ExecuteSC(&context.Owner, "setStakePerNode@"+NewBalance(2500).ToHex())
-	require.Nil(t, err)
+	deployDelegation(context)
+	addNodes(context, 2500, 2)
 
-	err = context.ExecuteSC(&context.Owner, "addNodes@"+createAddNodesParam('a')+"@"+createAddNodesParam('b'))
-	require.Nil(t, err)
-	require.Equal(t, 2, int(context.QuerySCInt("getNumNodes", [][]byte{})))
-
-	err = context.ExecuteSC(&context.Alice, "stakeGenesis@"+NewBalance(3000).ToHex())
+	err := context.ExecuteSC(&context.Alice, "stakeGenesis@"+NewBalance(3000).ToHex())
 	require.Nil(t, err)
 	err = context.ExecuteSC(&context.Bob, "stakeGenesis@00"+NewBalance(2000).ToHex())
 	require.Nil(t, err)
@@ -93,11 +89,10 @@ func TestDelegation_Claims(t *testing.T) {
 	require.Equal(t, NewBalance(600).Value, context.QuerySCBigInt("getClaimableRewards", [][]byte{context.Alice.Address}))
 	require.Equal(t, NewBalance(400).Value, context.QuerySCBigInt("getClaimableRewards", [][]byte{context.Bob.Address}))
 
-	err = context.ExecuteSC(&context.Carol, "claimRewards")
-	require.Equal(t, errors.New("user error"), err)
-
+	// Alice, Bob and Carol claim their rewards
 	context.TakeAccountBalanceSnapshot(&context.Alice)
 	context.TakeAccountBalanceSnapshot(&context.Bob)
+	context.TakeAccountBalanceSnapshot(&context.Carol)
 
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
@@ -108,49 +103,90 @@ func TestDelegation_Claims(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 15077713, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
+
+	err = context.ExecuteSC(&context.Carol, "claimRewards")
+	require.Equal(t, errors.New("user error"), err)
 }
 
-func createAddNodesParam(tag byte) string {
-	blsKey := bytes.Repeat([]byte{tag}, 96)
-	blsSignature := bytes.Repeat([]byte{tag}, 32)
-	return hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(blsSignature)
+func TestDelegation_WithManyUsers_Claims(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	var err error
+
+	stakePerNode := 2500
+	numNodes := 1000
+	totalStaked := stakePerNode * numNodes
+	numUsers := 100
+	stakePerUser := totalStaked / numUsers
+
+	context := arwen.SetupTestContext(t)
+	defer context.Close()
+
+	context.InitAdditionalParticipants(numUsers)
+
+	// Genesis
+	deployDelegation(context)
+	addNodes(context, stakePerNode, numNodes)
+
+	for _, user := range context.Participants {
+		err = context.ExecuteSC(user, "stakeGenesis@"+NewBalance(stakePerUser).ToHex())
+		require.Nil(t, err)
+	}
+
+	err = context.ExecuteSC(&context.Owner, "activateGenesis")
+	require.Nil(t, err)
+	require.Equal(t, numUsers+1, int(context.QuerySCInt("getNumUsers", [][]byte{})))
+
+	// Blockchain continues
+	context.GoToEpoch(1)
+	err = context.RewardsProcessor.ProcessRewardTransaction(&rewardTx.RewardTx{Value: NewBalance(5000).Value, RcvAddr: context.ScAddress})
+	require.Nil(t, err)
+	require.Equal(t, NewBalance(5000).Value, context.QuerySCBigInt("getTotalCumulatedRewards", [][]byte{}))
+
+	context.GoToEpoch(2)
+	err = context.RewardsProcessor.ProcessRewardTransaction(&rewardTx.RewardTx{Value: NewBalance(5000).Value, RcvAddr: context.ScAddress})
+	require.Nil(t, err)
+	require.Equal(t, NewBalance(10000).Value, context.QuerySCBigInt("getTotalCumulatedRewards", [][]byte{}))
+
+	// All users claim their rewards
+	for _, user := range context.Participants {
+		context.TakeAccountBalanceSnapshot(user)
+
+		err = context.ExecuteSC(user, "claimRewards")
+		require.Nil(t, err)
+		require.LessOrEqual(t, int(context.LastConsumedFee), 17000000)
+		RequireAlmostEquals(t, NewBalance(10000/numUsers), NewBalanceBig(context.GetAccountBalanceDelta(user)))
+	}
 }
 
-// Balance -
-type Balance struct {
-	Value *big.Int
+func deployDelegation(context *arwen.TestContext) {
+	delegationWasmPath := "../testdata/delegation/delegation.wasm"
+	delegationInitParams := "0000000000000000000000000000000000000000000000000000000000000000@03E8@00@030D40@030D40"
+
+	err := context.DeploySC(delegationWasmPath, delegationInitParams)
+	require.Nil(context.T, err)
 }
 
-// NewBalance
-func NewBalance(n int) Balance {
-	result := big.NewInt(0)
-	_, _ = result.SetString("1000000000000000000", 10)
-	result.Mul(result, big.NewInt(int64(n)))
-	return Balance{Value: result}
-}
+func addNodes(context *arwen.TestContext, stakePerNode int, numNodes int) {
+	err := context.ExecuteSC(&context.Owner, "setStakePerNode@"+NewBalance(stakePerNode).ToHex())
+	require.Nil(context.T, err)
 
-// NewBalanceBig
-func NewBalanceBig(bi *big.Int) Balance {
-	return Balance{Value: bi}
-}
+	addNodesArguments := make([]string, 0, numNodes*2)
+	for tag := 0; tag < numNodes; tag++ {
+		tagBytes := make([]byte, 4)
+		binary.LittleEndian.PutUint32(tagBytes, uint32(tag))
 
-// Times -
-func (b Balance) Times(n int) Balance {
-	result := b.Value.Mul(b.Value, big.NewInt(int64(n)))
-	return Balance{Value: result}
-}
+		blsKey := bytes.Repeat(tagBytes, 96/len(tagBytes))
+		blsSignature := bytes.Repeat(tagBytes, 32/len(tagBytes))
 
-// ToHex -
-func (b Balance) ToHex() string {
-	return "00" + hex.EncodeToString(b.Value.Bytes())
-}
+		addNodesArguments = append(addNodesArguments, hex.EncodeToString(blsKey))
+		addNodesArguments = append(addNodesArguments, hex.EncodeToString(blsSignature))
+	}
 
-// AlmostEquals -
-func RequireAlmostEquals(t *testing.T, expected Balance, actual Balance) {
-	precision := big.NewInt(0)
-	_, _ = precision.SetString("100000000000", 10)
-	delta := big.NewInt(0)
-	delta = delta.Sub(expected.Value, actual.Value)
-	delta = delta.Abs(delta)
-	require.True(t, delta.Cmp(precision) < 0, fmt.Sprintf("%s != %s", expected, actual))
+	err = context.ExecuteSC(&context.Owner, "addNodes@"+strings.Join(addNodesArguments, "@"))
+	require.Nil(context.T, err)
+	require.Equal(context.T, numNodes, int(context.QuerySCInt("getNumNodes", [][]byte{})))
+	fmt.Println("addNodes consumed:", context.LastConsumedFee)
 }
