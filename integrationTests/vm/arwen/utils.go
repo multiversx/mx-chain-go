@@ -66,9 +66,9 @@ type TestContext struct {
 }
 
 type testParticipant struct {
-	Nonce   uint64
-	Address []byte
-	Balance *big.Int
+	Nonce           uint64
+	Address         []byte
+	BalanceSnapshot *big.Int
 }
 
 type RewardsProcessor interface {
@@ -165,22 +165,22 @@ func (context *TestContext) initAccounts() {
 	context.Owner = testParticipant{}
 	context.Owner.Address, _ = hex.DecodeString("d4105de8e44aee9d4be670401cec546e5df381028e805012386a05acf76518d9")
 	context.Owner.Nonce = initialNonce
-	context.Owner.Balance = big.NewInt(math.MaxInt64)
+	context.Owner.BalanceSnapshot = big.NewInt(math.MaxInt64)
 
 	context.Alice = testParticipant{}
 	context.Alice.Address, _ = hex.DecodeString("0f36a982b79d3c1fda9b82a646a2b423cb3e7223cffbae73a4e3d2c1ea62ee5e")
 	context.Alice.Nonce = initialNonce
-	context.Alice.Balance = big.NewInt(math.MaxInt64)
+	context.Alice.BalanceSnapshot = big.NewInt(math.MaxInt64)
 
 	context.Bob = testParticipant{}
 	context.Bob.Address, _ = hex.DecodeString("afb051dc3a1dfb029866730243c2cbc51d8b8ef15951e4da3929f9c8391f307a")
 	context.Bob.Nonce = initialNonce
-	context.Bob.Balance = big.NewInt(math.MaxInt64)
+	context.Bob.BalanceSnapshot = big.NewInt(math.MaxInt64)
 
 	context.Carol = testParticipant{}
 	context.Carol.Address, _ = hex.DecodeString("5bdf4c81489bea69ba29cd3eea2670c1bb6cb5d922fa8cb6e17bca71dfdd49f0")
 	context.Carol.Nonce = initialNonce
-	context.Carol.Balance = big.NewInt(math.MaxInt64)
+	context.Carol.BalanceSnapshot = big.NewInt(math.MaxInt64)
 
 	context.Accounts = vm.CreateInMemoryShardAccountsDB()
 	context.createAccount(&context.Owner)
@@ -190,8 +190,28 @@ func (context *TestContext) initAccounts() {
 }
 
 func (context *TestContext) createAccount(participant *testParticipant) {
-	_, err := vm.CreateAccount(context.Accounts, participant.Address, participant.Nonce, participant.Balance)
+	_, err := vm.CreateAccount(context.Accounts, participant.Address, participant.Nonce, participant.BalanceSnapshot)
 	require.Nil(context.T, err)
+}
+
+func (context *TestContext) TakeAccountBalanceSnapshot(participant *testParticipant) {
+	participant.BalanceSnapshot = context.GetAccountBalance(participant)
+}
+
+func (context *TestContext) GetAccountBalance(participant *testParticipant) *big.Int {
+	account, err := context.Accounts.GetExistingAccount(participant.Address)
+	require.Nil(context.T, err)
+	accountAsUser := account.(state.UserAccountHandler)
+	return accountAsUser.GetBalance()
+}
+
+func (context *TestContext) GetAccountBalanceDelta(participant *testParticipant) *big.Int {
+	account, err := context.Accounts.GetExistingAccount(participant.Address)
+	require.Nil(context.T, err)
+	accountAsUser := account.(state.UserAccountHandler)
+	currentBalance := accountAsUser.GetBalance()
+	delta := currentBalance.Sub(currentBalance, participant.BalanceSnapshot)
+	return delta
 }
 
 // DeploySC -
