@@ -144,15 +144,6 @@ func (b Balance) ToHex() string {
 }
 
 // AlmostEquals -
-func (b Balance) AlmostEquals(a Balance) bool {
-	precision := big.NewInt(0)
-	_, _ = precision.SetString("100000000000", 10)
-	delta := b.Value.Sub(b.Value, a.Value)
-	delta = delta.Abs(delta)
-	return delta.Cmp(precision) < 0
-}
-
-// AlmostEquals -
 func RequireAlmostEquals(t *testing.T, expected Balance, actual Balance) {
 	precision := big.NewInt(0)
 	_, _ = precision.SetString("100000000000", 10)

@@ -16,18 +16,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,6 +43,7 @@ const VMTypeHex = "0500"
 const DummyCodeMetadataHex = "0102"
 
 var marshalizer = &marshal.GogoProtoMarshalizer{}
+var hasher = sha256.Sha256{}
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
@@ -52,7 +58,8 @@ type TestContext struct {
 	Bob   testParticipant
 	Carol testParticipant
 
-	GasLimit uint64
+	GasLimit    uint64
+	GasSchedule map[string]map[string]uint64
 
 	ScAddress        []byte
 	ScCodeMetadata   vmcommon.CodeMetadata
@@ -82,17 +89,19 @@ func (participant *testParticipant) AddressHex() string {
 
 // SetupTestContext -
 func SetupTestContext(t *testing.T) TestContext {
+	var err error
+
 	context := TestContext{}
 	context.T = t
 	context.Round = 500
 
 	context.initAccounts()
 
-	gasSchedule, err := core.LoadGasScheduleConfig("../gasSchedule.toml")
+	context.GasSchedule, err = core.LoadGasScheduleConfig("../gasSchedule.toml")
 	require.Nil(t, err)
 
-	context.VMContainer, context.BlockchainHook = createVMAndBlockchainHook(t, context.Accounts, gasSchedule)
-	context.TxProcessor, context.ScProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, context.VMContainer, context.BlockchainHook)
+	context.initVMAndBlockchainHook()
+	context.initTxProcessorWithOneSCExecutorWithVMs()
 	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
 	context.QueryService, _ = smartContract.NewSCQueryService(context.VMContainer, &mock.FeeHandlerStub{
 		MaxGasLimitPerBlockCalled: func() uint64 {
@@ -111,20 +120,20 @@ func SetupTestContext(t *testing.T) TestContext {
 	return context
 }
 
-func createVMAndBlockchainHook(t *testing.T, accounts state.AccountsAdapter, gasSchedule map[string]map[string]uint64,
-) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
+func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          gasSchedule,
+		GasMap:          context.GasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
 		Marshalizer:     marshalizer,
 	}
 
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	require.Nil(context.T, err)
 	blockchainMock := &mock.BlockChainMock{}
 	chainStorer := &mock.ChainStorerMock{}
 
 	args := hooks.ArgBlockChainHook{
-		Accounts:         accounts,
+		Accounts:         context.Accounts,
 		PubkeyConv:       pkConverter,
 		StorageService:   chainStorer,
 		BlockChain:       blockchainMock,
@@ -135,23 +144,81 @@ func createVMAndBlockchainHook(t *testing.T, accounts state.AccountsAdapter, gas
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	vmFactory, err := shard.NewVMContainerFactory(
-		config.VirtualMachineConfig{
-			OutOfProcessEnabled: false,
-			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+	vmFactoryConfig := config.VirtualMachineConfig{
+		OutOfProcessEnabled: false,
+		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+	}
+
+	vmFactory, err := shard.NewVMContainerFactory(vmFactoryConfig, maxGasLimitPerBlock, context.GasSchedule, args)
+	require.Nil(context.T, err)
+
+	context.VMContainer, err = vmFactory.Create()
+	require.Nil(context.T, err)
+
+	context.BlockchainHook = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+}
+
+func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  pkConverter,
+		ShardCoordinator: oneShardCoordinator,
+		BuiltInFuncNames: context.BlockchainHook.GetBuiltInFunctions().Keys(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
+	}
+
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	require.Nil(context.T, err)
+
+	gasSchedule := make(map[string]map[string]uint64)
+	defaults.FillGasMapInternal(gasSchedule, 1)
+	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+		VmContainer:    context.VMContainer,
+		ArgsParser:     smartContract.NewArgumentParser(),
+		Hasher:         hasher,
+		Marshalizer:    marshalizer,
+		AccountsDB:     context.Accounts,
+		BlockChainHook: context.BlockchainHook,
+		PubkeyConv:     pkConverter,
+		Coordinator:    oneShardCoordinator,
+		ScrForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder: &mock.IntermediateTransactionHandlerMock{},
+		TxFeeHandler:   &mock.UnsignedTxHandlerMock{},
+		EconomicsFee: &mock.FeeHandlerStub{
+			DeveloperPercentageCalled: func() float64 {
+				return 0.0
+			},
 		},
-		maxGasLimitPerBlock,
-		gasSchedule,
-		args,
-	)
-	require.Nil(t, err)
+		TxTypeHandler: txTypeHandler,
+		GasHandler: &mock.GasHandlerMock{
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+		},
+		BuiltInFunctions: context.BlockchainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+	}
 
-	vmContainer, err := vmFactory.Create()
-	require.Nil(t, err)
+	context.ScProcessor, err = smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+	require.Nil(context.T, err)
 
-	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
+		Accounts:          context.Accounts,
+		Hasher:            hasher,
+		PubkeyConv:        pkConverter,
+		Marshalizer:       marshalizer,
+		SignMarshalizer:   marshalizer,
+		ShardCoordinator:  oneShardCoordinator,
+		ScProcessor:       context.ScProcessor,
+		TxFeeHandler:      &mock.UnsignedTxHandlerMock{},
+		TxTypeHandler:     txTypeHandler,
+		EconomicsFee:      &mock.FeeHandlerStub{},
+		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:        smartContract.NewArgumentParser(),
+		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		DisabledRelayedTx: false,
+	}
 
-	return vmContainer, blockChainHook
+	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)
+	require.Nil(context.T, err)
 }
 
 // Close closes the test context
