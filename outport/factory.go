@@ -11,5 +11,5 @@ func CreateOutportDriver(config config.OutportConfig, txCoordinator TransactionC
 	}
 
 	log.Debug("Outport enabled, will create an OutputDriver")
-	return NewOutportDriver(txCoordinator, logsProcessor), nil
+	return NewOutportDriver(config, txCoordinator, logsProcessor), nil
 }

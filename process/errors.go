@@ -713,7 +713,7 @@ var ErrMaxRatingZero = errors.New("max rating is zero")
 // ErrNilValidatorInfos signals that a nil validator infos has been provided
 var ErrNilValidatorInfos = errors.New("nil validator infos")
 
-// ErrNilBlockSizeThrottler signals that block size throttler si nil
+// ErrNilBlockSizeThrottler signals that block size throttler is nil
 var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
 
 // ErrNilHistoryRepository signals that history processor is nil

@@ -2,6 +2,7 @@ package outport
 
 import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -11,15 +12,24 @@ var log = logger.GetOrCreate("outport")
 var _ Driver = (*OutportDriver)(nil)
 
 type OutportDriver struct {
+	config        config.OutportConfig
 	txCoordinator TransactionCoordinator
 	logsProcessor TransactionLogProcessor
 }
 
-func NewOutportDriver(txCoordinator TransactionCoordinator, logsProcessor TransactionLogProcessor) *OutportDriver {
+func NewOutportDriver(config config.OutportConfig, txCoordinator TransactionCoordinator, logsProcessor TransactionLogProcessor) (*OutportDriver, error) {
+	if check.IfNil(txCoordinator) {
+		return nil, ErrNilTxCoordinator
+	}
+	if check.IfNil(logsProcessor) {
+		return nil, ErrNilLogsProcessor
+	}
+
 	return &OutportDriver{
+		config:        config,
 		txCoordinator: txCoordinator,
 		logsProcessor: logsProcessor,
-	}
+	}, nil
 }
 
 // DigestBlock digests a block
@@ -42,6 +52,9 @@ func (driver *OutportDriver) DigestCommittedBlock(header data.HeaderHandler, bod
 	// fmt.Println("rewardPool", rewardPool)
 	// fmt.Println("invalidPool", invalidPool)
 	// fmt.Println("receiptPool", receiptPool)
+
+	// Write to files (streams)
+	// Example: https://github.com/ElrondNetwork/arwen-wasm-vm/pull/78/commits/3e23f1c44625363816cd3584fc64f01345be94b2
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
