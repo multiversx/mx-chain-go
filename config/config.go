@@ -95,6 +95,11 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
+// SoftForkConfig defines the parameters used in the components that will manage the soft fork process
+type SoftForkConfig struct {
+	EpochChangeAsyncCall bool
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
@@ -161,6 +166,7 @@ type Config struct {
 
 	SoftwareVersionConfig SoftwareVersionConfig
 	FullHistory           FullHistoryConfig
+	SoftFork              SoftForkConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -194,13 +200,13 @@ type ValidatorStatisticsConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec int
-	MaxComputableRounds      uint64
-	StartInEpochEnabled      bool
-	DisableDeploy            bool
-	DisableBuiltInFunctions  bool
-	DisableRelayedTx         bool
-	GenesisString            string
+	StatusPollingIntervalSec       int
+	MaxComputableRounds            uint64
+	StartInEpochEnabled            bool
+	SCDeployEnableEpoch            uint32
+	BuiltInFunctionsEnableEpoch    uint32
+	RelayedTransactionsEnableEpoch uint32
+	GenesisString                  string
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade

@@ -11,14 +11,14 @@
    # available in local disk
    StartInEpochEnabled = true
 
-   # DisableDeploy represents the flag to enable/disable deployment of smart contracts
-   DisableDeploy = false
+   # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
+   SCDeployEnableEpoch = 0
 
-   # DisableBuiltInFunctions represents the flag to enable/disable built in functions calls
-   DisableBuiltInFunctions = false
+   # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
+   BuiltInFunctionsEnableEpoch = 0
 
-   # DisableRelayedTx represents the flag to enable/disable relayed transaction standard
-   DisableRelayedTx = false
+   # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
+   RelayedTransactionsEnableEpoch = 0
 
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"

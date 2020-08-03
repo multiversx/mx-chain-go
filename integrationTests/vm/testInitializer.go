@@ -208,25 +208,26 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		},
 		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:          accnts,
-		Hasher:            testHasher,
-		PubkeyConv:        pubkeyConv,
-		Marshalizer:       testMarshalizer,
-		SignMarshalizer:   testMarshalizer,
-		ShardCoordinator:  oneShardCoordinator,
-		ScProcessor:       scProcessor,
-		TxFeeHandler:      &mock.UnsignedTxHandlerMock{},
-		TxTypeHandler:     txTypeHandler,
-		EconomicsFee:      &mock.FeeHandlerStub{},
-		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:        smartContract.NewArgumentParser(),
-		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		DisabledRelayedTx: false,
+		Accounts:         accnts,
+		Hasher:           testHasher,
+		PubkeyConv:       pubkeyConv,
+		Marshalizer:      testMarshalizer,
+		SignMarshalizer:  testMarshalizer,
+		ShardCoordinator: oneShardCoordinator,
+		ScProcessor:      scProcessor,
+		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     &mock.FeeHandlerStub{},
+		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:       smartContract.NewArgumentParser(),
+		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 	txProcessor, _ := transaction.NewTxProcessor(argsNewTxProcessor)
 
@@ -347,26 +348,27 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		},
 		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:          accnts,
-		Hasher:            testHasher,
-		PubkeyConv:        pubkeyConv,
-		Marshalizer:       testMarshalizer,
-		SignMarshalizer:   testMarshalizer,
-		ShardCoordinator:  oneShardCoordinator,
-		ScProcessor:       scProcessor,
-		TxFeeHandler:      &mock.UnsignedTxHandlerMock{},
-		TxTypeHandler:     txTypeHandler,
-		EconomicsFee:      &mock.FeeHandlerStub{},
-		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:        smartContract.NewArgumentParser(),
-		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		DisabledRelayedTx: false,
+		Accounts:         accnts,
+		Hasher:           testHasher,
+		PubkeyConv:       pubkeyConv,
+		Marshalizer:      testMarshalizer,
+		SignMarshalizer:  testMarshalizer,
+		ShardCoordinator: oneShardCoordinator,
+		ScProcessor:      scProcessor,
+		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     &mock.FeeHandlerStub{},
+		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:       smartContract.NewArgumentParser(),
+		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 	txProcessor, _ := transaction.NewTxProcessor(argsNewTxProcessor)
 

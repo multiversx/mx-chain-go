@@ -1036,26 +1036,28 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		BadTxForwarder:   badBlocksHandler,
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(argsNewScProcessor)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:          tpn.AccntState,
-		Hasher:            TestHasher,
-		PubkeyConv:        TestAddressPubkeyConverter,
-		Marshalizer:       TestMarshalizer,
-		SignMarshalizer:   TestTxSignMarshalizer,
-		ShardCoordinator:  tpn.ShardCoordinator,
-		ScProcessor:       tpn.ScProcessor,
-		TxFeeHandler:      tpn.FeeAccumulator,
-		TxTypeHandler:     txTypeHandler,
-		EconomicsFee:      tpn.EconomicsData,
-		ReceiptForwarder:  receiptsHandler,
-		BadTxForwarder:    badBlocksHandler,
-		ArgsParser:        tpn.ArgsParser,
-		ScrForwarder:      tpn.ScrForwarder,
-		DisabledRelayedTx: false,
+		Accounts:             tpn.AccntState,
+		Hasher:               TestHasher,
+		PubkeyConv:           TestAddressPubkeyConverter,
+		Marshalizer:          TestMarshalizer,
+		SignMarshalizer:      TestTxSignMarshalizer,
+		ShardCoordinator:     tpn.ShardCoordinator,
+		ScProcessor:          tpn.ScProcessor,
+		TxFeeHandler:         tpn.FeeAccumulator,
+		TxTypeHandler:        txTypeHandler,
+		EconomicsFee:         tpn.EconomicsData,
+		ReceiptForwarder:     receiptsHandler,
+		BadTxForwarder:       badBlocksHandler,
+		ArgsParser:           tpn.ArgsParser,
+		ScrForwarder:         tpn.ScrForwarder,
+		EpochNotifier:        &mock.EpochNotifierStub{},
+		RelayedTxEnableEpoch: 0,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 
@@ -1195,6 +1197,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		BadTxForwarder:   badBlocksHandler,
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor

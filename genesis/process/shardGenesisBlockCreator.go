@@ -320,6 +320,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		BuiltInFunctions: vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  arg.TxLogsProcessor,
 		BadTxForwarder:   badTxInterim,
+		EpochNotifier:    &disabled.EpochNotifier{},
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -336,21 +337,21 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:          arg.Accounts,
-		Hasher:            arg.Hasher,
-		PubkeyConv:        arg.PubkeyConv,
-		Marshalizer:       arg.Marshalizer,
-		SignMarshalizer:   arg.SignMarshalizer,
-		ShardCoordinator:  arg.ShardCoordinator,
-		ScProcessor:       scProcessor,
-		TxFeeHandler:      genesisFeeHandler,
-		TxTypeHandler:     txTypeHandler,
-		EconomicsFee:      genesisFeeHandler,
-		ReceiptForwarder:  receiptTxInterim,
-		BadTxForwarder:    badTxInterim,
-		ArgsParser:        smartContract.NewArgumentParser(),
-		ScrForwarder:      scForwarder,
-		DisabledRelayedTx: false,
+		Accounts:         arg.Accounts,
+		Hasher:           arg.Hasher,
+		PubkeyConv:       arg.PubkeyConv,
+		Marshalizer:      arg.Marshalizer,
+		SignMarshalizer:  arg.SignMarshalizer,
+		ShardCoordinator: arg.ShardCoordinator,
+		ScProcessor:      scProcessor,
+		TxFeeHandler:     genesisFeeHandler,
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     genesisFeeHandler,
+		ReceiptForwarder: receiptTxInterim,
+		BadTxForwarder:   badTxInterim,
+		ArgsParser:       smartContract.NewArgumentParser(),
+		ScrForwarder:     scForwarder,
+		EpochNotifier:    &disabled.EpochNotifier{},
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

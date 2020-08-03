@@ -284,6 +284,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		BuiltInFunctions: virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  arg.TxLogsProcessor,
 		BadTxForwarder:   badTxForwarder,
+		EpochNotifier:    &disabled.EpochNotifier{},
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

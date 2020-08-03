@@ -11,6 +11,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -37,17 +38,19 @@ const upgradeFunctionName = "upgradeContract"
 var zero = big.NewInt(0)
 
 type scProcessor struct {
-	accounts         state.AccountsAdapter
-	blockChainHook   process.BlockChainHookHandler
-	pubkeyConv       core.PubkeyConverter
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	shardCoordinator sharding.Coordinator
-	vmContainer      process.VirtualMachinesContainer
-	argsParser       process.ArgumentsParser
-	builtInFunctions process.BuiltInFunctionContainer
-	disableDeploy    bool
-	disableBuiltIn   bool
+	accounts           state.AccountsAdapter
+	blockChainHook     process.BlockChainHookHandler
+	pubkeyConv         core.PubkeyConverter
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	shardCoordinator   sharding.Coordinator
+	vmContainer        process.VirtualMachinesContainer
+	argsParser         process.ArgumentsParser
+	builtInFunctions   process.BuiltInFunctionContainer
+	deployEnableEpoch  uint32
+	builtinEnableEpoch uint32
+	flagDeploy         atomic.Flag
+	flagBuiltin        atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -61,24 +64,25 @@ type scProcessor struct {
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
 type ArgsNewSmartContractProcessor struct {
-	VmContainer      process.VirtualMachinesContainer
-	ArgsParser       process.ArgumentsParser
-	Hasher           hashing.Hasher
-	Marshalizer      marshal.Marshalizer
-	AccountsDB       state.AccountsAdapter
-	BlockChainHook   process.BlockChainHookHandler
-	PubkeyConv       core.PubkeyConverter
-	Coordinator      sharding.Coordinator
-	ScrForwarder     process.IntermediateTransactionHandler
-	TxFeeHandler     process.TransactionFeeHandler
-	EconomicsFee     process.FeeHandler
-	TxTypeHandler    process.TxTypeHandler
-	GasHandler       process.GasHandler
-	BuiltInFunctions process.BuiltInFunctionContainer
-	TxLogsProcessor  process.TransactionLogProcessor
-	BadTxForwarder   process.IntermediateTransactionHandler
-	DisableDeploy    bool
-	DisableBuiltIn   bool
+	VmContainer        process.VirtualMachinesContainer
+	ArgsParser         process.ArgumentsParser
+	Hasher             hashing.Hasher
+	Marshalizer        marshal.Marshalizer
+	AccountsDB         state.AccountsAdapter
+	BlockChainHook     process.BlockChainHookHandler
+	PubkeyConv         core.PubkeyConverter
+	Coordinator        sharding.Coordinator
+	ScrForwarder       process.IntermediateTransactionHandler
+	TxFeeHandler       process.TransactionFeeHandler
+	EconomicsFee       process.FeeHandler
+	TxTypeHandler      process.TxTypeHandler
+	GasHandler         process.GasHandler
+	BuiltInFunctions   process.BuiltInFunctionContainer
+	TxLogsProcessor    process.TransactionLogProcessor
+	BadTxForwarder     process.IntermediateTransactionHandler
+	DeployEnableEpoch  uint32
+	BuiltinEnableEpoch uint32
+	EpochNotifier      process.EpochNotifier
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -131,27 +135,32 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	sc := &scProcessor{
-		vmContainer:      args.VmContainer,
-		argsParser:       args.ArgsParser,
-		hasher:           args.Hasher,
-		marshalizer:      args.Marshalizer,
-		accounts:         args.AccountsDB,
-		blockChainHook:   args.BlockChainHook,
-		pubkeyConv:       args.PubkeyConv,
-		shardCoordinator: args.Coordinator,
-		scrForwarder:     args.ScrForwarder,
-		txFeeHandler:     args.TxFeeHandler,
-		economicsFee:     args.EconomicsFee,
-		txTypeHandler:    args.TxTypeHandler,
-		gasHandler:       args.GasHandler,
-		builtInFunctions: args.BuiltInFunctions,
-		txLogsProcessor:  args.TxLogsProcessor,
-		disableDeploy:    args.DisableDeploy,
-		disableBuiltIn:   args.DisableBuiltIn,
-		badTxForwarder:   args.BadTxForwarder,
+		vmContainer:        args.VmContainer,
+		argsParser:         args.ArgsParser,
+		hasher:             args.Hasher,
+		marshalizer:        args.Marshalizer,
+		accounts:           args.AccountsDB,
+		blockChainHook:     args.BlockChainHook,
+		pubkeyConv:         args.PubkeyConv,
+		shardCoordinator:   args.Coordinator,
+		scrForwarder:       args.ScrForwarder,
+		txFeeHandler:       args.TxFeeHandler,
+		economicsFee:       args.EconomicsFee,
+		txTypeHandler:      args.TxTypeHandler,
+		gasHandler:         args.GasHandler,
+		builtInFunctions:   args.BuiltInFunctions,
+		txLogsProcessor:    args.TxLogsProcessor,
+		badTxForwarder:     args.BadTxForwarder,
+		deployEnableEpoch:  args.DeployEnableEpoch,
+		builtinEnableEpoch: args.BuiltinEnableEpoch,
 	}
+
+	args.EpochNotifier.RegisterNotifyHandler(sc)
 
 	return sc, nil
 }
@@ -392,7 +401,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return false, nil
 	}
 
-	if !check.IfNil(acntSnd) && sc.disableBuiltIn {
+	if !check.IfNil(acntSnd) && !sc.flagBuiltin.IsSet() {
 		return true, process.ErrBuiltInFunctionsAreDisabled
 	}
 
@@ -634,7 +643,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
 
-	if sc.disableDeploy {
+	if !sc.flagDeploy.IsSet() {
 		log.Trace("deploy is disabled")
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, process.ErrSmartContractDeploymentIsDisabled.Error(), []byte(""), snapshot)
 	}
@@ -1314,6 +1323,23 @@ func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler,
 // IsPayable returns if address is payable, smart contract ca set to false
 func (sc *scProcessor) IsPayable(address []byte) (bool, error) {
 	return sc.blockChainHook.IsPayable(address)
+}
+
+// NewEpochConfirmed is called whenever a new epoch is confirmed
+func (sc *scProcessor) NewEpochConfirmed(epoch uint32) {
+	if epoch >= sc.deployEnableEpoch {
+		wasSet := sc.flagDeploy.Set()
+		if !wasSet {
+			log.Debug("scProcessor: enabled deployment of SC")
+		}
+	}
+
+	if epoch >= sc.builtinEnableEpoch {
+		wasSet := sc.flagBuiltin.Set()
+		if !wasSet {
+			log.Debug("scProcessor: enabled built in functions")
+		}
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
