@@ -78,6 +78,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),
 		historyRepo:            arguments.HistoryRepository,
+		outportDriver:          arguments.OutportDriver,
 	}
 
 	sp := shardProcessor{
@@ -577,13 +578,6 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	// go sp.core.ScWatcherDriver().DigestBlock(body, header, scwatcher.TransactionsToDigest{
-	// 	RegularTxs:  txPool,
-	// 	ScResults:   scPool,
-	// 	ReceiptsTxs: receiptPool,
-	// 	InvalidTxs:  invalidPool,
-	// })
-
 	go sp.indexer.SaveBlock(body, header, txPool, signersIndexes, nil)
 
 	indexRoundInfo(sp.indexer, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
@@ -860,6 +854,7 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
 	sp.saveHistoryData(headerHash, headerHandler, bodyHandler)
+	sp.outportDriver.DigestBlock(headerHandler, bodyHandler, sp.txCoordinator)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {

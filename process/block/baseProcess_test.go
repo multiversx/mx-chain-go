@@ -20,11 +20,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/scwatcher"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -315,8 +315,8 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			Indexer:            &mock.IndexerMock{},
 			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
 			HistoryRepository:  &mock.HistoryRepositoryStub{},
-			Watcher:            scwatcher.NewDisabledScWatcherDriver(),
 			Version:            "softwareVersion",
+			OutportDriver:      outport.NewDisabledOutportDriver(),
 		},
 	}
 

@@ -7,8 +7,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/scwatcher"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -77,10 +75,10 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer      indexer.Indexer
-	tpsBenchmark statistics.TPSBenchmark
-	historyRepo  fullHistory.HistoryRepository
-	watcher      scwatcher.Driver
+	indexer       indexer.Indexer
+	tpsBenchmark  statistics.TPSBenchmark
+	historyRepo   fullHistory.HistoryRepository
+	outportDriver OutportDriver
 }
 
 type bootStorerDataArgs struct {
@@ -421,8 +419,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.HistoryRepository) {
 		return process.ErrNilHistoryRepository
 	}
-	if check.IfNil(arguments.Watcher) {
-		return process.ErrNilWatcher
+	if check.IfNil(arguments.OutportDriver) {
+		return process.ErrNilOutportDriver
 	}
 	if len(arguments.Version) == 0 {
 		return process.ErrEmptySoftwareVersion

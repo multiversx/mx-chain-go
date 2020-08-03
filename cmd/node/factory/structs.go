@@ -32,6 +32,7 @@ import (
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -153,6 +154,7 @@ type processComponentsFactoryArgs struct {
 	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               fullHistory.HistoryRepository
+	outportDriver             outport.Driver
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -196,6 +198,7 @@ func NewProcessComponentsFactoryArgs(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo fullHistory.HistoryRepository,
+	outportDriver outport.Driver,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -238,6 +241,7 @@ func NewProcessComponentsFactoryArgs(
 		indexer:                   indexer,
 		tpsBenchmark:              tpsBenchmark,
 		historyRepo:               historyRepo,
+		outportDriver:             outportDriver,
 	}
 }
 
@@ -1113,6 +1117,7 @@ func newBlockProcessor(
 			processArgs.tpsBenchmark,
 			processArgs.version,
 			processArgs.historyRepo,
+			processArgs.outportDriver,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1176,6 +1181,7 @@ func newShardBlockProcessor(
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
 	historyRepository fullHistory.HistoryRepository,
+	outportDriver outport.Driver,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 

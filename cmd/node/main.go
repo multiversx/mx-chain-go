@@ -54,6 +54,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -1159,6 +1160,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	outportDriver := createOutportDriver(log, externalConfig.Outport)
+
 	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
 	gasSchedule, err := core.LoadGasScheduleConfig(gasScheduleConfigurationFileName)
 	if err != nil {
@@ -1240,6 +1243,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer,
 		tpsBenchmark,
 		historyRepository,
+		outportDriver,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1944,6 +1948,17 @@ func createElasticIndexer(
 
 	return indexer.NewElasticIndexer(arguments)
 }
+
+func createOutportDriver(log logger.Logger, config config.OutportConfig) outport.Driver {
+	if !config.Enabled {
+		log.Debug("outport driver not enabled, will create a DisabledOutportDriver")
+		return outport.NewDisabledOutportDriver()
+	}
+
+	log.Debug("outport driver enabled, will create an OutputDriver")
+	return outport.NewOutportDriver()
+}
+
 func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return nodesConfig.MetaChainConsensusGroupSize, nil

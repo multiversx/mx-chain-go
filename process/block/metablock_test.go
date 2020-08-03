@@ -9,14 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/scwatcher"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -80,8 +79,8 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			Indexer:            &mock.IndexerMock{},
 			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
 			HistoryRepository:  &mock.HistoryRepositoryStub{},
-			Watcher:            scwatcher.NewDisabledScWatcherDriver(),
 			Version:            "softwareVersion",
+			OutportDriver:      outport.NewDisabledOutportDriver(),
 		},
 		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},

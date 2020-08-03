@@ -11,10 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/scwatcher"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
@@ -107,7 +107,7 @@ func NewShardProcessorEmptyWith3shards(
 			Indexer:            &mock.IndexerMock{},
 			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
 			HistoryRepository:  &mock.HistoryRepositoryStub{},
-			Watcher:            scwatcher.NewDisabledScWatcherDriver(),
+			OutportDriver:      outport.NewDisabledOutportDriver(),
 			Version:            "softwareVersion",
 		},
 	}
