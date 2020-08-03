@@ -15,6 +15,8 @@ import (
 
 const testHasher = "blake2b"
 const testMarshalizer = "json"
+const signedBlocksThreshold = 0.025
+const consecutiveMissedBlocksPenalty = 1.1
 
 func TestNewCoreComponentsFactory_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
@@ -397,5 +399,83 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 		WorkingDirectory:    "home",
 		GenesisTime:         time.Now(),
 		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
+		NodesFilename:       "mock/nodesSetupMock.json",
+		EconomicsConfig:     createDummyEconomicsConfig(),
+		RatingsConfig:       createDummyRatingsConfig(),
+	}
+}
+
+func createDummyEconomicsConfig() config.EconomicsConfig {
+	return config.EconomicsConfig{
+		GlobalSettings: config.GlobalSettings{
+			GenesisTotalSupply: "2000000000000000000000",
+			MinimumInflation:   0,
+			YearSettings: []*config.YearSetting{
+				{
+					Year:             0,
+					MaximumInflation: 0.01,
+				},
+			},
+		},
+		RewardsSettings: config.RewardsSettings{
+			LeaderPercentage:    0.1,
+			CommunityPercentage: 0.1,
+			CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+		},
+		FeeSettings: config.FeeSettings{
+			MaxGasLimitPerBlock:     "100000",
+			MaxGasLimitPerMetaBlock: "1000000",
+			MinGasPrice:             "18446744073709551615",
+			MinGasLimit:             "500",
+			GasPerDataByte:          "1",
+			DataLimitForBaseCalc:    "100000000",
+		},
+		ValidatorSettings: config.ValidatorSettings{
+			GenesisNodePrice:         "500000000",
+			UnBondPeriod:             "100000",
+			TotalSupply:              "200000000000",
+			MinStepValue:             "100000",
+			AuctionEnableNonce:       "100000",
+			StakeEnableNonce:         "100000",
+			NumRoundsWithoutBleed:    "1000",
+			MaximumPercentageToBleed: "0.5",
+			BleedPercentagePerRound:  "0.00001",
+			UnJailValue:              "1000",
+		},
+	}
+}
+
+func createDummyRatingsConfig() config.RatingsConfig {
+	return config.RatingsConfig{
+		General: config.General{
+			StartRating:           4000,
+			MaxRating:             10000,
+			MinRating:             1,
+			SignedBlocksThreshold: signedBlocksThreshold,
+			SelectionChances: []*config.SelectionChance{
+				{MaxThreshold: 0, ChancePercent: 5},
+				{MaxThreshold: 2500, ChancePercent: 19},
+				{MaxThreshold: 7500, ChancePercent: 20},
+				{MaxThreshold: 10000, ChancePercent: 21},
+			},
+		},
+		ShardChain: config.ShardChain{
+			RatingSteps: config.RatingSteps{
+				HoursToMaxRatingFromStartRating: 2,
+				ProposerValidatorImportance:     1,
+				ProposerDecreaseFactor:          -4,
+				ValidatorDecreaseFactor:         -4,
+				ConsecutiveMissedBlocksPenalty:  consecutiveMissedBlocksPenalty,
+			},
+		},
+		MetaChain: config.MetaChain{
+			RatingSteps: config.RatingSteps{
+				HoursToMaxRatingFromStartRating: 2,
+				ProposerValidatorImportance:     1,
+				ProposerDecreaseFactor:          -4,
+				ValidatorDecreaseFactor:         -4,
+				ConsecutiveMissedBlocksPenalty:  consecutiveMissedBlocksPenalty,
+			},
+		},
 	}
 }

@@ -34,7 +34,7 @@ type CoreComponentsFactoryArgs struct {
 	Config              config.Config
 	RatingsConfig       config.RatingsConfig
 	EconomicsConfig     config.EconomicsConfig
-	nodesFilename       string
+	NodesFilename       string
 	WorkingDirectory    string
 	GenesisTime         time.Time
 	ChanStopNodeProcess chan endProcess.ArgEndProcess
@@ -83,7 +83,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *coreComponentsFac
 		economicsConfig:     args.EconomicsConfig,
 		workingDir:          args.WorkingDirectory,
 		chanStopNodeProcess: args.ChanStopNodeProcess,
-		nodesFilename:       args.nodesFilename,
+		nodesFilename:       args.NodesFilename,
 		genesisTime:         args.GenesisTime,
 	}
 }
