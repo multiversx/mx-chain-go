@@ -3,6 +3,7 @@ generateConfig() {
 
   pushd $TESTNETDIR/filegen
   ./filegen \
+    -output-directory $CONFIGGENERATOROUTPUTDIR           \
     -num-of-shards $SHARDCOUNT                            \
     -num-of-nodes-in-each-shard $SHARD_VALIDATORCOUNT     \
     -num-of-observers-in-each-shard $SHARD_OBSERVERCOUNT  \
@@ -19,10 +20,10 @@ generateConfig() {
 copyConfig() {
   pushd $TESTNETDIR
 
-  cp ./filegen/genesis.json ./node/config
-  cp ./filegen/nodesSetup.json ./node/config
-  cp ./filegen/*.pem ./node/config #there might be more .pem files there
-  cp ./filegen/genesisSmartContracts.json ./node/config
+  cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/genesis.json ./node/config
+  cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/nodesSetup.json ./node/config
+  cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/*.pem ./node/config #there might be more .pem files there
+  cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/genesisSmartContracts.json ./node/config
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
 }
