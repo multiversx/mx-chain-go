@@ -23,7 +23,7 @@ func NewOutportDriver(txCoordinator TransactionCoordinator, logsProcessor Transa
 }
 
 // DigestBlock digests a block
-func (driver *OutportDriver) DigestBlock(header data.HeaderHandler, body data.BodyHandler) {
+func (driver *OutportDriver) DigestCommittedBlock(header data.HeaderHandler, body data.BodyHandler) {
 	if check.IfNil(header) {
 		return
 	}

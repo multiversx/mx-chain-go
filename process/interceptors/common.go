@@ -55,6 +55,7 @@ func processInterceptedData(
 			"error", err.Error(),
 		)
 		processDebugInterceptedData(handler, data, topic, err)
+		// TODO: call outportDriver.DigestInvalidTransaction()
 
 		return
 	}

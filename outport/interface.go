@@ -15,7 +15,8 @@ type TransactionLogProcessor interface {
 
 // Driver defines the interface of the outport driver
 type Driver interface {
-	DigestBlock(header data.HeaderHandler, body data.BodyHandler)
+	DigestCommittedBlock(header data.HeaderHandler, body data.BodyHandler)
+	// TODO: add DigestInvalidTransaction()
 	IsInterfaceNil() bool
 }
 

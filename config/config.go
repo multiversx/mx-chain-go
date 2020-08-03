@@ -398,3 +398,7 @@ type OutportConfig struct {
 	Enabled             bool
 	MessagesMarshalizer string
 }
+
+type OutportFilterConfig struct {
+	
+}

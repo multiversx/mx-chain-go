@@ -640,3 +640,12 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+
+[Outport]
+    Enabled = false
+    MessagesMarshalizer = "json"
+    [Outport.Filter.CommitBlock]
+        Type = ["regular", "scr", "invalid"]
+        ToAddress = []
+        FromAddress = []
+        DataContainsOr = []
