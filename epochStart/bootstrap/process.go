@@ -26,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	factoryInterceptors "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -77,7 +76,7 @@ type epochStartBootstrap struct {
 	cryptoComponentsHolder     process.CryptoComponentsHolder
 	messenger                  Messenger
 	generalConfig              config.Config
-	economicsData              *economics.EconomicsData
+	economicsData              process.EconomicsHandler
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
@@ -133,7 +132,7 @@ type ArgsEpochStartBootstrap struct {
 	DestinationShardAsObserver uint32
 	Messenger                  Messenger
 	GeneralConfig              config.Config
-	EconomicsData              *economics.EconomicsData
+	EconomicsData              process.EconomicsHandler
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
 	StorageUnitOpener          storage.UnitOpenerHandler

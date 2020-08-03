@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -94,6 +95,11 @@ type CoreComponentsHolder interface {
 	Watchdog() core.WatchdogTimer
 	AlarmScheduler() core.TimersScheduler
 	SyncTimer() ntp.SyncTimer
+	Rounder() consensus.Rounder
+	EconomicsData() process.EconomicsHandler
+	RatingsData() process.RatingsInfoHandler
+	Rater() sharding.PeerAccountListAndRatingHandler
+	GenesisNodesSetup() NodesSetupHandler
 	GenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32
@@ -127,6 +133,11 @@ type CryptoComponentsHolder interface {
 	TxSignKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier
 	IsInterfaceNil() bool
+}
+
+// KeyLoaderHandler defines the loading of a key from a pem file and index
+type KeyLoaderHandler interface {
+	LoadKey(string, int) ([]byte, string, error)
 }
 
 // CryptoComponentsHandler defines the crypto components handler actions
@@ -346,7 +357,20 @@ type ConsensusComponentsHandler interface {
 	ConsensusComponentsHolder
 }
 
-// KeyLoaderHandler defines the loading of a key from a pem file and index
-type KeyLoaderHandler interface {
-	LoadKey(string, int) ([]byte, string, error)
+type EpochStartBootstrapper interface {
+	GetTriesComponents() (state.TriesHolder, map[string]data.StorageManager)
+	Bootstrap() (bootstrap.Parameters, error)
+	IsInterfaceNil() bool
+}
+
+// BootstrapComponentsHolder holds the bootstrap components
+type BootstrapComponentsHolder interface {
+	EpochStartBootstrapper() EpochStartBootstrapper
+	IsInterfaceNil() bool
+}
+
+// BootstrapComponentsHandler defines the bootstrap components handler actions
+type BootstrapComponentsHandler interface {
+	ComponentHandler
+	BootstrapComponentsHolder
 }

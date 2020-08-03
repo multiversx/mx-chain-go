@@ -52,6 +52,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	processFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
@@ -481,6 +482,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              managedCoreComponents.StatusHandler(),
 	}
+
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
 		log.Error("could not create bootstrap", "err", err)
@@ -1553,7 +1555,7 @@ func createNode(
 		return nil, err
 	}
 
-	factory.PrepareOpenTopics(network.InputAntiFloodHandler(), shardCoordinator)
+	PrepareOpenTopics(network.InputAntiFloodHandler(), shardCoordinator)
 
 	alarmScheduler := alarm.NewAlarmScheduler()
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, chanStopNodeProcess)
@@ -1974,4 +1976,20 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 		configurationPreferencesFileName: configurationPreferencesFileName,
 		p2pConfigurationFileName:         p2pConfigurationFileName,
 	}, nil
+}
+
+// PrepareOpenTopics will set to the anti flood handler the topics for which
+// the node can receive messages from others than validators
+func PrepareOpenTopics(
+	antiflood mainFactory.P2PAntifloodHandler,
+	shardCoordinator sharding.Coordinator,
+) {
+	selfID := shardCoordinator.SelfId()
+	if selfID == core.MetachainShardId {
+		antiflood.SetTopicsForAll(core.HeartbeatTopic)
+		return
+	}
+
+	selfShardTxTopic := processFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
+	antiflood.SetTopicsForAll(core.HeartbeatTopic, selfShardTxTopic)
 }

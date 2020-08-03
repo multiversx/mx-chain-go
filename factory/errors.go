@@ -151,3 +151,12 @@ var ErrNilStatusHandlersUtils = errors.New("nil status handlers utils")
 
 // ErrValidatorAlreadySet signals that a topic validator has already been set
 var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
+
+// ErrNilGenesisNodesSetup signals that a nil genesis nodes setup
+var ErrNilGenesisNodesSetup = errors.New("nil genesis nodes setup")
+
+// ErrInvalidWorkingDir signals an invalid working directory
+var ErrInvalidWorkingDir = errors.New("invalid working directory")
+
+// ErrNilShuffler signals a nil nodes shuffler
+var ErrNilShuffler = errors.New("nil nodes shuffler")

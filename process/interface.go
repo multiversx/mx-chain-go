@@ -530,13 +530,39 @@ type BlockSizeThrottler interface {
 	IsInterfaceNil() bool
 }
 
-// RewardsHandler will return information about rewards
-type RewardsHandler interface {
+type rewardsHandler interface {
 	LeaderPercentage() float64
 	CommunityPercentage() float64
 	CommunityAddress() string
 	MinInflationRate() float64
 	MaxInflationRate(year uint32) float64
+}
+
+// RewardsHandler will return information about rewards
+type RewardsHandler interface {
+	rewardsHandler
+	IsInterfaceNil() bool
+}
+
+type feeHandler interface {
+	DeveloperPercentage() float64
+	MaxGasLimitPerBlock(shardID uint32) uint64
+	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
+	ComputeFee(tx TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx TransactionWithFeeHandler) error
+	MinGasPrice() uint64
+}
+
+// FeeHandler is able to perform some economics calculation on a provided transaction
+type FeeHandler interface {
+	feeHandler
+	IsInterfaceNil() bool
+}
+
+// EconomicsHandler provides some economics related computation and read access to economics data
+type EconomicsHandler interface {
+	rewardsHandler
+	feeHandler
 	IsInterfaceNil() bool
 }
 
@@ -551,17 +577,6 @@ type EndOfEpochEconomics interface {
 type ValidatorSettingsHandler interface {
 	UnBondPeriod() uint64
 	GenesisNodePrice() *big.Int
-	IsInterfaceNil() bool
-}
-
-// FeeHandler is able to perform some economics calculation on a provided transaction
-type FeeHandler interface {
-	DeveloperPercentage() float64
-	MaxGasLimitPerBlock(shardID uint32) uint64
-	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
-	ComputeFee(tx TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValues(tx TransactionWithFeeHandler) error
-	MinGasPrice() uint64
 	IsInterfaceNil() bool
 }
 

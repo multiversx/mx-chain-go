@@ -4,12 +4,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -277,6 +280,66 @@ func (mcc *managedCoreComponents) Watchdog() core.WatchdogTimer {
 	}
 
 	return mcc.coreComponents.watchdog
+}
+
+// EconomicsData returns the configured economics data
+func (mcc *managedCoreComponents) EconomicsData() process.EconomicsHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.economicsData
+}
+
+// RatingsData returns the configured ratings data
+func (mcc *managedCoreComponents) RatingsData() process.RatingsInfoHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.ratingsData
+}
+
+// Rater returns the rater
+func (mcc *managedCoreComponents) Rater() sharding.PeerAccountListAndRatingHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.rater
+}
+
+// GenesisNodesSetup returns the genesis nodes setup
+func (mcc *managedCoreComponents) GenesisNodesSetup() NodesSetupHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.nodesSetupHandler
+}
+
+// Rounder returns the rounder
+func (mcc *managedCoreComponents) Rounder() consensus.Rounder {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.rounder
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

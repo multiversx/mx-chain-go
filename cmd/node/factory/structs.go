@@ -8,11 +8,8 @@ import (
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
@@ -104,20 +101,4 @@ func CreateUnitOpener(
 	}
 
 	return storageFactory.NewStorageUnitOpenHandler(argsStorageUnitOpener)
-}
-
-// PrepareOpenTopics will set to the anti flood handler the topics for which
-// the node can receive messages from others than validators
-func PrepareOpenTopics(
-	antiflood mainFactory.P2PAntifloodHandler,
-	shardCoordinator sharding.Coordinator,
-) {
-	selfID := shardCoordinator.SelfId()
-	if selfID == core.MetachainShardId {
-		antiflood.SetTopicsForAll(core.HeartbeatTopic)
-		return
-	}
-
-	selfShardTxTopic := factory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
-	antiflood.SetTopicsForAll(core.HeartbeatTopic, selfShardTxTopic)
 }

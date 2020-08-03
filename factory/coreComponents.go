@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
@@ -18,6 +20,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	marshalizerFactory "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
@@ -26,6 +32,9 @@ import (
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
 	Config              config.Config
+	RatingsConfig       config.RatingsConfig
+	EconomicsConfig     config.EconomicsConfig
+	nodesFilename       string
 	WorkingDirectory    string
 	GenesisTime         time.Time
 	ChanStopNodeProcess chan endProcess.ArgEndProcess
@@ -34,6 +43,9 @@ type CoreComponentsFactoryArgs struct {
 // coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
 	config              config.Config
+	ratingsConfig       config.RatingsConfig
+	economicsConfig     config.EconomicsConfig
+	nodesFilename       string
 	workingDir          string
 	genesisTime         time.Time
 	chanStopNodeProcess chan endProcess.ArgEndProcess
@@ -51,8 +63,13 @@ type coreComponents struct {
 	statusHandler            core.AppStatusHandler
 	pathHandler              storage.PathManagerHandler
 	syncTimer                ntp.SyncTimer
+	rounder                  consensus.Rounder
 	alarmScheduler           core.TimersScheduler
 	watchdog                 core.WatchdogTimer
+	nodesSetupHandler        NodesSetupHandler
+	economicsData            process.EconomicsHandler
+	ratingsData              process.RatingsInfoHandler
+	rater                    sharding.PeerAccountListAndRatingHandler
 	genesisTime              time.Time
 	chainID                  string
 	minTransactionVersion    uint32
@@ -62,8 +79,12 @@ type coreComponents struct {
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *coreComponentsFactory {
 	return &coreComponentsFactory{
 		config:              args.Config,
+		ratingsConfig:       args.RatingsConfig,
+		economicsConfig:     args.EconomicsConfig,
 		workingDir:          args.WorkingDirectory,
 		chanStopNodeProcess: args.ChanStopNodeProcess,
+		nodesFilename:       args.nodesFilename,
+		genesisTime:         args.GenesisTime,
 	}
 }
 
@@ -110,8 +131,60 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	syncer.StartSyncingTime()
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
+	startRound := int64(0)
+	if ccf.config.Hardfork.AfterHardFork {
+		startRound = int64(ccf.config.Hardfork.StartRound)
+	}
+
+	log.Debug("config", "file", ccf.nodesFilename)
+
+	genesisNodesConfig, err := sharding.NewNodesSetup(
+		ccf.nodesFilename,
+		addressPubkeyConverter,
+		validatorPubkeyConverter,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	rounder, err := round.NewRound(
+		time.Unix(genesisNodesConfig.StartTime, 0),
+		syncer.CurrentTime(),
+		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
+		syncer,
+		startRound,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	alarmScheduler := alarm.NewAlarmScheduler()
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Trace("creating economics data components")
+	economicsData, err := economics.NewEconomicsData(&ccf.economicsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Trace("creating ratings data")
+	ratingDataArgs := rating.RatingsDataArg{
+		Config:                   ccf.ratingsConfig,
+		ShardConsensusSize:       genesisNodesConfig.ConsensusGroupSize,
+		MetaConsensusSize:        genesisNodesConfig.MetaChainConsensusGroupSize,
+		ShardMinNodes:            genesisNodesConfig.MinNodesPerShard,
+		MetaMinNodes:             genesisNodesConfig.MetaChainMinNodes,
+		RoundDurationMiliseconds: genesisNodesConfig.RoundDuration,
+	}
+	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	rater, err := rating.NewBlockSigningRater(ratingsData)
 	if err != nil {
 		return nil, err
 	}
@@ -127,8 +200,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		statusHandler:            statusHandler.NewNilStatusHandler(),
 		pathHandler:              pathHandler,
 		syncTimer:                syncer,
+		rounder:                  rounder,
 		alarmScheduler:           alarmScheduler,
 		watchdog:                 watchdogTimer,
+		nodesSetupHandler:        genesisNodesConfig,
+		economicsData:            economicsData,
+		ratingsData:              ratingsData,
+		rater:                    rater,
 		genesisTime:              ccf.genesisTime,
 		chainID:                  ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:    ccf.config.GeneralSettings.MinTransactionVersion,
@@ -155,7 +233,7 @@ func (ccf *coreComponentsFactory) createStorerTemplatePaths() (string, string) {
 	return pathTemplateForPruningStorer, pathTemplateForStaticStorer
 }
 
-// Closes all underlying components that need closing
+// Close closes all underlying components
 func (cc *coreComponents) Close() error {
 	if cc.statusHandler != nil {
 		cc.statusHandler.Close()
