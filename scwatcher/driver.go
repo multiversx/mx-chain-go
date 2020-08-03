@@ -14,3 +14,8 @@ func NewScWatcherDriver() *ScWatcherDriver {
 // DigestBlock digests a block
 func (driver *ScWatcherDriver) DigestBlock(body data.BodyHandler, header data.HeaderHandler, transactions TransactionsToDigest) {
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (driver *ScWatcherDriver) IsInterfaceNil() bool {
+	return driver == nil
+}

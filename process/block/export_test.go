@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/scwatcher"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
@@ -105,8 +106,9 @@ func NewShardProcessorEmptyWith3shards(
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 			Indexer:            &mock.IndexerMock{},
 			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
-			Version:            "softwareVersion",
 			HistoryRepository:  &mock.HistoryRepositoryStub{},
+			Watcher:            scwatcher.NewDisabledScWatcherDriver(),
+			Version:            "softwareVersion",
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

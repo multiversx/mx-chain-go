@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/scwatcher"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -42,8 +43,9 @@ type ArgBaseProcessor struct {
 	BlockSizeThrottler     process.BlockSizeThrottler
 	Indexer                indexer.Indexer
 	TpsBenchmark           statistics.TPSBenchmark
-	Version                string
 	HistoryRepository      fullHistory.HistoryRepository
+	Watcher                scwatcher.Driver
+	Version                string
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

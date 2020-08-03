@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/scwatcher"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -77,8 +79,9 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 			Indexer:            &mock.IndexerMock{},
 			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
-			Version:            "softwareVersion",
 			HistoryRepository:  &mock.HistoryRepositoryStub{},
+			Watcher:            scwatcher.NewDisabledScWatcherDriver(),
+			Version:            "softwareVersion",
 		},
 		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},

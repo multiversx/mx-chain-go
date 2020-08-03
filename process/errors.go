@@ -719,6 +719,9 @@ var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
 // ErrNilHistoryRepository signals that history processor is nil
 var ErrNilHistoryRepository = errors.New("history repository is nil")
 
+// ErrNilWatcher signals that the (SC) watcher is nil
+var ErrNilWatcher = errors.New("(SC) watcher is nil")
+
 // ErrInvalidMetaTransaction signals that meta transaction is invalid
 var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
 

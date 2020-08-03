@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/scwatcher"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -105,6 +106,7 @@ func CreateMockArgumentsMultiShard() blproc.ArgShardProcessor {
 	_ = arguments.BlockChain.SetGenesisHeader(&block.Header{Nonce: 0})
 	arguments.Indexer = &mock.IndexerMock{}
 	arguments.TpsBenchmark = &testscommon.TpsBenchmarkMock{}
+	arguments.Watcher = scwatcher.NewDisabledScWatcherDriver()
 
 	return arguments
 }

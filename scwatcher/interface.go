@@ -5,6 +5,7 @@ import "github.com/ElrondNetwork/elrond-go/data"
 // ScWatcherDriver defines the interface of the Smart Contracts Watcher
 type Driver interface {
 	DigestBlock(body data.BodyHandler, header data.HeaderHandler, transactions TransactionsToDigest)
+	IsInterfaceNil() bool
 }
 
 // TransactionsToDigest holds current transactions to digest
