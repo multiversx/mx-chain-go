@@ -202,3 +202,8 @@ func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
 
 	return nil, nil
 }
+
+// GetSnapshotDbBatchDelay -
+func (ts *TrieStub) GetSnapshotDbBatchDelay() int {
+	return 0
+}

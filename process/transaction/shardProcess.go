@@ -24,95 +24,100 @@ var _ process.TransactionProcessor = (*txProcessor)(nil)
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
-	txFeeHandler     process.TransactionFeeHandler
-	txTypeHandler    process.TxTypeHandler
-	receiptForwarder process.IntermediateTransactionHandler
-	badTxForwarder   process.IntermediateTransactionHandler
-	argsParser       process.ArgumentsParser
-	scrForwarder     process.IntermediateTransactionHandler
-	signMarshalizer  marshal.Marshalizer
+	txFeeHandler      process.TransactionFeeHandler
+	txTypeHandler     process.TxTypeHandler
+	receiptForwarder  process.IntermediateTransactionHandler
+	badTxForwarder    process.IntermediateTransactionHandler
+	argsParser        process.ArgumentsParser
+	scrForwarder      process.IntermediateTransactionHandler
+	signMarshalizer   marshal.Marshalizer
+	disabledRelayedTx bool
+}
+
+// ArgsNewTxProcessor defines defines the arguments needed for new tx processor
+type ArgsNewTxProcessor struct {
+	Accounts          state.AccountsAdapter
+	Hasher            hashing.Hasher
+	PubkeyConv        core.PubkeyConverter
+	Marshalizer       marshal.Marshalizer
+	SignMarshalizer   marshal.Marshalizer
+	ShardCoordinator  sharding.Coordinator
+	ScProcessor       process.SmartContractProcessor
+	TxFeeHandler      process.TransactionFeeHandler
+	TxTypeHandler     process.TxTypeHandler
+	EconomicsFee      process.FeeHandler
+	ReceiptForwarder  process.IntermediateTransactionHandler
+	BadTxForwarder    process.IntermediateTransactionHandler
+	ArgsParser        process.ArgumentsParser
+	ScrForwarder      process.IntermediateTransactionHandler
+	DisabledRelayedTx bool
 }
 
 // NewTxProcessor creates a new txProcessor engine
-func NewTxProcessor(
-	accounts state.AccountsAdapter,
-	hasher hashing.Hasher,
-	pubkeyConv core.PubkeyConverter,
-	marshalizer marshal.Marshalizer,
-	signMarshalizer marshal.Marshalizer,
-	shardCoordinator sharding.Coordinator,
-	scProcessor process.SmartContractProcessor,
-	txFeeHandler process.TransactionFeeHandler,
-	txTypeHandler process.TxTypeHandler,
-	economicsFee process.FeeHandler,
-	receiptForwarder process.IntermediateTransactionHandler,
-	badTxForwarder process.IntermediateTransactionHandler,
-	argsParser process.ArgumentsParser,
-	scrForwarder process.IntermediateTransactionHandler,
-) (*txProcessor, error) {
-
-	if check.IfNil(accounts) {
+func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
+	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(pubkeyConv) {
+	if check.IfNil(args.PubkeyConv) {
 		return nil, process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(scProcessor) {
+	if check.IfNil(args.ScProcessor) {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if check.IfNil(txFeeHandler) {
+	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
-	if check.IfNil(txTypeHandler) {
+	if check.IfNil(args.TxTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
-	if check.IfNil(economicsFee) {
+	if check.IfNil(args.EconomicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(receiptForwarder) {
+	if check.IfNil(args.ReceiptForwarder) {
 		return nil, process.ErrNilReceiptHandler
 	}
-	if check.IfNil(badTxForwarder) {
+	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
 	}
-	if check.IfNil(argsParser) {
+	if check.IfNil(args.ArgsParser) {
 		return nil, process.ErrNilArgumentParser
 	}
-	if check.IfNil(scrForwarder) {
+	if check.IfNil(args.ScrForwarder) {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
-	if check.IfNil(signMarshalizer) {
+	if check.IfNil(args.SignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 
 	baseTxProcess := &baseTxProcessor{
-		accounts:         accounts,
-		shardCoordinator: shardCoordinator,
-		pubkeyConv:       pubkeyConv,
-		economicsFee:     economicsFee,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		scProcessor:      scProcessor,
+		accounts:         args.Accounts,
+		shardCoordinator: args.ShardCoordinator,
+		pubkeyConv:       args.PubkeyConv,
+		economicsFee:     args.EconomicsFee,
+		hasher:           args.Hasher,
+		marshalizer:      args.Marshalizer,
+		scProcessor:      args.ScProcessor,
 	}
 
 	return &txProcessor{
-		baseTxProcessor:  baseTxProcess,
-		txFeeHandler:     txFeeHandler,
-		txTypeHandler:    txTypeHandler,
-		receiptForwarder: receiptForwarder,
-		badTxForwarder:   badTxForwarder,
-		argsParser:       argsParser,
-		scrForwarder:     scrForwarder,
-		signMarshalizer:  signMarshalizer,
+		baseTxProcessor:   baseTxProcess,
+		txFeeHandler:      args.TxFeeHandler,
+		txTypeHandler:     args.TxTypeHandler,
+		receiptForwarder:  args.ReceiptForwarder,
+		badTxForwarder:    args.BadTxForwarder,
+		argsParser:        args.ArgsParser,
+		scrForwarder:      args.ScrForwarder,
+		signMarshalizer:   args.SignMarshalizer,
+		disabledRelayedTx: args.DisabledRelayedTx,
 	}, nil
 }
 
@@ -134,6 +139,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		txProc.pubkeyConv,
 	)
 
+	txType := txProc.txTypeHandler.ComputeTransactionType(tx)
 	err = txProc.checkTxValues(tx, acntSnd, acntDst)
 	if err != nil {
 		if errors.Is(err, process.ErrInsufficientFunds) {
@@ -153,10 +159,12 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return vmcommon.UserError, err
 	}
 
-	txType := txProc.txTypeHandler.ComputeTransactionType(tx)
 	switch txType {
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(tx, tx.SndAddr, tx.RcvAddr)
+		if err != nil {
+			return vmcommon.UserError, txProc.executeAfterFailedMoveBalanceTransaction(tx, err)
+		}
 		return vmcommon.Ok, err
 	case process.SCDeployment:
 		return txProc.processSCDeployment(tx, tx.SndAddr)
@@ -168,7 +176,43 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return txProc.processRelayedTx(tx, tx.SndAddr, tx.RcvAddr)
 	}
 
-	return vmcommon.UserError, process.ErrWrongTransaction
+	return vmcommon.UserError, txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
+}
+
+func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
+	tx *transaction.Transaction,
+	txError error,
+) error {
+	acntSnd, err := txProc.getAccountFromAddress(tx.SndAddr)
+	if err != nil {
+		return err
+	}
+
+	if txError == process.ErrInvalidMetaTransaction || txError == process.ErrAccountNotPayable {
+		snapshot := txProc.accounts.JournalLen()
+		txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+		if err != nil {
+			return err
+		}
+
+		err = txProc.scProcessor.ProcessIfError(acntSnd, txHash, tx, txError.Error(), nil, snapshot)
+		if err != nil {
+			return err
+		}
+
+		if check.IfNil(acntSnd) {
+			return nil
+		}
+
+		err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+		if err != nil {
+			return err
+		}
+
+		return process.ErrFailedTransaction
+	}
+
+	return txError
 }
 
 func (txProc *txProcessor) executingFailedTransaction(
@@ -282,7 +326,6 @@ func (txProc *txProcessor) processTxFee(
 
 func (txProc *txProcessor) checkIfValidTxToMetaChain(
 	tx *transaction.Transaction,
-	acntSnd state.UserAccountHandler,
 	adrDst []byte,
 ) error {
 
@@ -293,7 +336,7 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 
 	// it is not allowed to send transactions to metachain if those are not of type smart contract
 	if len(tx.GetData()) == 0 {
-		return txProc.executingFailedTransaction(tx, acntSnd, process.ErrInvalidMetaTransaction)
+		return process.ErrInvalidMetaTransaction
 	}
 
 	return nil
@@ -311,24 +354,49 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	err = txProc.checkIfValidTxToMetaChain(tx, acntSrc, adrDst)
-	if err != nil {
-		return err
-	}
-
 	txFee, err := txProc.processTxFee(tx, acntSrc, acntDst)
 	if err != nil {
 		return err
 	}
 
-	err = txProc.moveBalances(acntSrc, acntDst, tx.GetValue())
+	// is sender address in node shard
+	if !check.IfNil(acntSrc) {
+		acntSrc.IncreaseNonce(1)
+		err := acntSrc.SubFromBalance(tx.Value)
+		if err != nil {
+			return err
+		}
+
+		err = txProc.accounts.SaveAccount(acntSrc)
+		if err != nil {
+			return err
+		}
+	}
+
+	isPayable, err := txProc.scProcessor.IsPayable(adrDst)
+	if err != nil {
+		return err
+	}
+	if !isPayable {
+		return process.ErrAccountNotPayable
+	}
+
+	err = txProc.checkIfValidTxToMetaChain(tx, adrDst)
 	if err != nil {
 		return err
 	}
 
-	// is sender address in node shard
-	if acntSrc != nil {
-		acntSrc.IncreaseNonce(1)
+	// is receiver address in node shard
+	if !check.IfNil(acntDst) {
+		err := acntDst.AddToBalance(tx.Value)
+		if err != nil {
+			return err
+		}
+
+		err = txProc.accounts.SaveAccount(acntDst)
+		if err != nil {
+			return err
+		}
 	}
 
 	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
@@ -342,24 +410,6 @@ func (txProc *txProcessor) processMoveBalance(
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(txFee, big.NewInt(0), txHash)
-
-	return txProc.saveAccounts(acntSrc, acntDst)
-}
-
-func (txProc *txProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
-	if !check.IfNil(acntSnd) {
-		err := txProc.accounts.SaveAccount(acntSnd)
-		if err != nil {
-			return err
-		}
-	}
-
-	if !check.IfNil(acntDst) {
-		err := txProc.accounts.SaveAccount(acntDst)
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
@@ -392,29 +442,6 @@ func (txProc *txProcessor) processSCInvoking(
 	return txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 }
 
-func (txProc *txProcessor) moveBalances(
-	acntSrc, acntDst state.UserAccountHandler,
-	value *big.Int,
-) error {
-	// is sender address in node shard
-	if !check.IfNil(acntSrc) {
-		err := acntSrc.SubFromBalance(value)
-		if err != nil {
-			return err
-		}
-	}
-
-	// is receiver address in node shard
-	if !check.IfNil(acntDst) {
-		err := acntDst.AddToBalance(value)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (txProc *txProcessor) processRelayedTx(
 	tx *transaction.Transaction,
 	adrSrc, adrDst []byte,
@@ -432,6 +459,10 @@ func (txProc *txProcessor) processRelayedTx(
 
 	if len(args) != 1 {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
+	}
+
+	if txProc.disabledRelayedTx {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxDisabled)
 	}
 
 	userTx := &transaction.Transaction{}
@@ -492,7 +523,7 @@ func (txProc *txProcessor) processRelayedTx(
 		return 0, err
 	}
 
-	return txProc.processUserTx(userTx, adrSrc, tx.Value, tx.Nonce, txHash)
+	return txProc.processUserTx(tx, userTx, adrSrc, tx.Value, tx.Nonce, txHash)
 }
 
 func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int) {
@@ -505,6 +536,7 @@ func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) (*b
 }
 
 func (txProc *txProcessor) processUserTx(
+	originalTx *transaction.Transaction,
 	userTx *transaction.Transaction,
 	relayerAdr []byte,
 	relayedTxValue *big.Int,
@@ -516,6 +548,7 @@ func (txProc *txProcessor) processUserTx(
 		return 0, err
 	}
 
+	txType := txProc.txTypeHandler.ComputeTransactionType(userTx)
 	err = txProc.checkTxValues(userTx, acntSnd, acntDst)
 	if err != nil {
 		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
@@ -523,6 +556,7 @@ func (txProc *txProcessor) processUserTx(
 			relayerAdr,
 			relayedTxValue,
 			relayedNonce,
+			originalTx,
 			txHash,
 			err.Error())
 	}
@@ -530,7 +564,6 @@ func (txProc *txProcessor) processUserTx(
 	scrFromTx := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, txHash)
 
 	returnCode := vmcommon.Ok
-	txType := txProc.txTypeHandler.ComputeTransactionType(scrFromTx)
 	switch txType {
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(userTx, userTx.SndAddr, userTx.RcvAddr)
@@ -547,13 +580,20 @@ func (txProc *txProcessor) processUserTx(
 			relayerAdr,
 			relayedTxValue,
 			relayedNonce,
+			originalTx,
 			txHash,
 			err.Error())
 	}
 
-	// coding error transaction is reverted completely by revert from txPreProcessor
-	if err != nil {
-		return 0, err
+	if errors.Is(err, process.ErrInvalidMetaTransaction) || errors.Is(err, process.ErrAccountNotPayable) {
+		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
+			userTx.SndAddr,
+			relayerAdr,
+			relayedTxValue,
+			relayedNonce,
+			originalTx,
+			txHash,
+			err.Error())
 	}
 
 	// no need to add the smart contract result From TX to the intermediate transactions in case of error
@@ -598,6 +638,7 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 	relayerAdr []byte,
 	relayedTxValue *big.Int,
 	relayedNonce uint64,
+	originalTx *transaction.Transaction,
 	originalTxHash []byte,
 	errorMsg string,
 ) error {
@@ -627,16 +668,23 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 		return err
 	}
 
+	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
+	if err != nil {
+		return err
+	}
+
 	if !check.IfNil(relayerAcnt) {
 		err = relayerAcnt.AddToBalance(scrForRelayer.Value)
 		if err != nil {
 			return err
 		}
-	}
 
-	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
-	if err != nil {
-		return err
+		err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{originalTx})
+		if err != nil {
+			return err
+		}
+
+		return process.ErrFailedTransaction
 	}
 
 	return nil

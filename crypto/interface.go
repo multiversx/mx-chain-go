@@ -114,7 +114,7 @@ type Suite interface {
 	Random
 	// CreateKeyPair creates a scalar and a point pair that can be used in asymmetric cryptography
 	CreateKeyPair() (Scalar, Point)
-	// IsPointValid returns nil if point is valid otherwise error. Zero is reported also as invalid
+	// CheckPointValid returns nil if point is valid otherwise error. Zero is reported also as invalid
 	CheckPointValid(pointBytes []byte) error
 	// GetUnderlyingSuite returns the library suite that crypto.Suite wraps
 	GetUnderlyingSuite() interface{}
@@ -219,7 +219,7 @@ type LowLevelSignerBLS interface {
 }
 
 // PeerSignatureHandler is a wrapper over SingleSigner that buffers the peer signatures.
-// When it needs to sign or to verify a signature, is searches the buffer first.
+// When it needs to sign or to verify a signature, it searches the buffer first.
 type PeerSignatureHandler interface {
 	VerifyPeerSignature(pk []byte, pid core.PeerID, signature []byte) error
 	GetPeerSignature(key PrivateKey, pid []byte) ([]byte, error)

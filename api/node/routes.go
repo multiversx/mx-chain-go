@@ -21,10 +21,17 @@ const (
 	heartbeatStatusPath = "/heartbeatstatus"
 	statisticsPath      = "/statistics"
 	statusPath          = "/status"
+	metricsPath         = "/metrics"
 	p2pStatusPath       = "/p2pstatus"
 	debugPath           = "/debug"
 	peerInfoPath        = "/peerinfo"
 )
+
+// AccStateCheckpointsKey is used as a key for the number of account state checkpoints in the api response
+const AccStateCheckpointsKey = "erd_num_accounts_state_checkpoints"
+
+// PeerStateCheckpointsKey is used as a key for the number of peer state checkpoints in the api response
+const PeerStateCheckpointsKey = "erd_num_peer_state_checkpoints"
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
@@ -33,6 +40,8 @@ type FacadeHandler interface {
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetNumCheckpointsFromAccountState() uint32
+	GetNumCheckpointsFromPeerState() uint32
 	IsInterfaceNil() bool
 }
 
@@ -72,6 +81,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, statisticsPath, Statistics)
 	router.RegisterHandler(http.MethodGet, statusPath, StatusMetrics)
 	router.RegisterHandler(http.MethodGet, p2pStatusPath, P2pStatusMetrics)
+	router.RegisterHandler(http.MethodGet, metricsPath, PrometheusMetrics)
 	router.RegisterHandler(http.MethodPost, debugPath, QueryDebug)
 	router.RegisterHandler(http.MethodGet, peerInfoPath, PeerInfo)
 	// placeholder for custom routes
@@ -162,6 +172,8 @@ func StatusMetrics(c *gin.Context) {
 	}
 
 	details := facade.StatusMetrics().StatusMetricsMapWithoutP2P()
+	details[AccStateCheckpointsKey] = facade.GetNumCheckpointsFromAccountState()
+	details[PeerStateCheckpointsKey] = facade.GetNumCheckpointsFromPeerState()
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
@@ -298,5 +310,19 @@ func PeerInfo(c *gin.Context) {
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
+	)
+}
+
+// PrometheusMetrics is the endpoint which will return the data in the way that prometheus expects them
+func PrometheusMetrics(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	metrics := facade.StatusMetrics().StatusMetricsWithoutP2PPrometheusString()
+	c.String(
+		http.StatusOK,
+		metrics,
 	)
 }

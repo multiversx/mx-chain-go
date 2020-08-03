@@ -1,6 +1,8 @@
 package process
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -46,6 +48,8 @@ type ArgsGenesisBlockCreator struct {
 	BlockSignKeyGen          crypto.KeyGenerator
 	ImportStartHandler       update.ImportStartHandler
 	WorkingDir               string
-	// created component needed only for hardfork
+	GenesisNodePrice         *big.Int
+	GenesisString            string
+	// created components
 	importHandler update.ImportHandler
 }

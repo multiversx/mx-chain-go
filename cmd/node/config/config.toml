@@ -11,12 +11,24 @@
    # available in local disk
    StartInEpochEnabled = true
 
+   # DisableDeploy represents the flag to enable/disable deployment of smart contracts
+   DisableDeploy = false
+
+   # DisableBuiltInFunctions represents the flag to enable/disable built in functions calls
+   DisableBuiltInFunctions = false
+
+   # DisableRelayedTx represents the flag to enable/disable relayed transaction standard
+   DisableRelayedTx = false
+
+   # GenesisString represents the encoded string for the genesis block
+   GenesisString = "67656E65736973"
+
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
-   Enabled = false
+   Enabled = true
 
    # If this flag is set to false, the node won't delete any database between epochs
-   CleanOldEpochsData = true
+   CleanOldEpochsData = false
 
    # NumEpochsToKeep - if the flag above is set to true, this will set the number of epochs to keep in the storage.
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
@@ -241,7 +253,7 @@
 
 [TxBlockBodyDataPool]
     Name = "TxBlockBodyDataPool"
-    Capacity = 300
+    Capacity = 1000
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
 
@@ -438,18 +450,17 @@
 
 # The marshalizer used in transaction signing
 [TxSignMarshalizer]
-   Type = "tx-json"
+   Type = "json"
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
     MinRoundsBetweenEpochs = 200
     RoundsPerEpoch         = 200
-    # ShuffledOutRestartThreshold represents the maximum duration of an epoch (in percentage) after a node which
+    # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
-    ShuffledOutRestartThreshold = 0.25
+    MinShuffledOutRestartThreshold = 0.05
+    MaxShuffledOutRestartThreshold = 0.25
 
-    # ShuffleBetweenShards enables the shuffling of validators between shards at the end of epoch
-    ShuffleBetweenShards = true
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
 
@@ -523,6 +534,7 @@
 	StartRound = 10000
 	StartNonce = 10000
 	StartEpoch = 100
+	GenesisTime = 0
 	ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
 	[Hardfork.ExportStateStorageConfig]
 	    [Hardfork.ExportStateStorageConfig.Cache]
@@ -606,3 +618,25 @@
     StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
     PollingIntervalInMinutes = 65
 
+[FullHistory]
+    Enabled = false
+    [FullHistory.HistoryTransactionStorageConfig.Cache]
+        Name = "FullHistory.HistoryTransactionsConfig"
+        Capacity = 20000
+        Type = "LRU"
+    [FullHistory.HistoryTransactionStorageConfig.DB]
+        FilePath = "FullHistory.HistoryTransactions/MainDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+    [FullHistory.HashEpochStorageConfig.Cache]
+        Name = "HashEpochStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [FullHistory.HashEpochStorageConfig.DB]
+        FilePath = "HashEpochDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10

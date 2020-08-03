@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,6 +24,17 @@ func TestNewHeaderIntegrityVerifier_ShouldWork(t *testing.T) {
 	hdrIntVer, err := NewHeaderIntegrityVerifier([]byte("chainID"))
 	require.False(t, check.IfNil(hdrIntVer))
 	require.NoError(t, err)
+}
+
+func TestHeaderIntegrityVerifier_PopulatedReservedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdr := &block.MetaBlock{
+		Reserved: []byte("r"),
+	}
+	hdrIntVer, _ := NewHeaderIntegrityVerifier([]byte("chainID"))
+	err := hdrIntVer.Verify(hdr)
+	require.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
 }
 
 func TestHeaderIntegrityVerifier_VerifySoftwareVersionShouldErr(t *testing.T) {

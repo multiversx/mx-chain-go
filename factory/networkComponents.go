@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
@@ -19,6 +20,7 @@ type networkComponentsFactory struct {
 	statusHandler core.AppStatusHandler
 	listenAddress string
 	marshalizer   marshal.Marshalizer
+	syncer        p2p.SyncTimer
 }
 
 // NewNetworkComponentsFactory returns a new instance of a network components factory
@@ -27,6 +29,7 @@ func NewNetworkComponentsFactory(
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
 	marshalizer marshal.Marshalizer,
+	syncer p2p.SyncTimer,
 ) (*networkComponentsFactory, error) {
 	if check.IfNil(statusHandler) {
 		return nil, ErrNilStatusHandler
@@ -41,6 +44,7 @@ func NewNetworkComponentsFactory(
 		mainConfig:    mainConfig,
 		statusHandler: statusHandler,
 		listenAddress: libp2p.ListenAddrWithIp4AndTcp,
+		syncer:        syncer,
 	}, nil
 }
 
@@ -50,6 +54,7 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 		Marshalizer:   ncf.marshalizer,
 		ListenAddress: ncf.listenAddress,
 		P2pConfig:     ncf.p2pConfig,
+		SyncTimer:     ncf.syncer,
 	}
 
 	netMessenger, err := libp2p.NewNetworkMessenger(arg)

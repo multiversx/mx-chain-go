@@ -3,25 +3,25 @@
     GenesisTotalSupply = "20000000000000000000000000" #20MILERD
     MinimumInflation   = 0.0
     YearSettings = [
-        {Year = 1, MaximumInflation = 0.10845},
-        {Year = 2, MaximumInflation = 0.08754},
-        {Year = 3, MaximumInflation = 0.07102},
-        {Year = 4, MaximumInflation = 0.05747},
-        {Year = 5, MaximumInflation = 0.04599},
-        {Year = 6, MaximumInflation = 0.03597},
-        {Year = 7, MaximumInflation = 0.02701},
-        {Year = 8, MaximumInflation = 0.01878},
-        {Year = 9, MaximumInflation = 0.01106},
-        {Year = 10, MaximumInflation = 0.00365},
-        {Year = 11, MaximumInflation = 0.0},
+         {Year = 1, MaximumInflation  = 0.10845130},
+         {Year = 2, MaximumInflation  = 0.09703538},
+         {Year = 3, MaximumInflation  = 0.08561945},
+         {Year = 4, MaximumInflation  = 0.07420352},
+         {Year = 5, MaximumInflation  = 0.06278760},
+         {Year = 6, MaximumInflation  = 0.05137167},
+         {Year = 7, MaximumInflation  = 0.03995574},
+         {Year = 8, MaximumInflation  = 0.02853982},
+         {Year = 9, MaximumInflation  = 0.01712389},
+         {Year = 10, MaximumInflation = 0.00570796},
+         {Year = 11, MaximumInflation = 0.0},
     ]
     Denomination = 18 # represents the smallest erd subdivision (10^-X ERD for a denomination of X)
 
 [RewardsSettings]
     LeaderPercentage = 0.1 #fraction of value 1 - 10%
     DeveloperPercentage = 0.3 #fraction of value 1 - 30%
-    CommunityPercentage = 0.1 #fraction of value 0.1 - 10%
-    CommunityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+    ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
+    ProtocolSustainabilityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 
 [FeeSettings]
     MaxGasLimitPerBlock     = "1500000000"
@@ -30,16 +30,3 @@
     MinGasLimit = "50000"
     GasPerDataByte = "1500"
     DataLimitForBaseCalc = "10000"
-
-[ValidatorSettings]
-    GenesisNodePrice = "2500000000000000000000" #2.5KERD
-    UnBondPeriod = "400"
-    MinStepValue = "10000000000000000000"
-    TotalSupply = "20000000000000000000000000" #20MIL ERD
-    AuctionEnableNonce = "100000000000"
-    StakeEnableNonce = "0"
-    NumRoundsWithoutBleed = "100"
-    MaximumPercentageToBleed = "0.5"
-    BleedPercentagePerRound = "0.00001"
-    UnJailValue = "2500000000000000000" #0.1% of genesis node price
-    ActivateBLSPubKeyMessageVerification = false #TODO set to true before mainnet

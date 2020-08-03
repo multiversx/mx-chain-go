@@ -28,8 +28,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -66,7 +67,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/scwatcher"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -375,14 +375,6 @@ VERSION:
 	rm *statistics.ResourceMonitor
 )
 
-// dbIndexer will hold the database indexer. Defined globally so it can be initialised only in
-//  certain conditions. If those conditions will not be met, it will stay as nil
-var dbIndexer indexer.Indexer
-
-// coreServiceContainer is defined globally so it can be injected with appropriate
-//  params depending on the type of node we are starting
-var coreServiceContainer serviceContainer.Core
-
 // appVersion should be populated at build time using ldflags
 // Usage examples:
 // linux/mac:
@@ -584,11 +576,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.AddressPubkeyConverter)
 	if err != nil {
-		return fmt.Errorf("%w for AddressPubkeyConverter", err)
+		return fmt.Errorf("%w for AddressPubKeyConverter", err)
 	}
 	validatorPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.ValidatorPubkeyConverter)
 	if err != nil {
-		return fmt.Errorf("%w for AddressPubkeyConverter", err)
+		return fmt.Errorf("%w for ValidatorPubkeyConverter", err)
 	}
 
 	//TODO when refactoring main, maybe initialize economics data before this line
@@ -600,15 +592,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
+	exportFolder := filepath.Join(workingDir, generalConfig.Hardfork.ImportFolder)
+	nodesSetupPath := ctx.GlobalString(nodesFile.Name)
+	if generalConfig.Hardfork.AfterHardFork {
+		exportFolderNodesSetupPath := filepath.Join(exportFolder, core.NodesSetupJsonFileName)
+		if !core.DoesFileExist(exportFolderNodesSetupPath) {
+			return fmt.Errorf("cannot find %s in the export folder", core.NodesSetupJsonFileName)
+		}
+
+		nodesSetupPath = exportFolderNodesSetupPath
+	}
 	genesisNodesConfig, err := sharding.NewNodesSetup(
-		ctx.GlobalString(nodesFile.Name),
+		nodesSetupPath,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
 	)
 	if err != nil {
 		return err
 	}
-	log.Debug("config", "file", ctx.GlobalString(nodesFile.Name))
+	log.Debug("config", "file", nodesSetupPath)
+
+	if generalConfig.Hardfork.AfterHardFork {
+		log.Debug("changed genesis time after hardfork",
+			"old genesis time", genesisNodesConfig.StartTime,
+			"new genesis time", generalConfig.Hardfork.GenesisTime)
+		genesisNodesConfig.StartTime = generalConfig.Hardfork.GenesisTime
+	}
 
 	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, nil)
 	syncer.StartSyncingTime()
@@ -713,7 +722,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ShardCoordinator:                     genesisShardCoordinator,
 		KeyGen:                               cryptoParams.KeyGenerator,
 		PrivKey:                              cryptoParams.PrivateKey,
-		ActivateBLSPubKeyMessageVerification: economicsConfig.ValidatorSettings.ActivateBLSPubKeyMessageVerification,
+		ActivateBLSPubKeyMessageVerification: systemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 	}
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoArgs)
 	if err != nil {
@@ -790,6 +799,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		*generalConfig,
 		coreComponents.StatusHandler,
 		coreComponents.InternalMarshalizer,
+		syncer,
 	)
 	if err != nil {
 		return err
@@ -836,7 +846,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig.MetaChainMinNodes,
 		genesisNodesConfig.Hysteresis,
 		genesisNodesConfig.Adaptivity,
-		generalConfig.EpochStartConfig.ShuffleBetweenShards,
+		true,
 	)
 
 	destShardIdAsObserver, err := processDestinationShardAsObserver(preferencesConfig.Preferences)
@@ -1035,6 +1045,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 	nodesCoordinator, nodeShufflerOut, err := createNodesCoordinator(
+		log,
 		genesisNodesConfig,
 		preferencesConfig.Preferences,
 		epochStartNotifier,
@@ -1132,27 +1143,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	if externalConfig.ElasticSearchConnector.Enabled {
-		log.Trace("creating elastic search components")
-		dbIndexer, err = createElasticIndexer(
-			ctx,
-			externalConfig.ElasticSearchConnector,
-			externalConfig.ElasticSearchConnector.URL,
-			coreComponents.InternalMarshalizer,
-			coreComponents.Hasher,
-			nodesCoordinator,
-			epochStartNotifier,
-			addressPubkeyConverter,
-			validatorPubkeyConverter,
-			shardCoordinator.SelfId(),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	scWatcherDriver := scwatcher.NewScWatcherDriver()
-	err = setServiceContainer(shardCoordinator, tpsBenchmark, scWatcherDriver)
+	elasticIndexer, err := createElasticIndexer(
+		ctx,
+		log,
+		externalConfig.ElasticSearchConnector,
+		coreComponents.InternalMarshalizer,
+		coreComponents.Hasher,
+		nodesCoordinator,
+		epochStartNotifier,
+		addressPubkeyConverter,
+		validatorPubkeyConverter,
+		shardCoordinator.SelfId(),
+	)
 	if err != nil {
 		return err
 	}
@@ -1180,6 +1182,23 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	historyRepoFactoryArgs := &historyFactory.ArgsHistoryRepositoryFactory{
+		SelfShardID:       shardCoordinator.SelfId(),
+		FullHistoryConfig: generalConfig.FullHistory,
+		Hasher:            coreComponents.Hasher,
+		Marshalizer:       coreComponents.InternalMarshalizer,
+		Store:             dataComponents.Store,
+	}
+	historyRepositoryFactory, err := historyFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
+	if err != nil {
+		return err
+	}
+
+	historyRepository, err := historyRepositoryFactory.Create()
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		&coreArgs,
@@ -1197,7 +1216,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents,
 		networkComponents,
 		triesComponents,
-		coreServiceContainer,
 		requestedItemsHandler,
 		whiteListRequest,
 		whiteListerVerifiedTxs,
@@ -1217,7 +1235,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		version,
 		importStartHandler,
+		coreComponents.Uint64ByteSliceConverter,
 		workingDir,
+		elasticIndexer,
+		tpsBenchmark,
+		historyRepository,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1241,6 +1263,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		chanStopNodeProcess,
 		epochStartNotifier,
 		importStartHandler,
+		genesisNodesConfig,
 		workingDir,
 	)
 	if err != nil {
@@ -1252,9 +1275,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
 	}
 
-	var elasticIndexer indexer.Indexer
-	if !check.IfNil(coreServiceContainer) && !check.IfNil(coreServiceContainer.Indexer()) {
-		elasticIndexer = coreServiceContainer.Indexer()
+	if !elasticIndexer.IsNilIndexer() {
 		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
@@ -1287,6 +1308,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		hardForkTrigger,
+		historyRepository,
 	)
 	if err != nil {
 		return err
@@ -1360,6 +1382,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 		},
 		ApiRoutesConfig: *apiRoutesConfig,
+		AccountsState:   stateComponents.AccountsAdapter,
+		PeerState:       stateComponents.PeerAccounts,
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -1729,6 +1753,7 @@ func createShardCoordinator(
 }
 
 func createNodesCoordinator(
+	log logger.Logger,
 	nodesConfig *sharding.NodesSetup,
 	prefsConfig config.PreferencesConfig,
 	epochStartNotifier epochStart.RegistrationHandler,
@@ -1794,15 +1819,26 @@ func createNodesCoordinator(
 		return nil, nil, err
 	}
 
-	thresholdEpochDuration := epochConfig.ShuffledOutRestartThreshold
-	if !(thresholdEpochDuration >= 0.0 && thresholdEpochDuration <= 1.0) {
-		return nil, nil, fmt.Errorf("invalid threshold for shuffled out handler")
+	maxThresholdEpochDuration := epochConfig.MaxShuffledOutRestartThreshold
+	if !(maxThresholdEpochDuration >= 0.0 && maxThresholdEpochDuration <= 1.0) {
+		return nil, nil, fmt.Errorf("invalid max threshold for shuffled out handler")
 	}
-	maxDurationBeforeStopProcess := int64(nodesConfig.RoundDuration) * epochConfig.RoundsPerEpoch
-	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
+	minThresholdEpochDuration := epochConfig.MinShuffledOutRestartThreshold
+	if !(minThresholdEpochDuration >= 0.0 && minThresholdEpochDuration <= 1.0) {
+		return nil, nil, fmt.Errorf("invalid min threshold for shuffled out handler")
+	}
+
+	epochDuration := int64(nodesConfig.RoundDuration) * epochConfig.RoundsPerEpoch
+	minDurationBeforeStopProcess := int64(minThresholdEpochDuration * float64(epochDuration))
+	maxDurationBeforeStopProcess := int64(maxThresholdEpochDuration * float64(epochDuration))
+
+	minDurationInterval := time.Millisecond * time.Duration(minDurationBeforeStopProcess)
 	maxDurationInterval := time.Millisecond * time.Duration(maxDurationBeforeStopProcess)
-	minDurationInterval := maxDurationInterval / 2
-	//waiting interval will be [maxDuration/2 and maxDuration]
+
+	log.Debug("closing.NewShuffleOutCloser",
+		"minDurationInterval", minDurationInterval,
+		"maxDurationInterval", maxDurationInterval,
+	)
 
 	nodeShufflerOut, err := closing.NewShuffleOutCloser(
 		minDurationInterval,
@@ -1875,8 +1911,8 @@ func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (ui
 // authentication for the server is using the username and password
 func createElasticIndexer(
 	ctx *cli.Context,
+	log logger.Logger,
 	elasticSearchConfig config.ElasticSearchConfig,
-	url string,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	nodesCoordinator sharding.NodesCoordinator,
@@ -1885,8 +1921,15 @@ func createElasticIndexer(
 	validatorPubkeyConverter core.PubkeyConverter,
 	shardId uint32,
 ) (indexer.Indexer, error) {
+
+	if !elasticSearchConfig.Enabled {
+		log.Debug("elastic search indexing not enabled, will create a NilIndexer")
+		return indexer.NewNilIndexer(), nil
+	}
+
+	log.Debug("elastic search indexing enabled, will create an ElasticIndexer")
 	arguments := indexer.ElasticIndexerArgs{
-		Url:                      url,
+		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
 		Password:                 elasticSearchConfig.Password,
 		Marshalizer:              marshalizer,
@@ -1899,15 +1942,8 @@ func createElasticIndexer(
 		ShardId:                  shardId,
 	}
 
-	var err error
-	dbIndexer, err = indexer.NewElasticIndexer(arguments)
-	if err != nil {
-		return nil, err
-	}
-
-	return dbIndexer, nil
+	return indexer.NewElasticIndexer(arguments)
 }
-
 func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return nodesConfig.MetaChainConsensusGroupSize, nil
@@ -1936,6 +1972,7 @@ func createHardForkTrigger(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	epochNotifier factory.EpochStartNotifier,
 	importStartHandler update.ImportStartHandler,
+	nodesSetup update.GenesisNodesSetupHandler,
 	workingDir string,
 ) (node.HardforkTrigger, error) {
 
@@ -1976,7 +2013,8 @@ func createHardForkTrigger(
 		MultiSigner:              crypto.MultiSigner,
 		NodesCoordinator:         nodesCoordinator,
 		SingleSigner:             crypto.TxSingleSigner,
-		AddressPubkeyConverter:   stateComponents.AddressPubkeyConverter,
+		AddressPubKeyConverter:   stateComponents.AddressPubkeyConverter,
+		ValidatorPubKeyConverter: stateComponents.ValidatorPubkeyConverter,
 		BlockKeyGen:              keyGen,
 		KeyGen:                   crypto.TxSignKeyGen,
 		BlockSigner:              crypto.SingleSigner,
@@ -1988,6 +2026,7 @@ func createHardForkTrigger(
 		ValidityAttester:         process.BlockTracker,
 		ChainID:                  coreData.ChainID,
 		Rounder:                  process.Rounder,
+		GenesisNodesSetupHandler: nodesSetup,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -2043,6 +2082,7 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
+	historyRepository fullHistory.HistoryRepository,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2163,6 +2203,7 @@ func createNode(
 		node.WithPeerHonestyHandler(peerHonestyHandler),
 		node.WithWatchdogTimer(watchdogTimer),
 		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler),
+		node.WithHistoryRepository(historyRepository),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -2237,35 +2278,6 @@ func initStatsFileMonitor(
 	}
 
 	return nil
-}
-
-func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *statistics.TpsBenchmark, scWatcherDriver scwatcher.Driver) error {
-	var err error
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		coreServiceContainer, err = serviceContainer.NewServiceContainer(
-			serviceContainer.WithIndexer(dbIndexer),
-			serviceContainer.WithScWatcherDriver(scWatcherDriver),
-		)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		var indexerToUse indexer.Indexer
-		indexerToUse = indexer.NewNilIndexer()
-		if dbIndexer != nil {
-			indexerToUse = dbIndexer
-		}
-		coreServiceContainer, err = serviceContainer.NewServiceContainer(
-			serviceContainer.WithIndexer(indexerToUse),
-			serviceContainer.WithTPSBenchmark(tpsBenchmark))
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	return errors.New("could not init core service container")
 }
 
 func startStatisticsMonitor(

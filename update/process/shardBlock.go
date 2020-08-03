@@ -232,13 +232,13 @@ func (s *shardBlockCreator) saveAllTransactionsToStorageIfSelfShard(
 			}
 
 			unitType := getUnitTypeFromMiniBlockType(miniBlock.Type)
-			marshalledData, errNotCritical := s.marshalizer.Marshal(tx)
+			marshaledData, errNotCritical := s.marshalizer.Marshal(tx)
 			if errNotCritical != nil {
 				log.Warn("saveAllTransactionsToStorageIfSelfShard.Marshal", "error", errNotCritical.Error())
 				continue
 			}
 
-			errNotCritical = s.storage.Put(unitType, txHash, marshalledData)
+			errNotCritical = s.storage.Put(unitType, txHash, marshaledData)
 			if errNotCritical != nil {
 				log.Warn("saveAllTransactionsToStorageIfSelfShard.Put -> Transaction", "error", errNotCritical.Error())
 			}

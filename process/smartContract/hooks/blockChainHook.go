@@ -3,7 +3,6 @@ package hooks
 import (
 	"encoding/binary"
 	"fmt"
-	"math/big"
 	"sync"
 	"time"
 
@@ -23,7 +22,6 @@ import (
 )
 
 var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
-var _ process.TemporaryAccountsHandler = (*BlockChainHookImpl)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract/blockchainhook")
 
@@ -54,9 +52,6 @@ type BlockChainHookImpl struct {
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
-
-	mutTempAccounts sync.Mutex
-	tempAccounts    map[string]state.AccountHandler
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -80,7 +75,6 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl.currentHdr = &block.Header{}
-	blockChainHookImpl.tempAccounts = make(map[string]state.AccountHandler)
 
 	return blockChainHookImpl, nil
 }
@@ -118,17 +112,22 @@ func checkForNil(args ArgBlockChainHook) error {
 func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error) {
 	defer stopMeasure(startMeasure("GetUserAccount"))
 
-	account, err := bh.getAccountFromAddressBytes(address)
+	dstShardId := bh.shardCoordinator.ComputeId(address)
+	if dstShardId != bh.shardCoordinator.SelfId() {
+		return nil, nil
+	}
+
+	acc, err := bh.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, err
 	}
 
-	shardAccount, ok := account.(state.UserAccountHandler)
+	dstAccount, ok := acc.(state.UserAccountHandler)
 	if !ok {
-		return nil, state.ErrWrongTypeAssertion
+		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return shardAccount, nil
+	return dstAccount, nil
 }
 
 // GetStorageData returns the storage value of a variable held in account's data trie
@@ -352,6 +351,27 @@ func (bh *BlockChainHookImpl) IsSmartContract(address []byte) bool {
 	return core.IsSmartContractAddress(address)
 }
 
+// IsPayable checks whether the provided address can receive ERD or not
+func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
+	if !bh.IsSmartContract(address) {
+		return true, nil
+	}
+
+	userAcc, err := bh.GetUserAccount(address)
+	if err == state.ErrAccNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if check.IfNil(userAcc) {
+		return true, nil
+	}
+
+	metadata := vmcommon.CodeMetadataFromBytes(userAcc.GetCodeMetadata())
+	return metadata.Payable, nil
+}
+
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
 ) (state.UserAccountHandler, state.UserAccountHandler, error) {
@@ -438,59 +458,6 @@ func createPrefixMask(vmType []byte) []byte {
 
 func createSuffixMask(creatorAddress []byte) []byte {
 	return creatorAddress[len(creatorAddress)-2:]
-}
-
-func (bh *BlockChainHookImpl) getAccountFromAddressBytes(address []byte) (state.AccountHandler, error) {
-	tempAcc, success := bh.getAccountFromTemporaryAccounts(address)
-	if success {
-		return tempAcc, nil
-	}
-
-	return bh.accounts.GetExistingAccount(address)
-}
-
-func (bh *BlockChainHookImpl) getAccountFromTemporaryAccounts(address []byte) (state.AccountHandler, bool) {
-	bh.mutTempAccounts.Lock()
-	defer bh.mutTempAccounts.Unlock()
-
-	if tempAcc, ok := bh.tempAccounts[string(address)]; ok {
-		return tempAcc, true
-	}
-
-	return nil, false
-}
-
-// AddTempAccount will add a temporary account in temporary store
-func (bh *BlockChainHookImpl) AddTempAccount(address []byte, balance *big.Int, nonce uint64) {
-	bh.mutTempAccounts.Lock()
-	defer bh.mutTempAccounts.Unlock()
-
-	account, err := state.NewUserAccount(address)
-	if err != nil {
-		return
-	}
-
-	account.Balance.Set(balance)
-	account.Nonce = nonce
-
-	bh.tempAccounts[string(address)] = account
-}
-
-// CleanTempAccounts cleans the map holding the temporary accounts
-func (bh *BlockChainHookImpl) CleanTempAccounts() {
-	bh.mutTempAccounts.Lock()
-	bh.tempAccounts = make(map[string]state.AccountHandler)
-	bh.mutTempAccounts.Unlock()
-}
-
-// TempAccount can retrieve a temporary account from provided address
-func (bh *BlockChainHookImpl) TempAccount(address []byte) state.AccountHandler {
-	tempAcc, success := bh.getAccountFromTemporaryAccounts(address)
-	if success {
-		return tempAcc
-	}
-
-	return nil
 }
 
 // SetCurrentHeader sets current header to be used by smart contracts

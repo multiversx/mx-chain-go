@@ -17,7 +17,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 
 	return ArgsNewSystemSCFactory{
 		SystemEI:            &mock.SystemEIStub{},
-		ValidatorSettings:   &mock.ValidatorSettingsStub{},
+		Economics:           &mock.EconomicsHandlerStub{},
 		SigVerifier:         &mock.MessageSignVerifierMock{},
 		GasMap:              gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
@@ -34,6 +34,21 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinQuorum:        50,
 				MinPassThreshold: 50,
 				MinVetoThreshold: 50,
+			},
+			StakingSystemSCConfig: config.StakingSystemSCConfig{
+				GenesisNodePrice:                     "1000",
+				UnJailValue:                          "10",
+				MinStepValue:                         "10",
+				MinStakeValue:                        "1",
+				UnBondPeriod:                         1,
+				AuctionEnableNonce:                   0,
+				StakeEnableNonce:                     0,
+				NumRoundsWithoutBleed:                1,
+				MaximumPercentageToBleed:             1,
+				BleedPercentagePerRound:              1,
+				MaxNumberOfNodesForStake:             100,
+				NodesToSelectInAuction:               100,
+				ActivateBLSPubKeyMessageVerification: false,
 			},
 		},
 	}
@@ -54,7 +69,7 @@ func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockNewSystemScFactoryArgs()
-	arguments.ValidatorSettings = nil
+	arguments.Economics = nil
 	scFactory, err := NewSystemSCFactory(arguments)
 
 	assert.Nil(t, scFactory)

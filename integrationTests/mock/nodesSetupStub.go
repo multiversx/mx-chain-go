@@ -13,6 +13,46 @@ type NodesSetupStub struct {
 	GetMetaConsensusGroupSizeCalled  func() uint32
 	NumberOfShardsCalled             func() uint32
 	MinNumberOfNodesCalled           func() uint32
+	MinNumberOfShardNodesCalled      func() uint32
+	MinNumberOfMetaNodesCalled       func() uint32
+	GetHysteresisCalled              func() float32
+	GetAdaptivityCalled              func() bool
+}
+
+// MinNumberOfShardNodes -
+func (n *NodesSetupStub) MinNumberOfShardNodes() uint32 {
+	if n.MinNumberOfShardNodesCalled != nil {
+		return n.MinNumberOfShardNodesCalled()
+	}
+
+	return 1
+}
+
+// MinNumberOfMetaNodes -
+func (n *NodesSetupStub) MinNumberOfMetaNodes() uint32 {
+	if n.MinNumberOfMetaNodesCalled != nil {
+		return n.MinNumberOfMetaNodesCalled()
+	}
+
+	return 1
+}
+
+// GetHysteresis -
+func (n *NodesSetupStub) GetHysteresis() float32 {
+	if n.GetHysteresisCalled != nil {
+		return n.GetHysteresisCalled()
+	}
+
+	return 0
+}
+
+// GetAdaptivity -
+func (n *NodesSetupStub) GetAdaptivity() bool {
+	if n.GetAdaptivityCalled != nil {
+		return n.GetAdaptivityCalled()
+	}
+
+	return false
 }
 
 // MinNumberOfNodes -
@@ -20,7 +60,7 @@ func (n *NodesSetupStub) MinNumberOfNodes() uint32 {
 	if n.MinNumberOfNodesCalled != nil {
 		return n.MinNumberOfNodesCalled()
 	}
-	return 1
+	return 2
 }
 
 // GetStartTime -
