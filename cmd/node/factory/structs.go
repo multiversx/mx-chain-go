@@ -154,7 +154,6 @@ type processComponentsFactoryArgs struct {
 	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               fullHistory.HistoryRepository
-	outportDriver             outport.Driver
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -198,7 +197,6 @@ func NewProcessComponentsFactoryArgs(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo fullHistory.HistoryRepository,
-	outportDriver outport.Driver,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -241,7 +239,6 @@ func NewProcessComponentsFactoryArgs(
 		indexer:                   indexer,
 		tpsBenchmark:              tpsBenchmark,
 		historyRepo:               historyRepo,
-		outportDriver:             outportDriver,
 	}
 }
 
@@ -1117,7 +1114,6 @@ func newBlockProcessor(
 			processArgs.tpsBenchmark,
 			processArgs.version,
 			processArgs.historyRepo,
-			processArgs.outportDriver,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1181,7 +1177,6 @@ func newShardBlockProcessor(
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
 	historyRepository fullHistory.HistoryRepository,
-	outportDriver outport.Driver,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -1397,6 +1392,11 @@ func newShardBlockProcessor(
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 
+	outportDriver, err := outport.CreateOutportDriver(config.Outport, txCoordinator, txLogsProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		Version:                version,
 		AccountsDB:             accountsDb,
@@ -1423,6 +1423,7 @@ func newShardBlockProcessor(
 		Indexer:                indexer,
 		TpsBenchmark:           tpsBenchmark,
 		HistoryRepository:      historyRepository,
+		OutportDriver:          outportDriver,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,

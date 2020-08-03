@@ -2,7 +2,6 @@ package outport
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var _ Driver = (*DisabledOutportDriver)(nil)
@@ -15,7 +14,7 @@ func NewDisabledOutportDriver() *DisabledOutportDriver {
 }
 
 // DigestBlock does nothing
-func (driver *DisabledOutportDriver) DigestBlock(header data.HeaderHandler, body data.BodyHandler, txCoordinator process.TransactionCoordinator) {
+func (driver *DisabledOutportDriver) DigestBlock(header data.HeaderHandler, body data.BodyHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

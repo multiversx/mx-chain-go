@@ -161,6 +161,7 @@ type Config struct {
 
 	SoftwareVersionConfig SoftwareVersionConfig
 	FullHistory           FullHistoryConfig
+	Outport               OutportConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -390,4 +391,10 @@ type APIPackageConfig struct {
 type RouteConfig struct {
 	Name string
 	Open bool
+}
+
+// OutportConfig holds configuration for the outport
+type OutportConfig struct {
+	Enabled             bool
+	MessagesMarshalizer string
 }

@@ -854,7 +854,7 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
 	sp.saveHistoryData(headerHash, headerHandler, bodyHandler)
-	sp.outportDriver.DigestBlock(headerHandler, bodyHandler, sp.txCoordinator)
+	sp.outportDriver.DigestBlock(headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
