@@ -1325,20 +1325,18 @@ func (sc *scProcessor) IsPayable(address []byte) (bool, error) {
 	return sc.blockChainHook.IsPayable(address)
 }
 
-// NewEpochConfirmed is called whenever a new epoch is confirmed
-func (sc *scProcessor) NewEpochConfirmed(epoch uint32) {
-	if epoch >= sc.deployEnableEpoch {
-		wasSet := sc.flagDeploy.Set()
-		if !wasSet {
-			log.Debug("scProcessor: enabled deployment of SC")
-		}
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (sc *scProcessor) EpochConfirmed(epoch uint32) {
+	shouldEnableDeploy := epoch >= sc.deployEnableEpoch && !sc.flagDeploy.IsSet()
+	if shouldEnableDeploy {
+		sc.flagDeploy.Set()
+		log.Debug("scProcessor: enabled deployment of SC")
 	}
 
-	if epoch >= sc.builtinEnableEpoch {
-		wasSet := sc.flagBuiltin.Set()
-		if !wasSet {
-			log.Debug("scProcessor: enabled built in functions")
-		}
+	shouldEnableBuiltin := epoch >= sc.builtinEnableEpoch && !sc.flagBuiltin.IsSet()
+	if shouldEnableBuiltin {
+		sc.flagBuiltin.Set()
+		log.Debug("scProcessor: enabled built in functions")
 	}
 }
 

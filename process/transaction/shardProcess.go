@@ -702,13 +702,12 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 	return nil
 }
 
-// NewEpochConfirmed is called whenever a new epoch is confirmed
-func (txProc *txProcessor) NewEpochConfirmed(epoch uint32) {
-	if epoch >= txProc.relayedTxEnableEpoch {
-		wasSet := txProc.flagRelayedTx.Set()
-		if !wasSet {
-			log.Debug("txProcessor: enabled relayed transactions")
-		}
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (txProc *txProcessor) EpochConfirmed(epoch uint32) {
+	shouldEnableRelayed := epoch >= txProc.relayedTxEnableEpoch && !txProc.flagRelayedTx.IsSet()
+	if shouldEnableRelayed {
+		txProc.flagRelayedTx.Set()
+		log.Debug("txProcessor: enabled relayed transactions")
 	}
 }
 

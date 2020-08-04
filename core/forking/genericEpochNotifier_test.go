@@ -2,7 +2,6 @@ package forking
 
 import (
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -15,7 +14,7 @@ import (
 func TestNewGenericEpochNotifier(t *testing.T) {
 	t.Parallel()
 
-	gep := NewGenericEpochNotifier(false)
+	gep := NewGenericEpochNotifier()
 
 	assert.False(t, check.IfNil(gep))
 }
@@ -30,7 +29,7 @@ func TestGenericEpochNotifier_UnimplementedFunctionsShouldNotPanic(t *testing.T)
 		}
 	}()
 
-	gep := NewGenericEpochNotifier(false)
+	gep := NewGenericEpochNotifier()
 	gep.NotifyAll(nil)
 	gep.NotifyAllPrepare(nil, nil)
 }
@@ -38,7 +37,7 @@ func TestGenericEpochNotifier_UnimplementedFunctionsShouldNotPanic(t *testing.T)
 func TestGenericEpochNotifier_RegisterNotifyHandlerNilHandlerShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	gep := NewGenericEpochNotifier(false)
+	gep := NewGenericEpochNotifier()
 
 	gep.RegisterNotifyHandler(nil)
 	assert.Equal(t, 0, len(gep.Handlers()))
@@ -47,11 +46,11 @@ func TestGenericEpochNotifier_RegisterNotifyHandlerNilHandlerShouldNotAdd(t *tes
 func TestGenericEpochNotifier_RegisterNotifyHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
-	gep := NewGenericEpochNotifier(false)
+	gep := NewGenericEpochNotifier()
 
 	initialConfirmation := false
 	handler := &mock.EpochNotifierStub{
-		NewEpochConfirmedCalled: func(epoch uint32) {
+		EpochConfirmedCalled: func(epoch uint32) {
 			initialConfirmation = true
 		},
 	}
@@ -65,7 +64,7 @@ func TestGenericEpochNotifier_RegisterNotifyHandlerShouldWork(t *testing.T) {
 func TestGenericEpochNotifier_UnregisterAllShouldWork(t *testing.T) {
 	t.Parallel()
 
-	gep := NewGenericEpochNotifier(false)
+	gep := NewGenericEpochNotifier()
 	gep.RegisterNotifyHandler(&mock.EpochNotifierStub{})
 	gep.RegisterNotifyHandler(&mock.EpochNotifierStub{})
 
@@ -79,10 +78,10 @@ func TestGenericEpochNotifier_UnregisterAllShouldWork(t *testing.T) {
 func TestGenericEpochNotifier_NotifyEpochChangeConfirmedSameEpochShouldNotCall(t *testing.T) {
 	t.Parallel()
 
-	gep := NewGenericEpochNotifier(false)
+	gep := NewGenericEpochNotifier()
 	numCalls := uint32(0)
 	gep.RegisterNotifyHandler(&mock.EpochNotifierStub{
-		NewEpochConfirmedCalled: func(epoch uint32) {
+		EpochConfirmedCalled: func(epoch uint32) {
 			atomic.AddUint32(&numCalls, 1)
 		},
 	})
@@ -96,11 +95,11 @@ func TestGenericEpochNotifier_NotifyEpochChangeConfirmedSameEpochShouldNotCall(t
 func TestGenericEpochNotifier_NotifyEpochChangeConfirmedShouldCall(t *testing.T) {
 	t.Parallel()
 
-	gep := NewGenericEpochNotifier(false)
+	gep := NewGenericEpochNotifier()
 	newEpoch := uint32(839843)
 	wasCalled := false
 	gep.RegisterNotifyHandler(&mock.EpochNotifierStub{
-		NewEpochConfirmedCalled: func(epoch uint32) {
+		EpochConfirmedCalled: func(epoch uint32) {
 			if epoch == 0 || epoch == newEpoch {
 				wasCalled = true
 			}
@@ -116,14 +115,14 @@ func TestGenericEpochNotifier_NotifyEpochChangeConfirmedShouldCall(t *testing.T)
 func TestGenericEpochNotifier_NotifyEpochChangeConfirmedInSyncShouldWork(t *testing.T) {
 	t.Parallel()
 
-	gep := NewGenericEpochNotifier(false)
+	gep := NewGenericEpochNotifier()
 	newEpoch := uint32(839843)
 
 	handlerWait := time.Second
 	numCalls := uint32(0)
 
 	handler := &mock.EpochNotifierStub{
-		NewEpochConfirmedCalled: func(epoch uint32) {
+		EpochConfirmedCalled: func(epoch uint32) {
 			time.Sleep(handlerWait)
 			atomic.AddUint32(&numCalls, 1)
 		},
@@ -137,34 +136,4 @@ func TestGenericEpochNotifier_NotifyEpochChangeConfirmedInSyncShouldWork(t *test
 
 	assert.Equal(t, uint32(4), atomic.LoadUint32(&numCalls))
 	assert.True(t, end.Sub(start) >= handlerWait*2)
-}
-
-func TestGenericEpochNotifier_NotifyEpochChangeConfirmedAsyncShouldWork(t *testing.T) {
-	t.Parallel()
-
-	gep := NewGenericEpochNotifier(true)
-	newEpoch := uint32(839843)
-
-	handlerWait := time.Second
-	numCalls := uint32(0)
-	wg := &sync.WaitGroup{}
-	wg.Add(4)
-	handler := &mock.EpochNotifierStub{
-		NewEpochConfirmedCalled: func(epoch uint32) {
-			time.Sleep(handlerWait)
-			atomic.AddUint32(&numCalls, 1)
-			wg.Done()
-		},
-	}
-	gep.RegisterNotifyHandler(handler)
-	gep.RegisterNotifyHandler(handler)
-
-	start := time.Now()
-	gep.NotifyEpochChangeConfirmed(newEpoch)
-	end := time.Now()
-
-	wg.Wait()
-
-	assert.Equal(t, uint32(4), atomic.LoadUint32(&numCalls))
-	assert.True(t, end.Sub(start) < handlerWait*2)
 }

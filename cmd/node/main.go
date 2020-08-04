@@ -575,7 +575,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
 
-	epochNotifier := forking.NewGenericEpochNotifier(generalConfig.SoftFork.EpochChangeAsyncCall)
+	epochNotifier := forking.NewGenericEpochNotifier()
 
 	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.AddressPubkeyConverter)
 	if err != nil {

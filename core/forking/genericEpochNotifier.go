@@ -13,17 +13,15 @@ import (
 var log = logger.GetOrCreate("core/forking")
 
 type genericEpochNotifier struct {
-	callAsync    bool
 	currentEpoch uint32
 	mutHandler   sync.RWMutex
 	handlers     []core.EpochNotifiedHandler
 }
 
 // NewGenericEpochNotifier creates a new instance of a genericEpochNotifier component
-func NewGenericEpochNotifier(asyncCallHandlers bool) *genericEpochNotifier {
+func NewGenericEpochNotifier() *genericEpochNotifier {
 	return &genericEpochNotifier{
-		callAsync: asyncCallHandlers,
-		handlers:  make([]core.EpochNotifiedHandler, 0),
+		handlers: make([]core.EpochNotifiedHandler, 0),
 	}
 }
 
@@ -43,16 +41,11 @@ func (gen *genericEpochNotifier) NotifyEpochChangeConfirmed(epoch uint32) {
 
 	log.Debug("genericEpochNotifier.NotifyEpochChangeConfirmed",
 		"new epoch", epoch,
-		"call async", gen.callAsync,
 		"num handlers", len(handlersCopy),
 	)
 
 	for _, handler := range gen.handlers {
-		if gen.callAsync {
-			go handler.NewEpochConfirmed(epoch)
-		} else {
-			handler.NewEpochConfirmed(epoch)
-		}
+		handler.EpochConfirmed(epoch)
 	}
 }
 
@@ -74,11 +67,7 @@ func (gen *genericEpochNotifier) RegisterNotifyHandler(handler core.EpochNotifie
 	gen.handlers = append(gen.handlers, handler)
 	gen.mutHandler.Unlock()
 
-	if gen.callAsync {
-		go handler.NewEpochConfirmed(atomic.LoadUint32(&gen.currentEpoch))
-	} else {
-		handler.NewEpochConfirmed(atomic.LoadUint32(&gen.currentEpoch))
-	}
+	handler.EpochConfirmed(atomic.LoadUint32(&gen.currentEpoch))
 }
 
 // CurrentEpoch returns the stored epoch. Useful when the epoch has already changed and a new component needs to be

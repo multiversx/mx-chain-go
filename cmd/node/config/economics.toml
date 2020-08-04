@@ -30,6 +30,3 @@
     MinGasLimit = "50000"
     GasPerDataByte = "1500"
     DataLimitForBaseCalc = "10000"
-
-[SoftFork]
-    EpochChangeAsyncCall = true

@@ -2,13 +2,13 @@ package mock
 
 // EpochNotifierStub -
 type EpochNotifierStub struct {
-	NewEpochConfirmedCalled func(epoch uint32)
+	EpochConfirmedCalled func(epoch uint32)
 }
 
-// NewEpochConfirmed -
-func (ens *EpochNotifierStub) NewEpochConfirmed(epoch uint32) {
-	if ens.NewEpochConfirmedCalled != nil {
-		ens.NewEpochConfirmedCalled(epoch)
+// EpochConfirmed -
+func (ens *EpochNotifierStub) EpochConfirmed(epoch uint32) {
+	if ens.EpochConfirmedCalled != nil {
+		ens.EpochConfirmedCalled(epoch)
 	}
 }
 

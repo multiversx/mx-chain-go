@@ -95,11 +95,6 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
-// SoftForkConfig defines the parameters used in the components that will manage the soft fork process
-type SoftForkConfig struct {
-	EpochChangeAsyncCall bool
-}
-
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
@@ -166,7 +161,6 @@ type Config struct {
 
 	SoftwareVersionConfig SoftwareVersionConfig
 	FullHistory           FullHistoryConfig
-	SoftFork              SoftForkConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning

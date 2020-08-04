@@ -61,6 +61,6 @@ type KeyValueHolder interface {
 
 // EpochNotifiedHandler defines the behavior of a component that can be notified if a new epoch was confirmed
 type EpochNotifiedHandler interface {
-	NewEpochConfirmed(epoch uint32)
+	EpochConfirmed(epoch uint32)
 	IsInterfaceNil() bool
 }
