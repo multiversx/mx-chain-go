@@ -27,6 +27,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
@@ -102,16 +104,16 @@ VERSION:
    {{end}}
 `
 	rm *statistics.ResourceMonitor
-
-	// appVersion should be populated at build time using ldflags
-	// Usage examples:
-	// linux/mac:
-	//            go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
-	// windows:
-	//            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
-	//            go build -i -v -ldflags="-X main.appVersion=%VERS%"
-	appVersion = core.UnVersionedAppString
 )
+
+// appVersion should be populated at build time using ldflags
+// Usage examples:
+// linux/mac:
+//            go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
+// windows:
+//            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
+//            go build -i -v -ldflags="-X main.appVersion=%VERS%"
+var appVersion = core.UnVersionedAppString
 
 type configs struct {
 	generalConfig                    *config.Config
@@ -210,15 +212,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
+	exportFolder := filepath.Join(workingDir, generalConfig.Hardfork.ImportFolder)
+	nodesSetupPath := ctx.GlobalString(nodesFile.Name)
+	if generalConfig.Hardfork.AfterHardFork {
+		exportFolderNodesSetupPath := filepath.Join(exportFolder, core.NodesSetupJsonFileName)
+		if !core.DoesFileExist(exportFolderNodesSetupPath) {
+			return fmt.Errorf("cannot find %s in the export folder", core.NodesSetupJsonFileName)
+		}
+
+		nodesSetupPath = exportFolderNodesSetupPath
+	}
 	genesisNodesConfig, err := sharding.NewNodesSetup(
-		ctx.GlobalString(nodesFile.Name),
+		nodesSetupPath,
 		managedCoreComponents.AddressPubKeyConverter(),
 		managedCoreComponents.ValidatorPubKeyConverter(),
 	)
 	if err != nil {
 		return err
 	}
-	log.Debug("config", "file", ctx.GlobalString(nodesFile.Name))
+	log.Debug("config", "file", nodesSetupPath)
+
+	if cfgs.generalConfig.Hardfork.AfterHardFork {
+		log.Debug("changed genesis time after hardfork",
+			"old genesis time", genesisNodesConfig.StartTime,
+			"new genesis time", cfgs.generalConfig.Hardfork.GenesisTime)
+		genesisNodesConfig.StartTime = cfgs.generalConfig.Hardfork.GenesisTime
+	}
 
 	syncer := ntp.NewSyncTime(cfgs.generalConfig.NTPConfig, nil)
 	syncer.StartSyncingTime()
@@ -402,7 +421,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig.MetaChainMinNodes,
 		genesisNodesConfig.Hysteresis,
 		genesisNodesConfig.Adaptivity,
-		cfgs.generalConfig.EpochStartConfig.ShuffleBetweenShards,
+		true,
 	)
 
 	destShardIdAsObserver, err := processDestinationShardAsObserver(cfgs.preferencesConfig.Preferences)
@@ -618,6 +637,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 	nodesCoordinator, nodeShufflerOut, err := createNodesCoordinator(
+		log,
 		genesisNodesConfig,
 		cfgs.preferencesConfig.Preferences,
 		epochStartNotifier,
@@ -702,6 +722,23 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	whiteListerVerifiedTxs, err := createWhiteListerVerifiedTxs(cfgs.generalConfig)
+	if err != nil {
+		return err
+	}
+
+	historyRepoFactoryArgs := &historyFactory.ArgsHistoryRepositoryFactory{
+		SelfShardID:       shardCoordinator.SelfId(),
+		FullHistoryConfig: cfgs.generalConfig.FullHistory,
+		Hasher:            coreComponents.Hasher,
+		Marshalizer:       coreComponents.InternalMarshalizer,
+		Store:             dataComponents.Store,
+	}
+	historyRepositoryFactory, err := historyFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
+	if err != nil {
+		return err
+	}
+
+	historyRepository, err := historyRepositoryFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -797,6 +834,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		chanStopNodeProcess,
 		epochStartNotifier,
 		importStartHandler,
+		genesisNodesConfig,
 		workingDir,
 	)
 	if err != nil {
@@ -811,8 +849,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	var elasticIndexer indexer.Indexer
 	if !check.IfNil(coreServiceContainer) && !check.IfNil(coreServiceContainer.Indexer()) {
 		elasticIndexer = coreServiceContainer.Indexer()
-		elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
-		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
+		if !elasticIndexer.IsNilIndexer() {
+			elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
+			managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
+		}
 	}
 
 	log.Trace("creating node structure")
@@ -843,6 +883,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		hardForkTrigger,
+		historyRepository,
 	)
 	if err != nil {
 		return err
@@ -905,6 +946,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 		},
 		ApiRoutesConfig: *cfgs.apiRoutesConfig,
+		AccountsState:   stateComponents.AccountsAdapter,
+		PeerState:       stateComponents.PeerAccounts,
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -1274,6 +1317,7 @@ func createShardCoordinator(
 }
 
 func createNodesCoordinator(
+	log logger.Logger,
 	nodesConfig *sharding.NodesSetup,
 	prefsConfig config.PreferencesConfig,
 	epochStartNotifier epochStart.RegistrationHandler,
@@ -1339,15 +1383,26 @@ func createNodesCoordinator(
 		return nil, nil, err
 	}
 
-	thresholdEpochDuration := epochConfig.ShuffledOutRestartThreshold
-	if !(thresholdEpochDuration >= 0.0 && thresholdEpochDuration <= 1.0) {
-		return nil, nil, fmt.Errorf("invalid threshold for shuffled out handler")
+	maxThresholdEpochDuration := epochConfig.MaxShuffledOutRestartThreshold
+	if !(maxThresholdEpochDuration >= 0.0 && maxThresholdEpochDuration <= 1.0) {
+		return nil, nil, fmt.Errorf("invalid max threshold for shuffled out handler")
 	}
-	maxDurationBeforeStopProcess := int64(nodesConfig.RoundDuration) * epochConfig.RoundsPerEpoch
-	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
+	minThresholdEpochDuration := epochConfig.MinShuffledOutRestartThreshold
+	if !(minThresholdEpochDuration >= 0.0 && minThresholdEpochDuration <= 1.0) {
+		return nil, nil, fmt.Errorf("invalid min threshold for shuffled out handler")
+	}
+
+	epochDuration := int64(nodesConfig.RoundDuration) * epochConfig.RoundsPerEpoch
+	minDurationBeforeStopProcess := int64(minThresholdEpochDuration * float64(epochDuration))
+	maxDurationBeforeStopProcess := int64(maxThresholdEpochDuration * float64(epochDuration))
+
+	minDurationInterval := time.Millisecond * time.Duration(minDurationBeforeStopProcess)
 	maxDurationInterval := time.Millisecond * time.Duration(maxDurationBeforeStopProcess)
-	minDurationInterval := maxDurationInterval / 2
-	//waiting interval will be [maxDuration/2 and maxDuration]
+
+	log.Debug("closing.NewShuffleOutCloser",
+		"minDurationInterval", minDurationInterval,
+		"maxDurationInterval", maxDurationInterval,
+	)
 
 	nodeShufflerOut, err := closing.NewShuffleOutCloser(
 		minDurationInterval,
@@ -1442,6 +1497,7 @@ func createHardForkTrigger(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	epochNotifier factory.EpochStartNotifier,
 	importStartHandler update.ImportStartHandler,
+	nodesSetup update.GenesisNodesSetupHandler,
 	workingDir string,
 ) (node.HardforkTrigger, error) {
 
@@ -1482,6 +1538,7 @@ func createHardForkTrigger(
 		OutputAntifloodHandler:   network.OutputAntiFloodHandler(),
 		ValidityAttester:         process.BlockTracker(),
 		Rounder:                  process.Rounder(),
+		GenesisNodesSetupHandler: nodesSetup,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -1537,6 +1594,7 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
+	historyRepository fullHistory.HistoryRepository,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -1645,6 +1703,7 @@ func createNode(
 		node.WithPeerHonestyHandler(peerHonestyHandler),
 		node.WithWatchdogTimer(watchdogTimer),
 		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler()),
+		node.WithHistoryRepository(historyRepository),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

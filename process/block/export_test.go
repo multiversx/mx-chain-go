@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -97,7 +98,6 @@ func NewShardProcessorEmptyWith3shards(
 			NodesCoordinator:  nodesCoordinator,
 			FeeHandler:        &mock.FeeAccumulatorStub{},
 			RequestHandler:    &mock.RequestHandlerStub{},
-			Core:              &mock.ServiceContainerMock{},
 			BlockChainHook:    &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:     &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger: &mock.EpochStartTriggerStub{},
@@ -110,7 +110,10 @@ func NewShardProcessorEmptyWith3shards(
 			},
 			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Indexer:            &mock.IndexerMock{},
+			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
 			Version:            "softwareVersion",
+			HistoryRepository:  &mock.HistoryRepositoryStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

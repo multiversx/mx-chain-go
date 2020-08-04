@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/api/address"
-	errors2 "github.com/ElrondNetwork/elrond-go/api/errors"
+	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
@@ -71,6 +71,20 @@ func getValueForKey(dataFromResponse interface{}, key string) string {
 		return fmt.Sprintf("%v", valueI)
 	}
 	return ""
+}
+
+func TestGetBalance_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/testAddress/balance", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestGetBalance_WithCorrectAddressShouldNotReturnError(t *testing.T) {
@@ -140,7 +154,7 @@ func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Equal(t, fmt.Sprintf("%s: %s", errors2.ErrGetBalance.Error(), balanceError.Error()), response.Error)
+	assert.Equal(t, fmt.Sprintf("%s: %s", apiErrors.ErrGetBalance.Error(), balanceError.Error()), response.Error)
 }
 
 func TestGetBalance_WithEmptyAddressShoudReturnError(t *testing.T) {
@@ -163,7 +177,7 @@ func TestGetBalance_WithEmptyAddressShoudReturnError(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.NotEmpty(t, response)
 	assert.True(t, strings.Contains(response.Error,
-		fmt.Sprintf("%s: %s", errors2.ErrGetBalance.Error(), errors2.ErrEmptyAddress.Error()),
+		fmt.Sprintf("%s: %s", apiErrors.ErrGetBalance.Error(), apiErrors.ErrEmptyAddress.Error()),
 	))
 }
 
@@ -178,7 +192,44 @@ func TestGetBalance_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, response.Error, errors2.ErrInvalidAppContext.Error())
+	assert.Equal(t, response.Error, apiErrors.ErrInvalidAppContext.Error())
+}
+
+func TestGetValueForKey_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/testAddress/key/test", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetValueForKey_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetValueForKeyCalled: func(_ string, _ string) (string, error) {
+			return "", expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/key/test", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	valueForKeyResponseObj := valueForKeyResponse{}
+	loadResponse(resp.Body, &valueForKeyResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(valueForKeyResponseObj.Error, expectedErr.Error()))
 }
 
 func TestGetValueForKey_ShouldWork(t *testing.T) {
@@ -204,6 +255,20 @@ func TestGetValueForKey_ShouldWork(t *testing.T) {
 	assert.Equal(t, testValue, valueForKeyResponseObj.Data.Value)
 }
 
+func TestGetAccount_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/empty", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
 func TestGetAccount_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
 
@@ -215,7 +280,7 @@ func TestGetAccount_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, response.Error, errors2.ErrInvalidAppContext.Error())
+	assert.Equal(t, response.Error, apiErrors.ErrInvalidAppContext.Error())
 }
 
 func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
@@ -237,7 +302,7 @@ func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Empty(t, response.Data)
 	assert.NotEmpty(t, response.Error)
-	assert.True(t, strings.Contains(response.Error, fmt.Sprintf("%s: %s", errors2.ErrCouldNotGetAccount.Error(), returnedError)))
+	assert.True(t, strings.Contains(response.Error, fmt.Sprintf("%s: %s", apiErrors.ErrCouldNotGetAccount.Error(), returnedError)))
 }
 
 func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
@@ -290,7 +355,7 @@ func startNodeServer(handler address.FacadeHandler) *gin.Engine {
 	ws.Use(cors.Default())
 	addressRoutes := ws.Group("/address")
 	if handler != nil {
-		addressRoutes.Use(middleware.WithTestingElrondFacade(handler))
+		addressRoutes.Use(middleware.WithFacade(handler))
 	}
 	addressRoute, _ := wrapper.NewRouterWrapper("address", addressRoutes, getRoutesConfig())
 	address.Routes(addressRoute)
@@ -301,7 +366,7 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
+		c.Set("facade", mock.WrongFacade{})
 	})
 	ginAddressRoute := ws.Group("/address")
 	addressRoute, _ := wrapper.NewRouterWrapper("address", ginAddressRoute, getRoutesConfig())

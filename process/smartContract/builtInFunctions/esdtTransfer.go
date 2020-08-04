@@ -115,25 +115,25 @@ func (e *esdtTransfer) addToESDTBalance(userAcnt state.UserAccountHandler, key [
 		return process.ErrInsufficientFunds
 	}
 
-	marshalledData, err := e.marshalizer.Marshal(esdtData)
+	marshaledData, err := e.marshalizer.Marshal(esdtData)
 	if err != nil {
 		return err
 	}
 
 	log.Trace("esdt after transfer", "addr", userAcnt.AddressBytes(), "value", esdtData.Value, "tokenKey", key)
-	userAcnt.DataTrieTracker().SaveKeyValue(key, marshalledData)
+	userAcnt.DataTrieTracker().SaveKeyValue(key, marshaledData)
 
 	return nil
 }
 
 func (e *esdtTransfer) getESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) (*ESDigitalToken, error) {
 	esdtData := &ESDigitalToken{Value: big.NewInt(0)}
-	marshalledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
-	if err != nil || len(marshalledData) == 0 {
+	marshaledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
+	if err != nil || len(marshaledData) == 0 {
 		return esdtData, nil
 	}
 
-	err = e.marshalizer.Unmarshal(esdtData, marshalledData)
+	err = e.marshalizer.Unmarshal(esdtData, marshaledData)
 	if err != nil {
 		return nil, err
 	}

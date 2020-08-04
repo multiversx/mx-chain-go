@@ -251,7 +251,7 @@ func TestPrepareForEpochZero_NodeInGenesisShouldNotAlterShardID(t *testing.T) {
 	args.GenesisNodesConfig = &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
 			eligibleMap := map[uint32][]sharding.GenesisNodeInfoHandler{
-				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1)},
+				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1, initRating)},
 			}
 			return eligibleMap, nil
 		},
@@ -283,7 +283,7 @@ func TestPrepareForEpochZero_NodeNotInGenesisShouldAlterShardID(t *testing.T) {
 	args.GenesisNodesConfig = &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
 			eligibleMap := map[uint32][]sharding.GenesisNodeInfoHandler{
-				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1)},
+				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1, initRating)},
 			}
 			return eligibleMap, nil
 		},
@@ -476,9 +476,9 @@ func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
 			for i := uint32(0); i < numOfShards; i++ {
-				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i))
+				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i, initRating))
 			}
-			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId], mock.NewNodeInfo(address, pksBytes[core.MetachainShardId], core.MetachainShardId))
+			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId], mock.NewNodeInfo(address, pksBytes[core.MetachainShardId], core.MetachainShardId, initRating))
 			return oneMap, nil
 		},
 		GetStartTimeCalled: func() int64 {

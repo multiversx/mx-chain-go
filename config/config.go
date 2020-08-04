@@ -81,8 +81,8 @@ type EvictionWaitingListConfig struct {
 type EpochStartConfig struct {
 	MinRoundsBetweenEpochs            int64
 	RoundsPerEpoch                    int64
-	ShuffledOutRestartThreshold       float64
-	ShuffleBetweenShards              bool
+	MinShuffledOutRestartThreshold    float64
+	MaxShuffledOutRestartThreshold    float64
 	MinNumConnectedPeersToStart       int
 	MinNumOfPeersToConsiderBlockValid int
 }
@@ -164,6 +164,7 @@ type Config struct {
 	Health   HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
+	FullHistory           FullHistoryConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -202,6 +203,10 @@ type GeneralSettingsConfig struct {
 	StartInEpochEnabled      bool
 	ChainID                  string
 	MinTransactionVersion    uint32
+	DisableDeploy            bool
+	DisableBuiltInFunctions  bool
+	DisableRelayedTx         bool
+	GenesisString            string
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -324,6 +329,7 @@ type HardforkConfig struct {
 	ImportKeysStorageConfig      StorageConfig
 	PublicKeyToListenFrom        string
 	ImportFolder                 string
+	GenesisTime                  int64
 	StartRound                   uint64
 	StartNonce                   uint64
 	CloseAfterExportInMinutes    uint32
@@ -333,6 +339,13 @@ type HardforkConfig struct {
 	EnableTriggerFromP2P         bool
 	MustImport                   bool
 	AfterHardFork                bool
+}
+
+// FullHistoryConfig holds the configuration for the full history node
+type FullHistoryConfig struct {
+	Enabled                         bool
+	HistoryTransactionStorageConfig StorageConfig
+	HashEpochStorageConfig          StorageConfig
 }
 
 // DebugConfig will hold debugging configuration

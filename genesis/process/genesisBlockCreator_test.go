@@ -82,10 +82,26 @@ func createMockArgument(
 				MinPassThreshold: 50,
 				MinVetoThreshold: 50,
 			},
+			StakingSystemSCConfig: config.StakingSystemSCConfig{
+				GenesisNodePrice:                     nodePrice.Text(10),
+				UnJailValue:                          "10",
+				MinStepValue:                         "10",
+				MinStakeValue:                        "1",
+				UnBondPeriod:                         1,
+				AuctionEnableNonce:                   1,
+				StakeEnableNonce:                     1,
+				NumRoundsWithoutBleed:                1,
+				MaximumPercentageToBleed:             1,
+				BleedPercentagePerRound:              1,
+				MaxNumberOfNodesForStake:             10,
+				NodesToSelectInAuction:               100,
+				ActivateBLSPubKeyMessageVerification: false,
+			},
 		},
 		TrieStorageManagers: trieStorageManagers,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
 		ImportStartHandler:  &mock.ImportStartHandlerStub{},
+		GenesisNodePrice:    nodePrice,
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -123,10 +139,8 @@ func createMockArgument(
 	ted := &economics.TestEconomicsData{
 		EconomicsData: &economics.EconomicsData{},
 	}
-	ted.SetGenesisNodePrice(nodePrice)
-	ted.SetMinStep(big.NewInt(1))
+
 	ted.SetTotalSupply(entireSupply)
-	ted.SetUnJailPrice(big.NewInt(1))
 	ted.SetMaxGasLimitPerBlock(math.MaxUint64)
 	arg.Economics = ted.EconomicsData
 	arg.AccountsParser, err = parsing.NewAccountsParser(

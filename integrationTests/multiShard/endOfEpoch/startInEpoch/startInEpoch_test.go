@@ -132,9 +132,10 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
 			for i := uint32(0); i < uint32(numOfShards); i++ {
-				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i))
+				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i, integrationTests.InitialRating))
 			}
-			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId], mock.NewNodeInfo(address, pksBytes[core.MetachainShardId], core.MetachainShardId))
+			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId],
+				mock.NewNodeInfo(address, pksBytes[core.MetachainShardId], core.MetachainShardId, integrationTests.InitialRating))
 			return oneMap, nil
 		},
 		GetStartTimeCalled: func() int64 {
@@ -196,7 +197,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			},
 		},
 		Messenger:                  nodeToJoinLate.Messenger,
-		GeneralConfig:              getGeneralConfig(),
+		GeneralConfig:              generalConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              integrationTests.CreateEconomicsData(),
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},

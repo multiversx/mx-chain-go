@@ -79,12 +79,13 @@ func createMockMetaArguments(
 			NodesCoordinator:  mock.NewNodesCoordinatorMock(),
 			FeeHandler:        &mock.FeeAccumulatorStub{},
 			RequestHandler:    &mock.RequestHandlerStub{},
-			Core:              &mock.ServiceContainerMock{},
 			BlockChainHook:    &mock.BlockChainHookHandlerMock{},
 			TxCoordinator:     &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger: &mock.EpochStartTriggerStub{},
 			HeaderValidator:   headerValidator,
-			Rounder:           &mock.RounderMock{},
+			Rounder: &mock.RounderMock{
+				RoundTimeDuration: time.Second,
+			},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
@@ -92,7 +93,10 @@ func createMockMetaArguments(
 			},
 			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Indexer:            &mock.IndexerMock{},
+			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
 			Version:            "softwareVersion",
+			HistoryRepository:  &mock.HistoryRepositoryStub{},
 		},
 		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},

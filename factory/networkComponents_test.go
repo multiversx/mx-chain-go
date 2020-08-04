@@ -40,11 +40,6 @@ func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 }
 
 func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
 	args := getNetworkArgs()
 	args.MainConfig = config.Config{}
 	args.P2pConfig = config.P2PConfig{}
@@ -57,11 +52,6 @@ func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
 }
 
 func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
 	args := getNetworkArgs()
 	ncf, _ := factory.NewNetworkComponentsFactory(args)
 	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
@@ -182,5 +172,6 @@ func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
+		Syncer: &libp2p.LocalSyncTimer{},
 	}
 }

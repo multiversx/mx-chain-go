@@ -55,22 +55,6 @@ func TrimSliceHandler(in []data.TransactionHandler) []data.TransactionHandler {
 	return ret
 }
 
-// frontendTransaction represents the DTO used in transaction signing/validation.
-type frontendTransaction struct {
-	Nonce            uint64 `json:"nonce"`
-	Value            string `json:"value"`
-	Receiver         string `json:"receiver"`
-	Sender           string `json:"sender"`
-	SenderUsername   []byte `json:"senderUsername,omitempty"`
-	ReceiverUsername []byte `json:"receiverUsername,omitempty"`
-	GasPrice         uint64 `json:"gasPrice"`
-	GasLimit         uint64 `json:"gasLimit"`
-	Data             string `json:"data,omitempty"`
-	Signature        string `json:"signature,omitempty"`
-	ChainID          string `json:"chainID"`
-	Version          uint32 `json:"version"`
-}
-
 // GetDataForSigning returns the serialized transaction having an empty signature field
 func (tx *Transaction) GetDataForSigning(encoder Encoder, marshalizer Marshalizer) ([]byte, error) {
 	if check.IfNil(encoder) {
@@ -80,7 +64,7 @@ func (tx *Transaction) GetDataForSigning(encoder Encoder, marshalizer Marshalize
 		return nil, ErrNilMarshalizer
 	}
 
-	ftx := &frontendTransaction{
+	ftx := &FrontendTransaction{
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
 		Receiver:         encoder.Encode(tx.RcvAddr),
@@ -89,7 +73,7 @@ func (tx *Transaction) GetDataForSigning(encoder Encoder, marshalizer Marshalize
 		GasLimit:         tx.GasLimit,
 		SenderUsername:   tx.SndUserName,
 		ReceiverUsername: tx.RcvUserName,
-		Data:             string(tx.Data),
+		Data:             tx.Data,
 		ChainID:          string(tx.ChainID),
 		Version:          tx.Version,
 	}

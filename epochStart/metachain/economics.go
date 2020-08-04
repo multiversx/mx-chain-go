@@ -2,12 +2,15 @@ package metachain
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -129,9 +132,9 @@ func (e *economics) ComputeEndOfEpochEconomics(
 
 	e.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch)
 	e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.AccumulatedFeesInEpoch, totalNumBlocksInEpoch)
-	rewardsForCommunity := e.computeRewardsForCommunity(totalRewardsToBeDistributed)
-	// adjust rewards per block taking into consideration community rewards
-	e.adjustRewardsPerBlockWithCommunityRewards(rwdPerBlock, rewardsForCommunity, totalNumBlocksInEpoch)
+	rewardsForProtocolSustainability := e.computeRewardsForProtocolSustainability(totalRewardsToBeDistributed)
+	// adjust rewards per block taking into consideration protocol sustainability rewards
+	e.adjustRewardsPerBlockWithProtocolSustainabilityRewards(rwdPerBlock, rewardsForProtocolSustainability, totalNumBlocksInEpoch)
 
 	prevEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, prevEpochStart)
 	if err != nil {
@@ -139,34 +142,111 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	}
 
 	computedEconomics := block.Economics{
-		TotalSupply:         big.NewInt(0).Add(prevEpochEconomics.TotalSupply, newTokens),
-		TotalToDistribute:   big.NewInt(0).Set(totalRewardsToBeDistributed),
-		TotalNewlyMinted:    big.NewInt(0).Set(newTokens),
-		RewardsPerBlock:     rwdPerBlock,
-		RewardsForCommunity: rewardsForCommunity,
+		TotalSupply:                      big.NewInt(0).Add(prevEpochEconomics.TotalSupply, newTokens),
+		TotalToDistribute:                big.NewInt(0).Set(totalRewardsToBeDistributed),
+		TotalNewlyMinted:                 big.NewInt(0).Set(newTokens),
+		RewardsPerBlock:                  rwdPerBlock,
+		RewardsForProtocolSustainability: rewardsForProtocolSustainability,
 		// TODO: get actual nodePrice from auction smart contract (currently on another feature branch, and not all features enabled)
 		NodePrice:           big.NewInt(0).Set(prevEpochEconomics.NodePrice),
 		PrevEpochStartRound: prevEpochStart.GetRound(),
 		PrevEpochStartHash:  prevEpochStartHash,
 	}
 
+	e.printEconomicsData(
+		metaBlock,
+		prevEpochEconomics,
+		inflationRate,
+		newTokens,
+		computedEconomics,
+		totalRewardsToBeDistributed,
+		totalNumBlocksInEpoch,
+		rwdPerBlock,
+		rewardsForProtocolSustainability,
+	)
+
 	return &computedEconomics, nil
 }
 
-// compute the rewards for community - percentage from total rewards
-func (e *economics) computeRewardsForCommunity(totalRewards *big.Int) *big.Int {
-	rewardsForCommunity := core.GetPercentageOfValue(totalRewards, e.rewardsHandler.CommunityPercentage())
-	return rewardsForCommunity
+func (e *economics) printEconomicsData(
+	metaBlock *block.MetaBlock,
+	prevEpochEconomics block.Economics,
+	inflationRate float64,
+	newTokens *big.Int,
+	computedEconomics block.Economics,
+	totalRewardsToBeDistributed *big.Int,
+	totalNumBlocksInEpoch uint64,
+	rwdPerBlock *big.Int,
+	rewardsForProtocolSustainability *big.Int,
+) {
+	header := []string{"identifier", "", "value"}
+
+	rewardsForLeaders := core.GetPercentageOfValue(metaBlock.AccumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentage())
+	maxSupplyLength := len(prevEpochEconomics.TotalSupply.String())
+	lines := []*display.LineData{
+		e.newDisplayLine("epoch", "",
+			e.alignRight(fmt.Sprintf("%d", metaBlock.Epoch), maxSupplyLength)),
+		e.newDisplayLine("inflation rate", "",
+			e.alignRight(fmt.Sprintf("%.6f", inflationRate), maxSupplyLength)),
+		e.newDisplayLine("previous total supply", "(1)",
+			e.alignRight(prevEpochEconomics.TotalSupply.String(), maxSupplyLength)),
+		e.newDisplayLine("new tokens", "(2)",
+			e.alignRight(newTokens.String(), maxSupplyLength)),
+		e.newDisplayLine("current total supply", "(1+2)",
+			e.alignRight(computedEconomics.TotalSupply.String(), maxSupplyLength)),
+		e.newDisplayLine("accumulated fees in epoch", "(3)",
+			e.alignRight(metaBlock.AccumulatedFeesInEpoch.String(), maxSupplyLength)),
+		e.newDisplayLine("total rewards to be distributed", "(4)",
+			e.alignRight(totalRewardsToBeDistributed.String(), maxSupplyLength)),
+		e.newDisplayLine("total num blocks in epoch", "(5)",
+			e.alignRight(fmt.Sprintf("%d", totalNumBlocksInEpoch), maxSupplyLength)),
+		e.newDisplayLine("dev fees in epoch", "(6)",
+			e.alignRight(metaBlock.DevFeesInEpoch.String(), maxSupplyLength)),
+		e.newDisplayLine("leader fees in epoch", "(7)",
+			e.alignRight(rewardsForLeaders.String(), maxSupplyLength)),
+		e.newDisplayLine("reward per block", "(8)",
+			e.alignRight(rwdPerBlock.String(), maxSupplyLength)),
+		e.newDisplayLine("percent for protocol sustainability", "(9)",
+			e.alignRight(fmt.Sprintf("%.6f", e.rewardsHandler.ProtocolSustainabilityPercentage()), maxSupplyLength)),
+		e.newDisplayLine("reward for protocol sustainability", "(4 * 9)",
+			e.alignRight(rewardsForProtocolSustainability.String(), maxSupplyLength)),
+	}
+
+	str, err := display.CreateTableString(header, lines)
+	if err != nil {
+		log.Error("economics.printEconomicsData", "error", err)
+		return
+	}
+
+	log.Debug("computed economics data\n" + str)
 }
 
-// adjustment for rewards given for each proposed block taking community rewards into consideration
-func (e *economics) adjustRewardsPerBlockWithCommunityRewards(
+func (e *economics) alignRight(val string, maxLen int) string {
+	if len(val) >= maxLen {
+		return val
+	}
+
+	return strings.Repeat(" ", maxLen-len(val)) + val
+}
+
+func (e *economics) newDisplayLine(values ...string) *display.LineData {
+	return display.NewLineData(false, values)
+}
+
+// compute the rewards for protocol sustainability - percentage from total rewards
+func (e *economics) computeRewardsForProtocolSustainability(totalRewards *big.Int) *big.Int {
+	rewardsForProtocolSustainability := core.GetPercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentage())
+	return rewardsForProtocolSustainability
+}
+
+// adjustment for rewards given for each proposed block taking protocol sustainability rewards into consideration
+func (e *economics) adjustRewardsPerBlockWithProtocolSustainabilityRewards(
 	rwdPerBlock *big.Int,
-	communityRewards *big.Int,
+	protocolSustainabilityRewards *big.Int,
 	blocksInEpoch uint64,
 ) {
-	communityRewardsPerBlock := big.NewInt(0).Div(communityRewards, big.NewInt(0).SetUint64(blocksInEpoch))
-	rwdPerBlock.Sub(rwdPerBlock, communityRewardsPerBlock)
+	protocolSustainabilityRewardsPerBlock := big.NewInt(0).Div(protocolSustainabilityRewards, big.NewInt(0).SetUint64(blocksInEpoch))
+	rwdPerBlock.Sub(rwdPerBlock, protocolSustainabilityRewardsPerBlock)
 }
 
 // adjustment for rewards given for each proposed block taking developer fees into consideration
@@ -269,9 +349,7 @@ func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, e
 }
 
 // VerifyRewardsPerBlock checks whether rewards per block value was correctly computed
-func (e *economics) VerifyRewardsPerBlock(
-	metaBlock *block.MetaBlock,
-) error {
+func (e *economics) VerifyRewardsPerBlock(metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int) error {
 	if !metaBlock.IsStartOfEpochBlock() {
 		return nil
 	}
@@ -279,6 +357,7 @@ func (e *economics) VerifyRewardsPerBlock(
 	if err != nil {
 		return err
 	}
+	computedEconomics.RewardsForProtocolSustainability.Set(correctedProtocolSustainability)
 	computedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, computedEconomics)
 	if err != nil {
 		return err
@@ -309,13 +388,13 @@ func logEconomicsDifferences(computed *block.Economics, received *block.Economic
 		"computed total newly minted", computed.TotalNewlyMinted,
 		"computed total supply", computed.TotalSupply,
 		"computed rewards per block per node", computed.RewardsPerBlock,
-		"computed rewards for community", computed.RewardsForCommunity,
+		"computed rewards for protocol sustainability", computed.RewardsForProtocolSustainability,
 		"computed node price", computed.NodePrice,
 		"\nreceived total to distribute", received.TotalToDistribute,
 		"received total newly minted", received.TotalNewlyMinted,
 		"received total supply", received.TotalSupply,
 		"received rewards per block per node", received.RewardsPerBlock,
-		"received rewards for community", received.RewardsForCommunity,
+		"received rewards for protocol sustainability", received.RewardsForProtocolSustainability,
 		"received node price", received.NodePrice,
 	)
 }

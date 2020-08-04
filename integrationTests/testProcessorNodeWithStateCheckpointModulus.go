@@ -29,12 +29,12 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	nodesSetup := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
-			oneMap[0] = append(oneMap[0], mock.NewNodeInfo(address, pkBytes, 0))
+			oneMap[0] = append(oneMap[0], mock.NewNodeInfo(address, pkBytes, 0, InitialRating))
 			return oneMap, nil
 		},
 		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []sharding.GenesisNodeInfoHandler, handlers2 []sharding.GenesisNodeInfoHandler, err error) {
 			list := make([]sharding.GenesisNodeInfoHandler, 0)
-			list = append(list, mock.NewNodeInfo(address, pkBytes, 0))
+			list = append(list, mock.NewNodeInfo(address, pkBytes, 0, InitialRating))
 			return list, nil, nil
 		},
 		GetMinTransactionVersionCalled: func() uint32 {
@@ -68,6 +68,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
+		HistoryRepository:       &mock.HistoryRepositoryStub{},
 	}
 	tpn.NodesSetup = nodesSetup
 

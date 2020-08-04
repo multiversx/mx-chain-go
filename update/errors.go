@@ -116,8 +116,8 @@ var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 // ErrNilSingleSigner signals that nil single signer was provided
 var ErrNilSingleSigner = errors.New("nil single signer")
 
-// ErrNilPubkeyConverter signals that a nil public key converter was provided
-var ErrNilPubkeyConverter = errors.New("nil public key converter")
+// ErrNilPubKeyConverter signals that a nil public key converter was provided
+var ErrNilPubKeyConverter = errors.New("nil public key converter")
 
 // ErrNilBlockKeyGen signals that nil block key gen was provided
 var ErrNilBlockKeyGen = errors.New("nil block key gen")
@@ -238,3 +238,9 @@ var ErrKeyTypeMismatch = errors.New("key type mismatch while importing")
 
 // ErrNilRounder signals that nil rounder has been provided
 var ErrNilRounder = errors.New("nil rounder")
+
+// ErrEmptyExportFolderPath signals that the provided export folder's length is empty
+var ErrEmptyExportFolderPath = errors.New("empty export folder path")
+
+// ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
+var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")

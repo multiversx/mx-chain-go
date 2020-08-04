@@ -6,9 +6,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
@@ -38,10 +39,10 @@ const DefaultRestInterface = "localhost:8080"
 const DefaultRestPortOff = "off"
 
 var _ = address.FacadeHandler(&nodeFacade{})
-var _ = hardfork.TriggerHardforkHandler(&nodeFacade{})
+var _ = hardfork.FacadeHandler(&nodeFacade{})
 var _ = node.FacadeHandler(&nodeFacade{})
-var _ = transactionApi.TxService(&nodeFacade{})
-var _ = validator.ValidatorsStatisticsApiHandler(&nodeFacade{})
+var _ = transactionApi.FacadeHandler(&nodeFacade{})
+var _ = validator.FacadeHandler(&nodeFacade{})
 var _ = vmValues.FacadeHandler(&nodeFacade{})
 
 var log = logger.GetOrCreate("facade")
@@ -59,6 +60,8 @@ type ArgNodeFacade struct {
 	WsAntifloodConfig      config.WebServerAntifloodConfig
 	FacadeConfig           config.FacadeConfig
 	ApiRoutesConfig        config.ApiRoutesConfig
+	AccountsState          state.AccountsAdapter
+	PeerState              state.AccountsAdapter
 }
 
 // nodeFacade represents a facade for grouping the functionality for the node
@@ -72,6 +75,8 @@ type nodeFacade struct {
 	endpointsThrottlers    map[string]core.Throttler
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	restAPIServerDebugMode bool
+	accountsState          state.AccountsAdapter
+	peerState              state.AccountsAdapter
 	ctx                    context.Context
 	cancelFunc             func()
 }
@@ -96,6 +101,12 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if arg.WsAntifloodConfig.SameSourceResetIntervalInSec == 0 {
 		return nil, fmt.Errorf("%w, SameSourceResetIntervalInSec should not be 0", ErrInvalidValue)
 	}
+	if check.IfNil(arg.AccountsState) {
+		return nil, ErrNilAccountState
+	}
+	if check.IfNil(arg.PeerState) {
+		return nil, ErrNilPeerState
+	}
 
 	throttlersMap := computeEndpointsNumGoRoutinesThrottlers(arg.WsAntifloodConfig)
 
@@ -107,6 +118,8 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
 		endpointsThrottlers:    throttlersMap,
+		accountsState:          arg.AccountsState,
+		peerState:              arg.PeerState,
 	}
 	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
@@ -179,21 +192,15 @@ func (nf *nodeFacade) startRest() {
 	case DefaultRestPortOff:
 		log.Debug("web server is off")
 	default:
-		log.Debug("creating web server middleware limiter")
-		limiter, err := middleware.NewMiddleware(
-			nf,
-			nf.wsAntifloodConfig.SimultaneousRequests,
-			nf.wsAntifloodConfig.SameSourceRequests,
-		)
+		log.Debug("creating web server limiters")
+		limiters, err := nf.createMiddlewareLimiters()
 		if err != nil {
-			log.Error("error creating web server limiter",
+			log.Error("error creating web server limiters",
 				"error", err.Error(),
 			)
 			log.Error("web server is off")
 			return
 		}
-
-		go nf.sourceLimiterReset(limiter)
 
 		log.Debug("starting web server",
 			"SimultaneousRequests", nf.wsAntifloodConfig.SimultaneousRequests,
@@ -201,14 +208,28 @@ func (nf *nodeFacade) startRest() {
 			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
 		)
 
-		// TODO figure out a way to close the api engine
-		err = api.Start(nf, nf.apiRoutesConfig, limiter)
+		err = api.Start(nf, nf.apiRoutesConfig, limiters...)
 		if err != nil {
 			log.Error("could not start webserver",
 				"error", err.Error(),
 			)
 		}
 	}
+}
+
+func (nf *nodeFacade) createMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
+	sourceLimiter, err := middleware.NewSourceThrottler(nf.wsAntifloodConfig.SameSourceRequests)
+	if err != nil {
+		return nil, err
+	}
+	go nf.sourceLimiterReset(sourceLimiter)
+
+	globalLimiter, err := middleware.NewGlobalThrottler(nf.wsAntifloodConfig.SimultaneousRequests)
+	if err != nil {
+		return nil, err
+	}
+
+	return []api.MiddlewareProcessor{sourceLimiter, globalLimiter}, nil
 }
 
 func (nf *nodeFacade) sourceLimiterReset(reset resetHandler) {
@@ -243,7 +264,7 @@ func (nf *nodeFacade) CreateTransaction(
 	senderHex string,
 	gasPrice uint64,
 	gasLimit uint64,
-	txData string,
+	txData []byte,
 	signatureHex string,
 	chainID string,
 	version uint32,
@@ -346,12 +367,32 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 	return throttlerForEndpoint, isThrottlerOk
 }
 
+// GetBlockByHash return the block for a given hash
+func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error) {
+	return nf.node.GetBlockByHash(hash, withTxs)
+}
+
+// GetBlockByNonce returns the block for a given nonce
+func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error) {
+	return nf.node.GetBlockByNonce(nonce, withTxs)
+}
+
 // Close will cleanup started go routines
 // TODO use this close method
 func (nf *nodeFacade) Close() error {
 	nf.cancelFunc()
 
 	return nil
+}
+
+// GetNumCheckpointsFromAccountState returns the number of checkpoints of the account state
+func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
+	return nf.accountsState.GetNumCheckpoints()
+}
+
+// GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
+func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint32 {
+	return nf.peerState.GetNumCheckpoints()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -1,11 +1,13 @@
 package api
 
 import (
+	"bytes"
 	"net/http"
 	"reflect"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/logs"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
@@ -51,7 +53,8 @@ type ginWriter struct {
 }
 
 func (gv *ginWriter) Write(p []byte) (n int, err error) {
-	log.Debug("gin server", "message", string(p))
+	trimmed := bytes.TrimSpace(p)
+	log.Trace("gin server", "message", string(trimmed))
 
 	return len(p), nil
 }
@@ -60,13 +63,14 @@ type ginErrorWriter struct {
 }
 
 func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
-	log.Debug("gin server", "error", string(p))
+	trimmed := bytes.TrimSpace(p)
+	log.Trace("gin server", "error", string(trimmed))
 
 	return len(p), nil
 }
 
 // Start will boot up the api and appropriate routes, handlers and validators
-func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, middleware MiddlewareProcessor) error {
+func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, processors ...MiddlewareProcessor) error {
 	var ws *gin.Engine
 	if !elrondFacade.RestAPIServerDebugMode() {
 		gin.DefaultWriter = &ginWriter{}
@@ -76,8 +80,13 @@ func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, mid
 	}
 	ws = gin.Default()
 	ws.Use(cors.Default())
-	if !check.IfNil(middleware) {
-		ws.Use(middleware.MiddlewareHandlerFunc())
+	ws.Use(middleware.WithFacade(elrondFacade))
+	for _, proc := range processors {
+		if check.IfNil(proc) {
+			continue
+		}
+
+		ws.Use(proc.MiddlewareHandlerFunc())
 	}
 
 	err := registerValidators()
@@ -90,7 +99,7 @@ func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, mid
 	return ws.Run(elrondFacade.RestApiInterface())
 }
 
-func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondFacade middleware.ElrondHandler) {
+func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondFacade middleware.Handler) {
 	nodeRoutes := ws.Group("/node")
 	wrappedNodeRouter, err := wrapper.NewRouterWrapper("node", nodeRoutes, routesConfig)
 	if err == nil {
@@ -131,6 +140,12 @@ func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondF
 	wrappedHardforkRouter, err := wrapper.NewRouterWrapper("hardfork", hardforkRoutes, routesConfig)
 	if err == nil {
 		hardfork.Routes(wrappedHardforkRouter)
+	}
+
+	blockRoutes := ws.Group("/block")
+	wrappedBlockRouter, err := wrapper.NewRouterWrapper("block", blockRoutes, routesConfig)
+	if err == nil {
+		block.Routes(wrappedBlockRouter)
 	}
 
 	apiHandler, ok := elrondFacade.(MainApiHandler)

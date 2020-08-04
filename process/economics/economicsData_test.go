@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createDummyEconomicsConfig() *config.EconomicsConfig {
@@ -26,9 +27,9 @@ func createDummyEconomicsConfig() *config.EconomicsConfig {
 			},
 		},
 		RewardsSettings: config.RewardsSettings{
-			LeaderPercentage:    0.1,
-			CommunityPercentage: 0.1,
-			CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			LeaderPercentage:                 0.1,
+			ProtocolSustainabilityPercentage: 0.1,
+			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 		FeeSettings: config.FeeSettings{
 			MaxGasLimitPerBlock:     "100000",
@@ -37,18 +38,6 @@ func createDummyEconomicsConfig() *config.EconomicsConfig {
 			MinGasLimit:             "500",
 			GasPerDataByte:          "1",
 			DataLimitForBaseCalc:    "100000000",
-		},
-		ValidatorSettings: config.ValidatorSettings{
-			GenesisNodePrice:         "500000000",
-			UnBondPeriod:             "100000",
-			TotalSupply:              "200000000000",
-			MinStepValue:             "100000",
-			AuctionEnableNonce:       "100000",
-			StakeEnableNonce:         "100000",
-			NumRoundsWithoutBleed:    "1000",
-			MaximumPercentageToBleed: "0.5",
-			BleedPercentagePerRound:  "0.00001",
-			UnJailValue:              "1000",
 		},
 	}
 }
@@ -265,12 +254,12 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
 }
 
-func TestEconomicsData_TxWithWithEqualGasPriceLimitShouldWork(t *testing.T) {
+func TestEconomicsData_TxWithWithMinGasPriceAndLimitShouldWork(t *testing.T) {
 	t.Parallel()
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
-	maxGasLimitPerBlock := minGasLimit
+	maxGasLimitPerBlock := minGasLimit + 1
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
@@ -287,26 +276,41 @@ func TestEconomicsData_TxWithWithEqualGasPriceLimitShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestEconomicsData_TxWithWithMoreGasPriceLimitShouldWork(t *testing.T) {
+func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerBlockShouldNotWork(t *testing.T) {
 	t.Parallel()
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
-	maxGasLimitPerBlock := minGasLimit + 1
+	maxGasLimitPerBlock := uint64(42)
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
 	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(economicsConfig)
+
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice + 1,
-		GasLimit: minGasLimit + 1,
+		GasLimit: maxGasLimitPerBlock,
 		Value:    big.NewInt(0),
 	}
-
 	err := economicsData.CheckValidityTxValues(tx)
+	require.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
 
-	assert.Nil(t, err)
+	tx = &transaction.Transaction{
+		GasPrice: minGasPrice + 1,
+		GasLimit: maxGasLimitPerBlock + 1,
+		Value:    big.NewInt(0),
+	}
+	err = economicsData.CheckValidityTxValues(tx)
+	require.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
+
+	tx = &transaction.Transaction{
+		GasPrice: minGasPrice + 1,
+		GasLimit: maxGasLimitPerBlock - 1,
+		Value:    big.NewInt(0),
+	}
+	err = economicsData.CheckValidityTxValues(tx)
+	require.Nil(t, err)
 }
 
 func TestEconomicsData_TxWithWithMoreValueThanGenesisSupplyShouldError(t *testing.T) {
@@ -314,7 +318,7 @@ func TestEconomicsData_TxWithWithMoreValueThanGenesisSupplyShouldError(t *testin
 
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
-	maxGasLimitPerBlock := minGasLimit + 1
+	maxGasLimitPerBlock := minGasLimit + 42
 	economicsConfig := createDummyEconomicsConfig()
 	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
 	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)

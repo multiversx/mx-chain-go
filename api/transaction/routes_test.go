@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
@@ -71,11 +72,25 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
+func TestGetTransaction_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/transaction/hash", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	value := "10"
-	txData := "data"
+	txData := []byte("data")
 	hash := "hash"
 	facade := mock.Facade{
 		GetTransactionHandler: func(hash string) (i *tr.ApiTransactionResult, e error) {
@@ -108,7 +123,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	value := "10"
-	txData := "data"
+	txData := []byte("data")
 	wrongHash := "wronghash"
 	facade := mock.Facade{
 		GetTransactionHandler: func(hash string) (*tr.ApiTransactionResult, error) {
@@ -171,9 +186,23 @@ func TestGetTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	loadResponse(resp.Body, &txResp)
 
 	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
-	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), txResp.Error)
+	assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrTooManyRequests.Error()))
 	assert.Equal(t, string(shared.ReturnCodeSystemBusy), txResp.Code)
 	assert.Empty(t, txResp.Data)
+}
+
+func TestSendTransaction_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("POST", "/transaction/send", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestSendTransaction_ErrorWithWrongFacade(t *testing.T) {
@@ -214,7 +243,7 @@ func TestSendTransaction_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	loadResponse(resp.Body, &txResp)
 
 	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
-	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), txResp.Error)
+	assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrTooManyRequests.Error()))
 	assert.Equal(t, string(shared.ReturnCodeSystemBusy), txResp.Code)
 	assert.Empty(t, txResp.Data)
 }
@@ -259,7 +288,7 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	errorString := "send transaction error"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32,
 		) (*tr.Transaction, []byte, error) {
 			return nil, nil, nil
 		},
@@ -304,7 +333,7 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	hexTxHash := "deadbeef"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32,
 		) (*tr.Transaction, []byte, error) {
 			txHash, _ := hex.DecodeString(hexTxHash)
 			return nil, txHash, nil
@@ -339,6 +368,20 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Empty(t, response.Error)
 	assert.Equal(t, hexTxHash, response.Data.TxHash)
+}
+
+func TestSendMultipleTransactions_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("POST", "/transaction/send-multiple", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
 }
 
 func TestSendMultipleTransactions_ErrorWithWrongFacade(t *testing.T) {
@@ -380,7 +423,7 @@ func TestSendMultipleTransactions_ErrorWithExceededNumGoRoutines(t *testing.T) {
 	loadResponse(resp.Body, &txResp)
 
 	assert.Equal(t, http.StatusTooManyRequests, resp.Code)
-	assert.Equal(t, apiErrors.ErrTooManyRequests.Error(), txResp.Error)
+	assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrTooManyRequests.Error()))
 	assert.Equal(t, string(shared.ReturnCodeSystemBusy), txResp.Code)
 	assert.Empty(t, txResp.Data)
 }
@@ -413,7 +456,7 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	sendBulkTxsWasCalled := false
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32,
 		) (*tr.Transaction, []byte, error) {
 			createTxWasCalled = true
 			return &tr.Transaction{}, make([]byte, 0), nil
@@ -432,7 +475,7 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
-		Data:      "",
+		Data:      make([]byte, 0),
 		Nonce:     0,
 		GasPrice:  0,
 		GasLimit:  0,
@@ -457,13 +500,27 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 	assert.True(t, sendBulkTxsWasCalled)
 }
 
+func TestComputeTransactionGasLimit_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("POST", "/transaction/cost", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
 func TestComputeTransactionGasLimit(t *testing.T) {
 	t.Parallel()
 
 	expectedGasLimit := uint64(37)
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ string, _ string, _ string, _ uint32,
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32,
 		) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, nil, nil
 		},
@@ -477,7 +534,7 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
-		Data:      "",
+		Data:      make([]byte, 0),
 		Nonce:     0,
 		GasPrice:  0,
 		GasLimit:  0,
@@ -512,12 +569,12 @@ func logError(err error) {
 	}
 }
 
-func startNodeServer(handler transaction.TxService) *gin.Engine {
+func startNodeServer(handler transaction.FacadeHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ginTransactionRoute := ws.Group("/transaction")
 	if handler != nil {
-		ginTransactionRoute.Use(middleware.WithTestingElrondFacade(handler))
+		ginTransactionRoute.Use(middleware.WithFacade(handler))
 	}
 	transactionRoute, _ := wrapper.NewRouterWrapper("transaction", ginTransactionRoute, getRoutesConfig())
 	transaction.Routes(transactionRoute)
@@ -528,7 +585,7 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
+		c.Set("facade", mock.WrongFacade{})
 	})
 	ginTransactionRoute := ws.Group("/transaction")
 	transactionRoute, _ := wrapper.NewRouterWrapper("transaction", ginTransactionRoute, getRoutesConfig())

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
@@ -14,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 // NewTestSyncNode returns a new TestProcessorNode instance with sync capabilities
@@ -33,12 +35,12 @@ func NewTestSyncNode(
 	nodesSetup := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
-			oneMap[0] = append(oneMap[0], mock.NewNodeInfo(address, pkBytes, 0))
+			oneMap[0] = append(oneMap[0], mock.NewNodeInfo(address, pkBytes, 0, InitialRating))
 			return oneMap, nil
 		},
 		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []sharding.GenesisNodeInfoHandler, handlers2 []sharding.GenesisNodeInfoHandler, err error) {
 			list := make([]sharding.GenesisNodeInfoHandler, 0)
-			list = append(list, mock.NewNodeInfo(address, pkBytes, 0))
+			list = append(list, mock.NewNodeInfo(address, pkBytes, 0, InitialRating))
 			return list, nil, nil
 		},
 		GetMinTransactionVersionCalled: func() uint32 {
@@ -81,6 +83,7 @@ func NewTestSyncNode(
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		NodesSetup:              nodesSetup,
 		MinTransactionVersion:   MinTransactionVersion,
+		HistoryRepository:       &mock.HistoryRepositoryStub{},
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -175,7 +178,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		NodesCoordinator:  tpn.NodesCoordinator,
 		FeeHandler:        tpn.FeeAccumulator,
 		RequestHandler:    tpn.RequestHandler,
-		Core:              nil,
 		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 		HeaderValidator:   tpn.HeaderValidator,
@@ -188,12 +190,14 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockTracker:           tpn.BlockTracker,
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
+		Indexer:                indexer.NewNilIndexer(),
+		TpsBenchmark:           &testscommon.TpsBenchmarkMock{},
 		Version:                string(SoftwareVersion),
+		HistoryRepository:      tpn.HistoryRepository,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
-		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
@@ -222,7 +226,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	if err != nil {
-		fmt.Printf("Error creating blockprocessor: %s\n", err.Error())
+		panic(fmt.Sprintf("Error creating blockprocessor: %s", err.Error()))
 	}
 }
 

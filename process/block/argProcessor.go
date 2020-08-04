@@ -2,7 +2,9 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -39,7 +41,6 @@ type ArgBaseProcessor struct {
 	NodesCoordinator       sharding.NodesCoordinator
 	FeeHandler             process.TransactionFeeHandler
 	RequestHandler         process.RequestHandler
-	Core                   serviceContainer.Core
 	BlockChainHook         process.BlockChainHookHandler
 	TxCoordinator          process.TransactionCoordinator
 	EpochStartTrigger      process.EpochStartTriggerHandler
@@ -49,7 +50,10 @@ type ArgBaseProcessor struct {
 	BlockTracker           process.BlockTracker
 	StateCheckpointModulus uint
 	BlockSizeThrottler     process.BlockSizeThrottler
+	Indexer                indexer.Indexer
+	TpsBenchmark           statistics.TPSBenchmark
 	Version                string
+	HistoryRepository      fullHistory.HistoryRepository
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

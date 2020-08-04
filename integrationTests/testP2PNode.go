@@ -133,9 +133,15 @@ func (tP2pNode *TestP2PNode) initNode() {
 	}
 	argHardforkTrigger.SelfPubKeyBytes, _ = tP2pNode.NodeKeys.Pk.ToByteArray()
 	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)
-	if err != nil {
-		fmt.Printf("Error creating hardfork trigger: %s\n", err.Error())
-	}
+	log.LogIfError(err)
+
+	cacher := testscommon.NewCacherMock()
+	psh, err := peerSignatureHandler.NewPeerSignatureHandler(
+		cacher,
+		tP2pNode.SingleSigner,
+		tP2pNode.KeyGen,
+	)
+	log.LogIfError(err)
 
 	cacher := testscommon.NewCacherMock()
 	psh, err := peerSignatureHandler.NewPeerSignatureHandler(
@@ -175,9 +181,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
 		node.WithPeerSignatureHandler(psh),
 	)
-	if err != nil {
-		fmt.Printf("Error creating node: %s\n", err.Error())
-	}
+	log.LogIfError(err)
 
 	hbConfig := config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 4,
@@ -187,9 +191,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		HideInactiveValidatorIntervalInSec:  600,
 	}
 	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
-	if err != nil {
-		fmt.Printf("Error starting heartbeat: %s\n", err.Error())
-	}
+	log.LogIfError(err)
 }
 
 func (tP2pNode *TestP2PNode) getPubkeys() map[uint32][]string {

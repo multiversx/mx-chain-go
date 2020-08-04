@@ -26,6 +26,7 @@ type NetworkComponentsFactoryArgs struct {
 	RatingsConfig config.RatingsConfig
 	StatusHandler core.AppStatusHandler
 	Marshalizer   marshal.Marshalizer
+	Syncer        p2p.SyncTimer
 }
 
 type networkComponentsFactory struct {
@@ -35,6 +36,7 @@ type networkComponentsFactory struct {
 	statusHandler core.AppStatusHandler
 	listenAddress string
 	marshalizer   marshal.Marshalizer
+	syncer        p2p.SyncTimer
 }
 
 // networkComponents struct holds the network components
@@ -61,6 +63,9 @@ func NewNetworkComponentsFactory(
 	if check.IfNil(args.Marshalizer) {
 		return nil, fmt.Errorf("%w in NewNetworkComponentsFactory", ErrNilMarshalizer)
 	}
+	if check.IfNil(args.Syncer) {
+		return nil, ErrNilSynctimer
+	}
 
 	return &networkComponentsFactory{
 		p2pConfig:     args.P2pConfig,
@@ -69,6 +74,7 @@ func NewNetworkComponentsFactory(
 		mainConfig:    args.MainConfig,
 		statusHandler: args.StatusHandler,
 		listenAddress: libp2p.ListenAddrWithIp4AndTcp,
+		syncer:        args.Syncer,
 	}, nil
 }
 
@@ -78,6 +84,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		Marshalizer:   ncf.marshalizer,
 		ListenAddress: ncf.listenAddress,
 		P2pConfig:     ncf.p2pConfig,
+		SyncTimer:     ncf.syncer,
 	}
 
 	netMessenger, err := libp2p.NewNetworkMessenger(arg)

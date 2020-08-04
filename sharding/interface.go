@@ -175,6 +175,7 @@ type GenesisNodeInfoHandler interface {
 	AssignedShard() uint32
 	AddressBytes() []byte
 	PubKeyBytes() []byte
+	GetInitialRating() uint32
 	IsInterfaceNil() bool
 }
 

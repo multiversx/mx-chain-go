@@ -915,8 +915,8 @@ func createMiniBlocksForNodesMap(nodesMap map[uint32][]Validator, list string, m
 				TempRating: 10,
 			}
 
-			marshalledData, _ := marshalizer.Marshal(shardVInfo)
-			miniBlock.TxHashes = append(miniBlock.TxHashes, marshalledData)
+			marshaledData, _ := marshalizer.Marshal(shardVInfo)
+			miniBlock.TxHashes = append(miniBlock.TxHashes, marshaledData)
 		}
 		miniBlocks = append(miniBlocks, miniBlock)
 	}

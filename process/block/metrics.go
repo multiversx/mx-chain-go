@@ -263,6 +263,7 @@ func indexValidatorsRating(
 		return
 	}
 
+	shardValidatorsRating := make(map[string][]indexer.ValidatorRatingInfo)
 	for shardID, validatorInfosInShard := range validators {
 		validatorsInfos := make([]indexer.ValidatorRatingInfo, 0)
 		for _, validatorInfo := range validatorInfosInShard {
@@ -270,10 +271,20 @@ func indexValidatorsRating(
 				PublicKey: hex.EncodeToString(validatorInfo.PublicKey),
 				Rating:    float32(validatorInfo.Rating) * 100 / 10000000,
 			})
-
 		}
 
 		indexID := fmt.Sprintf("%d_%d", shardID, metaBlock.GetEpoch())
+		shardValidatorsRating[indexID] = validatorsInfos
+	}
+
+	go indexShardValidatorsRating(indexerHandler, shardValidatorsRating)
+}
+
+func indexShardValidatorsRating(
+	indexerHandler indexer.Indexer,
+	shardValidatorsRating map[string][]indexer.ValidatorRatingInfo,
+) {
+	for indexID, validatorsInfos := range shardValidatorsRating {
 		indexerHandler.SaveValidatorsRating(indexID, validatorsInfos)
 	}
 }

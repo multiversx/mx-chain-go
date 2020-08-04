@@ -139,6 +139,11 @@ func (hhs *HeaderHandlerStub) GetTxCount() uint32 {
 	panic("implement me")
 }
 
+// GetReserved -
+func (hhs *HeaderHandlerStub) GetReserved() []byte {
+	return nil
+}
+
 // SetNonce -
 func (hhs *HeaderHandlerStub) SetNonce(_ uint64) {
 	panic("implement me")
@@ -235,5 +240,5 @@ func (hhs *HeaderHandlerStub) GetSoftwareVersion() []byte {
 }
 
 // SetSoftwareVersion -
-func (hhs *HeaderHandlerStub) SetSoftwareVersion(version []byte) {
+func (hhs *HeaderHandlerStub) SetSoftwareVersion(_ []byte) {
 }

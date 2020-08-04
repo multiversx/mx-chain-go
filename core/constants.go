@@ -66,6 +66,9 @@ const MaxBulkTransactionSize = 1 << 18 //256KB bulks
 // MaxTxsToRequest specifies the maximum number of txs to request
 const MaxTxsToRequest = 1000
 
+// NodesSetupJsonFileName specifies the name of the json file which contains the setup of the nodes
+const NodesSetupJsonFileName = "nodesSetup.json"
+
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -708,6 +709,17 @@ func WithPeerSignatureHandler(peerSignatureHandler crypto.PeerSignatureHandler) 
 			return ErrNilPeerSignatureHandler
 		}
 		n.peerSigHandler = peerSignatureHandler
+		return nil
+	}
+}
+
+// WithHistoryRepository sets up a history repository for the node
+func WithHistoryRepository(historyRepo fullHistory.HistoryRepository) Option {
+	return func(n *Node) error {
+		if check.IfNil(historyRepo) {
+			return ErrNilHistoryRepository
+		}
+		n.historyRepository = historyRepo
 		return nil
 	}
 }

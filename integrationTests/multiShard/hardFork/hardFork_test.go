@@ -279,6 +279,7 @@ func hardForkImport(
 			TxMarsh:             integrationTests.TestMarshalizer,
 			Hash:                integrationTests.TestHasher,
 			UInt64ByteSliceConv: integrationTests.TestUint64Converter,
+			ValidatorPubKeyConverter: integrationTests.TestValidatorPubkeyConverter,
 			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
 			ChainIdCalled: func() string {
 				return string(node.ChainID)
@@ -328,6 +329,21 @@ func hardForkImport(
 					MinQuorum:        50,
 					MinPassThreshold: 50,
 					MinVetoThreshold: 50,
+				},
+				StakingSystemSCConfig: config.StakingSystemSCConfig{
+					GenesisNodePrice:                     "1000",
+					UnJailValue:                          "10",
+					MinStepValue:                         "10",
+					MinStakeValue:                        "1",
+					UnBondPeriod:                         1,
+					AuctionEnableNonce:                   1000000,
+					StakeEnableNonce:                     0,
+					NumRoundsWithoutBleed:                1,
+					MaximumPercentageToBleed:             1,
+					BleedPercentagePerRound:              1,
+					MaxNumberOfNodesForStake:             100,
+					NodesToSelectInAuction:               100,
+					ActivateBLSPubKeyMessageVerification: false,
 				},
 			},
 			AccountsParser:      &mock.AccountsParserStub{},
@@ -403,11 +419,12 @@ func createHardForkExporter(
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], keysConfig)
 
 		coreComponents := &mock.CoreComponentsMock{
-			IntMarsh:            integrationTests.TestMarshalizer,
-			TxMarsh:             integrationTests.TestTxSignMarshalizer,
-			Hash:                integrationTests.TestHasher,
-			UInt64ByteSliceConv: integrationTests.TestUint64Converter,
-			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
+			IntMarsh:                 integrationTests.TestMarshalizer,
+			TxMarsh:                  integrationTests.TestTxSignMarshalizer,
+			Hash:                     integrationTests.TestHasher,
+			UInt64ByteSliceConv:      integrationTests.TestUint64Converter,
+			AddrPubKeyConv:           integrationTests.TestAddressPubkeyConverter,
+			ValidatorPubKeyConverter: integrationTests.TestValidatorPubkeyConverter,
 			ChainIdCalled: func() string {
 				return string(node.ChainID)
 			},
@@ -460,6 +477,7 @@ func createHardForkExporter(
 			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
 			Rounder:                  &mock.RounderMock{},
+			GenesisNodesSetupHandler: &mock.NodesSetupStub{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

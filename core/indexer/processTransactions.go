@@ -1,9 +1,9 @@
 package indexer
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
-	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
@@ -92,7 +92,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		if nrScResult < minimumNumberOfSmartContractResults {
 			if len(transactions[hash].SmartContractResults) > 0 {
 				scResultData := transactions[hash].SmartContractResults[0].Data
-				if strings.Contains(scResultData, "@ok") {
+				if bytes.Contains(scResultData, []byte("@ok")) {
 					// ESDT contract calls generate just one smart contract result
 					continue
 				}
@@ -120,18 +120,22 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 
 func (tdp *txDatabaseProcessor) addScResultInfoInTx(scr *smartContractResult.SmartContractResult, tx *Transaction) *Transaction {
 	dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scr)
-	if tx.Sender != dbScResult.Receiver || dbScResult.Data == "" {
-		return tx
-	}
-
 	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 
-	if dbScResult.GasLimit != 0 && dbScResult.Value != "0" {
+	if isSCRForSenderWithGasUsed(dbScResult, tx) {
 		gasUsed := tx.GasLimit - scr.GasLimit
 		tx.GasUsed = gasUsed
 	}
 
 	return tx
+}
+
+func isSCRForSenderWithGasUsed(dbScResult ScResult, tx *Transaction) bool {
+	isForSender := dbScResult.Receiver == tx.Sender
+	isWithGasLimit := dbScResult.GasLimit != 0
+	isFromCurrentTx := dbScResult.PreTxHash == tx.Hash
+
+	return isFromCurrentTx && isForSender && isWithGasLimit
 }
 
 func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) TxLog {

@@ -2,18 +2,25 @@ package mock
 
 // NodeInfoMock -
 type NodeInfoMock struct {
-	address []byte
-	pubKey  []byte
-	shardId uint32
+	address       []byte
+	pubKey        []byte
+	shardId       uint32
+	initialRating uint32
 }
 
 // NewNodeInfo -
-func NewNodeInfo(address []byte, pubKey []byte, shardId uint32) *NodeInfoMock {
+func NewNodeInfo(address []byte, pubKey []byte, shardId uint32, initialRating uint32) *NodeInfoMock {
 	return &NodeInfoMock{
-		address: address,
-		pubKey:  pubKey,
-		shardId: shardId,
+		address:       address,
+		pubKey:        pubKey,
+		shardId:       shardId,
+		initialRating: initialRating,
 	}
+}
+
+// GetInitialRating -
+func (n *NodeInfoMock) GetInitialRating() uint32 {
+	return n.initialRating
 }
 
 // AssignedShard -

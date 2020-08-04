@@ -87,6 +87,11 @@ func (pa *peerAccount) DecreaseValidatorSuccessRate(value uint32) {
 	pa.ValidatorSuccessRate.NumFailure += value
 }
 
+// IncreaseValidatorIgnoredSignaturesRate increases the account's number of ignored signatures in successful blocks
+func (pa *peerAccount) IncreaseValidatorIgnoredSignaturesRate(value uint32) {
+	pa.ValidatorIgnoredSignaturesRate += value
+}
+
 // IncreaseNumSelectedInSuccessBlocks sets the account's NumSelectedInSuccessBlocks
 func (pa *peerAccount) IncreaseNumSelectedInSuccessBlocks() {
 	pa.NumSelectedInSuccessBlocks++
@@ -122,10 +127,12 @@ func (pa *peerAccount) ResetAtNewEpoch() {
 	pa.TotalLeaderSuccessRate.NumSuccess += pa.LeaderSuccessRate.NumSuccess
 	pa.TotalValidatorSuccessRate.NumSuccess += pa.ValidatorSuccessRate.NumSuccess
 	pa.TotalValidatorSuccessRate.NumFailure += pa.ValidatorSuccessRate.NumFailure
+	pa.TotalValidatorIgnoredSignaturesRate += pa.ValidatorIgnoredSignaturesRate
 	pa.LeaderSuccessRate.NumFailure = 0
 	pa.LeaderSuccessRate.NumSuccess = 0
 	pa.ValidatorSuccessRate.NumSuccess = 0
 	pa.ValidatorSuccessRate.NumFailure = 0
+	pa.ValidatorIgnoredSignaturesRate = 0
 	pa.NumSelectedInSuccessBlocks = 0
 }
 

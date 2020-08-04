@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -153,7 +154,8 @@ type Node struct {
 	heartbeatHandler   *componentHandler.HeartbeatHandler
 	peerHonestyHandler consensus.PeerHonestyHandler
 
-	watchdog core.WatchdogTimer
+	watchdog          core.WatchdogTimer
+	historyRepository fullHistory.HistoryRepository
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -894,7 +896,7 @@ func (n *Node) CreateTransaction(
 	sender string,
 	gasPrice uint64,
 	gasLimit uint64,
-	dataField string,
+	dataField []byte,
 	signatureHex string,
 	chainID string,
 	version uint32,
@@ -939,7 +941,7 @@ func (n *Node) CreateTransaction(
 		SndAddr:   senderAddress,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      []byte(dataField),
+		Data:      dataField,
 		Signature: signatureBytes,
 		ChainID:   []byte(chainID),
 		Version:   version,
