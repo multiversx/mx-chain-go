@@ -481,7 +481,7 @@ func (txProc *txProcessor) processRelayedTx(
 	}
 
 	totalFee, remainingFee, remainingGasLimit := txProc.computeRelayedTxFees(tx)
-	if userTx.GasLimit < remainingGasLimit {
+	if userTx.GasLimit != remainingGasLimit {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxGasLimitMissmatch)
 	}
 
