@@ -1327,17 +1327,11 @@ func (sc *scProcessor) IsPayable(address []byte) (bool, error) {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (sc *scProcessor) EpochConfirmed(epoch uint32) {
-	shouldEnableDeploy := epoch >= sc.deployEnableEpoch && !sc.flagDeploy.IsSet()
-	if shouldEnableDeploy {
-		sc.flagDeploy.Set()
-		log.Debug("scProcessor: enabled deployment of SC")
-	}
+	sc.flagDeploy.Toggle(epoch >= sc.deployEnableEpoch)
+	log.Debug("scProcessor: deployment of SC", "enabled", sc.flagDeploy.IsSet())
 
-	shouldEnableBuiltin := epoch >= sc.builtinEnableEpoch && !sc.flagBuiltin.IsSet()
-	if shouldEnableBuiltin {
-		sc.flagBuiltin.Set()
-		log.Debug("scProcessor: enabled built in functions")
-	}
+	sc.flagBuiltin.Toggle(epoch >= sc.builtinEnableEpoch)
+	log.Debug("scProcessor: built in functions", "enabled", sc.flagDeploy.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -12,6 +12,7 @@ import (
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -208,7 +209,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		},
 		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
@@ -227,7 +228,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:       smartContract.NewArgumentParser(),
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 	txProcessor, _ := transaction.NewTxProcessor(argsNewTxProcessor)
 
@@ -348,7 +349,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		},
 		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
@@ -368,7 +369,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:       smartContract.NewArgumentParser(),
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 	txProcessor, _ := transaction.NewTxProcessor(argsNewTxProcessor)
 

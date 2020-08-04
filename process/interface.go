@@ -907,5 +907,6 @@ type NodesCoordinator interface {
 type EpochNotifier interface {
 	RegisterNotifyHandler(handler core.EpochNotifiedHandler)
 	CurrentEpoch() uint32
+	CheckEpoch(epoch uint32)
 	IsInterfaceNil() bool
 }

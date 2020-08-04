@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
@@ -858,7 +859,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:       smartContract.NewArgumentParser(),
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 

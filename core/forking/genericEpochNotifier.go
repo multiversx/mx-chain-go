@@ -7,7 +7,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 var log = logger.GetOrCreate("core/forking")
@@ -25,9 +24,9 @@ func NewGenericEpochNotifier() *genericEpochNotifier {
 	}
 }
 
-// NotifyEpochChangeConfirmed should be called whenever a new start of epoch block becomes final
-// This call will trigger the calls to all registered handlers
-func (gen *genericEpochNotifier) NotifyEpochChangeConfirmed(epoch uint32) {
+// CheckEpoch should be called whenever a new epoch is known. It will trigger the notifications of the registered handlers
+// only if the current stored epoch is different from the one provided
+func (gen *genericEpochNotifier) CheckEpoch(epoch uint32) {
 	old := atomic.SwapUint32(&gen.currentEpoch, epoch)
 	sameEpoch := old == epoch
 	if sameEpoch {
@@ -47,14 +46,6 @@ func (gen *genericEpochNotifier) NotifyEpochChangeConfirmed(epoch uint32) {
 	for _, handler := range gen.handlers {
 		handler.EpochConfirmed(epoch)
 	}
-}
-
-// NotifyAll does nothing
-func (gen *genericEpochNotifier) NotifyAll(_ data.HeaderHandler) {
-}
-
-// NotifyAllPrepare does nothing
-func (gen *genericEpochNotifier) NotifyAllPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // RegisterNotifyHandler will register the provided handler to be called whenever a new epoch has changed

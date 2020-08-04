@@ -78,6 +78,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),
 		historyRepo:            arguments.HistoryRepository,
+		epochNotifier:          arguments.EpochNotifier,
 	}
 
 	sp := shardProcessor{
@@ -126,6 +127,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	sp.epochNotifier.CheckEpoch(headerHandler.GetEpoch())
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
 	log.Debug("started processing block",
@@ -681,6 +683,7 @@ func (sp *shardProcessor) CreateBlock(
 	}
 
 	shardHdr.SetEpoch(sp.epochStartTrigger.MetaEpoch())
+	sp.epochNotifier.CheckEpoch(shardHdr.GetEpoch())
 	sp.blockChainHook.SetCurrentHeader(shardHdr)
 	body, err := sp.createBlockBody(shardHdr, haveTime)
 	if err != nil {

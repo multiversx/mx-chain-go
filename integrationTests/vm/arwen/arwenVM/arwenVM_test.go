@@ -10,6 +10,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -607,7 +608,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:       smartContract.NewArgumentParser(),
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 	txProc, _ := processTransaction.NewTxProcessor(argsNewTxProcessor)
 

@@ -1425,6 +1425,7 @@ func newShardBlockProcessor(
 		Indexer:                indexer,
 		TpsBenchmark:           tpsBenchmark,
 		HistoryRepository:      historyRepository,
+		EpochNotifier:          epochNotifier,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1767,6 +1768,7 @@ func newMetaBlockProcessor(
 		Indexer:                indexer,
 		TpsBenchmark:           tpsBenchmark,
 		HistoryRepository:      historyRepository,
+		EpochNotifier:          epochNotifier,
 	}
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,

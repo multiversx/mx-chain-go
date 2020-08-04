@@ -1,7 +1,6 @@
 package forking
 
 import (
-	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,21 +16,6 @@ func TestNewGenericEpochNotifier(t *testing.T) {
 	gep := NewGenericEpochNotifier()
 
 	assert.False(t, check.IfNil(gep))
-}
-
-func TestGenericEpochNotifier_UnimplementedFunctionsShouldNotPanic(t *testing.T) {
-	t.Parallel()
-
-	defer func() {
-		r := recover()
-		if r != nil {
-			assert.Fail(t, fmt.Sprintf("should have not paniced: %v", r))
-		}
-	}()
-
-	gep := NewGenericEpochNotifier()
-	gep.NotifyAll(nil)
-	gep.NotifyAllPrepare(nil, nil)
 }
 
 func TestGenericEpochNotifier_RegisterNotifyHandlerNilHandlerShouldNotAdd(t *testing.T) {
@@ -75,7 +59,7 @@ func TestGenericEpochNotifier_UnregisterAllShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(gep.Handlers()))
 }
 
-func TestGenericEpochNotifier_NotifyEpochChangeConfirmedSameEpochShouldNotCall(t *testing.T) {
+func TestGenericEpochNotifier_CheckEpochSameEpochShouldNotCall(t *testing.T) {
 	t.Parallel()
 
 	gep := NewGenericEpochNotifier()
@@ -86,13 +70,13 @@ func TestGenericEpochNotifier_NotifyEpochChangeConfirmedSameEpochShouldNotCall(t
 		},
 	})
 
-	gep.NotifyEpochChangeConfirmed(0)
-	gep.NotifyEpochChangeConfirmed(0)
+	gep.CheckEpoch(0)
+	gep.CheckEpoch(0)
 
 	assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalls))
 }
 
-func TestGenericEpochNotifier_NotifyEpochChangeConfirmedShouldCall(t *testing.T) {
+func TestGenericEpochNotifier_CheckEpochShouldCall(t *testing.T) {
 	t.Parallel()
 
 	gep := NewGenericEpochNotifier()
@@ -106,13 +90,13 @@ func TestGenericEpochNotifier_NotifyEpochChangeConfirmedShouldCall(t *testing.T)
 		},
 	})
 
-	gep.NotifyEpochChangeConfirmed(newEpoch)
+	gep.CheckEpoch(newEpoch)
 
 	assert.True(t, wasCalled)
 	assert.Equal(t, newEpoch, gep.CurrentEpoch())
 }
 
-func TestGenericEpochNotifier_NotifyEpochChangeConfirmedInSyncShouldWork(t *testing.T) {
+func TestGenericEpochNotifier_CheckEpochInSyncShouldWork(t *testing.T) {
 	t.Parallel()
 
 	gep := NewGenericEpochNotifier()
@@ -131,7 +115,7 @@ func TestGenericEpochNotifier_NotifyEpochChangeConfirmedInSyncShouldWork(t *test
 	gep.RegisterNotifyHandler(handler)
 
 	start := time.Now()
-	gep.NotifyEpochChangeConfirmed(newEpoch)
+	gep.CheckEpoch(newEpoch)
 	end := time.Now()
 
 	assert.Equal(t, uint32(4), atomic.LoadUint32(&numCalls))

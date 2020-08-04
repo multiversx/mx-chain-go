@@ -7,8 +7,16 @@ import (
 
 // EpochNotifierStub -
 type EpochNotifierStub struct {
+	CheckEpochCalled            func(epoch uint32)
 	CurrentEpochCalled          func() uint32
 	RegisterNotifyHandlerCalled func(handler core.EpochNotifiedHandler)
+}
+
+// CheckEpoch -
+func (ens *EpochNotifierStub) CheckEpoch(epoch uint32) {
+	if ens.CheckEpochCalled != nil {
+		ens.CheckEpochCalled(epoch)
+	}
 }
 
 // RegisterNotifyHandler -

@@ -704,11 +704,8 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (txProc *txProcessor) EpochConfirmed(epoch uint32) {
-	shouldEnableRelayed := epoch >= txProc.relayedTxEnableEpoch && !txProc.flagRelayedTx.IsSet()
-	if shouldEnableRelayed {
-		txProc.flagRelayedTx.Set()
-		log.Debug("txProcessor: enabled relayed transactions")
-	}
+	txProc.flagRelayedTx.Toggle(epoch >= txProc.relayedTxEnableEpoch)
+	log.Debug("txProcessor: relayed transactions", "enabled", txProc.flagRelayedTx.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

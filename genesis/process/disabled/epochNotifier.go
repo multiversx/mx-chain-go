@@ -9,6 +9,10 @@ import (
 type EpochNotifier struct {
 }
 
+// CheckEpoch does nothing
+func (en *EpochNotifier) CheckEpoch(_ uint32) {
+}
+
 // RegisterNotifyHandler will call the non nil handler with the 0 epoch value
 func (en *EpochNotifier) RegisterNotifyHandler(handler core.EpochNotifiedHandler) {
 	if check.IfNil(handler) {
