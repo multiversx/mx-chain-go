@@ -71,6 +71,9 @@ var ErrMissingMultiHasherConfig = errors.New("no multisig hasher provided in con
 // ErrNilStatusHandler signals that a nil status handler has been provided
 var ErrNilStatusHandler = errors.New("nil status handler provided")
 
+// ErrNilSyncTimer signals that a nil sync timer has been provided
+var ErrNilSyncTimer = errors.New("nil sync timer provided")
+
 // ErrWrongTypeAssertion signals that a wrong type assertion occurred
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 

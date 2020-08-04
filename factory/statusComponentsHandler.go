@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -147,40 +146,6 @@ func (m *managedStatusComponents) StatusHandler() core.AppStatusHandler {
 	}
 
 	return m.statusComponents.statusHandler
-}
-
-// ServiceContainer returns a ServiceContainer instance for the assigned shard
-func (m *managedStatusComponents) ServiceContainer() (serviceContainer.Core, error) {
-	var err error
-	shardCoordinator := m.statusComponentsFactory.shardCoordinator
-
-	var coreServiceContainer serviceContainer.Core
-
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		coreServiceContainer, err = serviceContainer.NewServiceContainer(
-			serviceContainer.WithIndexer(m.statusComponents.elasticIndexer),
-		)
-		if err != nil {
-			return nil, err
-		}
-		return coreServiceContainer, nil
-	}
-
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		var indexerToUse indexer.Indexer
-		indexerToUse = indexer.NewNilIndexer()
-		if m.statusComponents.elasticIndexer != nil {
-			indexerToUse = m.statusComponents.elasticIndexer
-		}
-		coreServiceContainer, err = serviceContainer.NewServiceContainer(
-			serviceContainer.WithIndexer(indexerToUse),
-			serviceContainer.WithTPSBenchmark(m.statusComponents.tpsBenchmark))
-		if err != nil {
-			return nil, err
-		}
-		return coreServiceContainer, nil
-	}
-	return nil, errors.New("could not init core service container")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

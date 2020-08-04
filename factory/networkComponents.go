@@ -64,7 +64,7 @@ func NewNetworkComponentsFactory(
 		return nil, fmt.Errorf("%w in NewNetworkComponentsFactory", ErrNilMarshalizer)
 	}
 	if check.IfNil(args.Syncer) {
-		return nil, ErrNilSynctimer
+		return nil, ErrNilSyncTimer
 	}
 
 	return &networkComponentsFactory{

@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -252,7 +251,6 @@ type StatusHandlersUtils interface {
 type StatusComponentsHolder interface {
 	TpsBenchmark() statistics.TPSBenchmark
 	ElasticIndexer() indexer.Indexer
-	ServiceContainer() (serviceContainer.Core, error)
 	SoftwareVersionChecker() statistics.SoftwareVersionChecker
 	StatusHandler() core.AppStatusHandler
 	IsInterfaceNil() bool

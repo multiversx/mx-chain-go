@@ -65,7 +65,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 	if err != nil {
 		return nil, err
 	}
-	prevHash := arg.Hasher.Compute(arg.GenesisString)
+	prevHash := arg.Core.Hasher().Compute(arg.GenesisString)
 
 	header := &block.MetaBlock{
 		RootHash:               rootHash,

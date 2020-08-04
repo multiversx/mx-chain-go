@@ -279,7 +279,7 @@ func hardForkImport(
 			TxMarsh:             integrationTests.TestMarshalizer,
 			Hash:                integrationTests.TestHasher,
 			UInt64ByteSliceConv: integrationTests.TestUint64Converter,
-			ValidatorPubKeyConverter: integrationTests.TestValidatorPubkeyConverter,
+			ValPubKeyConv:       integrationTests.TestValidatorPubkeyConverter,
 			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
 			ChainIdCalled: func() string {
 				return string(node.ChainID)
@@ -419,12 +419,12 @@ func createHardForkExporter(
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], keysConfig)
 
 		coreComponents := &mock.CoreComponentsMock{
-			IntMarsh:                 integrationTests.TestMarshalizer,
-			TxMarsh:                  integrationTests.TestTxSignMarshalizer,
-			Hash:                     integrationTests.TestHasher,
-			UInt64ByteSliceConv:      integrationTests.TestUint64Converter,
-			AddrPubKeyConv:           integrationTests.TestAddressPubkeyConverter,
-			ValidatorPubKeyConverter: integrationTests.TestValidatorPubkeyConverter,
+			IntMarsh:            integrationTests.TestMarshalizer,
+			TxMarsh:             integrationTests.TestTxSignMarshalizer,
+			Hash:                integrationTests.TestHasher,
+			UInt64ByteSliceConv: integrationTests.TestUint64Converter,
+			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
+			ValPubKeyConv:       integrationTests.TestValidatorPubkeyConverter,
 			ChainIdCalled: func() string {
 				return string(node.ChainID)
 			},

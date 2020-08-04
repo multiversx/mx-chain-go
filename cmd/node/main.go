@@ -212,9 +212,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
-	exportFolder := filepath.Join(workingDir, generalConfig.Hardfork.ImportFolder)
+	exportFolder := filepath.Join(workingDir, cfgs.generalConfig.Hardfork.ImportFolder)
 	nodesSetupPath := ctx.GlobalString(nodesFile.Name)
-	if generalConfig.Hardfork.AfterHardFork {
+	if cfgs.generalConfig.Hardfork.AfterHardFork {
 		exportFolderNodesSetupPath := filepath.Join(exportFolder, core.NodesSetupJsonFileName)
 		if !core.DoesFileExist(exportFolderNodesSetupPath) {
 			return fmt.Errorf("cannot find %s in the export folder", core.NodesSetupJsonFileName)
@@ -274,7 +274,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		SkIndex:                              ctx.GlobalInt(validatorKeyIndex.Name),
 		Config:                               *cfgs.generalConfig,
 		CoreComponentsHolder:                 managedCoreComponents,
-		ActivateBLSPubKeyMessageVerification: cfgs.economicsConfig.ValidatorSettings.ActivateBLSPubKeyMessageVerification,
+		ActivateBLSPubKeyMessageVerification: cfgs.systemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 	}
 
 	managedCryptoComponents, err := mainFactory.NewManagedCryptoComponents(cryptoComponentsHandlerArgs)
@@ -372,6 +372,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		MainConfig:    *cfgs.generalConfig,
 		StatusHandler: managedCoreComponents.StatusHandler(),
 		Marshalizer:   managedCoreComponents.InternalMarshalizer(),
+		Syncer:        syncer,
 	}
 
 	managedNetworkComponents, err := mainFactory.NewManagedNetworkComponents(args)
@@ -729,9 +730,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	historyRepoFactoryArgs := &historyFactory.ArgsHistoryRepositoryFactory{
 		SelfShardID:       shardCoordinator.SelfId(),
 		FullHistoryConfig: cfgs.generalConfig.FullHistory,
-		Hasher:            coreComponents.Hasher,
-		Marshalizer:       coreComponents.InternalMarshalizer,
-		Store:             dataComponents.Store,
+		Hasher:            managedCoreComponents.Hasher(),
+		Marshalizer:       managedCoreComponents.InternalMarshalizer(),
+		Store:             managedDataComponents.StorageService(),
 	}
 	historyRepositoryFactory, err := historyFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {
@@ -767,8 +768,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating process components")
-	coreServiceContainer, _ := managedStatusComponents.ServiceContainer()
-
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
 		CoreFactoryArgs:           (*mainFactory.CoreComponentsFactoryArgs)(&coreArgs),
 		AccountsParser:            accountsParser,
@@ -784,7 +783,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Crypto:                    managedCryptoComponents,
 		State:                     managedStateComponents,
 		Network:                   managedNetworkComponents,
-		CoreServiceContainer:      coreServiceContainer,
 		RequestedItemsHandler:     requestedItemsHandler,
 		WhiteListHandler:          whiteListRequest,
 		WhiteListerVerifiedTxs:    whiteListerVerifiedTxs,
@@ -846,13 +844,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
 	}
 
-	var elasticIndexer indexer.Indexer
-	if !check.IfNil(coreServiceContainer) && !check.IfNil(coreServiceContainer.Indexer()) {
-		elasticIndexer = coreServiceContainer.Indexer()
-		if !elasticIndexer.IsNilIndexer() {
-			elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
-			managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
-		}
+	elasticIndexer := managedStatusComponents.ElasticIndexer()
+	if !elasticIndexer.IsNilIndexer() {
+		elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
+		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
 	}
 
 	log.Trace("creating node structure")
@@ -946,8 +941,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 		},
 		ApiRoutesConfig: *cfgs.apiRoutesConfig,
-		AccountsState:   stateComponents.AccountsAdapter,
-		PeerState:       stateComponents.PeerAccounts,
+		AccountsState:   managedStateComponents.AccountsAdapter(),
+		PeerState:       managedStateComponents.PeerAccounts(),
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -1613,7 +1608,7 @@ func createNode(
 		return nil, err
 	}
 
-	PrepareOpenTopics(network.InputAntiFloodHandler(), shardCoordinator)
+	prepareOpenTopics(network.InputAntiFloodHandler(), shardCoordinator)
 
 	alarmScheduler := alarm.NewAlarmScheduler()
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, chanStopNodeProcess)
@@ -2037,9 +2032,9 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 	}, nil
 }
 
-// PrepareOpenTopics will set to the anti flood handler the topics for which
+// prepareOpenTopics will set to the anti flood handler the topics for which
 // the node can receive messages from others than validators
-func PrepareOpenTopics(
+func prepareOpenTopics(
 	antiflood mainFactory.P2PAntifloodHandler,
 	shardCoordinator sharding.Coordinator,
 ) {

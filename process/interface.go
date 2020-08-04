@@ -934,6 +934,7 @@ type CoreComponentsHolder interface {
 	Hasher() hashing.Hasher
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverter() core.PubkeyConverter
+	ValidatorPubKeyConverter() core.PubkeyConverter
 	PathHandler() storage.PathManagerHandler
 	ChainID() string
 	MinTransactionVersion() uint32

@@ -138,9 +138,15 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		return nil, err
 	}
 
-	var elasticIndexer indexer.Indexer
+	elasticIndexer, err := scf.createElasticIndexer()
+	if err != nil {
+		return nil, err
+	}
 
-	if scf.externalConfig.ElasticSearchConnector.Enabled {
+	if !scf.externalConfig.ElasticSearchConnector.Enabled {
+		log.Debug("elastic search indexing not enabled, will create a NilIndexer")
+		elasticIndexer = indexer.NewNilIndexer()
+	} else {
 		elasticIndexerArgs := indexer.ElasticIndexerArgs{
 			ShardId:                  scf.shardCoordinator.SelfId(),
 			Url:                      scf.externalConfig.ElasticSearchConnector.URL,
@@ -158,8 +164,6 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		elasticIndexer = indexer.NewNilIndexer()
 	}
 
 	return &statusComponents{
@@ -183,4 +187,30 @@ func (pc *statusComponents) Close() error {
 	// TODO: close all components
 
 	return nil
+}
+
+// createElasticIndexer creates a new elasticIndexer where the server listens on the url,
+// authentication for the server is using the username and password
+func (scf *statusComponentsFactory) createElasticIndexer() (indexer.Indexer, error) {
+	if !scf.externalConfig.ElasticSearchConnector.Enabled {
+		log.Debug("elastic search indexing not enabled, will create a NilIndexer")
+		return indexer.NewNilIndexer(), nil
+	}
+
+	log.Debug("elastic search indexing enabled, will create an ElasticIndexer")
+	elasticIndexerArgs := indexer.ElasticIndexerArgs{
+		ShardId:                  scf.shardCoordinator.SelfId(),
+		Url:                      scf.externalConfig.ElasticSearchConnector.URL,
+		UserName:                 scf.externalConfig.ElasticSearchConnector.Username,
+		Password:                 scf.externalConfig.ElasticSearchConnector.Password,
+		Marshalizer:              scf.coreComponents.VmMarshalizer(),
+		Hasher:                   scf.coreComponents.Hasher(),
+		EpochStartNotifier:       scf.epochStartNotifier,
+		NodesCoordinator:         scf.nodesCoordinator,
+		AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
+		ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
+		Options:                  scf.elasticOptions,
+	}
+
+	return indexer.NewElasticIndexer(elasticIndexerArgs)
 }

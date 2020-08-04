@@ -150,10 +150,10 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		return nil, update.ErrNilSingleSigner
 	}
 	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
-		return nil, update.ErrNilPubkeyConverter
+		return nil, update.ErrNilPubKeyConverter
 	}
 	if check.IfNil(args.CoreComponents.ValidatorPubKeyConverter()) {
-		return nil, update.ErrNilPubkeyConverter
+		return nil, update.ErrNilPubKeyConverter
 	}
 	if check.IfNil(args.CryptoComponents.BlockSignKeyGen()) {
 		return nil, update.ErrNilBlockKeyGen

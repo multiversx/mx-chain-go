@@ -61,8 +61,8 @@ type ArgsGenesisBlockCreator struct {
 	WorkingDir           string
 	BlockSignKeyGen      crypto.KeyGenerator
 
-	GenesisNodePrice         *big.Int
-	GenesisString            string
+	GenesisNodePrice *big.Int
+	GenesisString    string
 	// created components
 	importHandler update.ImportHandler
 }

@@ -15,6 +15,7 @@ type CoreComponentsMock struct {
 	Hash                        hashing.Hasher
 	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv              core.PubkeyConverter
+	ValPubKeyConv               core.PubkeyConverter
 	PathHdl                     storage.PathManagerHandler
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
@@ -49,6 +50,11 @@ func (ccm *CoreComponentsMock) Uint64ByteSliceConverter() typeConverters.Uint64B
 // AddressPubKeyConverter -
 func (ccm *CoreComponentsMock) AddressPubKeyConverter() core.PubkeyConverter {
 	return ccm.AddrPubKeyConv
+}
+
+// ValidatorPubKeyConverter -
+func (ccm *CoreComponentsMock) ValidatorPubKeyConverter() core.PubkeyConverter {
+	return ccm.ValPubKeyConv
 }
 
 // PathHandler -

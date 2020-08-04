@@ -3,6 +3,7 @@ package factory
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -10,9 +11,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -94,7 +98,6 @@ type ProcessComponentsFactoryArgs struct {
 	Crypto                    CryptoComponentsHolder
 	State                     StateComponentsHolder
 	Network                   NetworkComponentsHolder
-	CoreServiceContainer      serviceContainer.Core
 	RequestedItemsHandler     dataRetriever.RequestedItemsHandler
 	WhiteListHandler          process.WhiteListHandler
 	WhiteListerVerifiedTxs    process.WhiteListHandler
@@ -115,6 +118,9 @@ type ProcessComponentsFactoryArgs struct {
 	Version                   string
 	ImportStartHandler        update.ImportStartHandler
 	WorkingDir                string
+	Indexer                   indexer.Indexer
+	TpsBenchmark              statistics.TPSBenchmark
+	HistoryRepo               fullHistory.HistoryRepository
 }
 
 type processComponentsFactory struct {
@@ -132,7 +138,6 @@ type processComponentsFactory struct {
 	crypto                    CryptoComponentsHolder
 	state                     StateComponentsHolder
 	network                   NetworkComponentsHolder
-	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
 	whiteListHandler          process.WhiteListHandler
 	whiteListerVerifiedTxs    process.WhiteListHandler
@@ -153,6 +158,9 @@ type processComponentsFactory struct {
 	version                   string
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
+	indexer                   indexer.Indexer
+	tpsBenchmark              statistics.TPSBenchmark
+	historyRepo               fullHistory.HistoryRepository
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -177,7 +185,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		crypto:                    args.Crypto,
 		state:                     args.State,
 		network:                   args.Network,
-		coreServiceContainer:      args.CoreServiceContainer,
 		requestedItemsHandler:     args.RequestedItemsHandler,
 		whiteListHandler:          args.WhiteListHandler,
 		whiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
@@ -197,6 +204,9 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		version:                   args.Version,
 		importStartHandler:        args.ImportStartHandler,
 		workingDir:                args.WorkingDir,
+		indexer:                   args.Indexer,
+		tpsBenchmark:              args.TpsBenchmark,
+		historyRepo:               args.HistoryRepo,
 	}, nil
 }
 
@@ -262,7 +272,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	err = pcf.prepareGenesisBlock(genesisBlocks)
+	pcf.indexer.SaveBlock(&dataBlock.Body{}, genesisBlocks[core.MetachainShardId], nil, nil, nil)
+	err = pcf.setGenesisHeader(genesisBlocks)
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +315,19 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
+
+	log.Debug("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
+
+	genesisMetaBlock, ok := genesisBlocks[core.MetachainShardId]
+	if !ok {
+		return nil, errors.New("genesis meta block does not exist")
+	}
+
+	genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	err = pcf.prepareGenesisBlock(genesisBlocks)
+	if err != nil {
+		return nil, err
+	}
 
 	bootStr := pcf.data.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(pcf.coreData.InternalMarshalizer(), bootStr)
@@ -401,9 +424,15 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	conversionBase := 10
+	genesisNodePrice, ok := big.NewInt(0).SetString(pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
+	if !ok {
+		return nil, errors.New("invalid genesis node price")
+	}
+
 	nodesSetupChecker, err := checking.NewNodesSetupChecker(
 		pcf.accountsParser,
-		pcf.economicsData.GenesisNodePrice(),
+		genesisNodePrice,
 		pcf.validatorPubkeyConverter,
 		pcf.crypto.BlockSignKeyGen(),
 	)
@@ -559,6 +588,9 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 }
 
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, error) {
+	genesisVmConfig := pcf.coreFactoryArgs.Config.VirtualMachineConfig
+	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
+
 	arg := processGenesis.ArgsGenesisBlockCreator{
 		Core:                 pcf.coreData,
 		Data:                 pcf.data,
@@ -572,7 +604,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		SmartContractParser:  pcf.smartContractParser,
 		ValidatorAccounts:    pcf.state.PeerAccounts(),
 		GasMap:               pcf.gasSchedule,
-		VirtualMachineConfig: pcf.coreFactoryArgs.Config.VirtualMachineConfig,
+		VirtualMachineConfig: genesisVmConfig,
 		TxLogsProcessor:      pcf.txLogsProcessor,
 		HardForkConfig:       pcf.coreFactoryArgs.Config.Hardfork,
 		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
@@ -580,6 +612,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		ImportStartHandler:   pcf.importStartHandler,
 		WorkingDir:           pcf.workingDir,
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
+		GenesisString:        pcf.coreFactoryArgs.Config.GeneralSettings.GenesisString,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
@@ -590,10 +623,24 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	return gbc.CreateGenesisBlocks()
 }
 
+func (pcf *processComponentsFactory) setGenesisHeader(genesisBlocks map[uint32]data.HeaderHandler) error {
+	genesisBlock, ok := genesisBlocks[pcf.shardCoordinator.SelfId()]
+	if !ok {
+		return errors.New("genesis block does not exist")
+	}
+
+	err := pcf.data.Blockchain().SetGenesisHeader(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint32]data.HeaderHandler) error {
 	genesisBlock, ok := genesisBlocks[pcf.shardCoordinator.SelfId()]
 	if !ok {
-		return errors.New("genesis block does not exists")
+		return errors.New("genesis block does not exist")
 	}
 
 	genesisBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlock)
@@ -613,15 +660,25 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint3
 		return err
 	}
 
+	nonceToByteSlice := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlock.GetNonce())
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
 		errNotCritical := pcf.data.StorageService().Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis metablock", "error", errNotCritical.Error())
 		}
+		errNotCritical = pcf.data.StorageService().Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
+		if errNotCritical != nil {
+			log.Error("error storing genesis metablock (nonce-hash)", "error", errNotCritical.Error())
+		}
 	} else {
 		errNotCritical := pcf.data.StorageService().Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
+		}
+		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(genesisBlock.GetShardID())
+		errNotCritical = pcf.data.StorageService().Put(hdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
+		if errNotCritical != nil {
+			log.Error("error storing genesis shard header (nonce-hash)", "error", errNotCritical.Error())
 		}
 	}
 
@@ -964,9 +1021,6 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.Network) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilNetworkComponentsHolder)
-	}
-	if check.IfNil(args.CoreServiceContainer) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilCoreServiceContainer)
 	}
 	if check.IfNil(args.RequestedItemsHandler) {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilRequestedItemHandler)
