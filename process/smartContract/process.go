@@ -752,7 +752,7 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	if isTooMuchGasProvided(vmOutput.GasRemaining, gasProvided) {
-		log.Warn("scProcessor.processVMOutput: too much gas has been provided",
+		log.Trace("scProcessor.processVMOutput: too much gas has been provided",
 			"hash", txHash,
 			"nonce", tx.GetNonce(),
 			"value", tx.GetValue(),
