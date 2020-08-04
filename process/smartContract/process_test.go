@@ -919,7 +919,7 @@ func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 	acntSrc, _, tx := createAccountsAndTransaction()
 
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
 	require.Equal(t, process.ErrNilVMOutput, err)
 }
 
@@ -938,7 +938,7 @@ func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 	acntSrc, _, _ := createAccountsAndTransaction()
 
 	vmOutput := &vmcommon.VMOutput{}
-	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall, 0)
 	require.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -961,7 +961,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		GasRemaining: 0,
 	}
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, nil, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, nil, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
@@ -992,7 +992,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
@@ -1498,7 +1498,7 @@ func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
 
 	require.Equal(t, process.ErrNilVMOutput, err)
 }
@@ -1514,7 +1514,7 @@ func TestScProcessor_processVMOutputNilTransaction(t *testing.T) {
 	require.Nil(t, err)
 
 	vmOutput := &vmcommon.VMOutput{}
-	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall, 0)
 
 	require.Equal(t, process.ErrNilTransaction, err)
 }
@@ -1542,7 +1542,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
@@ -2146,40 +2146,21 @@ func TestScProcessor_checkUpgradePermission(t *testing.T) {
 	require.Equal(t, process.ErrUpgradeNotAllowed, err)
 }
 
-func TestScProcessor_isTooMuchGasPutInsideTxShouldWork(t *testing.T) {
+func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tx := &transaction.Transaction{}
-	tx.GasPrice = 1
-	tx.GasLimit = 100
+	gasProvided := uint64(100)
+	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
 
-	moveBalanceCost := big.NewInt(10)
+	isTooMuchGas := isTooMuchGasProvided(gasProvided, gasProvided)
+	assert.False(t, isTooMuchGas)
 
-	gasPut := big.NewInt(0)
-	gasPut.Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
-	gasPut.Sub(gasPut, moveBalanceCost)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1)
+	assert.False(t, isTooMuchGas)
 
-	maxGasToRemain := gasPut.Uint64() - (gasPut.Uint64() / process.MaxGasFeeHigherFactorAccepted)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain)
+	assert.False(t, isTooMuchGas)
 
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
-			return moveBalanceCost
-		},
-	}
-	sc, _ := NewSmartContractProcessor(arguments)
-
-	vmOutput := &vmcommon.VMOutput{}
-
-	vmOutput.GasRemaining = maxGasToRemain + 1
-	isTooMuchGasPut := sc.isTooMuchGasPutInsideTx(vmOutput.GasRemaining, tx, nil)
-	assert.True(t, isTooMuchGasPut)
-
-	vmOutput.GasRemaining = maxGasToRemain
-	isTooMuchGasPut = sc.isTooMuchGasPutInsideTx(vmOutput.GasRemaining, tx, nil)
-	assert.False(t, isTooMuchGasPut)
-
-	vmOutput.GasRemaining = maxGasToRemain - 1
-	isTooMuchGasPut = sc.isTooMuchGasPutInsideTx(vmOutput.GasRemaining, tx, nil)
-	assert.False(t, isTooMuchGasPut)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1)
+	assert.True(t, isTooMuchGas)
 }

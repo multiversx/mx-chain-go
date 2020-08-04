@@ -870,7 +870,8 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	vmOutput3, _ := shardNode.SCQueryService.ExecuteQuery(scQuery3)
 	assert.NotNil(t, vmOutput3)
 	assert.Equal(t, len(vmOutput3.ReturnData), 1)
-	assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput3.ReturnData[0])) == 0)
+	value := big.NewInt(0).SetBytes(vmOutput3.ReturnData[0])
+	assert.True(t, totalStake.Cmp(value) == 0)
 
 	// check that the stake got activated
 	scQuery4 := &process.SCQuery{
@@ -881,7 +882,8 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	vmOutput4, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
 	assert.NotNil(t, vmOutput4)
 	assert.Equal(t, len(vmOutput4.ReturnData), 1)
-	//assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput4.ReturnData[0])) == 0)
+	value = big.NewInt(0).SetBytes(vmOutput4.ReturnData[0])
+	assert.True(t, totalStake.Cmp(value) == 0)
 
 	// check that the staking system smart contract has the value
 	for _, node := range nodes {

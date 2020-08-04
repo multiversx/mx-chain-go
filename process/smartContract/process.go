@@ -284,7 +284,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 
 	var consumedFee *big.Int
 	var results []data.TransactionHandler
-	results, consumedFee, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
+	results, consumedFee, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("process vm output returned with problem ", "err", err.Error())
 		return vmOutput.ReturnCode, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot)
@@ -669,7 +669,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
+	results, consumedFee, err := sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
 		return vmOutput.ReturnCode, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot)
@@ -742,6 +742,7 @@ func (sc *scProcessor) processVMOutput(
 	tx data.TransactionHandler,
 	acntSnd state.UserAccountHandler,
 	callType vmcommon.CallType,
+	gasProvided uint64,
 ) ([]data.TransactionHandler, *big.Int, error) {
 	if vmOutput == nil {
 		return nil, nil, process.ErrNilVMOutput
@@ -750,8 +751,8 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
-	if sc.isTooMuchGasPutInsideTx(vmOutput.GasRemaining, tx, acntSnd) {
-		log.Warn("scProcessor.processVMOutput: too much gas has been put inside tx",
+	if isTooMuchGasProvided(vmOutput.GasRemaining, gasProvided) {
+		log.Warn("scProcessor.processVMOutput: too much gas has been provided",
 			"hash", txHash,
 			"nonce", tx.GetNonce(),
 			"value", tx.GetValue(),
@@ -759,11 +760,15 @@ func (sc *scProcessor) processVMOutput(
 			"receiver", tx.GetRcvAddr(),
 			"gas limit", tx.GetGasLimit(),
 			"gas price", tx.GetGasPrice(),
-			"gas remaining", vmOutput.GasRemaining,
+			"gas provided", gasProvided,
+			"gas remained", vmOutput.GasRemaining,
+			"gas used", gasProvided-vmOutput.GasRemaining,
 			"return code", vmOutput.ReturnCode.String(),
 			"return message", vmOutput.ReturnMessage,
 		)
 
+		vmOutput.ReturnMessage = fmt.Sprintf("too much gas has been provided: gas used = %d, gas remained = %d",
+			gasProvided-vmOutput.GasRemaining, vmOutput.GasRemaining)
 		vmOutput.GasRemaining = 0
 	}
 
@@ -836,38 +841,13 @@ func (sc *scProcessor) processVMOutput(
 	return scrTxs, consumedFee, nil
 }
 
-func (sc *scProcessor) isTooMuchGasPutInsideTx(
-	gasRemaining uint64,
-	tx data.TransactionHandler,
-	acntSnd state.UserAccountHandler,
-) bool {
-	gasPut := big.NewInt(0)
-	gasPut.Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
-
-	if check.IfNil(acntSnd) {
-		// cross shard move balance fee was already consumed at sender shard
-		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
-		gasPut.Sub(gasPut, moveBalanceCost)
+func isTooMuchGasProvided(gasProvided uint64, gasRemained uint64) bool {
+	if gasProvided <= gasRemained {
+		return false
 	}
 
-	gasRefunded := big.NewInt(0)
-	gasRefunded.Mul(big.NewInt(0).SetUint64(gasRemaining), big.NewInt(0).SetUint64(tx.GetGasPrice()))
-
-	gasUsed := big.NewInt(0)
-	gasUsed.Sub(gasPut, gasRefunded)
-
-	gasUsedMultiplied := big.NewInt(0)
-	gasUsedMultiplied.Mul(gasUsed, big.NewInt(0).SetUint64(process.MaxGasFeeHigherFactorAccepted))
-
-	isTooMuchGas := gasPut.Cmp(gasUsedMultiplied) > 0
-	if isTooMuchGas {
-		log.Warn("scProcessor.isTooMuchGasPutInsideTx",
-			"gasPut", gasPut.String(),
-			"gasRefunded", gasRefunded.String(),
-			"gasUsed", gasUsed.String())
-	}
-
-	return isTooMuchGas
+	gasUsed := gasProvided - gasRemained
+	return gasProvided > gasUsed*process.MaxGasFeeHigherFactorAccepted
 }
 
 func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
