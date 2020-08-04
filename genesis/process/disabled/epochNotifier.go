@@ -15,7 +15,7 @@ func (en *EpochNotifier) RegisterNotifyHandler(handler core.EpochNotifiedHandler
 		return
 	}
 
-	handler.NewEpochConfirmed(0)
+	handler.EpochConfirmed(0)
 }
 
 // CurrentEpoch always returns 0
