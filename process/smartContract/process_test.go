@@ -17,6 +17,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -2143,4 +2144,42 @@ func TestScProcessor_checkUpgradePermission(t *testing.T) {
 	// Upgrade as nobody, not allowed
 	err = sc.checkUpgradePermission(contract, &vmcommon.ContractCallInput{Function: "upgradeContract", VMInput: vmcommon.VMInput{CallerAddr: nil}})
 	require.Equal(t, process.ErrUpgradeNotAllowed, err)
+}
+
+func TestScProcessor_isTooMuchGasPutInsideTxShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{}
+	tx.GasPrice = 1
+	tx.GasLimit = 100
+
+	moveBalanceCost := big.NewInt(10)
+
+	gasPut := big.NewInt(0)
+	gasPut.Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+	gasPut.Sub(gasPut, moveBalanceCost)
+
+	maxGasToRemain := gasPut.Uint64() - (gasPut.Uint64() / process.MaxGasFeeHigherFactorAccepted)
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return moveBalanceCost
+		},
+	}
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	vmOutput := &vmcommon.VMOutput{}
+
+	vmOutput.GasRemaining = maxGasToRemain + 1
+	isTooMuchGasPut := sc.isTooMuchGasPutInsideTx(vmOutput.GasRemaining, tx, nil)
+	assert.True(t, isTooMuchGasPut)
+
+	vmOutput.GasRemaining = maxGasToRemain
+	isTooMuchGasPut = sc.isTooMuchGasPutInsideTx(vmOutput.GasRemaining, tx, nil)
+	assert.False(t, isTooMuchGasPut)
+
+	vmOutput.GasRemaining = maxGasToRemain - 1
+	isTooMuchGasPut = sc.isTooMuchGasPutInsideTx(vmOutput.GasRemaining, tx, nil)
+	assert.False(t, isTooMuchGasPut)
 }

@@ -1585,7 +1585,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "")
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
 		}
 		time.Sleep(integrationTests.StepDelay)
 

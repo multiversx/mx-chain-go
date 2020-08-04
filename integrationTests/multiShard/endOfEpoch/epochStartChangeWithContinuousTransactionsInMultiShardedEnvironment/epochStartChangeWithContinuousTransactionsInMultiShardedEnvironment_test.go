@@ -71,7 +71,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		nonce++
 
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "")
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
 		}
 
 		time.Sleep(time.Second)

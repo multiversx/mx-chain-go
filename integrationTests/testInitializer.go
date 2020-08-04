@@ -73,6 +73,8 @@ var P2pBootstrapDelay = 5 * time.Second
 // InitialRating is used to initiate a node's info
 var InitialRating = uint32(50)
 
+var AdditionalGasLimit = uint64(999000)
+
 var log = logger.GetOrCreate("integrationtests")
 
 // shuffler constants
@@ -1300,6 +1302,7 @@ func CreateAndSendTransaction(
 	txValue *big.Int,
 	rcvAddress []byte,
 	txData string,
+	additionalGasLimit uint64,
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
@@ -1308,7 +1311,7 @@ func CreateAndSendTransaction(
 		RcvAddr:  rcvAddress,
 		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit*1000 + uint64(len(txData)),
+		GasLimit: MinTxGasLimit + uint64(len(txData)) + additionalGasLimit,
 		ChainID:  ChainID,
 		Version:  MinTransactionVersion,
 	}

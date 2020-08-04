@@ -750,6 +750,23 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
+	if sc.isTooMuchGasPutInsideTx(vmOutput.GasRemaining, tx, acntSnd) {
+		log.Warn("scProcessor.processVMOutput: too much gas has been put inside tx",
+			"hash", txHash,
+			"nonce", tx.GetNonce(),
+			"value", tx.GetValue(),
+			"sender", tx.GetSndAddr(),
+			"receiver", tx.GetRcvAddr(),
+			"gas limit", tx.GetGasLimit(),
+			"gas price", tx.GetGasPrice(),
+			"gas remaining", vmOutput.GasRemaining,
+			"return code", vmOutput.ReturnCode.String(),
+			"return message", vmOutput.ReturnMessage,
+		)
+
+		vmOutput.GasRemaining = 0
+	}
+
 	scrForSender, consumedFee := sc.createSCRForSender(
 		vmOutput.GasRefund,
 		vmOutput.GasRemaining,
@@ -817,6 +834,40 @@ func (sc *scProcessor) processVMOutput(
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 
 	return scrTxs, consumedFee, nil
+}
+
+func (sc *scProcessor) isTooMuchGasPutInsideTx(
+	gasRemaining uint64,
+	tx data.TransactionHandler,
+	acntSnd state.UserAccountHandler,
+) bool {
+	gasPut := big.NewInt(0)
+	gasPut.Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+
+	if check.IfNil(acntSnd) {
+		// cross shard move balance fee was already consumed at sender shard
+		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
+		gasPut.Sub(gasPut, moveBalanceCost)
+	}
+
+	gasRefunded := big.NewInt(0)
+	gasRefunded.Mul(big.NewInt(0).SetUint64(gasRemaining), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+
+	gasUsed := big.NewInt(0)
+	gasUsed.Sub(gasPut, gasRefunded)
+
+	gasUsedMultiplied := big.NewInt(0)
+	gasUsedMultiplied.Mul(gasUsed, big.NewInt(0).SetUint64(process.MaxGasFeeHigherFactorAccepted))
+
+	isTooMuchGas := gasPut.Cmp(gasUsedMultiplied) > 0
+	if isTooMuchGas {
+		log.Warn("scProcessor.isTooMuchGasPutInsideTx",
+			"gasPut", gasPut.String(),
+			"gasRefunded", gasRefunded.String(),
+			"gasUsed", gasUsed.String())
+	}
+
+	return isTooMuchGas
 }
 
 func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {

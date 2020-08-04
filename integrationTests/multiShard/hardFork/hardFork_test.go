@@ -191,8 +191,8 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "")
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "")
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "", integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "", integrationTests.AdditionalGasLimit)
 		}
 
 		for _, player := range players {

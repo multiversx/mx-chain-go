@@ -35,7 +35,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	gasLimit := uint64(100000)
+	gasLimit := uint64(500)
 	transferOnCalls := big.NewInt(50)
 
 	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen.wasm")
@@ -346,7 +346,7 @@ func TestWASMMetering(t *testing.T) {
 
 	testingValue := uint64(15)
 
-	gasLimit = uint64(2000)
+	gasLimit = uint64(500)
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
