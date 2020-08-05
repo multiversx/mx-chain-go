@@ -51,10 +51,10 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 		args.StorageService = initStore()
 		byteArray := args.Uint64Converter.ToByteSlice(meta.Nonce)
 		_ = args.StorageService.Put(dataRetriever.MetaHdrNonceHashDataUnit, byteArray, []byte("firstPending"))
-		marshalledData, _ := json.Marshal(meta)
-		_ = args.StorageService.Put(dataRetriever.MetaBlockUnit, []byte("firstPending"), marshalledData)
+		marshaledData, _ := json.Marshal(meta)
+		_ = args.StorageService.Put(dataRetriever.MetaBlockUnit, []byte("firstPending"), marshaledData)
 
-		_ = args.StorageService.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(meta.Epoch)), marshalledData)
+		_ = args.StorageService.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(meta.Epoch)), marshaledData)
 	}
 
 	headersSyncHandler, _ := NewHeadersSyncHandler(args)

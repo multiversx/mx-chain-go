@@ -26,18 +26,20 @@ type Facade struct {
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data string, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
-	ValidateTransactionHandler        func(tx *transaction.Transaction) error
-	SendBulkTransactionsHandler       func(txs []*transaction.Transaction) (uint64, error)
-	ExecuteSCQueryHandler             func(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	StatusMetricsHandler              func() external.StatusMetricsHandler
-	ValidatorStatisticsHandler        func() (map[string]*state.ValidatorApiResponse, error)
-	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
-	NodeConfigCalled                  func() map[string]interface{}
-	GetQueryHandlerCalled             func(name string) (debug.QueryHandler, error)
-	GetValueForKeyCalled              func(address string, key string) (string, error)
-	GetPeerInfoCalled                 func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetThrottlerForEndpointCalled     func(endpoint string) (core.Throttler, bool)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
+	ValidateTransactionHandler              func(tx *transaction.Transaction) error
+	SendBulkTransactionsHandler             func(txs []*transaction.Transaction) (uint64, error)
+	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	StatusMetricsHandler                    func() external.StatusMetricsHandler
+	ValidatorStatisticsHandler              func() (map[string]*state.ValidatorApiResponse, error)
+	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (uint64, error)
+	NodeConfigCalled                        func() map[string]interface{}
+	GetQueryHandlerCalled                   func(name string) (debug.QueryHandler, error)
+	GetValueForKeyCalled                    func(address string, key string) (string, error)
+	GetPeerInfoCalled                       func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetThrottlerForEndpointCalled           func(endpoint string) (core.Throttler, bool)
+	GetNumCheckpointsFromAccountStateCalled func() uint32
+	GetNumCheckpointsFromPeerStateCalled    func() uint32
 }
 
 // GetThrottlerForEndpoint -
@@ -104,7 +106,7 @@ func (f *Facade) CreateTransaction(
 	senderHex string,
 	gasPrice uint64,
 	gasLimit uint64,
-	data string,
+	data []byte,
 	signatureHex string,
 	chainID string,
 	version uint32,
@@ -170,6 +172,24 @@ func (f *Facade) GetQueryHandler(name string) (debug.QueryHandler, error) {
 // GetPeerInfo -
 func (f *Facade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return f.GetPeerInfoCalled(pid)
+}
+
+// GetNumCheckpointsFromAccountState -
+func (f *Facade) GetNumCheckpointsFromAccountState() uint32 {
+	if f.GetNumCheckpointsFromAccountStateCalled != nil {
+		return f.GetNumCheckpointsFromAccountStateCalled()
+	}
+
+	return 0
+}
+
+// GetNumCheckpointsFromPeerState -
+func (f *Facade) GetNumCheckpointsFromPeerState() uint32 {
+	if f.GetNumCheckpointsFromPeerStateCalled != nil {
+		return f.GetNumCheckpointsFromPeerStateCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

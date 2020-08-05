@@ -269,6 +269,9 @@ var ErrNilRandSeed = errors.New("provided rand seed is nil")
 // ErrNilPrevRandSeed signals that a nil previous rand seed has been provided
 var ErrNilPrevRandSeed = errors.New("provided previous rand seed is nil")
 
+// ErrReservedFieldNotSupportedYet signals that reserved field is not empty
+var ErrReservedFieldNotSupportedYet = errors.New("reserved field not supported yet")
+
 // ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
 
@@ -482,12 +485,6 @@ var ErrInvalidMinimumGasPrice = errors.New("invalid minimum gas price")
 // ErrInvalidMinimumGasLimitForTx signals that an invalid minimum gas limit for transactions has been read from config file
 var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for transactions")
 
-// ErrInvalidRewardsValue signals that an invalid rewards value has been read from config file
-var ErrInvalidRewardsValue = errors.New("invalid rewards value")
-
-// ErrInvalidUnBondPeriod signals that an invalid unbond period has been read from config file
-var ErrInvalidUnBondPeriod = errors.New("invalid unbond period")
-
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
 
@@ -602,9 +599,6 @@ var ErrMiniBlockNumMissMatch = errors.New("num miniblocks does not match")
 // ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
 var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")
 
-// ErrInvalidMinStepValue signals the min step value is invalid
-var ErrInvalidMinStepValue = errors.New("invalid min step value")
-
 // ErrNotEpochStartBlock signals that block is not of type epoch start
 var ErrNotEpochStartBlock = errors.New("not epoch start block")
 
@@ -671,15 +665,6 @@ var ErrNilEpochStartValidatorInfoCreator = errors.New("nil epoch start validator
 // ErrInvalidGenesisTotalSupply signals that invalid genesis total supply was provided
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply")
 
-// ErrInvalidAuctionEnableNonce signals that auction enable nonce is invalid
-var ErrInvalidAuctionEnableNonce = errors.New("invalid auction enable nonce")
-
-// ErrInvalidStakingEnableNonce signals that the staking enable nonce is invalid
-var ErrInvalidStakingEnableNonce = errors.New("invalid staking enable nonce")
-
-// ErrInvalidUnJailPrice signals that invalid unjail price was provided
-var ErrInvalidUnJailPrice = errors.New("invalid unjail price")
-
 // ErrOperationNotPermitted signals that operation is not permitted
 var ErrOperationNotPermitted = errors.New("operation in account not permitted")
 
@@ -731,6 +716,9 @@ var ErrNilValidatorInfos = errors.New("nil validator infos")
 // ErrNilBlockSizeThrottler signals that block size throttler si nil
 var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
 
+// ErrNilHistoryRepository signals that history processor is nil
+var ErrNilHistoryRepository = errors.New("history repository is nil")
+
 // ErrInvalidMetaTransaction signals that meta transaction is invalid
 var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
 
@@ -749,8 +737,8 @@ var ErrNilVmInput = errors.New("nil vm input")
 // ErrNilDnsAddresses signals that nil dns addresses map was provided
 var ErrNilDnsAddresses = errors.New("nil dns addresses map")
 
-// ErrNilCommunityAddress signals that a nil community address was provided
-var ErrNilCommunityAddress = errors.New("nil community address")
+// ErrNilProtocolSustainabilityAddress signals that a nil protocol sustainability address was provided
+var ErrNilProtocolSustainabilityAddress = errors.New("nil protocol sustainability address")
 
 // ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
 var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
@@ -856,3 +844,24 @@ var ErrTransactionIsNotWhitelisted = errors.New("transaction is not whitelisted"
 
 // ErrInterceptedDataNotForCurrentShard signals that intercepted data is not for current shard
 var ErrInterceptedDataNotForCurrentShard = errors.New("intercepted data not for current shard")
+
+// ErrAccountNotPayable will be sent when trying to send money to a non-payable account
+var ErrAccountNotPayable = errors.New("sending value to non payable contract")
+
+// ErrNilIndexer signals that indexer is nil
+var ErrNilIndexer = errors.New("indexer is nil")
+
+// ErrNilTpsBenchmark signals that tps benchmark object is nil
+var ErrNilTpsBenchmark = errors.New("tps benchmark object is nil")
+
+// ErrSmartContractDeploymentIsDisabled signals that smart contract deployment was disabled
+var ErrSmartContractDeploymentIsDisabled = errors.New("smart Contract deployment is disabled")
+
+// ErrUpgradeNotAllowed signals that upgrade is not allowed
+var ErrUpgradeNotAllowed = errors.New("upgrade is allowed only for owner")
+
+// ErrBuiltInFunctionsAreDisabled signals that built in functions are disabled
+var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled")
+
+// ErrRelayedTxDisabled signals that relayed tx are disabled
+var ErrRelayedTxDisabled = errors.New("relayed tx is disabled")

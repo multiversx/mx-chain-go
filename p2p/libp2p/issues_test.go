@@ -31,6 +31,7 @@ func createMessenger() p2p.Messenger {
 				Type: p2p.NilListSharder,
 			},
 		},
+		SyncTimer: &libp2p.LocalSyncTimer{},
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(args)

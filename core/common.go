@@ -2,6 +2,7 @@ package core
 
 import (
 	"crypto/rand"
+	"os"
 )
 
 // EmptyChannel empties the given channel
@@ -22,4 +23,13 @@ func UniqueIdentifier() string {
 	buff := make([]byte, 32)
 	_, _ = rand.Read(buff)
 	return string(buff)
+}
+
+// DoesFileExist returns true if the file at the given path exists
+func DoesFileExist(path string) bool {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return false
+	}
+
+	return true
 }

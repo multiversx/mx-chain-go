@@ -132,12 +132,12 @@ func getUserAccountWithAddress(
 
 func getESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) (*builtInFunctions.ESDigitalToken, error) {
 	esdtData := &builtInFunctions.ESDigitalToken{Value: big.NewInt(0)}
-	marshalledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
+	marshaledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil {
 		return esdtData, nil
 	}
 
-	err = integrationTests.TestMarshalizer.Unmarshal(esdtData, marshalledData)
+	err = integrationTests.TestMarshalizer.Unmarshal(esdtData, marshaledData)
 	if err != nil {
 		return nil, err
 	}

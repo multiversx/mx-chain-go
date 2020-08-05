@@ -63,6 +63,9 @@ const MaxTxNonceDeltaAllowed = 30000
 //TODO convert this const into a var and read it from config when this code moves to another binary
 const MaxBulkTransactionSize = 1 << 18 //256KB bulks
 
+// NodesSetupJsonFileName specifies the name of the json file which contains the setup of the nodes
+const NodesSetupJsonFileName = "nodesSetup.json"
+
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 

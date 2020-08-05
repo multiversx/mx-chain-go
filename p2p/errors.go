@@ -37,8 +37,11 @@ var ErrEmptyTopicList = errors.New("empty topicIDs")
 // ErrAlreadySeenMessage signals that the message has already been seen
 var ErrAlreadySeenMessage = errors.New("already seen this message")
 
-// ErrOldMessage signals that the message is too old
-var ErrOldMessage = errors.New("message too old")
+// ErrMessageTooNew signals that a message has a timestamp that is in the future relative to self
+var ErrMessageTooNew = errors.New("message is too new")
+
+// ErrMessageTooOld signals that a message has a timestamp that is in the past relative to self
+var ErrMessageTooOld = errors.New("message is too old")
 
 // ErrNilDirectSendMessageHandler signals that the message handler for new message has not been wired
 var ErrNilDirectSendMessageHandler = errors.New("nil direct sender message handler")
@@ -131,3 +134,12 @@ var ErrNilStatusHandler = errors.New("nil status handler")
 // ErrMessageUnmarshalError signals that an invalid message was received from a peer. There is no way to communicate
 // with such a peer as it does not respect the protocol
 var ErrMessageUnmarshalError = errors.New("message unmarshal error")
+
+// ErrUnsupportedFields signals that unsupported fields are provided
+var ErrUnsupportedFields = errors.New("unsupported fields")
+
+// ErrUnsupportedMessageVersion signals that an unsupported message version was detected
+var ErrUnsupportedMessageVersion = errors.New("unsupported message version")
+
+// ErrNilSyncTimer signals that a nil sync timer was provided
+var ErrNilSyncTimer = errors.New("nil sync timer")

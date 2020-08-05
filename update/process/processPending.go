@@ -59,7 +59,7 @@ func NewPendingTransactionProcessor(args ArgsPendingTransactionProcessor) (*pend
 		return nil, update.ErrNilRwdTxProcessor
 	}
 	if check.IfNil(args.PubKeyConv) {
-		return nil, update.ErrNilPubkeyConverter
+		return nil, update.ErrNilPubKeyConverter
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, update.ErrNilShardCoordinator

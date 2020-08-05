@@ -190,7 +190,7 @@ func (d *debugger) getStringEvents() []string {
 }
 
 func (d *debugger) printEvent(data string) {
-	log.Debug(data)
+	log.Trace(data)
 }
 
 // Close will clean up this instance

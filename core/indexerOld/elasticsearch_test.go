@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexerOld"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -142,7 +143,7 @@ func TestElasticIndexer_UpdateTPS(t *testing.T) {
 	ei, err := indexerOld.NewElasticIndexer(arguments)
 	require.Nil(t, err)
 
-	tpsBench := mock.TpsBenchmarkMock{}
+	tpsBench := testscommon.TpsBenchmarkMock{}
 	tpsBench.Update(newTestMetaBlock())
 
 	ei.UpdateTPS(&tpsBench)

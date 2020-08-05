@@ -115,13 +115,13 @@ func TestTomlParser(t *testing.T) {
 }
 
 func TestTomlEconomicsParser(t *testing.T) {
-	communityPercentage := 0.1
+	protocolSustainabilityPercentage := 0.1
 	leaderPercentage := 0.1
 	developerPercentage := 0.3
 	maxGasLimitPerBlock := "18446744073709551615"
 	minGasPrice := "18446744073709551615"
 	minGasLimit := "18446744073709551615"
-	communityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+	protocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 	denomination := 18
 
 	cfgEconomicsExpected := EconomicsConfig{
@@ -129,10 +129,10 @@ func TestTomlEconomicsParser(t *testing.T) {
 			Denomination: denomination,
 		},
 		RewardsSettings: RewardsSettings{
-			LeaderPercentage:    leaderPercentage,
-			CommunityPercentage: communityPercentage,
-			CommunityAddress:    communityAddress,
-			DeveloperPercentage: developerPercentage,
+			LeaderPercentage:                 leaderPercentage,
+			ProtocolSustainabilityPercentage: protocolSustainabilityPercentage,
+			ProtocolSustainabilityAddress:    protocolSustainabilityAddress,
+			DeveloperPercentage:              developerPercentage,
 		},
 		FeeSettings: FeeSettings{
 			MaxGasLimitPerBlock: maxGasLimitPerBlock,
@@ -145,8 +145,8 @@ func TestTomlEconomicsParser(t *testing.T) {
 [GlobalSettings]
     Denomination = ` + fmt.Sprintf("%d", denomination) + `
 [RewardsSettings]
-    CommunityPercentage = ` + fmt.Sprintf("%.6f", communityPercentage) + `
-	CommunityAddress = "` + communityAddress + `"
+    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + `
+	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
     LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
 	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
 [FeeSettings]

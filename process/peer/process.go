@@ -28,11 +28,11 @@ var _ process.ValidatorStatisticsProcessor = (*validatorStatistics)(nil)
 type validatorActionType uint8
 
 const (
-	unknownAction    validatorActionType = 0
-	leaderSuccess    validatorActionType = 1
-	leaderFail       validatorActionType = 2
-	validatorSuccess validatorActionType = 3
-	validatorFail    validatorActionType = 4
+	unknownAction             validatorActionType = 0
+	leaderSuccess             validatorActionType = 1
+	leaderFail                validatorActionType = 2
+	validatorSuccess          validatorActionType = 3
+	validatorIgnoredSignature validatorActionType = 4
 )
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
@@ -123,8 +123,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		ratingEnableEpoch:    arguments.RatingEnableEpoch,
 	}
 
-	rater := arguments.Rater
-	err := vs.saveInitialState(arguments.NodesSetup, rater.GetStartRating())
+	err := vs.saveInitialState(arguments.NodesSetup)
 	if err != nil {
 		return nil, err
 	}
@@ -213,17 +212,14 @@ func (vs *validatorStatistics) saveUpdatesForList(
 }
 
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
-func (vs *validatorStatistics) saveInitialState(
-	nodesConfig sharding.GenesisNodesSetupHandler,
-	startRating uint32,
-) error {
+func (vs *validatorStatistics) saveInitialState(nodesConfig sharding.GenesisNodesSetupHandler) error {
 	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
-	err := vs.saveInitialValueForMap(eligibleNodesInfo, startRating, core.EligibleList)
+	err := vs.saveInitialValueForMap(eligibleNodesInfo, core.EligibleList)
 	if err != nil {
 		return err
 	}
 
-	err = vs.saveInitialValueForMap(waitingNodesInfo, startRating, core.WaitingList)
+	err = vs.saveInitialValueForMap(waitingNodesInfo, core.WaitingList)
 	if err != nil {
 		return err
 	}
@@ -240,7 +236,6 @@ func (vs *validatorStatistics) saveInitialState(
 
 func (vs *validatorStatistics) saveInitialValueForMap(
 	nodesInfo map[uint32][]sharding.GenesisNodeInfoHandler,
-	startRating uint32,
 	peerType core.PeerType,
 ) error {
 	if len(nodesInfo) == 0 {
@@ -250,7 +245,7 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	for shardID := uint32(0); shardID < vs.shardCoordinator.NumberOfShards(); shardID++ {
 		nodeInfoList := nodesInfo[shardID]
 		for index, nodeInfo := range nodeInfoList {
-			err := vs.initializeNode(nodeInfo, startRating, shardID, peerType, uint32(index))
+			err := vs.initializeNode(nodeInfo, shardID, peerType, uint32(index))
 			if err != nil {
 				return err
 			}
@@ -260,7 +255,7 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	shardID := core.MetachainShardId
 	nodeInfoList := nodesInfo[shardID]
 	for index, nodeInfo := range nodeInfoList {
-		err := vs.initializeNode(nodeInfo, startRating, shardID, peerType, uint32(index))
+		err := vs.initializeNode(nodeInfo, shardID, peerType, uint32(index))
 		if err != nil {
 			return err
 		}
@@ -337,12 +332,11 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	}
 	leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
-	err = vs.updateValidatorInfo(
+	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		consensusGroup,
 		previousHeader.GetPubKeysBitmap(),
-		previousHeader.GetAccumulatedFees(),
-		previousHeader.GetShardID(),
-		consensusGroupEpoch)
+		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
+		previousHeader.GetShardID())
 	if err != nil {
 		return nil, err
 	}
@@ -444,24 +438,26 @@ func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.Peer
 	ratingModifier := float32(chance) / float32(startRatingChance)
 
 	return &state.ValidatorInfo{
-		PublicKey:                  peerAccount.GetBLSPublicKey(),
-		ShardId:                    peerAccount.GetShardId(),
-		List:                       getActualList(peerAccount),
-		Index:                      peerAccount.GetIndexInList(),
-		TempRating:                 peerAccount.GetTempRating(),
-		Rating:                     peerAccount.GetRating(),
-		RatingModifier:             ratingModifier,
-		RewardAddress:              peerAccount.GetRewardAddress(),
-		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().NumSuccess,
-		LeaderFailure:              peerAccount.GetLeaderSuccessRate().NumFailure,
-		ValidatorSuccess:           peerAccount.GetValidatorSuccessRate().NumSuccess,
-		ValidatorFailure:           peerAccount.GetValidatorSuccessRate().NumFailure,
-		TotalLeaderSuccess:         peerAccount.GetTotalLeaderSuccessRate().NumSuccess,
-		TotalLeaderFailure:         peerAccount.GetTotalLeaderSuccessRate().NumFailure,
-		TotalValidatorSuccess:      peerAccount.GetTotalValidatorSuccessRate().NumSuccess,
-		TotalValidatorFailure:      peerAccount.GetTotalValidatorSuccessRate().NumFailure,
-		NumSelectedInSuccessBlocks: peerAccount.GetNumSelectedInSuccessBlocks(),
-		AccumulatedFees:            big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
+		PublicKey:                       peerAccount.GetBLSPublicKey(),
+		ShardId:                         peerAccount.GetShardId(),
+		List:                            getActualList(peerAccount),
+		Index:                           peerAccount.GetIndexInList(),
+		TempRating:                      peerAccount.GetTempRating(),
+		Rating:                          peerAccount.GetRating(),
+		RatingModifier:                  ratingModifier,
+		RewardAddress:                   peerAccount.GetRewardAddress(),
+		LeaderSuccess:                   peerAccount.GetLeaderSuccessRate().NumSuccess,
+		LeaderFailure:                   peerAccount.GetLeaderSuccessRate().NumFailure,
+		ValidatorSuccess:                peerAccount.GetValidatorSuccessRate().NumSuccess,
+		ValidatorFailure:                peerAccount.GetValidatorSuccessRate().NumFailure,
+		ValidatorIgnoredSignatures:      peerAccount.GetValidatorIgnoredSignaturesRate(),
+		TotalLeaderSuccess:              peerAccount.GetTotalLeaderSuccessRate().NumSuccess,
+		TotalLeaderFailure:              peerAccount.GetTotalLeaderSuccessRate().NumFailure,
+		TotalValidatorSuccess:           peerAccount.GetTotalValidatorSuccessRate().NumSuccess,
+		TotalValidatorFailure:           peerAccount.GetTotalValidatorSuccessRate().NumFailure,
+		TotalValidatorIgnoredSignatures: peerAccount.GetTotalValidatorIgnoredSignaturesRate(),
+		NumSelectedInSuccessBlocks:      peerAccount.GetNumSelectedInSuccessBlocks(),
+		AccumulatedFees:                 big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
 	}
 }
 
@@ -548,7 +544,7 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		return nil
 	}
 
-	validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure)
+	validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure+validator.ValidatorIgnoredSignatures)
 	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
 
 	if computedThreshold <= signedThreshold {
@@ -570,6 +566,7 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 			"signed %", computedThreshold,
 			"validatorSuccess", validator.ValidatorSuccess,
 			"validatorFailure", validator.ValidatorFailure,
+			"validatorIgnored", validator.ValidatorIgnoredSignatures,
 			"new tempRating", newTempRating,
 			"old tempRating", validator.TempRating,
 		)
@@ -771,7 +768,12 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			return shardInfoErr
 		}
 
-		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap, h.AccumulatedFees, h.ShardID, epoch)
+		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
+			shardConsensus,
+			h.PubKeysBitmap,
+			big.NewInt(0).Sub(h.AccumulatedFees, h.DeveloperFees),
+			h.ShardID,
+		)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -817,7 +819,6 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 
 func (vs *validatorStatistics) initializeNode(
 	node sharding.GenesisNodeInfoHandler,
-	startRating uint32,
 	shardID uint32,
 	peerType core.PeerType,
 	index uint32,
@@ -827,7 +828,7 @@ func (vs *validatorStatistics) initializeNode(
 		return err
 	}
 
-	return vs.savePeerAccountData(peerAccount, node, startRating, shardID, peerType, index)
+	return vs.savePeerAccountData(peerAccount, node, node.GetInitialRating(), shardID, peerType, index)
 }
 
 func (vs *validatorStatistics) savePeerAccountData(
@@ -838,6 +839,10 @@ func (vs *validatorStatistics) savePeerAccountData(
 	peerType core.PeerType,
 	index uint32,
 ) error {
+	log.Trace("validatorStatistics - savePeerAccountData",
+		"pubkey", node.PubKeyBytes(),
+		"reward address", node.AddressBytes(),
+		"initial rating", node.GetInitialRating())
 	err := peerAccount.SetRewardAddress(node.AddressBytes())
 	if err != nil {
 		return err
@@ -855,12 +860,11 @@ func (vs *validatorStatistics) savePeerAccountData(
 	return vs.peerAdapter.SaveAccount(peerAccount)
 }
 
-func (vs *validatorStatistics) updateValidatorInfo(
+func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 	validatorList []sharding.Validator,
 	signingBitmap []byte,
 	accumulatedFees *big.Int,
 	shardId uint32,
-	epoch uint32,
 ) error {
 
 	if len(signingBitmap) == 0 {
@@ -890,11 +894,9 @@ func (vs *validatorStatistics) updateValidatorInfo(
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
-		case validatorFail:
-			if epoch >= vs.ratingEnableEpoch {
-				peerAcc.DecreaseValidatorSuccessRate(1)
-				newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
-			}
+		case validatorIgnoredSignature:
+			peerAcc.IncreaseValidatorIgnoredSignaturesRate(1)
+			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 		}
 
 		peerAcc.SetTempRating(newRating)
@@ -977,7 +979,7 @@ func (vs *validatorStatistics) computeValidatorActionType(isLeader, validatorSig
 		return validatorSuccess
 	}
 	if !isLeader && !validatorSigned {
-		return validatorFail
+		return validatorIgnoredSignature
 	}
 
 	return unknownAction
@@ -1015,11 +1017,12 @@ func (vs *validatorStatistics) display(validatorKey string) {
 	}
 
 	log.Trace("validator statistics",
-		"pk", acc.GetBLSPublicKey(),
+		"pk", core.GetTrimmedPk(hex.EncodeToString(acc.GetBLSPublicKey())),
 		"leader fail", acc.GetLeaderSuccessRate().NumFailure,
 		"leader success", acc.GetLeaderSuccessRate().NumSuccess,
-		"val fail", acc.GetValidatorSuccessRate().NumFailure,
 		"val success", acc.GetValidatorSuccessRate().NumSuccess,
+		"val ignored sigs", acc.GetValidatorIgnoredSignaturesRate(),
+		"val fail", acc.GetValidatorSuccessRate().NumFailure,
 		"temp rating", acc.GetTempRating(),
 		"rating", acc.GetRating(),
 	)

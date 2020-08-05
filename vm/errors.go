@@ -38,9 +38,6 @@ var ErrNilCryptoHook = errors.New("crypto hook is nil")
 // ErrNilOrEmptyKey signals that key is nil or empty
 var ErrNilOrEmptyKey = errors.New("nil or empty key")
 
-// ErrNilInitialStakeValue signals that nil initial stake value was provided
-var ErrNilInitialStakeValue = errors.New("initial stake value is nil")
-
 // ErrNilEconomicsData signals that nil economics data has been provided
 var ErrNilEconomicsData = errors.New("nil economics data")
 
@@ -83,9 +80,6 @@ var ErrOnExecutionAtStakingSC = errors.New("execution error at staking sc")
 // ErrNilAuctionSmartContractAddress signals that auction smart contract address is nil
 var ErrNilAuctionSmartContractAddress = errors.New("nil auction smart contract address")
 
-// ErrNilValidatorSettings signals that validator settings is nil
-var ErrNilValidatorSettings = errors.New("nil validator settings")
-
 // ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
 var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")
 
@@ -110,8 +104,8 @@ var ErrNilHasher = errors.New("nil Hasher")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
-// ErrNegativeInitialSupply signals that negative initial supply has been provided
-var ErrNegativeInitialSupply = errors.New("negative initial supply was provided")
+// ErrNegativeOrZeroInitialSupply signals that negative initial supply has been provided
+var ErrNegativeOrZeroInitialSupply = errors.New("negative initial supply was provided")
 
 // ErrTokenAlreadyRegistered signals that token was already registered
 var ErrTokenAlreadyRegistered = errors.New("token was already registered")
@@ -136,3 +130,27 @@ var ErrVotedForAProposalThatNotBeginsYet = errors.New("voted for a proposal that
 
 // ErrNilPublicKey signals that nil public key has been provided
 var ErrNilPublicKey = errors.New("nil public key")
+
+// ErrInvalidWaitingList signals that waiting list is invalid
+var ErrInvalidWaitingList = errors.New("invalid waiting list")
+
+// ErrElementNotFound signals that element was not found
+var ErrElementNotFound = errors.New("element was not found")
+
+// ErrInvalidUnJailCost signals that provided unjail cost is invalid
+var ErrInvalidUnJailCost = errors.New("invalid unjail cost")
+
+// ErrNegativeWaitingNodesPercentage signals that negative waiting nodes percentage was provided
+var ErrNegativeWaitingNodesPercentage = errors.New("negative waiting nodes percentage")
+
+// ErrNegativeBleedPercentagePerRound signals that negative bleed percentage per round has been provided
+var ErrNegativeBleedPercentagePerRound = errors.New("negative bleed percentage per round")
+
+// ErrNegativeMaximumPercentageToBleed signals that negative maximum percentage to bleed has been provided
+var ErrNegativeMaximumPercentageToBleed = errors.New("negative maximum percentage to bleed")
+
+// ErrInvalidMaxNumberOfNodes signals that invalid number of max number of nodes has been provided
+var ErrInvalidMaxNumberOfNodes = errors.New("invalid number of max number of nodes")
+
+// ErrTokenNameNotHumanReadable signals that token name is not human readable
+var ErrTokenNameNotHumanReadable = errors.New("token name is not human readable")

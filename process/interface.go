@@ -146,6 +146,7 @@ type SmartContractProcessor interface {
 	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error
+	IsPayable(address []byte) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -429,10 +430,11 @@ type PendingMiniBlocksHandler interface {
 
 // BlockChainHookHandler defines the actions which should be performed by implementation
 type BlockChainHookHandler interface {
-	TemporaryAccountsHandler
+	IsPayable(address []byte) (bool, error)
 	SetCurrentHeader(hdr data.HeaderHandler)
 	GetBuiltInFunctions() BuiltInFunctionContainer
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	IsInterfaceNil() bool
 }
 
 // Interceptor defines what a data interceptor should do
@@ -507,16 +509,6 @@ type ArgumentsParser interface {
 	IsInterfaceNil() bool
 }
 
-// TemporaryAccountsHandler defines the functionality to create temporary accounts and pass to VM.
-// This holder will contain usually one account from shard X that calls a SC in shard Y
-// so when executing the code in shard Y, this impl will hold an ephemeral copy of the sender account from shard X
-type TemporaryAccountsHandler interface {
-	AddTempAccount(address []byte, balance *big.Int, nonce uint64)
-	CleanTempAccounts()
-	TempAccount(address []byte) state.AccountHandler
-	IsInterfaceNil() bool
-}
-
 // BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
 // block to its peers which should be received in a limited time frame
 type BlockSizeThrottler interface {
@@ -530,8 +522,8 @@ type BlockSizeThrottler interface {
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
 	LeaderPercentage() float64
-	CommunityPercentage() float64
-	CommunityAddress() string
+	ProtocolSustainabilityPercentage() float64
+	ProtocolSustainabilityAddress() string
 	MinInflationRate() float64
 	MaxInflationRate(year uint32) float64
 	IsInterfaceNil() bool
@@ -540,14 +532,7 @@ type RewardsHandler interface {
 // EndOfEpochEconomics defines the functionality that is needed to compute end of epoch economics data
 type EndOfEpochEconomics interface {
 	ComputeEndOfEpochEconomics(metaBlock *block.MetaBlock) (*block.Economics, error)
-	VerifyRewardsPerBlock(metaBlock *block.MetaBlock) error
-	IsInterfaceNil() bool
-}
-
-// ValidatorSettingsHandler defines the functionality which is needed for validators' settings
-type ValidatorSettingsHandler interface {
-	UnBondPeriod() uint64
-	GenesisNodePrice() *big.Int
+	VerifyRewardsPerBlock(metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int) error
 	IsInterfaceNil() bool
 }
 
@@ -569,13 +554,6 @@ type TransactionWithFeeHandler interface {
 	GetData() []byte
 	GetRcvAddr() []byte
 	GetValue() *big.Int
-}
-
-// EconomicsAddressesHandler will return information about economics addresses
-type EconomicsAddressesHandler interface {
-	CommunityAddress() string
-	BurnAddress() string
-	IsInterfaceNil() bool
 }
 
 // SmartContractToProtocolHandler is able to translate data from smart contract state into protocol changes
@@ -764,6 +742,7 @@ type EpochStartDataCreator interface {
 type EpochStartRewardsCreator interface {
 	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	GetProtocolSustainabilityRewards() *big.Int
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
 	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
