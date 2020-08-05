@@ -33,6 +33,7 @@ type accountResponse struct {
 	Address  string `json:"address"`
 	Nonce    uint64 `json:"nonce"`
 	Balance  string `json:"balance"`
+	Username string `json:"username"`
 	Code     string `json:"code"`
 	CodeHash []byte `json:"codeHash"`
 	RootHash []byte `json:"rootHash"`
@@ -163,7 +164,7 @@ func GetUsername(c *gin.Context) {
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), errors.ErrEmptyAddress.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetUsername.Error(), errors.ErrEmptyAddress.Error()),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)
@@ -176,7 +177,7 @@ func GetUsername(c *gin.Context) {
 			http.StatusInternalServerError,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), err.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetUsername.Error(), err.Error()),
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
@@ -253,6 +254,7 @@ func accountResponseFromBaseAccount(address string, account state.UserAccountHan
 		Address:  address,
 		Nonce:    account.GetNonce(),
 		Balance:  account.GetBalance().String(),
+		Username: string(account.GetUserName()),
 		Code:     hex.EncodeToString(account.GetCode()),
 		CodeHash: account.GetCodeHash(),
 		RootHash: account.GetRootHash(),
