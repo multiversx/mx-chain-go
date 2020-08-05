@@ -1917,6 +1917,14 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	dataComponents.BlockChain = blkc
 
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+
+	arguments.Indexer = &mock.IndexerMock{
+		SaveBlockCalled: func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler) {
+			saveBlockCalledMutex.Lock()
+			saveBlockCalled = txPool
+			saveBlockCalledMutex.Unlock()
+		},
+	}
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ForkDetector = fd
 	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{

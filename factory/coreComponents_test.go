@@ -328,8 +328,8 @@ func getEpochStartConfig() config.EpochStartConfig {
 	return config.EpochStartConfig{
 		MinRoundsBetweenEpochs:            20,
 		RoundsPerEpoch:                    20,
-		ShuffledOutRestartThreshold:       0,
-		ShuffleBetweenShards:              false,
+		MaxShuffledOutRestartThreshold:    0.2,
+		MinShuffledOutRestartThreshold:    0.1,
 		MinNumConnectedPeersToStart:       2,
 		MinNumOfPeersToConsiderBlockValid: 2,
 	}
@@ -418,9 +418,9 @@ func createDummyEconomicsConfig() config.EconomicsConfig {
 			},
 		},
 		RewardsSettings: config.RewardsSettings{
-			LeaderPercentage:    0.1,
-			CommunityPercentage: 0.1,
-			CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			LeaderPercentage:                 0.1,
+			ProtocolSustainabilityPercentage: 0.1,
+			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 		FeeSettings: config.FeeSettings{
 			MaxGasLimitPerBlock:     "100000",
@@ -429,18 +429,6 @@ func createDummyEconomicsConfig() config.EconomicsConfig {
 			MinGasLimit:             "500",
 			GasPerDataByte:          "1",
 			DataLimitForBaseCalc:    "100000000",
-		},
-		ValidatorSettings: config.ValidatorSettings{
-			GenesisNodePrice:         "500000000",
-			UnBondPeriod:             "100000",
-			TotalSupply:              "200000000000",
-			MinStepValue:             "100000",
-			AuctionEnableNonce:       "100000",
-			StakeEnableNonce:         "100000",
-			NumRoundsWithoutBleed:    "1000",
-			MaximumPercentageToBleed: "0.5",
-			BleedPercentagePerRound:  "0.00001",
-			UnJailValue:              "1000",
 		},
 	}
 }

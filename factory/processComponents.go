@@ -590,6 +590,11 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, error) {
 	genesisVmConfig := pcf.coreFactoryArgs.Config.VirtualMachineConfig
 	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
+	conversionBase := 10
+	genesisNodePrice, ok := big.NewInt(0).SetString(pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
+	if !ok {
+		return nil, errors.New("invalid genesis node price")
+	}
 
 	arg := processGenesis.ArgsGenesisBlockCreator{
 		Core:                 pcf.coreData,
@@ -613,6 +618,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		WorkingDir:           pcf.workingDir,
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.coreFactoryArgs.Config.GeneralSettings.GenesisString,
+		GenesisNodePrice:     genesisNodePrice,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

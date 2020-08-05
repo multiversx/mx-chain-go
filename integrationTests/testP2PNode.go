@@ -143,14 +143,6 @@ func (tP2pNode *TestP2PNode) initNode() {
 	)
 	log.LogIfError(err)
 
-	cacher := testscommon.NewCacherMock()
-	psh, err := peerSignatureHandler.NewPeerSignatureHandler(
-		cacher,
-		tP2pNode.SingleSigner,
-		tP2pNode.KeyGen,
-	)
-	log.LogIfError(err)
-
 	tP2pNode.Node, err = node.NewNode(
 		node.WithMessenger(tP2pNode.Messenger),
 		node.WithInternalMarshalizer(TestMarshalizer, 100),
