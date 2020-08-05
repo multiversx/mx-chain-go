@@ -22,6 +22,7 @@ export TESTNETDIR="$HOME/Elrond/testnet"
 # Path to elrond-deploy-go, branch: master. Default: near elrond-go.
 export CONFIGGENERATORDIR="$(dirname $ELRONDDIR)/elrond-deploy-go/cmd/filegen"
 export CONFIGGENERATOR="$CONFIGGENERATORDIR/filegen"    # Leave unchanged.
+export CONFIGGENERATOROUTPUTDIR="output"
 
 # Path to the executable node. Leave unchanged unless well justified.
 export NODEDIR="$ELRONDDIR/cmd/node"
