@@ -52,7 +52,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 		Nonce:     nonce,
 		PreTxHash: hex.EncodeToString(txHash),
 		Code:      string(code),
-		Data:      make([]byte, 0),
+		Data:      "",
 		Sender:    cp.addressPubkeyConverter.Encode(sndAddr),
 		Receiver:  cp.addressPubkeyConverter.Encode(rcvAddr),
 		Value:     "<nil>",
@@ -85,7 +85,7 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 		Status:   status,
 		Value:    "<nil>",
 		Sender:   fmt.Sprintf("%d", core.MetachainShardId),
-		Data:     make([]byte, 0),
+		Data:     "",
 	}
 
 	require.Equal(t, expectedTx, resultTx)
