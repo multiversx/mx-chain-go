@@ -1089,7 +1089,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.saveHistoryData(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
-	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, 42)
+	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce)
 
 	headersPool := mp.dataPool.Headers()
 	numShardHeadersFromPool := 0
