@@ -69,6 +69,18 @@ func (mbf *managedBootstrapComponents) EpochStartBootstrapper() EpochStartBootst
 	return mbf.epochStartBootstraper
 }
 
+// EpochBootstrapParams returns the epoch start bootstrap parameters handler
+func (mbf *managedBootstrapComponents) EpochBootstrapParams() BootstrapParamsHandler {
+	mbf.mutBootstrapComponents.RLock()
+	defer mbf.mutBootstrapComponents.RUnlock()
+
+	if mbf.bootstrapComponents == nil {
+		return nil
+	}
+
+	return mbf.bootstrapParamsHandler
+}
+
 // IsInterfaceNil returns true if the underlying object is nil
 func (mbf *managedBootstrapComponents) IsInterfaceNil() bool {
 	return mbf == nil

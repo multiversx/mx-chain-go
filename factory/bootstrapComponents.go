@@ -36,8 +36,13 @@ type bootstrapComponentsFactory struct {
 	networkComponents     NetworkComponentsHolder
 }
 
+type bootstrapParamsHolder struct {
+	bootstrapParams bootstrap.Parameters
+}
+
 type bootstrapComponents struct {
-	epochStartBootstraper EpochStartBootstrapper
+	epochStartBootstraper  EpochStartBootstrapper
+	bootstrapParamsHandler BootstrapParamsHandler
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -150,10 +155,33 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	return &bootstrapComponents{
 		epochStartBootstraper: epochStartBootstraper,
+		bootstrapParamsHandler: &bootstrapParamsHolder{
+			bootstrapParams: bootstrapParameters,
+		},
 	}, nil
 }
 
 // Close closes the bootstrap components, closing at the same time any running goroutines
 func (bc *bootstrapComponents) Close() error {
 	return nil
+}
+
+// Epoch returns the epoch number after bootstrap
+func (bph *bootstrapParamsHolder) Epoch() uint32 {
+	return bph.bootstrapParams.Epoch
+}
+
+// SelfShardID returns the self shard ID after bootstrap
+func (bph *bootstrapParamsHolder) SelfShardID() uint32 {
+	return bph.bootstrapParams.SelfShardId
+}
+
+// NumOfShards returns the number of shards after bootstrap
+func (bph *bootstrapParamsHolder) NumOfShards() uint32 {
+	return bph.bootstrapParams.NumOfShards
+}
+
+// NodesConfig returns the nodes coordinator config after bootstrap
+func (bph *bootstrapParamsHolder) NodesConfig() *sharding.NodesCoordinatorRegistry {
+	return bph.bootstrapParams.NodesConfig
 }

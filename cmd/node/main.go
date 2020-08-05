@@ -39,7 +39,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
@@ -450,84 +449,47 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	bootstrapDataProvider, err := storageFactory.NewBootstrapDataProvider(managedCoreComponents.InternalMarshalizer())
+	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
+		Config:                *cfgs.generalConfig,
+		WorkingDir:            workingDir,
+		DestinationAsObserver: destShardIdAsObserver,
+		GenesisNodesSetup:     genesisNodesConfig,
+		NodeShuffler:          nodesShuffler,
+		ShardCoordinator:      genesisShardCoordinator,
+		CoreComponents:        managedCoreComponents,
+		CryptoComponents:      managedCryptoComponents,
+		NetworkComponents:     managedNetworkComponents,
+	}
+
+	managedBootstrapComponents, err := mainFactory.NewManagedBootstrapComponents(bootstrapComponentsFactoryArgs)
 	if err != nil {
 		return err
 	}
 
-	latestStorageDataProvider, err := factory.CreateLatestStorageDataProvider(
-		bootstrapDataProvider,
-		managedCoreComponents.InternalMarshalizer(),
-		managedCoreComponents.Hasher(),
-		*cfgs.generalConfig,
-		managedCoreComponents.ChainID(),
-		workingDir,
-		core.DefaultDBPath,
-		core.DefaultEpochString,
-		core.DefaultShardString,
-	)
+	err = managedBootstrapComponents.Create()
 	if err != nil {
 		return err
 	}
 
-	unitOpener, err := factory.CreateUnitOpener(
-		bootstrapDataProvider,
-		latestStorageDataProvider,
-		managedCoreComponents.InternalMarshalizer(),
-		*cfgs.generalConfig,
-		managedCoreComponents.ChainID(),
-		workingDir,
-		core.DefaultDBPath,
-		core.DefaultEpochString,
-		core.DefaultShardString,
-	)
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(
+		managedBootstrapComponents.EpochBootstrapParams().NumOfShards(),
+		managedBootstrapComponents.EpochBootstrapParams().SelfShardID())
 	if err != nil {
 		return err
 	}
 
-	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		CoreComponentsHolder:       managedCoreComponents,
-		CryptoComponentsHolder:     managedCryptoComponents,
-		Messenger:                  managedNetworkComponents.NetworkMessenger(),
-		GeneralConfig:              *cfgs.generalConfig,
-		EconomicsData:              economicsData,
-		GenesisNodesConfig:         genesisNodesConfig,
-		GenesisShardCoordinator:    genesisShardCoordinator,
-		StorageUnitOpener:          unitOpener,
-		Rater:                      rater,
-		DestinationShardAsObserver: destShardIdAsObserver,
-		NodeShuffler:               nodesShuffler,
-		Rounder:                    rounder,
-		LatestStorageDataProvider:  latestStorageDataProvider,
-		ArgumentsParser:            smartContract.NewArgumentParser(),
-		StatusHandler:              managedCoreComponents.StatusHandler(),
-	}
-
-	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
-	if err != nil {
-		log.Error("could not create bootstrap", "err", err)
-		return err
-	}
-
-	bootstrapParameters, err := bootstrapper.Bootstrap()
-	if err != nil {
-		log.Error("bootstrap return error", "error", err)
-		return err
-	}
-
-	log.Info("bootstrap parameters", "shardId", bootstrapParameters.SelfShardId, "epoch", bootstrapParameters.Epoch, "numShards", bootstrapParameters.NumOfShards)
-
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(bootstrapParameters.NumOfShards, bootstrapParameters.SelfShardId)
-	if err != nil {
-		return err
-	}
-
-	currentEpoch := bootstrapParameters.Epoch
+	currentEpoch := managedBootstrapComponents.EpochBootstrapParams().Epoch()
 	storerEpoch := currentEpoch
 	if !cfgs.generalConfig.StoragePruning.Enabled {
 		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
 		// and it should be Epoch_ALL or something similar
 		storerEpoch = 0
+	}
+
+	log.Info("Bootstrap", "epoch", managedBootstrapComponents.EpochBootstrapParams().Epoch())
+	if managedBootstrapComponents.EpochBootstrapParams().NodesConfig() != nil {
+		log.Info("the epoch from nodesConfig is",
+			"epoch", managedBootstrapComponents.EpochBootstrapParams().NodesConfig().CurrentEpoch)
 	}
 
 	var shardIdString = core.GetShardIDString(shardCoordinator.SelfId())
@@ -561,7 +523,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	trieContainer, trieStorageManager := bootstrapper.GetTriesComponents()
+	trieContainer, trieStorageManager := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
 	err = managedStateComponents.SetTriesContainer(trieContainer)
 	if err != nil {
 		return err
@@ -632,10 +594,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if ctx.IsSet(numActivePersisters.Name) {
 		cfgs.generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
-	log.Info("Bootstrap", "epoch", bootstrapParameters.Epoch)
-	if bootstrapParameters.NodesConfig != nil {
-		log.Info("the epoch from nodesConfig is", "epoch", bootstrapParameters.NodesConfig.CurrentEpoch)
-	}
+
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 	nodesCoordinator, nodeShufflerOut, err := createNodesCoordinator(
 		log,
@@ -651,7 +610,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		cfgs.generalConfig.EpochStartConfig,
 		shardCoordinator.SelfId(),
 		chanStopNodeProcess,
-		bootstrapParameters,
+		managedBootstrapComponents.EpochBootstrapParams(),
 		currentEpoch,
 	)
 	if err != nil {
@@ -1325,7 +1284,7 @@ func createNodesCoordinator(
 	epochConfig config.EpochStartConfig,
 	currentShardID uint32,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
-	bootstrapParameters bootstrap.Parameters,
+	bootstrapParameters mainFactory.BootstrapParamsHandler,
 	startEpoch uint32,
 ) (sharding.NodesCoordinator, update.Closer, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
@@ -1352,9 +1311,9 @@ func createNodesCoordinator(
 	}
 
 	currentEpoch := startEpoch
-	if bootstrapParameters.NodesConfig != nil {
-		nodeRegistry := bootstrapParameters.NodesConfig
-		currentEpoch = bootstrapParameters.Epoch
+	if bootstrapParameters.NodesConfig() != nil {
+		nodeRegistry := bootstrapParameters.NodesConfig()
+		currentEpoch = bootstrapParameters.Epoch()
 		eligibles := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].EligibleValidators
 		eligibleValidators, err = sharding.SerializableValidatorsToValidators(eligibles)
 		if err != nil {

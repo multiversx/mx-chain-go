@@ -355,6 +355,14 @@ type ConsensusComponentsHandler interface {
 	ConsensusComponentsHolder
 }
 
+// BootstrapParamsHandler gives read access to parameters after bootstrap
+type BootstrapParamsHandler interface {
+	Epoch() uint32
+	SelfShardID() uint32
+	NumOfShards() uint32
+	NodesConfig() *sharding.NodesCoordinatorRegistry
+}
+
 type EpochStartBootstrapper interface {
 	GetTriesComponents() (state.TriesHolder, map[string]data.StorageManager)
 	Bootstrap() (bootstrap.Parameters, error)
@@ -364,6 +372,7 @@ type EpochStartBootstrapper interface {
 // BootstrapComponentsHolder holds the bootstrap components
 type BootstrapComponentsHolder interface {
 	EpochStartBootstrapper() EpochStartBootstrapper
+	EpochBootstrapParams() BootstrapParamsHandler
 	IsInterfaceNil() bool
 }
 
