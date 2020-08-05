@@ -14,14 +14,16 @@ import (
 )
 
 const (
-	getAccountPath = "/:address"
-	getBalancePath = "/:address/balance"
-	getKeyPath     = "/:address/key/:key"
+	getAccountPath  = "/:address"
+	getBalancePath  = "/:address/balance"
+	getUsernamePath = "/:address/username"
+	getKeyPath      = "/:address/key/:key"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
+	GetUsername(address string) (string, error)
 	GetValueForKey(address string, key string) (string, error)
 	GetAccount(address string) (state.UserAccountHandler, error)
 	IsInterfaceNil() bool
@@ -40,6 +42,7 @@ type accountResponse struct {
 func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getAccountPath, GetAccount)
 	router.RegisterHandler(http.MethodGet, getBalancePath, GetBalance)
+	router.RegisterHandler(http.MethodGet, getUsernamePath, GetUsername)
 	router.RegisterHandler(http.MethodGet, getKeyPath, GetValueForKey)
 }
 
@@ -141,6 +144,48 @@ func GetBalance(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"balance": balance.String()},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetUsername returns the username for the address parameter
+func GetUsername(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	addr := c.Param("address")
+	if addr == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	userName, err := facade.GetUsername(addr)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"username": userName},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
