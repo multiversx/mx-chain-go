@@ -96,7 +96,10 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 
 func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error {
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return errors.New(fmt.Sprintf("error running vm func: code: %d, %s", vmOutput.ReturnCode, vmOutput.ReturnCode))
+		return errors.New(fmt.Sprintf("error running vm func: code: %d, %s (%s)",
+			vmOutput.ReturnCode,
+			vmOutput.ReturnCode,
+			vmOutput.ReturnMessage))
 	}
 
 	return nil
