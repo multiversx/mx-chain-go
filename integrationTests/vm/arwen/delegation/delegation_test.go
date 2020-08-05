@@ -188,5 +188,5 @@ func addNodes(context *arwen.TestContext, stakePerNode int, numNodes int) {
 	err = context.ExecuteSC(&context.Owner, "addNodes@"+strings.Join(addNodesArguments, "@"))
 	require.Nil(context.T, err)
 	require.Equal(context.T, numNodes, int(context.QuerySCInt("getNumNodes", [][]byte{})))
-	fmt.Println("addNodes consumed:", context.LastConsumedFee)
+	fmt.Println("addNodes consumed (gas):", context.LastConsumedFee)
 }
