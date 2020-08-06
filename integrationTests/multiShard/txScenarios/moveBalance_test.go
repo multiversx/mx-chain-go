@@ -60,12 +60,12 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	tx3 := createAndSendTransaction(nodes[0], players[4], factory.AuctionSCAddress, sendValue, []byte(""), integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
 	time.Sleep(100 * time.Millisecond)
 	// send value to staking contract with data should consume gas
-	txData := []byte("contract")
-	gasLimitTxWithData := integrationTests.MinTxGasLimit*2000 + uint64(len(txData))
+	txData := []byte("contract@qwt")
+	gasLimitTxWithData := nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1
 	_ = createAndSendTransaction(nodes[0], players[6], factory.AuctionSCAddress, sendValue, txData, integrationTests.MinTxGasPrice, gasLimitTxWithData)
 	time.Sleep(100 * time.Millisecond)
 
-	nrRoundsToTest := int64(5)
+	nrRoundsToTest := int64(7)
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
@@ -113,7 +113,6 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	txFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasLimitTxWithData), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	senderAccount = getUserAccount(nodes, players[6].Address)
 	expectedBalance = big.NewInt(0).Sub(initialBalance, txFee)
-	expectedBalance.Sub(expectedBalance, sendValue)
 	assert.Equal(t, players[6].Nonce, senderAccount.GetNonce())
 	assert.Equal(t, expectedBalance, senderAccount.GetBalance())
 
