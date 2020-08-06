@@ -13,7 +13,13 @@ import (
 func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, nil, &mock.MarshalizerMock{})
+	ncf, err := NewNetworkComponentsFactory(
+		config.P2PConfig{},
+		config.Config{},
+		nil,
+		&mock.MarshalizerMock{},
+		&libp2p.LocalSyncTimer{},
+	)
 	require.Nil(t, ncf)
 	require.Equal(t, ErrNilStatusHandler, err)
 }
@@ -21,7 +27,13 @@ func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{}, nil)
+	ncf, err := NewNetworkComponentsFactory(
+		config.P2PConfig{},
+		config.Config{},
+		&mock.AppStatusHandlerMock{},
+		nil,
+		&libp2p.LocalSyncTimer{},
+	)
 	require.Nil(t, ncf)
 	require.True(t, errors.Is(err, ErrNilMarshalizer))
 }
@@ -29,18 +41,25 @@ func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{}, &mock.MarshalizerMock{})
+	ncf, err := NewNetworkComponentsFactory(
+		config.P2PConfig{},
+		config.Config{},
+		&mock.AppStatusHandlerMock{},
+		&mock.MarshalizerMock{},
+		&libp2p.LocalSyncTimer{},
+	)
 	require.NoError(t, err)
 	require.NotNil(t, ncf)
 }
 
 func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
-	ncf, _ := NewNetworkComponentsFactory(config.P2PConfig{}, config.Config{}, &mock.AppStatusHandlerMock{}, &mock.MarshalizerMock{})
+	ncf, _ := NewNetworkComponentsFactory(
+		config.P2PConfig{},
+		config.Config{},
+		&mock.AppStatusHandlerMock{},
+		&mock.MarshalizerMock{},
+		&libp2p.LocalSyncTimer{},
+	)
 
 	nc, err := ncf.Create()
 	require.Error(t, err)
@@ -48,11 +67,6 @@ func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
 }
 
 func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
 			Port: "0",
@@ -88,6 +102,7 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 		},
 		&mock.AppStatusHandlerMock{},
 		&mock.MarshalizerMock{},
+		&libp2p.LocalSyncTimer{},
 	)
 
 	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)

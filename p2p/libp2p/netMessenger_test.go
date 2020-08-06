@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/message"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -81,6 +82,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 				Type: p2p.NilListSharder,
 			},
 		},
+		SyncTimer: &libp2p.LocalSyncTimer{},
 	}
 }
 
@@ -135,12 +137,25 @@ func TestNewMemoryLibp2pMessenger_OkValsWithoutDiscoveryShouldWork(t *testing.T)
 
 //------- NewNetworkMessenger
 
-func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
+func TestNewNetworkMessenger_NilMessengerShouldErr(t *testing.T) {
+	arg := createMockNetworkArgs()
+	arg.Marshalizer = nil
+	mes, err := libp2p.NewNetworkMessenger(arg)
 
+	assert.True(t, check.IfNil(mes))
+	assert.True(t, errors.Is(err, p2p.ErrNilMarshalizer))
+}
+
+func TestNewNetworkMessenger_NilSyncTimerShouldErr(t *testing.T) {
+	arg := createMockNetworkArgs()
+	arg.SyncTimer = nil
+	mes, err := libp2p.NewNetworkMessenger(arg)
+
+	assert.True(t, check.IfNil(mes))
+	assert.True(t, errors.Is(err, p2p.ErrNilSyncTimer))
+}
+
+func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T) {
 	arg := createMockNetworkArgs()
 	mes, err := libp2p.NewNetworkMessenger(arg)
 
@@ -151,11 +166,6 @@ func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T
 }
 
 func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShouldErr(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
 	arg := createMockNetworkArgs()
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
@@ -173,11 +183,6 @@ func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShoul
 }
 
 func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
 	arg := createMockNetworkArgs()
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
@@ -404,11 +409,6 @@ func TestLibp2pMessenger_UnregisterAllTopicValidatorShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
 	msg := make([]byte, libp2p.MaxSendBuffSize+1)
 	mes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
 	mes.SetLoadBalancer(&mock.ChannelLoadBalancerStub{
@@ -428,11 +428,6 @@ func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T
 }
 
 func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
 	msg := []byte("test message")
 
 	_, mes1, mes2 := createMockNetworkOf2()
@@ -515,11 +510,6 @@ func TestLibp2pMessenger_BroadcastOnChannelBlockingShouldLimitNumberOfGoRoutines
 }
 
 func TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
 	msg := make([]byte, libp2p.MaxSendBuffSize)
 
 	_, mes1, mes2 := createMockNetworkOf2()
@@ -944,11 +934,6 @@ func generateConnWithRemotePeer(pid core.PeerID) network.Conn {
 }
 
 func TestLibp2pMessenger_SendDirectWithMockNetToConnectedPeerShouldWork(t *testing.T) {
-	//TODO remove skip when github.com/koron/go-ssdp library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
 	msg := []byte("test message")
 
 	_, mes1, mes2 := createMockNetworkOf2()
@@ -986,11 +971,6 @@ func TestLibp2pMessenger_SendDirectWithMockNetToConnectedPeerShouldWork(t *testi
 }
 
 func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
 	msg := []byte("test message")
 
 	fmt.Println("Messenger 1:")
@@ -1160,6 +1140,7 @@ func TestNetworkMessenger_PreventReprocessingShouldWork(t *testing.T) {
 				Type: p2p.NilListSharder,
 			},
 		},
+		SyncTimer: &libp2p.LocalSyncTimer{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1222,6 +1203,7 @@ func TestNetworkMessenger_PubsubCallbackNotMessageNotValidShouldNotCallHandler(t
 				Type: p2p.NilListSharder,
 			},
 		},
+		SyncTimer: &libp2p.LocalSyncTimer{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1291,6 +1273,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 				Type: p2p.NilListSharder,
 			},
 		},
+		SyncTimer: &libp2p.LocalSyncTimer{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1310,6 +1293,7 @@ func TestNetworkMessenger_PubsubCallbackReturnsFalseIfHandlerErrors(t *testing.T
 	innerMessage := &data.TopicMessage{
 		Payload:   []byte("data"),
 		Timestamp: time.Now().Unix(),
+		Version:   libp2p.CurrentTopicMessageVersion,
 	}
 	buff, _ := args.Marshalizer.Marshal(innerMessage)
 	msg := &pubsub.Message{
@@ -1349,6 +1333,7 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 				Type: p2p.NilListSharder,
 			},
 		},
+		SyncTimer: &libp2p.LocalSyncTimer{},
 	}
 
 	mes, _ := libp2p.NewNetworkMessenger(args)
@@ -1361,4 +1346,71 @@ func TestNetworkMessenger_UnjoinAllTopicsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.False(t, mes.HasTopic(topic))
+}
+
+func TestNetworkMessenger_ValidMessageByTimestampMessageTooOld(t *testing.T) {
+	args := createMockNetworkArgs()
+	now := time.Now()
+	args.SyncTimer = &mock.SyncTimerStub{
+		CurrentTimeCalled: func() time.Time {
+			return now
+		},
+	}
+	mes, _ := libp2p.NewNetworkMessenger(args)
+
+	msg := &message.Message{
+		TimestampField: now.Unix() - int64(libp2p.PubsubTimeCacheDuration.Seconds()) +
+			int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds()) - 1,
+	}
+	err := mes.ValidMessageByTimestamp(msg)
+
+	assert.True(t, errors.Is(err, p2p.ErrMessageTooOld))
+}
+
+func TestNetworkMessenger_ValidMessageByTimestampMessageAtLowerLimitShouldWork(t *testing.T) {
+	mes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+	now := time.Now()
+	msg := &message.Message{
+		TimestampField: now.Unix() - int64(libp2p.PubsubTimeCacheDuration.Seconds()) + int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds()),
+	}
+	err := mes.ValidMessageByTimestamp(msg)
+
+	assert.Nil(t, err)
+}
+
+func TestNetworkMessenger_ValidMessageByTimestampMessageTooNew(t *testing.T) {
+	args := createMockNetworkArgs()
+	now := time.Now()
+	args.SyncTimer = &mock.SyncTimerStub{
+		CurrentTimeCalled: func() time.Time {
+			return now
+		},
+	}
+	mes, _ := libp2p.NewNetworkMessenger(args)
+
+	msg := &message.Message{
+		TimestampField: now.Unix() + int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds()) + 1,
+	}
+	err := mes.ValidMessageByTimestamp(msg)
+
+	assert.True(t, errors.Is(err, p2p.ErrMessageTooNew))
+}
+
+func TestNetworkMessenger_ValidMessageByTimestampMessageAtUpperLimitShouldWork(t *testing.T) {
+	args := createMockNetworkArgs()
+	now := time.Now()
+	args.SyncTimer = &mock.SyncTimerStub{
+		CurrentTimeCalled: func() time.Time {
+			return now
+		},
+	}
+	mes, _ := libp2p.NewNetworkMessenger(args)
+
+	msg := &message.Message{
+		TimestampField: now.Unix() + int64(libp2p.AcceptMessagesInAdvanceDuration.Seconds()),
+	}
+	err := mes.ValidMessageByTimestamp(msg)
+
+	assert.Nil(t, err)
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type TxProcessor *txProcessor
@@ -18,10 +19,6 @@ func (txProc *txProcessor) CheckTxValues(tx *transaction.Transaction, acntSnd, a
 	return txProc.checkTxValues(tx, acntSnd, acntDst)
 }
 
-func (txProc *txProcessor) MoveBalances(acntSrc, acntDst state.UserAccountHandler, value *big.Int) error {
-	return txProc.moveBalances(acntSrc, acntDst, value)
-}
-
 func (txProc *txProcessor) IncreaseNonce(acntSrc state.UserAccountHandler) {
 	acntSrc.IncreaseNonce(1)
 }
@@ -31,4 +28,8 @@ func (txProc *txProcessor) ProcessTxFee(
 	acntSnd, acntDst state.UserAccountHandler,
 ) (*big.Int, error) {
 	return txProc.processTxFee(tx, acntSnd, acntDst)
+}
+
+func (inTx *InterceptedTransaction) SetWhitelistHandler(handler process.WhiteListHandler) {
+	inTx.whiteListerVerifiedTxs = handler
 }

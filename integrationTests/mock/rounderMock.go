@@ -35,6 +35,10 @@ func (rm *RounderMock) TimeStamp() time.Time {
 
 // TimeDuration -
 func (rm *RounderMock) TimeDuration() time.Duration {
+	if rm.TimeDurationField.Seconds() == 0 {
+		return time.Second
+	}
+
 	return rm.TimeDurationField
 }
 

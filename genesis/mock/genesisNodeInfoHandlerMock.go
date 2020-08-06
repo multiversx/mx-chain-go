@@ -5,6 +5,17 @@ type GenesisNodeInfoHandlerMock struct {
 	AssignedShardValue uint32
 	AddressBytesValue  []byte
 	PubKeyBytesValue   []byte
+	InitialRatingValue uint32
+}
+
+// GetInitialRating -
+func (gnihm *GenesisNodeInfoHandlerMock) GetInitialRating() uint32 {
+	initialRating := gnihm.InitialRatingValue
+	if initialRating == uint32(0) {
+		initialRating = uint32(50)
+	}
+
+	return initialRating
 }
 
 // AssignedShard -

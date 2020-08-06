@@ -98,18 +98,24 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		"")
 
 	_, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+
+	require.Equal(t, process.ErrFailedTransaction, err)
+	require.Equal(t, process.ErrAccountNotPayable, testContext.GetLatestError())
+	vm.TestAccount(
+		t,
+		testContext.Accounts,
+		ownerAddressBytes,
+		ownerNonce+1,
+		big.NewInt(0).Set(ownerBalance))
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	ownerNonce++
 	tx = vm.CreateTx(
 		t,
 		ownerAddressBytes,
 		vm.CreateEmptyAddress(),
-		ownerNonce,
+		ownerNonce+1,
 		transferOnCalls,
 		gasPrice,
 		gasLimit,
@@ -123,15 +129,15 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := ownerBalance.Uint64() - 2*transferOnCalls.Uint64()
+	expectedBalance := ownerBalance.Uint64() - transferOnCalls.Uint64()
 	vm.TestAccount(
 		t,
 		testContext.Accounts,
 		ownerAddressBytes,
-		ownerNonce+1,
+		ownerNonce+2,
 		big.NewInt(0).SetUint64(expectedBalance))
 
-	expectedBalance = 2 * transferOnCalls.Uint64()
+	expectedBalance = transferOnCalls.Uint64()
 	vm.TestAccount(
 		t,
 		testContext.Accounts,
@@ -586,22 +592,24 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	transferOnCalls := big.NewInt(5)
 
 	_, _ = vm.CreateAccount(accnts, ownerAddressBytes, ownerNonce, ownerBalance)
-	txProc, _ := processTransaction.NewTxProcessor(
-		accnts,
-		testHasher,
-		pubkeyConv,
-		testMarshalizer,
-		testMarshalizer,
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.UnsignedTxHandlerMock{},
-		txTypeHandler,
-		feeHandler,
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-		smartContract.NewArgumentParser(),
-		&mock.IntermediateTransactionHandlerMock{},
-	)
+	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
+		Accounts:          accnts,
+		Hasher:            testHasher,
+		PubkeyConv:        pubkeyConv,
+		Marshalizer:       testMarshalizer,
+		SignMarshalizer:   testMarshalizer,
+		ShardCoordinator:  shardCoordinator,
+		ScProcessor:       &mock.SCProcessorMock{},
+		TxFeeHandler:      &mock.UnsignedTxHandlerMock{},
+		TxTypeHandler:     txTypeHandler,
+		EconomicsFee:      &mock.FeeHandlerStub{},
+		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:        smartContract.NewArgumentParser(),
+		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		DisabledRelayedTx: false,
+	}
+	txProc, _ := processTransaction.NewTxProcessor(argsNewTxProcessor)
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)

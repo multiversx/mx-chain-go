@@ -30,6 +30,9 @@ updateTOMLValue "$TESTNETDIR/node/config/config_observer.toml" "AfterHardFork" "
 let startTime="$(date +%s) + $HARDFORK_DELAY"
 updateJSONValue "$TESTNETDIR/node/config/nodesSetup.json" "startTime" "$startTime"
 
+updateTOMLValue "$TESTNETDIR/node/config/config_validator.toml" "GenesisTime" $startTime
+updateTOMLValue "$TESTNETDIR/node/config/config_observer.toml" "GenesisTime" $startTime
+
 # copy back the configs
 if [ $COPY_BACK_CONFIGS -eq 1 ]; then
   copyBackConfigs

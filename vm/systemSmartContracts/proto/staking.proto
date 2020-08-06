@@ -18,10 +18,25 @@ message StakedData {
 	uint64   JailedRound   = 8 [(gogoproto.jsontag) = "JailedRound"];
 	uint64   JailedNonce   = 9 [(gogoproto.jsontag) = "JailedNonce"];
 	uint64   UnJailedNonce = 10 [(gogoproto.jsontag) = "UnJailedNonce"];
+	bool     Jailed        = 11 [(gogoproto.jsontag) = "Jailed"];
+	bool     Waiting       = 12 [(gogoproto.jsontag) = "Waiting"];
 }
 
 message StakingNodesConfig {
 	int64 MinNumNodes = 1 [(gogoproto.jsontag) = "MinNumNodes"];
-	int64 StakedNodes = 2 [(gogoproto.jsontag) = "StakedNodes"];
-	int64 JailedNodes = 3 [(gogoproto.jsontag) = "JailedNodes"];
+	int64 MaxNumNodes = 2 [(gogoproto.jsontag) = "MaxNumNodes"];
+	int64 StakedNodes = 3 [(gogoproto.jsontag) = "StakedNodes"];
+	int64 JailedNodes = 4 [(gogoproto.jsontag) = "JailedNodes"];
+}
+
+message ElementInList {
+	bytes BLSPublicKey = 1 [(gogoproto.jsontag) = "BLSPublicKey"];
+	bytes PreviousKey  = 2 [(gogoproto.jsontag) = "PreviousKey"];
+	bytes NextKey      = 3 [(gogoproto.jsontag) = "NextKey"];
+}
+
+message WaitingList {
+	bytes FirstKey = 1 [(gogoproto.jsontag) = "FirstKey"];
+	bytes LastKey  = 2 [(gogoproto.jsontag) = "LastKey"];
+	uint32 Length  = 3 [(gogoproto.jsontag) = "Length"];
 }

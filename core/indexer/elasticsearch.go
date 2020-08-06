@@ -132,7 +132,7 @@ func (ei *elasticIndexer) epochStartEventHandler() epochStart.ActionHandler {
 				"error", err.Error())
 		}
 
-		ei.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
+		go ei.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
 
 	}, func(_ data.HeaderHandler) {}, core.IndexerOrder)
 

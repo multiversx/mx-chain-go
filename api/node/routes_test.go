@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -221,10 +222,17 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 
 	p2pKey := "a_p2p_specific_key"
 	statusMetricsProvider.SetStringValue(p2pKey, "p2p value")
+	numCheckpoints := 2
 
 	facade := mock.Facade{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
 		return statusMetricsProvider
+	}
+	facade.GetNumCheckpointsFromPeerStateCalled = func() uint32 {
+		return uint32(numCheckpoints)
+	}
+	facade.GetNumCheckpointsFromAccountStateCalled = func() uint32 {
+		return uint32(numCheckpoints)
 	}
 
 	ws := startNodeServer(&facade)
@@ -239,6 +247,12 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
 	assert.True(t, keyAndValueFoundInResponse)
 	assert.False(t, strings.Contains(respStr, p2pKey))
+
+	keyAndValueFoundInResponse = strings.Contains(respStr, node.AccStateCheckpointsKey) && strings.Contains(respStr, strconv.Itoa(numCheckpoints))
+	assert.True(t, keyAndValueFoundInResponse)
+
+	keyAndValueFoundInResponse = strings.Contains(respStr, node.PeerStateCheckpointsKey) && strings.Contains(respStr, strconv.Itoa(numCheckpoints))
+	assert.True(t, keyAndValueFoundInResponse)
 }
 
 func TestP2PStatusMetrics_NilContextShouldError(t *testing.T) {
@@ -447,6 +461,44 @@ func TestPeerInfo_PeerInfoShouldWork(t *testing.T) {
 	assert.NotNil(t, responseInfo["info"])
 }
 
+func TestPrometheusMetrics_NilContextShouldErr(t *testing.T) {
+	ws := startNodeServer(nil)
+	req, _ := http.NewRequest("GET", "/node/metrics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
+
+}
+
+func TestPrometheusMetrics_ShouldWork(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := "test-key"
+	value := uint64(37)
+	statusMetricsProvider.SetUInt64Value(key, value)
+
+	facade := mock.Facade{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/metrics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
@@ -501,6 +553,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 			"node": {
 				[]config.RouteConfig{
 					{Name: "/status", Open: true},
+					{Name: "/metrics", Open: true},
 					{Name: "/statistics", Open: true},
 					{Name: "/heartbeatstatus", Open: true},
 					{Name: "/p2pstatus", Open: true},

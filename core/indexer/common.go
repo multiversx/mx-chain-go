@@ -152,7 +152,7 @@ func (cm *commonProcessor) buildTransaction(
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      tx.GasPrice,
 		GasLimit:      tx.GasLimit,
-		Data:          string(tx.Data),
+		Data:          tx.Data,
 		Signature:     hex.EncodeToString(tx.Signature),
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
@@ -180,7 +180,7 @@ func (cm *commonProcessor) buildRewardTransaction(
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,
 		GasLimit:      0,
-		Data:          "",
+		Data:          make([]byte, 0),
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
@@ -200,12 +200,12 @@ func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.
 		Data:          decodedData,
 		PreTxHash:     hex.EncodeToString(sc.PrevTxHash),
 		CallType:      strconv.Itoa(int(sc.CallType)),
-		CodeMetadata:  string(sc.CodeMetadata),
+		CodeMetadata:  sc.CodeMetadata,
 		ReturnMessage: string(sc.ReturnMessage),
 	}
 }
 
-func decodeScResultData(scrData []byte) string {
+func decodeScResultData(scrData []byte) []byte {
 	encodedData := strings.Split(string(scrData), "@")
 	encodedData = append([]string(nil), encodedData[1:]...)
 
@@ -225,7 +225,7 @@ func decodeScResultData(scrData []byte) string {
 		}
 	}
 
-	return decodedData
+	return []byte(decodedData)
 }
 
 func canInterpretAsString(bytes []byte) bool {
@@ -450,7 +450,8 @@ func getDecodedResponseMultiGet(response object) map[string]bool {
 
 	for _, element := range interfaceSlice {
 		obj := element.(object)
-		if _, ok := obj["error"]; ok {
+		_, ok = obj["error"]
+		if ok {
 			continue
 		}
 		founded[obj["_id"].(string)] = obj["found"].(bool)

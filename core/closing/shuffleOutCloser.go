@@ -37,6 +37,9 @@ func NewShuffleOutCloser(
 	if maxWaitDuration < minDuration {
 		return nil, fmt.Errorf("%w for maxWaitDuration", core.ErrInvalidValue)
 	}
+	if minWaitDuration > maxWaitDuration {
+		return nil, fmt.Errorf("%w, minWaitDuration > maxWaitDuration", core.ErrInvalidValue)
+	}
 	if signalChan == nil {
 		return nil, core.ErrNilSignalChan
 	}

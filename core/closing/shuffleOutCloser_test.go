@@ -50,6 +50,19 @@ func TestNewShuffleOutCloser_NilChannelShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, core.ErrNilSignalChan))
 }
 
+func TestNewShuffleOutCloser_MinWaitDurationLargerThanMaxShouldErr(t *testing.T) {
+	t.Parallel()
+
+	soc, err := NewShuffleOutCloser(
+		minDuration+1,
+		minDuration,
+		make(chan endProcess.ArgEndProcess),
+	)
+
+	assert.True(t, check.IfNil(soc))
+	assert.True(t, errors.Is(err, core.ErrInvalidValue))
+}
+
 func TestNewShuffleOutCloser_ShouldWork(t *testing.T) {
 	t.Parallel()
 
