@@ -905,7 +905,7 @@ type NodesCoordinator interface {
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch
 type EpochNotifier interface {
-	RegisterNotifyHandler(handler core.EpochNotifiedHandler)
+	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(epoch uint32)
 	IsInterfaceNil() bool

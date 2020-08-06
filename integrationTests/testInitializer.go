@@ -586,6 +586,11 @@ func CreateFullGenesisBlocks(
 				return false
 			},
 		},
+		GeneralConfig: &config.GeneralSettingsConfig{
+			BuiltInFunctionsEnableEpoch:    0,
+			SCDeployEnableEpoch:            0,
+			RelayedTransactionsEnableEpoch: 0,
+		},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -664,6 +669,11 @@ func CreateGenesisMetaBlock(
 		BlockSignKeyGen:    &mock.KeyGenMock{},
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:   big.NewInt(1000),
+		GeneralConfig: &config.GeneralSettingsConfig{
+			RelayedTransactionsEnableEpoch: 0,
+			SCDeployEnableEpoch:            0,
+			BuiltInFunctionsEnableEpoch:    0,
+		},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

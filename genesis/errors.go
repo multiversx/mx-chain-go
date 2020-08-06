@@ -157,3 +157,6 @@ var ErrSmartContractWasNotDeployed = errors.New("smart contract was not deployed
 
 // ErrBLSKeyNotStaked signals that bls staking was not successful
 var ErrBLSKeyNotStaked = errors.New("bls key not staked")
+
+// ErrNilGeneralSettingsConfig signals that a nil general settings config was provided
+var ErrNilGeneralSettingsConfig = errors.New("nil general settings config")

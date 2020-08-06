@@ -14,13 +14,13 @@ var log = logger.GetOrCreate("core/forking")
 type genericEpochNotifier struct {
 	currentEpoch uint32
 	mutHandler   sync.RWMutex
-	handlers     []core.EpochNotifiedHandler
+	handlers     []core.EpochSubscriberHandler
 }
 
 // NewGenericEpochNotifier creates a new instance of a genericEpochNotifier component
 func NewGenericEpochNotifier() *genericEpochNotifier {
 	return &genericEpochNotifier{
-		handlers: make([]core.EpochNotifiedHandler, 0),
+		handlers: make([]core.EpochSubscriberHandler, 0),
 	}
 }
 
@@ -34,7 +34,7 @@ func (gen *genericEpochNotifier) CheckEpoch(epoch uint32) {
 	}
 
 	gen.mutHandler.RLock()
-	handlersCopy := make([]core.EpochNotifiedHandler, len(gen.handlers))
+	handlersCopy := make([]core.EpochSubscriberHandler, len(gen.handlers))
 	copy(handlersCopy, gen.handlers)
 	gen.mutHandler.RUnlock()
 
@@ -43,13 +43,13 @@ func (gen *genericEpochNotifier) CheckEpoch(epoch uint32) {
 		"num handlers", len(handlersCopy),
 	)
 
-	for _, handler := range gen.handlers {
+	for _, handler := range handlersCopy {
 		handler.EpochConfirmed(epoch)
 	}
 }
 
 // RegisterNotifyHandler will register the provided handler to be called whenever a new epoch has changed
-func (gen *genericEpochNotifier) RegisterNotifyHandler(handler core.EpochNotifiedHandler) {
+func (gen *genericEpochNotifier) RegisterNotifyHandler(handler core.EpochSubscriberHandler) {
 	if check.IfNil(handler) {
 		return
 	}
@@ -70,7 +70,7 @@ func (gen *genericEpochNotifier) CurrentEpoch() uint32 {
 // UnRegisterAll removes all registered handlers queue
 func (gen *genericEpochNotifier) UnRegisterAll() {
 	gen.mutHandler.Lock()
-	gen.handlers = make([]core.EpochNotifiedHandler, 0)
+	gen.handlers = make([]core.EpochSubscriberHandler, 0)
 	gen.mutHandler.Unlock()
 }
 

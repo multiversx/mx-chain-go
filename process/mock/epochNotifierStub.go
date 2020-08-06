@@ -9,7 +9,7 @@ import (
 type EpochNotifierStub struct {
 	CheckEpochCalled            func(epoch uint32)
 	CurrentEpochCalled          func() uint32
-	RegisterNotifyHandlerCalled func(handler core.EpochNotifiedHandler)
+	RegisterNotifyHandlerCalled func(handler core.EpochSubscriberHandler)
 }
 
 // CheckEpoch -
@@ -20,7 +20,7 @@ func (ens *EpochNotifierStub) CheckEpoch(epoch uint32) {
 }
 
 // RegisterNotifyHandler -
-func (ens *EpochNotifierStub) RegisterNotifyHandler(handler core.EpochNotifiedHandler) {
+func (ens *EpochNotifierStub) RegisterNotifyHandler(handler core.EpochSubscriberHandler) {
 	if ens.RegisterNotifyHandlerCalled != nil {
 		ens.RegisterNotifyHandlerCalled(handler)
 	} else {
