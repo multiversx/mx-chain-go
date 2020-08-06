@@ -223,7 +223,7 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
 // MetricHighestFinalBlock is the metric for the nonce of the highest final block
-const MetricHighestFinalBlock = "erd_nonce_highest_final"
+const MetricHighestFinalBlock = "erd_highest_final_nonce"
 
 // MetricLatestTagSoftwareVersion is the metric that stores the latest tag software version
 const MetricLatestTagSoftwareVersion = "erd_latest_tag_software_version"
