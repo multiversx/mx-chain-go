@@ -65,7 +65,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	_ = createAndSendTransaction(nodes[0], players[6], factory.AuctionSCAddress, sendValue, txData, integrationTests.MinTxGasPrice, gasLimitTxWithData)
 	time.Sleep(100 * time.Millisecond)
 
-	nrRoundsToTest := int64(12)
+	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
@@ -121,6 +121,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+		time.Sleep(time.Second)
 	}
 
 	time.Sleep(time.Second)
