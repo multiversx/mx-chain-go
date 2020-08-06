@@ -232,6 +232,25 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
+	ratingsProcessor, err := dataprocessor.NewRatingsProcessor(dataprocessor.RatingProcessorArgs{
+		ShardCoordinator:         shardCoordinator,
+		ValidatorPubKeyConverter: validatorPubKeyConverter,
+		DbPathWithChainID:        configuration.General.DBPathWithChainID,
+		GeneralConfig:            nodeConfig,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		ElasticIndexer:           elasticIndexer,
+		DatabaseReader:           dbReader,
+	})
+	if err != nil {
+		return err
+	}
+
+	//err = ratingsProcessor.IndexRatingsForEpochStartMetaBlock(&block.MetaBlock{ValidatorStatsRootHash:[]byte("0")})
+	//if err != nil {
+	//	return err
+	//}
+
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		flagsValues.nodesSetupFilePath,
 		addressPubKeyConverter,
@@ -269,6 +288,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 			Marshalizer:       marshalizer,
 			Hasher:            hasher,
 			ShardCoordinator:  shardCoordinator,
+			RatingsProcessor:  ratingsProcessor,
 		})
 	if err != nil {
 		return err

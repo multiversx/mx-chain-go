@@ -156,6 +156,42 @@ func (dr *databaseReader) getShardDirectoriesForEpoch(dirEpoch string) ([]uint32
 	return shardIDs, nil
 }
 
+// GetStaticDatabaseInfo returns all the databases' data found in the path specified on the constructor
+func (dr *databaseReader) GetStaticDatabaseInfo() ([]*DatabaseInfo, error) {
+	dbs := make([]*DatabaseInfo, 0)
+	dirname := "Static"
+	shardDirectories, err := dr.getShardDirectoriesForEpoch(filepath.Join(dr.dbPathWithChainID, dirname))
+	if err != nil {
+		log.Warn("cannot parse shard directories for epoch", "epoch directory name", dirname)
+		return nil, err
+	}
+
+	for _, shardDir := range shardDirectories {
+		dbs = append(dbs,
+			&DatabaseInfo{
+				Epoch: 0,
+				Shard: shardDir,
+			})
+	}
+
+	if len(dbs) == 0 {
+		return nil, ErrNoDatabaseFound
+	}
+
+	sort.Slice(dbs, func(i, j int) bool {
+		if dbs[i].Epoch < dbs[j].Epoch {
+			return true
+		}
+		if dbs[i].Epoch > dbs[i].Epoch {
+			return false
+		}
+
+		return dbs[i].Shard > dbs[j].Shard
+	})
+
+	return dbs, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (dr *databaseReader) IsInterfaceNil() bool {
 	return dr == nil

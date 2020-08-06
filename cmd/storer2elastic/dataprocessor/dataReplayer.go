@@ -208,6 +208,7 @@ func (dr *dataReplayer) processMetaChainDatabase(
 				return ErrRangeIsOver
 			}
 		} else {
+			log.Error(err.Error())
 			break
 		}
 	}
@@ -225,7 +226,7 @@ func (dr *dataReplayer) prepareMetaPersistersHolder(record *databasereader.Datab
 	}
 	metaPersHolder.metaBlocksPersister = metaBlocksUnit
 
-	headerHashNonceUnit, err := dr.databaseReader.LoadPersister(record, "MetaHdrHashNonce")
+	headerHashNonceUnit, err := dr.databaseReader.LoadStaticPersister(record, "MetaHdrHashNonce")
 	if err != nil {
 		return nil, err
 	}

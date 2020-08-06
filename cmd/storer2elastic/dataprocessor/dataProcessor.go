@@ -31,6 +31,7 @@ type ArgsDataProcessor struct {
 	ShardCoordinator  sharding.Coordinator
 	Marshalizer       marshal.Marshalizer
 	Hasher            hashing.Hasher
+	RatingsProcessor  *ratingsProcessor
 }
 
 type dataProcessor struct {
@@ -41,6 +42,7 @@ type dataProcessor struct {
 	marshalizer       marshal.Marshalizer
 	hasher            hashing.Hasher
 	nodesCoordinators map[uint32]NodesCoordinator
+	ratingsProcessor  *ratingsProcessor
 }
 
 // NewDataProcessor returns a new instance of dataProcessor
@@ -71,6 +73,7 @@ func NewDataProcessor(args ArgsDataProcessor) (*dataProcessor, error) {
 		shardCoordinator:  args.ShardCoordinator,
 		marshalizer:       args.Marshalizer,
 		hasher:            args.Hasher,
+		ratingsProcessor:  args.RatingsProcessor,
 	}
 
 	nodesCoordinator, err := dp.createNodesCoordinators(args.GenesisNodesSetup)
@@ -93,6 +96,11 @@ func (dp *dataProcessor) processData(persistedData storer2ElasticData.RoundPersi
 	if metaPersistedData.Header.IsStartOfEpochBlock() || metaPersistedData.Header.GetNonce() == 0 {
 		metaBlock, _ := metaPersistedData.Header.(*block.MetaBlock)
 		dp.processValidatorsForEpoch(metaBlock, metaPersistedData.Body)
+		err := dp.ratingsProcessor.IndexRatingsForEpochStartMetaBlock(metaBlock)
+		if err != nil {
+			log.Error("cannot process ratings", "error", err)
+			//return false
+		}
 	}
 
 	err := dp.indexData(metaPersistedData)

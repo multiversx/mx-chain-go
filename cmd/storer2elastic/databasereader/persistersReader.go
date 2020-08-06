@@ -97,3 +97,14 @@ func (dr *databaseReader) LoadPersister(dbInfo *DatabaseInfo, unit string) (stor
 	persisterPath := filepath.Join(dr.dbPathWithChainID, fmt.Sprintf("Epoch_%d", dbInfo.Epoch), fmt.Sprintf("Shard_%s", shardIDStr), unit)
 	return dr.persisterFactory.Create(persisterPath)
 }
+
+// LoadStaticPersister will load the static persister based on the database information and the unit
+func (dr *databaseReader) LoadStaticPersister(dbInfo *DatabaseInfo, unit string) (storage.Persister, error) {
+	shardIDStr := fmt.Sprintf("%d", dbInfo.Shard)
+	if shardIDStr == fmt.Sprintf("%d", core.MetachainShardId) {
+		shardIDStr = "metachain"
+	}
+
+	persisterPath := filepath.Join(dr.dbPathWithChainID, "Static", fmt.Sprintf("Shard_%s", shardIDStr), unit)
+	return dr.persisterFactory.Create(persisterPath)
+}
