@@ -98,7 +98,8 @@ jobs:
             -num-of-observers-in-metachain 1 \
             -chain-id ${{ github.sha }} \
             -hysteresis $HYSTERESIS \
-            -stake-type delegated
+            -stake-type delegated \
+            -output-directory ./
 
       - name: Prepare Configs
         run: |
