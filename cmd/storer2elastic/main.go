@@ -90,14 +90,6 @@ VERSION:
 		Destination: &flagsValues.numShards,
 	}
 
-	// logLevelPatterns defines the logger levels and patterns
-	timeoutFlag = cli.IntFlag{
-		Name:        "timeout",
-		Usage:       "This integer flag specifies the maximum duration to wait for indexing the entire results",
-		Value:       200,
-		Destination: &flagsValues.timeout,
-	}
-
 	flagsValues = &flags{}
 
 	log                      = logger.GetOrCreate("storer2elastic")
@@ -137,7 +129,6 @@ func initCliFlags() {
 		nodeConfigFilePathFlag,
 		nodesSetupFilePathFlag,
 		numOfShardsFlag,
-		timeoutFlag,
 	}
 	cliApp.Authors = []cli.Author{
 		{
@@ -164,9 +155,6 @@ func startStorer2Elastic(ctx *cli.Context) error {
 	}
 	if ctx.IsSet(dbPathWithChainIDFlag.Name) {
 		configuration.General.DBPathWithChainID = ctx.GlobalString(dbPathWithChainIDFlag.Name)
-	}
-	if ctx.IsSet(timeoutFlag.Name) {
-		configuration.General.Timeout = ctx.GlobalInt(timeoutFlag.Name)
 	}
 	if ctx.IsSet(nodeConfigFilePathFlag.Name) {
 		configuration.General.NodeConfigFilePath = ctx.GlobalString(nodeConfigFilePathFlag.Name)

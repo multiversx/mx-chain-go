@@ -10,7 +10,6 @@ type Config struct {
 type GeneralConfig struct {
 	DBPathWithChainID  string `toml:"dbPathWithChainID"`
 	NodeConfigFilePath string `toml:"nodeConfigPath"`
-	Timeout            int    `toml:"timeout"`
 	NumShards          int    `toml:"numShards"`
 	ChainID            string `toml:"chainID"`
 }

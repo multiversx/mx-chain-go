@@ -46,3 +46,6 @@ var ErrNilDataReplayer = errors.New("nil data replayer")
 
 // ErrNilPubKeyConverter signals that a nil public key converter has been provided
 var ErrNilPubKeyConverter = errors.New("nil public key converter")
+
+// ErrOsSignalIntercepted is returned when a signal from the OS is received
+var ErrOsSignalIntercepted = errors.New("os signal intercepted")

@@ -1,6 +1,9 @@
 package dataprocessor
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
@@ -88,6 +91,9 @@ func NewDataReplayer(args DataReplayerArgs) (*dataReplayer, error) {
 // Range will range over the data in storage until the handler returns false or the time is out
 func (dr *dataReplayer) Range(handler func(persistedData storer2ElasticData.RoundPersistedData) bool) error {
 	errChan := make(chan error, 0)
+	signalChannel := make(chan os.Signal, 2)
+	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
+
 	go func() {
 		dr.startIndexing(errChan, handler)
 	}()
@@ -97,6 +103,9 @@ func (dr *dataReplayer) Range(handler func(persistedData storer2ElasticData.Roun
 		return err
 	case <-time.After(time.Hour):
 		return ErrTimeIsOut
+	case <-signalChannel:
+		log.Info("the application will stop after an OS signal")
+		return ErrOsSignalIntercepted
 	}
 }
 

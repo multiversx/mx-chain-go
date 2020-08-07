@@ -1,7 +1,6 @@
 [general]
     dbPathWithChainID = "db/chainID"
     nodeConfigPath = "../node/config/config.toml"
-    timeout = 200 #number of seconds to wait for indexing all the data
     numShards = 2
 
 [elasticSearch]
