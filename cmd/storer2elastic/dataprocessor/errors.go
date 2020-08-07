@@ -49,3 +49,6 @@ var ErrNilPubKeyConverter = errors.New("nil public key converter")
 
 // ErrOsSignalIntercepted is returned when a signal from the OS is received
 var ErrOsSignalIntercepted = errors.New("os signal intercepted")
+
+// ErrNilHandlerFunc signals that a nil handler function for raning has been provided
+var ErrNilHandlerFunc = errors.New("nil handler function for ranging")
