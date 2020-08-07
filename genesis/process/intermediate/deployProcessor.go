@@ -65,18 +65,18 @@ func NewDeployProcessor(arg ArgDeployProcessor) (*deployProcessor, error) {
 }
 
 // Deploy will try to deploy the provided smart contract
-func (dp *deployProcessor) Deploy(sc genesis.InitialSmartContractHandler) error {
+func (dp *deployProcessor) Deploy(sc genesis.InitialSmartContractHandler) ([][]byte, error) {
 	code, err := dp.getScCodeAsHex(sc.GetFilename())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	scResultingAddressBytes, err := dp.deployForOneAddress(sc, sc.OwnerBytes(), code, applyCommonPlaceholders(sc.GetInitParameters()))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return dp.checkVersion(sc, scResultingAddressBytes)
+	return [][]byte{scResultingAddressBytes}, dp.checkVersion(sc, scResultingAddressBytes)
 }
 
 func applyCommonPlaceholders(txData string) string {
