@@ -162,7 +162,7 @@ func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leaves map[string][]by
 		validatorsRatingInfo[peerAccount.GetShardId()] = append(validatorsRatingInfo[peerAccount.GetShardId()],
 			indexer.ValidatorRatingInfo{
 				PublicKey: rp.validatorPubKeyConverter.Encode(peerAccount.GetBLSPublicKey()),
-				Rating:    float32(peerAccount.GetRating()),
+				Rating:    float32(peerAccount.GetRating()) * 100 / 10000000,
 			})
 	}
 
