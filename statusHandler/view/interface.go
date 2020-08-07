@@ -41,6 +41,7 @@ type Presenter interface {
 	GetNumTxProcessed() uint64
 	GetCurrentBlockHash() string
 	GetEpochNumber() uint64
+	GetEpochInfo() (uint64, uint64, int, string)
 	CalculateTimeToSynchronize() string
 	CalculateSynchronizationSpeed() uint64
 	GetCurrentRoundTimestamp() uint64
