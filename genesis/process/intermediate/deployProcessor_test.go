@@ -91,8 +91,9 @@ func TestDeployProcessor_DeployGetCodeFailsShouldErr(t *testing.T) {
 		return "", expectedErr
 	}
 
-	err := dp.Deploy(&data.InitialSmartContract{})
+	scAddresses, err := dp.Deploy(&data.InitialSmartContract{})
 
+	assert.Nil(t, scAddresses)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -111,8 +112,9 @@ func TestDeployProcessor_DeployGetNonceFailsShouldErr(t *testing.T) {
 		return "", nil
 	}
 
-	err := dp.Deploy(&data.InitialSmartContract{})
+	scAddresses, err := dp.Deploy(&data.InitialSmartContract{})
 
+	assert.Nil(t, scAddresses)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -131,8 +133,9 @@ func TestDeployProcessor_DeployNewAddressFailsShouldErr(t *testing.T) {
 		return "", nil
 	}
 
-	err := dp.Deploy(&data.InitialSmartContract{})
+	scAddresses, err := dp.Deploy(&data.InitialSmartContract{})
 
+	assert.Nil(t, scAddresses)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -184,9 +187,11 @@ func TestDeployProcessor_DeployShouldWork(t *testing.T) {
 			return result
 		},
 	}
+	var scResulting []byte
 	arg.BlockchainHook = &mock.BlockChainHookHandlerMock{
 		NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
 			buff := fmt.Sprintf("%s_%d_%s", string(creatorAddress), creatorNonce, hex.EncodeToString(vmType))
+			scResulting = []byte(buff)
 
 			return []byte(buff), nil
 		},
@@ -209,10 +214,12 @@ func TestDeployProcessor_DeployShouldWork(t *testing.T) {
 	}
 	sc.SetOwnerBytes(testSender)
 
-	err := dp.Deploy(sc)
+	scAddresses, err := dp.Deploy(sc)
 
 	assert.Nil(t, err)
 	assert.True(t, executeCalled)
+	assert.Equal(t, 1, len(scAddresses))
+	assert.Equal(t, scResulting, scAddresses[0])
 }
 
 //------- getSCCodeAsHex
