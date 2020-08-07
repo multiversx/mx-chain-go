@@ -43,3 +43,6 @@ var ErrRangeIsOver = errors.New("range is over")
 
 // ErrNilDataReplayer signals that a nil data replayer has been provided
 var ErrNilDataReplayer = errors.New("nil data replayer")
+
+// ErrNilPubKeyConverter signals that a nil public key converter has been provided
+var ErrNilPubKeyConverter = errors.New("nil public key converter")

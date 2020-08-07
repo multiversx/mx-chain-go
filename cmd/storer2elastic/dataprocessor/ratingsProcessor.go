@@ -1,13 +1,9 @@
 package dataprocessor
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"path/filepath"
-	"sort"
 
-	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -31,7 +27,6 @@ type RatingProcessorArgs struct {
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	ElasticIndexer           indexer.Indexer
-	DatabaseReader           DatabaseReaderHandler
 }
 
 type ratingsProcessor struct {
@@ -42,14 +37,16 @@ type ratingsProcessor struct {
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
 	elasticIndexer           indexer.Indexer
-	databaseReader           DatabaseReaderHandler
 	peerAdapter              state.AccountsAdapter
 }
 
 // NewRatingsProcessor will return a new instance of ratingsProcessor
 func NewRatingsProcessor(args RatingProcessorArgs) (*ratingsProcessor, error) {
 	if check.IfNil(args.ValidatorPubKeyConverter) {
-		return nil, errors.New("nil pub key converter")
+		return nil, ErrNilPubKeyConverter
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, ErrNilShardCoordinator
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, ErrNilMarshalizer
@@ -60,9 +57,6 @@ func NewRatingsProcessor(args RatingProcessorArgs) (*ratingsProcessor, error) {
 	if check.IfNil(args.ElasticIndexer) {
 		return nil, ErrNilElasticIndexer
 	}
-	if check.IfNil(args.DatabaseReader) {
-		return nil, ErrNilDatabaseReader
-	}
 
 	rp := &ratingsProcessor{
 		validatorPubKeyConverter: args.ValidatorPubKeyConverter,
@@ -71,7 +65,6 @@ func NewRatingsProcessor(args RatingProcessorArgs) (*ratingsProcessor, error) {
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
 		elasticIndexer:           args.ElasticIndexer,
-		databaseReader:           args.DatabaseReader,
 		dbPathWithChainID:        args.DbPathWithChainID,
 	}
 
@@ -91,67 +84,18 @@ func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock *block.
 		return err
 	}
 
-	validatorsData, err := getValidatorDataFromLeaves(leaves, rp.shardCoordinator, rp.marshalizer)
+	validatorsRatingData, err := rp.getValidatorsRatingFromLeaves(leaves)
 	if err != nil {
 		return err
 	}
 
-	validatorsRatingInfo := make([]indexer.ValidatorRatingInfo, 0)
-	for _, valsInShard := range validatorsData {
-		for _, val := range valsInShard {
-			validatorsRatingInfo = append(validatorsRatingInfo,
-				indexer.ValidatorRatingInfo{
-					PublicKey: rp.validatorPubKeyConverter.Encode(val.PublicKey),
-					Rating:    float32(val.Rating),
-				})
-		}
+	for shardID, validators := range validatorsRatingData {
+		index := fmt.Sprintf("%d_%d", shardID, metaBlock.Epoch)
+		rp.elasticIndexer.SaveValidatorsRating(index, validators)
+		log.Info("indexed validators rating", "shard ID", shardID, "num peers", len(validators))
 	}
-
-	log.Info("indexed validators rating", "num values", len(validatorsRatingInfo))
-	rp.elasticIndexer.SaveValidatorsRating("0", validatorsRatingInfo)
-	//ratingsBytes, err := rp.getRatingsFromStorage(rootHash)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//var tr trie.CollapsedBn
-	//err = rp.marshalizer.Unmarshal(&tr, ratingsBytes)
-	//if err != nil {
-	//	return err
-	//}
 
 	return nil
-}
-
-func (rp *ratingsProcessor) getRatingsFromStorage(rootHash []byte) ([]byte, error) {
-	staticDbs, err := rp.databaseReader.GetStaticDatabaseInfo()
-	if err != nil {
-		return nil, err
-	}
-
-	var metaStaticDb *databasereader.DatabaseInfo
-	for _, db := range staticDbs {
-		if db.Shard == core.MetachainShardId {
-			metaStaticDb = db
-			break
-		}
-	}
-
-	if metaStaticDb == nil {
-		return nil, errors.New("no metachain static DB found")
-	}
-
-	persisterPath := fmt.Sprintf("PeerAccountsTrie/TrieSnapshot/%d", metaStaticDb.Epoch)
-	peerAccountsStorer, err := rp.databaseReader.LoadStaticPersister(metaStaticDb, persisterPath)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		err = peerAccountsStorer.Close()
-		log.LogIfError(err)
-	}()
-
-	return peerAccountsStorer.Get(rootHash)
 }
 
 func (rp *ratingsProcessor) createPeerAdapter() error {
@@ -207,49 +151,22 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 	return nil
 }
 
-// TODO: create a structure or use this function also in process/peer/process.go
-func getValidatorDataFromLeaves(
-	leaves map[string][]byte,
-	shardCoordinator sharding.Coordinator,
-	marshalizer marshal.Marshalizer,
-) (map[uint32][]*state.ValidatorInfo, error) {
-
-	validators := make(map[uint32][]*state.ValidatorInfo, shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-		validators[i] = make([]*state.ValidatorInfo, 0)
-	}
-	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
-
-	sliceLeaves := convertMapToSortedSlice(leaves)
-
-	sort.Slice(sliceLeaves, func(i, j int) bool {
-		return bytes.Compare(sliceLeaves[i], sliceLeaves[j]) < 0
-	})
-
-	for _, pa := range sliceLeaves {
-		peerAccount, err := unmarshalPeer(pa, marshalizer)
+func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leaves map[string][]byte) (map[uint32][]indexer.ValidatorRatingInfo, error) {
+	validatorsRatingInfo := make(map[uint32][]indexer.ValidatorRatingInfo)
+	for _, pa := range leaves {
+		peerAccount, err := unmarshalPeer(pa, rp.marshalizer)
 		if err != nil {
 			continue
-			return nil, err
 		}
 
-		currentShardId := peerAccount.GetShardId()
-		validatorInfoData := peerAccountToValidatorInfo(peerAccount)
-		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
+		validatorsRatingInfo[peerAccount.GetShardId()] = append(validatorsRatingInfo[peerAccount.GetShardId()],
+			indexer.ValidatorRatingInfo{
+				PublicKey: rp.validatorPubKeyConverter.Encode(peerAccount.GetBLSPublicKey()),
+				Rating:    float32(peerAccount.GetRating()),
+			})
 	}
 
-	return validators, nil
-}
-
-func convertMapToSortedSlice(leaves map[string][]byte) [][]byte {
-	newLeaves := make([][]byte, len(leaves))
-	i := 0
-	for _, pa := range leaves {
-		newLeaves[i] = pa
-		i++
-	}
-
-	return newLeaves
+	return validatorsRatingInfo, nil
 }
 
 func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccountHandler, error) {
@@ -261,14 +178,4 @@ func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccoun
 	}
 
 	return peerAccount, nil
-}
-
-func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
-	return &state.ValidatorInfo{
-		PublicKey:  peerAccount.GetBLSPublicKey(),
-		ShardId:    peerAccount.GetShardId(),
-		Index:      peerAccount.GetIndexInList(),
-		TempRating: peerAccount.GetTempRating(),
-		Rating:     peerAccount.GetRating(),
-	}
 }
