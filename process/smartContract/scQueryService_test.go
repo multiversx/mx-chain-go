@@ -175,7 +175,8 @@ func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
 	mockVM := &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 			return &vmcommon.VMOutput{
-				ReturnCode: vmcommon.OutOfGas,
+				ReturnCode:    vmcommon.OutOfGas,
+				ReturnMessage: "add more gas",
 			}, nil
 		},
 	}
@@ -202,6 +203,7 @@ func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "error running vm func")
+	assert.Contains(t, err.Error(), "add more gas")
 	assert.Nil(t, returnedData)
 }
 
