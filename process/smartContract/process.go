@@ -767,7 +767,7 @@ func (sc *scProcessor) processVMOutput(
 			"return message", vmOutput.ReturnMessage,
 		)
 
-		vmOutput.ReturnMessage = fmt.Sprintf("too much gas has been provided: gas used = %d, gas remained = %d",
+		vmOutput.ReturnMessage += fmt.Sprintf("too much gas has been provided: gas used = %d, gas remained = %d",
 			gasProvided-vmOutput.GasRemaining, vmOutput.GasRemaining)
 		vmOutput.GasRemaining = 0
 	}
