@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
@@ -56,7 +55,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
-	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -809,7 +807,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		cfgs.generalConfig,
-		*cfgs.ratingsConfig,
 		cfgs.preferencesConfig,
 		genesisNodesConfig,
 		managedBootstrapComponents,
@@ -822,7 +819,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		managedStatusComponents,
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
-		elasticIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
 		whiteListRequest,
@@ -1535,7 +1531,6 @@ func createHardForkTrigger(
 
 func createNode(
 	config *config.Config,
-	ratingConfig config.RatingsConfig,
 	preferencesConfig *config.Preferences,
 	nodesConfig *sharding.NodesSetup,
 	bootstrapComponents mainFactory.BootstrapComponentsHandler,
@@ -1548,7 +1543,6 @@ func createNode(
 	statusComponents mainFactory.StatusComponentsHandler,
 	bootstrapRoundIndex uint64,
 	version string,
-	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListRequest process.WhiteListHandler,
@@ -1590,73 +1584,49 @@ func createNode(
 		return nil, err
 	}
 
-	peerHonestyHandler, err := createPeerHonestyHandler(config, ratingConfig, networkComponents.PubKeyCacher())
-	if err != nil {
-		return nil, err
-	}
-
+	genesisTime := time.Unix(nodesConfig.StartTime, 0)
 	heartbeatArgs := mainFactory.HeartbeatComponentsFactoryArgs{
 		Config:            *config,
 		Prefs:             *preferencesConfig,
 		AppVersion:        version,
-		GenesisTime:       time.Time{},
-		HardforkTrigger:   nil,
-		CoreComponents:    nil,
-		DataComponents:    nil,
-		NetworkComponents: nil,
-		CryptoComponents:  nil,
-		ProcessComponents: nil,
+		GenesisTime:       genesisTime,
+		HardforkTrigger:   hardForkTrigger,
+		CoreComponents:    coreComponents,
+		DataComponents:    dataComponents,
+		NetworkComponents: networkComponents,
+		CryptoComponents:  cryptoComponents,
+		ProcessComponents: processComponents,
 	}
 
-	managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents()
+	managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents(heartbeatArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedHeartbeatComponents.Create()
+	if err != nil {
+		return nil, err
+	}
 
 	var nd *node.Node
 	nd, err = node.NewNode(
 		node.WithBootstrapComponents(bootstrapComponents),
-		node.WithMessenger(network.NetworkMessenger()),
-		node.WithHasher(coreData.Hasher()),
-		node.WithInternalMarshalizer(coreData.InternalMarshalizer(), config.Marshalizer.SizeCheckDelta),
-		node.WithVmMarshalizer(coreData.VmMarshalizer()),
-		node.WithTxSignMarshalizer(coreData.TxMarshalizer()),
-		node.WithTxFeeHandler(economicsData),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithStatusComponents(statusComponents),
 		node.WithInitialNodesPubKeys(nodesConfig.InitialNodesPubKeys()),
-		node.WithAddressPubkeyConverter(coreData.AddressPubKeyConverter()),
-		node.WithValidatorPubkeyConverter(coreData.ValidatorPubKeyConverter()),
 		node.WithAccountsAdapter(stateComponents.AccountsAdapter()),
-		node.WithBlockChain(data.Blockchain()),
-		node.WithDataStore(data.StorageService()),
 		node.WithRoundDuration(nodesConfig.RoundDuration),
 		node.WithConsensusGroupSize(int(consensusGroupSize)),
-		node.WithSyncer(syncer),
-		node.WithBlockProcessor(process.BlockProcessor()),
-		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
-		node.WithRounder(process.Rounder()),
-		node.WithShardCoordinator(shardCoordinator),
-		node.WithNodesCoordinator(nodesCoordinator),
-		node.WithUint64ByteSliceConverter(coreData.Uint64ByteSliceConverter()),
-		node.WithForkDetector(process.ForkDetector()),
-		node.WithInterceptorsContainer(process.InterceptorsContainer()),
-		node.WithResolversFinder(process.ResolversFinder()),
+		node.WithGenesisTime(genesisTime),
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
-		node.WithAppStatusHandler(coreData.StatusHandler()),
-		node.WithIndexer(indexer),
-		node.WithEpochStartTrigger(process.EpochStartTrigger()),
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
-		node.WithBlockBlackListHandler(process.BlackListHandler()),
 		node.WithPeerDenialEvaluator(peerDenialEvaluator),
-		node.WithNetworkShardingCollector(process.PeerShardMapper()),
-		node.WithBootStorer(process.BootStorer()),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
-		node.WithHeaderSigVerifier(process.HeaderSigVerifier()),
-		node.WithHeaderIntegrityVerifier(process.HeaderIntegrityVerifier()),
-		node.WithValidatorStatistics(process.ValidatorsStatistics()),
-		node.WithValidatorsProvider(process.ValidatorsProvider()),
-		node.WithChainID([]byte(coreData.ChainID())),
-		node.WithMinTransactionVersion(coreData.MinTransactionVersion()),
-		node.WithBlockTracker(process.BlockTracker()),
-		node.WithRequestHandler(process.RequestHandler()),
-		node.WithInputAntifloodHandler(network.InputAntiFloodHandler()),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardForkTrigger),
 		node.WithWhiteListHandler(whiteListRequest),
@@ -1664,33 +1634,25 @@ func createNode(
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
-		node.WithPeerHonestyHandler(peerHonestyHandler),
-		node.WithWatchdogTimer(watchdogTimer),
-		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler()),
 		node.WithHistoryRepository(historyRepository),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	err = nd.StartHeartbeat(config.Heartbeat, version, preferencesConfig.Preferences)
-	if err != nil {
-		return nil, err
-	}
-
-	err = nd.ApplyOptions(node.WithDataPool(data.Datapool()))
+	err = nd.ApplyOptions(node.WithDataPool(dataComponents.Datapool()))
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+	if processComponents.ShardCoordinator().SelfId() < processComponents.ShardCoordinator().NumberOfShards() {
 		err = nd.CreateShardedStores()
 		if err != nil {
 			return nil, err
 		}
 	}
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		err = nd.ApplyOptions(node.WithPendingMiniBlocksHandler(process.PendingMiniBlocksHandler()))
+	if processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		err = nd.ApplyOptions(node.WithPendingMiniBlocksHandler(processComponents.PendingMiniBlocksHandler()))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
@@ -1698,8 +1660,8 @@ func createNode(
 
 	err = nodeDebugFactory.CreateInterceptedDebugHandler(
 		nd,
-		process.InterceptorsContainer(),
-		process.ResolversFinder(),
+		processComponents.InterceptorsContainer(),
+		processComponents.ResolversFinder(),
 		config.Debug.InterceptorResolver,
 	)
 	if err != nil {
@@ -1707,20 +1669,6 @@ func createNode(
 	}
 
 	return nd, nil
-}
-
-func createPeerHonestyHandler(
-	config *config.Config,
-	ratingConfig config.RatingsConfig,
-	pkTimeCache process.TimeCacher,
-) (consensus.PeerHonestyHandler, error) {
-
-	cache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(config.PeerHonesty))
-	if err != nil {
-		return nil, err
-	}
-
-	return peerHonesty.NewP2pPeerHonesty(ratingConfig.PeerHonesty, pkTimeCache, cache)
 }
 
 func initStatsFileMonitor(
