@@ -36,7 +36,7 @@ import (
 )
 
 // CreateMetaGenesisBlock will create a metachain genesis block
-func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, _ uint32) (data.HeaderHandler, error) {
+func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, _ uint32) (data.HeaderHandler, [][]byte, error) {
 	if mustDoHardForkImportProcess(arg) {
 		return createMetaGenesisAfterHardFork(arg)
 	}
@@ -48,29 +48,29 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 	}
 	processors, err := createProcessorsForMetaGenesisBlock(arg, genesisOverrideConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = deploySystemSmartContracts(arg, processors.txProcessor, processors.systemSCs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = setStakedData(arg, processors, nodesListSplitter)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
 
 	magicDecoded, err := hex.DecodeString(arg.GenesisString)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	prevHash := arg.Hasher.Compute(arg.GenesisString)
 
@@ -103,26 +103,26 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 
 	validatorRootHash, err := arg.ValidatorAccounts.RootHash()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	header.SetValidatorStatsRootHash(validatorRootHash)
 
 	err = saveGenesisMetaToStorage(arg.Store, arg.Marshalizer, header)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = processors.vmContainer.Close()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return header, nil
+	return header, make([][]byte, 0), nil
 }
 
 func createMetaGenesisAfterHardFork(
 	arg ArgsGenesisBlockCreator,
-) (data.HeaderHandler, error) {
+) (data.HeaderHandler, [][]byte, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
 
@@ -135,7 +135,7 @@ func createMetaGenesisAfterHardFork(
 	}
 	metaBlockCreator, err := hardForkProcess.NewMetaBlockCreatorAfterHardfork(argsNewMetaBlockCreatorAfterHardFork)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hdrHandler, _, err := metaBlockCreator.CreateNewBlock(
@@ -145,26 +145,26 @@ func createMetaGenesisAfterHardFork(
 		arg.HardForkConfig.StartEpoch,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	metaHdr, ok := hdrHandler.(*block.MetaBlock)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = saveGenesisMetaToStorage(arg.Store, arg.Marshalizer, metaHdr)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return metaHdr, nil
+	return metaHdr, make([][]byte, 0), nil
 }
 
 func saveGenesisMetaToStorage(

@@ -862,7 +862,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	saveMetricsForACommittedBlock(
+	saveMetricsForCommittedShardBlock(
 		sp.nodesCoordinator,
 		sp.appStatusHandler,
 		logger.DisplayByteSlice(headerHash),

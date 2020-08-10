@@ -412,7 +412,7 @@ func TestDeployedContractContents(
 	}
 }
 
-// GetAccount -
+// AccountExists -
 func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 	accnt, _ := accnts.GetExistingAccount(addressBytes)
 
