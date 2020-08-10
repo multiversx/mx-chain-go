@@ -29,3 +29,6 @@ var ErrInvalidVersionStringTooLong = errors.New("invalid version provided: strin
 
 // ErrSoftwareVersionMismatch signals that the software versions mismatch
 var ErrSoftwareVersionMismatch = errors.New("software versions mismatch")
+
+// ErrNilCacher signals that a nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")

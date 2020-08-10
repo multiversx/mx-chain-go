@@ -913,10 +913,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	versionsCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.Versions.Cache))
+	if err != nil {
+		return err
+	}
+
 	bootstrapHeaderVersioning, err := headerCheck.NewHeaderVersioningHandler(
 		[]byte(genesisNodesConfig.ChainID),
 		generalConfig.Versions.VersionsByEpochs,
 		generalConfig.Versions.DefaultVersion,
+		versionsCache,
 	)
 	if err != nil {
 		return err

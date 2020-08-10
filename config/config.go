@@ -404,4 +404,5 @@ type VersionByEpochs struct {
 type VersionsConfig struct {
 	DefaultVersion   string
 	VersionsByEpochs []VersionByEpochs
+	Cache            CacheConfig
 }

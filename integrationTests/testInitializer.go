@@ -1123,6 +1123,7 @@ func CreateHeaderVersioning() process.HeaderVersioningHandler {
 			},
 		},
 		"default",
+		testscommon.NewCacherMock(),
 	)
 
 	return headerVersioning

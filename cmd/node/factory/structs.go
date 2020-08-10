@@ -258,10 +258,16 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
+
+	versionsCache, err := createCache(args.mainConfig.Versions.Cache)
+	if err != nil {
+		return nil, err
+	}
 	headerVersioning, err := headerCheck.NewHeaderVersioningHandler(
 		[]byte(args.nodesConfig.ChainID),
 		args.mainConfig.Versions.VersionsByEpochs,
 		args.mainConfig.Versions.DefaultVersion,
+		versionsCache,
 	)
 	if err != nil {
 		return nil, err

@@ -2,22 +2,27 @@ package headerCheck
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 const wildcard = "*"
+const keySize = 4
 
 type headerVersioningHandler struct {
 	referenceChainID []byte
 	versions         []config.VersionByEpochs
 	defaultVersion   string
+	versionCache     storage.Cacher
 }
 
 // NewHeaderVersioningHandler returns a new instance of a structure capable of handling the versions of a header
@@ -26,15 +31,20 @@ func NewHeaderVersioningHandler(
 	referenceChainID []byte,
 	versionsByEpochs []config.VersionByEpochs,
 	defaultVersion string,
+	versionCache storage.Cacher,
 ) (*headerVersioningHandler, error) {
 
 	if len(referenceChainID) == 0 {
 		return nil, ErrInvalidReferenceChainID
 	}
+	if check.IfNil(versionCache) {
+		return nil, fmt.Errorf("%w, in NewHeaderVersioningHandler", ErrNilCacher)
+	}
 
 	hvh := &headerVersioningHandler{
 		referenceChainID: referenceChainID,
 		defaultVersion:   defaultVersion,
+		versionCache:     versionCache,
 	}
 	var err error
 	hvh.versions, err = hvh.prepareVersions(versionsByEpochs)
@@ -88,10 +98,15 @@ func (hvh *headerVersioningHandler) GetVersion(epoch uint32) string {
 
 // GetVersion returns the version by providing the epoch
 func (hvh *headerVersioningHandler) getMatchingVersion(epoch uint32) string {
-	//TODO add a small cache here?
+	storedVersion, ok := hvh.getFromCache(epoch)
+	if ok {
+		return storedVersion
+	}
 
 	for _, ver := range hvh.versions {
 		if ver.StartEpoch <= epoch && epoch < ver.EndEpoch {
+			hvh.setInCache(epoch, ver.Version)
+
 			return ver.Version
 		}
 	}
@@ -99,7 +114,30 @@ func (hvh *headerVersioningHandler) getMatchingVersion(epoch uint32) string {
 	log.Debug("headerVersioningHandler.GetVersion version not found",
 		"epoch", epoch, "default version", hvh.defaultVersion)
 
+	hvh.setInCache(epoch, hvh.defaultVersion)
+
 	return hvh.defaultVersion
+}
+
+func (hvh *headerVersioningHandler) getFromCache(epoch uint32) (string, bool) {
+	key := make([]byte, keySize)
+	binary.BigEndian.PutUint32(key, epoch)
+
+	obj, ok := hvh.versionCache.Get(key)
+	if !ok {
+		return "", false
+	}
+
+	str, ok := obj.(string)
+
+	return str, ok
+}
+
+func (hvh *headerVersioningHandler) setInCache(epoch uint32, version string) {
+	key := make([]byte, keySize)
+	binary.BigEndian.PutUint32(key, epoch)
+
+	_ = hvh.versionCache.Put(key, version, len(key)+len(version))
 }
 
 // Verify will check the header's fields such as the chain ID or the software version

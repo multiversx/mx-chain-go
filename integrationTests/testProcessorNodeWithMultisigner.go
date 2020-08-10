@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -446,6 +447,7 @@ func createVersioningHandler() process.HeaderVersioningHandler {
 			},
 		},
 		"default",
+		testscommon.NewCacherMock(),
 	)
 
 	return headerVersioning

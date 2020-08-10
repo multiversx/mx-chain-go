@@ -28,6 +28,10 @@
    VersionsByEpochs = [
        { StartEpoch = 0, EndEpoch = 1000000, Version = "*" },
    ]
+   [Versions.Cache]
+        Name = "VersionsCache"
+        Capacity = 100
+        Type = "LRU"
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
