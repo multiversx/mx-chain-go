@@ -820,7 +820,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
 		requestedItemsHandler,
-		epochStartNotifier,
 		whiteListRequest,
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
@@ -1544,7 +1543,6 @@ func createNode(
 	bootstrapRoundIndex uint64,
 	version string,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListRequest process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
@@ -1616,15 +1614,14 @@ func createNode(
 		node.WithNetworkComponents(networkComponents),
 		node.WithProcessComponents(processComponents),
 		node.WithCryptoComponents(cryptoComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithStatusComponents(statusComponents),
 		node.WithInitialNodesPubKeys(nodesConfig.InitialNodesPubKeys()),
-		node.WithAccountsAdapter(stateComponents.AccountsAdapter()),
 		node.WithRoundDuration(nodesConfig.RoundDuration),
 		node.WithConsensusGroupSize(int(consensusGroupSize)),
 		node.WithGenesisTime(genesisTime),
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
-		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithPeerDenialEvaluator(peerDenialEvaluator),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithTxAccumulator(txAccumulator),
@@ -1640,21 +1637,10 @@ func createNode(
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	err = nd.ApplyOptions(node.WithDataPool(dataComponents.Datapool()))
-	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
-	}
-
 	if processComponents.ShardCoordinator().SelfId() < processComponents.ShardCoordinator().NumberOfShards() {
 		err = nd.CreateShardedStores()
 		if err != nil {
 			return nil, err
-		}
-	}
-	if processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		err = nd.ApplyOptions(node.WithPendingMiniBlocksHandler(processComponents.PendingMiniBlocksHandler()))
-		if err != nil {
-			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
 	}
 

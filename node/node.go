@@ -15,7 +15,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
@@ -56,14 +55,9 @@ type Node struct {
 	initialNodesPubkeys    map[uint32][]string
 	roundDuration          uint64
 	consensusGroupSize     int
-	messenger              P2PMessenger
 	genesisTime            time.Time
-	accounts               state.AccountsAdapter
-	interceptorsContainer  process.InterceptorsContainer
-	resolversFinder        dataRetriever.ResolversFinder
 	peerDenialEvaluator    p2p.PeerDenialEvaluator
 	hardforkTrigger        HardforkTrigger
-	validatorsProvider     process.ValidatorsProvider
 	whiteListRequest       process.WhiteListHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
 
@@ -75,18 +69,11 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	bootStorer              process.BootStorer
-	requestedItemsHandler   dataRetriever.RequestedItemsHandler
-	headerSigVerifier       spos.HeaderSigVerifier
-	headerIntegrityVerifier process.HeaderIntegrityVerifier
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
 
-	chainID               []byte
-	minTransactionVersion uint32
-
-	sizeCheckDelta        uint32
-	txSentCounter         uint32
-	inputAntifloodHandler P2PAntifloodHandler
-	txAcumulator          Accumulator
+	sizeCheckDelta uint32
+	txSentCounter  uint32
+	txAcumulator   Accumulator
 
 	signatureSize int
 	publicKeySize int
@@ -179,7 +166,7 @@ func (n *Node) addCloserInstances(closers ...update.Closer) error {
 
 // GetBalance gets the balance for a specific address
 func (n *Node) GetBalance(address string) (*big.Int, error) {
-	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.accounts) {
+	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return nil, errors.New("initialize AccountsAdapter and PubkeyConverter first")
 	}
 
@@ -187,7 +174,7 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
-	accWrp, err := n.accounts.GetExistingAccount(addr)
+	accWrp, err := n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
@@ -211,7 +198,7 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 		return "", fmt.Errorf("invalid key: %w", err)
 	}
 
-	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.accounts) {
+	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return "", fmt.Errorf("initialize AccountsAdapter and PubkeyConverter first")
 	}
 
@@ -219,7 +206,7 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("invalid address, could not decode from: %w", err)
 	}
-	accWrp, err := n.accounts.GetExistingAccount(addr)
+	accWrp, err := n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
 	if err != nil {
 		return "", fmt.Errorf("could not fetch sender address from provided param: %w", err)
 	}
@@ -380,7 +367,7 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 // ValidateTransaction will validate a transaction
 func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	txValidator, err := dataValidators.NewTxValidator(
-		n.accounts,
+		n.stateComponents.AccountsAdapter(),
 		n.processComponents.ShardCoordinator(),
 		n.whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
@@ -408,8 +395,8 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.coreComponents.EconomicsData(),
 		n.whiteListerVerifiedTxs,
 		argumentParser,
-		n.chainID,
-		n.minTransactionVersion,
+		[]byte(n.coreComponents.ChainID()),
+		n.coreComponents.MinTransactionVersion(),
 	)
 	if err != nil {
 		return err
@@ -450,7 +437,7 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 				"topic", identifier,
 				"size", len(bufferToSend),
 			)
-			err = n.messenger.BroadcastOnChannelBlocking(
+			err = n.networkComponents.NetworkMessenger().BroadcastOnChannelBlocking(
 				SendTransactionsPipe,
 				identifier,
 				bufferToSend,
@@ -489,7 +476,7 @@ func (n *Node) CreateTransaction(
 	if check.IfNil(addrPubKeyConverter) {
 		return nil, nil, ErrNilPubkeyConverter
 	}
-	if check.IfNil(n.accounts) {
+	if check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return nil, nil, ErrNilAccountsAdapter
 	}
 
@@ -540,7 +527,7 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) {
 		return nil, ErrNilPubkeyConverter
 	}
-	if check.IfNil(n.accounts) {
+	if check.IfNil(n.stateComponents.AccountsAdapter()) {
 		return nil, ErrNilAccountsAdapter
 	}
 
@@ -549,7 +536,7 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 		return nil, err
 	}
 
-	accWrp, err := n.accounts.GetExistingAccount(addr)
+	accWrp, err := n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
 			return state.NewUserAccount(addr)
@@ -580,7 +567,7 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
 func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
-	return n.validatorsProvider.GetLatestValidators(), nil
+	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 
 func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[string]*state.ValidatorApiResponse, error) {
@@ -662,7 +649,7 @@ func (n *Node) GetQueryHandler(name string) (debug.QueryHandler, error) {
 
 // GetPeerInfo returns information about a peer id
 func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
-	peers := n.messenger.Peers()
+	peers := n.networkComponents.NetworkMessenger().Peers()
 	pidsFound := make([]core.PeerID, 0)
 	for _, p := range peers {
 		if strings.Contains(p.Pretty(), pid) {
@@ -745,7 +732,7 @@ func (n *Node) GetStatusComponents() mainFactory.StatusComponentsHolder {
 func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 	result := core.QueryP2PPeerInfo{
 		Pid:           p.Pretty(),
-		Addresses:     n.messenger.PeerAddresses(p),
+		Addresses:     n.networkComponents.NetworkMessenger().PeerAddresses(p),
 		IsBlacklisted: n.peerDenialEvaluator.IsDenied(p),
 	}
 
