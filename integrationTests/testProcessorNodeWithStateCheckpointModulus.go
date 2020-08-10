@@ -62,15 +62,15 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 
 	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 	tpn := &TestProcessorNode{
-		ShardCoordinator:        shardCoordinator,
-		Messenger:               messenger,
-		NodesCoordinator:        nodesCoordinator,
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ChainID:                 ChainID,
-		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &mock.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		ShardCoordinator:      shardCoordinator,
+		Messenger:             messenger,
+		NodesCoordinator:      nodesCoordinator,
+		HeaderSigVerifier:     &mock.HeaderSigVerifierStub{},
+		HeaderVersioning:      CreateHeaderVersioning(),
+		ChainID:               ChainID,
+		MinTransactionVersion: MinTransactionVersion,
+		HistoryRepository:     &mock.HistoryRepositoryStub{},
+		EpochNotifier:         forking.NewGenericEpochNotifier(),
 	}
 	tpn.NodesSetup = nodesSetup
 

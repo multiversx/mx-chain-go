@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorsFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -53,6 +52,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	NonceConverter     typeConverters.Uint64ByteSliceConverter
 	StartInEpochConfig config.EpochStartConfig
 	ArgsParser         process.ArgumentsParser
+	HeaderVersioning   process.HeaderVersioningHandler
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -63,6 +63,9 @@ const thresholdForConsideringMetaBlockCorrect = 67
 func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaSyncer, error) {
 	if check.IfNil(args.AddressPubkeyConv) {
 		return nil, epochStart.ErrNilPubkeyConverter
+	}
+	if check.IfNil(args.HeaderVersioning) {
+		return nil, epochStart.ErrNilHeaderVersioningHandler
 	}
 
 	e := &epochStartMetaSyncer{
@@ -85,29 +88,25 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		return nil, err
 	}
 	e.metaBlockProcessor = processor
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(args.ChainID)
-	if err != nil {
-		return nil, err
-	}
 
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:        args.Marshalizer,
-		TxSignMarshalizer:       args.TxSignMarshalizer,
-		Hasher:                  args.Hasher,
-		ShardCoordinator:        args.ShardCoordinator,
-		MultiSigVerifier:        disabled.NewMultiSigVerifier(),
-		NodesCoordinator:        disabled.NewNodesCoordinator(),
-		KeyGen:                  args.KeyGen,
-		BlockKeyGen:             args.BlockKeyGen,
-		Signer:                  args.Signer,
-		BlockSigner:             args.BlockSigner,
-		AddressPubkeyConv:       args.AddressPubkeyConv,
-		FeeHandler:              args.EconomicsData,
-		HeaderSigVerifier:       disabled.NewHeaderSigVerifier(),
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		ValidityAttester:        disabled.NewValidityAttester(),
-		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
-		ArgsParser:              args.ArgsParser,
+		ProtoMarshalizer:  args.Marshalizer,
+		TxSignMarshalizer: args.TxSignMarshalizer,
+		Hasher:            args.Hasher,
+		ShardCoordinator:  args.ShardCoordinator,
+		MultiSigVerifier:  disabled.NewMultiSigVerifier(),
+		NodesCoordinator:  disabled.NewNodesCoordinator(),
+		KeyGen:            args.KeyGen,
+		BlockKeyGen:       args.BlockKeyGen,
+		Signer:            args.Signer,
+		BlockSigner:       args.BlockSigner,
+		AddressPubkeyConv: args.AddressPubkeyConv,
+		FeeHandler:        args.EconomicsData,
+		HeaderSigVerifier: disabled.NewHeaderSigVerifier(),
+		HeaderVersioning:  args.HeaderVersioning,
+		ValidityAttester:  disabled.NewValidityAttester(),
+		EpochStartTrigger: disabled.NewEpochStartTrigger(),
+		ArgsParser:        args.ArgsParser,
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)

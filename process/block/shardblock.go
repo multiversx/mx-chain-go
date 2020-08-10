@@ -76,7 +76,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		indexer:                arguments.Indexer,
 		tpsBenchmark:           arguments.TpsBenchmark,
 		genesisNonce:           genesisHdr.GetNonce(),
-		version:                core.TrimSoftwareVersion(arguments.Version),
+		headerVersioning:       arguments.HeaderVersioning,
 		historyRepo:            arguments.HistoryRepository,
 		epochNotifier:          arguments.EpochNotifier,
 	}
@@ -685,6 +685,7 @@ func (sp *shardProcessor) CreateBlock(
 	shardHdr.SetEpoch(sp.epochStartTrigger.MetaEpoch())
 	sp.epochNotifier.CheckEpoch(shardHdr.GetEpoch())
 	sp.blockChainHook.SetCurrentHeader(shardHdr)
+	shardHdr.SoftwareVersion = []byte(sp.headerVersioning.GetVersion(shardHdr.Epoch))
 	body, err := sp.createBlockBody(shardHdr, haveTime)
 	if err != nil {
 		return nil, nil, err
@@ -1124,7 +1125,6 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) data.Heade
 		Round:           round,
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
-		SoftwareVersion: []byte(sp.version),
 	}
 
 	return header

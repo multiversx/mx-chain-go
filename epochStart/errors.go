@@ -220,3 +220,6 @@ var ErrProtocolSustainabilityAddressInMetachain = errors.New("protocol sustainab
 
 // ErrNilGenesisTotalSupply signals that nil genesis total supply has been provided
 var ErrNilGenesisTotalSupply = errors.New("nil genesis total supply")
+
+// ErrNilHeaderVersioningHandler signals that nil a versioning handler was provided
+var ErrNilHeaderVersioningHandler = errors.New("nil header versioning handler")

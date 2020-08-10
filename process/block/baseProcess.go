@@ -68,7 +68,7 @@ type baseProcessor struct {
 	blockChain              data.ChainHandler
 	hdrsForCurrBlock        *hdrForBlock
 	genesisNonce            uint64
-	version                 string
+	headerVersioning        process.HeaderVersioningHandler
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
@@ -419,8 +419,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.HistoryRepository) {
 		return process.ErrNilHistoryRepository
 	}
-	if len(arguments.Version) == 0 {
-		return process.ErrEmptySoftwareVersion
+	if check.IfNil(arguments.HeaderVersioning) {
+		return process.ErrNilHeaderVersioningHandler
 	}
 	if check.IfNil(arguments.EpochNotifier) {
 		return process.ErrNilEpochNotifier

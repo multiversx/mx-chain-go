@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -45,6 +44,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	ChainID                []byte
 	ArgumentsParser        process.ArgumentsParser
 	MinTransactionVersion  uint32
+	HeaderVersioning       process.HeaderVersioningHandler
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -60,44 +60,40 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	blackListHandler := timecache.NewTimeCache(timeSpanForBadHeaders)
 	feeHandler := &disabledGenesis.FeeHandler{}
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(args.ChainID)
-	if err != nil {
-		return nil, err
-	}
 	sizeCheckDelta := 0
 	validityAttester := disabled.NewValidityAttester()
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 
 	containerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-		ShardCoordinator:        args.ShardCoordinator,
-		NodesCoordinator:        nodesCoordinator,
-		Messenger:               args.Messenger,
-		Store:                   storer,
-		ProtoMarshalizer:        args.ProtoMarshalizer,
-		TxSignMarshalizer:       args.TxSignMarshalizer,
-		Hasher:                  args.Hasher,
-		MultiSigner:             multiSigner,
-		DataPool:                args.DataPool,
-		Accounts:                accountsAdapter,
-		AddressPubkeyConverter:  args.AddressPubkeyConv,
-		SingleSigner:            args.SingleSigner,
-		BlockSingleSigner:       args.BlockSingleSigner,
-		KeyGen:                  args.KeyGen,
-		BlockKeyGen:             args.BlockKeyGen,
-		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:            feeHandler,
-		BlackList:               blackListHandler,
-		HeaderSigVerifier:       headerSigVerifier,
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		SizeCheckDelta:          uint32(sizeCheckDelta),
-		ValidityAttester:        validityAttester,
-		EpochStartTrigger:       epochStartTrigger,
-		WhiteListHandler:        args.WhiteListHandler,
-		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
-		AntifloodHandler:        antiFloodHandler,
-		ArgumentsParser:         args.ArgumentsParser,
-		ChainID:                 args.ChainID,
-		MinTransactionVersion:   args.MinTransactionVersion,
+		ShardCoordinator:       args.ShardCoordinator,
+		NodesCoordinator:       nodesCoordinator,
+		Messenger:              args.Messenger,
+		Store:                  storer,
+		ProtoMarshalizer:       args.ProtoMarshalizer,
+		TxSignMarshalizer:      args.TxSignMarshalizer,
+		Hasher:                 args.Hasher,
+		MultiSigner:            multiSigner,
+		DataPool:               args.DataPool,
+		Accounts:               accountsAdapter,
+		AddressPubkeyConverter: args.AddressPubkeyConv,
+		SingleSigner:           args.SingleSigner,
+		BlockSingleSigner:      args.BlockSingleSigner,
+		KeyGen:                 args.KeyGen,
+		BlockKeyGen:            args.BlockKeyGen,
+		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:           feeHandler,
+		BlackList:              blackListHandler,
+		HeaderSigVerifier:      headerSigVerifier,
+		HeaderVersioning:       args.HeaderVersioning,
+		SizeCheckDelta:         uint32(sizeCheckDelta),
+		ValidityAttester:       validityAttester,
+		EpochStartTrigger:      epochStartTrigger,
+		WhiteListHandler:       args.WhiteListHandler,
+		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
+		AntifloodHandler:       antiFloodHandler,
+		ArgumentsParser:        args.ArgumentsParser,
+		ChainID:                args.ChainID,
+		MinTransactionVersion:  args.MinTransactionVersion,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

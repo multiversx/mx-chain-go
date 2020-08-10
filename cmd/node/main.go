@@ -60,6 +60,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/rating/peerHonesty"
@@ -912,6 +913,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	bootstrapHeaderVersioning, err := headerCheck.NewHeaderVersioningHandler(
+		[]byte(genesisNodesConfig.ChainID),
+		generalConfig.Versions.VersionsByEpochs,
+		generalConfig.Versions.DefaultVersion,
+	)
+	if err != nil {
+		return err
+	}
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  cryptoParams.PublicKey,
 		Marshalizer:                coreComponents.InternalMarshalizer,
@@ -941,6 +951,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              coreComponents.StatusHandler,
+		HeaderVersioning:           bootstrapHeaderVersioning,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -2023,7 +2034,7 @@ func createHardForkTrigger(
 		KeyGen:                   crypto.TxSignKeyGen,
 		BlockSigner:              crypto.SingleSigner,
 		HeaderSigVerifier:        process.HeaderSigVerifier,
-		HeaderIntegrityVerifier:  process.HeaderIntegrityVerifier,
+		HeaderVersioning:         process.HeaderVersionging,
 		MaxTrieLevelInMemory:     config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		InputAntifloodHandler:    network.InputAntifloodHandler,
 		OutputAntifloodHandler:   network.OutputAntifloodHandler,
@@ -2189,7 +2200,7 @@ func createNode(
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
-		node.WithHeaderIntegrityVerifier(process.HeaderIntegrityVerifier),
+		node.WithHeaderVersioning(process.HeaderVersionging),
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithValidatorsProvider(process.ValidatorsProvider),
 		node.WithChainID(coreData.ChainID),

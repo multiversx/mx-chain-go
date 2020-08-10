@@ -959,29 +959,29 @@ func TestWithHeaderSigVerifier_OkHeaderSigVerfierShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithHeaderSigVerifier_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
+func TestWithHeaderSigVerifier_NilHeaderVersioningHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithHeaderIntegrityVerifier(nil)
+	opt := WithHeaderVersioning(nil)
 	err := opt(node)
 
-	assert.Equal(t, ErrNilHeaderIntegrityVerifier, err)
+	assert.Equal(t, ErrNilHeaderVersioningHandler, err)
 }
 
-func TestWithHeaderSigVerifier_OkHeaderIntegrityVerfierShouldWork(t *testing.T) {
+func TestWithHeaderSigVerifier_OkHeaderVersioningHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	hdrIntVerifier := &mock.HeaderIntegrityVerifierStub{}
+	hdrIntVerifier := &mock.HeaderVersioningHandlerStub{}
 
-	opt := WithHeaderIntegrityVerifier(hdrIntVerifier)
+	opt := WithHeaderVersioning(hdrIntVerifier)
 	err := opt(node)
 
 	assert.Nil(t, err)
-	assert.Equal(t, hdrIntVerifier, node.headerIntegrityVerifier)
+	assert.Equal(t, hdrIntVerifier, node.headerVersioning)
 }
 
 func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.T) {

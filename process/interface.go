@@ -649,10 +649,11 @@ type InterceptedHeaderSigVerifier interface {
 	IsInterfaceNil() bool
 }
 
-// InterceptedHeaderIntegrityVerifier is the interface needed at interceptors level to check that a header's integrity
-// is correct
-type InterceptedHeaderIntegrityVerifier interface {
+// HeaderVersioningHandler encapsulates methods useful to check that a header's versioning is correct and to provide
+// the correct version based on the epoch value
+type HeaderVersioningHandler interface {
 	Verify(header data.HeaderHandler) error
+	GetVersion(epoch uint32) string
 	IsInterfaceNil() bool
 }
 

@@ -105,7 +105,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		indexer:                arguments.Indexer,
 		tpsBenchmark:           arguments.TpsBenchmark,
 		genesisNonce:           genesisHdr.GetNonce(),
-		version:                core.TrimSoftwareVersion(arguments.Version),
+		headerVersioning:       arguments.HeaderVersioning,
 		historyRepo:            arguments.HistoryRepository,
 		epochNotifier:          arguments.EpochNotifier,
 	}
@@ -636,6 +636,7 @@ func (mp *metaProcessor) CreateBlock(
 
 	mp.epochStartTrigger.Update(initialHdr.GetRound(), initialHdr.GetNonce())
 	metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
+	metaHdr.SoftwareVersion = []byte(mp.headerVersioning.GetVersion(metaHdr.Epoch))
 	mp.epochNotifier.CheckEpoch(metaHdr.GetEpoch())
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
 
@@ -1972,7 +1973,6 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) data.Header
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		DeveloperFees:          big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
-		SoftwareVersion:        []byte(mp.version),
 	}
 
 	mp.epochStartTrigger.Update(round, nonce)

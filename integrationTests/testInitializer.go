@@ -50,6 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -1108,6 +1109,23 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 
 	buff := txHandler.GetData()
 	return binary.BigEndian.Uint64(buff)
+}
+
+// CreateHeaderVersioning outputs a valid header versioning handler
+func CreateHeaderVersioning() process.HeaderVersioningHandler {
+	headerVersioning, _ := headerCheck.NewHeaderVersioningHandler(
+		ChainID,
+		[]config.VersionByEpochs{
+			{
+				StartEpoch: 0,
+				EndEpoch:   1000000,
+				Version:    "*",
+			},
+		},
+		"default",
+	)
+
+	return headerVersioning
 }
 
 // CreateNodes creates multiple nodes in different shards

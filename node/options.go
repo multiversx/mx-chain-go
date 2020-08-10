@@ -485,13 +485,13 @@ func WithHeaderSigVerifier(headerSigVerifier spos.RandSeedVerifier) Option {
 	}
 }
 
-// WithHeaderIntegrityVerifier sets up a header integrity verifier for the Node
-func WithHeaderIntegrityVerifier(headerIntegrityVerifier spos.HeaderIntegrityVerifier) Option {
+// WithHeaderVersioning sets up a header versioning for the Node
+func WithHeaderVersioning(headerVersioning spos.HeaderVersioningHandler) Option {
 	return func(n *Node) error {
-		if check.IfNil(headerIntegrityVerifier) {
-			return ErrNilHeaderIntegrityVerifier
+		if check.IfNil(headerVersioning) {
+			return ErrNilHeaderVersioningHandler
 		}
-		n.headerIntegrityVerifier = headerIntegrityVerifier
+		n.headerVersioning = headerVersioning
 		return nil
 	}
 }

@@ -101,7 +101,7 @@ type Process struct {
 	BlackListHandler         process.TimeCacher
 	BootStorer               process.BootStorer
 	HeaderSigVerifier        HeaderSigVerifierHandler
-	HeaderIntegrityVerifier  HeaderIntegrityVerifierHandler
+	HeaderVersionging        HeaderVersioningHandler
 	ValidatorsStatistics     process.ValidatorStatisticsProcessor
 	ValidatorsProvider       process.ValidatorsProvider
 	BlockTracker             process.BlockTracker
@@ -258,7 +258,11 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier([]byte(args.nodesConfig.ChainID))
+	headerVersioning, err := headerCheck.NewHeaderVersioningHandler(
+		[]byte(args.nodesConfig.ChainID),
+		args.mainConfig.Versions.VersionsByEpochs,
+		args.mainConfig.Versions.DefaultVersion,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -435,7 +439,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.network,
 		args.economicsData,
 		headerSigVerifier,
-		headerIntegrityVerifier,
+		headerVersioning,
 		args.sizeCheckDelta,
 		blockTracker,
 		epochStartTrigger,
@@ -481,6 +485,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		headerValidator,
 		blockTracker,
 		pendingMiniBlocksHandler,
+		headerVersioning,
 	)
 	if err != nil {
 		return nil, err
@@ -517,7 +522,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlackListHandler:         blackListHandler,
 		BootStorer:               bootStorer,
 		HeaderSigVerifier:        headerSigVerifier,
-		HeaderIntegrityVerifier:  headerIntegrityVerifier,
+		HeaderVersionging:        headerVersioning,
 		ValidatorsStatistics:     validatorStatisticsProcessor,
 		ValidatorsProvider:       validatorsProvider,
 		BlockTracker:             blockTracker,
@@ -696,7 +701,7 @@ func newInterceptorContainerFactory(
 	network *mainFactory.NetworkComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
-	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
+	headerVersioning HeaderVersioningHandler,
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
@@ -714,7 +719,7 @@ func newInterceptorContainerFactory(
 			network,
 			economics,
 			headerSigVerifier,
-			headerIntegrityVerifier,
+			headerVersioning,
 			sizeCheckDelta,
 			validityAttester,
 			epochStartTrigger,
@@ -733,7 +738,7 @@ func newInterceptorContainerFactory(
 			state,
 			economics,
 			headerSigVerifier,
-			headerIntegrityVerifier,
+			headerVersioning,
 			sizeCheckDelta,
 			validityAttester,
 			epochStartTrigger,
@@ -791,7 +796,7 @@ func newShardInterceptorContainerFactory(
 	network *mainFactory.NetworkComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
-	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
+	headerVersioning HeaderVersioningHandler,
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
@@ -800,35 +805,35 @@ func newShardInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
-		Accounts:                state.AccountsAdapter,
-		ShardCoordinator:        shardCoordinator,
-		NodesCoordinator:        nodesCoordinator,
-		Messenger:               network.NetMessenger,
-		Store:                   data.Store,
-		ProtoMarshalizer:        dataCore.InternalMarshalizer,
-		TxSignMarshalizer:       dataCore.TxSignMarshalizer,
-		Hasher:                  dataCore.Hasher,
-		KeyGen:                  crypto.TxSignKeyGen,
-		BlockSignKeyGen:         crypto.BlockSignKeyGen,
-		SingleSigner:            crypto.TxSingleSigner,
-		BlockSingleSigner:       crypto.SingleSigner,
-		MultiSigner:             crypto.MultiSigner,
-		DataPool:                data.Datapool,
-		AddressPubkeyConverter:  state.AddressPubkeyConverter,
-		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:            economics,
-		BlockBlackList:          headerBlackList,
-		HeaderSigVerifier:       headerSigVerifier,
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		SizeCheckDelta:          sizeCheckDelta,
-		ValidityAttester:        validityAttester,
-		EpochStartTrigger:       epochStartTrigger,
-		WhiteListHandler:        whiteListHandler,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
-		AntifloodHandler:        network.InputAntifloodHandler,
-		ArgumentsParser:         smartContract.NewArgumentParser(),
-		ChainID:                 dataCore.ChainID,
-		MinTransactionVersion:   dataCore.MinTransactionVersion,
+		Accounts:               state.AccountsAdapter,
+		ShardCoordinator:       shardCoordinator,
+		NodesCoordinator:       nodesCoordinator,
+		Messenger:              network.NetMessenger,
+		Store:                  data.Store,
+		ProtoMarshalizer:       dataCore.InternalMarshalizer,
+		TxSignMarshalizer:      dataCore.TxSignMarshalizer,
+		Hasher:                 dataCore.Hasher,
+		KeyGen:                 crypto.TxSignKeyGen,
+		BlockSignKeyGen:        crypto.BlockSignKeyGen,
+		SingleSigner:           crypto.TxSingleSigner,
+		BlockSingleSigner:      crypto.SingleSigner,
+		MultiSigner:            crypto.MultiSigner,
+		DataPool:               data.Datapool,
+		AddressPubkeyConverter: state.AddressPubkeyConverter,
+		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:           economics,
+		BlockBlackList:         headerBlackList,
+		HeaderSigVerifier:      headerSigVerifier,
+		HeaderVersioning:       headerVersioning,
+		SizeCheckDelta:         sizeCheckDelta,
+		ValidityAttester:       validityAttester,
+		EpochStartTrigger:      epochStartTrigger,
+		WhiteListHandler:       whiteListHandler,
+		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
+		AntifloodHandler:       network.InputAntifloodHandler,
+		ArgumentsParser:        smartContract.NewArgumentParser(),
+		ChainID:                dataCore.ChainID,
+		MinTransactionVersion:  dataCore.MinTransactionVersion,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -848,7 +853,7 @@ func newMetaInterceptorContainerFactory(
 	state *mainFactory.StateComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
-	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
+	headerVersioning HeaderVersioningHandler,
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
@@ -857,35 +862,35 @@ func newMetaInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-		ShardCoordinator:        shardCoordinator,
-		NodesCoordinator:        nodesCoordinator,
-		Messenger:               network.NetMessenger,
-		Store:                   data.Store,
-		ProtoMarshalizer:        dataCore.InternalMarshalizer,
-		TxSignMarshalizer:       dataCore.TxSignMarshalizer,
-		Hasher:                  dataCore.Hasher,
-		MultiSigner:             crypto.MultiSigner,
-		DataPool:                data.Datapool,
-		Accounts:                state.AccountsAdapter,
-		AddressPubkeyConverter:  state.AddressPubkeyConverter,
-		SingleSigner:            crypto.TxSingleSigner,
-		BlockSingleSigner:       crypto.SingleSigner,
-		KeyGen:                  crypto.TxSignKeyGen,
-		BlockKeyGen:             crypto.BlockSignKeyGen,
-		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:            economics,
-		BlackList:               headerBlackList,
-		HeaderSigVerifier:       headerSigVerifier,
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		SizeCheckDelta:          sizeCheckDelta,
-		ValidityAttester:        validityAttester,
-		EpochStartTrigger:       epochStartTrigger,
-		WhiteListHandler:        whiteListHandler,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
-		AntifloodHandler:        network.InputAntifloodHandler,
-		ArgumentsParser:         smartContract.NewArgumentParser(),
-		ChainID:                 dataCore.ChainID,
-		MinTransactionVersion:   dataCore.MinTransactionVersion,
+		ShardCoordinator:       shardCoordinator,
+		NodesCoordinator:       nodesCoordinator,
+		Messenger:              network.NetMessenger,
+		Store:                  data.Store,
+		ProtoMarshalizer:       dataCore.InternalMarshalizer,
+		TxSignMarshalizer:      dataCore.TxSignMarshalizer,
+		Hasher:                 dataCore.Hasher,
+		MultiSigner:            crypto.MultiSigner,
+		DataPool:               data.Datapool,
+		Accounts:               state.AccountsAdapter,
+		AddressPubkeyConverter: state.AddressPubkeyConverter,
+		SingleSigner:           crypto.TxSingleSigner,
+		BlockSingleSigner:      crypto.SingleSigner,
+		KeyGen:                 crypto.TxSignKeyGen,
+		BlockKeyGen:            crypto.BlockSignKeyGen,
+		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:           economics,
+		BlackList:              headerBlackList,
+		HeaderSigVerifier:      headerSigVerifier,
+		HeaderVersioning:       headerVersioning,
+		SizeCheckDelta:         sizeCheckDelta,
+		ValidityAttester:       validityAttester,
+		EpochStartTrigger:      epochStartTrigger,
+		WhiteListHandler:       whiteListHandler,
+		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
+		AntifloodHandler:       network.InputAntifloodHandler,
+		ArgumentsParser:        smartContract.NewArgumentParser(),
+		ChainID:                dataCore.ChainID,
+		MinTransactionVersion:  dataCore.MinTransactionVersion,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1087,6 +1092,7 @@ func newBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
+	headerVersioning HeaderVersioningHandler,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1115,7 +1121,7 @@ func newBlockProcessor(
 			processArgs.smartContractParser,
 			processArgs.indexer,
 			processArgs.tpsBenchmark,
-			processArgs.version,
+			headerVersioning,
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
 		)
@@ -1148,7 +1154,7 @@ func newBlockProcessor(
 			processArgs.systemSCConfig,
 			processArgs.indexer,
 			processArgs.tpsBenchmark,
-			processArgs.version,
+			headerVersioning,
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
 		)
@@ -1180,7 +1186,7 @@ func newShardBlockProcessor(
 	smartContractParser genesis.InitialSmartContractParser,
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
-	version string,
+	headerVersioning HeaderVersioningHandler,
 	historyRepository fullHistory.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 ) (process.BlockProcessor, error) {
@@ -1401,7 +1407,6 @@ func newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Version:                version,
 		AccountsDB:             accountsDb,
 		ForkDetector:           forkDetector,
 		Hasher:                 core.Hasher,
@@ -1427,6 +1432,7 @@ func newShardBlockProcessor(
 		TpsBenchmark:           tpsBenchmark,
 		HistoryRepository:      historyRepository,
 		EpochNotifier:          epochNotifier,
+		HeaderVersioning:       headerVersioning,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1472,7 +1478,7 @@ func newMetaBlockProcessor(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
-	version string,
+	headerVersioning HeaderVersioningHandler,
 	historyRepository fullHistory.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 ) (process.BlockProcessor, error) {
@@ -1744,7 +1750,7 @@ func newMetaBlockProcessor(
 	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Version:                version,
+		HeaderVersioning:       headerVersioning,
 		AccountsDB:             accountsDb,
 		ForkDetector:           forkDetector,
 		Hasher:                 core.Hasher,

@@ -42,9 +42,9 @@ type ArgBaseProcessor struct {
 	BlockSizeThrottler     process.BlockSizeThrottler
 	Indexer                indexer.Indexer
 	TpsBenchmark           statistics.TPSBenchmark
-	Version                string
 	HistoryRepository      fullHistory.HistoryRepository
 	EpochNotifier          process.EpochNotifier
+	HeaderVersioning       process.HeaderVersioningHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

@@ -17,3 +17,15 @@ var ErrInvalidChainID = errors.New("invalid chain ID")
 
 // ErrInvalidSoftwareVersion signals that invalid software version was provided
 var ErrInvalidSoftwareVersion = errors.New("invalid software version")
+
+// ErrInvalidVersionOnEpochValues signals that the version element is not accepted because the epoch values are invalid
+var ErrInvalidVersionOnEpochValues = errors.New("invalid version provided on epoch values")
+
+// ErrInvalidVersionFoundGaps signals that the version element is not accepted because there are gaps/interlace between the previous versions
+var ErrInvalidVersionFoundGaps = errors.New("invalid version provided (gaps or interlace)")
+
+// ErrInvalidVersionStringTooLong signals that the version element is not accepted because it contains too large strings
+var ErrInvalidVersionStringTooLong = errors.New("invalid version provided: string too large")
+
+// ErrSoftwareVersionMismatch signals that the software versions mismatch
+var ErrSoftwareVersionMismatch = errors.New("software versions mismatch")

@@ -452,7 +452,7 @@ func createHardForkExporter(
 			KeyGen:                   node.OwnAccount.KeygenTxSign,
 			BlockSigner:              node.OwnAccount.BlockSingleSigner,
 			HeaderSigVerifier:        node.HeaderSigVerifier,
-			HeaderIntegrityVerifier:  node.HeaderIntegrityVerifier,
+			HeaderVersioning:         node.HeaderVersioning,
 			ValidityAttester:         node.BlockTracker,
 			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},

@@ -77,15 +77,15 @@ func NewTestSyncNode(
 				return nil
 			},
 		},
-		StorageBootstrapper:     &mock.StorageBootstrapperMock{},
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ChainID:                 ChainID,
-		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
-		NodesSetup:              nodesSetup,
-		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &mock.HistoryRepositoryStub{},
-		EpochNotifier:           forking.NewGenericEpochNotifier(),
+		StorageBootstrapper:   &mock.StorageBootstrapperMock{},
+		HeaderSigVerifier:     &mock.HeaderSigVerifierStub{},
+		HeaderVersioning:      CreateHeaderVersioning(),
+		ChainID:               ChainID,
+		EpochStartTrigger:     &mock.EpochStartTriggerStub{},
+		NodesSetup:            nodesSetup,
+		MinTransactionVersion: MinTransactionVersion,
+		HistoryRepository:     &mock.HistoryRepositoryStub{},
+		EpochNotifier:         forking.NewGenericEpochNotifier(),
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -186,9 +186,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockSizeThrottler:     TestBlockSizeThrottler,
 		Indexer:                indexer.NewNilIndexer(),
 		TpsBenchmark:           &testscommon.TpsBenchmarkMock{},
-		Version:                string(SoftwareVersion),
 		HistoryRepository:      tpn.HistoryRepository,
 		EpochNotifier:          tpn.EpochNotifier,
+		HeaderVersioning:       tpn.HeaderVersioning,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

@@ -104,6 +104,7 @@ type epochStartBootstrap struct {
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
+	headerVersioning           process.HeaderVersioningHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -172,6 +173,7 @@ type ArgsEpochStartBootstrap struct {
 	AddressPubkeyConverter     core.PubkeyConverter
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
+	HeaderVersioning           process.HeaderVersioningHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -212,6 +214,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		shuffledOut:                false,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
+		headerVersioning:           args.HeaderVersioning,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -466,6 +469,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		AddressPubkeyConv:  e.addressPubkeyConverter,
 		NonceConverter:     e.uint64Converter,
 		StartInEpochConfig: e.generalConfig.EpochStartConfig,
+		HeaderVersioning:   e.headerVersioning,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -497,6 +501,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		ChainID:                []byte(e.genesisNodesConfig.GetChainId()),
 		ArgumentsParser:        e.argumentsParser,
 		MinTransactionVersion:  e.genesisNodesConfig.GetMinTransactionVersion(),
+		HeaderVersioning:       e.headerVersioning,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
