@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
@@ -34,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/facade"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/componentHandler"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -98,15 +98,8 @@ type Node struct {
 	whiteListRequest              process.WhiteListHandler
 	whiteListerVerifiedTxs        process.WhiteListHandler
 
-	pubKey            crypto.PublicKey
-	privKey           crypto.PrivateKey
-	keyGen            crypto.KeyGenerator
-	keyGenForAccounts crypto.KeyGenerator
-	singleSigner      crypto.SingleSigner
-	txSingleSigner    crypto.SingleSigner
-	multiSigner       crypto.MultiSigner
-	peerSigHandler    crypto.PeerSignatureHandler
-	forkDetector      process.ForkDetector
+	peerSigHandler crypto.PeerSignatureHandler
+	forkDetector   process.ForkDetector
 
 	blkc               data.ChainHandler
 	dataPool           dataRetriever.PoolsHolder
@@ -156,6 +149,17 @@ type Node struct {
 
 	watchdog          core.WatchdogTimer
 	historyRepository fullHistory.HistoryRepository
+
+	bootstrapComponents mainFactory.BootstrapComponentsHolder
+	consensusComponents mainFactory.ConsensusComponentsHolder
+	coreComponents      mainFactory.CoreComponentsHolder
+	cryptoComponents    mainFactory.CryptoComponentsHolder
+	dataComponents      mainFactory.DataComponentsHolder
+	heartbeatComponents mainFactory.HeartbeatComponentsHolder
+	networkComponents   mainFactory.NetworkComponentsHolder
+	processComponents   mainFactory.ProcessComponentsHolder
+	stateComponents     mainFactory.StateComponentsHolder
+	statusComponents    mainFactory.StatusComponentsHolder
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -214,163 +218,6 @@ func (n *Node) CreateShardedStores() error {
 	}
 
 	return nil
-}
-
-// StartConsensus will start the consensus service for the current node
-func (n *Node) StartConsensus() error {
-	isGenesisBlockNotInitialized := len(n.blkc.GetGenesisHeaderHash()) == 0 ||
-		check.IfNil(n.blkc.GetGenesisHeader())
-	if isGenesisBlockNotInitialized {
-		return ErrGenesisBlockNotInitialized
-	}
-
-	chronologyHandler, err := n.createChronologyHandler(
-		n.rounder,
-		n.appStatusHandler,
-		n.watchdog,
-	)
-	if err != nil {
-		return err
-	}
-
-	bootstrapper, err := n.createBootstrapper(n.rounder)
-	if err != nil {
-		return err
-	}
-
-	err = bootstrapper.SetStatusHandler(n.GetAppStatusHandler())
-	if err != nil {
-		log.Debug("cannot set app status handler for shard bootstrapper")
-	}
-
-	bootstrapper.StartSyncingBlocks()
-
-	epoch := n.blkc.GetGenesisHeader().GetEpoch()
-	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
-	if !check.IfNil(crtBlockHeader) {
-		epoch = crtBlockHeader.GetEpoch()
-	}
-	log.Info("starting consensus", "epoch", epoch)
-
-	consensusState, err := n.createConsensusState(epoch)
-	if err != nil {
-		return err
-	}
-
-	consensusService, err := sposFactory.GetConsensusCoreFactory(n.consensusType)
-	if err != nil {
-		return err
-	}
-
-	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
-		n.internalMarshalizer,
-		n.hasher,
-		n.messenger,
-		n.shardCoordinator,
-		n.privKey,
-		n.peerSigHandler,
-		n.dataPool.Headers(),
-		n.interceptorsContainer,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	netInputMarshalizer := n.internalMarshalizer
-	if n.sizeCheckDelta > 0 {
-		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
-	}
-
-	workerArgs := &spos.WorkerArgs{
-		ConsensusService:         consensusService,
-		BlockChain:               n.blkc,
-		BlockProcessor:           n.blockProcessor,
-		Bootstrapper:             bootstrapper,
-		BroadcastMessenger:       broadcastMessenger,
-		ConsensusState:           consensusState,
-		ForkDetector:             n.forkDetector,
-		Marshalizer:              netInputMarshalizer,
-		Hasher:                   n.hasher,
-		Rounder:                  n.rounder,
-		ShardCoordinator:         n.shardCoordinator,
-		PeerSignatureHandler:     n.peerSigHandler,
-		SyncTimer:                n.syncTimer,
-		HeaderSigVerifier:        n.headerSigVerifier,
-		HeaderIntegrityVerifier:  n.headerIntegrityVerifier,
-		ChainID:                  n.chainID,
-		NetworkShardingCollector: n.networkShardingCollector,
-		AntifloodHandler:         n.inputAntifloodHandler,
-		PoolAdder:                n.dataPool.MiniBlocks(),
-		SignatureSize:            n.signatureSize,
-		PublicKeySize:            n.publicKeySize,
-	}
-
-	worker, err := spos.NewWorker(workerArgs)
-	if err != nil {
-		return err
-	}
-
-	worker.StartWorking()
-
-	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
-
-	// apply consensus group size on the input antiflooder just befor consensus creation topic
-	n.inputAntifloodHandler.ApplyConsensusSize(n.nodesCoordinator.ConsensusGroupSize(n.shardCoordinator.SelfId()))
-	err = n.createConsensusTopic(worker)
-	if err != nil {
-		return err
-	}
-
-	consensusArgs := &spos.ConsensusCoreArgs{
-		BlockChain:                    n.blkc,
-		BlockProcessor:                n.blockProcessor,
-		Bootstrapper:                  bootstrapper,
-		BroadcastMessenger:            broadcastMessenger,
-		ChronologyHandler:             chronologyHandler,
-		Hasher:                        n.hasher,
-		Marshalizer:                   n.internalMarshalizer,
-		BlsPrivateKey:                 n.privKey,
-		BlsSingleSigner:               n.singleSigner,
-		MultiSigner:                   n.multiSigner,
-		Rounder:                       n.rounder,
-		ShardCoordinator:              n.shardCoordinator,
-		NodesCoordinator:              n.nodesCoordinator,
-		SyncTimer:                     n.syncTimer,
-		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
-		AntifloodHandler:              n.inputAntifloodHandler,
-		PeerHonestyHandler:            n.peerHonestyHandler,
-	}
-
-	consensusDataContainer, err := spos.NewConsensusCore(
-		consensusArgs,
-	)
-	if err != nil {
-		return err
-	}
-
-	fct, err := sposFactory.GetSubroundsFactory(
-		consensusDataContainer,
-		consensusState,
-		worker,
-		n.consensusType,
-		n.appStatusHandler,
-		n.indexer,
-		n.chainID,
-		n.messenger.ID(),
-	)
-	if err != nil {
-		return err
-	}
-
-	err = fct.GenerateSubrounds()
-	if err != nil {
-		return err
-	}
-
-	chronologyHandler.StartRounds()
-
-	return n.addCloserInstances(chronologyHandler, bootstrapper, worker, n.syncTimer)
 }
 
 func (n *Node) addCloserInstances(closers ...update.Closer) error {
@@ -986,40 +833,6 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	return account, nil
 }
 
-// StartHeartbeat starts the node's heartbeat processing/signaling module
-//TODO(next PR) remove the instantiation of the heartbeat component from here
-func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, prefsConfig config.PreferencesConfig) error {
-	arg := componentHandler.ArgHeartbeat{
-		HeartbeatConfig:          hbConfig,
-		PrefsConfig:              prefsConfig,
-		Marshalizer:              n.internalMarshalizer,
-		Messenger:                n.messenger,
-		ShardCoordinator:         n.shardCoordinator,
-		NodesCoordinator:         n.nodesCoordinator,
-		AppStatusHandler:         n.appStatusHandler,
-		Storer:                   n.store.GetStorer(dataRetriever.HeartbeatUnit),
-		ValidatorStatistics:      n.validatorStatistics,
-		PeerSignatureHandler:     n.peerSigHandler,
-		PrivKey:                  n.privKey,
-		HardforkTrigger:          n.hardforkTrigger,
-		AntifloodHandler:         n.inputAntifloodHandler,
-		ValidatorPubkeyConverter: n.validatorPubkeyConverter,
-		EpochStartTrigger:        n.epochStartTrigger,
-		EpochStartRegistration:   n.epochStartRegistrationHandler,
-		Timer:                    &heartbeatProcess.RealTimer{},
-		GenesisTime:              n.genesisTime,
-		VersionNumber:            versionNumber,
-		PeerShardMapper:          n.networkShardingCollector,
-		SizeCheckDelta:           n.sizeCheckDelta,
-		ValidatorsProvider:       n.validatorsProvider,
-	}
-
-	var err error
-	n.heartbeatHandler, err = componentHandler.NewHeartbeatHandler(arg)
-
-	return err
-}
-
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 	if check.IfNil(n.heartbeatHandler) {
@@ -1140,6 +953,61 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	}
 
 	return peerInfoSlice, nil
+}
+
+// GetHardforkTrigger returns the hardfork trigger
+func (n *Node) GetHardforkTrigger() HardforkTrigger {
+	return n.hardforkTrigger
+}
+
+// GetCoreComponents returns the core components
+func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
+	return n.coreComponents
+}
+
+// GetCryptoComponents returns the crypto components
+func (n *Node) GetCryptoComponents() mainFactory.CryptoComponentsHolder {
+	return n.cryptoComponents
+}
+
+// GetConsensusComponents returns the consensus components
+func (n *Node) GetConsensusComponents() mainFactory.ConsensusComponentsHolder {
+	return n.consensusComponents
+}
+
+// GetBootstrapComponents returns the bootstrap components
+func (n *Node) GetBootstrapComponents() mainFactory.BootstrapComponentsHolder {
+	return n.bootstrapComponents
+}
+
+// GetDataComponents returns the data components
+func (n *Node) GetDataComponents() mainFactory.DataComponentsHolder {
+	return n.dataComponents
+}
+
+// GetHeartbeatComponents returns the heartbeat components
+func (n *Node) GetHeartbeatComponents() mainFactory.HeartbeatComponentsHolder {
+	return n.heartbeatComponents
+}
+
+// GetNetworkComponents returns the network components
+func (n *Node) GetNetworkComponents() mainFactory.NetworkComponentsHolder {
+	return n.networkComponents
+}
+
+// GetProcessComponents returns the process components
+func (n *Node) GetProcessComponents() mainFactory.ProcessComponentsHolder {
+	return n.processComponents
+}
+
+// GetStateComponents returns the state components
+func (n *Node) GetStateComponents() mainFactory.StateComponentsHolder {
+	return n.stateComponents
+}
+
+// GetStatusComponents returns the status components
+func (n *Node) GetStatusComponents() mainFactory.StatusComponentsHolder {
+	return n.statusComponents
 }
 
 func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {

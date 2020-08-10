@@ -146,6 +146,11 @@ func (s *Sender) SendHeartbeat() error {
 	return nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *Sender) IsInterfaceNil() bool {
+	return s == nil
+}
+
 func (s *Sender) updateMetrics(hb *data.Heartbeat) {
 	result := s.computePeerList(hb.Pubkey)
 

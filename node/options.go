@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -147,46 +148,152 @@ func WithDataStore(store dataRetriever.StorageService) Option {
 	}
 }
 
-// WithPubKey sets up the multi sign pub key option for the Node
-func WithPubKey(pk crypto.PublicKey) Option {
+// WithBootstrapComponents sets up the Node bootstrap components
+func WithBootstrapComponents(bootstrapComponents mainFactory.BootstrapComponentsHandler) Option {
 	return func(n *Node) error {
-		if check.IfNil(pk) {
-			return ErrNilPublicKey
+		if check.IfNil(bootstrapComponents) {
+			return ErrNilBootstrapComponents
 		}
-		n.pubKey = pk
+		err := bootstrapComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.bootstrapComponents = bootstrapComponents
 		return nil
 	}
 }
 
-// WithPrivKey sets up the multi sign private key option for the Node
-func WithPrivKey(sk crypto.PrivateKey) Option {
+// WithConsensusComponents sets up the Node consensus components
+func WithConsensusComponents(consensusComponents mainFactory.ConsensusComponentsHandler) Option {
 	return func(n *Node) error {
-		if check.IfNil(sk) {
-			return ErrNilPrivateKey
+		if check.IfNil(consensusComponents) {
+			return ErrNilConsensusComponents
 		}
-		n.privKey = sk
+		err := consensusComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.consensusComponents = consensusComponents
 		return nil
 	}
 }
 
-// WithKeyGen sets up the single sign key generator option for the Node
-func WithKeyGen(keyGen crypto.KeyGenerator) Option {
+// WithCoreComponents sets up the Node core components
+func WithCoreComponents(coreComponents mainFactory.CoreComponentsHandler) Option {
 	return func(n *Node) error {
-		if check.IfNil(keyGen) {
-			return ErrNilSingleSignKeyGen
+		if check.IfNil(coreComponents) {
+			return ErrNilCoreComponents
 		}
-		n.keyGen = keyGen
+		err := coreComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.coreComponents = coreComponents
 		return nil
 	}
 }
 
-// WithKeyGenForAccounts sets up the balances key generator option for the Node
-func WithKeyGenForAccounts(keyGenForAccounts crypto.KeyGenerator) Option {
+// WithCryptoComponents sets up Node crypto components
+func WithCryptoComponents(cryptoComponents mainFactory.CryptoComponentsHandler) Option {
 	return func(n *Node) error {
-		if check.IfNil(keyGenForAccounts) {
-			return ErrNilKeyGenForBalances
+		if check.IfNil(cryptoComponents) {
+			return ErrNilCryptoComponents
 		}
-		n.keyGenForAccounts = keyGenForAccounts
+		err := cryptoComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.cryptoComponents = cryptoComponents
+		return nil
+	}
+}
+
+// WithDataComponents sets up the Node data components
+func WithDataComponents(dataComponents mainFactory.DataComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(dataComponents) {
+			return ErrNilDataComponents
+		}
+		err := dataComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.dataComponents = dataComponents
+		return nil
+	}
+}
+
+// WithHeartbeatComponents sets up the Node heartbeat components
+func WithHeartbeatComponents(heartbeatComponents mainFactory.HeartbeatComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(heartbeatComponents) {
+			return ErrNilHeartbeatComponents
+		}
+		err := heartbeatComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.heartbeatComponents = heartbeatComponents
+		return nil
+	}
+}
+
+// WithNetworkComponents sets up the Node network components
+func WithNetworkComponents(networkComponents mainFactory.NetworkComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(networkComponents) {
+			return ErrNilNetworkComponents
+		}
+		err := networkComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.networkComponents = networkComponents
+		return nil
+	}
+}
+
+// WithProcessComponents sets up the Node process components
+func WithProcessComponents(processComponents mainFactory.ProcessComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(processComponents) {
+			return ErrNilProcessComponents
+		}
+		err := processComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.processComponents = processComponents
+		return nil
+	}
+}
+
+// WithStateComponents sets up the Node state components
+func WithStateComponents(stateComponents mainFactory.StateComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(stateComponents) {
+			return ErrNilStateComponents
+		}
+		err := stateComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.stateComponents = stateComponents
+		return nil
+	}
+}
+
+// WithStatusComponents sets up the Node status components
+func WithStatusComponents(statusComponents mainFactory.StatusComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(statusComponents) {
+			return ErrNilStatusComponents
+		}
+		err := statusComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.statusComponents = statusComponents
 		return nil
 	}
 }
@@ -302,39 +409,6 @@ func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConver
 			return ErrNilUint64ByteSliceConverter
 		}
 		n.uint64ByteSliceConverter = converter
-		return nil
-	}
-}
-
-// WithSingleSigner sets up a singleSigner option for the Node
-func WithSingleSigner(singleSigner crypto.SingleSigner) Option {
-	return func(n *Node) error {
-		if check.IfNil(singleSigner) {
-			return ErrNilSingleSig
-		}
-		n.singleSigner = singleSigner
-		return nil
-	}
-}
-
-// WithTxSingleSigner sets up a txSingleSigner option for the Node
-func WithTxSingleSigner(txSingleSigner crypto.SingleSigner) Option {
-	return func(n *Node) error {
-		if check.IfNil(txSingleSigner) {
-			return ErrNilSingleSig
-		}
-		n.txSingleSigner = txSingleSigner
-		return nil
-	}
-}
-
-// WithMultiSigner sets up the multiSigner option for the Node
-func WithMultiSigner(multiSigner crypto.MultiSigner) Option {
-	return func(n *Node) error {
-		if check.IfNil(multiSigner) {
-			return ErrNilMultiSig
-		}
-		n.multiSigner = multiSigner
 		return nil
 	}
 }

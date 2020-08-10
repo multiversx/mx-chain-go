@@ -29,13 +29,13 @@ func (ccf *cryptoComponentsFactory) GetMultiSigHasherFromConfig() (hashing.Hashe
 }
 
 // CreateCryptoParams -
-func (ccf *cryptoComponentsFactory) CreateCryptoParams(blockSignKeyGen crypto.KeyGenerator) (*CryptoParams, error) {
+func (ccf *cryptoComponentsFactory) CreateCryptoParams(blockSignKeyGen crypto.KeyGenerator) (*cryptoParams, error) {
 	return ccf.createCryptoParams(blockSignKeyGen)
 }
 
 // CreateMultiSigner -
 func (ccf *cryptoComponentsFactory) CreateMultiSigner(
-	h hashing.Hasher, cp *CryptoParams, blSignKeyGen crypto.KeyGenerator,
+	h hashing.Hasher, cp *cryptoParams, blSignKeyGen crypto.KeyGenerator,
 ) (crypto.MultiSigner, error) {
 	return ccf.createMultiSigner(h, cp, blSignKeyGen)
 }

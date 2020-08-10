@@ -58,28 +58,28 @@ var timeSpanForBadHeaders = time.Minute * 2
 
 // processComponents struct holds the process components
 type processComponents struct {
-	NodesCoordinator            sharding.NodesCoordinator
-	ShardCoordinator            sharding.Coordinator
-	InterceptorsContainer       process.InterceptorsContainer
-	ResolversFinder             dataRetriever.ResolversFinder
-	Rounder                     consensus.Rounder
-	EpochStartTrigger           epochStart.TriggerHandler
-	EpochStartNotifier          EpochStartNotifier
-	ForkDetector                process.ForkDetector
-	BlockProcessor              process.BlockProcessor
-	BlackListHandler            process.TimeCacher
-	BootStorer                  process.BootStorer
-	HeaderSigVerifier           process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier     HeaderIntegrityVerifierHandler
-	ValidatorsStatistics        process.ValidatorStatisticsProcessor
-	ValidatorsProvider          process.ValidatorsProvider
-	BlockTracker                process.BlockTracker
-	PendingMiniBlocksHandler    process.PendingMiniBlocksHandler
-	RequestHandler              process.RequestHandler
-	TxLogsProcessor             process.TransactionLogProcessorDatabase
-	HeaderConstructionValidator process.HeaderConstructionValidator
+	nodesCoordinator            sharding.NodesCoordinator
+	shardCoordinator            sharding.Coordinator
+	interceptorsContainer       process.InterceptorsContainer
+	resolversFinder             dataRetriever.ResolversFinder
+	rounder                     consensus.Rounder
+	epochStartTrigger           epochStart.TriggerHandler
+	epochStartNotifier          EpochStartNotifier
+	forkDetector                process.ForkDetector
+	blockProcessor              process.BlockProcessor
+	blackListHandler            process.TimeCacher
+	bootStorer                  process.BootStorer
+	headerSigVerifier           process.InterceptedHeaderSigVerifier
+	headerIntegrityVerifier     HeaderIntegrityVerifierHandler
+	validatorsStatistics        process.ValidatorStatisticsProcessor
+	validatorsProvider          process.ValidatorsProvider
+	blockTracker                process.BlockTracker
+	pendingMiniBlocksHandler    process.PendingMiniBlocksHandler
+	requestHandler              process.RequestHandler
+	txLogsProcessor             process.TransactionLogProcessorDatabase
+	headerConstructionValidator process.HeaderConstructionValidator
 	// TODO: maybe move PeerShardMapper to network components
-	PeerShardMapper process.NetworkShardingCollector
+	peerShardMapper process.NetworkShardingCollector
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -451,27 +451,27 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	return &processComponents{
-		NodesCoordinator:            pcf.nodesCoordinator,
-		ShardCoordinator:            pcf.shardCoordinator,
-		InterceptorsContainer:       interceptorsContainer,
-		ResolversFinder:             resolversFinder,
-		Rounder:                     pcf.rounder,
-		ForkDetector:                forkDetector,
-		BlockProcessor:              blockProcessor,
-		EpochStartTrigger:           epochStartTrigger,
-		EpochStartNotifier:          pcf.epochStartNotifier,
-		BlackListHandler:            blackListHandler,
-		BootStorer:                  bootStorer,
-		HeaderSigVerifier:           headerSigVerifier,
-		ValidatorsStatistics:        validatorStatisticsProcessor,
-		ValidatorsProvider:          validatorsProvider,
-		BlockTracker:                blockTracker,
-		PendingMiniBlocksHandler:    pendingMiniBlocksHandler,
-		RequestHandler:              requestHandler,
-		TxLogsProcessor:             txLogsProcessor,
-		HeaderConstructionValidator: headerValidator,
-		HeaderIntegrityVerifier:     headerIntegrityVerifier,
-		PeerShardMapper:             peerShardMapper,
+		nodesCoordinator:            pcf.nodesCoordinator,
+		shardCoordinator:            pcf.shardCoordinator,
+		interceptorsContainer:       interceptorsContainer,
+		resolversFinder:             resolversFinder,
+		rounder:                     pcf.rounder,
+		forkDetector:                forkDetector,
+		blockProcessor:              blockProcessor,
+		epochStartTrigger:           epochStartTrigger,
+		epochStartNotifier:          pcf.epochStartNotifier,
+		blackListHandler:            blackListHandler,
+		bootStorer:                  bootStorer,
+		headerSigVerifier:           headerSigVerifier,
+		validatorsStatistics:        validatorStatisticsProcessor,
+		validatorsProvider:          validatorsProvider,
+		blockTracker:                blockTracker,
+		pendingMiniBlocksHandler:    pendingMiniBlocksHandler,
+		requestHandler:              requestHandler,
+		txLogsProcessor:             txLogsProcessor,
+		headerConstructionValidator: headerValidator,
+		headerIntegrityVerifier:     headerIntegrityVerifier,
+		peerShardMapper:             peerShardMapper,
 	}, nil
 }
 

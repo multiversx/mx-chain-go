@@ -88,9 +88,6 @@ var ErrNilResolversFinder = errors.New("nil resolvers finder")
 // ErrNilEpochStartTrigger signals that a nil start of epoch trigger has been provided
 var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 
-// ErrGenesisBlockNotInitialized signals that genesis block is not initialized
-var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized")
-
 // ErrNilPeerDenialEvaluator signals that a nil peer denial evaluator was provided
 var ErrNilPeerDenialEvaluator = errors.New("nil peer denial evaluator")
 
@@ -180,3 +177,33 @@ var ErrNilHistoryRepository = errors.New("history repository is nil")
 
 // ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
 var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")
+
+// ErrNilBootstrapComponents signals that a nil bootstrap components instance has been provided
+var ErrNilBootstrapComponents = errors.New("nil bootstrap componennts")
+
+// ErrNilConsensusComponents signals that a nil consensus components instance has been provided
+var ErrNilConsensusComponents = errors.New("nil consensus components")
+
+// ErrNilCoreComponents signals that a nil core components instance has been provided
+var ErrNilCoreComponents = errors.New("nil core components")
+
+// ErrNilCryptoComponents signals that a nil crypto components instance has been provided
+var ErrNilCryptoComponents = errors.New("nil crypto components")
+
+// ErrNilDataComponents signals that a nil data components instance has been provided
+var ErrNilDataComponents = errors.New("nil data components")
+
+// ErrNilHeartbeatComponents signals that a nil heartbeat components instance has been provided
+var ErrNilHeartbeatComponents = errors.New("nil heartbeat components")
+
+// ErrNilNetworkComponents signals that a nil network components instance has been provided
+var ErrNilNetworkComponents = errors.New("nil network components")
+
+// ErrNilProcessComponents signals that a nil process components instance has been provided
+var ErrNilProcessComponents = errors.New("nil process components")
+
+// ErrNilStateComponents signals that a nil state components instance has been provided
+var ErrNilStateComponents = errors.New("nil state components")
+
+// ErrNilStatusComponents signals that a nil status components instance has been provided
+var ErrNilStatusComponents = errors.New("nil status components")

@@ -2,6 +2,8 @@ package factory
 
 import (
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 var _ ComponentHandler = (*managedBootstrapComponents)(nil)
@@ -52,6 +54,24 @@ func (mbf *managedBootstrapComponents) Close() error {
 			return err
 		}
 		mbf.bootstrapComponents = nil
+	}
+
+	return nil
+}
+
+// CheckSubcomponents verifies all subcomponents
+func (mbf *managedBootstrapComponents) CheckSubcomponents() error {
+	mbf.mutBootstrapComponents.Lock()
+	defer mbf.mutBootstrapComponents.Unlock()
+
+	if mbf.bootstrapComponents == nil {
+		return ErrNilBootstrapComponentsHolder
+	}
+	if check.IfNil(mbf.epochStartBootstraper) {
+		return ErrNilEpochStartBootstrapper
+	}
+	if check.IfNil(mbf.bootstrapParamsHandler) {
+		return ErrNilBootstrapParamsHandler
 	}
 
 	return nil

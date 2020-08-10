@@ -76,6 +76,7 @@ type Closer interface {
 type ComponentHandler interface {
 	Create() error
 	Close() error
+	CheckSubcomponents() error
 }
 
 // CoreComponentsHolder holds the core components
@@ -268,6 +269,7 @@ type StatusComponentsHandler interface {
 // HeartbeatSender sends heartbeat messages
 type HeartbeatSender interface {
 	SendHeartbeat() error
+	IsInterfaceNil() bool
 }
 
 // HeartbeatMonitor monitors the received heartbeat messages
@@ -361,6 +363,7 @@ type BootstrapParamsHandler interface {
 	SelfShardID() uint32
 	NumOfShards() uint32
 	NodesConfig() *sharding.NodesCoordinatorRegistry
+	IsInterfaceNil() bool
 }
 
 type EpochStartBootstrapper interface {

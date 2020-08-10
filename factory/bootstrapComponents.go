@@ -185,3 +185,8 @@ func (bph *bootstrapParamsHolder) NumOfShards() uint32 {
 func (bph *bootstrapParamsHolder) NodesConfig() *sharding.NodesCoordinatorRegistry {
 	return bph.bootstrapParams.NodesConfig
 }
+
+// IsInterfaceNil returns true if the underlying object is nil
+func (bph *bootstrapParamsHolder) IsInterfaceNil() bool {
+	return bph == nil
+}

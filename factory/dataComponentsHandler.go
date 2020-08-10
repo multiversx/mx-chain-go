@@ -3,6 +3,7 @@ package factory
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
@@ -59,6 +60,30 @@ func (mdc *managedDataComponents) Close() error {
 			return err
 		}
 		mdc.dataComponents = nil
+	}
+
+	return nil
+}
+
+// CheckSubcomponents verifies all subcomponents
+func (mdc *managedDataComponents) CheckSubcomponents() error {
+	mdc.mutDataComponents.Lock()
+	defer mdc.mutDataComponents.Unlock()
+
+	if mdc.dataComponents == nil {
+		return ErrNilDataComponents
+	}
+	if check.IfNil(mdc.blkc) {
+		return ErrNilBlockChainHandler
+	}
+	if check.IfNil(mdc.store) {
+		return ErrNilStorageService
+	}
+	if check.IfNil(mdc.datapool) {
+		return ErrNilPoolsHolder
+	}
+	if check.IfNil(mdc.miniBlocksProvider) {
+		return ErrNilMiniBlocksProvider
 	}
 
 	return nil

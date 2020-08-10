@@ -63,6 +63,35 @@ func (m *managedStateComponents) Close() error {
 	return nil
 }
 
+// CheckSubcomponents verifies all subcomponents
+func (m *managedStateComponents) CheckSubcomponents() error {
+	m.mutStateComponents.Lock()
+	defer m.mutStateComponents.Unlock()
+
+	if m.stateComponents == nil {
+		return ErrNilStateComponents
+	}
+	if check.IfNil(m.peerAccounts) {
+		return ErrNilPeerAccounts
+	}
+	if check.IfNil(m.accountsAdapter) {
+		return ErrNilAccountsAdapter
+	}
+	if check.IfNil(m.triesContainer) {
+		return ErrNilTriesContainer
+	}
+	if len(m.trieStorageManagers) == 0 {
+		return ErrNilStorageManagers
+	}
+	for _, trieStorageManager := range m.trieStorageManagers {
+		if check.IfNil(trieStorageManager) {
+			return ErrNilTrieStorageManager
+		}
+	}
+
+	return nil
+}
+
 // PeerAccounts returns the accounts adapter for the validators
 func (m *managedStateComponents) PeerAccounts() state.AccountsAdapter {
 	m.mutStateComponents.RLock()

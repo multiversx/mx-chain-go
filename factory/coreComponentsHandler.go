@@ -70,6 +70,75 @@ func (mcc *managedCoreComponents) Close() error {
 	return nil
 }
 
+// CheckSubcomponents verifies all subcomponents
+func (mcc *managedCoreComponents) CheckSubcomponents() error {
+	mcc.mutCoreComponents.Lock()
+	defer mcc.mutCoreComponents.Unlock()
+
+	if mcc.coreComponents == nil {
+		return ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(mcc.internalMarshalizer) {
+		return ErrNilInternalMarshalizer
+	}
+	if check.IfNil(mcc.txSignMarshalizer) {
+		return ErrNilTxSignMarshalizer
+	}
+	if check.IfNil(mcc.vmMarshalizer) {
+		return ErrNilVmMarshalizer
+	}
+	if check.IfNil(mcc.hasher) {
+		return ErrNilHasher
+	}
+	if check.IfNil(mcc.uint64ByteSliceConverter) {
+		return ErrNilUint64ByteSliceConverter
+	}
+	if check.IfNil(mcc.addressPubKeyConverter) {
+		return ErrNilAddressPublicKeyConverter
+	}
+	if check.IfNil(mcc.validatorPubKeyConverter) {
+		return ErrNilValidatorPublicKeyConverter
+	}
+	if check.IfNil(mcc.statusHandler) {
+		return ErrNilStatusHandler
+	}
+	if check.IfNil(mcc.pathHandler) {
+		return ErrNilPathHandler
+	}
+	if check.IfNil(mcc.watchdog) {
+		return ErrNilWatchdog
+	}
+	if check.IfNil(mcc.alarmScheduler) {
+		return ErrNilAlarmScheduler
+	}
+	if check.IfNil(mcc.syncTimer) {
+		return ErrNilSyncTimer
+	}
+	if check.IfNil(mcc.rounder) {
+		return ErrNilRounder
+	}
+	if check.IfNil(mcc.economicsData) {
+		return ErrNilEconomicsHandler
+	}
+	if check.IfNil(mcc.ratingsData) {
+		return ErrNilRatingsInfoHandler
+	}
+	if check.IfNil(mcc.rater) {
+		return ErrNilRater
+	}
+	if check.IfNil(mcc.nodesSetupHandler) {
+		return ErrNilNodesConfig
+	}
+	if len(mcc.chainID) == 0 {
+		return ErrInvalidChainID
+	}
+	if mcc.minTransactionVersion == 0 {
+		return ErrInvalidTransactionVersion
+	}
+
+	return nil
+}
+
 // InternalMarshalizer returns the core components internal marshalizer
 func (mcc *managedCoreComponents) InternalMarshalizer() marshal.Marshalizer {
 	mcc.mutCoreComponents.RLock()

@@ -206,7 +206,7 @@ func TestCryptoComponentsFactory_CreateMultiSignerInvalidConsensusTypeShouldErr(
 	require.NotNil(t, ccf)
 	require.Nil(t, err)
 
-	multiSigner, err := ccf.CreateMultiSigner(mock.HasherMock{}, &factory.CryptoParams{}, &mock.KeyGenMock{})
+	multiSigner, err := ccf.CreateMultiSigner(mock.HasherMock{}, &factory.cryptoParams{}, &mock.KeyGenMock{})
 	require.Nil(t, multiSigner)
 	require.Equal(t, factory.ErrInvalidConsensusConfig, err)
 }

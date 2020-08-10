@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
@@ -57,6 +58,46 @@ func (m *managedStatusComponents) Create() error {
 	return nil
 }
 
+// Close will close all the underlying components
+func (m *managedStatusComponents) Close() error {
+	m.mutStatusComponents.Lock()
+	defer m.mutStatusComponents.Unlock()
+
+	if m.statusComponents != nil {
+		err := m.statusComponents.Close()
+		if err != nil {
+			return err
+		}
+		m.statusComponents = nil
+	}
+
+	return nil
+}
+
+// CheckSubcomponents verifies all subcomponents
+func (m *managedStatusComponents) CheckSubcomponents() error {
+	m.mutStatusComponents.Lock()
+	defer m.mutStatusComponents.Unlock()
+
+	if m.statusComponents == nil {
+		return ErrNilStatusComponents
+	}
+	if check.IfNil(m.tpsBenchmark) {
+		return ErrNilTpsBenchmark
+	}
+	if check.IfNil(m.elasticIndexer) {
+		return ErrNilElasticIndexer
+	}
+	if check.IfNil(m.softwareVersion) {
+		return ErrNilSoftwareVersion
+	}
+	if check.IfNil(m.statusHandler) {
+		return ErrNilStatusHandler
+	}
+
+	return nil
+}
+
 // SetForkDetector sets the fork detector
 func (m *managedStatusComponents) SetForkDetector(forkDetector process.ForkDetector) {
 	m.mutStatusComponents.Lock()
@@ -79,22 +120,6 @@ func (m *managedStatusComponents) StartPolling() error {
 	err = m.startMachineStatisticsPolling(ctx)
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-// Close will close all the underlying components
-func (m *managedStatusComponents) Close() error {
-	m.mutStatusComponents.Lock()
-	defer m.mutStatusComponents.Unlock()
-
-	if m.statusComponents != nil {
-		err := m.statusComponents.Close()
-		if err != nil {
-			return err
-		}
-		m.statusComponents = nil
 	}
 
 	return nil

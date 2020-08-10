@@ -11,6 +11,9 @@ var ErrNilCoreComponents = errors.New("nil core components provided")
 // ErrNilCryptoComponents signals that a nil crypto components has been provided
 var ErrNilCryptoComponents = errors.New("nil crypto components provided")
 
+// ErrNilDataComponents signals that a nil data components has been provided
+var ErrNilDataComponents = errors.New("nil data components provided")
+
 // ErrNilTriesContainer signals that a nil tries container has been provided
 var ErrNilTriesContainer = errors.New("nil tries container provided")
 
@@ -95,8 +98,11 @@ var ErrNilRounder = errors.New("nil rounder")
 // ErrNilNodesCoordinator signals that nil nodes coordinator has been provided
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 
-// ErrNilDataComponentsHolder signals that a nil data components holder has been provided
-var ErrNilDataComponentsHolder = errors.New("nil data components holder")
+// ErrNilBootstrapComponentsHolder signals that a nil bootstrap components holder has been provided
+var ErrNilBootstrapComponentsHolder = errors.New("nil bootstrap components holder")
+
+// ErrNilConsensusComponentsHolder signals that a nil consensus components holder has been provided
+var ErrNilConsensusComponentsHolder = errors.New("nil consensus components holder")
 
 // ErrNilCoreComponentsHolder signals that a nil core components holder has been provided
 var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
@@ -104,17 +110,26 @@ var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
 // ErrNilCryptoComponentsHolder signals that a nil crypto components holder has been provided
 var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
 
-// ErrNilStateComponentsHolder signals that a nil data components holder has been provided
-var ErrNilStateComponentsHolder = errors.New("nil state components holder")
+// ErrNilDataComponentsHolder signals that a nil data components holder has been provided
+var ErrNilDataComponentsHolder = errors.New("nil data components holder")
+
+// ErrNilHeartbeatComponentsHolder signals that a nil heartbeat components holder has been provided
+var ErrNilHeartbeatComponentsHolder = errors.New("nil heartbeat components holder")
 
 // ErrNilNetworkComponentsHolder signals that a nil network components holder has been provided
 var ErrNilNetworkComponentsHolder = errors.New("nil network components holder")
 
-// ErrNilMessenger signals a nil messenger was provided
-var ErrNilMessenger = errors.New("nil messenger")
-
 // ErrNilProcessComponentsHolder signals that a nil process components holder was provided
 var ErrNilProcessComponentsHolder = errors.New("nil process components holder")
+
+// ErrNilStateComponentsHolder signals that a nil state components holder has been provided
+var ErrNilStateComponentsHolder = errors.New("nil state components holder")
+
+// ErrNilStatusComponentsHolder signals that a nil status components holder has been provided
+var ErrNilStatusComponentsHolder = errors.New("nil status components holder")
+
+// ErrNilMessenger signals a nil messenger was provided
+var ErrNilMessenger = errors.New("nil messenger")
 
 // ErrNilCoreServiceContainer signals that a nil core service container has been provided
 var ErrNilCoreServiceContainer = errors.New("nil core service container")
@@ -163,3 +178,6 @@ var ErrInvalidWorkingDir = errors.New("invalid working directory")
 
 // ErrNilShuffler signals a nil nodes shuffler
 var ErrNilShuffler = errors.New("nil nodes shuffler")
+
+// ErrGenesisBlockNotInitialized signals that genesis block is not initialized
+var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized")

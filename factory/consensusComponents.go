@@ -92,6 +92,12 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	var err error
 	cc := &consensusComponents{}
+	blockchain := ccf.dataComponents.Blockchain()
+	isGenesisBlockNotInitialized := len(blockchain.GetGenesisHeaderHash()) == 0 ||
+		check.IfNil(blockchain.GetGenesisHeader())
+	if isGenesisBlockNotInitialized {
+		return nil, ErrGenesisBlockNotInitialized
+	}
 
 	cc.chronology, err = ccf.createChronology()
 	if err != nil {

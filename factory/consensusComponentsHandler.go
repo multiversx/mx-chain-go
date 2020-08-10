@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 var _ ComponentHandler = (*managedConsensusComponents)(nil)
@@ -93,6 +94,27 @@ func (mcf *managedConsensusComponents) BroadcastMessenger() consensus.BroadcastM
 	}
 
 	return mcf.consensusComponents.broadcastMessenger
+}
+
+// CheckSubcomponents verifies all subcomponents
+func (mcf *managedConsensusComponents) CheckSubcomponents() error {
+	mcf.mutConsensusComponents.Lock()
+	defer mcf.mutConsensusComponents.Unlock()
+
+	if mcf.consensusComponents == nil {
+		return ErrNilConsensusComponentsHolder
+	}
+	if check.IfNil(mcf.chronology) {
+		return ErrNilChronologyHandler
+	}
+	if check.IfNil(mcf.worker) {
+		return ErrNilConsensusWorker
+	}
+	if check.IfNil(mcf.broadcastMessenger) {
+		return ErrNilBroadcastMessenger
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

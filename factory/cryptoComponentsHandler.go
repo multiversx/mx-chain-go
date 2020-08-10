@@ -3,6 +3,7 @@ package factory
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -65,6 +66,45 @@ func (mcc *managedCryptoComponents) Close() error {
 	return nil
 }
 
+// CheckSubcomponents verifies all subcomponents
+func (mcc *managedCryptoComponents) CheckSubcomponents() error {
+	mcc.mutCryptoComponents.Lock()
+	defer mcc.mutCryptoComponents.Unlock()
+
+	if mcc.cryptoComponents == nil {
+		return ErrNilCryptoComponents
+	}
+	if check.IfNil(mcc.cryptoComponents.publicKey) {
+		return ErrNilPublicKey
+	}
+	if check.IfNil(mcc.cryptoComponents.privateKey) {
+		return ErrNilPrivateKey
+	}
+	if check.IfNil(mcc.cryptoComponents.txSingleSigner) {
+		return ErrNilTxSigner
+	}
+	if check.IfNil(mcc.cryptoComponents.blockSingleSigner) {
+		return ErrNilBlockSigner
+	}
+	if check.IfNil(mcc.cryptoComponents.multiSigner) {
+		return ErrNilMultiSigner
+	}
+	if check.IfNil(mcc.cryptoComponents.peerSignHandler) {
+		return ErrNilPeerSignHandler
+	}
+	if check.IfNil(mcc.cryptoComponents.blockSignKeyGen) {
+		return ErrNilBlockSignKeyGen
+	}
+	if check.IfNil(mcc.cryptoComponents.txSignKeyGen) {
+		return ErrNilTxSignKeyGen
+	}
+	if check.IfNil(mcc.cryptoComponents.messageSignVerifier) {
+		return ErrNilMessageSignVerifier
+	}
+
+	return nil
+}
+
 // PublicKey returns the configured validator public key
 func (mcc *managedCryptoComponents) PublicKey() crypto.PublicKey {
 	mcc.mutCryptoComponents.RLock()
@@ -74,7 +114,7 @@ func (mcc *managedCryptoComponents) PublicKey() crypto.PublicKey {
 		return nil
 	}
 
-	return mcc.CryptoParams.PublicKey
+	return mcc.cryptoParams.publicKey
 }
 
 // PrivateKey returns the configured validator private key
@@ -86,7 +126,7 @@ func (mcc *managedCryptoComponents) PrivateKey() crypto.PrivateKey {
 		return nil
 	}
 
-	return mcc.CryptoParams.PrivateKey
+	return mcc.cryptoParams.privateKey
 }
 
 // PublicKeyString returns the configured validator public key as string
@@ -98,7 +138,7 @@ func (mcc *managedCryptoComponents) PublicKeyString() string {
 		return ""
 	}
 
-	return mcc.CryptoParams.PublicKeyString
+	return mcc.cryptoParams.publicKeyString
 }
 
 // PublicKeyBytes returns the configured validator public key bytes
@@ -110,7 +150,7 @@ func (mcc *managedCryptoComponents) PublicKeyBytes() []byte {
 		return nil
 	}
 
-	return mcc.CryptoParams.PublicKeyBytes
+	return mcc.cryptoParams.publicKeyBytes
 }
 
 // PrivateKeyBytes returns the configured validator private key bytes
@@ -122,7 +162,7 @@ func (mcc *managedCryptoComponents) PrivateKeyBytes() []byte {
 		return nil
 	}
 
-	return mcc.CryptoParams.PrivateKeyBytes
+	return mcc.cryptoParams.privateKeyBytes
 }
 
 // TxSingleSigner returns the transaction signer

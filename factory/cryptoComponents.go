@@ -46,13 +46,13 @@ type cryptoComponentsFactory struct {
 	keyLoader                            KeyLoaderHandler
 }
 
-// CryptoParams holds the node public/private key data
-type CryptoParams struct {
-	PublicKey       crypto.PublicKey
-	PrivateKey      crypto.PrivateKey
-	PublicKeyString string
-	PublicKeyBytes  []byte
-	PrivateKeyBytes []byte
+// cryptoParams holds the node public/private key data
+type cryptoParams struct {
+	publicKey       crypto.PublicKey
+	privateKey      crypto.PrivateKey
+	publicKeyString string
+	publicKeyBytes  []byte
+	privateKeyBytes []byte
 }
 
 // cryptoComponents struct holds the crypto components
@@ -64,7 +64,7 @@ type cryptoComponents struct {
 	blockSignKeyGen     crypto.KeyGenerator
 	txSignKeyGen        crypto.KeyGenerator
 	messageSignVerifier vm.MessageSignVerifier
-	CryptoParams
+	cryptoParams
 }
 
 // NewCryptoComponentsFactory returns a new crypto components factory
@@ -151,7 +151,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		blockSignKeyGen:     blockSignKeyGen,
 		txSignKeyGen:        txSignKeyGen,
 		messageSignVerifier: messageSignVerifier,
-		CryptoParams:        *cp,
+		cryptoParams:        *cp,
 	}, nil
 }
 
@@ -184,13 +184,13 @@ func (ccf *cryptoComponentsFactory) getMultiSigHasherFromConfig() (hashing.Hashe
 
 func (ccf *cryptoComponentsFactory) createMultiSigner(
 	hasher hashing.Hasher,
-	cp *CryptoParams,
+	cp *cryptoParams,
 	blSignKeyGen crypto.KeyGenerator,
 ) (crypto.MultiSigner, error) {
 	switch ccf.config.Consensus.Type {
 	case consensus.BlsConsensusType:
 		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}
-		return multisig.NewBLSMultisig(blsSigner, []string{string(cp.PublicKeyBytes)}, cp.PrivateKey, blSignKeyGen, uint16(0))
+		return multisig.NewBLSMultisig(blsSigner, []string{string(cp.publicKeyBytes)}, cp.privateKey, blSignKeyGen, uint16(0))
 	default:
 		return nil, ErrInvalidConsensusConfig
 	}
@@ -207,34 +207,34 @@ func (ccf *cryptoComponentsFactory) getSuite() (crypto.Suite, error) {
 
 func (ccf *cryptoComponentsFactory) createCryptoParams(
 	keygen crypto.KeyGenerator,
-) (*CryptoParams, error) {
+) (*cryptoParams, error) {
 
-	cryptoParams := &CryptoParams{}
+	cryptoParams := &cryptoParams{}
 	sk, readPk, err := ccf.getSkPk()
 	if err != nil {
 		return nil, err
 	}
 
-	cryptoParams.PrivateKey, err = keygen.PrivateKeyFromByteArray(sk)
+	cryptoParams.privateKey, err = keygen.PrivateKeyFromByteArray(sk)
 	if err != nil {
 		return nil, err
 	}
 
-	cryptoParams.PublicKey = cryptoParams.PrivateKey.GeneratePublic()
+	cryptoParams.publicKey = cryptoParams.privateKey.GeneratePublic()
 	if len(readPk) > 0 {
 
-		cryptoParams.PublicKeyBytes, err = cryptoParams.PublicKey.ToByteArray()
+		cryptoParams.publicKeyBytes, err = cryptoParams.publicKey.ToByteArray()
 		if err != nil {
 			return nil, err
 		}
 
-		if !bytes.Equal(cryptoParams.PublicKeyBytes, readPk) {
+		if !bytes.Equal(cryptoParams.publicKeyBytes, readPk) {
 			return nil, ErrPublicKeyMismatch
 		}
 	}
 
 	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
-	cryptoParams.PublicKeyString = validatorKeyConverter.Encode(cryptoParams.PublicKeyBytes)
+	cryptoParams.publicKeyString = validatorKeyConverter.Encode(cryptoParams.publicKeyBytes)
 
 	return cryptoParams, nil
 }

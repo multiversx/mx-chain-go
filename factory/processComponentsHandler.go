@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -65,6 +66,81 @@ func (m *managedProcessComponents) Close() error {
 	return nil
 }
 
+// CheckSubcomponents verifies all subcomponents
+func (m *managedProcessComponents) CheckSubcomponents() error {
+	m.mutProcessComponents.Lock()
+	defer m.mutProcessComponents.Unlock()
+
+	if m.processComponents == nil {
+		return ErrNilProcessComponents
+	}
+	if check.IfNil(m.processComponents.nodesCoordinator) {
+		return ErrNilNodesCoordinator
+	}
+	if check.IfNil(m.processComponents.shardCoordinator) {
+		return ErrNilShardCoordinator
+	}
+	if check.IfNil(m.processComponents.interceptorsContainer) {
+		return ErrNilInterceptorsContainer
+	}
+	if check.IfNil(m.processComponents.resolversFinder) {
+		return ErrNilResolversFinder
+	}
+	if check.IfNil(m.processComponents.rounder) {
+		return ErrNilRounder
+	}
+	if check.IfNil(m.processComponents.epochStartTrigger) {
+		return ErrNilEpochStartTrigger
+	}
+	if check.IfNil(m.processComponents.epochStartNotifier) {
+		return ErrNilEpochStartNotifier
+	}
+	if check.IfNil(m.processComponents.forkDetector) {
+		return ErrNilForkDetector
+	}
+	if check.IfNil(m.processComponents.blockProcessor) {
+		return ErrNilBlockProcessor
+	}
+	if check.IfNil(m.processComponents.blackListHandler) {
+		return ErrNilBlackListHandler
+	}
+	if check.IfNil(m.processComponents.bootStorer) {
+		return ErrNilBootStorer
+	}
+	if check.IfNil(m.processComponents.headerSigVerifier) {
+		return ErrNilHeaderSigVerifier
+	}
+	if check.IfNil(m.processComponents.headerIntegrityVerifier) {
+		return ErrNilHeaderIntegrityVerifier
+	}
+	if check.IfNil(m.processComponents.validatorsStatistics) {
+		return ErrNilValidatorsStatistics
+	}
+	if check.IfNil(m.processComponents.validatorsProvider) {
+		return ErrNilValidatorsProvider
+	}
+	if check.IfNil(m.processComponents.blockTracker) {
+		return ErrNilBlockTracker
+	}
+	if check.IfNil(m.processComponents.pendingMiniBlocksHandler) {
+		return ErrNilPendingMiniBlocksHandler
+	}
+	if check.IfNil(m.processComponents.requestHandler) {
+		return ErrNilRequestHandler
+	}
+	if check.IfNil(m.processComponents.txLogsProcessor) {
+		return ErrNilTxLogsProcessor
+	}
+	if check.IfNil(m.processComponents.headerConstructionValidator) {
+		return ErrNilHeaderConstructionValidator
+	}
+	if check.IfNil(m.processComponents.peerShardMapper) {
+		return ErrNilPeerShardMapper
+	}
+
+	return nil
+}
+
 // NodesCoordinator returns the nodes coordinator
 func (m *managedProcessComponents) NodesCoordinator() sharding.NodesCoordinator {
 	m.mutProcessComponents.RLock()
@@ -74,7 +150,7 @@ func (m *managedProcessComponents) NodesCoordinator() sharding.NodesCoordinator 
 		return nil
 	}
 
-	return m.processComponents.NodesCoordinator
+	return m.processComponents.nodesCoordinator
 }
 
 // ShardCoordinator returns the shard coordinator
@@ -86,7 +162,7 @@ func (m *managedProcessComponents) ShardCoordinator() sharding.Coordinator {
 		return nil
 	}
 
-	return m.processComponents.ShardCoordinator
+	return m.processComponents.shardCoordinator
 }
 
 // InterceptorsContainer returns the interceptors container
@@ -98,7 +174,7 @@ func (m *managedProcessComponents) InterceptorsContainer() process.InterceptorsC
 		return nil
 	}
 
-	return m.processComponents.InterceptorsContainer
+	return m.processComponents.interceptorsContainer
 }
 
 // ResolversFinder returns the resolvers finder
@@ -110,7 +186,7 @@ func (m *managedProcessComponents) ResolversFinder() dataRetriever.ResolversFind
 		return nil
 	}
 
-	return m.processComponents.ResolversFinder
+	return m.processComponents.resolversFinder
 }
 
 // Rounder returns the rounderer
@@ -122,7 +198,7 @@ func (m *managedProcessComponents) Rounder() consensus.Rounder {
 		return nil
 	}
 
-	return m.processComponents.Rounder
+	return m.processComponents.rounder
 }
 
 // EpochStartTrigger returns the epoch start trigger handler
@@ -134,7 +210,7 @@ func (m *managedProcessComponents) EpochStartTrigger() epochStart.TriggerHandler
 		return nil
 	}
 
-	return m.processComponents.EpochStartTrigger
+	return m.processComponents.epochStartTrigger
 }
 
 // EpochStartNotifier returns the epoch start notifier
@@ -146,7 +222,7 @@ func (m *managedProcessComponents) EpochStartNotifier() EpochStartNotifier {
 		return nil
 	}
 
-	return m.processComponents.EpochStartNotifier
+	return m.processComponents.epochStartNotifier
 }
 
 // ForkDetector returns the fork detector
@@ -158,7 +234,7 @@ func (m *managedProcessComponents) ForkDetector() process.ForkDetector {
 		return nil
 	}
 
-	return m.processComponents.ForkDetector
+	return m.processComponents.forkDetector
 }
 
 // BlockProcessor returns the block processor
@@ -170,7 +246,7 @@ func (m *managedProcessComponents) BlockProcessor() process.BlockProcessor {
 		return nil
 	}
 
-	return m.processComponents.BlockProcessor
+	return m.processComponents.blockProcessor
 }
 
 // BlackListHandler returns the black list handler
@@ -182,7 +258,7 @@ func (m *managedProcessComponents) BlackListHandler() process.TimeCacher {
 		return nil
 	}
 
-	return m.processComponents.BlackListHandler
+	return m.processComponents.blackListHandler
 }
 
 // BootStorer returns the boot storer
@@ -194,7 +270,7 @@ func (m *managedProcessComponents) BootStorer() process.BootStorer {
 		return nil
 	}
 
-	return m.processComponents.BootStorer
+	return m.processComponents.bootStorer
 }
 
 // HeaderSigVerifier returns the header signature verification
@@ -206,7 +282,7 @@ func (m *managedProcessComponents) HeaderSigVerifier() process.InterceptedHeader
 		return nil
 	}
 
-	return m.processComponents.HeaderSigVerifier
+	return m.processComponents.headerSigVerifier
 }
 
 // HeaderIntegrityVerifier returns the header integrity verifier
@@ -218,7 +294,7 @@ func (m *managedProcessComponents) HeaderIntegrityVerifier() process.HeaderInteg
 		return nil
 	}
 
-	return m.processComponents.HeaderIntegrityVerifier
+	return m.processComponents.headerIntegrityVerifier
 }
 
 // ValidatorsStatistics returns the validator statistics processor
@@ -230,7 +306,7 @@ func (m *managedProcessComponents) ValidatorsStatistics() process.ValidatorStati
 		return nil
 	}
 
-	return m.processComponents.ValidatorsStatistics
+	return m.processComponents.validatorsStatistics
 }
 
 // ValidatorsProvider returns the validator provider
@@ -242,7 +318,7 @@ func (m *managedProcessComponents) ValidatorsProvider() process.ValidatorsProvid
 		return nil
 	}
 
-	return m.processComponents.ValidatorsProvider
+	return m.processComponents.validatorsProvider
 }
 
 // BlockTracker returns the block tracker
@@ -254,7 +330,7 @@ func (m *managedProcessComponents) BlockTracker() process.BlockTracker {
 		return nil
 	}
 
-	return m.processComponents.BlockTracker
+	return m.processComponents.blockTracker
 }
 
 // PendingMiniBlocksHandler returns the pending mini blocks handler
@@ -266,7 +342,7 @@ func (m *managedProcessComponents) PendingMiniBlocksHandler() process.PendingMin
 		return nil
 	}
 
-	return m.processComponents.PendingMiniBlocksHandler
+	return m.processComponents.pendingMiniBlocksHandler
 }
 
 // RequestHandler returns the request handler
@@ -278,7 +354,7 @@ func (m *managedProcessComponents) RequestHandler() process.RequestHandler {
 		return nil
 	}
 
-	return m.processComponents.RequestHandler
+	return m.processComponents.requestHandler
 }
 
 // TxLogsProcessor returns the tx logs processor
@@ -290,7 +366,7 @@ func (m *managedProcessComponents) TxLogsProcessor() process.TransactionLogProce
 		return nil
 	}
 
-	return m.processComponents.TxLogsProcessor
+	return m.processComponents.txLogsProcessor
 }
 
 // HeaderConstructionValidator returns the validator for header construction
@@ -302,7 +378,7 @@ func (m *managedProcessComponents) HeaderConstructionValidator() process.HeaderC
 		return nil
 	}
 
-	return m.processComponents.HeaderConstructionValidator
+	return m.processComponents.headerConstructionValidator
 }
 
 // PeerShardMapper returns the peer to shard mapper
@@ -314,7 +390,7 @@ func (m *managedProcessComponents) PeerShardMapper() process.NetworkShardingColl
 		return nil
 	}
 
-	return m.processComponents.PeerShardMapper
+	return m.processComponents.peerShardMapper
 }
 
 // IsInterfaceNil returns true if the interface is nil

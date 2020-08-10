@@ -24,14 +24,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
-	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -252,7 +250,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
-	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
 	if genesisNodesConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
 		ntpTime := syncer.CurrentTime()
@@ -815,19 +812,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		*cfgs.ratingsConfig,
 		cfgs.preferencesConfig,
 		genesisNodesConfig,
-		economicsData,
-		syncer,
-		managedCryptoComponents.BlockSignKeyGen(),
-		managedCryptoComponents.PrivateKey(),
-		managedCryptoComponents.PublicKey(),
-		shardCoordinator,
-		nodesCoordinator,
+		managedBootstrapComponents,
 		managedCoreComponents,
-		managedStateComponents,
-		managedDataComponents,
 		managedCryptoComponents,
-		managedProcessComponents,
+		managedDataComponents,
 		managedNetworkComponents,
+		managedProcessComponents,
+		managedStateComponents,
+		managedStatusComponents,
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
 		elasticIndexer,
@@ -916,7 +908,27 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	ef.StartBackgroundServices()
 
 	log.Debug("starting node...")
-	err = ef.StartNode()
+
+	consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
+		Config:              *cfgs.generalConfig,
+		ConsensusGroupSize:  int(genesisNodesConfig.ConsensusGroupSize),
+		BootstrapRoundIndex: ctx.GlobalUint64(bootstrapRoundIndex.Name),
+		HardforkTrigger:     hardForkTrigger,
+		CoreComponents:      managedCoreComponents,
+		NetworkComponents:   managedNetworkComponents,
+		CryptoComponents:    managedCryptoComponents,
+		DataComponents:      managedDataComponents,
+		ProcessComponents:   managedProcessComponents,
+		StateComponents:     managedStateComponents,
+		StatusComponents:    managedStatusComponents,
+	}
+
+	managedConsensusComponents, err := mainFactory.NewManagedConsensusComponents(consensusArgs)
+	if err != nil {
+		return err
+	}
+
+	err = managedConsensusComponents.Create()
 	if err != nil {
 		log.Error("starting node failed", "epoch", currentEpoch, "error", err.Error())
 		return err
@@ -1526,19 +1538,14 @@ func createNode(
 	ratingConfig config.RatingsConfig,
 	preferencesConfig *config.Preferences,
 	nodesConfig *sharding.NodesSetup,
-	economicsData process.FeeHandler,
-	syncer ntp.SyncTimer,
-	keyGen crypto.KeyGenerator,
-	privKey crypto.PrivateKey,
-	pubKey crypto.PublicKey,
-	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
-	coreData mainFactory.CoreComponentsHolder,
-	stateComponents mainFactory.StateComponentsHolder,
-	data mainFactory.DataComponentsHolder,
-	crypto mainFactory.CryptoComponentsHolder,
-	process mainFactory.ProcessComponentsHolder,
-	network mainFactory.NetworkComponentsHolder,
+	bootstrapComponents mainFactory.BootstrapComponentsHandler,
+	coreComponents mainFactory.CoreComponentsHandler,
+	cryptoComponents mainFactory.CryptoComponentsHandler,
+	dataComponents mainFactory.DataComponentsHandler,
+	networkComponents mainFactory.NetworkComponentsHandler,
+	processComponents mainFactory.ProcessComponentsHandler,
+	stateComponents mainFactory.StateComponentsHandler,
+	statusComponents mainFactory.StatusComponentsHandler,
 	bootstrapRoundIndex uint64,
 	version string,
 	indexer indexer.Indexer,
@@ -1552,7 +1559,7 @@ func createNode(
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
-	consensusGroupSize, err = getConsensusGroupSize(nodesConfig, shardCoordinator)
+	consensusGroupSize, err = getConsensusGroupSize(nodesConfig, processComponents.ShardCoordinator())
 	if err != nil {
 		return nil, err
 	}
@@ -1567,35 +1574,45 @@ func createNode(
 		return nil, err
 	}
 
-	prepareOpenTopics(network.InputAntiFloodHandler(), shardCoordinator)
-
-	alarmScheduler := alarm.NewAlarmScheduler()
-	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, chanStopNodeProcess)
-	if err != nil {
-		return nil, err
-	}
+	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
 	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
-		network.PeerBlackListHandler(),
-		network.PubKeyCacher(),
-		process.PeerShardMapper(),
+		networkComponents.PeerBlackListHandler(),
+		networkComponents.PubKeyCacher(),
+		processComponents.PeerShardMapper(),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	err = network.NetworkMessenger().SetPeerDenialEvaluator(peerDenialEvaluator)
+	err = networkComponents.NetworkMessenger().SetPeerDenialEvaluator(peerDenialEvaluator)
 	if err != nil {
 		return nil, err
 	}
 
-	peerHonestyHandler, err := createPeerHonestyHandler(config, ratingConfig, network.PubKeyCacher())
+	peerHonestyHandler, err := createPeerHonestyHandler(config, ratingConfig, networkComponents.PubKeyCacher())
 	if err != nil {
 		return nil, err
 	}
+
+	heartbeatArgs := mainFactory.HeartbeatComponentsFactoryArgs{
+		Config:            *config,
+		Prefs:             *preferencesConfig,
+		AppVersion:        version,
+		GenesisTime:       time.Time{},
+		HardforkTrigger:   nil,
+		CoreComponents:    nil,
+		DataComponents:    nil,
+		NetworkComponents: nil,
+		CryptoComponents:  nil,
+		ProcessComponents: nil,
+	}
+
+	managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents()
 
 	var nd *node.Node
 	nd, err = node.NewNode(
+		node.WithBootstrapComponents(bootstrapComponents),
 		node.WithMessenger(network.NetworkMessenger()),
 		node.WithHasher(coreData.Hasher()),
 		node.WithInternalMarshalizer(coreData.InternalMarshalizer(), config.Marshalizer.SizeCheckDelta),
@@ -1617,17 +1634,10 @@ func createNode(
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithNodesCoordinator(nodesCoordinator),
 		node.WithUint64ByteSliceConverter(coreData.Uint64ByteSliceConverter()),
-		node.WithSingleSigner(crypto.BlockSigner()),
-		node.WithMultiSigner(crypto.MultiSigner()),
-		node.WithKeyGen(keyGen),
-		node.WithKeyGenForAccounts(crypto.TxSignKeyGen()),
-		node.WithPubKey(pubKey),
-		node.WithPrivKey(privKey),
 		node.WithForkDetector(process.ForkDetector()),
 		node.WithInterceptorsContainer(process.InterceptorsContainer()),
 		node.WithResolversFinder(process.ResolversFinder()),
 		node.WithConsensusType(config.Consensus.Type),
-		node.WithTxSingleSigner(crypto.TxSingleSigner()),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(coreData.StatusHandler()),
 		node.WithIndexer(indexer),

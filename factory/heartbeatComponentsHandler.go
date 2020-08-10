@@ -3,6 +3,7 @@ package factory
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
@@ -54,6 +55,30 @@ func (mhc *managedHeartbeatComponents) Close() error {
 
 	mhc.heartbeatComponents.Close()
 	mhc.heartbeatComponents = nil
+
+	return nil
+}
+
+// CheckSubcomponents verifies all subcomponents
+func (mhc *managedHeartbeatComponents) CheckSubcomponents() error {
+	mhc.mutHeartbeatComponents.Lock()
+	defer mhc.mutHeartbeatComponents.Unlock()
+
+	if mhc.heartbeatComponents == nil {
+		return ErrNilHeartbeatComponents
+	}
+	if check.IfNil(mhc.messageHandler) {
+		return ErrNilHeartbeatMessageHandler
+	}
+	if check.IfNil(mhc.monitor) {
+		return ErrNilHeartbeatMonitor
+	}
+	if check.IfNil(mhc.sender) {
+		return ErrNilHeartbeatSender
+	}
+	if check.IfNil(mhc.storer) {
+		return ErrNilHeartbeatStorer
+	}
 
 	return nil
 }

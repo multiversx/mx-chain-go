@@ -3,6 +3,7 @@ package factory
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -56,6 +57,33 @@ func (mnc *managedNetworkComponents) Close() error {
 			return err
 		}
 		mnc.networkComponents = nil
+	}
+
+	return nil
+}
+
+// CheckSubcomponents verifies all subcomponents
+func (mnc *managedNetworkComponents) CheckSubcomponents() error {
+	mnc.mutNetworkComponents.Lock()
+	defer mnc.mutNetworkComponents.Unlock()
+
+	if mnc.networkComponents == nil {
+		return ErrNilNetworkComponents
+	}
+	if check.IfNil(mnc.netMessenger) {
+		return ErrNilNetworkMessenger
+	}
+	if check.IfNil(mnc.inputAntifloodHandler) {
+		return ErrNilInputAntiFloodHandler
+	}
+	if check.IfNil(mnc.outputAntifloodHandler) {
+		return ErrNilOutputAntiFloodHandler
+	}
+	if check.IfNil(mnc.peerBlackListHandler) {
+		return ErrNilPeerBlackListHandler
+	}
+	if check.IfNil(mnc.peerHonestyHandler) {
+		return ErrNilPeerHonestyHandler
 	}
 
 	return nil

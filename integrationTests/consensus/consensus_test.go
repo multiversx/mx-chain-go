@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -99,6 +100,21 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 
 			return nil
 		}
+
+		consensusArgs := factory.ConsensusComponentsFactoryArgs{
+			Config:              nil,
+			ConsensusGroupSize:  0,
+			BootstrapRoundIndex: 0,
+			HardforkTrigger:     n.node.GetHardforkTrigger(),
+			CoreComponents:      nil,
+			NetworkComponents:   nil,
+			CryptoComponents:    nil,
+			DataComponents:      nil,
+			ProcessComponents:   nil,
+			StateComponents:     nil,
+			StatusComponents:    n.node.getStatus,
+		}
+
 		err := n.node.StartConsensus()
 		if err != nil {
 			return err
