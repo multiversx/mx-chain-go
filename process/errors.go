@@ -865,3 +865,12 @@ var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled
 
 // ErrRelayedTxDisabled signals that relayed tx are disabled
 var ErrRelayedTxDisabled = errors.New("relayed tx is disabled")
+
+// ErrRelayedTxGasLimitMissmatch signals that relayed tx gas limit is higher then user tx gas limit
+var ErrRelayedTxGasLimitMissmatch = errors.New("relayed tx gas limit higher then user tx gas limit")
+
+// ErrRelayedGasPriceMissmatch signals that relayed gas price is not equal with user tx
+var ErrRelayedGasPriceMissmatch = errors.New("relayed gas price missmatch")
+
+// ErrNilUserAccount signals that nil user account was provided
+var ErrNilUserAccount = errors.New("nil user account")

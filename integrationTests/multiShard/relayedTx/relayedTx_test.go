@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -45,8 +46,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		for _, player := range players {
-			createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			_ = createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			_ = createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
 		}
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -72,6 +73,72 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 
 	players = append(players, relayer)
 	checkPlayerBalances(t, nodes, players)
+}
+
+func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	sendValue := big.NewInt(5)
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	receiverAddress1 := []byte("12345678901234567890123456789012")
+	receiverAddress2 := []byte("12345678901234567890123456789011")
+
+	totalFees := big.NewInt(0)
+	relayerInitialValue := big.NewInt(0).Set(relayer.Balance)
+	nrRoundsToTest := int64(5)
+	for i := int64(0); i < nrRoundsToTest; i++ {
+		for _, player := range players {
+			player.Nonce += 1
+			relayerTx := createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			totalFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(relayerTx.GetGasPrice()), big.NewInt(0).SetUint64(relayerTx.GetGasLimit()))
+			totalFees.Add(totalFees, totalFee)
+			relayerTx = createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			totalFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(relayerTx.GetGasPrice()), big.NewInt(0).SetUint64(relayerTx.GetGasLimit()))
+			totalFees.Add(totalFees, totalFee)
+		}
+
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+
+		time.Sleep(time.Second)
+	}
+
+	roundToPropagateMultiShard := int64(20)
+	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+	}
+
+	time.Sleep(time.Second)
+	receiver1 := getUserAccount(nodes, receiverAddress1)
+	receiver2 := getUserAccount(nodes, receiverAddress2)
+
+	assert.True(t, check.IfNil(receiver1))
+	assert.True(t, check.IfNil(receiver2))
+
+	for _, player := range players {
+		account := getUserAccount(nodes, player.Address)
+		assert.True(t, account.GetBalance().Cmp(big.NewInt(0)) == 0)
+		assert.Equal(t, uint64(nrRoundsToTest)*2, account.GetNonce())
+	}
+
+	expectedBalance := big.NewInt(0).Sub(relayerInitialValue, totalFees)
+	relayerAccount := getUserAccount(nodes, relayer.Address)
+	assert.True(t, relayerAccount.GetBalance().Cmp(expectedBalance) == 0)
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing.T) {
@@ -136,9 +203,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 		for _, player := range players {
-			createAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, big.NewInt(0),
+			_ = createAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, big.NewInt(0),
 				transferTokenFullGas, []byte("transferToken@"+hex.EncodeToString(receiverAddress1)+"@00"+hex.EncodeToString(sendValue.Bytes())))
-			createAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, big.NewInt(0),
+			_ = createAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, big.NewInt(0),
 				transferTokenFullGas, []byte("transferToken@"+hex.EncodeToString(receiverAddress2)+"@00"+hex.EncodeToString(sendValue.Bytes())))
 		}
 
@@ -226,8 +293,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		for _, player := range players {
-			createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, big.NewInt(0), transferTokenFullGas, []byte(txData))
-			createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, big.NewInt(0), transferTokenFullGas, []byte(txData))
+			_ = createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, big.NewInt(0), transferTokenFullGas, []byte(txData))
+			_ = createAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, big.NewInt(0), transferTokenFullGas, []byte(txData))
 		}
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -283,6 +350,9 @@ func getUserAccount(
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() == shardID {
 			acc, _ := node.AccntState.GetExistingAccount(address)
+			if check.IfNil(acc) {
+				return nil
+			}
 			userAcc := acc.(state.UserAccountHandler)
 			return userAcc
 		}
@@ -353,7 +423,7 @@ func createAndSendRelayedAndUserTx(
 	value *big.Int,
 	gasLimit uint64,
 	txData []byte,
-) {
+) *transaction.Transaction {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address)
 
 	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData)
@@ -363,6 +433,8 @@ func createAndSendRelayedAndUserTx(
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+
+	return relayedTx
 }
 
 func getNodeWithinSameShardAsPlayer(
@@ -439,9 +511,10 @@ func createGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	numPlayers := 5
+	numShards := nodes[0].ShardCoordinator.NumberOfShards()
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
-		shardId := uint32(i) % nodes[0].ShardCoordinator.NumberOfShards()
+		shardId := uint32(i) % numShards
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, shardId)
 	}
 
