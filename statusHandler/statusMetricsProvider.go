@@ -177,6 +177,7 @@ func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 	nonceAtEpochStart := sm.loadUint64Metric(core.MetricNonceAtEpochStart)
 
 	networkMetrics[core.MetricNonce] = currentNonce
+	networkMetrics[core.MetricHighestFinalBlock] = sm.loadUint64Metric(core.MetricHighestFinalBlock)
 	networkMetrics[core.MetricCurrentRound] = currentRound
 	networkMetrics[core.MetricRoundAtEpochStart] = roundNumberAtEpochStart
 	networkMetrics[core.MetricNonceAtEpochStart] = nonceAtEpochStart
