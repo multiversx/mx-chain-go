@@ -14,8 +14,6 @@ import (
 )
 
 func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

@@ -12,8 +12,6 @@ import (
 )
 
 func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
-	t.Parallel()
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
