@@ -32,6 +32,7 @@ type APIBlock struct {
 	Nonce                uint64          `form:"nonce" json:"nonce"`
 	Round                uint64          `form:"round" json:"round"`
 	Hash                 string          `form:"hash" json:"hash"`
+	PrevBlockHash        string          `form:"prevBlockHash" json:"prevBlockHash"`
 	Epoch                uint32          `form:"epoch" json:"epoch"`
 	ShardID              uint32          `form:"shardID" json:"shardID"`
 	NumTxs               uint32          `form:"numTxs" json:"numTxs"`
