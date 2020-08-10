@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -127,7 +127,7 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 		return err
 	}
 
-	peerStMon, peerAccountsTrie, err := trieFactory.Create(
+	_, peerAccountsTrie, err := trieFactory.Create(
 		rp.generalConfig.PeerAccountsTrieStorage,
 		core.GetShardIDString(core.MetachainShardId),
 		rp.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
@@ -136,12 +136,12 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(peerStMon.IsInterfaceNil())
+
 	peerAdapter, err := state.NewPeerAccountsDB(
 		peerAccountsTrie,
 		rp.hasher,
 		rp.marshalizer,
-		factory2.NewPeerAccountCreator(),
+		stateFactory.NewPeerAccountCreator(),
 	)
 	if err != nil {
 		return err
