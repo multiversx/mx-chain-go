@@ -349,7 +349,7 @@ func (wr *WidgetsRender) prepareLoads() {
 	recvBpsPeak := wr.presenter.GetNetworkRecvBpsPeak()
 	wr.networkRecv.Title = "Network - recv:"
 	wr.networkRecv.Percent = int(recvLoad)
-	wr.networkRecv.Label = fmt.Sprintf("%d%% / rate: %s/s / peak rate: %s/s",
+	wr.networkRecv.Label = fmt.Sprintf("%d%% / current: %s/s / peak: %s/s",
 		recvLoad, core.ConvertBytes(recvBps), core.ConvertBytes(recvBpsPeak))
 
 	sentLoad := wr.presenter.GetNetworkSentPercent()
@@ -357,14 +357,14 @@ func (wr *WidgetsRender) prepareLoads() {
 	sentBpsPeak := wr.presenter.GetNetworkSentBpsPeak()
 	wr.networkSent.Title = "Network - sent:"
 	wr.networkSent.Percent = int(sentLoad)
-	wr.networkSent.Label = fmt.Sprintf("%d%% / rate: %s/s / peak rate: %s/s",
+	wr.networkSent.Label = fmt.Sprintf("%d%% / current: %s/s / peak: %s/s",
 		sentLoad, core.ConvertBytes(sentBps), core.ConvertBytes(sentBpsPeak))
 
 	// epoch info
 	currentEpochRound, currentEpochFinishRound, epochLoadPercent, remainingTime := wr.presenter.GetEpochInfo()
 	wr.epochLoad.Title = "Epoch - info:"
 	wr.epochLoad.Percent = epochLoadPercent
-	wr.epochLoad.Label = fmt.Sprintf("passed %d / %d rounds (~%sremaining)", currentEpochRound, currentEpochFinishRound, remainingTime)
+	wr.epochLoad.Label = fmt.Sprintf("%d / %d rounds (~%sremaining)", currentEpochRound, currentEpochFinishRound, remainingTime)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
