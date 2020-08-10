@@ -139,13 +139,13 @@ func TestPresenterStatusHandler_GetBlockSize(t *testing.T) {
 	assert.Equal(t, blockExpectedSize, result)
 }
 
-func TestPresenterStatusHandler_GetHighestFinalBlockInShard(t *testing.T) {
+func TestPresenterStatusHandler_GetHighestFinalBlock(t *testing.T) {
 	t.Parallel()
 
 	highestFinalBlockNonce := uint64(100)
 	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
-	result := presenterStatusHandler.GetHighestFinalBlockInShard()
+	presenterStatusHandler.SetUInt64Value(core.MetricHighestFinalBlock, highestFinalBlockNonce)
+	result := presenterStatusHandler.GetHighestFinalBlock()
 
 	assert.Equal(t, highestFinalBlockNonce, result)
 }

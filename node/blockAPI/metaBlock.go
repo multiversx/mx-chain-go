@@ -99,6 +99,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		Epoch:                blockHeader.Epoch,
 		ShardID:              core.MetachainShardId,
 		Hash:                 hex.EncodeToString(hash),
+		PrevBlockHash:        hex.EncodeToString(blockHeader.PrevHash),
 		NumTxs:               numOfTxs,
 		NotarizedBlockHashes: shardHeaderHashes,
 		MiniBlocks:           miniblocks,

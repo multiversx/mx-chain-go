@@ -9,6 +9,7 @@ import (
 
 // ConnStub -
 type ConnStub struct {
+	IDCalled              func() string
 	CloseCalled           func() error
 	LocalPeerCalled       func() peer.ID
 	LocalPrivateKeyCalled func() libp2pCrypto.PrivKey
@@ -19,6 +20,15 @@ type ConnStub struct {
 	NewStreamCalled       func() (network.Stream, error)
 	GetStreamsCalled      func() []network.Stream
 	StatCalled            func() network.Stat
+}
+
+// ID -
+func (cs *ConnStub) ID() string {
+	if cs.IDCalled != nil {
+		return cs.IDCalled()
+	}
+
+	return ""
 }
 
 // Close -
