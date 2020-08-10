@@ -678,6 +678,15 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 
 	wasExtended := ps.extendSavedEpochsIfNeeded(header)
 	if wasExtended {
+		ps.lock.RLock()
+		if len(ps.activePersisters) > int(ps.numOfActivePersisters) {
+			log.Debug("PruningStorer - skip closing and destroying persisters due to a stuck shard -",
+				"current epoch", epoch,
+				"num active persisters", len(ps.activePersisters),
+				"default maximum num active persisters", ps.numOfActivePersisters,
+				"oldest epoch in storage", ps.activePersisters[len(ps.activePersisters)-1].epoch)
+		}
+		ps.lock.RUnlock()
 		return nil
 	}
 
@@ -795,12 +804,6 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 	ps.lock.Lock()
 	ps.activePersisters = append(ps.activePersisters, reOpenedPersisters...)
 	ps.lock.Unlock()
-
-	if len(reOpenedPersisters) > 0 {
-		log.Debug("PruningStorer - extend stored epochs due to a stuck shard",
-			"from epoch", from,
-			"to epoch", to)
-	}
 
 	return nil
 }
