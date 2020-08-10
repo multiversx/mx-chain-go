@@ -17,6 +17,7 @@ type streamMock struct {
 	streamClosed bool
 	canRead      bool
 	conn         network.Conn
+	id           string
 }
 
 // NewStreamMock -
@@ -30,7 +31,7 @@ func NewStreamMock() *streamMock {
 }
 
 // Read -
-func (sm *streamMock) Read(p []byte) (n int, err error) {
+func (sm *streamMock) Read(p []byte) (int, error) {
 	//just a mock implementation of blocking read
 	for {
 		time.Sleep(time.Millisecond * 10)
@@ -120,6 +121,17 @@ func (sm *streamMock) Conn() network.Conn {
 	return sm.conn
 }
 
+// SetConn -
 func (sm *streamMock) SetConn(conn network.Conn) {
 	sm.conn = conn
+}
+
+// ID -
+func (sm *streamMock) ID() string {
+	return sm.id
+}
+
+// SetID -
+func (sm *streamMock) SetID(id string) {
+	sm.id = id
 }

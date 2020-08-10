@@ -563,12 +563,13 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 		return err
 	}
 
-	nonceToByteSlice := args.uint64Converter.ToByteSlice(genesisBlock.GetNonce())
 	if args.shardCoordinator.SelfId() == core.MetachainShardId {
 		errNotCritical := args.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis metablock", "error", errNotCritical.Error())
 		}
+
+		nonceToByteSlice := args.uint64Converter.ToByteSlice(genesisBlock.GetNonce())
 		errNotCritical = args.data.Store.Put(dataRetriever.MetaHdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
 		if errNotCritical != nil {
 			log.Error("error storing genesis metablock (nonce-hash)", "error", errNotCritical.Error())
@@ -577,11 +578,6 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 		errNotCritical := args.data.Store.Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
-		}
-		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(genesisBlock.GetShardID())
-		errNotCritical = args.data.Store.Put(hdrNonceHashDataUnit, nonceToByteSlice, genesisBlockHash)
-		if errNotCritical != nil {
-			log.Error("error storing genesis shard header (nonce-hash)", "error", errNotCritical.Error())
 		}
 	}
 
