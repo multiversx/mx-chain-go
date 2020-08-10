@@ -51,8 +51,8 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 	for i := 0; i < len(input.Arguments); i += 2 {
 		key := input.Arguments[i]
 		value := input.Arguments[i+1]
-		length := uint64(len(value))
-		useGas += length * (k.gasConfig.DataCopyPerByte + k.gasConfig.PersistPerByte)
+		length := uint64(len(value) + len(key))
+		useGas += length * k.gasConfig.PersistPerByte
 
 		if !process.IsAllowedToSaveUnderKey(key) {
 			return nil, fmt.Errorf("%w it is not allowed to save under key %s", process.ErrOperationNotPermitted, key)
