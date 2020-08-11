@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/outport/marshaling"
 )
 
 var log = logger.GetOrCreate("outport")
@@ -18,12 +19,20 @@ type outportDriver struct {
 }
 
 // NewOutportDriver creates a new outport driver
-func NewOutportDriver(config config.OutportConfig, txCoordinator TransactionCoordinator, logsProcessor TransactionLogProcessor) (*outportDriver, error) {
+func NewOutportDriver(
+	config config.OutportConfig,
+	txCoordinator TransactionCoordinator,
+	logsProcessor TransactionLogProcessor,
+	marshalizer marshaling.Marshalizer,
+) (*outportDriver, error) {
 	if check.IfNil(txCoordinator) {
 		return nil, ErrNilTxCoordinator
 	}
 	if check.IfNil(logsProcessor) {
 		return nil, ErrNilLogsProcessor
+	}
+	if check.IfNil(marshalizer) {
+		return nil, ErrNilMarshalizer
 	}
 
 	return &outportDriver{
