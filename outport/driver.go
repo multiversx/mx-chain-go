@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/outport/marshaling"
 )
 
@@ -51,7 +52,7 @@ func (driver *outportDriver) DigestCommittedBlock(header data.HeaderHandler, bod
 		return
 	}
 
-	// txPool := txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
+	txPool := driver.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	// scPool := txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	// rewardPool := txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)
 	// invalidPool := txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)

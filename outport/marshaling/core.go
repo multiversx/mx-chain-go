@@ -2,7 +2,7 @@ package marshaling
 
 import "strings"
 
-// MarshalizerKind is the kind of a message (that is passed between the Node and the outport sink)
+// MarshalizerKind is the kind of a message (that is passed from the Node and the outport sink)
 type MarshalizerKind uint32
 
 const (
