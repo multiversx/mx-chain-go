@@ -28,13 +28,13 @@ func (n *Node) GetBlockByNonce(nonce uint64, withTxs bool) (*apiBlock.APIBlock, 
 }
 
 func (n *Node) createAPIBlockProcessor() blockAPI.APIBlockHandler {
-	if n.shardCoordinator.SelfId() != core.MetachainShardId {
+	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return blockAPI.NewShardApiBlockProcessor(
 			&blockAPI.APIBlockProcessorArg{
-				SelfShardID:              n.shardCoordinator.SelfId(),
-				Store:                    n.store,
-				Marshalizer:              n.internalMarshalizer,
-				Uint64ByteSliceConverter: n.uint64ByteSliceConverter,
+				SelfShardID:              n.processComponents.ShardCoordinator().SelfId(),
+				Store:                    n.dataComponents.StorageService(),
+				Marshalizer:              n.coreComponents.InternalMarshalizer(),
+				Uint64ByteSliceConverter: n.coreComponents.Uint64ByteSliceConverter(),
 				HistoryRepo:              n.historyRepository,
 				UnmarshalTx:              n.unmarshalTxWrapper,
 			},
@@ -43,10 +43,10 @@ func (n *Node) createAPIBlockProcessor() blockAPI.APIBlockHandler {
 
 	return blockAPI.NewMetaApiBlockProcessor(
 		&blockAPI.APIBlockProcessorArg{
-			SelfShardID:              n.shardCoordinator.SelfId(),
-			Store:                    n.store,
-			Marshalizer:              n.internalMarshalizer,
-			Uint64ByteSliceConverter: n.uint64ByteSliceConverter,
+			SelfShardID:              n.processComponents.ShardCoordinator().SelfId(),
+			Store:                    n.dataComponents.StorageService(),
+			Marshalizer:              n.coreComponents.InternalMarshalizer(),
+			Uint64ByteSliceConverter: n.coreComponents.Uint64ByteSliceConverter(),
 			HistoryRepo:              n.historyRepository,
 			UnmarshalTx:              n.unmarshalTxWrapper,
 		},

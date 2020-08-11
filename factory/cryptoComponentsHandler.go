@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -72,34 +73,34 @@ func (mcc *managedCryptoComponents) CheckSubcomponents() error {
 	defer mcc.mutCryptoComponents.Unlock()
 
 	if mcc.cryptoComponents == nil {
-		return ErrNilCryptoComponents
+		return errors.ErrNilCryptoComponents
 	}
 	if check.IfNil(mcc.cryptoComponents.publicKey) {
-		return ErrNilPublicKey
+		return errors.ErrNilPublicKey
 	}
 	if check.IfNil(mcc.cryptoComponents.privateKey) {
-		return ErrNilPrivateKey
+		return errors.ErrNilPrivateKey
 	}
 	if check.IfNil(mcc.cryptoComponents.txSingleSigner) {
-		return ErrNilTxSigner
+		return errors.ErrNilTxSigner
 	}
 	if check.IfNil(mcc.cryptoComponents.blockSingleSigner) {
-		return ErrNilBlockSigner
+		return errors.ErrNilBlockSigner
 	}
 	if check.IfNil(mcc.cryptoComponents.multiSigner) {
-		return ErrNilMultiSigner
+		return errors.ErrNilMultiSigner
 	}
 	if check.IfNil(mcc.cryptoComponents.peerSignHandler) {
-		return ErrNilPeerSignHandler
+		return errors.ErrNilPeerSignHandler
 	}
 	if check.IfNil(mcc.cryptoComponents.blockSignKeyGen) {
-		return ErrNilBlockSignKeyGen
+		return errors.ErrNilBlockSignKeyGen
 	}
 	if check.IfNil(mcc.cryptoComponents.txSignKeyGen) {
-		return ErrNilTxSignKeyGen
+		return errors.ErrNilTxSignKeyGen
 	}
 	if check.IfNil(mcc.cryptoComponents.messageSignVerifier) {
-		return ErrNilMessageSignVerifier
+		return errors.ErrNilMessageSignVerifier
 	}
 
 	return nil
@@ -219,7 +220,7 @@ func (mcc *managedCryptoComponents) SetMultiSigner(ms crypto.MultiSigner) error 
 	defer mcc.mutCryptoComponents.Unlock()
 
 	if mcc.cryptoComponents == nil {
-		return ErrNilCryptoComponents
+		return errors.ErrNilCryptoComponents
 	}
 
 	mcc.cryptoComponents.multiSigner = ms

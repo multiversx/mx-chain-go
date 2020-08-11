@@ -2,7 +2,6 @@ package factory
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -80,19 +80,19 @@ func (m *managedStatusComponents) CheckSubcomponents() error {
 	defer m.mutStatusComponents.Unlock()
 
 	if m.statusComponents == nil {
-		return ErrNilStatusComponents
+		return errors.ErrNilStatusComponents
 	}
 	if check.IfNil(m.tpsBenchmark) {
-		return ErrNilTpsBenchmark
+		return errors.ErrNilTpsBenchmark
 	}
 	if check.IfNil(m.elasticIndexer) {
-		return ErrNilElasticIndexer
+		return errors.ErrNilElasticIndexer
 	}
 	if check.IfNil(m.softwareVersion) {
-		return ErrNilSoftwareVersion
+		return errors.ErrNilSoftwareVersion
 	}
 	if check.IfNil(m.statusHandler) {
-		return ErrNilStatusHandler
+		return errors.ErrNilStatusHandler
 	}
 
 	return nil
@@ -185,7 +185,7 @@ func (m *managedStatusComponents) startStatusPolling(ctx context.Context) error 
 		time.Duration(m.statusComponentsFactory.config.GeneralSettings.StatusPollingIntervalSec)*time.Second,
 	)
 	if err != nil {
-		return errors.New("cannot init AppStatusPolling")
+		return errors.ErrStatusPollingInit
 	}
 
 	err = registerPollConnectedPeers(appStatusPollingHandler, m.statusComponentsFactory.networkComponents)
@@ -220,7 +220,7 @@ func registerPollConnectedPeers(
 
 	err := appStatusPollingHandler.RegisterPollingFunc(p2pMetricsHandlerFunc)
 	if err != nil {
-		return errors.New("cannot register handler func for num of connected peers")
+		return errors.ErrPollingFunctionRegistration
 	}
 
 	return nil
@@ -311,7 +311,7 @@ func registerPollProbableHighestNonce(
 
 	err := appStatusPollingHandler.RegisterPollingFunc(probableHighestNonceHandlerFunc)
 	if err != nil {
-		return errors.New("cannot register handler func for forkdetector's probable higher nonce")
+		return fmt.Errorf("%w, cannot register handler func for forkdetector's probable higher nonce", err)
 	}
 
 	return nil
@@ -320,7 +320,7 @@ func registerPollProbableHighestNonce(
 func (m *managedStatusComponents) startMachineStatisticsPolling(ctx context.Context) error {
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(m.statusComponentsFactory.coreComponents.StatusHandler(), time.Second)
 	if err != nil {
-		return errors.New("cannot init AppStatusPolling")
+		return fmt.Errorf("%w, cannot init AppStatusPolling", err)
 	}
 
 	err = registerCpuStatistics(appStatusPollingHandler, ctx)

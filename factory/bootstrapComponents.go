@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -48,25 +49,25 @@ type bootstrapComponents struct {
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
 func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootstrapComponentsFactory, error) {
 	if check.IfNil(args.CoreComponents) {
-		return nil, ErrNilCoreComponentsHolder
+		return nil, errors.ErrNilCoreComponentsHolder
 	}
 	if check.IfNil(args.CryptoComponents) {
-		return nil, ErrNilCryptoComponentsHolder
+		return nil, errors.ErrNilCryptoComponentsHolder
 	}
 	if check.IfNil(args.NetworkComponents) {
-		return nil, ErrNilNetworkComponentsHolder
+		return nil, errors.ErrNilNetworkComponentsHolder
 	}
 	if check.IfNil(args.NodeShuffler) {
-		return nil, ErrNilShuffler
+		return nil, errors.ErrNilShuffler
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, ErrNilShardCoordinator
+		return nil, errors.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.GenesisNodesSetup) {
-		return nil, ErrNilGenesisNodesSetup
+		return nil, errors.ErrNilGenesisNodesSetup
 	}
 	if args.WorkingDir == "" {
-		return nil, ErrInvalidWorkingDir
+		return nil, errors.ErrInvalidWorkingDir
 	}
 
 	return &bootstrapComponentsFactory{

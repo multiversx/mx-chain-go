@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -21,7 +22,7 @@ func TestNewDataComponentsFactory_NilEconomicsDataShouldErr(t *testing.T) {
 
 	dcf, err := factory.NewDataComponentsFactory(args)
 	require.Nil(t, dcf)
-	require.Equal(t, factory.ErrNilEconomicsData, err)
+	require.Equal(t, errors.ErrNilEconomicsData, err)
 }
 
 func TestNewDataComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
@@ -33,7 +34,7 @@ func TestNewDataComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	dcf, err := factory.NewDataComponentsFactory(args)
 	require.Nil(t, dcf)
-	require.Equal(t, factory.ErrNilShardCoordinator, err)
+	require.Equal(t, errors.ErrNilShardCoordinator, err)
 }
 
 func TestNewDataComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
@@ -44,7 +45,7 @@ func TestNewDataComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 
 	dcf, err := factory.NewDataComponentsFactory(args)
 	require.Nil(t, dcf)
-	require.Equal(t, factory.ErrNilCoreComponents, err)
+	require.Equal(t, errors.ErrNilCoreComponents, err)
 }
 
 func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
@@ -56,7 +57,7 @@ func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 
 	dcf, err := factory.NewDataComponentsFactory(args)
 	require.Nil(t, dcf)
-	require.Equal(t, factory.ErrNilEpochStartNotifier, err)
+	require.Equal(t, errors.ErrNilEpochStartNotifier, err)
 }
 
 func TestNewDataComponentsFactory_OkValsShouldWork(t *testing.T) {

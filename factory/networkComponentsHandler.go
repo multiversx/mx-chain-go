@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -68,22 +69,22 @@ func (mnc *managedNetworkComponents) CheckSubcomponents() error {
 	defer mnc.mutNetworkComponents.Unlock()
 
 	if mnc.networkComponents == nil {
-		return ErrNilNetworkComponents
+		return errors.ErrNilNetworkComponents
 	}
 	if check.IfNil(mnc.netMessenger) {
-		return ErrNilNetworkMessenger
+		return errors.ErrNilNetworkMessenger
 	}
 	if check.IfNil(mnc.inputAntifloodHandler) {
-		return ErrNilInputAntiFloodHandler
+		return errors.ErrNilInputAntiFloodHandler
 	}
 	if check.IfNil(mnc.outputAntifloodHandler) {
-		return ErrNilOutputAntiFloodHandler
+		return errors.ErrNilOutputAntiFloodHandler
 	}
 	if check.IfNil(mnc.peerBlackListHandler) {
-		return ErrNilPeerBlackListHandler
+		return errors.ErrNilPeerBlackListHandler
 	}
 	if check.IfNil(mnc.peerHonestyHandler) {
-		return ErrNilPeerHonestyHandler
+		return errors.ErrNilPeerHonestyHandler
 	}
 
 	return nil

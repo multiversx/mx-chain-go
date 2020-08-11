@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/stretchr/testify/require"
@@ -19,7 +20,7 @@ func TestNewStateComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	scf, err := factory.NewStateComponentsFactory(args)
 	require.Nil(t, scf)
-	require.Equal(t, factory.ErrNilShardCoordinator, err)
+	require.Equal(t, errors.ErrNilShardCoordinator, err)
 }
 
 func TestNewStateComponentsFactory_NilCoreComponents(t *testing.T) {
@@ -31,7 +32,7 @@ func TestNewStateComponentsFactory_NilCoreComponents(t *testing.T) {
 
 	scf, err := factory.NewStateComponentsFactory(args)
 	require.Nil(t, scf)
-	require.Equal(t, factory.ErrNilCoreComponents, err)
+	require.Equal(t, errors.ErrNilCoreComponents, err)
 }
 
 func TestNewStateComponentsFactory_ShouldWork(t *testing.T) {

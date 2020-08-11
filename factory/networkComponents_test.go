@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
@@ -18,7 +19,7 @@ func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 	args.StatusHandler = nil
 	ncf, err := factory.NewNetworkComponentsFactory(args)
 	require.Nil(t, ncf)
-	require.Equal(t, factory.ErrNilStatusHandler, err)
+	require.Equal(t, errErd.ErrNilStatusHandler, err)
 }
 
 func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
@@ -28,7 +29,7 @@ func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
 	args.Marshalizer = nil
 	ncf, err := factory.NewNetworkComponentsFactory(args)
 	require.Nil(t, ncf)
-	require.True(t, errors.Is(err, factory.ErrNilMarshalizer))
+	require.True(t, errors.Is(err, errErd.ErrNilMarshalizer))
 }
 
 func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {

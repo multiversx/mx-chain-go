@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
 var _ ComponentHandler = (*managedStateComponents)(nil)
@@ -69,23 +70,23 @@ func (m *managedStateComponents) CheckSubcomponents() error {
 	defer m.mutStateComponents.Unlock()
 
 	if m.stateComponents == nil {
-		return ErrNilStateComponents
+		return errors.ErrNilStateComponents
 	}
 	if check.IfNil(m.peerAccounts) {
-		return ErrNilPeerAccounts
+		return errors.ErrNilPeerAccounts
 	}
 	if check.IfNil(m.accountsAdapter) {
-		return ErrNilAccountsAdapter
+		return errors.ErrNilAccountsAdapter
 	}
 	if check.IfNil(m.triesContainer) {
-		return ErrNilTriesContainer
+		return errors.ErrNilTriesContainer
 	}
 	if len(m.trieStorageManagers) == 0 {
-		return ErrNilStorageManagers
+		return errors.ErrNilStorageManagers
 	}
 	for _, trieStorageManager := range m.trieStorageManagers {
 		if check.IfNil(trieStorageManager) {
-			return ErrNilTrieStorageManager
+			return errors.ErrNilTrieStorageManager
 		}
 	}
 
@@ -150,7 +151,7 @@ func (m *managedStateComponents) TrieStorageManagers() map[string]data.StorageMa
 // SetTriesContainer sets the internal tries container to the one given as parameter
 func (m *managedStateComponents) SetTriesContainer(triesContainer state.TriesHolder) error {
 	if check.IfNil(triesContainer) {
-		return ErrNilTriesContainer
+		return errors.ErrNilTriesContainer
 	}
 
 	m.mutStateComponents.Lock()
@@ -163,7 +164,7 @@ func (m *managedStateComponents) SetTriesContainer(triesContainer state.TriesHol
 // SetTriesStorageManagers sets the internal map with the given parameter
 func (m *managedStateComponents) SetTriesStorageManagers(managers map[string]data.StorageManager) error {
 	if len(managers) == 0 {
-		return ErrNilTriesStorageManagers
+		return errors.ErrNilTriesStorageManagers
 	}
 
 	m.mutStateComponents.Lock()

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 )
 
@@ -53,7 +54,10 @@ func (mhc *managedHeartbeatComponents) Close() error {
 		return nil
 	}
 
-	mhc.heartbeatComponents.Close()
+	err := mhc.heartbeatComponents.Close()
+	if err != nil {
+		return err
+	}
 	mhc.heartbeatComponents = nil
 
 	return nil
@@ -65,19 +69,19 @@ func (mhc *managedHeartbeatComponents) CheckSubcomponents() error {
 	defer mhc.mutHeartbeatComponents.Unlock()
 
 	if mhc.heartbeatComponents == nil {
-		return ErrNilHeartbeatComponents
+		return errors.ErrNilHeartbeatComponents
 	}
 	if check.IfNil(mhc.messageHandler) {
-		return ErrNilHeartbeatMessageHandler
+		return errors.ErrNilHeartbeatMessageHandler
 	}
 	if check.IfNil(mhc.monitor) {
-		return ErrNilHeartbeatMonitor
+		return errors.ErrNilHeartbeatMonitor
 	}
 	if check.IfNil(mhc.sender) {
-		return ErrNilHeartbeatSender
+		return errors.ErrNilHeartbeatSender
 	}
 	if check.IfNil(mhc.storer) {
-		return ErrNilHeartbeatStorer
+		return errors.ErrNilHeartbeatStorer
 	}
 
 	return nil

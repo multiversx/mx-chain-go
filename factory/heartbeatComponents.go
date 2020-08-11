@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	heartbeatProcess "github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	heartbeatStorage "github.com/ElrondNetwork/elrond-go/heartbeat/storage"
@@ -60,19 +61,19 @@ func NewHeartbeatComponentsFactory(args HeartbeatComponentsFactoryArgs) (*heartb
 		return nil, heartbeat.ErrNilHardforkTrigger
 	}
 	if check.IfNil(args.CoreComponents) {
-		return nil, ErrNilCoreComponentsHolder
+		return nil, errors.ErrNilCoreComponentsHolder
 	}
 	if check.IfNil(args.DataComponents) {
-		return nil, ErrNilDataComponentsHolder
+		return nil, errors.ErrNilDataComponentsHolder
 	}
 	if check.IfNil(args.NetworkComponents) {
-		return nil, ErrNilNetworkComponentsHolder
+		return nil, errors.ErrNilNetworkComponentsHolder
 	}
 	if check.IfNil(args.CryptoComponents) {
-		return nil, ErrNilCryptoComponentsHolder
+		return nil, errors.ErrNilCryptoComponentsHolder
 	}
 	if check.IfNil(args.ProcessComponents) {
-		return nil, ErrNilProcessComponentsHolder
+		return nil, errors.ErrNilProcessComponentsHolder
 	}
 
 	return &heartbeatComponentsFactory{
@@ -101,10 +102,10 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		return nil, err
 	}
 	if check.IfNil(hcf.networkComponents) {
-		return nil, ErrNilNetworkComponentsHolder
+		return nil, errors.ErrNilNetworkComponentsHolder
 	}
 	if check.IfNil(hcf.networkComponents.NetworkMessenger()) {
-		return nil, ErrNilMessenger
+		return nil, errors.ErrNilMessenger
 	}
 	if hcf.networkComponents.NetworkMessenger().HasTopicValidator(core.HeartbeatTopic) {
 		return nil, heartbeat.ErrValidatorAlreadySet

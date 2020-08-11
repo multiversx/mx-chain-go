@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -58,38 +59,38 @@ type statusComponentsFactory struct {
 // NewStatusComponentsFactory will return a status components factory
 func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusComponentsFactory, error) {
 	if check.IfNil(args.CoreComponents) {
-		return nil, ErrNilCoreComponentsHolder
+		return nil, errors.ErrNilCoreComponentsHolder
 	}
 	if check.IfNil(args.DataComponents) {
-		return nil, ErrNilDataComponentsHolder
+		return nil, errors.ErrNilDataComponentsHolder
 	}
 	if check.IfNil(args.NetworkComponents) {
-		return nil, ErrNilNetworkComponentsHolder
+		return nil, errors.ErrNilNetworkComponentsHolder
 	}
 	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
-		return nil, fmt.Errorf("%w for address", ErrNilPubKeyConverter)
+		return nil, fmt.Errorf("%w for address", errors.ErrNilPubKeyConverter)
 	}
 	if check.IfNil(args.CoreComponents.ValidatorPubKeyConverter()) {
-		return nil, fmt.Errorf("%w for validator", ErrNilPubKeyConverter)
+		return nil, fmt.Errorf("%w for validator", errors.ErrNilPubKeyConverter)
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, ErrNilShardCoordinator
+		return nil, errors.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.NodesCoordinator) {
-		return nil, ErrNilNodesCoordinator
+		return nil, errors.ErrNilNodesCoordinator
 	}
 	if check.IfNil(args.EpochStartNotifier) {
-		return nil, ErrNilEpochStartNotifier
+		return nil, errors.ErrNilEpochStartNotifier
 	}
 	if args.RoundDurationSec < 1 {
-		return nil, ErrInvalidRoundDuration
+		return nil, errors.ErrInvalidRoundDuration
 	}
 	if check.IfNil(args.StatusUtils) {
-		return nil, ErrNilStatusHandlersUtils
+		return nil, errors.ErrNilStatusHandlersUtils
 	}
 
 	if args.ElasticOptions == nil {
-		return nil, ErrNilElasticOptions
+		return nil, errors.ErrNilElasticOptions
 	}
 
 	return &statusComponentsFactory{

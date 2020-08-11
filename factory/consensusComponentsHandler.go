@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
 var _ ComponentHandler = (*managedConsensusComponents)(nil)
@@ -102,16 +103,16 @@ func (mcf *managedConsensusComponents) CheckSubcomponents() error {
 	defer mcf.mutConsensusComponents.Unlock()
 
 	if mcf.consensusComponents == nil {
-		return ErrNilConsensusComponentsHolder
+		return errors.ErrNilConsensusComponentsHolder
 	}
 	if check.IfNil(mcf.chronology) {
-		return ErrNilChronologyHandler
+		return errors.ErrNilChronologyHandler
 	}
 	if check.IfNil(mcf.worker) {
-		return ErrNilConsensusWorker
+		return errors.ErrNilConsensusWorker
 	}
 	if check.IfNil(mcf.broadcastMessenger) {
-		return ErrNilBroadcastMessenger
+		return errors.ErrNilBroadcastMessenger
 	}
 
 	return nil

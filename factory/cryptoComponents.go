@@ -17,6 +17,7 @@ import (
 	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -70,13 +71,13 @@ type cryptoComponents struct {
 // NewCryptoComponentsFactory returns a new crypto components factory
 func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoComponentsFactory, error) {
 	if check.IfNil(args.CoreComponentsHolder) {
-		return nil, ErrNilCoreComponents
+		return nil, errors.ErrNilCoreComponents
 	}
 	if len(args.ValidatorKeyPemFileName) == 0 {
-		return nil, ErrNilPath
+		return nil, errors.ErrNilPath
 	}
 	if args.KeyLoader == nil {
-		return nil, ErrNilKeyLoader
+		return nil, errors.ErrNilKeyLoader
 	}
 
 	return &cryptoComponentsFactory{
@@ -160,13 +161,13 @@ func (ccf *cryptoComponentsFactory) createSingleSigner() (crypto.SingleSigner, e
 	case consensus.BlsConsensusType:
 		return &mclsig.BlsSingleSigner{}, nil
 	default:
-		return nil, ErrInvalidConsensusConfig
+		return nil, errors.ErrInvalidConsensusConfig
 	}
 }
 
 func (ccf *cryptoComponentsFactory) getMultiSigHasherFromConfig() (hashing.Hasher, error) {
 	if ccf.config.Consensus.Type == consensus.BlsConsensusType && ccf.config.MultisigHasher.Type != "blake2b" {
-		return nil, ErrMultiSigHasherMissmatch
+		return nil, errors.ErrMultiSigHasherMissmatch
 	}
 
 	switch ccf.config.MultisigHasher.Type {
@@ -179,7 +180,7 @@ func (ccf *cryptoComponentsFactory) getMultiSigHasherFromConfig() (hashing.Hashe
 		return &blake2b.Blake2b{}, nil
 	}
 
-	return nil, ErrMissingMultiHasherConfig
+	return nil, errors.ErrMissingMultiHasherConfig
 }
 
 func (ccf *cryptoComponentsFactory) createMultiSigner(
@@ -192,7 +193,7 @@ func (ccf *cryptoComponentsFactory) createMultiSigner(
 		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}
 		return multisig.NewBLSMultisig(blsSigner, []string{string(cp.publicKeyBytes)}, cp.privateKey, blSignKeyGen, uint16(0))
 	default:
-		return nil, ErrInvalidConsensusConfig
+		return nil, errors.ErrInvalidConsensusConfig
 	}
 }
 
@@ -201,7 +202,7 @@ func (ccf *cryptoComponentsFactory) getSuite() (crypto.Suite, error) {
 	case consensus.BlsConsensusType:
 		return mcl.NewSuiteBLS12(), nil
 	default:
-		return nil, ErrInvalidConsensusConfig
+		return nil, errors.ErrInvalidConsensusConfig
 	}
 }
 
@@ -229,7 +230,7 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 		}
 
 		if !bytes.Equal(cryptoParams.publicKeyBytes, readPk) {
-			return nil, ErrPublicKeyMismatch
+			return nil, errors.ErrPublicKeyMismatch
 		}
 	}
 

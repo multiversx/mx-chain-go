@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
 var _ ComponentHandler = (*managedDataComponents)(nil)
@@ -71,19 +72,19 @@ func (mdc *managedDataComponents) CheckSubcomponents() error {
 	defer mdc.mutDataComponents.Unlock()
 
 	if mdc.dataComponents == nil {
-		return ErrNilDataComponents
+		return errors.ErrNilDataComponents
 	}
 	if check.IfNil(mdc.blkc) {
-		return ErrNilBlockChainHandler
+		return errors.ErrNilBlockChainHandler
 	}
 	if check.IfNil(mdc.store) {
-		return ErrNilStorageService
+		return errors.ErrNilStorageService
 	}
 	if check.IfNil(mdc.datapool) {
-		return ErrNilPoolsHolder
+		return errors.ErrNilPoolsHolder
 	}
 	if check.IfNil(mdc.miniBlocksProvider) {
-		return ErrNilMiniBlocksProvider
+		return errors.ErrNilMiniBlocksProvider
 	}
 
 	return nil

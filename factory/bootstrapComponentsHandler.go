@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/errors"
 )
 
 var _ ComponentHandler = (*managedBootstrapComponents)(nil)
@@ -65,13 +66,13 @@ func (mbf *managedBootstrapComponents) CheckSubcomponents() error {
 	defer mbf.mutBootstrapComponents.Unlock()
 
 	if mbf.bootstrapComponents == nil {
-		return ErrNilBootstrapComponentsHolder
+		return errors.ErrNilBootstrapComponentsHolder
 	}
 	if check.IfNil(mbf.epochStartBootstraper) {
-		return ErrNilEpochStartBootstrapper
+		return errors.ErrNilEpochStartBootstrapper
 	}
 	if check.IfNil(mbf.bootstrapParamsHandler) {
-		return ErrNilBootstrapParamsHandler
+		return errors.ErrNilBootstrapParamsHandler
 	}
 
 	return nil

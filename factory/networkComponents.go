@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/debug/antiflood"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
@@ -58,13 +59,13 @@ func NewNetworkComponentsFactory(
 	args NetworkComponentsFactoryArgs,
 ) (*networkComponentsFactory, error) {
 	if check.IfNil(args.StatusHandler) {
-		return nil, ErrNilStatusHandler
+		return nil, errors.ErrNilStatusHandler
 	}
 	if check.IfNil(args.Marshalizer) {
-		return nil, fmt.Errorf("%w in NewNetworkComponentsFactory", ErrNilMarshalizer)
+		return nil, fmt.Errorf("%w in NewNetworkComponentsFactory", errors.ErrNilMarshalizer)
 	}
 	if check.IfNil(args.Syncer) {
-		return nil, ErrNilSyncTimer
+		return nil, errors.ErrNilSyncTimer
 	}
 
 	return &networkComponentsFactory{
@@ -118,7 +119,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 
 	inputAntifloodHandler, ok := antiFloodComponents.AntiFloodHandler.(P2PAntifloodHandler)
 	if !ok {
-		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", errors.ErrWrongTypeAssertion)
 	}
 
 	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(ncf.mainConfig, ctx)
@@ -128,7 +129,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 
 	outputAntifloodHandler, ok := outAntifloodHandler.(P2PAntifloodHandler)
 	if !ok {
-		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", errors.ErrWrongTypeAssertion)
 	}
 
 	peerHonestyHandler, err := ncf.createPeerHonestyHandler(

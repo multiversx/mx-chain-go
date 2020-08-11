@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/stretchr/testify/require"
@@ -25,7 +26,7 @@ func TestNewCryptoComponentsFactory_NiCoreComponentsHandlerShouldErr(t *testing.
 	args := getCryptoArgs(nil)
 	ccf, err := factory.NewCryptoComponentsFactory(args)
 	require.Nil(t, ccf)
-	require.Equal(t, factory.ErrNilCoreComponents, err)
+	require.Equal(t, errErd.ErrNilCoreComponents, err)
 }
 
 func TestNewCryptoComponentsFactory_NilPemFileShouldErr(t *testing.T) {
@@ -36,7 +37,7 @@ func TestNewCryptoComponentsFactory_NilPemFileShouldErr(t *testing.T) {
 	args.ValidatorKeyPemFileName = ""
 	ccf, err := factory.NewCryptoComponentsFactory(args)
 	require.Nil(t, ccf)
-	require.Equal(t, factory.ErrNilPath, err)
+	require.Equal(t, errErd.ErrNilPath, err)
 }
 
 func TestCryptoComponentsFactory_CreateCryptoParamsNilKeyLoaderShouldErr(t *testing.T) {
@@ -48,7 +49,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsNilKeyLoaderShouldErr(t *test
 	ccf, err := factory.NewCryptoComponentsFactory(args)
 
 	require.Nil(t, ccf)
-	require.Equal(t, factory.ErrNilKeyLoader, err)
+	require.Equal(t, errErd.ErrNilKeyLoader, err)
 }
 
 func TestNewCryptoComponentsFactory_OkValsShouldWork(t *testing.T) {
@@ -71,7 +72,7 @@ func TestNewCryptoComponentsFactory_CreateInvalidConsensusTypeShouldErr(t *testi
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.Equal(t, err, factory.ErrInvalidConsensusConfig)
+	require.Equal(t, err, errErd.ErrInvalidConsensusConfig)
 }
 
 func TestCryptoComponentsFactory_CreateShouldErrDueToMissingConfig(t *testing.T) {
@@ -105,7 +106,7 @@ func TestCryptoComponentsFactory_CreateInvalidMultiSigHasherShouldErr(t *testing
 
 	cspf, err := ccf.Create()
 	require.Nil(t, cspf)
-	require.Equal(t, factory.ErrMultiSigHasherMissmatch, err)
+	require.Equal(t, errErd.ErrMultiSigHasherMissmatch, err)
 }
 
 func TestCryptoComponentsFactory_CreateOK(t *testing.T) {
@@ -132,7 +133,7 @@ func TestCryptoComponentsFactory_CreateSingleSignerInvalidConsensusTypeShouldErr
 
 	singleSigner, err := ccf.CreateSingleSigner()
 	require.Nil(t, singleSigner)
-	require.Equal(t, factory.ErrInvalidConsensusConfig, err)
+	require.Equal(t, errErd.ErrInvalidConsensusConfig, err)
 }
 
 func TestCryptoComponentsFactory_CreateSingleSignerOK(t *testing.T) {
@@ -162,7 +163,7 @@ func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigInvalidHasherShouldE
 
 	multiSigHasher, err := ccf.GetMultiSigHasherFromConfig()
 	require.Nil(t, multiSigHasher)
-	require.Equal(t, factory.ErrMissingMultiHasherConfig, err)
+	require.Equal(t, errErd.ErrMissingMultiHasherConfig, err)
 }
 
 func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigMissmatchConsensusTypeMultiSigHasher(t *testing.T) {
@@ -177,7 +178,7 @@ func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigMissmatchConsensusTy
 
 	multiSigHasher, err := ccf.GetMultiSigHasherFromConfig()
 	require.Nil(t, multiSigHasher)
-	require.Equal(t, factory.ErrMultiSigHasherMissmatch, err)
+	require.Equal(t, errErd.ErrMultiSigHasherMissmatch, err)
 }
 
 func TestCryptoComponentsFactory_GetMultiSigHasherFromConfigOK(t *testing.T) {
@@ -206,9 +207,10 @@ func TestCryptoComponentsFactory_CreateMultiSignerInvalidConsensusTypeShouldErr(
 	require.NotNil(t, ccf)
 	require.Nil(t, err)
 
-	multiSigner, err := ccf.CreateMultiSigner(mock.HasherMock{}, &factory.cryptoParams{}, &mock.KeyGenMock{})
+	cp := ccf.CreateDummyCryptoParams()
+	multiSigner, err := ccf.CreateMultiSigner(mock.HasherMock{}, cp, &mock.KeyGenMock{})
 	require.Nil(t, multiSigner)
-	require.Equal(t, factory.ErrInvalidConsensusConfig, err)
+	require.Equal(t, errErd.ErrInvalidConsensusConfig, err)
 }
 
 func TestCryptoComponentsFactory_CreateMultiSignerOK(t *testing.T) {
@@ -242,7 +244,7 @@ func TestCryptoComponentsFactory_GetSuiteInvalidConsensusTypeShouldErr(t *testin
 
 	suite, err := ccf.GetSuite()
 	require.Nil(t, suite)
-	require.Equal(t, factory.ErrInvalidConsensusConfig, err)
+	require.Equal(t, errErd.ErrInvalidConsensusConfig, err)
 }
 
 func TestCryptoComponentsFactory_GetSuiteOK(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,7 @@ func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	args.CoreComponents = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, factory.ErrNilCoreComponentsHolder, err)
+	assert.Equal(t, errors.ErrNilCoreComponentsHolder, err)
 }
 
 func TestNewStatusComponentsFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
@@ -30,7 +31,7 @@ func TestNewStatusComponentsFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	args.NodesCoordinator = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, factory.ErrNilNodesCoordinator, err)
+	assert.Equal(t, errors.ErrNilNodesCoordinator, err)
 }
 
 func TestNewStatusComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
@@ -40,7 +41,7 @@ func TestNewStatusComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T)
 	args.EpochStartNotifier = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, factory.ErrNilEpochStartNotifier, err)
+	assert.Equal(t, errors.ErrNilEpochStartNotifier, err)
 }
 
 func TestNewStatusComponentsFactory_NilStatusHandlerErr(t *testing.T) {
@@ -50,7 +51,7 @@ func TestNewStatusComponentsFactory_NilStatusHandlerErr(t *testing.T) {
 	args.StatusUtils = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, factory.ErrNilStatusHandlersUtils, err)
+	assert.Equal(t, errors.ErrNilStatusHandlersUtils, err)
 }
 
 func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) {
@@ -60,7 +61,7 @@ func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) 
 	args.NetworkComponents = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, factory.ErrNilNetworkComponentsHolder, err)
+	assert.Equal(t, errors.ErrNilNetworkComponentsHolder, err)
 }
 
 func TestNewStatusComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
@@ -70,7 +71,7 @@ func TestNewStatusComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	args.ShardCoordinator = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, factory.ErrNilShardCoordinator, err)
+	assert.Equal(t, errors.ErrNilShardCoordinator, err)
 }
 
 func TestNewStatusComponentsFactory_InvalidRoundDurationShouldErr(t *testing.T) {
@@ -80,7 +81,7 @@ func TestNewStatusComponentsFactory_InvalidRoundDurationShouldErr(t *testing.T) 
 	args.RoundDurationSec = 0
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, factory.ErrInvalidRoundDuration, err)
+	assert.Equal(t, errors.ErrInvalidRoundDuration, err)
 }
 
 func TestNewStatusComponentsFactory_ShouldWork(t *testing.T) {

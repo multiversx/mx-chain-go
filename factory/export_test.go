@@ -28,6 +28,11 @@ func (ccf *cryptoComponentsFactory) GetMultiSigHasherFromConfig() (hashing.Hashe
 	return ccf.getMultiSigHasherFromConfig()
 }
 
+// CreateDummyCryptoParams
+func (ccf *cryptoComponentsFactory) CreateDummyCryptoParams() *cryptoParams {
+	return &cryptoParams{}
+}
+
 // CreateCryptoParams -
 func (ccf *cryptoComponentsFactory) CreateCryptoParams(blockSignKeyGen crypto.KeyGenerator) (*cryptoParams, error) {
 	return ccf.createCryptoParams(blockSignKeyGen)

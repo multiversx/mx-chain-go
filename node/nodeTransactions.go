@@ -102,19 +102,20 @@ func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, history
 }
 
 func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transactionType, bool) {
-	txsPool := n.dataPool.Transactions()
+	datapool := n.dataComponents.Datapool()
+	txsPool := datapool.Transactions()
 	txObj, found := txsPool.SearchFirstData(hash)
 	if found && txObj != nil {
 		return txObj, normalTx, true
 	}
 
-	rewardTxsPool := n.dataPool.RewardTransactions()
+	rewardTxsPool := datapool.RewardTransactions()
 	txObj, found = rewardTxsPool.SearchFirstData(hash)
 	if found && txObj != nil {
 		return txObj, rewardTx, true
 	}
 
-	unsignedTxsPool := n.dataPool.UnsignedTransactions()
+	unsignedTxsPool := datapool.UnsignedTransactions()
 	txObj, found = unsignedTxsPool.SearchFirstData(hash)
 	if found && txObj != nil {
 		return txObj, unsignedTx, true
@@ -124,37 +125,39 @@ func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transactionType, 
 }
 
 func (n *Node) isTxInStorage(hash []byte) bool {
-	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
+	store := n.dataComponents.StorageService()
+	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
 	err := txsStorer.Has(hash)
 	if err == nil {
 		return true
 	}
 
-	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
+	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
 	err = rewardTxsStorer.Has(hash)
 	if err == nil {
 		return true
 	}
 
-	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	err = unsignedTxsStorer.Has(hash)
 	return err == nil
 }
 
 func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transactionType, bool) {
-	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
+	store := n.dataComponents.StorageService()
+	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.SearchFirst(hash)
 	if err == nil {
 		return txBytes, normalTx, true
 	}
 
-	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
+	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
 	txBytes, err = rewardTxsStorer.SearchFirst(hash)
 	if err == nil {
 		return txBytes, rewardTx, true
 	}
 
-	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	txBytes, err = unsignedTxsStorer.SearchFirst(hash)
 	if err == nil {
 		return txBytes, unsignedTx, true
@@ -164,19 +167,20 @@ func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transactionType, bool
 }
 
 func (n *Node) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transactionType, bool) {
-	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
+	store := n.dataComponents.StorageService()
+	txsStorer := store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
 		return txBytes, normalTx, true
 	}
 
-	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
+	rewardTxsStorer := store.GetStorer(dataRetriever.RewardTransactionUnit)
 	txBytes, err = rewardTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
 		return txBytes, rewardTx, true
 	}
 
-	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	unsignedTxsStorer := store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	txBytes, err = unsignedTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
 		return txBytes, unsignedTx, true
@@ -211,7 +215,7 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 	switch txType {
 	case normalTx:
 		var tx transaction.Transaction
-		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
+		err := n.coreComponents.InternalMarshalizer().Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -219,7 +223,7 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 		return n.prepareNormalTx(&tx, status)
 	case rewardTx:
 		var tx rewardTxData.RewardTx
-		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
+		err := n.coreComponents.InternalMarshalizer().Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +232,7 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 
 	case unsignedTx:
 		var tx smartContractResult.SmartContractResult
-		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
+		err := n.coreComponents.InternalMarshalizer().Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -244,8 +248,8 @@ func (n *Node) prepareNormalTx(tx *transaction.Transaction, status core.Transact
 		Type:      string(normalTx),
 		Nonce:     tx.Nonce,
 		Value:     tx.Value.String(),
-		Receiver:  n.addressPubkeyConverter.Encode(tx.RcvAddr),
-		Sender:    n.addressPubkeyConverter.Encode(tx.SndAddr),
+		Receiver:  n.coreComponents.AddressPubKeyConverter().Encode(tx.RcvAddr),
+		Sender:    n.coreComponents.AddressPubKeyConverter().Encode(tx.SndAddr),
 		GasPrice:  tx.GasPrice,
 		GasLimit:  tx.GasLimit,
 		Data:      tx.Data,
@@ -261,7 +265,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx, status core.Transactio
 		Epoch:    tx.GetEpoch(),
 		Value:    tx.GetValue().String(),
 		Sender:   fmt.Sprintf("%d", core.MetachainShardId),
-		Receiver: n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
+		Receiver: n.coreComponents.AddressPubKeyConverter().Encode(tx.GetRcvAddr()),
 		Status:   status,
 	}, nil
 }
@@ -274,8 +278,8 @@ func (n *Node) prepareUnsignedTx(
 		Type:      string(unsignedTx),
 		Nonce:     tx.GetNonce(),
 		Value:     tx.GetValue().String(),
-		Receiver:  n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
-		Sender:    n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
+		Receiver:  n.coreComponents.AddressPubKeyConverter().Encode(tx.GetRcvAddr()),
+		Sender:    n.coreComponents.AddressPubKeyConverter().Encode(tx.GetSndAddr()),
 		GasPrice:  tx.GetGasPrice(),
 		GasLimit:  tx.GetGasLimit(),
 		Data:      tx.GetData(),
@@ -286,13 +290,14 @@ func (n *Node) prepareUnsignedTx(
 }
 
 func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool bool) core.TransactionStatus {
-	selfShardID := n.shardCoordinator.SelfId()
-	receiverShardID := n.shardCoordinator.ComputeId(tx.GetRcvAddr())
+	shardCoordinator := n.processComponents.ShardCoordinator()
+	selfShardID := shardCoordinator.SelfId()
+	receiverShardID := shardCoordinator.ComputeId(tx.GetRcvAddr())
 
 	var senderShardID uint32
 	sndAddr := tx.GetSndAddr()
 	if sndAddr != nil {
-		senderShardID = n.shardCoordinator.ComputeId(tx.GetSndAddr())
+		senderShardID = shardCoordinator.ComputeId(tx.GetSndAddr())
 	} else {
 		// reward transaction (sender address is nil)
 		senderShardID = core.MetachainShardId

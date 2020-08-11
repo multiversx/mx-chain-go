@@ -15,6 +15,7 @@ import (
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	hasherFactory "github.com/ElrondNetwork/elrond-go/hashing/factory"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -92,22 +93,22 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *coreComponentsFac
 func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	hasher, err := hasherFactory.NewHasher(ccf.config.Hasher.Type)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrHasherCreation, err.Error())
+		return nil, fmt.Errorf("%w: %s", errors.ErrHasherCreation, err.Error())
 	}
 
 	internalMarshalizer, err := marshalizerFactory.NewMarshalizer(ccf.config.Marshalizer.Type)
 	if err != nil {
-		return nil, fmt.Errorf("%w (internal): %s", ErrMarshalizerCreation, err.Error())
+		return nil, fmt.Errorf("%w (internal): %s", errors.ErrMarshalizerCreation, err.Error())
 	}
 
 	vmMarshalizer, err := marshalizerFactory.NewMarshalizer(ccf.config.VmMarshalizer.Type)
 	if err != nil {
-		return nil, fmt.Errorf("%w (vm): %s", ErrMarshalizerCreation, err.Error())
+		return nil, fmt.Errorf("%w (vm): %s", errors.ErrMarshalizerCreation, err.Error())
 	}
 
 	txSignMarshalizer, err := marshalizerFactory.NewMarshalizer(ccf.config.TxSignMarshalizer.Type)
 	if err != nil {
-		return nil, fmt.Errorf("%w (tx sign): %s", ErrMarshalizerCreation, err.Error())
+		return nil, fmt.Errorf("%w (tx sign): %s", errors.ErrMarshalizerCreation, err.Error())
 	}
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()

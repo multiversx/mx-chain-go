@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -72,70 +73,70 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	defer m.mutProcessComponents.Unlock()
 
 	if m.processComponents == nil {
-		return ErrNilProcessComponents
+		return errors.ErrNilProcessComponents
 	}
 	if check.IfNil(m.processComponents.nodesCoordinator) {
-		return ErrNilNodesCoordinator
+		return errors.ErrNilNodesCoordinator
 	}
 	if check.IfNil(m.processComponents.shardCoordinator) {
-		return ErrNilShardCoordinator
+		return errors.ErrNilShardCoordinator
 	}
 	if check.IfNil(m.processComponents.interceptorsContainer) {
-		return ErrNilInterceptorsContainer
+		return errors.ErrNilInterceptorsContainer
 	}
 	if check.IfNil(m.processComponents.resolversFinder) {
-		return ErrNilResolversFinder
+		return errors.ErrNilResolversFinder
 	}
 	if check.IfNil(m.processComponents.rounder) {
-		return ErrNilRounder
+		return errors.ErrNilRounder
 	}
 	if check.IfNil(m.processComponents.epochStartTrigger) {
-		return ErrNilEpochStartTrigger
+		return errors.ErrNilEpochStartTrigger
 	}
 	if check.IfNil(m.processComponents.epochStartNotifier) {
-		return ErrNilEpochStartNotifier
+		return errors.ErrNilEpochStartNotifier
 	}
 	if check.IfNil(m.processComponents.forkDetector) {
-		return ErrNilForkDetector
+		return errors.ErrNilForkDetector
 	}
 	if check.IfNil(m.processComponents.blockProcessor) {
-		return ErrNilBlockProcessor
+		return errors.ErrNilBlockProcessor
 	}
 	if check.IfNil(m.processComponents.blackListHandler) {
-		return ErrNilBlackListHandler
+		return errors.ErrNilBlackListHandler
 	}
 	if check.IfNil(m.processComponents.bootStorer) {
-		return ErrNilBootStorer
+		return errors.ErrNilBootStorer
 	}
 	if check.IfNil(m.processComponents.headerSigVerifier) {
-		return ErrNilHeaderSigVerifier
+		return errors.ErrNilHeaderSigVerifier
 	}
 	if check.IfNil(m.processComponents.headerIntegrityVerifier) {
-		return ErrNilHeaderIntegrityVerifier
+		return errors.ErrNilHeaderIntegrityVerifier
 	}
 	if check.IfNil(m.processComponents.validatorsStatistics) {
-		return ErrNilValidatorsStatistics
+		return errors.ErrNilValidatorsStatistics
 	}
 	if check.IfNil(m.processComponents.validatorsProvider) {
-		return ErrNilValidatorsProvider
+		return errors.ErrNilValidatorsProvider
 	}
 	if check.IfNil(m.processComponents.blockTracker) {
-		return ErrNilBlockTracker
+		return errors.ErrNilBlockTracker
 	}
 	if check.IfNil(m.processComponents.pendingMiniBlocksHandler) {
-		return ErrNilPendingMiniBlocksHandler
+		return errors.ErrNilPendingMiniBlocksHandler
 	}
 	if check.IfNil(m.processComponents.requestHandler) {
-		return ErrNilRequestHandler
+		return errors.ErrNilRequestHandler
 	}
 	if check.IfNil(m.processComponents.txLogsProcessor) {
-		return ErrNilTxLogsProcessor
+		return errors.ErrNilTxLogsProcessor
 	}
 	if check.IfNil(m.processComponents.headerConstructionValidator) {
-		return ErrNilHeaderConstructionValidator
+		return errors.ErrNilHeaderConstructionValidator
 	}
 	if check.IfNil(m.processComponents.peerShardMapper) {
-		return ErrNilPeerShardMapper
+		return errors.ErrNilPeerShardMapper
 	}
 
 	return nil

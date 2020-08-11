@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dataRetrieverFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -47,19 +48,19 @@ type dataComponents struct {
 // NewDataComponentsFactory will return a new instance of dataComponentsFactory
 func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFactory, error) {
 	if args.EconomicsData == nil {
-		return nil, ErrNilEconomicsData
+		return nil, errors.ErrNilEconomicsData
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, ErrNilShardCoordinator
+		return nil, errors.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.Core) {
-		return nil, ErrNilCoreComponents
+		return nil, errors.ErrNilCoreComponents
 	}
 	if check.IfNil(args.Core.PathHandler()) {
-		return nil, ErrNilPathManager
+		return nil, errors.ErrNilPathHandler
 	}
 	if check.IfNil(args.EpochStartNotifier) {
-		return nil, ErrNilEpochStartNotifier
+		return nil, errors.ErrNilEpochStartNotifier
 	}
 
 	return &dataComponentsFactory{
@@ -92,7 +93,7 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 	}
 	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrDataPoolCreation, err.Error())
+		return nil, fmt.Errorf("%w: %s", errors.ErrDataPoolCreation, err.Error())
 	}
 
 	arg := provider.ArgMiniBlockProvider{
@@ -135,7 +136,7 @@ func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandle
 
 		return blockChain, nil
 	}
-	return nil, ErrBlockchainCreation
+	return nil, errors.ErrBlockchainCreation
 }
 
 func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.StorageService, error) {
@@ -155,7 +156,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 	if dcf.shardCoordinator.SelfId() == core.MetachainShardId {
 		return storageServiceFactory.CreateForMeta()
 	}
-	return nil, ErrDataStoreCreation
+	return nil, errors.ErrDataStoreCreation
 }
 
 // Closes all underlying components that need closing

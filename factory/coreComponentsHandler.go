@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -76,64 +77,64 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	defer mcc.mutCoreComponents.Unlock()
 
 	if mcc.coreComponents == nil {
-		return ErrNilCoreComponentsHolder
+		return errors.ErrNilCoreComponents
 	}
 	if check.IfNil(mcc.internalMarshalizer) {
-		return ErrNilInternalMarshalizer
+		return errors.ErrNilInternalMarshalizer
 	}
 	if check.IfNil(mcc.txSignMarshalizer) {
-		return ErrNilTxSignMarshalizer
+		return errors.ErrNilTxSignMarshalizer
 	}
 	if check.IfNil(mcc.vmMarshalizer) {
-		return ErrNilVmMarshalizer
+		return errors.ErrNilVmMarshalizer
 	}
 	if check.IfNil(mcc.hasher) {
-		return ErrNilHasher
+		return errors.ErrNilHasher
 	}
 	if check.IfNil(mcc.uint64ByteSliceConverter) {
-		return ErrNilUint64ByteSliceConverter
+		return errors.ErrNilUint64ByteSliceConverter
 	}
 	if check.IfNil(mcc.addressPubKeyConverter) {
-		return ErrNilAddressPublicKeyConverter
+		return errors.ErrNilAddressPublicKeyConverter
 	}
 	if check.IfNil(mcc.validatorPubKeyConverter) {
-		return ErrNilValidatorPublicKeyConverter
+		return errors.ErrNilValidatorPublicKeyConverter
 	}
 	if check.IfNil(mcc.statusHandler) {
-		return ErrNilStatusHandler
+		return errors.ErrNilStatusHandler
 	}
 	if check.IfNil(mcc.pathHandler) {
-		return ErrNilPathHandler
+		return errors.ErrNilPathHandler
 	}
 	if check.IfNil(mcc.watchdog) {
-		return ErrNilWatchdog
+		return errors.ErrNilWatchdog
 	}
 	if check.IfNil(mcc.alarmScheduler) {
-		return ErrNilAlarmScheduler
+		return errors.ErrNilAlarmScheduler
 	}
 	if check.IfNil(mcc.syncTimer) {
-		return ErrNilSyncTimer
+		return errors.ErrNilSyncTimer
 	}
 	if check.IfNil(mcc.rounder) {
-		return ErrNilRounder
+		return errors.ErrNilRounder
 	}
 	if check.IfNil(mcc.economicsData) {
-		return ErrNilEconomicsHandler
+		return errors.ErrNilEconomicsHandler
 	}
 	if check.IfNil(mcc.ratingsData) {
-		return ErrNilRatingsInfoHandler
+		return errors.ErrNilRatingsInfoHandler
 	}
 	if check.IfNil(mcc.rater) {
-		return ErrNilRater
+		return errors.ErrNilRater
 	}
 	if check.IfNil(mcc.nodesSetupHandler) {
-		return ErrNilNodesConfig
+		return errors.ErrNilNodesConfig
 	}
 	if len(mcc.chainID) == 0 {
-		return ErrInvalidChainID
+		return errors.ErrInvalidChainID
 	}
 	if mcc.minTransactionVersion == 0 {
-		return ErrInvalidTransactionVersion
+		return errors.ErrInvalidTransactionVersion
 	}
 
 	return nil
@@ -157,7 +158,7 @@ func (mcc *managedCoreComponents) SetInternalMarshalizer(m marshal.Marshalizer) 
 	defer mcc.mutCoreComponents.Unlock()
 
 	if mcc.coreComponents == nil {
-		return ErrNilCoreComponents
+		return errors.ErrNilCoreComponents
 	}
 
 	mcc.coreComponents.internalMarshalizer = m
@@ -252,14 +253,14 @@ func (mcc *managedCoreComponents) StatusHandler() core.AppStatusHandler {
 // SetStatusHandler allows the change of the status handler
 func (mcc *managedCoreComponents) SetStatusHandler(statusHandler core.AppStatusHandler) error {
 	if check.IfNil(statusHandler) {
-		return ErrNilStatusHandler
+		return errors.ErrNilStatusHandler
 	}
 
 	mcc.mutCoreComponents.Lock()
 	defer mcc.mutCoreComponents.Unlock()
 
 	if mcc.coreComponents == nil {
-		return ErrNilCoreComponents
+		return errors.ErrNilCoreComponents
 	}
 
 	mcc.coreComponents.statusHandler = statusHandler

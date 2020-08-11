@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -41,19 +42,19 @@ type stateComponents struct {
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
 func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponentsFactory, error) {
 	if args.Core == nil {
-		return nil, ErrNilCoreComponents
+		return nil, errors.ErrNilCoreComponents
 	}
 	if check.IfNil(args.Core.Hasher()) {
-		return nil, ErrNilHasher
+		return nil, errors.ErrNilHasher
 	}
 	if check.IfNil(args.Core.InternalMarshalizer()) {
-		return nil, ErrNilMarshalizer
+		return nil, errors.ErrNilMarshalizer
 	}
 	if check.IfNil(args.Core.PathHandler()) {
-		return nil, ErrNilPathManager
+		return nil, errors.ErrNilPathHandler
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, ErrNilShardCoordinator
+		return nil, errors.ErrNilShardCoordinator
 	}
 
 	return &stateComponentsFactory{
@@ -74,7 +75,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	merkleTrie := triesContainer.Get([]byte(trieFactory.UserAccountTrie))
 	accountsAdapter, err := state.NewAccountsDB(merkleTrie, scf.core.Hasher(), scf.core.InternalMarshalizer(), accountFactory)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrAccountsAdapterCreation, err.Error())
+		return nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
 	accountFactory = factoryState.NewPeerAccountCreator()

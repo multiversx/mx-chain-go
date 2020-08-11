@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
 	processGenesis "github.com/ElrondNetwork/elrond-go/genesis/process"
@@ -987,76 +988,77 @@ func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
 func checkArgs(args ProcessComponentsFactoryArgs) error {
 	baseErrMessage := "error creating process components"
 	if args.CoreFactoryArgs == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilCoreComponents)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilCoreComponents)
 	}
 	if check.IfNil(args.AccountsParser) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilAccountsParser)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAccountsParser)
 	}
 	if check.IfNil(args.SmartContractParser) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilSmartContractParser)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilSmartContractParser)
 	}
 	if args.EconomicsData == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilEconomicsData)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEconomicsData)
 	}
+
 	if args.NodesConfig == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilNodesConfig)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilNodesConfig)
 	}
 	if args.GasSchedule == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilGasSchedule)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilGasSchedule)
 	}
 	if check.IfNil(args.Rounder) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilRounder)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRounder)
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilShardCoordinator)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilShardCoordinator)
 	}
 	if check.IfNil(args.NodesCoordinator) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilNodesCoordinator)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilNodesCoordinator)
 	}
 	if check.IfNil(args.Data) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilDataComponentsHolder)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilDataComponentsHolder)
 	}
 	if check.IfNil(args.CoreData) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilCoreComponentsHolder)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilCoreComponentsHolder)
 	}
 	if check.IfNil(args.Crypto) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilCryptoComponentsHolder)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilCryptoComponentsHolder)
 	}
 	if check.IfNil(args.State) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilStateComponentsHolder)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilStateComponentsHolder)
 	}
 	if check.IfNil(args.Network) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilNetworkComponentsHolder)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilNetworkComponentsHolder)
 	}
 	if check.IfNil(args.RequestedItemsHandler) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilRequestedItemHandler)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRequestedItemHandler)
 	}
 	if check.IfNil(args.WhiteListHandler) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilWhiteListHandler)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilWhiteListHandler)
 	}
 	if check.IfNil(args.WhiteListerVerifiedTxs) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilWhiteListVerifiedTxs)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilWhiteListVerifiedTxs)
 	}
 	if check.IfNil(args.EpochStartNotifier) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilEpochStartNotifier)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochStartNotifier)
 	}
 	if args.EpochStart == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilEpochStartConfig)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochStartConfig)
 	}
 	if check.IfNil(args.EpochStartNotifier) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilEpochStartNotifier)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochStartNotifier)
 	}
 	if check.IfNil(args.Rater) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilRater)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRater)
 	}
 	if check.IfNil(args.RatingsData) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilRatingData)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRatingData)
 	}
 	if check.IfNil(args.ValidatorPubkeyConverter) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilPubKeyConverter)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilPubKeyConverter)
 	}
 	if args.SystemSCConfig == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilSystemSCConfig)
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilSystemSCConfig)
 	}
 
 	return nil

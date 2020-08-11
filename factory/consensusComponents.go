@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
@@ -56,22 +57,22 @@ type consensusComponents struct {
 // NewConsensusComponentsFactory creates an instance of consensusComponentsFactory
 func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consensusComponentsFactory, error) {
 	if check.IfNil(args.CoreComponents) {
-		return nil, ErrNilCoreComponentsHolder
+		return nil, errors.ErrNilCoreComponentsHolder
 	}
 	if check.IfNil(args.DataComponents) {
-		return nil, ErrNilDataComponentsHolder
+		return nil, errors.ErrNilDataComponentsHolder
 	}
 	if check.IfNil(args.CryptoComponents) {
-		return nil, ErrNilCryptoComponentsHolder
+		return nil, errors.ErrNilCryptoComponentsHolder
 	}
 	if check.IfNil(args.NetworkComponents) {
-		return nil, ErrNilNetworkComponentsHolder
+		return nil, errors.ErrNilNetworkComponentsHolder
 	}
 	if check.IfNil(args.ProcessComponents) {
-		return nil, ErrNilProcessComponentsHolder
+		return nil, errors.ErrNilProcessComponentsHolder
 	}
 	if check.IfNil(args.StateComponents) {
-		return nil, ErrNilStateComponentsHolder
+		return nil, errors.ErrNilStateComponentsHolder
 	}
 
 	return &consensusComponentsFactory{
@@ -96,7 +97,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	isGenesisBlockNotInitialized := len(blockchain.GetGenesisHeaderHash()) == 0 ||
 		check.IfNil(blockchain.GetGenesisHeader())
 	if isGenesisBlockNotInitialized {
-		return nil, ErrGenesisBlockNotInitialized
+		return nil, errors.ErrGenesisBlockNotInitialized
 	}
 
 	cc.chronology, err = ccf.createChronology()
@@ -475,7 +476,7 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 	}
 
 	if ccf.networkComponents.NetworkMessenger().HasTopicValidator(cc.consensusTopic) {
-		return ErrValidatorAlreadySet
+		return errors.ErrValidatorAlreadySet
 	}
 
 	return ccf.networkComponents.NetworkMessenger().RegisterMessageProcessor(cc.consensusTopic, cc.worker)
