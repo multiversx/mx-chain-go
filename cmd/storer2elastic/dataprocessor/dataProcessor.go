@@ -76,12 +76,12 @@ func NewDataProcessor(args ArgsDataProcessor) (*dataProcessor, error) {
 		ratingsProcessor:  args.RatingsProcessor,
 	}
 
-	nodesCoordinator, err := dp.createNodesCoordinators(args.GenesisNodesSetup)
+	nodesCoordinators, err := dp.createNodesCoordinators(args.GenesisNodesSetup)
 	if err != nil {
 		return nil, err
 	}
 
-	dp.nodesCoordinators = nodesCoordinator
+	dp.nodesCoordinators = nodesCoordinators
 
 	return dp, nil
 }
@@ -125,7 +125,7 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 	}
 
 	notarizedHeaders := dp.computeNotarizedHeaders(data.Header)
-	dp.elasticIndexer.SaveBlock(data.Body, data.Header, data.TransactionsPool, signersIndexes, notarizedHeaders)
+	dp.elasticIndexer.SaveBlock(data.Body, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders)
 	dp.indexRoundInfo(signersIndexes, data.Header)
 	dp.logHeaderInfo(data.Header)
 	return nil
@@ -243,6 +243,7 @@ func (dp *dataProcessor) processValidatorsForEpoch(metaBlock *block.MetaBlock, b
 		for _, hash := range metaBlock.MiniBlockHeaders {
 			if bytes.Equal(hash.Hash, mbHash) {
 				peerMiniBlocks = append(peerMiniBlocks, mb)
+				break
 			}
 		}
 
@@ -274,7 +275,7 @@ func (dp *dataProcessor) uniqueMiniBlocksSlice(mbs []*block.MiniBlock) []*block.
 	for _, entry := range mbs {
 		hash, err := core.CalculateHash(dp.marshalizer, dp.hasher, entry)
 		if err != nil {
-			return mbs
+			continue
 		}
 
 		if _, value := keys[string(hash)]; !value {

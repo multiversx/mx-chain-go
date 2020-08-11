@@ -8,6 +8,7 @@ import (
 
 	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -17,18 +18,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 type dataReplayer struct {
-	databaseReader   DatabaseReaderHandler
-	shardCoordinator sharding.Coordinator
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	//nodesCoordinators map[uint32]NodesCoordinator
+	databaseReader    DatabaseReaderHandler
+	generalConfig     config.Config
+	shardCoordinator  sharding.Coordinator
+	marshalizer       marshal.Marshalizer
 	uint64Converter   typeConverters.Uint64ByteSliceConverter
 	headerMarshalizer HeaderMarshalizerHandler
 }
@@ -50,9 +49,9 @@ type metaBlocksPersistersHolder struct {
 type DataReplayerArgs struct {
 	ElasticIndexer           indexer.Indexer
 	DatabaseReader           DatabaseReaderHandler
+	GeneralConfig            config.Config
 	ShardCoordinator         sharding.Coordinator
 	Marshalizer              marshal.Marshalizer
-	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	HeaderMarshalizer        HeaderMarshalizerHandler
 }
@@ -68,9 +67,6 @@ func NewDataReplayer(args DataReplayerArgs) (*dataReplayer, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if check.IfNil(args.Hasher) {
-		return nil, ErrNilHasher
-	}
 	if check.IfNil(args.Uint64ByteSliceConverter) {
 		return nil, ErrNilUint64ByteSliceConverter
 	}
@@ -80,9 +76,9 @@ func NewDataReplayer(args DataReplayerArgs) (*dataReplayer, error) {
 
 	return &dataReplayer{
 		databaseReader:    args.DatabaseReader,
+		generalConfig:     args.GeneralConfig,
 		shardCoordinator:  args.ShardCoordinator,
 		marshalizer:       args.Marshalizer,
-		hasher:            args.Hasher,
 		uint64Converter:   args.Uint64ByteSliceConverter,
 		headerMarshalizer: args.HeaderMarshalizer,
 	}, nil
@@ -116,6 +112,7 @@ func (dr *dataReplayer) startIndexing(errChan chan error, persistedDataHandler f
 		return
 	}
 
+	// TODO: check if some epochs are missing and log this
 	metachainRecords, err := getMetaChainDatabasesInfo(records)
 	if err != nil {
 		errChan <- err
@@ -179,8 +176,6 @@ func (dr *dataReplayer) processMetaChainDatabase(
 		return err
 	}
 
-	//dr.processValidatorsForEpoch(epochStartMetaBlock.Epoch, epochStartMetaBlock, metachainPersisters.miniBlocksPersister)
-
 	startingNonce := epochStartMetaBlock.Nonce
 	roundData, err := dr.processMetaBlock(
 		epochStartMetaBlock,
@@ -229,13 +224,13 @@ func (dr *dataReplayer) processMetaChainDatabase(
 func (dr *dataReplayer) prepareMetaPersistersHolder(record *databasereader.DatabaseInfo) (*metaBlocksPersistersHolder, error) {
 	metaPersHolder := &metaBlocksPersistersHolder{}
 
-	metaBlocksUnit, err := dr.databaseReader.LoadPersister(record, "MetaBlock")
+	metaBlocksUnit, err := dr.databaseReader.LoadPersister(record, dr.generalConfig.MetaBlockStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
 	metaPersHolder.metaBlocksPersister = metaBlocksUnit
 
-	headerHashNonceUnit, err := dr.databaseReader.LoadStaticPersister(record, "MetaHdrHashNonce")
+	headerHashNonceUnit, err := dr.databaseReader.LoadStaticPersister(record, dr.generalConfig.MetaHdrNonceHashStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +375,7 @@ func (dr *dataReplayer) processHeader(persisters *persistersHolder, dbInfo *data
 	return &storer2ElasticData.HeaderData{
 		Header:           hdr,
 		Body:             body,
-		TransactionsPool: txPool,
+		BodyTransactions: txPool,
 	}, nil
 }
 
@@ -502,31 +497,31 @@ func (dr *dataReplayer) getUnsignedTx(holder *persistersHolder, txHash []byte) (
 func (dr *dataReplayer) preparePersistersHolder(dbInfo *databasereader.DatabaseInfo) (*persistersHolder, error) {
 	persHold := &persistersHolder{}
 
-	shardHeadersPersister, err := dr.databaseReader.LoadPersister(dbInfo, "BlockHeaders")
+	shardHeadersPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.BlockHeaderStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
 	persHold.shardHeadersPersister = shardHeadersPersister
 
-	miniBlocksPersister, err := dr.databaseReader.LoadPersister(dbInfo, "MiniBlocks")
+	miniBlocksPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.MiniBlocksStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
 	persHold.miniBlocksPersister = miniBlocksPersister
 
-	txsPersister, err := dr.databaseReader.LoadPersister(dbInfo, "Transactions")
+	txsPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.TxStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
 	persHold.transactionPersister = txsPersister
 
-	uTxsPersister, err := dr.databaseReader.LoadPersister(dbInfo, "UnsignedTransactions")
+	uTxsPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.UnsignedTransactionStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
 	persHold.unsignedTransactionsPersister = uTxsPersister
 
-	rTxsPersister, err := dr.databaseReader.LoadPersister(dbInfo, "RewardTransactions")
+	rTxsPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.RewardTxStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}

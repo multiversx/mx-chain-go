@@ -127,7 +127,7 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 		return err
 	}
 
-	peerStMon, peerAccountsTrie, err := trieFactory.Create(
+	_, peerAccountsTrie, err := trieFactory.Create(
 		rp.generalConfig.PeerAccountsTrieStorage,
 		core.GetShardIDString(core.MetachainShardId),
 		rp.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
@@ -136,7 +136,7 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(peerStMon.IsInterfaceNil())
+
 	peerAdapter, err := state.NewPeerAccountsDB(
 		peerAccountsTrie,
 		rp.hasher,

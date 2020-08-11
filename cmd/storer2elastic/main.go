@@ -143,21 +143,25 @@ func startStorer2Elastic(ctx *cli.Context) error {
 
 	uint64ByteSliceConverter = uint64ByteSlice.NewBigEndianConverter()
 	var err error
-	shardCoordinator, err = sharding.NewMultiShardCoordinator(uint32(flagsValues.numShards), 0)
-	if err != nil {
-		return err
-	}
 
 	configuration := &config.Config{}
 	err = core.LoadTomlFile(configuration, flagsValues.configFilePath)
 	if err != nil {
 		return err
 	}
+	if ctx.IsSet(numOfShardsFlag.Name) {
+		configuration.General.NumShards = int(ctx.GlobalUint64(numOfShardsFlag.Name))
+	}
 	if ctx.IsSet(dbPathWithChainIDFlag.Name) {
 		configuration.General.DBPathWithChainID = ctx.GlobalString(dbPathWithChainIDFlag.Name)
 	}
 	if ctx.IsSet(nodeConfigFilePathFlag.Name) {
 		configuration.General.NodeConfigFilePath = ctx.GlobalString(nodeConfigFilePathFlag.Name)
+	}
+
+	shardCoordinator, err = sharding.NewMultiShardCoordinator(uint32(configuration.General.NumShards), 0)
+	if err != nil {
+		return err
 	}
 
 	err = core.LoadTomlFile(&nodeConfig, configuration.General.NodeConfigFilePath)
@@ -211,6 +215,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 	persisterFactory := factory.NewPersisterFactory(nodeConfigPackage.DBConfig(generalDBConfig))
 	dbReaderArgs := databasereader.Args{
 		DirectoryReader:   factory.NewDirectoryReader(),
+		GeneralConfig:     nodeConfig,
 		Marshalizer:       marshalizer,
 		PersisterFactory:  persisterFactory,
 		DbPathWithChainID: configuration.General.DBPathWithChainID,
@@ -251,10 +256,10 @@ func startStorer2Elastic(ctx *cli.Context) error {
 
 	dataReplayerArgs := dataprocessor.DataReplayerArgs{
 		ElasticIndexer:           elasticIndexer,
+		GeneralConfig:            nodeConfig,
 		DatabaseReader:           dbReader,
 		ShardCoordinator:         shardCoordinator,
 		Marshalizer:              marshalizer,
-		Hasher:                   hasher,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		HeaderMarshalizer:        headerMarshalizer,
 	}
@@ -264,7 +269,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
-	dataProcessor2, err := dataprocessor.NewDataProcessor(
+	dataProcessor, err := dataprocessor.NewDataProcessor(
 		dataprocessor.ArgsDataProcessor{
 			ElasticIndexer:    elasticIndexer,
 			DataReplayer:      dataReplayer,
@@ -277,7 +282,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	err = dataProcessor2.Index()
+	err = dataProcessor.Index()
 	if err != nil {
 		return err
 	}

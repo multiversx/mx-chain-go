@@ -15,5 +15,5 @@ type RoundPersistedData struct {
 type HeaderData struct {
 	Header           data.HeaderHandler
 	Body             *block.Body
-	TransactionsPool map[string]data.TransactionHandler
+	BodyTransactions map[string]data.TransactionHandler
 }

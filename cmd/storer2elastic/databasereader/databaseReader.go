@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -16,8 +17,6 @@ import (
 
 var log = logger.GetOrCreate("databasereader")
 
-const shardBlocksStorer = "BlockHeaders"
-const metaHeadersStorer = "MetaBlock"
 const shardDirectoryPrefix = "Shard_"
 const epochDirectoryPrefix = "Epoch_"
 
@@ -30,6 +29,7 @@ type DatabaseInfo struct {
 // Args holds the arguments needed for creating a new database reader
 type Args struct {
 	DirectoryReader   storage.DirectoryReaderHandler
+	GeneralConfig     config.Config
 	Marshalizer       marshal.Marshalizer
 	PersisterFactory  storage.PersisterFactory
 	DbPathWithChainID string
@@ -37,6 +37,7 @@ type Args struct {
 
 type databaseReader struct {
 	directoryReader   storage.DirectoryReaderHandler
+	generalConfig     config.Config
 	marshalizer       marshal.Marshalizer
 	persisterFactory  storage.PersisterFactory
 	dbPathWithChainID string
@@ -59,6 +60,7 @@ func New(args Args) (*databaseReader, error) {
 
 	return &databaseReader{
 		directoryReader:   args.DirectoryReader,
+		generalConfig:     args.GeneralConfig,
 		marshalizer:       args.Marshalizer,
 		persisterFactory:  args.PersisterFactory,
 		dbPathWithChainID: args.DbPathWithChainID,
