@@ -4,20 +4,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-var _ Driver = (*DisabledOutportDriver)(nil)
+var _ Driver = (*disabledOutportDriver)(nil)
 
-type DisabledOutportDriver struct {
+type disabledOutportDriver struct {
 }
 
-func NewDisabledOutportDriver() *DisabledOutportDriver {
-	return &DisabledOutportDriver{}
+// NewDisabledOutportDriver creates a disabled outport driver
+func NewDisabledOutportDriver() *disabledOutportDriver {
+	return &disabledOutportDriver{}
 }
 
 // DigestBlock does nothing
-func (driver *DisabledOutportDriver) DigestCommittedBlock(header data.HeaderHandler, body data.BodyHandler) {
+func (driver *disabledOutportDriver) DigestCommittedBlock(header data.HeaderHandler, body data.BodyHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (driver *DisabledOutportDriver) IsInterfaceNil() bool {
+func (driver *disabledOutportDriver) IsInterfaceNil() bool {
 	return driver == nil
 }

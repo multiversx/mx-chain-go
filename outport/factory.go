@@ -10,6 +10,8 @@ func CreateOutportDriver(config config.OutportConfig, txCoordinator TransactionC
 		return NewDisabledOutportDriver(), nil
 	}
 
+	// serializer received
+
 	log.Debug("Outport enabled, will create an OutputDriver")
-	return NewOutportDriver(config, txCoordinator, logsProcessor), nil
+	return NewOutportDriver(config, txCoordinator, logsProcessor)
 }

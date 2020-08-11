@@ -9,15 +9,16 @@ import (
 
 var log = logger.GetOrCreate("outport")
 
-var _ Driver = (*OutportDriver)(nil)
+var _ Driver = (*outportDriver)(nil)
 
-type OutportDriver struct {
+type outportDriver struct {
 	config        config.OutportConfig
 	txCoordinator TransactionCoordinator
 	logsProcessor TransactionLogProcessor
 }
 
-func NewOutportDriver(config config.OutportConfig, txCoordinator TransactionCoordinator, logsProcessor TransactionLogProcessor) (*OutportDriver, error) {
+// NewOutportDriver creates a new outport driver
+func NewOutportDriver(config config.OutportConfig, txCoordinator TransactionCoordinator, logsProcessor TransactionLogProcessor) (*outportDriver, error) {
 	if check.IfNil(txCoordinator) {
 		return nil, ErrNilTxCoordinator
 	}
@@ -25,7 +26,7 @@ func NewOutportDriver(config config.OutportConfig, txCoordinator TransactionCoor
 		return nil, ErrNilLogsProcessor
 	}
 
-	return &OutportDriver{
+	return &outportDriver{
 		config:        config,
 		txCoordinator: txCoordinator,
 		logsProcessor: logsProcessor,
@@ -33,7 +34,7 @@ func NewOutportDriver(config config.OutportConfig, txCoordinator TransactionCoor
 }
 
 // DigestBlock digests a block
-func (driver *OutportDriver) DigestCommittedBlock(header data.HeaderHandler, body data.BodyHandler) {
+func (driver *outportDriver) DigestCommittedBlock(header data.HeaderHandler, body data.BodyHandler) {
 	if check.IfNil(header) {
 		return
 	}
@@ -53,12 +54,10 @@ func (driver *OutportDriver) DigestCommittedBlock(header data.HeaderHandler, bod
 	// fmt.Println("invalidPool", invalidPool)
 	// fmt.Println("receiptPool", receiptPool)
 
-	// Write to files (streams)
-	// Example: https://github.com/ElrondNetwork/arwen-wasm-vm/pull/78/commits/3e23f1c44625363816cd3584fc64f01345be94b2
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (driver *OutportDriver) IsInterfaceNil() bool {
+func (driver *outportDriver) IsInterfaceNil() bool {
 	return driver == nil
 }
 
