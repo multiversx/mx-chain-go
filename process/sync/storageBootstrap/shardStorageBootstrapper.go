@@ -1,7 +1,10 @@
 package storageBootstrap
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -172,4 +175,26 @@ func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(_ []bootstrapStor
 
 func checkShardStorageBootstrapperArgs(args ArgsShardStorageBootstrapper) error {
 	return checkBaseStorageBootrstrapperArguments(args.ArgsBaseStorageBootstrapper)
+}
+
+//TODO(jls) test this
+func (ssb *shardStorageBootstrapper) tryLoadCrossNotarizedHeaders() error {
+	header := ssb.blkc.GetCurrentBlockHeader()
+	if check.IfNil(header) {
+		return fmt.Errorf("%w when trying to get the current shard header", process.ErrNilHeaderHandler)
+	}
+
+	shardHeader, ok := header.(*block.Header)
+	if !ok {
+		return fmt.Errorf("%w when trying to get the current header as shard header", process.ErrWrongTypeAssertion)
+	}
+
+	for _, mbHash := range shardHeader.MetaBlockHashes {
+		_, err := process.GetMetaHeaderFromStorage(mbHash, ssb.marshalizer, ssb.store)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
