@@ -13,6 +13,21 @@ type StateComponentsMock struct {
 	StorageManagers map[string]data.StorageManager
 }
 
+// Create -
+func (scm *StateComponentsMock) Create() error {
+	return nil
+}
+
+// Close -
+func (scm *StateComponentsMock) Close() error {
+	return nil
+}
+
+// CheckSubcomponents -
+func (scm *StateComponentsMock) CheckSubcomponents() error {
+	return nil
+}
+
 // PeerAccounts -
 func (scm *StateComponentsMock) PeerAccounts() state.AccountsAdapter {
 	return scm.PeersAcc
