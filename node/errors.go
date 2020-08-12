@@ -180,3 +180,6 @@ var ErrNilHistoryRepository = errors.New("history repository is nil")
 
 // ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
 var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")
+
+// ErrNilTxSimulatorProcessor signals that a nil transaction simulator processor has been provided
+var ErrNilTxSimulatorProcessor = errors.New("nil transaction simulator processor")

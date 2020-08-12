@@ -63,6 +63,12 @@ type NodeHandler interface {
 	GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error)
 }
 
+// TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
+type TransactionSimulatorProcessor interface {
+	ProcessTx(accounts state.AccountsAdapter, tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	IsInterfaceNil() bool
+}
+
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)

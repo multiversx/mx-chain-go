@@ -121,6 +121,13 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	}, nil
 }
 
+// SetAccountsAdapter will update the accounts adapter if the provided one is not nil
+func (txProc *txProcessor) SetAccountsAdapter(accounts state.AccountsAdapter) {
+	if !check.IfNil(accounts) {
+		txProc.accounts = accounts
+	}
+}
+
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
 	if check.IfNil(tx) {

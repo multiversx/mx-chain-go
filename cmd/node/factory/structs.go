@@ -2,6 +2,7 @@ package factory
 
 import (
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"math/big"
 	"time"
 
@@ -153,6 +154,7 @@ type processComponentsFactoryArgs struct {
 	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               fullHistory.HistoryRepository
+	txSimulatorProcessor      process.TransactionProcessor
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -196,6 +198,7 @@ func NewProcessComponentsFactoryArgs(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo fullHistory.HistoryRepository,
+	txSimulatorProcessor process.TransactionProcessor,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -238,6 +241,7 @@ func NewProcessComponentsFactoryArgs(
 		indexer:                   indexer,
 		tpsBenchmark:              tpsBenchmark,
 		historyRepo:               historyRepo,
+		txSimulatorProcessor:      txSimulatorProcessor,
 	}
 }
 
@@ -478,6 +482,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		headerValidator,
 		blockTracker,
 		pendingMiniBlocksHandler,
+		args.txSimulatorProcessor,
 	)
 	if err != nil {
 		return nil, err
@@ -1079,6 +1084,7 @@ func newBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
+	txSimulatorProcessor process.TransactionProcessor,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1109,6 +1115,7 @@ func newBlockProcessor(
 			processArgs.tpsBenchmark,
 			processArgs.version,
 			processArgs.historyRepo,
+			txSimulatorProcessor,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1141,6 +1148,7 @@ func newBlockProcessor(
 			processArgs.tpsBenchmark,
 			processArgs.version,
 			processArgs.historyRepo,
+			txSimulatorProcessor,
 		)
 	}
 
@@ -1172,6 +1180,7 @@ func newShardBlockProcessor(
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
 	historyRepository fullHistory.HistoryRepository,
+	txSimulatorProcessor process.TransactionProcessor,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -1323,6 +1332,13 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
+	txSimulatorProcessorArgs := argsNewTxProcessor
+	txSimulatorProcessorArgs.Accounts = disabled.NewAccountsAdapter()
+	txSimulatorProcessor, err = transaction.NewTxProcessor(txSimulatorProcessorArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 	if err != nil {
 		return nil, err
@@ -1460,6 +1476,7 @@ func newMetaBlockProcessor(
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
 	historyRepository fullHistory.HistoryRepository,
+	txSimulatorProcessor process.TransactionProcessor,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1578,6 +1595,22 @@ func newMetaBlockProcessor(
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
+	}
+
+	//txSimulatorProcessorArgs := argsNewTxProcessor
+	accounts := disabled.NewAccountsAdapter()
+	txSimulatorProcessor, err = transaction.NewMetaTxProcessor(
+		core.Hasher,
+		core.InternalMarshalizer,
+		accounts,
+		stateComponents.AddressPubkeyConverter,
+		shardCoordinator,
+		scProcessor,
+		txTypeHandler,
+		economicsData,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)

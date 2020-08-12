@@ -24,3 +24,10 @@ type ApiTransactionResult struct {
 	BlockHash  string                 `json:"blockHash,omitempty"`
 	Status     core.TransactionStatus `json:"status,omitempty"`
 }
+
+// SimulationResults is the data transfer object which will hold results for simulation a transaction's execution
+type SimulationResults struct {
+	Status    core.TransactionStatus `json:"status,omitempty"`
+	ScResults []string               `json:"scResults,omitempty"`
+	Hash      string                 `json:"hash,omitempty"`
+}
