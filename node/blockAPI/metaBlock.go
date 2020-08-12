@@ -49,7 +49,7 @@ func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (*
 
 // GetBlockByHash will return a shard APIBlock by hash
 func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*apiBlock.APIBlock, error) {
-	blockBytes, err := mbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
+	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
 	if err != nil {
 		return nil, err
 	}
