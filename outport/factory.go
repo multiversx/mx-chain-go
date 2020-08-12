@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/outport/marshaling"
 )
 
+// CreateOutportDriver creates an outport driver
 func CreateOutportDriver(config config.OutportConfig, txCoordinator TransactionCoordinator, logsProcessor TransactionLogProcessor) (Driver, error) {
 	if !config.Enabled {
 		log.Debug("Outport not enabled, will create a DisabledOutportDriver")

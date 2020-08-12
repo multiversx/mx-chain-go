@@ -13,6 +13,8 @@ var log = logger.GetOrCreate("outport")
 
 var _ Driver = (*outportDriver)(nil)
 
+type mapOfTxs = map[string]data.TransactionHandler
+
 type outportDriver struct {
 	config        config.OutportConfig
 	txCoordinator TransactionCoordinator
@@ -43,39 +45,78 @@ func NewOutportDriver(
 	}, nil
 }
 
-// DigestBlock digests a block
-func (driver *outportDriver) DigestCommittedBlock(header data.HeaderHandler, body data.BodyHandler) {
+// DigestCommittedBlock digests a block
+func (driver *outportDriver) DigestCommittedBlock(header data.HeaderHandler) {
 	if check.IfNil(header) {
 		return
 	}
-	if check.IfNil(body) {
-		return
+
+	message := NewMessageCommittedBlock(header)
+	message.RegularTransactions = marshaling.NewSerializableMapStringTransactionHandler(driver.getRegularTransactions())
+	message.SmartContractResults = marshaling.NewSerializableMapStringTransactionHandler(driver.getSmartContractResults())
+	message.RewardTransactions = marshaling.NewSerializableMapStringTransactionHandler(driver.getRewardTransactions())
+	message.InvalidTransactions = marshaling.NewSerializableMapStringTransactionHandler(driver.getInvalidTransactions())
+	message.Receipts = marshaling.NewSerializableMapStringTransactionHandler(driver.getReceipts())
+	message.SmartContractLogs = nil
+}
+
+func (driver *outportDriver) getRegularTransactions() mapOfTxs {
+	filter := driver.config.Filter
+	if !filter.WithRegularTransactions {
+		return make(mapOfTxs)
 	}
 
-	txPool := driver.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
-	// scPool := txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-	// rewardPool := txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)
-	// invalidPool := txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)
-	// receiptPool := txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
+	return driver.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
+}
 
-	// fmt.Println("txPool", txPool)
-	// fmt.Println("scPool", scPool)
-	// fmt.Println("rewardPool", rewardPool)
-	// fmt.Println("invalidPool", invalidPool)
-	// fmt.Println("receiptPool", receiptPool)
+func (driver *outportDriver) getSmartContractResults() mapOfTxs {
+	filter := driver.config.Filter
+	if !filter.WithSmartContractResults {
+		return make(mapOfTxs)
+	}
 
+	return driver.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+}
+
+func (driver *outportDriver) getRewardTransactions() mapOfTxs {
+	filter := driver.config.Filter
+	if !filter.WithRewardTransactions {
+		return make(mapOfTxs)
+	}
+
+	return driver.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)
+}
+
+func (driver *outportDriver) getInvalidTransactions() mapOfTxs {
+	filter := driver.config.Filter
+	if !filter.WithInvalidTransactions {
+		return make(mapOfTxs)
+	}
+
+	return driver.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)
+}
+
+func (driver *outportDriver) getReceipts() mapOfTxs {
+	filter := driver.config.Filter
+	if !filter.WithRewardTransactions {
+		return make(mapOfTxs)
+	}
+
+	return driver.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
+}
+
+func (driver *outportDriver) getSmartContractLogs() []data.LogHandler {
+	filter := driver.config.Filter
+	if !filter.WithSmartContractLogs {
+		return make([]data.LogHandler, 0)
+	}
+
+	// TODO: return driver.logsProcessor.GetLog(...)
+	// TODO: Get all instead.
+	return make([]data.LogHandler, 0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (driver *outportDriver) IsInterfaceNil() bool {
 	return driver == nil
 }
-
-// // TransactionsToDigest holds current transactions to digest
-// type TransactionsToDigest struct {
-// 	RegularTxs  map[string]data.TransactionHandler
-// 	RewardTxs   map[string]data.TransactionHandler
-// 	ScResults   map[string]data.TransactionHandler
-// 	InvalidTxs  map[string]data.TransactionHandler
-// 	ReceiptsTxs map[string]data.TransactionHandler
-// }

@@ -14,8 +14,8 @@ func NewDisabledOutportDriver() *disabledOutportDriver {
 	return &disabledOutportDriver{}
 }
 
-// DigestBlock does nothing
-func (driver *disabledOutportDriver) DigestCommittedBlock(header data.HeaderHandler, body data.BodyHandler) {
+// DigestCommittedBlock does nothing
+func (driver *disabledOutportDriver) DigestCommittedBlock(header data.HeaderHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

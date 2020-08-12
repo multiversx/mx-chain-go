@@ -644,8 +644,13 @@
 [Outport]
     Enabled = false
     MessagesMarshalizer = "json"
-    [Outport.Filter.CommitBlock]
-        Type = ["regular", "scr", "invalid"]
-        ToAddress = []
-        FromAddress = []
+    [Outport.Filter]
+        WithRegularTransactions = true
+        WithSmartContractResults = true
+        WithRewardTransactions = true
+        WithInvalidTransactions = true
+        WithReceipts = true
+        WithSmartContractLogs = true
+        FromAddressOr = []
+        ToAddressOr = []
         DataContainsOr = []

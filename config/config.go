@@ -397,8 +397,18 @@ type RouteConfig struct {
 type OutportConfig struct {
 	Enabled             bool
 	MessagesMarshalizer string
+	Filter              OutportFilterConfig
 }
 
+// OutportFilterConfig holds configuration for the outport filter
 type OutportFilterConfig struct {
-	
+	WithRegularTransactions  bool
+	WithSmartContractResults bool
+	WithRewardTransactions   bool
+	WithInvalidTransactions  bool
+	WithReceipts             bool
+	WithSmartContractLogs    bool
+	FromAddressOr            []string
+	ToAddressOr              []string
+	DataContainsOr           []string
 }

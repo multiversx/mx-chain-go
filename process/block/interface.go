@@ -10,6 +10,6 @@ type blockProcessor interface {
 
 // OutportDriver defines the interface of the outport driver
 type OutportDriver interface {
-	DigestCommittedBlock(header data.HeaderHandler, body data.BodyHandler)
+	DigestCommittedBlock(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
