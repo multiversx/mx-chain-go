@@ -52,7 +52,7 @@ func (psh *PresenterStatusHandler) GetBlockSize() uint64 {
 	return miniBlocksSize + headerSize
 }
 
-// GetHighestFinalBlockInShard will return highest nonce block notarized by metachain for current shard
-func (psh *PresenterStatusHandler) GetHighestFinalBlockInShard() uint64 {
-	return psh.getFromCacheAsUint64(core.MetricHighestFinalBlockInShard)
+// GetHighestFinalBlock will return highest nonce block notarized by metachain for current shard
+func (psh *PresenterStatusHandler) GetHighestFinalBlock() uint64 {
+	return psh.getFromCacheAsUint64(core.MetricHighestFinalBlock)
 }
