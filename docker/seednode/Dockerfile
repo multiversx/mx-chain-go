@@ -1,6 +1,7 @@
-FROM golang:1.13.6 as builder
+FROM golang:1.14-stretch as builder
 MAINTAINER ElrondNetwork
 
+RUN apt-get update && apt-get install -y
 WORKDIR /go/elrond-go
 COPY . .
 RUN GO111MODULE=on go mod vendor
