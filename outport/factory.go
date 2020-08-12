@@ -1,6 +1,8 @@
 package outport
 
 import (
+	"os"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/outport/marshaling"
 )
@@ -16,5 +18,11 @@ func CreateOutportDriver(config config.OutportConfig, txCoordinator TransactionC
 
 	messagesMarshalizerKind := marshaling.ParseKind(config.MessagesMarshalizer)
 	messagesMarshalizer := marshaling.CreateMarshalizer(messagesMarshalizerKind)
-	return NewOutportDriver(config, txCoordinator, logsProcessor, messagesMarshalizer)
+	namedPipe, err := os.OpenFile(config.NamedPipe, os.O_WRONLY, os.ModeNamedPipe)
+	if err != nil {
+		return nil, err
+	}
+
+	sender := NewSender(namedPipe, messagesMarshalizer)
+	return newOutportDriver(config, txCoordinator, logsProcessor, sender)
 }

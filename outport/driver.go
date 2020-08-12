@@ -19,14 +19,15 @@ type outportDriver struct {
 	config        config.OutportConfig
 	txCoordinator TransactionCoordinator
 	logsProcessor TransactionLogProcessor
+	sender        sender
 }
 
-// NewOutportDriver creates a new outport driver
-func NewOutportDriver(
+// newOutportDriver creates a new outport driver
+func newOutportDriver(
 	config config.OutportConfig,
 	txCoordinator TransactionCoordinator,
 	logsProcessor TransactionLogProcessor,
-	marshalizer marshaling.Marshalizer,
+	sender sender,
 ) (*outportDriver, error) {
 	if check.IfNil(txCoordinator) {
 		return nil, ErrNilTxCoordinator
@@ -34,14 +35,15 @@ func NewOutportDriver(
 	if check.IfNil(logsProcessor) {
 		return nil, ErrNilLogsProcessor
 	}
-	if check.IfNil(marshalizer) {
-		return nil, ErrNilMarshalizer
+	if check.IfNil(sender) {
+		return nil, ErrNilSender
 	}
 
 	return &outportDriver{
 		config:        config,
 		txCoordinator: txCoordinator,
 		logsProcessor: logsProcessor,
+		sender:        sender,
 	}, nil
 }
 

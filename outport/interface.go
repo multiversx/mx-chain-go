@@ -25,3 +25,10 @@ type TransactionCoordinator interface {
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 	IsInterfaceNil() bool
 }
+
+// sender is an internal interface
+type sender interface {
+	Send(message MessageHandler) (int, error)
+	Shutdown() error
+	IsInterfaceNil() bool
+}

@@ -398,6 +398,7 @@ type OutportConfig struct {
 	Enabled             bool
 	MessagesMarshalizer string
 	Filter              OutportFilterConfig
+	NamedPipe           string
 }
 
 // OutportFilterConfig holds configuration for the outport filter

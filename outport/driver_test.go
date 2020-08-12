@@ -13,18 +13,19 @@ func TestNewOutportDriver(t *testing.T) {
 	txCoordinator := mock.NewTxCoordinatorMock()
 	logsProcessor := mock.NewTxLogsProcessorMock()
 	marshalizer := marshaling.CreateMarshalizer(marshaling.JSON)
+	sender := NewSender(nil, marshalizer)
 
-	driver, err := NewOutportDriver(config.OutportConfig{}, nil, logsProcessor, marshalizer)
+	driver, err := newOutportDriver(config.OutportConfig{}, nil, logsProcessor, sender)
 	require.Nil(t, driver)
 	require.Equal(t, ErrNilTxCoordinator, err)
 
-	driver, err = NewOutportDriver(config.OutportConfig{}, txCoordinator, nil, marshalizer)
+	driver, err = newOutportDriver(config.OutportConfig{}, txCoordinator, nil, sender)
 	require.Nil(t, driver)
 	require.Equal(t, ErrNilLogsProcessor, err)
 
-	driver, err = NewOutportDriver(config.OutportConfig{}, txCoordinator, logsProcessor, nil)
+	driver, err = newOutportDriver(config.OutportConfig{}, txCoordinator, logsProcessor, nil)
 	require.Nil(t, driver)
-	require.Equal(t, ErrNilMarshalizer, err)
+	require.Equal(t, ErrNilSender, err)
 }
 
 func TestOutportDriver_DigestCommittedBlock(t *testing.T) {

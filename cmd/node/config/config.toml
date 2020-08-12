@@ -644,6 +644,7 @@
 [Outport]
     Enabled = false
     MessagesMarshalizer = "json"
+    NamedPipe = "node-outport"
     [Outport.Filter]
         WithRegularTransactions = true
         WithSmartContractResults = true
