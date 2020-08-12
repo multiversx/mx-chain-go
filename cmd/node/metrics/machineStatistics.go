@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// StartMachineStatisticsPolling will start read information about current  running machine
+// StartMachineStatisticsPolling will start read information about current running machine
 func StartMachineStatisticsPolling(ash core.AppStatusHandler, notifier sharding.EpochStartEventNotifier, pollingInterval time.Duration) error {
 	if check.IfNil(ash) {
 		return errors.New("nil AppStatusHandler")
@@ -74,7 +74,7 @@ func registerNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 		appStatusHandler.SetUInt64Value(core.MetricNetworkSentPercent, netStats.PercentSent())
 
 		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBytesInCurrentEpoch, netStats.TotalBytesReceivedInCurrentEpoch())
-		appStatusHandler.SetUInt64Value(core.MetricNetworkSendBytesInCurrentEpoch, netStats.TotalBytesSendInCurrentEpoch())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSendBytesInCurrentEpoch, netStats.TotalBytesSentInCurrentEpoch())
 	})
 }
 

@@ -54,12 +54,12 @@ func (psh *PresenterStatusHandler) GetNetworkSentBpsPeak() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricNetworkSentBpsPeak)
 }
 
-// GetNetworkSendBytesInEpoch will return total bytes send in current epoch
-func (psh *PresenterStatusHandler) GetNetworkSendBytesInEpoch() uint64 {
+// GetNetworkSentBytesInEpoch will return the number of bytes sent in current epoch
+func (psh *PresenterStatusHandler) GetNetworkSentBytesInEpoch() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricNetworkSendBytesInCurrentEpoch)
 }
 
-// GetNetworkReceivedBytesInEpoch will return total bytes received in current epoch
+// GetNetworkReceivedBytesInEpoch will return the number of bytes received in current epoch
 func (psh *PresenterStatusHandler) GetNetworkReceivedBytesInEpoch() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricNetworkRecvBytesInCurrentEpoch)
 }

@@ -51,7 +51,7 @@ type Presenter interface {
 	GetHighestFinalBlock() uint64
 	CheckSoftwareVersion() (bool, string)
 
-	GetNetworkSendBytesInEpoch() uint64
+	GetNetworkSentBytesInEpoch() uint64
 	GetNetworkReceivedBytesInEpoch() uint64
 
 	GetTotalRewardsValue() (string, string)

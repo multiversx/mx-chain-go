@@ -372,12 +372,12 @@ func (wr *WidgetsRender) prepareLoads() {
 	wr.epochLoad.Percent = epochLoadPercent
 	wr.epochLoad.Label = fmt.Sprintf("%d / %d rounds (~%sremaining)", currentEpochRound, currentEpochFinishRound, remainingTime)
 
-	totalBytesSendInEpoch := wr.presenter.GetNetworkSendBytesInEpoch()
+	totalBytesSentInEpoch := wr.presenter.GetNetworkSentBytesInEpoch()
 	totalBytesReceivedInEpoch := wr.presenter.GetNetworkReceivedBytesInEpoch()
 
 	wr.networkBytesInEpoch.Title = "Epoch - traffic:"
 	wr.networkBytesInEpoch.Percent = 0
-	wr.networkBytesInEpoch.Label = fmt.Sprintf("send: %s / received: %s", core.ConvertBytes(totalBytesSendInEpoch), core.ConvertBytes(totalBytesReceivedInEpoch))
+	wr.networkBytesInEpoch.Label = fmt.Sprintf("sent: %s / received: %s", core.ConvertBytes(totalBytesSentInEpoch), core.ConvertBytes(totalBytesReceivedInEpoch))
 
 }
 

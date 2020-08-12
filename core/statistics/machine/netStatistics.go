@@ -139,12 +139,12 @@ func (ns *NetStatistics) PercentRecv() uint64 {
 	return atomic.LoadUint64(&ns.percentRecv)
 }
 
-// TotalBytesSendInCurrentEpoch returns total bytes send in current epoch
-func (ns *NetStatistics) TotalBytesSendInCurrentEpoch() uint64 {
+// TotalBytesSentInCurrentEpoch returns the number of bytes sent in current epoch
+func (ns *NetStatistics) TotalBytesSentInCurrentEpoch() uint64 {
 	return atomic.LoadUint64(&ns.totalBytesSentInEpoch)
 }
 
-// TotalBytesReceivedInCurrentEpoch returns total bytes received in current epoch
+// TotalBytesReceivedInCurrentEpoch returns the number of bytes received in current epoch
 func (ns *NetStatistics) TotalBytesReceivedInCurrentEpoch() uint64 {
 	return atomic.LoadUint64(&ns.totalBytesReceivedInEpoch)
 }
