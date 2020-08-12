@@ -165,6 +165,12 @@ const MetricNetworkRecvBps = "erd_network_recv_bps"
 // MetricNetworkRecvBpsPeak is the metric for monitoring network received peak bytes per second
 const MetricNetworkRecvBpsPeak = "erd_network_recv_bps_peak"
 
+// MetricNetworkRecvBytesInCurrentEpoch is the metric for monitoring network received bytes in current epoch
+const MetricNetworkRecvBytesInCurrentEpoch = "erd_network_recv_bytes_in_epoch"
+
+// MetricNetworkSendBytesInCurrentEpoch is the metric for monitoring network send bytes in current epoch
+const MetricNetworkSendBytesInCurrentEpoch = "erd_network_sent_bytes_in_epoch"
+
 // MetricNetworkSentPercent is the metric for monitoring network sent load [%]
 const MetricNetworkSentPercent = "erd_network_sent_percent"
 
@@ -368,6 +374,8 @@ const (
 	NetworkShardingOrder
 	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
 	IndexerOrder
+	// NetStatisticsOrder defines the order in which netStatistic component is notified of a start of epoch event
+	NetStatisticsOrder
 )
 
 // NodeState specifies what type of state a node could have

@@ -29,6 +29,8 @@ type WidgetsRender struct {
 	networkRecv *widgets.Gauge
 	networkSent *widgets.Gauge
 
+	networkBytesInEpoch *widgets.Gauge
+
 	presenter view.Presenter
 }
 
@@ -66,6 +68,7 @@ func (wr *WidgetsRender) initWidgets() {
 	wr.memoryLoad = widgets.NewGauge()
 	wr.networkRecv = widgets.NewGauge()
 	wr.networkSent = widgets.NewGauge()
+	wr.networkBytesInEpoch = widgets.NewGauge()
 
 	wr.lLog = widgets.NewList()
 }
@@ -80,12 +83,15 @@ func (wr *WidgetsRender) setGrid() {
 	colNetworkRecv := ui.NewCol(1.0/2, wr.networkRecv)
 	colNetworkSent := ui.NewCol(1.0/2, wr.networkSent)
 
+	colCpuLoad := ui.NewCol(1.0/2, wr.cpuLoad)
+	colMemoryLoad := ui.NewCol(1.0/2, wr.memoryLoad)
+
 	gridRight := ui.NewGrid()
 	gridRight.Set(
 		ui.NewRow(10.0/22, wr.blockInfo),
+		ui.NewRow(3.0/22, colCpuLoad, colMemoryLoad),
 		ui.NewRow(3.0/22, wr.epochLoad),
-		ui.NewRow(3.0/22, wr.cpuLoad),
-		ui.NewRow(3.0/22, wr.memoryLoad),
+		ui.NewRow(3.0/22, wr.networkBytesInEpoch),
 		ui.NewRow(3.0/22, colNetworkSent, colNetworkRecv),
 	)
 
@@ -365,6 +371,14 @@ func (wr *WidgetsRender) prepareLoads() {
 	wr.epochLoad.Title = "Epoch - info:"
 	wr.epochLoad.Percent = epochLoadPercent
 	wr.epochLoad.Label = fmt.Sprintf("%d / %d rounds (~%sremaining)", currentEpochRound, currentEpochFinishRound, remainingTime)
+
+	totalBytesSendInEpoch := wr.presenter.GetNetworkSendBytesInEpoch()
+	totalBytesReceivedInEpoch := wr.presenter.GetNetworkReceivedBytesInEpoch()
+
+	wr.networkBytesInEpoch.Title = "Epoch - traffic:"
+	wr.networkBytesInEpoch.Percent = 0
+	wr.networkBytesInEpoch.Label = fmt.Sprintf("send: %s / received: %s", core.ConvertBytes(totalBytesSendInEpoch), core.ConvertBytes(totalBytesReceivedInEpoch))
+
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
