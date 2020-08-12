@@ -311,12 +311,6 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			return err
 		}
 
-		err = st.bootstrapper.tryLoadCrossNotarizedHeaders()
-		if err != nil {
-			log.Debug("cannot load cross notarized headers", "error", err.Error())
-			return err
-		}
-
 		var selfNotarizedHeaders []data.HeaderHandler
 		var selfNotarizedHeadersHashes [][]byte
 		selfNotarizedHeaders, selfNotarizedHeadersHashes, err = st.bootstrapper.applySelfNotarizedHeaders(bootInfos[i].LastSelfNotarizedHeaders)
