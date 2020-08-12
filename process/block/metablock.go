@@ -375,11 +375,6 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.scToProtocol.UpdateProtocol(body, header.Nonce)
-	if err != nil {
-		return err
-	}
-
 	err = mp.verifyFees(header)
 	if err != nil {
 		return err

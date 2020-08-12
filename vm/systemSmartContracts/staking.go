@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"math"
 	"math/big"
 
@@ -134,6 +135,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.changeRewardAddress(args)
 	case "changeValidatorKeys":
 		return r.changeValidatorKey(args)
+	case "switchJailedWithWaiting":
+		return r.switchJailedWithWaiting(args)
 	}
 
 	return vmcommon.UserError
@@ -357,6 +360,7 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		)
 		stakedData.JailedRound = math.MaxUint64
 		stakedData.UnJailedNonce = r.eei.BlockChainHook().CurrentNonce()
+		stakedData.Jailed = false
 
 		err = r.saveStakingData(argument, stakedData)
 		if err != nil {
@@ -997,6 +1001,49 @@ func (r *stakingSC) saveWaitingListHead(waitingList *WaitingList) error {
 
 func (r *stakingSC) createWaitingListKey(blsKey []byte) []byte {
 	return []byte(waitingElementPrefix + string(blsKey))
+}
+
+func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, factory.EndOfEpochAddress) {
+		r.eei.AddReturnMessage("switchJailedWithWaiting function not allowed to be called by address " + string(args.CallerAddr))
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		return vmcommon.UserError
+	}
+
+	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
+	if err != nil {
+		return vmcommon.UserError
+	}
+	if len(registrationData.RewardAddress) == 0 {
+		return vmcommon.UserError
+	}
+	if !registrationData.Staked {
+		return vmcommon.UserError
+	}
+	if registrationData.Jailed {
+		r.eei.AddReturnMessage(vm.ErrBLSPublicKeyAlreadyJailed.Error())
+		return vmcommon.UserError
+	}
+	err = r.moveFirstFromWaitingToStakedIfNeeded(args.Arguments[0])
+	if err != nil {
+		r.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	r.removeFromStakedNodes()
+	registrationData.Staked = false
+	registrationData.UnStakedEpoch = r.eei.BlockChainHook().CurrentEpoch()
+	registrationData.UnStakedNonce = r.eei.BlockChainHook().CurrentNonce()
+	registrationData.Jailed = true
+	err = r.saveStakingData(args.Arguments[0], registrationData)
+	if err != nil {
+		r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

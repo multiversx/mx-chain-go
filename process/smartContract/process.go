@@ -410,9 +410,9 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 
-	outputAccounts := sortVMOutputInsideData(vmOutput)
+	outputAccounts := SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
-		storageUpdates := getSortedStorageUpdates(outAcc)
+		storageUpdates := GetSortedStorageUpdates(outAcc)
 		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
 		scrResults = append(scrResults, scTx)
 	}
@@ -776,7 +776,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, fmt.Errorf(vmOutput.ReturnCode.String())
 	}
 
-	outPutAccounts := sortVMOutputInsideData(vmOutput)
+	outPutAccounts := SortVMOutputInsideData(vmOutput)
 
 	scrTxs, err := sc.processSCOutputAccounts(outPutAccounts, tx, txHash)
 	if err != nil {
@@ -819,7 +819,8 @@ func (sc *scProcessor) processVMOutput(
 	return scrTxs, consumedFee, nil
 }
 
-func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
+// SortVMOutputInsideData returns the output accounts as a sorted list
+func SortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
 	sort.Slice(vmOutput.DeletedAccounts, func(i, j int) bool {
 		return bytes.Compare(vmOutput.DeletedAccounts[i], vmOutput.DeletedAccounts[j]) < 0
 	})
@@ -841,7 +842,8 @@ func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccou
 	return outPutAccounts
 }
 
-func getSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.StorageUpdate {
+// GetSortedStorageUpdates returns the storage updates as a sorted list
+func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.StorageUpdate {
 	storageUpdates := make([]*vmcommon.StorageUpdate, len(account.StorageUpdates))
 	i := 0
 	for _, update := range account.StorageUpdates {
@@ -1042,7 +1044,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			return nil, err
 		}
 
-		storageUpdates := getSortedStorageUpdates(outAcc)
+		storageUpdates := GetSortedStorageUpdates(outAcc)
 		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
 		scResults = append(scResults, scTx)
 
