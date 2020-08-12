@@ -123,7 +123,7 @@ func TestPresenterStatusHandler_GetNetworkSendBytesInEpoch(t *testing.T) {
 	networkBytesSentInEpoch := uint64(10000)
 	presenterStatusHandler := NewPresenterStatusHandler()
 	presenterStatusHandler.SetUInt64Value(core.MetricNetworkSendBytesInCurrentEpoch, networkBytesSentInEpoch)
-	result := presenterStatusHandler.GetNetworkSendBytesInEpoch()
+	result := presenterStatusHandler.GetNetworkSentBytesInEpoch()
 
 	assert.Equal(t, networkBytesSentInEpoch, result)
 }
