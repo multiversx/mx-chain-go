@@ -93,7 +93,7 @@ func getBlockByNonce(c *gin.Context) {
 			c,
 			http.StatusInternalServerError,
 			nil,
-			errors.ErrGetBlock.Error(),
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
 			shared.ReturnCodeInternalError,
 		)
 		return
@@ -134,7 +134,7 @@ func getBlockByHash(c *gin.Context) {
 			c,
 			http.StatusInternalServerError,
 			nil,
-			errors.ErrGetBlock.Error(),
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
 			shared.ReturnCodeInternalError,
 		)
 		return
