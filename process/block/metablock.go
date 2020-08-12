@@ -33,6 +33,7 @@ type metaProcessor struct {
 	epochEconomics               process.EndOfEpochEconomics
 	epochRewardsCreator          process.EpochStartRewardsCreator
 	validatorInfoCreator         process.EpochStartValidatorInfoCreator
+	epochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	pendingMiniBlocksHandler     process.PendingMiniBlocksHandler
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	shardsHeadersNonce           *sync.Map
@@ -77,6 +78,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if check.IfNil(arguments.ValidatorStatisticsProcessor) {
 		return nil, process.ErrNilValidatorStatistics
 	}
+	if check.IfNil(arguments.EpochSystemSCProcessor) {
+		return nil, process.ErrNilEpochStartSystemSCProcessor
+	}
 
 	genesisHdr := arguments.BlockChain.GetGenesisHeader()
 	base := &baseProcessor{
@@ -120,6 +124,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		epochRewardsCreator:          arguments.EpochRewardsCreator,
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
+		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
 	}
 
 	mp.txCounter = NewTransactionCounter()
@@ -356,6 +361,11 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	}
 
 	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo)
+	if err != nil {
+		return err
+	}
+
+	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
 	if err != nil {
 		return err
 	}
@@ -728,6 +738,11 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 	metaBlock.EpochStart.Economics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
+
+	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
+	if err != nil {
+		return nil, err
+	}
 
 	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorsInfo)
 	if err != nil {

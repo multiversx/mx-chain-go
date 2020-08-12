@@ -3,6 +3,7 @@ package integrationTests
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -1377,7 +1378,19 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			DataPool:         tpn.DataPool,
 		}
 
+		systemVM, _ := tpn.VMContainer.Get(procFactory.SystemVirtualMachine)
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
+		argsEpochSystemSC := metachain.ArgsNewEpochStartSystemSCProcessing{
+			SystemVM:                systemVM,
+			UserAccountsDB:          tpn.AccntState,
+			PeerAccountsDB:          tpn.PeerState,
+			Marshalizer:             TestMarshalizer,
+			RatingsData:             tpn.RatingsData,
+			ValidatorInfoCreator:    tpn.ValidatorStatisticsProcessor,
+			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
+			StakingSCAddress:        vm.StakingSCAddress,
+		}
+		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:             argumentsBase,
@@ -1389,6 +1402,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			EpochRewardsCreator:          epochStartRewards,
 			EpochValidatorInfoCreator:    epochStartValidatorInfo,
 			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
+			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

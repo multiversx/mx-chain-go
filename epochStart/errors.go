@@ -232,3 +232,9 @@ var ErrStakingSCOutputAccountNotFound = errors.New("staking sc output was not fo
 
 // ErrNilRatingsInfoHandler signals that nil ratings info handler has been provided
 var ErrNilRatingsInfoHandler = errors.New("nil ratings info handler")
+
+// ErrNilEndOfEpochCallerAddress signals that nil end of epoch caller address was provided
+var ErrNilEndOfEpochCallerAddress = errors.New("nil end of epoch caller address")
+
+// ErrNilStakingSCAddress signals that nil staking system smart contract address was provided
+var ErrNilStakingSCAddress = errors.New("nil staking system smart contract address")

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"math"
 	"math/big"
 
@@ -31,6 +30,7 @@ type stakingSC struct {
 	unBondPeriod             uint64
 	stakeAccessAddr          []byte
 	jailAccessAddr           []byte
+	endOfEpochAccessAddr     []byte
 	numRoundsWithoutBleed    uint64
 	bleedPercentagePerRound  float64
 	maximumPercentageToBleed float64
@@ -42,13 +42,14 @@ type stakingSC struct {
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
 type ArgsNewStakingSmartContract struct {
-	StakingSCConfig   config.StakingSystemSCConfig
-	MinNumNodes       uint64
-	Eei               vm.SystemEI
-	StakingAccessAddr []byte
-	JailAccessAddr    []byte
-	GasCost           vm.GasCost
-	Marshalizer       marshal.Marshalizer
+	StakingSCConfig      config.StakingSystemSCConfig
+	MinNumNodes          uint64
+	Eei                  vm.SystemEI
+	StakingAccessAddr    []byte
+	JailAccessAddr       []byte
+	EndOfEpochAccessAddr []byte
+	GasCost              vm.GasCost
+	Marshalizer          marshal.Marshalizer
 }
 
 // NewStakingSmartContract creates a staking smart contract
@@ -63,6 +64,9 @@ func NewStakingSmartContract(
 	}
 	if len(args.JailAccessAddr) < 1 {
 		return nil, vm.ErrInvalidJailAccessAddress
+	}
+	if len(args.EndOfEpochAccessAddr) < 1 {
+		return nil, vm.ErrInvalidEndOfEpochAccessAddress
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
@@ -92,6 +96,7 @@ func NewStakingSmartContract(
 		minNumNodes:              args.MinNumNodes,
 		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:              args.Marshalizer,
+		endOfEpochAccessAddr:     args.EndOfEpochAccessAddr,
 	}
 	conversionOk := true
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
@@ -1004,7 +1009,7 @@ func (r *stakingSC) createWaitingListKey(blsKey []byte) []byte {
 }
 
 func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, factory.EndOfEpochAddress) {
+	if !bytes.Equal(args.CallerAddr, r.endOfEpochAccessAddr) {
 		r.eei.AddReturnMessage("switchJailedWithWaiting function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}

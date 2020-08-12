@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"math/big"
-	"sort"
 	"strings"
 	"time"
 
@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -256,15 +255,15 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 		return 0, process.ErrNilSCDestAccount
 	}
 
-	var vm vmcommon.VMExecutionHandler
-	vm, err = findVMByTransaction(sc.vmContainer, tx)
+	var vmExec vmcommon.VMExecutionHandler
+	vmExec, err = findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
 		returnMessage = "cannot get vm from address"
 		log.Debug("get vm from address error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
 	}
 
-	vmOutput, err = vm.RunSmartContractCall(vmInput)
+	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
@@ -410,9 +409,9 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 
-	outputAccounts := SortVMOutputInsideData(vmOutput)
+	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
-		storageUpdates := GetSortedStorageUpdates(outAcc)
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
 		scrResults = append(scrResults, scTx)
 	}
@@ -645,13 +644,13 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
-	vm, err := sc.vmContainer.Get(vmType)
+	vmExec, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
-	vmOutput, err = vm.RunSmartContractCreate(vmInput)
+	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
@@ -776,7 +775,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, fmt.Errorf(vmOutput.ReturnCode.String())
 	}
 
-	outPutAccounts := SortVMOutputInsideData(vmOutput)
+	outPutAccounts := process.SortVMOutputInsideData(vmOutput)
 
 	scrTxs, err := sc.processSCOutputAccounts(outPutAccounts, tx, txHash)
 	if err != nil {
@@ -817,45 +816,6 @@ func (sc *scProcessor) processVMOutput(
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 
 	return scrTxs, consumedFee, nil
-}
-
-// SortVMOutputInsideData returns the output accounts as a sorted list
-func SortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
-	sort.Slice(vmOutput.DeletedAccounts, func(i, j int) bool {
-		return bytes.Compare(vmOutput.DeletedAccounts[i], vmOutput.DeletedAccounts[j]) < 0
-	})
-	sort.Slice(vmOutput.TouchedAccounts, func(i, j int) bool {
-		return bytes.Compare(vmOutput.TouchedAccounts[i], vmOutput.TouchedAccounts[j]) < 0
-	})
-
-	outPutAccounts := make([]*vmcommon.OutputAccount, len(vmOutput.OutputAccounts))
-	i := 0
-	for _, outAcc := range vmOutput.OutputAccounts {
-		outPutAccounts[i] = outAcc
-		i++
-	}
-
-	sort.Slice(outPutAccounts, func(i, j int) bool {
-		return bytes.Compare(outPutAccounts[i].Address, outPutAccounts[j].Address) < 0
-	})
-
-	return outPutAccounts
-}
-
-// GetSortedStorageUpdates returns the storage updates as a sorted list
-func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.StorageUpdate {
-	storageUpdates := make([]*vmcommon.StorageUpdate, len(account.StorageUpdates))
-	i := 0
-	for _, update := range account.StorageUpdates {
-		storageUpdates[i] = update
-		i++
-	}
-
-	sort.Slice(storageUpdates, func(i, j int) bool {
-		return bytes.Compare(storageUpdates[i].Offset, storageUpdates[j].Offset) < 0
-	})
-
-	return storageUpdates
 }
 
 func (sc *scProcessor) createSCRsWhenError(
@@ -939,7 +899,7 @@ func (sc *scProcessor) createSmartContractResult(
 	result.SndAddr = tx.GetRcvAddr()
 	result.Code = outAcc.Code
 	result.Data = outAcc.Data
-	if bytes.Equal(result.GetRcvAddr(), factory.StakingSCAddress) {
+	if bytes.Equal(result.GetRcvAddr(), vm.StakingSCAddress) {
 		//TODO: write directly from staking smart contract to the validator trie - it gets complicated in reverts
 		// storage update for staking contract is used in stakingToPeer
 		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
@@ -1044,7 +1004,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			return nil, err
 		}
 
-		storageUpdates := GetSortedStorageUpdates(outAcc)
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
 		scResults = append(scResults, scTx)
 

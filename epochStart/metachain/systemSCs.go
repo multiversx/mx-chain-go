@@ -2,19 +2,17 @@ package metachain
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"math/big"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/vm/factory"
+	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -26,15 +24,20 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	Marshalizer          marshal.Marshalizer
 	RatingsData          process.RatingsInfoHandler
 	ValidatorInfoCreator epochStart.ValidatorInfoCreator
+
+	EndOfEpochCallerAddress []byte
+	StakingSCAddress        []byte
 }
 
 type systemSCProcessor struct {
-	systemVM             vmcommon.VMExecutionHandler
-	userAccountsDB       state.AccountsAdapter
-	marshalizer          marshal.Marshalizer
-	peerAccountsDB       state.AccountsAdapter
-	startRating          uint32
-	validatorInfoCreator epochStart.ValidatorInfoCreator
+	systemVM                vmcommon.VMExecutionHandler
+	userAccountsDB          state.AccountsAdapter
+	marshalizer             marshal.Marshalizer
+	peerAccountsDB          state.AccountsAdapter
+	startRating             uint32
+	validatorInfoCreator    epochStart.ValidatorInfoCreator
+	endOfEpochCallerAddress []byte
+	stakingSCAddress        []byte
 }
 
 // NewSystemSCProcessor creates the end of epoch system smart contract processor
@@ -57,14 +60,22 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if check.IfNil(args.ValidatorInfoCreator) {
 		return nil, epochStart.ErrNilValidatorInfoProcessor
 	}
+	if len(args.EndOfEpochCallerAddress) == 0 {
+		return nil, epochStart.ErrNilEndOfEpochCallerAddress
+	}
+	if len(args.StakingSCAddress) == 0 {
+		return nil, epochStart.ErrNilStakingSCAddress
+	}
 
 	return &systemSCProcessor{
-		systemVM:             args.SystemVM,
-		userAccountsDB:       args.UserAccountsDB,
-		peerAccountsDB:       args.PeerAccountsDB,
-		marshalizer:          args.Marshalizer,
-		startRating:          args.RatingsData.StartRating(),
-		validatorInfoCreator: args.ValidatorInfoCreator,
+		systemVM:                args.SystemVM,
+		userAccountsDB:          args.UserAccountsDB,
+		peerAccountsDB:          args.PeerAccountsDB,
+		marshalizer:             args.Marshalizer,
+		startRating:             args.RatingsData.StartRating(),
+		validatorInfoCreator:    args.ValidatorInfoCreator,
+		endOfEpochCallerAddress: args.EndOfEpochCallerAddress,
+		stakingSCAddress:        args.StakingSCAddress,
 	}, nil
 }
 
@@ -83,11 +94,11 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 
 		vmInput := &vmcommon.ContractCallInput{
 			VMInput: vmcommon.VMInput{
-				CallerAddr: factory.EndOfEpochAddress,
+				CallerAddr: s.endOfEpochCallerAddress,
 				Arguments:  [][]byte{jailedValidator.PublicKey},
 				CallValue:  big.NewInt(0),
 			},
-			RecipientAddr: factory.StakingSCAddress,
+			RecipientAddr: s.stakingSCAddress,
 			Function:      "switchJailedWithWaiting",
 		}
 		vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
@@ -120,7 +131,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	jailedValidator *state.ValidatorInfo,
 	vmOutput *vmcommon.VMOutput,
 ) error {
-	stakingSCOutput, ok := vmOutput.OutputAccounts[string(factory.StakingSCAddress)]
+	stakingSCOutput, ok := vmOutput.OutputAccounts[string(s.stakingSCAddress)]
 	if !ok {
 		return epochStart.ErrStakingSCOutputAccountNotFound
 	}
@@ -198,14 +209,14 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 	vmOutput *vmcommon.VMOutput,
 ) error {
 
-	outputAccounts := smartContract.SortVMOutputInsideData(vmOutput)
+	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
 		acc, err := s.getExistingAccount(outAcc.Address)
 		if err != nil {
 			return err
 		}
 
-		storageUpdates := smartContract.GetSortedStorageUpdates(outAcc)
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		for _, storeUpdate := range storageUpdates {
 			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 		}

@@ -21,11 +21,12 @@ import (
 
 func createMockStakingScArguments() ArgsNewStakingSmartContract {
 	return ArgsNewStakingSmartContract{
-		Eei:               &mock.SystemEIStub{},
-		StakingAccessAddr: []byte("auction"),
-		JailAccessAddr:    []byte("jail"),
-		MinNumNodes:       1,
-		Marshalizer:       &mock.MarshalizerMock{},
+		Eei:                  &mock.SystemEIStub{},
+		StakingAccessAddr:    []byte("auction"),
+		JailAccessAddr:       []byte("jail"),
+		EndOfEpochAccessAddr: []byte("endOfEpoch"),
+		MinNumNodes:          1,
+		Marshalizer:          &mock.MarshalizerMock{},
 		StakingSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "100",
 			MinStakeValue:                        "1",

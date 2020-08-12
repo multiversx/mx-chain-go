@@ -2,6 +2,7 @@ package scToProtocol
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -15,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -141,7 +141,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
 
 		query := process.SCQuery{
-			ScAddress: factory.StakingSCAddress,
+			ScAddress: vm.StakingSCAddress,
 			FuncName:  "get",
 			Arguments: [][]byte{blsPubKey},
 		}
@@ -262,7 +262,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 				continue
 			}
 
-			if !bytes.Equal(tx.GetRcvAddr(), factory.StakingSCAddress) {
+			if !bytes.Equal(tx.GetRcvAddr(), vm.StakingSCAddress) {
 				continue
 			}
 
