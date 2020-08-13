@@ -289,6 +289,24 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 	assert.Equal(t, called, 1)
 }
 
+func TestNodeFacade_GetUsername(t *testing.T) {
+	t.Parallel()
+
+	expectedUsername := "username"
+	node := &mock.NodeStub{}
+	node.GetUsernameCalled = func(address string) (string, error) {
+		return expectedUsername, nil
+	}
+
+	arg := createMockArguments()
+	arg.Node = node
+	nf, _ := NewNodeFacade(arg)
+
+	username, err := nf.GetUsername("test")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedUsername, username)
+}
+
 func TestNodeFacade_GetHeartbeatsReturnsNilShouldErr(t *testing.T) {
 	t.Parallel()
 

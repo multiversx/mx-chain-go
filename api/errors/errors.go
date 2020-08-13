@@ -19,6 +19,9 @@ var ErrCouldNotGetAccount = errors.New("could not get requested account")
 // ErrGetBalance signals an error in getting the balance for an account
 var ErrGetBalance = errors.New("get balance error")
 
+// ErrGetUsername signals an error in getting the username for an account
+var ErrGetUsername = errors.New("get username error")
+
 // ErrGetValueForKey signals an error in getting the value of a key for an account
 var ErrGetValueForKey = errors.New("get value for key error")
 
