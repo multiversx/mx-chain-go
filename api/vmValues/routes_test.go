@@ -156,7 +156,7 @@ func TestCreateSCQuery_ArgumentIsNotHexShouldErr(t *testing.T) {
 		Args:      []string{"bad arg"},
 	}
 
-	_, err := createSCQuery(&mock.Facade{}, &request)
+	_, _, err := createSCQuery(&mock.Facade{}, &request)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "'bad arg' is not a valid hex string")
 }

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -42,26 +43,51 @@ func NewSCQueryService(
 
 // ExecuteQuery returns the VMOutput resulted upon running the function on the smart contract
 func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-	if query.ScAddress == nil {
-		return nil, process.ErrNilScAddress
-	}
-	if len(query.FuncName) == 0 {
-		return nil, process.ErrEmptyFunctionName
+	err := checkQueryFields(query)
+	if err != nil {
+		return nil, err
 	}
 
 	service.mutRunSc.Lock()
 	defer service.mutRunSc.Unlock()
 
-	return service.executeScCall(query, 0)
+	return service.executeScCall(query, 0, core.ScQueryDefaultCallValue)
 }
 
-func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
+// ExecuteQueryWithValue returns the VMOutput resulted upon running the function on the smart contract and includes the call value
+func (service *SCQueryService) ExecuteQueryWithValue(query *process.SCQuery, callValue *big.Int) (*vmcommon.VMOutput, error) {
+	err := checkQueryFields(query)
+	if err != nil {
+		return nil, err
+	}
+
+	service.mutRunSc.Lock()
+	defer service.mutRunSc.Unlock()
+
+	return service.executeScCall(query, 0, callValue)
+}
+
+func checkQueryFields(query *process.SCQuery) error {
+	if query.ScAddress == nil {
+		return process.ErrNilScAddress
+	}
+	if len(query.FuncName) == 0 {
+		return process.ErrEmptyFunctionName
+	}
+
+	return nil
+}
+
+func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64, callValue *big.Int) (*vmcommon.VMOutput, error) {
 	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
 		return nil, err
 	}
 
 	vmInput := service.createVMCallInput(query, gasPrice)
+	if callValue != nil && callValue.Cmp(core.ScQueryDefaultCallValue) != 0 {
+		vmInput.CallValue = callValue
+	}
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return nil, err
@@ -123,7 +149,7 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 	service.mutRunSc.Lock()
 	defer service.mutRunSc.Unlock()
 
-	vmOutput, err := service.executeScCall(query, 1)
+	vmOutput, err := service.executeScCall(query, 1, core.ScQueryDefaultCallValue)
 	if err != nil {
 		return 0, err
 	}

@@ -2,6 +2,7 @@ package core
 
 import (
 	"math"
+	"math/big"
 	"time"
 )
 
@@ -381,6 +382,9 @@ const (
 	// NsNotCalculated defines ID of a state which is not calculated
 	NsNotCalculated
 )
+
+// ScQueryDefaultCallValue is used when no call value is set to a request to the sc query service
+var ScQueryDefaultCallValue = big.NewInt(-1)
 
 // MetricP2PPeerInfo is the metric for the node's p2p info
 const MetricP2PPeerInfo = "erd_p2p_peer_info"
