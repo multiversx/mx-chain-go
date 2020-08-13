@@ -13,10 +13,12 @@ type NetworkComponentsMock struct {
 	PeerBlackList   process.PeerBlackListCacher
 }
 
+// PubKeyCacher -
 func (ncm *NetworkComponentsMock) PubKeyCacher() process.TimeCacher {
 	panic("implement me")
 }
 
+// PeerHonestyHandler -
 func (ncm *NetworkComponentsMock) PeerHonestyHandler() factory.PeerHonestyHandler {
 	panic("implement me")
 }

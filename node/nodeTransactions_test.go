@@ -33,11 +33,18 @@ func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
 	dataPool := &testscommon.PoolsHolderStub{
 		TransactionsCalled: getCacherHandler(true, ""),
 	}
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = &mock.MarshalizerFake{}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{}
+
 	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
@@ -57,11 +64,15 @@ func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
 		TransactionsCalled:       getCacherHandler(false, ""),
 		RewardTransactionsCalled: getCacherHandler(true, "reward"),
 	}
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	processComponents := getDefaultProcessComponents()
+
 	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
@@ -82,11 +93,15 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) 
 		RewardTransactionsCalled:   getCacherHandler(false, ""),
 		UnsignedTransactionsCalled: getCacherHandler(true, "unsigned"),
 	}
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	processComponents := getDefaultProcessComponents()
+
 	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
@@ -112,12 +127,16 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 			return getStorerStub(true)
 		},
 	}
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	dataComponents.Store = storer
+	processComponents := getDefaultProcessComponents()
+
 	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
@@ -152,12 +171,16 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 	rcvShard := uint32(2)
 	round := uint64(123)
 	blockNonce := uint64(1001)
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	dataComponents.Store = storer
+	processComponents := getDefaultProcessComponents()
+
 	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return true
@@ -220,13 +243,16 @@ func TestNode_GetFullHistoryTransaction_TxInPoolShouldReturnItDirectly(t *testin
 			return getStorerStub(true)
 		},
 	}
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	dataComponents.Store = storer
+	processComponents := getDefaultProcessComponents()
 
 	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return true
@@ -260,11 +286,15 @@ func TestNode_GetFullHistoryTransaction_TxNotInHistoryStorerShouldErr(t *testing
 		UnsignedTransactionsCalled: getCacherHandler(false, ""),
 	}
 	expectedErr := errors.New("test err")
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	processComponents := getDefaultProcessComponents()
+
 	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return true
@@ -278,7 +308,6 @@ func TestNode_GetFullHistoryTransaction_TxNotInHistoryStorerShouldErr(t *testing
 	tx, err := n.GetTransaction("aaaa")
 	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, tx)
-
 }
 
 func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
@@ -298,12 +327,16 @@ func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 			return getStorerStub(true)
 		},
 	}
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	dataComponents.Store = storer
+	processComponents := getDefaultProcessComponents()
+
 	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
@@ -334,12 +367,16 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T
 			}
 		},
 	}
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	dataComponents.Store = storer
+	processComponents := getDefaultProcessComponents()
+
 	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
@@ -372,15 +409,22 @@ func TestNode_GetTransaction_ShouldFindInStorageButErrorUnmarshaling(t *testing.
 			}
 		},
 	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = &mock.MarshalizerMock{
+		UnmarshalHandler: func(_ interface{}, _ []byte) error {
+			return expectedErr
+		},
+	}
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	dataComponents.Store = storer
+	processComponents := getDefaultProcessComponents()
+
 	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{
-			UnmarshalHandler: func(_ interface{}, _ []byte) error {
-				return expectedErr
-			},
-		}, 0),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
@@ -405,9 +449,12 @@ func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
 			return getStorerStub(false)
 		},
 	}
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	dataComponents.Store = storer
+
 	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
+		node.WithDataComponents(dataComponents),
 		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
 			IsEnabledCalled: func() bool {
 				return false
@@ -438,10 +485,14 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 			return 1
 		},
 	}
+	dataComponents := getDefaultDataComponents()
+	dataComponents.Store = storer
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = shardCoordinator
 
 	n, _ := node.NewNode(
-		node.WithDataStore(storer),
-		node.WithShardCoordinator(shardCoordinator),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
 	rwdTxCrossShard := &rewardTx.RewardTx{RcvAddr: shardZeroAddr}
