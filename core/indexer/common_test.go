@@ -37,6 +37,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 	txHash := []byte("txHash")
 	code := []byte("code")
 	sndAddr, rcvAddr := []byte("snd"), []byte("rec")
+	scHash := "scHash"
 	smartContractRes := &smartContractResult.SmartContractResult{
 		Nonce:      nonce,
 		PrevTxHash: txHash,
@@ -47,16 +48,18 @@ func TestGetTransactionByType_SC(t *testing.T) {
 		CallType:   vmcommon.CallType(1),
 	}
 
-	scRes := cp.convertScResultInDatabaseScr(smartContractRes)
+	scRes := cp.convertScResultInDatabaseScr(scHash, smartContractRes)
 	expectedTx := ScResult{
-		Nonce:     nonce,
-		PreTxHash: hex.EncodeToString(txHash),
-		Code:      string(code),
-		Data:      make([]byte, 0),
-		Sender:    cp.addressPubkeyConverter.Encode(sndAddr),
-		Receiver:  cp.addressPubkeyConverter.Encode(rcvAddr),
-		Value:     "<nil>",
-		CallType:  "1",
+		Nonce:        nonce,
+		Hash:         hex.EncodeToString([]byte(scHash)),
+		PreTxHash:    hex.EncodeToString(txHash),
+		Code:         string(code),
+		Data:         make([]byte, 0),
+		Sender:       cp.addressPubkeyConverter.Encode(sndAddr),
+		Receiver:     cp.addressPubkeyConverter.Encode(rcvAddr),
+		Value:        "<nil>",
+		RelayedValue: "<nil>",
+		CallType:     "1",
 	}
 
 	require.Equal(t, expectedTx, scRes)
