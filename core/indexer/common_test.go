@@ -165,19 +165,3 @@ func TestComputeSizeOfTxs(t *testing.T) {
 	require.Less(t, lenTxs, expectedSizeDeltaPlus)
 	fmt.Printf("Size of %d transactions : %d Kbs \n", numTxs, lenTxs/kb)
 }
-
-func TestInterpretAsString(t *testing.T) {
-	t.Parallel()
-
-	data1 := []byte("@75736572206572726f72@b099086f9bddfcb0a4f45bada01b528f0d1981d7e20344523a7e41a7d8e9c7a6")
-	expectedData1 := []byte("@user error@b099086f9bddfcb0a4f45bada01b528f0d1981d7e20344523a7e41a7d8e9c7a6")
-
-	decodedData := decodeScResultData(data1)
-	require.Equal(t, expectedData1, decodedData)
-
-	data2 := append([]byte("@75736572206572726f72@"), 150, 160)
-	expectedData2 := []byte("@user error")
-
-	decodedData = decodeScResultData(data2)
-	require.Equal(t, expectedData2, decodedData)
-}
