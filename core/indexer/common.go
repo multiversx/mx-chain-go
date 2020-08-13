@@ -187,21 +187,25 @@ func (cm *commonProcessor) buildRewardTransaction(
 	}
 }
 
-func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.SmartContractResult) ScResult {
+func (cm *commonProcessor) convertScResultInDatabaseScr(scHash string, sc *smartContractResult.SmartContractResult) ScResult {
 	decodedData := decodeScResultData(sc.Data)
 	return ScResult{
-		Nonce:         sc.Nonce,
-		GasLimit:      sc.GasLimit,
-		GasPrice:      sc.GasPrice,
-		Value:         sc.Value.String(),
-		Sender:        cm.addressPubkeyConverter.Encode(sc.SndAddr),
-		Receiver:      cm.addressPubkeyConverter.Encode(sc.RcvAddr),
-		Code:          string(sc.Code),
-		Data:          decodedData,
-		PreTxHash:     hex.EncodeToString(sc.PrevTxHash),
-		CallType:      strconv.Itoa(int(sc.CallType)),
-		CodeMetadata:  sc.CodeMetadata,
-		ReturnMessage: string(sc.ReturnMessage),
+		Hash:           hex.EncodeToString([]byte(scHash)),
+		Nonce:          sc.Nonce,
+		GasLimit:       sc.GasLimit,
+		GasPrice:       sc.GasPrice,
+		Value:          sc.Value.String(),
+		Sender:         cm.addressPubkeyConverter.Encode(sc.SndAddr),
+		Receiver:       cm.addressPubkeyConverter.Encode(sc.RcvAddr),
+		RelayerAddr:    cm.addressPubkeyConverter.Encode(sc.RelayerAddr),
+		RelayedValue:   sc.RelayedValue.String(),
+		Code:           string(sc.Code),
+		Data:           decodedData,
+		PreTxHash:      hex.EncodeToString(sc.PrevTxHash),
+		OriginalTxHash: hex.EncodeToString(sc.OriginalTxHash),
+		CallType:       strconv.Itoa(int(sc.CallType)),
+		CodeMetadata:   sc.CodeMetadata,
+		ReturnMessage:  string(sc.ReturnMessage),
 	}
 }
 
