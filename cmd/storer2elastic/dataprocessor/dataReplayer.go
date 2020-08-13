@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
@@ -97,8 +96,6 @@ func (dr *dataReplayer) Range(handler func(persistedData storer2ElasticData.Roun
 	select {
 	case err := <-errChan:
 		return err
-	case <-time.After(time.Hour):
-		return ErrTimeIsOut
 	case <-signalChannel:
 		log.Info("the application will stop after an OS signal")
 		return ErrOsSignalIntercepted
@@ -146,9 +143,9 @@ func (dr *dataReplayer) processMetaChainDatabase(
 
 	shardPersistersHolder := make(map[uint32]*persistersHolder)
 	for shardID := uint32(0); shardID < dr.shardCoordinator.NumberOfShards(); shardID++ {
-		shardDBInfo, err := getShardDatabaseForEpoch(dbsInfo, record.Epoch, shardID)
-		if err != nil {
-			return err
+		shardDBInfo, errGetShardHDr := getShardDatabaseForEpoch(dbsInfo, record.Epoch, shardID)
+		if errGetShardHDr != nil {
+			return errGetShardHDr
 		}
 		shardPersistersHolder[shardID], err = dr.preparePersistersHolder(shardDBInfo)
 		if err != nil {
@@ -180,8 +177,6 @@ func (dr *dataReplayer) processMetaChainDatabase(
 	roundData, err := dr.processMetaBlock(
 		epochStartMetaBlock,
 		dbsInfo,
-		record,
-		metaHeadersPersisters,
 		metachainPersisters,
 		shardPersistersHolder,
 	)
@@ -194,26 +189,24 @@ func (dr *dataReplayer) processMetaChainDatabase(
 
 	for {
 		startingNonce++
-		metaBlock, err := dr.getMetaBlockForNonce(startingNonce, record, metaHeadersPersisters)
-		if err == nil {
-			roundData, err = dr.processMetaBlock(
-				metaBlock,
-				dbsInfo,
-				record,
-				metaHeadersPersisters,
-				metachainPersisters,
-				shardPersistersHolder,
-			)
-			if err != nil {
-				log.Warn(err.Error())
-				break
-			}
-			if !persistedDataHandler(*roundData) {
-				return ErrRangeIsOver
-			}
-		} else {
-			log.Error(err.Error())
+		metaBlock, errGetMb := dr.getMetaBlockForNonce(startingNonce, metaHeadersPersisters)
+		if errGetMb != nil {
+			log.Error(errGetMb.Error())
 			break
+		}
+
+		roundData, err = dr.processMetaBlock(
+			metaBlock,
+			dbsInfo,
+			metachainPersisters,
+			shardPersistersHolder,
+		)
+		if err != nil {
+			log.Warn(err.Error())
+			break
+		}
+		if !persistedDataHandler(*roundData) {
+			return ErrRangeIsOver
 		}
 	}
 
@@ -256,10 +249,10 @@ func (dr *dataReplayer) getEpochStartMetaBlock(record *databasereader.DatabaseIn
 	log.Warn("epoch start meta block not found", "epoch", record.Epoch)
 
 	// header should be found by the epoch start identifier. if not, try getting the nonce 0 (the genesis block)
-	return dr.getMetaBlockForNonce(0, record, metaPersisters)
+	return dr.getMetaBlockForNonce(0, metaPersisters)
 }
 
-func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, record *databasereader.DatabaseInfo, metaPersisters *metaBlocksPersistersHolder) (*block.MetaBlock, error) {
+func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, metaPersisters *metaBlocksPersistersHolder) (*block.MetaBlock, error) {
 	nonceBytes := dr.uint64Converter.ToByteSlice(nonce)
 	metaBlockHash, err := metaPersisters.hdrHashNoncePersister.Get(nonceBytes)
 	if err != nil {
@@ -277,20 +270,19 @@ func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, record *databasereade
 func (dr *dataReplayer) processMetaBlock(
 	metaBlock *block.MetaBlock,
 	dbsInfo []*databasereader.DatabaseInfo,
-	record *databasereader.DatabaseInfo,
-	metaBlocksPersisters *metaBlocksPersistersHolder,
 	persisters *persistersHolder,
 	shardPersisters map[uint32]*persistersHolder,
 ) (*storer2ElasticData.RoundPersistedData, error) {
-	metaHdrData, err := dr.processHeader(persisters, record, metaBlock, record.Epoch)
+	metaHdrData, err := dr.processHeader(persisters, metaBlock)
 	if err != nil {
 		return nil, err
 	}
 
 	shardsHeaderData := make(map[uint32]*storer2ElasticData.HeaderData)
 	for _, shardInfo := range metaBlock.ShardInfo {
-		shardHdrData, err := dr.processShardInfo(dbsInfo, &shardInfo, metaBlock.Epoch, shardPersisters[shardInfo.ShardID])
-		if err != nil {
+		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, &shardInfo, metaBlock.Epoch, shardPersisters[shardInfo.ShardID])
+		if errProcessShardInfo != nil {
+			log.Warn("cannot process shard info", "error", errProcessShardInfo)
 			continue
 		}
 
@@ -309,11 +301,6 @@ func (dr *dataReplayer) processShardInfo(
 	epoch uint32,
 	shardPersisters *persistersHolder,
 ) (*storer2ElasticData.HeaderData, error) {
-	shardDBInfo, err := getShardDatabaseForEpoch(dbsInfos, epoch, shardInfo.ShardID)
-	if err != nil {
-		return nil, err
-	}
-
 	shardHeader, err := dr.getShardHeader(shardPersisters, shardInfo.HeaderHash)
 	if err != nil {
 		// if new epoch, shard headers can be found in the previous epoch's storage
@@ -324,7 +311,7 @@ func (dr *dataReplayer) processShardInfo(
 		}
 	}
 
-	return dr.processHeader(shardPersisters, shardDBInfo, shardHeader, epoch)
+	return dr.processHeader(shardPersisters, shardHeader)
 }
 
 func (dr *dataReplayer) getFromShardStorer(dbsInfos []*databasereader.DatabaseInfo, shardInfo *block.ShardData, epoch uint32) (*block.Header, error) {
@@ -357,7 +344,7 @@ func (dr *dataReplayer) getShardHeader(
 	return dr.headerMarshalizer.UnmarshalShardHeader(shardHeaderBytes)
 }
 
-func (dr *dataReplayer) processHeader(persisters *persistersHolder, dbInfo *databasereader.DatabaseInfo, hdr data.HeaderHandler, epoch uint32) (*storer2ElasticData.HeaderData, error) {
+func (dr *dataReplayer) processHeader(persisters *persistersHolder, hdr data.HeaderHandler) (*storer2ElasticData.HeaderData, error) {
 	miniBlocksHashes := make([]string, 0)
 	shardIDs := dr.getShardIDs()
 	for _, shard := range shardIDs {

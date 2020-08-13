@@ -11,7 +11,7 @@ func NewNodesShuffler() *disabledNodesShuffler {
 }
 
 // UpdateParams won't do anything
-func (d *disabledNodesShuffler) UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool) {
+func (d *disabledNodesShuffler) UpdateParams(_ uint32, _ uint32, _ float32, _ bool) {
 }
 
 // UpdateNodeLists will return already existing data

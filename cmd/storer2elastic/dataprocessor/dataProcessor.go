@@ -99,7 +99,6 @@ func (dp *dataProcessor) processData(persistedData storer2ElasticData.RoundPersi
 		err := dp.ratingsProcessor.IndexRatingsForEpochStartMetaBlock(metaBlock)
 		if err != nil {
 			log.Error("cannot process ratings", "error", err)
-			//return false
 		}
 	}
 

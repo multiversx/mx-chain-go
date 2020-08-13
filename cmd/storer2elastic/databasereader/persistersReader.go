@@ -35,9 +35,9 @@ func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler
 
 	hdrs := make([]data.HeaderHandler, 0)
 	recordsRangeHandler := func(key []byte, value []byte) bool {
-		hdr, err := dr.getHeader(hdrStorer, value)
-		if err != nil {
-			log.Warn("error fetching a header", "key", key, "error", err)
+		hdr, errGetHdr := dr.getHeader(hdrStorer, value)
+		if errGetHdr != nil {
+			log.Warn("error fetching a header", "key", key, "error", errGetHdr)
 		} else {
 			hdrs = append(hdrs, hdr)
 		}

@@ -79,14 +79,14 @@ func (dr *databaseReader) GetDatabaseInfo() ([]*DatabaseInfo, error) {
 
 	for _, dirname := range epochsDirectories {
 		epochStr := re.FindString(dirname)
-		epoch, err := strconv.ParseInt(epochStr, 10, 64)
-		if err != nil {
+		epoch, errParseInt := strconv.ParseInt(epochStr, 10, 64)
+		if errParseInt != nil {
 			log.Warn("cannot parse epoch number from directory name", "directory name", dirname)
 			continue
 		}
 
-		shardDirectories, err := dr.getShardDirectoriesForEpoch(filepath.Join(dr.dbPathWithChainID, dirname))
-		if err != nil {
+		shardDirectories, errGetShardDirs := dr.getShardDirectoriesForEpoch(filepath.Join(dr.dbPathWithChainID, dirname))
+		if errGetShardDirs != nil {
 			log.Warn("cannot parse shard directories for epoch", "epoch directory name", dirname)
 			continue
 		}
@@ -145,8 +145,9 @@ func (dr *databaseReader) getShardDirectoriesForEpoch(dirEpoch string) ([]uint32
 		shardID := core.MetachainShardId
 		shardIdStr := splitSlice[1]
 		if shardIdStr != "metachain" {
-			u64, err := strconv.ParseUint(shardIdStr, 10, 32)
-			if err != nil {
+			u64, errParseUint := strconv.ParseUint(shardIdStr, 10, 32)
+			if errParseUint != nil {
+				log.Warn("cannot parse shard ID from directory", "directory name", fileName)
 				continue
 			}
 			shardID = uint32(u64)
