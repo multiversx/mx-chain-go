@@ -14,14 +14,16 @@ import (
 )
 
 const (
-	getAccountPath = "/:address"
-	getBalancePath = "/:address/balance"
-	getKeyPath     = "/:address/key/:key"
+	getAccountPath  = "/:address"
+	getBalancePath  = "/:address/balance"
+	getUsernamePath = "/:address/username"
+	getKeyPath      = "/:address/key/:key"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
+	GetUsername(address string) (string, error)
 	GetValueForKey(address string, key string) (string, error)
 	GetAccount(address string) (state.UserAccountHandler, error)
 	IsInterfaceNil() bool
@@ -31,6 +33,7 @@ type accountResponse struct {
 	Address  string `json:"address"`
 	Nonce    uint64 `json:"nonce"`
 	Balance  string `json:"balance"`
+	Username string `json:"username"`
 	Code     string `json:"code"`
 	CodeHash []byte `json:"codeHash"`
 	RootHash []byte `json:"rootHash"`
@@ -40,6 +43,7 @@ type accountResponse struct {
 func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getAccountPath, GetAccount)
 	router.RegisterHandler(http.MethodGet, getBalancePath, GetBalance)
+	router.RegisterHandler(http.MethodGet, getUsernamePath, GetUsername)
 	router.RegisterHandler(http.MethodGet, getKeyPath, GetValueForKey)
 }
 
@@ -147,6 +151,48 @@ func GetBalance(c *gin.Context) {
 	)
 }
 
+// GetUsername returns the username for the address parameter
+func GetUsername(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	addr := c.Param("address")
+	if addr == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetUsername.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	userName, err := facade.GetUsername(addr)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetUsername.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"username": userName},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
 // GetValueForKey returns the value for the given address and key
 func GetValueForKey(c *gin.Context) {
 	facade, ok := getFacade(c)
@@ -208,6 +254,7 @@ func accountResponseFromBaseAccount(address string, account state.UserAccountHan
 		Address:  address,
 		Nonce:    account.GetNonce(),
 		Balance:  account.GetBalance().String(),
+		Username: string(account.GetUserName()),
 		Code:     hex.EncodeToString(account.GetCode()),
 		CodeHash: account.GetCodeHash(),
 		RootHash: account.GetRootHash(),
