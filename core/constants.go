@@ -383,6 +383,10 @@ const (
 	NsNotCalculated
 )
 
+// ScQueryDefaultCallerAddress is used when no caller address is set to a request to the sc query service
+// represents the bech32 address for a byte slice filled with zeros
+var ScQueryDefaultCallerAddress = "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu"
+
 // ScQueryDefaultCallValue is used when no call value is set to a request to the sc query service
 var ScQueryDefaultCallValue = big.NewInt(-1)
 

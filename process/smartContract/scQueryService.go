@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"sync"
@@ -51,11 +52,12 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 	service.mutRunSc.Lock()
 	defer service.mutRunSc.Unlock()
 
-	return service.executeScCall(query, 0, core.ScQueryDefaultCallValue)
+	return service.executeScCall(query, 0, nil, core.ScQueryDefaultCallValue)
 }
 
-// ExecuteQueryWithValue returns the VMOutput resulted upon running the function on the smart contract and includes the call value
-func (service *SCQueryService) ExecuteQueryWithValue(query *process.SCQuery, callValue *big.Int) (*vmcommon.VMOutput, error) {
+// ExecuteQueryWithCallerAndValue returns the VMOutput resulted upon running the function on the smart contract
+// and includes the caller address and the value
+func (service *SCQueryService) ExecuteQueryWithCallerAndValue(query *process.SCQuery, callerAddr []byte, callValue *big.Int) (*vmcommon.VMOutput, error) {
 	err := checkQueryFields(query)
 	if err != nil {
 		return nil, err
@@ -64,7 +66,7 @@ func (service *SCQueryService) ExecuteQueryWithValue(query *process.SCQuery, cal
 	service.mutRunSc.Lock()
 	defer service.mutRunSc.Unlock()
 
-	return service.executeScCall(query, 0, callValue)
+	return service.executeScCall(query, 0, callerAddr, callValue)
 }
 
 func checkQueryFields(query *process.SCQuery) error {
@@ -78,13 +80,18 @@ func checkQueryFields(query *process.SCQuery) error {
 	return nil
 }
 
-func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64, callValue *big.Int) (*vmcommon.VMOutput, error) {
+func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64, callerAddr []byte, callValue *big.Int) (*vmcommon.VMOutput, error) {
 	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
 		return nil, err
 	}
 
 	vmInput := service.createVMCallInput(query, gasPrice)
+	if callerAddr != nil &&
+		len(callerAddr) > 0 &&
+		bytes.Compare(callerAddr, []byte(core.ScQueryDefaultCallerAddress)) != 0 {
+		vmInput.CallerAddr = callerAddr
+	}
 	if callValue != nil && callValue.Cmp(core.ScQueryDefaultCallValue) != 0 {
 		vmInput.CallValue = callValue
 	}
@@ -149,7 +156,7 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 	service.mutRunSc.Lock()
 	defer service.mutRunSc.Unlock()
 
-	vmOutput, err := service.executeScCall(query, 1, core.ScQueryDefaultCallValue)
+	vmOutput, err := service.executeScCall(query, 1, nil, core.ScQueryDefaultCallValue)
 	if err != nil {
 		return 0, err
 	}

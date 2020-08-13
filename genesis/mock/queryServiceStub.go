@@ -10,9 +10,9 @@ import (
 
 // QueryServiceStub -
 type QueryServiceStub struct {
-	ComputeScCallGasLimitCalled func(tx *transaction.Transaction) (uint64, error)
-	ExecuteQueryCalled          func(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	ExecuteQueryWithValueCalled func(query *process.SCQuery, callValue *big.Int) (*vmcommon.VMOutput, error)
+	ComputeScCallGasLimitCalled          func(tx *transaction.Transaction) (uint64, error)
+	ExecuteQueryCalled                   func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteQueryWithCallerAndValueCalled func(query *process.SCQuery, callerAddr []byte, callValue *big.Int) (*vmcommon.VMOutput, error)
 }
 
 // ComputeScCallGasLimit -
@@ -33,10 +33,10 @@ func (qss *QueryServiceStub) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMO
 	return &vmcommon.VMOutput{}, nil
 }
 
-// ExecuteQueryWithValue -
-func (qss *QueryServiceStub) ExecuteQueryWithValue(query *process.SCQuery, callValue *big.Int) (*vmcommon.VMOutput, error) {
-	if qss.ExecuteQueryWithValueCalled != nil {
-		return qss.ExecuteQueryWithValueCalled(query, callValue)
+// ExecuteQueryWithCallerAndValue -
+func (qss *QueryServiceStub) ExecuteQueryWithCallerAndValue(query *process.SCQuery, callerAddr []byte, callValue *big.Int) (*vmcommon.VMOutput, error) {
+	if qss.ExecuteQueryWithCallerAndValueCalled != nil {
+		return qss.ExecuteQueryWithCallerAndValueCalled(query, callerAddr, callValue)
 	}
 
 	return &vmcommon.VMOutput{}, nil

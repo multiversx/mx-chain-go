@@ -44,9 +44,9 @@ func (nar *NodeApiResolver) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VM
 	return nar.scQueryService.ExecuteQuery(query)
 }
 
-// ExecuteQueryWithValue retrieves data stored in a SC account through a VM but also includes the call value
-func (nar *NodeApiResolver) ExecuteQueryWithValue(query *process.SCQuery, callValue *big.Int) (*vmcommon.VMOutput, error) {
-	return nar.scQueryService.ExecuteQueryWithValue(query, callValue)
+// ExecuteQueryWithCallerAndValue retrieves data stored in a SC account through a VM but also includes the caller and the value
+func (nar *NodeApiResolver) ExecuteQueryWithCallerAndValue(query *process.SCQuery, callerAddr []byte, callValue *big.Int) (*vmcommon.VMOutput, error) {
+	return nar.scQueryService.ExecuteQueryWithCallerAndValue(query, callerAddr, callValue)
 }
 
 // StatusMetrics returns an implementation of the StatusMetricsHandler interface

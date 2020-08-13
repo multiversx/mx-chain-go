@@ -10,9 +10,9 @@ import (
 
 // SCQueryServiceStub -
 type SCQueryServiceStub struct {
-	ExecuteQueryCalled           func(*process.SCQuery) (*vmcommon.VMOutput, error)
-	ExecuteQueryWithValueCalled  func(query *process.SCQuery, value *big.Int) (*vmcommon.VMOutput, error)
-	ComputeScCallGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
+	ExecuteQueryCalled                   func(*process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteQueryWithCallerAndValueCalled func(query *process.SCQuery, callerAddr []byte, value *big.Int) (*vmcommon.VMOutput, error)
+	ComputeScCallGasLimitHandler         func(tx *transaction.Transaction) (uint64, error)
 }
 
 // ExecuteQuery -
@@ -20,9 +20,9 @@ func (serviceStub *SCQueryServiceStub) ExecuteQuery(query *process.SCQuery) (*vm
 	return serviceStub.ExecuteQueryCalled(query)
 }
 
-// ExecuteQueryWithValue -
-func (serviceStub *SCQueryServiceStub) ExecuteQueryWithValue(query *process.SCQuery, value *big.Int) (*vmcommon.VMOutput, error) {
-	return serviceStub.ExecuteQueryWithValueCalled(query, value)
+// ExecuteQueryWithCallerAndValue -
+func (serviceStub *SCQueryServiceStub) ExecuteQueryWithCallerAndValue(query *process.SCQuery, callerAddr []byte, callValue *big.Int) (*vmcommon.VMOutput, error) {
+	return serviceStub.ExecuteQueryWithCallerAndValueCalled(query, callerAddr, callValue)
 }
 
 // ComputeScCallGasLimit -

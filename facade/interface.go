@@ -69,7 +69,7 @@ type NodeHandler interface {
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	ExecuteQueryWithValue(query *process.SCQuery, callValue *big.Int) (*vmcommon.VMOutput, error)
+	ExecuteQueryWithCallerAndValue(query *process.SCQuery, callerAddr []byte, callValue *big.Int) (*vmcommon.VMOutput, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool

@@ -25,17 +25,18 @@ const (
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	ExecuteSCQuery(*process.SCQuery) (*vmcommon.VMOutput, error)
-	ExecuteQueryWithValue(query *process.SCQuery, callValue *big.Int) (*vmcommon.VMOutput, error)
+	ExecuteQueryWithCallerAndValue(query *process.SCQuery, callerAddress string, callValue *big.Int) (*vmcommon.VMOutput, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
 // VMValueRequest represents the structure on which user input for generating a new transaction will validate against
 type VMValueRequest struct {
-	ScAddress string   `form:"scAddress" json:"scAddress"`
-	FuncName  string   `form:"funcName" json:"funcName"`
-	CallValue string   `form:"value" json:"value"`
-	Args      []string `form:"args"  json:"args"`
+	ScAddress  string   `form:"scAddress" json:"scAddress"`
+	FuncName   string   `form:"funcName" json:"funcName"`
+	CallerAddr string   `form:"caller" json:"caller"`
+	CallValue  string   `form:"value" json:"value"`
+	Args       []string `form:"args"  json:"args"`
 }
 
 // Routes defines address related routes
@@ -106,22 +107,22 @@ func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, errors.ErrInvalidJSONRequest
 	}
 
-	command, callValue, err := createSCQuery(ef, &request)
+	command, callerAddr, callValue, err := createSCQuery(ef, &request)
 	if err != nil {
 		return nil, err
 	}
 
 	if callValue.Cmp(core.ScQueryDefaultCallValue) != 0 {
-		return ef.ExecuteQueryWithValue(command, callValue)
+		return ef.ExecuteQueryWithCallerAndValue(command, callerAddr, callValue)
 	}
 
 	return ef.ExecuteSCQuery(command)
 }
 
-func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery, *big.Int, error) {
+func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery, string, *big.Int, error) {
 	decodedAddress, err := fh.DecodeAddressPubkey(request.ScAddress)
 	if err != nil {
-		return nil, nil, fmt.Errorf("'%s' is not a valid address: %s", request.ScAddress, err.Error())
+		return nil, "", nil, fmt.Errorf("'%s' is not a valid address: %s", request.ScAddress, err.Error())
 	}
 
 	arguments := make([][]byte, len(request.Args))
@@ -129,10 +130,15 @@ func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery,
 	for i, arg := range request.Args {
 		argBytes, err = hex.DecodeString(arg)
 		if err != nil {
-			return nil, nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
+			return nil, "", nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
 		}
 
 		arguments[i] = append(arguments[i], argBytes...)
+	}
+
+	callerAddress := core.ScQueryDefaultCallerAddress
+	if len(request.CallerAddr) > 0 {
+		callerAddress = request.CallerAddr
 	}
 
 	callValue := core.ScQueryDefaultCallValue
@@ -140,7 +146,7 @@ func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery,
 		var ok bool
 		callValue, ok = big.NewInt(0).SetString(request.CallValue, 10)
 		if !ok {
-			return nil, nil, fmt.Errorf("non numeric value provided: %s", request.CallValue)
+			return nil, "", nil, fmt.Errorf("non numeric value provided: %s", request.CallValue)
 		}
 	}
 
@@ -148,7 +154,7 @@ func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery,
 		ScAddress: decodedAddress,
 		FuncName:  request.FuncName,
 		Arguments: arguments,
-	}, callValue, nil
+	}, callerAddress, callValue, nil
 }
 
 func returnBadRequest(context *gin.Context, errScope string, err error) {

@@ -11,10 +11,10 @@ import (
 
 // ApiResolverStub -
 type ApiResolverStub struct {
-	ExecuteSCQueryHandler             func(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	ExecuteSCQueryWithValueCalled     func(query *process.SCQuery, callValue *big.Int) (*vmcommon.VMOutput, error)
-	StatusMetricsHandler              func() external.StatusMetricsHandler
-	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
+	ExecuteSCQueryHandler                  func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQueryWithCallerAndValueCalled func(query *process.SCQuery, callerAddr []byte, callValue *big.Int) (*vmcommon.VMOutput, error)
+	StatusMetricsHandler                   func() external.StatusMetricsHandler
+	ComputeTransactionGasLimitHandler      func(tx *transaction.Transaction) (uint64, error)
 }
 
 // ExecuteSCQuery -
@@ -22,9 +22,9 @@ func (ars *ApiResolverStub) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VM
 	return ars.ExecuteSCQueryHandler(query)
 }
 
-// ExecuteQueryWithValue -
-func (ars *ApiResolverStub) ExecuteQueryWithValue(query *process.SCQuery, callValue *big.Int) (*vmcommon.VMOutput, error) {
-	return ars.ExecuteSCQueryWithValueCalled(query, callValue)
+// ExecuteQueryWithCallerAndValue -
+func (ars *ApiResolverStub) ExecuteQueryWithCallerAndValue(query *process.SCQuery, callerAddr []byte, callValue *big.Int) (*vmcommon.VMOutput, error) {
+	return ars.ExecuteSCQueryWithCallerAndValueCalled(query, callerAddr, callValue)
 }
 
 // StatusMetrics -
