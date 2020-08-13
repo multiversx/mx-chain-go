@@ -2,6 +2,7 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/data/state"
 
+// EpochStartSystemSCStub -
 type EpochStartSystemSCStub struct {
 	ProcessSystemSmartContractCalled func(validatorInfos map[uint32][]*state.ValidatorInfo) error
 }

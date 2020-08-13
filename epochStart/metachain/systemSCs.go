@@ -138,8 +138,9 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 
 	var activeStorageUpdate *vmcommon.StorageUpdate
 	for _, storageUpdate := range stakingSCOutput.StorageUpdates {
-		if len(storageUpdate.Offset) == len(jailedValidator.PublicKey) &&
-			!bytes.Equal(storageUpdate.Offset, jailedValidator.PublicKey) {
+		isNewValidatorKey := len(storageUpdate.Offset) == len(jailedValidator.PublicKey) &&
+			!bytes.Equal(storageUpdate.Offset, jailedValidator.PublicKey)
+		if isNewValidatorKey {
 			activeStorageUpdate = storageUpdate
 			break
 		}
