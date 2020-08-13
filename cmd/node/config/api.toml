@@ -33,6 +33,9 @@
         # /address/:address/balance will return the balance of a given account
         { Name = "/:address/balance", Open = true },
 
+        # /address/:address/username will return the username of a given account
+        { Name = "/:address/username", Open = true },
+
         # /address/:address/key/:key will return the value of a key for a given account
         { Name = "/:address/key/:key", Open = true }
 	]
@@ -102,6 +105,6 @@
 	    # /block/by-nonce/:nonce will return the block in JSON format based on its nonce
 	    { Name = "/by-nonce/:nonce", Open = true },
 
-	    # /block/by-hash/:hash will return the block in JSON format based on its nonce
+	    # /block/by-hash/:hash will return the block in JSON format based on its hash
 	    { Name = "/by-hash/:hash", Open = true },
 	]
