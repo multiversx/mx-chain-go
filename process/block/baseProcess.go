@@ -794,15 +794,6 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,
 	}
 
-	log.Debug("baseProcessor.prepareDataForBootStorer",
-		"LastHeader", bp.displayBoostrapHeaderInfo(args.headerInfo),
-		"LastCrossNotarizedHeaders", bp.displayBootstrapHeaders(lastCrossNotarizedHeaders),
-		"LastSelfNotarizedHeaders", bp.displayBootstrapHeaders(args.lastSelfNotarizedHeaders),
-		"HighestFinalBlockNonce", args.highestFinalBlockNonce,
-		"NodesCoordinatorConfigKey", args.nodesCoordinatorConfigKey,
-		"EpochStartTriggerConfigKey", args.epochStartTriggerConfigKey,
-	)
-
 	startTime := time.Now()
 
 	err := bp.bootStorer.Put(int64(args.round), bootData)
@@ -815,21 +806,6 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 	if elapsedTime >= core.PutInStorerMaxTime {
 		log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
 	}
-}
-
-func (bp *baseProcessor) displayBootstrapHeaders(hdrs []bootstrapStorage.BootstrapHeaderInfo) string {
-	str := "["
-	for _, h := range hdrs {
-		str += bp.displayBoostrapHeaderInfo(h)
-	}
-
-	str += "]"
-	return str
-}
-
-func (bp *baseProcessor) displayBoostrapHeaderInfo(hinfo bootstrapStorage.BootstrapHeaderInfo) string {
-	return fmt.Sprintf("shard %d, nonce %d, epoch %d, hash %s",
-		hinfo.ShardId, hinfo.Nonce, hinfo.Epoch, logger.DisplayByteSlice(hinfo.Hash))
 }
 
 func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo {
