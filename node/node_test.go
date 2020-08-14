@@ -230,10 +230,13 @@ func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
 	coreComponents.VmMarsh = getMarshalizer()
 	coreComponents.Hash = getHasher()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
+	stateComponents.Accounts = nil
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code", &mock.PrivateKeyStub{}, []byte("chainID"), 1)
 	assert.NotNil(t, err)
 }
@@ -779,14 +782,17 @@ func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	networkComponents.Messenger = messenger
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = dataPool
+	processComponents := getDefaultProcessComponents()
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithNetworkComponents(networkComponents),
 		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
+	processComponents.ShardCoord = nil
 	err := n.CreateShardedStores()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "nil shard coordinator")
@@ -808,14 +814,17 @@ func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 	networkComponents.Messenger = messenger
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = &mock.AccountsStub{}
+	dataComponents := getDefaultDataComponents()
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithProcessComponents(processComponents),
 		node.WithNetworkComponents(networkComponents),
 		node.WithStateComponents(stateComponents),
+		node.WithDataComponents(dataComponents),
 	)
 
+	dataComponents.DataPool = nil
 	err := n.CreateShardedStores()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "nil data pool")
@@ -1019,11 +1028,14 @@ func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
 
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+	stateComponents := getDefaultStateComponents()
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
+	stateComponents.Accounts = nil
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
 	assert.Nil(t, recovAccnt)
@@ -1040,11 +1052,14 @@ func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
 	}
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = accDB
+	coreComponents := getDefaultCoreComponents()
 
 	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 	)
 
+	coreComponents.AddrPubKeyConv = nil
 	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
 
 	assert.Nil(t, recovAccnt)
@@ -1295,11 +1310,16 @@ func TestNode_EncodeDecodeAddressPubkey(t *testing.T) {
 	assert.Equal(t, buff, recoveredBytes)
 }
 
-func TestNode_EncodeDecodeAddressPubkeyWithNilCoberterShouldErr(t *testing.T) {
+func TestNode_EncodeDecodeAddressPubkeyWithNilConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	buff := []byte("abcdefg")
-	n, _ := node.NewNode()
+
+	coreComponents := getDefaultCoreComponents()
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents))
+
+	coreComponents.AddrPubKeyConv = nil
 	encoded, err := n.EncodeAddressPubkey(buff)
 
 	assert.Empty(t, encoded)
@@ -1309,8 +1329,13 @@ func TestNode_EncodeDecodeAddressPubkeyWithNilCoberterShouldErr(t *testing.T) {
 func TestNode_DecodeAddressPubkeyWithNilConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	n, _ := node.NewNode()
+	coreComponents := getDefaultCoreComponents()
 
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+	)
+
+	coreComponents.AddrPubKeyConv = nil
 	recoveredBytes, err := n.DecodeAddressPubkey("")
 
 	assert.True(t, errors.Is(err, node.ErrNilPubkeyConverter))
