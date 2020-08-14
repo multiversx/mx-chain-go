@@ -15,10 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var (
-	log                   = logger.GetOrCreate("core/fullHistory")
-	errInvalidBodyHandler = fmt.Errorf("cannot convert bodyHandler in body")
-)
+var log = logger.GetOrCreate("core/fullHistory")
 
 // HistoryRepositoryArguments is a structure that stores all components that are needed to a history processor
 type HistoryRepositoryArguments struct {
@@ -80,7 +77,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcess
 func (hp *historyProcessor) PutTransactionsData(historyTxsData *HistoryTransactionsData) error {
 	body, ok := historyTxsData.BlockBody.(*block.Body)
 	if !ok {
-		return errInvalidBodyHandler
+		return errCannotCastToBlockBody
 	}
 
 	blockHeaderHash := historyTxsData.BlockHeaderHash
@@ -88,12 +85,11 @@ func (hp *historyProcessor) PutTransactionsData(historyTxsData *HistoryTransacti
 
 	err := hp.hashToEpochIndex.saveEpochByHash(blockHeaderHash, epoch)
 	if err != nil {
-		log.Warn("saveEpochByHash(): cannot save header hash", "error", err.Error())
-		return err
+		return newErrCannotSaveEpochByHash("block header", blockHeaderHash, err)
 	}
 
-	for _, mb := range body.MiniBlocks {
-		err = hp.saveMiniblockData(historyTxsData, mb, epoch)
+	for _, miniblock := range body.MiniBlocks {
+		err = hp.saveMiniblockData(historyTxsData, miniblock, epoch)
 		if err != nil {
 			continue
 		}
@@ -102,39 +98,42 @@ func (hp *historyProcessor) PutTransactionsData(historyTxsData *HistoryTransacti
 	return nil
 }
 
-func (hp *historyProcessor) saveMiniblockData(historyTxsData *HistoryTransactionsData, mb *block.MiniBlock, epoch uint32) error {
-	mbHash, err := core.CalculateHash(hp.marshalizer, hp.hasher, mb)
+func (hp *historyProcessor) saveMiniblockData(historyTxsData *HistoryTransactionsData, miniblock *block.MiniBlock, epoch uint32) error {
+	miniblockHash, err := core.CalculateHash(hp.marshalizer, hp.hasher, miniblock)
 	if err != nil {
-		log.Warn("cannot calculate miniblock hash", "error", err.Error())
 		return err
 	}
 
-	err = hp.hashToEpochIndex.saveEpochByHash(mbHash, epoch)
+	err = hp.hashToEpochIndex.saveEpochByHash(miniblockHash, epoch)
 	if err != nil {
-		log.Warn("saveEpochByHash(): cannot save miniblock hash", "error", err.Error())
-		return err
+		return newErrCannotSaveEpochByHash("miniblock", miniblockHash, err)
 	}
 
 	var status core.TransactionStatus
-	if mb.ReceiverShardID == hp.selfShardID {
+	if miniblock.ReceiverShardID == hp.selfShardID {
 		status = core.TxStatusExecuted
 	} else {
 		status = core.TxStatusPartiallyExecuted
 	}
 
-	transactionsMetadata := buildTransactionsGroupMetadata(historyTxsData.BlockHeader, historyTxsData.BlockHeaderHash, mbHash, mb.ReceiverShardID, mb.SenderShardID, status)
-	transactionsMetadataBytes, err := hp.marshalizer.Marshal(transactionsMetadata)
+	transactionsGroupMetadata := buildTransactionsGroupMetadata(
+		historyTxsData.BlockHeader,
+		historyTxsData.BlockHeaderHash,
+		miniblockHash,
+		miniblock.ReceiverShardID,
+		miniblock.SenderShardID,
+		status,
+	)
+	transactionsGroupMetadataBytes, err := hp.marshalizer.Marshal(transactionsGroupMetadata)
 	if err != nil {
-		log.Warn("cannot marshal history transaction", "error", err.Error())
 		return err
 	}
 
-	for _, txHash := range mb.TxHashes {
-		err = hp.saveTransactionMetadata(transactionsMetadataBytes, txHash, epoch)
+	for _, txHash := range miniblock.TxHashes {
+		// Question for review: so, it means that, for 1000 txs in a miniblock, we save the same thing 1000 times, right?
+		err = hp.saveTransactionMetadata(transactionsGroupMetadataBytes, txHash, epoch)
 		if err != nil {
-			log.Warn("cannot save in storage",
-				"hash", string(txHash),
-				"error", err.Error())
+			log.Warn("cannot save tx in storage", "hash", string(txHash), "error", err.Error())
 		}
 	}
 
@@ -144,7 +143,7 @@ func (hp *historyProcessor) saveMiniblockData(historyTxsData *HistoryTransaction
 func (hp *historyProcessor) saveTransactionMetadata(historyTxBytes []byte, txHash []byte, epoch uint32) error {
 	err := hp.hashToEpochIndex.saveEpochByHash(txHash, epoch)
 	if err != nil {
-		return fmt.Errorf("saveEpochByHash(): cannot save transaction hash %w", err)
+		return newErrCannotSaveEpochByHash("tx", txHash, err)
 	}
 
 	err = hp.historyStorer.Put(txHash, historyTxBytes)

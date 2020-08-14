@@ -39,6 +39,7 @@ func (i *hashToEpochIndex) saveEpochByHash(hash []byte, epoch uint32) error {
 		Epoch: epoch,
 	}
 
+	// Question for review: perhaps do not use proto marshalizer here, but simply convert the uint32 -> 4 bytes instead?
 	rawBytes, err := i.marshalizer.Marshal(record)
 	if err != nil {
 		return err
