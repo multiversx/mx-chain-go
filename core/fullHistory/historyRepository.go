@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. transactionsGroupMetadata.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. miniblockMetadata.proto
 
 package fullHistory
 
@@ -27,10 +27,10 @@ type HistoryRepositoryArguments struct {
 	Hasher                      hashing.Hasher
 }
 
-// TransactionsGroupMetadataWithEpoch is a structure for a history transaction that also contain epoch
-type TransactionsGroupMetadataWithEpoch struct {
+// MiniblockMetadataWithEpoch holds miniblock metadata and epoch
+type MiniblockMetadataWithEpoch struct {
 	Epoch uint32
-	*TransactionsGroupMetadata
+	*MiniblockMetadata
 }
 
 type historyProcessor struct {
@@ -86,7 +86,11 @@ func (hp *historyProcessor) RecordBlock(blockHeaderHash []byte, blockHeader data
 	}
 
 	for _, miniblock := range body.MiniBlocks {
-		err = hp.saveMiniblockData(blockHeaderHash, blockHeader, miniblock, epoch)
+		if miniblock.Type == block.PeerBlock {
+			continue
+		}
+
+		err = hp.saveMiniblockMetadata(blockHeaderHash, blockHeader, miniblock, epoch)
 		if err != nil {
 			continue
 		}
@@ -95,7 +99,7 @@ func (hp *historyProcessor) RecordBlock(blockHeaderHash []byte, blockHeader data
 	return nil
 }
 
-func (hp *historyProcessor) saveMiniblockData(blockHeaderHash []byte, blockHeader data.HeaderHandler, miniblock *block.MiniBlock, epoch uint32) error {
+func (hp *historyProcessor) saveMiniblockMetadata(blockHeaderHash []byte, blockHeader data.HeaderHandler, miniblock *block.MiniBlock, epoch uint32) error {
 	miniblockHash, err := core.CalculateHash(hp.marshalizer, hp.hasher, miniblock)
 	if err != nil {
 		return err
@@ -106,35 +110,41 @@ func (hp *historyProcessor) saveMiniblockData(blockHeaderHash []byte, blockHeade
 		return newErrCannotSaveEpochByHash("miniblock", miniblockHash, err)
 	}
 
-	var status core.TransactionStatus
-	if miniblock.ReceiverShardID == hp.selfShardID {
-		status = core.TxStatusExecuted
-	} else {
-		status = core.TxStatusPartiallyExecuted
+	miniblockMetadata := &MiniblockMetadata{
+		HeaderHash:  blockHeaderHash,
+		MbHash:      miniblockHash,
+		Round:       blockHeader.GetRound(),
+		HeaderNonce: blockHeader.GetNonce(),
+		SndShardID:  miniblock.GetSenderShardID(),
+		RcvShardID:  miniblock.GetReceiverShardID(),
+		Status:      []byte(hp.getMiniblockStatus(miniblock)),
 	}
 
-	transactionsGroupMetadata := buildTransactionsGroupMetadata(
-		blockHeader,
-		blockHeaderHash,
-		miniblockHash,
-		miniblock.ReceiverShardID,
-		miniblock.SenderShardID,
-		status,
-	)
-	transactionsGroupMetadataBytes, err := hp.marshalizer.Marshal(transactionsGroupMetadata)
+	miniblockMetadataBytes, err := hp.marshalizer.Marshal(miniblockMetadata)
 	if err != nil {
 		return err
 	}
 
 	for _, txHash := range miniblock.TxHashes {
 		// Question for review: so, it means that, for 1000 txs in a miniblock, we save the same thing 1000 times, right?
-		err = hp.saveTransactionMetadata(transactionsGroupMetadataBytes, txHash, epoch)
+		err = hp.saveTransactionMetadata(miniblockMetadataBytes, txHash, epoch)
 		if err != nil {
 			log.Warn("cannot save tx in storage", "hash", string(txHash), "error", err.Error())
 		}
 	}
 
 	return nil
+}
+
+func (hp *historyProcessor) getMiniblockStatus(miniblock *block.MiniBlock) core.TransactionStatus {
+	if miniblock.Type == block.InvalidBlock {
+		return core.TxStatusInvalid
+	}
+	if miniblock.ReceiverShardID == hp.selfShardID {
+		return core.TxStatusExecuted
+	}
+
+	return core.TxStatusPartiallyExecuted
 }
 
 func (hp *historyProcessor) saveTransactionMetadata(historyTxBytes []byte, txHash []byte, epoch uint32) error {
@@ -151,46 +161,27 @@ func (hp *historyProcessor) saveTransactionMetadata(historyTxBytes []byte, txHas
 	return nil
 }
 
-func buildTransactionsGroupMetadata(
-	headerHandler data.HeaderHandler,
-	headerHash []byte,
-	mbHash []byte,
-	rcvShardID uint32,
-	sndShardID uint32,
-	status core.TransactionStatus,
-) *TransactionsGroupMetadata {
-	return &TransactionsGroupMetadata{
-		HeaderHash:  headerHash,
-		MbHash:      mbHash,
-		Round:       headerHandler.GetRound(),
-		HeaderNonce: headerHandler.GetNonce(),
-		RcvShardID:  rcvShardID,
-		SndShardID:  sndShardID,
-		Status:      []byte(status),
-	}
-}
-
-// GetTransactionsGroupMetadata will return a history transaction for the given hash from storage
-func (hp *historyProcessor) GetTransactionsGroupMetadata(hash []byte) (*TransactionsGroupMetadataWithEpoch, error) {
+// GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage
+func (hp *historyProcessor) GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadataWithEpoch, error) {
 	epoch, err := hp.epochByHashIndex.getEpochByHash(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	historyTxBytes, err := hp.miniblocksMetadataStorer.GetFromEpoch(hash, epoch)
+	metadataBytes, err := hp.miniblocksMetadataStorer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	historyTx := &TransactionsGroupMetadata{}
-	err = hp.marshalizer.Unmarshal(historyTx, historyTxBytes)
+	metadata := &MiniblockMetadata{}
+	err = hp.marshalizer.Unmarshal(metadata, metadataBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return &TransactionsGroupMetadataWithEpoch{
-		Epoch:                     epoch,
-		TransactionsGroupMetadata: historyTx,
+	return &MiniblockMetadataWithEpoch{
+		Epoch:             epoch,
+		MiniblockMetadata: metadata,
 	}, nil
 }
 
