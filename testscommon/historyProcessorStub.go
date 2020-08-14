@@ -7,8 +7,8 @@ import (
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
 	PutTransactionsDataCalled          func(htd *fullHistory.HistoryTransactionsData) error
-	GetTransactionsGroupMetadataCalled func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error)
-	GetEpochForHashCalled              func(hash []byte) (uint32, error)
+	GetTransactionsGroupMetadataCalled func(hash []byte) (*fullHistory.TransactionsGroupMetadataWithEpoch, error)
+	GetEpochByHashCalled               func(hash []byte) (uint32, error)
 	IsEnabledCalled                    func() bool
 }
 
@@ -21,16 +21,16 @@ func (hp *HistoryRepositoryStub) PutTransactionsData(historyTxsData *fullHistory
 }
 
 // GetTransactionsGroupMetadata -
-func (hp *HistoryRepositoryStub) GetTransactionsGroupMetadata(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
+func (hp *HistoryRepositoryStub) GetTransactionsGroupMetadata(hash []byte) (*fullHistory.TransactionsGroupMetadataWithEpoch, error) {
 	if hp.GetTransactionsGroupMetadataCalled != nil {
 		return hp.GetTransactionsGroupMetadataCalled(hash)
 	}
 	return nil, nil
 }
 
-// GetEpochForHash -
-func (hp *HistoryRepositoryStub) GetEpochForHash(hash []byte) (uint32, error) {
-	return hp.GetEpochForHashCalled(hash)
+// GetEpochByHash -
+func (hp *HistoryRepositoryStub) GetEpochByHash(hash []byte) (uint32, error) {
+	return hp.GetEpochByHashCalled(hash)
 }
 
 // IsEnabled -

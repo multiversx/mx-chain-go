@@ -162,8 +162,8 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 			IsEnabledCalled: func() bool {
 				return true
 			},
-			GetTransactionsGroupMetadataCalled: func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
-				return &fullHistory.HistoryTransactionWithEpoch{
+			GetTransactionsGroupMetadataCalled: func(hash []byte) (*fullHistory.TransactionsGroupMetadataWithEpoch, error) {
+				return &fullHistory.TransactionsGroupMetadataWithEpoch{
 					Epoch: epoch,
 					TransactionsGroupMetadata: &fullHistory.TransactionsGroupMetadata{
 						MbHash:      mbHash,
@@ -269,7 +269,7 @@ func TestNode_GetFullHistoryTransaction_TxNotInHistoryStorerShouldErr(t *testing
 			IsEnabledCalled: func() bool {
 				return true
 			},
-			GetTransactionsGroupMetadataCalled: func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
+			GetTransactionsGroupMetadataCalled: func(hash []byte) (*fullHistory.TransactionsGroupMetadataWithEpoch, error) {
 				return nil, expectedErr
 			},
 		}),

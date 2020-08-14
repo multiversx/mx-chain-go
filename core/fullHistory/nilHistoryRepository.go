@@ -14,16 +14,16 @@ func (nhr *nilHistoryRepository) PutTransactionsData(_ *HistoryTransactionsData)
 }
 
 // GetTransaction returns a not implemented error
-func (nhr *nilHistoryRepository) GetTransactionsGroupMetadata(_ []byte) (*HistoryTransactionWithEpoch, error) {
+func (nhr *nilHistoryRepository) GetTransactionsGroupMetadata(_ []byte) (*TransactionsGroupMetadataWithEpoch, error) {
 	return nil, nil
 }
 
-// GetEpochForHash returns a not implemented error
-func (nhr *nilHistoryRepository) GetEpochForHash(_ []byte) (uint32, error) {
+// GetEpochByHash returns a not implemented error
+func (nhr *nilHistoryRepository) GetEpochByHash(_ []byte) (uint32, error) {
 	return 0, nil
 }
 
-// IsEnabled -
+// IsEnabled returns false
 func (nhr *nilHistoryRepository) IsEnabled() bool {
 	return false
 }

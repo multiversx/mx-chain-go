@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockHistoryProcArgs() HistoryRepositoryArguments {
+func createMockHistoryRepoArgs() HistoryRepositoryArguments {
 	return HistoryRepositoryArguments{
 		Marshalizer:     &mock.MarshalizerMock{},
 		Hasher:          &mock.HasherMock{},
@@ -24,57 +24,57 @@ func createMockHistoryProcArgs() HistoryRepositoryArguments {
 func TestNewHistoryRepository_NilHistoryStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockHistoryProcArgs()
+	args := createMockHistoryRepoArgs()
 	args.HistoryStorer = nil
 
-	proc, err := NewHistoryRepository(args)
-	assert.Nil(t, proc)
+	repo, err := NewHistoryRepository(args)
+	assert.Nil(t, repo)
 	assert.Equal(t, core.ErrNilStore, err)
 }
 
 func TestNewHistoryRepository_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockHistoryProcArgs()
+	args := createMockHistoryRepoArgs()
 	args.Hasher = nil
 
-	proc, err := NewHistoryRepository(args)
-	assert.Nil(t, proc)
+	repo, err := NewHistoryRepository(args)
+	assert.Nil(t, repo)
 	assert.Equal(t, core.ErrNilHasher, err)
 }
 
 func TestNewHistoryRepository_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockHistoryProcArgs()
+	args := createMockHistoryRepoArgs()
 	args.Marshalizer = nil
 
-	proc, err := NewHistoryRepository(args)
-	assert.Nil(t, proc)
+	repo, err := NewHistoryRepository(args)
+	assert.Nil(t, repo)
 	assert.Equal(t, core.ErrNilMarshalizer, err)
 }
 
 func TestNewHistoryRepository_NilHashEpochStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockHistoryProcArgs()
+	args := createMockHistoryRepoArgs()
 	args.HashEpochStorer = nil
 
-	proc, err := NewHistoryRepository(args)
-	assert.Nil(t, proc)
+	repo, err := NewHistoryRepository(args)
+	assert.Nil(t, repo)
 	assert.Equal(t, core.ErrNilStore, err)
 }
 
 func TestNewHistoryRepository(t *testing.T) {
 	t.Parallel()
 
-	args := createMockHistoryProcArgs()
+	args := createMockHistoryRepoArgs()
 
-	proc, err := NewHistoryRepository(args)
-	assert.NotNil(t, proc)
+	repo, err := NewHistoryRepository(args)
+	assert.NotNil(t, repo)
 	assert.NoError(t, err)
-	assert.True(t, proc.IsEnabled())
-	assert.False(t, proc.IsInterfaceNil())
+	assert.True(t, repo.IsEnabled())
+	assert.False(t, repo.IsInterfaceNil())
 }
 
 func TestHistoryRepository_PutTransactionsData(t *testing.T) {
@@ -82,7 +82,7 @@ func TestHistoryRepository_PutTransactionsData(t *testing.T) {
 
 	txHash := []byte("txHash")
 	countCalledHashEpoch := 0
-	args := createMockHistoryProcArgs()
+	args := createMockHistoryRepoArgs()
 	args.HashEpochStorer = &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			countCalledHashEpoch++
@@ -96,15 +96,15 @@ func TestHistoryRepository_PutTransactionsData(t *testing.T) {
 		},
 	}
 
-	proc, _ := NewHistoryRepository(args)
+	repo, _ := NewHistoryRepository(args)
 
 	headerHash := []byte("headerHash")
 	txsData := &HistoryTransactionsData{
-		HeaderHash: headerHash,
-		HeaderHandler: &block.Header{
+		BlockHeaderHash: headerHash,
+		BlockHeader: &block.Header{
 			Epoch: 0,
 		},
-		BodyHandler: &block.Body{
+		BlockBody: &block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				{
 					TxHashes:        [][]byte{txHash},
@@ -115,7 +115,7 @@ func TestHistoryRepository_PutTransactionsData(t *testing.T) {
 		},
 	}
 
-	err := proc.PutTransactionsData(txsData)
+	err := repo.PutTransactionsData(txsData)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, countCalledHashEpoch)
 }
@@ -124,7 +124,7 @@ func TestHistoryRepository_GetTransaction(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(10)
-	args := createMockHistoryProcArgs()
+	args := createMockHistoryRepoArgs()
 	args.HashEpochStorer = &mock.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			hashEpochData := EpochByHash{
@@ -150,9 +150,9 @@ func TestHistoryRepository_GetTransaction(t *testing.T) {
 		},
 	}
 
-	proc, _ := NewHistoryRepository(args)
+	repo, _ := NewHistoryRepository(args)
 
-	historyTx, err := proc.GetTransactionsGroupMetadata([]byte("txHash"))
+	historyTx, err := repo.GetTransactionsGroupMetadata([]byte("txHash"))
 	assert.Nil(t, err)
 	assert.Equal(t, round, historyTx.Round)
 	assert.Equal(t, epoch, historyTx.Epoch)
@@ -162,7 +162,7 @@ func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(10)
-	args := createMockHistoryProcArgs()
+	args := createMockHistoryRepoArgs()
 	args.HashEpochStorer = &mock.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			hashEpochData := EpochByHash{
@@ -173,9 +173,9 @@ func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 			return hashEpochBytes, nil
 		},
 	}
-	proc, _ := NewHistoryRepository(args)
+	repo, _ := NewHistoryRepository(args)
 
-	resEpoch, err := proc.GetEpochForHash([]byte("txHash"))
+	resEpoch, err := repo.GetEpochByHash([]byte("txHash"))
 	assert.NoError(t, err)
 	assert.Equal(t, epoch, resEpoch)
 }

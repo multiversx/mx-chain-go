@@ -33,7 +33,7 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 		IsEnabledCalled: func() bool {
 			return true
 		},
-		GetEpochForHashCalled: func(hash []byte) (uint32, error) {
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
 			return 1, nil
 		},
 	}
@@ -149,7 +149,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 		IsEnabledCalled: func() bool {
 			return true
 		},
-		GetEpochForHashCalled: func(hash []byte) (uint32, error) {
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
 			return 1, nil
 		},
 	}
