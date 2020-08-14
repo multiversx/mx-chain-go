@@ -251,6 +251,11 @@ func (nf *nodeFacade) GetBalance(address string) (*big.Int, error) {
 	return nf.node.GetBalance(address)
 }
 
+// GetUsername gets the username for a specified address
+func (nf *nodeFacade) GetUsername(address string) (string, error) {
+	return nf.node.GetUsername(address)
+}
+
 // GetValueForKey gets the value for a key in a given address
 func (nf *nodeFacade) GetValueForKey(address string, key string) (string, error) {
 	return nf.node.GetValueForKey(address, key)

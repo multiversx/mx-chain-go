@@ -88,12 +88,13 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	}
 
 	return &apiBlock.APIBlock{
-		Nonce:      blockHeader.Nonce,
-		Round:      blockHeader.Round,
-		Epoch:      blockHeader.Epoch,
-		ShardID:    blockHeader.ShardID,
-		Hash:       hex.EncodeToString(hash),
-		NumTxs:     numOfTxs,
-		MiniBlocks: miniblocks,
+		Nonce:         blockHeader.Nonce,
+		Round:         blockHeader.Round,
+		Epoch:         blockHeader.Epoch,
+		ShardID:       blockHeader.ShardID,
+		Hash:          hex.EncodeToString(hash),
+		PrevBlockHash: hex.EncodeToString(blockHeader.PrevHash),
+		NumTxs:        numOfTxs,
+		MiniBlocks:    miniblocks,
 	}, nil
 }

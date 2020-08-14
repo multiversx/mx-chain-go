@@ -280,9 +280,6 @@ func CreateVMAndBlockchainHook(
 		BuiltInFunctions: builtInFuncs,
 	}
 
-	//Uncomment this to enable trace printing of the vm
-	//vm.SetTracePretty()
-
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	vmFactory, err := shard.NewVMContainerFactory(
 		config.VirtualMachineConfig{
@@ -409,7 +406,7 @@ func TestDeployedContractContents(
 	}
 }
 
-// GetAccount -
+// AccountExists -
 func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 	accnt, _ := accnts.GetExistingAccount(addressBytes)
 

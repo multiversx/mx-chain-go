@@ -1088,7 +1088,8 @@ func (mp *metaProcessor) CommitBlock(
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.saveHistoryData(headerHash, headerHandler, bodyHandler)
 
-	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
+	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
+	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce)
 
 	headersPool := mp.dataPool.Headers()
 	numShardHeadersFromPool := 0
@@ -1122,7 +1123,7 @@ func (mp *metaProcessor) CommitBlock(
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
 		pendingMiniBlocks:          mp.getPendingMiniBlocks(),
-		highestFinalBlockNonce:     mp.forkDetector.GetHighestFinalBlockNonce(),
+		highestFinalBlockNonce:     highestFinalBlockNonce,
 	}
 
 	mp.prepareDataForBootStorer(args)

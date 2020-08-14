@@ -157,3 +157,6 @@ var ErrSmartContractWasNotDeployed = errors.New("smart contract was not deployed
 
 // ErrBLSKeyNotStaked signals that bls staking was not successful
 var ErrBLSKeyNotStaked = errors.New("bls key not staked")
+
+// ErrMissingDeployedSC signals that a delegation referenced an un-deployed contract
+var ErrMissingDeployedSC = errors.New("missing deployed SC")

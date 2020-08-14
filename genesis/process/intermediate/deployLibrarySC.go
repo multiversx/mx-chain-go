@@ -87,10 +87,10 @@ func GenerateInitialPublicKeys(
 }
 
 // Deploy will try to deploy the provided smart contract
-func (dp *deployLibrarySC) Deploy(sc genesis.InitialSmartContractHandler) error {
+func (dp *deployLibrarySC) Deploy(sc genesis.InitialSmartContractHandler) ([][]byte, error) {
 	code, err := dp.getScCodeAsHex(sc.GetFilename())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	isForCurrentShard := func(address []byte) bool {
@@ -100,19 +100,19 @@ func (dp *deployLibrarySC) Deploy(sc genesis.InitialSmartContractHandler) error 
 	resultingScAddresses := make([][]byte, 0)
 	newAddresses := GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
 	for _, newAddress := range newAddresses {
-		scAddress, err := dp.deployForOneAddress(sc, newAddress, code, sc.GetInitParameters())
-		if err != nil {
-			return err
+		scAddress, errDeploy := dp.deployForOneAddress(sc, newAddress, code, sc.GetInitParameters())
+		if errDeploy != nil {
+			return nil, errDeploy
 		}
 
 		resultingScAddresses = append(resultingScAddresses, scAddress)
 		err = dp.changeOwnerAddress(scAddress, newAddress, sc.OwnerBytes())
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return resultingScAddresses, nil
 }
 
 func (dp *deployLibrarySC) changeOwnerAddress(

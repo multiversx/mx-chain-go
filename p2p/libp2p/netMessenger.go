@@ -5,6 +5,8 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -415,6 +417,9 @@ func (netMes *networkMessenger) printLogsStats() {
 			"cross shard validators", len(peersInfo.CrossShardValidators),
 			"cross shard observers", len(peersInfo.CrossShardObservers),
 			"unknown", len(peersInfo.UnknownPeers),
+			"current shard", peersInfo.SelfShardID,
+			"validators histogram", netMes.mapHistogram(peersInfo.NumValidators),
+			"observers histogram", netMes.mapHistogram(peersInfo.NumObservers),
 		)
 
 		connsPerSec := conns / uint32(timeBetweenPeerPrints/time.Second)
@@ -425,6 +430,30 @@ func (netMes *networkMessenger) printLogsStats() {
 			"disconnections/s", disconnsPerSec,
 		)
 	}
+}
+
+func (netMes *networkMessenger) mapHistogram(input map[uint32]int) string {
+	keys := make([]uint32, 0, len(input))
+	for shard := range input {
+		keys = append(keys, shard)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+
+	vals := make([]string, 0, len(keys))
+	for _, key := range keys {
+		var shard string
+		if key == core.MetachainShardId {
+			shard = "meta"
+		} else {
+			shard = fmt.Sprintf("shard %d", key)
+		}
+
+		vals = append(vals, fmt.Sprintf("%s: %d", shard, input[key]))
+	}
+
+	return strings.Join(vals, ", ")
 }
 
 func (netMes *networkMessenger) checkExternalLoggers() {
@@ -1019,12 +1048,15 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 	peers := netMes.p2pHost.Network().Peers()
 	connPeerInfo := &p2p.ConnectedPeersInfo{
 		UnknownPeers:         make([]string, 0),
-		IntraShardValidators: make([]string, 0),
-		IntraShardObservers:  make([]string, 0),
-		CrossShardValidators: make([]string, 0),
-		CrossShardObservers:  make([]string, 0),
+		IntraShardValidators: make(map[uint32][]string),
+		IntraShardObservers:  make(map[uint32][]string),
+		CrossShardValidators: make(map[uint32][]string),
+		CrossShardObservers:  make(map[uint32][]string),
+		NumObservers:         make(map[uint32]int),
+		NumValidators:        make(map[uint32]int),
 	}
 	selfPeerInfo := netMes.peerShardResolver.GetPeerInfo(netMes.ID())
+	connPeerInfo.SelfShardID = selfPeerInfo.ShardID
 
 	for _, p := range peers {
 		conns := netMes.p2pHost.Network().ConnsToPeer(p)
@@ -1038,16 +1070,18 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 		case core.UnknownPeer:
 			connPeerInfo.UnknownPeers = append(connPeerInfo.UnknownPeers, connString)
 		case core.ValidatorPeer:
+			connPeerInfo.NumValidators[peerInfo.ShardID]++
 			if selfPeerInfo.ShardID != peerInfo.ShardID {
-				connPeerInfo.CrossShardValidators = append(connPeerInfo.CrossShardValidators, connString)
+				connPeerInfo.CrossShardValidators[peerInfo.ShardID] = append(connPeerInfo.CrossShardValidators[peerInfo.ShardID], connString)
 			} else {
-				connPeerInfo.IntraShardValidators = append(connPeerInfo.IntraShardValidators, connString)
+				connPeerInfo.IntraShardValidators[peerInfo.ShardID] = append(connPeerInfo.IntraShardValidators[peerInfo.ShardID], connString)
 			}
 		case core.ObserverPeer:
+			connPeerInfo.NumObservers[peerInfo.ShardID]++
 			if selfPeerInfo.ShardID != peerInfo.ShardID {
-				connPeerInfo.CrossShardObservers = append(connPeerInfo.CrossShardObservers, connString)
+				connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
 			} else {
-				connPeerInfo.IntraShardObservers = append(connPeerInfo.IntraShardObservers, connString)
+				connPeerInfo.IntraShardObservers[peerInfo.ShardID] = append(connPeerInfo.IntraShardObservers[peerInfo.ShardID], connString)
 			}
 		}
 	}
