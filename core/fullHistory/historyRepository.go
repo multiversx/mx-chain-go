@@ -19,11 +19,12 @@ var log = logger.GetOrCreate("core/fullHistory")
 
 // HistoryRepositoryArguments is a structure that stores all components that are needed to a history processor
 type HistoryRepositoryArguments struct {
-	SelfShardID     uint32
-	HistoryStorer   storage.Storer
-	HashEpochStorer storage.Storer
-	Marshalizer     marshal.Marshalizer
-	Hasher          hashing.Hasher
+	SelfShardID                 uint32
+	MiniblocksMetadataStorer    storage.Storer
+	MiniblockHashByTxHashStorer storage.Storer
+	EpochByHashStorer           storage.Storer
+	Marshalizer                 marshal.Marshalizer
+	Hasher                      hashing.Hasher
 }
 
 // HistoryTransactionsData is a structure that stores information about history transactions
@@ -40,16 +41,23 @@ type TransactionsGroupMetadataWithEpoch struct {
 }
 
 type historyProcessor struct {
-	selfShardID      uint32
-	historyStorer    storage.Storer
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	hashToEpochIndex *hashToEpochIndex
+	selfShardID                uint32
+	miniblocksMetadataStorer   storage.Storer
+	miniblockHashByTxHashIndex interface{}
+	epochByHashIndex           *epochByHashIndex
+	marshalizer                marshal.Marshalizer
+	hasher                     hashing.Hasher
 }
 
 // NewHistoryRepository will create a new instance of HistoryRepository
 func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcessor, error) {
-	if check.IfNil(arguments.HistoryStorer) {
+	if check.IfNil(arguments.MiniblocksMetadataStorer) {
+		return nil, core.ErrNilStore
+	}
+	if check.IfNil(arguments.MiniblockHashByTxHashStorer) {
+		return nil, core.ErrNilStore
+	}
+	if check.IfNil(arguments.EpochByHashStorer) {
 		return nil, core.ErrNilStore
 	}
 	if check.IfNil(arguments.Marshalizer) {
@@ -58,18 +66,15 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcess
 	if check.IfNil(arguments.Hasher) {
 		return nil, core.ErrNilHasher
 	}
-	if check.IfNil(arguments.HashEpochStorer) {
-		return nil, core.ErrNilStore
-	}
 
-	hashToEpochIndex := newHashToEpochIndex(arguments.HashEpochStorer, arguments.Marshalizer)
+	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
 
 	return &historyProcessor{
-		selfShardID:      arguments.SelfShardID,
-		historyStorer:    arguments.HistoryStorer,
-		marshalizer:      arguments.Marshalizer,
-		hasher:           arguments.Hasher,
-		hashToEpochIndex: hashToEpochIndex,
+		selfShardID:              arguments.SelfShardID,
+		miniblocksMetadataStorer: arguments.MiniblocksMetadataStorer,
+		marshalizer:              arguments.Marshalizer,
+		hasher:                   arguments.Hasher,
+		epochByHashIndex:         hashToEpochIndex,
 	}, nil
 }
 
@@ -83,7 +88,7 @@ func (hp *historyProcessor) PutTransactionsData(historyTxsData *HistoryTransacti
 	blockHeaderHash := historyTxsData.BlockHeaderHash
 	epoch := historyTxsData.BlockHeader.GetEpoch()
 
-	err := hp.hashToEpochIndex.saveEpochByHash(blockHeaderHash, epoch)
+	err := hp.epochByHashIndex.saveEpochByHash(blockHeaderHash, epoch)
 	if err != nil {
 		return newErrCannotSaveEpochByHash("block header", blockHeaderHash, err)
 	}
@@ -104,7 +109,7 @@ func (hp *historyProcessor) saveMiniblockData(historyTxsData *HistoryTransaction
 		return err
 	}
 
-	err = hp.hashToEpochIndex.saveEpochByHash(miniblockHash, epoch)
+	err = hp.epochByHashIndex.saveEpochByHash(miniblockHash, epoch)
 	if err != nil {
 		return newErrCannotSaveEpochByHash("miniblock", miniblockHash, err)
 	}
@@ -141,12 +146,12 @@ func (hp *historyProcessor) saveMiniblockData(historyTxsData *HistoryTransaction
 }
 
 func (hp *historyProcessor) saveTransactionMetadata(historyTxBytes []byte, txHash []byte, epoch uint32) error {
-	err := hp.hashToEpochIndex.saveEpochByHash(txHash, epoch)
+	err := hp.epochByHashIndex.saveEpochByHash(txHash, epoch)
 	if err != nil {
 		return newErrCannotSaveEpochByHash("tx", txHash, err)
 	}
 
-	err = hp.historyStorer.Put(txHash, historyTxBytes)
+	err = hp.miniblocksMetadataStorer.Put(txHash, historyTxBytes)
 	if err != nil {
 		return fmt.Errorf("cannot save in storage history transaction %w", err)
 	}
@@ -175,12 +180,12 @@ func buildTransactionsGroupMetadata(
 
 // GetTransactionsGroupMetadata will return a history transaction for the given hash from storage
 func (hp *historyProcessor) GetTransactionsGroupMetadata(hash []byte) (*TransactionsGroupMetadataWithEpoch, error) {
-	epoch, err := hp.hashToEpochIndex.getEpochByHash(hash)
+	epoch, err := hp.epochByHashIndex.getEpochByHash(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	historyTxBytes, err := hp.historyStorer.GetFromEpoch(hash, epoch)
+	historyTxBytes, err := hp.miniblocksMetadataStorer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +204,7 @@ func (hp *historyProcessor) GetTransactionsGroupMetadata(hash []byte) (*Transact
 
 // GetEpochByHash will return epoch for a given hash
 func (hp *historyProcessor) GetEpochByHash(hash []byte) (uint32, error) {
-	return hp.hashToEpochIndex.getEpochByHash(hash)
+	return hp.epochByHashIndex.getEpochByHash(hash)
 }
 
 // IsEnabled will always returns true

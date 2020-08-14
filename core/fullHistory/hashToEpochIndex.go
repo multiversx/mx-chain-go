@@ -7,19 +7,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-type hashToEpochIndex struct {
+type epochByHashIndex struct {
 	marshalizer marshal.Marshalizer
 	storer      storage.Storer
 }
 
-func newHashToEpochIndex(storer storage.Storer, marshalizer marshal.Marshalizer) *hashToEpochIndex {
-	return &hashToEpochIndex{
+func newHashToEpochIndex(storer storage.Storer, marshalizer marshal.Marshalizer) *epochByHashIndex {
+	return &epochByHashIndex{
 		storer:      storer,
 		marshalizer: marshalizer,
 	}
 }
 
-func (i *hashToEpochIndex) getEpochByHash(hash []byte) (uint32, error) {
+func (i *epochByHashIndex) getEpochByHash(hash []byte) (uint32, error) {
 	rawBytes, err := i.storer.Get(hash)
 	if err != nil {
 		return 0, err
@@ -34,7 +34,7 @@ func (i *hashToEpochIndex) getEpochByHash(hash []byte) (uint32, error) {
 	return record.Epoch, nil
 }
 
-func (i *hashToEpochIndex) saveEpochByHash(hash []byte, epoch uint32) error {
+func (i *epochByHashIndex) saveEpochByHash(hash []byte, epoch uint32) error {
 	record := &EpochByHash{
 		Epoch: epoch,
 	}

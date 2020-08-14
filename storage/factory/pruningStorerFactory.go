@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -222,14 +222,14 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 
-	historyTxUnit, hashEpochUnit, err := psf.createHistoryStorersIfNeeded()
+	historyTxUnit, hashEpochUnit, err := psf.createFullHistoryStorersIfNeeded()
 	if err != nil {
 		return nil, err
 	}
 
 	if psf.generalConfig.FullHistory.Enabled {
 		successfullyCreatedStorers = append(successfullyCreatedStorers, historyTxUnit)
-		store.AddStorer(dataRetriever.TransactionHistoryUnit, historyTxUnit)
+		store.AddStorer(dataRetriever.MiniblocksMetadataUnit, historyTxUnit)
 
 		successfullyCreatedStorers = append(successfullyCreatedStorers, hashEpochUnit)
 		store.AddStorer(dataRetriever.EpochByHashUnit, hashEpochUnit)
@@ -392,14 +392,14 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 
-	historyTxUnit, hashEpochUnit, err := psf.createHistoryStorersIfNeeded()
+	historyTxUnit, hashEpochUnit, err := psf.createFullHistoryStorersIfNeeded()
 	if err != nil {
 		return nil, err
 	}
 
 	if psf.generalConfig.FullHistory.Enabled {
 		successfullyCreatedStorers = append(successfullyCreatedStorers, historyTxUnit)
-		store.AddStorer(dataRetriever.TransactionHistoryUnit, historyTxUnit)
+		store.AddStorer(dataRetriever.MiniblocksMetadataUnit, historyTxUnit)
 
 		successfullyCreatedStorers = append(successfullyCreatedStorers, hashEpochUnit)
 		store.AddStorer(dataRetriever.EpochByHashUnit, hashEpochUnit)
@@ -408,7 +408,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	return store, err
 }
 
-func (psf *StorageServiceFactory) createHistoryStorersIfNeeded() (*pruning.PruningStorer, *storageUnit.Unit, error) {
+func (psf *StorageServiceFactory) createFullHistoryStorersIfNeeded() (*pruning.PruningStorer, *storageUnit.Unit, error) {
 	if !psf.generalConfig.FullHistory.Enabled {
 		return nil, nil, nil
 	}
