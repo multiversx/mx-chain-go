@@ -18,7 +18,7 @@ import (
 )
 
 func TestDataDispatcher(t *testing.T) {
-	//t.Skip("this is not a short test")
+	t.Skip("this is not a short test")
 	indexTemplates := make(map[string]io.Reader)
 	indexPolicies  := make(map[string]io.Reader)
 	opendistroTemplate, _ := core.OpenFile("./testdata/opendistro.json")
