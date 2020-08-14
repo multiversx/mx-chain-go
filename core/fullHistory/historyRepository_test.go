@@ -62,7 +62,7 @@ func TestNewHistoryRepository(t *testing.T) {
 	require.NotNil(t, repo)
 }
 
-func TestHistoryRepository_PutTransactionsData(t *testing.T) {
+func TestHistoryRepository_RecordBlock(t *testing.T) {
 	t.Parallel()
 
 	txHash := []byte("txHash")
@@ -84,23 +84,20 @@ func TestHistoryRepository_PutTransactionsData(t *testing.T) {
 	repo, _ := NewHistoryRepository(args)
 
 	headerHash := []byte("headerHash")
-	txsData := &HistoryTransactionsData{
-		BlockHeaderHash: headerHash,
-		BlockHeader: &block.Header{
-			Epoch: 0,
-		},
-		BlockBody: &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{
-					TxHashes:        [][]byte{txHash},
-					SenderShardID:   0,
-					ReceiverShardID: 1,
-				},
+	blockHeader := &block.Header{
+		Epoch: 0,
+	}
+	blockBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes:        [][]byte{txHash},
+				SenderShardID:   0,
+				ReceiverShardID: 1,
 			},
 		},
 	}
 
-	err := repo.PutTransactionsData(txsData)
+	err := repo.RecordBlock(headerHash, blockHeader, blockBody)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, countCalledHashEpoch)
 }

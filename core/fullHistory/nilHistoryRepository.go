@@ -1,5 +1,9 @@
 package fullHistory
 
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+)
+
 type nilHistoryRepository struct {
 }
 
@@ -8,8 +12,8 @@ func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 	return new(nilHistoryRepository), nil
 }
 
-// PutTransactionsData returns a not implemented error
-func (nhr *nilHistoryRepository) PutTransactionsData(_ *HistoryTransactionsData) error {
+// RecordBlock returns a not implemented error
+func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler) error {
 	return nil
 }
 

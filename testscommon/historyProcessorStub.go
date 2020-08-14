@@ -2,20 +2,21 @@ package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
-	PutTransactionsDataCalled          func(htd *fullHistory.HistoryTransactionsData) error
+	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
 	GetTransactionsGroupMetadataCalled func(hash []byte) (*fullHistory.TransactionsGroupMetadataWithEpoch, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
 	IsEnabledCalled                    func() bool
 }
 
-// PutTransactionsData -
-func (hp *HistoryRepositoryStub) PutTransactionsData(historyTxsData *fullHistory.HistoryTransactionsData) error {
-	if hp.PutTransactionsDataCalled != nil {
-		return hp.PutTransactionsDataCalled(historyTxsData)
+// RecordBlock -
+func (hp *HistoryRepositoryStub) RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
+	if hp.RecordBlockCalled != nil {
+		return hp.RecordBlockCalled(blockHeaderHash, blockHeader, blockBody)
 	}
 	return nil
 }

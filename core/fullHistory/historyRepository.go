@@ -27,13 +27,6 @@ type HistoryRepositoryArguments struct {
 	Hasher                      hashing.Hasher
 }
 
-// HistoryTransactionsData is a structure that stores information about history transactions
-type HistoryTransactionsData struct {
-	BlockHeaderHash []byte
-	BlockHeader     data.HeaderHandler
-	BlockBody       data.BodyHandler
-}
-
 // TransactionsGroupMetadataWithEpoch is a structure for a history transaction that also contain epoch
 type TransactionsGroupMetadataWithEpoch struct {
 	Epoch uint32
@@ -78,15 +71,14 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcess
 	}, nil
 }
 
-// PutTransactionsData will save in storage information about history transactions
-func (hp *historyProcessor) PutTransactionsData(historyTxsData *HistoryTransactionsData) error {
-	body, ok := historyTxsData.BlockBody.(*block.Body)
+// RecordBlock records a block
+func (hp *historyProcessor) RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
+	body, ok := blockBody.(*block.Body)
 	if !ok {
 		return errCannotCastToBlockBody
 	}
 
-	blockHeaderHash := historyTxsData.BlockHeaderHash
-	epoch := historyTxsData.BlockHeader.GetEpoch()
+	epoch := blockHeader.GetEpoch()
 
 	err := hp.epochByHashIndex.saveEpochByHash(blockHeaderHash, epoch)
 	if err != nil {
@@ -94,7 +86,7 @@ func (hp *historyProcessor) PutTransactionsData(historyTxsData *HistoryTransacti
 	}
 
 	for _, miniblock := range body.MiniBlocks {
-		err = hp.saveMiniblockData(historyTxsData, miniblock, epoch)
+		err = hp.saveMiniblockData(blockHeaderHash, blockHeader, miniblock, epoch)
 		if err != nil {
 			continue
 		}
@@ -103,7 +95,7 @@ func (hp *historyProcessor) PutTransactionsData(historyTxsData *HistoryTransacti
 	return nil
 }
 
-func (hp *historyProcessor) saveMiniblockData(historyTxsData *HistoryTransactionsData, miniblock *block.MiniBlock, epoch uint32) error {
+func (hp *historyProcessor) saveMiniblockData(blockHeaderHash []byte, blockHeader data.HeaderHandler, miniblock *block.MiniBlock, epoch uint32) error {
 	miniblockHash, err := core.CalculateHash(hp.marshalizer, hp.hasher, miniblock)
 	if err != nil {
 		return err
@@ -122,8 +114,8 @@ func (hp *historyProcessor) saveMiniblockData(historyTxsData *HistoryTransaction
 	}
 
 	transactionsGroupMetadata := buildTransactionsGroupMetadata(
-		historyTxsData.BlockHeader,
-		historyTxsData.BlockHeaderHash,
+		blockHeader,
+		blockHeaderHash,
 		miniblockHash,
 		miniblock.ReceiverShardID,
 		miniblock.SenderShardID,
