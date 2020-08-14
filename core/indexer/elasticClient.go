@@ -363,6 +363,7 @@ func (ec *elasticClient) elasticDefaultErrorResponseHandler(res *esapi.Response)
 	}
 
 	log.Warn("elasticClient.parseResponse", "error returned by elastic API:", res.StatusCode)
+	log.Warn("elasticClient.parseResponse", "error returned by elastic API:", res.Body)
 	return ErrBackOff
 }
 

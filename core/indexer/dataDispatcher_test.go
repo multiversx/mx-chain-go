@@ -18,7 +18,7 @@ import (
 )
 
 func TestDataDispatcher(t *testing.T) {
-	t.Skip("this is not a short test")
+	//t.Skip("this is not a short test")
 	indexTemplates := make(map[string]io.Reader)
 	indexPolicies  := make(map[string]io.Reader)
 	opendistroTemplate, _ := core.OpenFile("./testdata/opendistro.json")
@@ -33,9 +33,8 @@ func TestDataDispatcher(t *testing.T) {
 	indexPolicies["transactions_policy"] = transactionsPolicy
 	blocksPolicy, _ := core.OpenFile("./testdata/blocks_policy.json")
 	indexPolicies["blocks_policy"] = blocksPolicy
-
 	dispatcher, err := NewDataDispatcher(ElasticIndexerArgs{
-		Url: "https://search-corcotest-cbtcxoexobkqz4guopvhb64yta.us-east-1.es.amazonaws.com",
+		Url: "https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/",
 		IndexTemplates: indexTemplates,
 		IndexPolicies: indexPolicies,
 		Options: &Options{

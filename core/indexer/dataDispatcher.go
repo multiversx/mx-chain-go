@@ -1,6 +1,8 @@
 package indexer
 
 import (
+	"time"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -19,6 +21,7 @@ type Options struct {
 
 type dataDispatcher struct {
 	elasticIndexer ElasticIndexer
+	workQueue      *workQueue
 
 	options     *Options
 	marshalizer marshal.Marshalizer
@@ -32,13 +35,22 @@ func NewDataDispatcher(arguments ElasticIndexerArgs) (Indexer, error) {
 		return nil, err
 	}
 
+	wq, err := NewWorkQueue()
+	if err != nil {
+		return nil, err
+	}
 
-	return &dataDispatcher{
+	dd := &dataDispatcher{
 		elasticIndexer: ei,
+		workQueue:      wq,
 
 		options:     arguments.Options,
 		marshalizer: arguments.Marshalizer,
-	}, nil
+	}
+
+	go dd.startWorker()
+
+	return dd, nil
 }
 
 // SaveBlock saves the block info in the queue to be sent to elastic
@@ -49,28 +61,19 @@ func (d *dataDispatcher) SaveBlock(
 	signersIndexes []uint64,
 	notarizedHeadersHashes []string,
 ) {
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		log.Debug("indexer", "error", ErrBodyTypeAssertion.Error())
+	wi, err := NewWorkItem(WorkTypeSaveBlock, &saveBlockData{
+		bodyHandler:            bodyHandler,
+		headerHandler:          headerHandler,
+		txPool:                 txPool,
+		signersIndexes:         signersIndexes,
+		notarizedHeadersHashes: notarizedHeadersHashes,
+	})
+	if err != nil {
+		log.Error("dataDispatcher.SaveBlock", "error creating work item", err.Error())
 		return
 	}
 
-	if check.IfNil(headerHandler) {
-		log.Debug("indexer: no header", "error", ErrNoHeader.Error())
-		return
-	}
-
-	txsSizeInBytes := computeSizeOfTxs(d.marshalizer, txPool)
-	d.elasticIndexer.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes, txsSizeInBytes)
-
-	if len(body.MiniBlocks) == 0 {
-		return
-	}
-
-	mbsInDb := d.elasticIndexer.SaveMiniblocks(headerHandler, body)
-	if d.options.TxIndexingEnabled {
-		d.elasticIndexer.SaveTransactions(body, headerHandler, txPool, headerHandler.GetShardID(), mbsInDb)
-	}
+	d.workQueue.Add(wi)
 }
 
 // RevertIndexedBlock -
@@ -107,6 +110,97 @@ func (d *dataDispatcher) SetTxLogsProcessor(txLogsProc process.TransactionLogPro
 func (d *dataDispatcher) IsNilIndexer() bool {
 	return false
 }
+
+func (d *dataDispatcher) saveBlock(item *workItem) {
+	saveBlockParams, ok := item.Data.(*saveBlockData)
+	if !ok {
+		log.Warn("dataDispatcher.saveBlock", "removing item from queue", ErrInvalidWorkItemData.Error())
+		d.workQueue.Done()
+		return
+	}
+
+	if len(saveBlockParams.signersIndexes) == 0 {
+		d.workQueue.Done()
+		log.Warn("block has no signers, returning")
+		return
+	}
+
+	body, ok := saveBlockParams.bodyHandler.(*block.Body)
+	if !ok {
+		log.Warn("dataDispatcher.saveBlock", "removing item from queue", ErrBodyTypeAssertion.Error())
+		d.workQueue.Done()
+		return
+	}
+
+	if check.IfNil(saveBlockParams.headerHandler) {
+		log.Warn("dataDispatcher.saveBlock", "removing item from queue", ErrNoHeader.Error())
+		d.workQueue.Done()
+		return
+	}
+
+	txsSizeInBytes := computeSizeOfTxs(d.marshalizer, saveBlockParams.txPool)
+	err := d.elasticIndexer.SaveHeader(saveBlockParams.headerHandler, saveBlockParams.signersIndexes, body, saveBlockParams.notarizedHeadersHashes, txsSizeInBytes)
+	if err != nil && err == ErrBackOff {
+		log.Warn("dataDispatcher.saveBlock", "could not index header, received back off:", err.Error())
+		d.workQueue.GotBackOff()
+		return
+	}
+	if err != nil {
+		log.Warn("dataDispatcher.saveBlock", "removing item from queue", err.Error())
+		d.workQueue.Done()
+		return
+	}
+
+	if len(body.MiniBlocks) == 0 {
+		d.workQueue.Done()
+		return
+	}
+
+	mbsInDb := d.elasticIndexer.SaveMiniblocks(saveBlockParams.headerHandler, body)
+
+	shardId := saveBlockParams.headerHandler.GetShardID()
+	if d.options.TxIndexingEnabled {
+		err = d.elasticIndexer.SaveTransactions(body, saveBlockParams.headerHandler, saveBlockParams.txPool, shardId, mbsInDb)
+		if err != nil && err == ErrBackOff {
+			log.Warn("dataDispatcher.saveBlock", "could not index header, received back off:", err.Error())
+			d.workQueue.GotBackOff()
+			return
+		}
+	}
+
+	d.workQueue.Done()
+}
+
+func (d *dataDispatcher) startWorker() {
+	for {
+		time.Sleep(d.workQueue.GetCycleTime())
+		log.Info("doing some work now")
+		d.doWork()
+	}
+}
+
+func (d *dataDispatcher) doWork() {
+	if d.workQueue.Length() == 0 {
+		log.Info("no work to be done")
+		return
+	}
+
+	wi := d.workQueue.Next()
+	if wi == nil {
+		return
+	}
+
+	switch wi.Type {
+	case WorkTypeSaveBlock:
+		log.Info("saving block")
+		d.saveBlock(wi)
+		break
+	default:
+		log.Error("dataDispatcher.doWork invalid work type received")
+		break
+	}
+}
+
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (d *dataDispatcher) IsInterfaceNil() bool {

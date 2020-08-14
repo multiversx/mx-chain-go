@@ -1,6 +1,6 @@
 # ElasticSearchConnector defines settings related to ElasticSearch such as login information or URL
 [ElasticSearchConnector]
-    Enabled    = false
-    URL        = "http://localhost:9200"
-    Username   = "basic_auth_username"
-    Password   = "basic_auth_password"
+    Enabled    = true
+    URL        = "https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"
+    Username   = ""
+    Password   = ""

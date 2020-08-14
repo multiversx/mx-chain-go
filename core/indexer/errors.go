@@ -27,3 +27,9 @@ var ErrEmptyPassword = errors.New("password is empty")
 
 // ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
+
+// ErrInvalidWorkItemType signas when trying to create an invalid work item type to be indexed
+var ErrInvalidWorkItemType = errors.New("invalid work item type")
+
+// ErrInvalidWorkItemData signas when receiving unexpected data in a work item
+var ErrInvalidWorkItemData = errors.New("invalid work item data")

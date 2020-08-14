@@ -57,7 +57,7 @@ func (ei *elasticIndexer) SaveHeader(
 	body *block.Body,
 	notarizedHeadersHashes []string,
 	txsSize int,
-) {
+) error {
 	var buff bytes.Buffer
 
 	serializedBlock, headerHash := ei.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
@@ -65,7 +65,7 @@ func (ei *elasticIndexer) SaveHeader(
 	buff.Grow(len(serializedBlock))
 	_, err := buff.Write(serializedBlock)
 	if err != nil {
-		log.Warn("elastic search: save header, write", "error", err.Error())
+		return err
 	}
 
 	req := &esapi.IndexRequest{
@@ -75,11 +75,7 @@ func (ei *elasticIndexer) SaveHeader(
 		Refresh:    "true",
 	}
 
-	err = ei.elasticClient.DoRequest(req)
-	if err != nil {
-		log.Warn("indexer: could not index block header", "error", err.Error())
-		return
-	}
+	return ei.elasticClient.DoRequest(req)
 }
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
@@ -109,8 +105,11 @@ func (ei *elasticIndexer) SaveTransactions(
 	txPool map[string]data.TransactionHandler,
 	selfShardID uint32,
     mbsInDb map[string]bool,
-) {
+) error {
 	txs := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
+	for _, tx := range txs {
+		fmt.Println(tx.Hash)
+	}
 	buffSlice := serializeTransactions(txs, selfShardID, ei.foundedObjMap, mbsInDb)
 
 	for idx := range buffSlice {
@@ -118,9 +117,11 @@ func (ei *elasticIndexer) SaveTransactions(
 		if err != nil {
 			log.Warn("indexer indexing bulk of transactions",
 				"error", err.Error())
-			continue
+			return err
 		}
 	}
+
+	return nil
 }
 
 func (ei *elasticIndexer) init(arguments ElasticIndexerArgs) error {
