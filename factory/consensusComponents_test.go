@@ -20,6 +20,69 @@ func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
 	assert.Equal(t, node.ErrGenesisBlockNotInitialized, err)
 }
 
+func TestNode_ConsensusTopicNilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	messageProc := &mock.HeaderResolverStub{}
+	n, _ := node.NewNode()
+
+	err := n.CreateConsensusTopic(messageProc)
+	require.Equal(t, node.ErrNilShardCoordinator, err)
+}
+
+func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
+	t.Parallel()
+
+	messageProc := &mock.HeaderResolverStub{}
+	n, _ := node.NewNode(
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicValidatorCalled: func(name string) bool {
+				return true
+			},
+			HasTopicCalled: func(name string) bool {
+				return true
+			},
+		}),
+	)
+
+	err := n.CreateConsensusTopic(messageProc)
+	require.Equal(t, node.ErrValidatorAlreadySet, err)
+}
+
+func TestNode_ConsensusTopicCreateTopicError(t *testing.T) {
+	t.Parallel()
+
+	localError := errors.New("error")
+	messageProc := &mock.HeaderResolverStub{}
+	n, _ := node.NewNode(
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+		node.WithMessenger(&mock.MessengerStub{
+			HasTopicValidatorCalled: func(name string) bool {
+				return false
+			},
+			HasTopicCalled: func(name string) bool {
+				return false
+			},
+			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+				return localError
+			},
+		}),
+	)
+
+	err := n.CreateConsensusTopic(messageProc)
+	require.Equal(t, localError, err)
+}
+
+func TestNode_ConsensusTopicNilMessageProcessor(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(node.WithShardCoordinator(&mock.ShardCoordinatorMock{}))
+
+	err := n.CreateConsensusTopic(nil)
+	require.Equal(t, node.ErrNilMessenger, err)
+}
+
 func TestStartConsensus_NilSyncTimer(t *testing.T) {
 	t.Parallel()
 

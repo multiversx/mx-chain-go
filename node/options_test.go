@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const testSizeCheckDelta = 100
-
 func TestWithInitialNodesPubKeys(t *testing.T) {
 	t.Parallel()
 
