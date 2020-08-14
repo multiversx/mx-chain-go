@@ -15,7 +15,7 @@ type workQueue struct {
 	pendingRequests []*workItem
 }
 
-// NewWorkQueue -
+// NewWorkQueue creates and initializes a new work queue
 func NewWorkQueue() (*workQueue, error) {
 	return &workQueue{
 		backOff:         0,
@@ -23,12 +23,12 @@ func NewWorkQueue() (*workQueue, error) {
 	}, nil
 }
 
-// GetCycleTime -
+// GetCycleTime returns the wait duration a worker should use between requests
 func (wq *workQueue) GetCycleTime() time.Duration {
 	return workCycleTime + wq.backOff
 }
 
-// Length -
+// Length returns the number of work items in the work queue
 func (wq *workQueue) Length() int {
 	wq.workMut.RLock()
 	length := len(wq.pendingRequests)
@@ -37,7 +37,7 @@ func (wq *workQueue) Length() int {
 	return length
 }
 
-// Next -
+// Next returns the next item to be processed
 func (wq *workQueue) Next() *workItem {
 	if wq.Length() == 0 {
 		return nil
@@ -50,14 +50,15 @@ func (wq *workQueue) Next() *workItem {
 	return nextItem
 }
 
-// Add -
+// Add inserts a new work item at the end of the queue
 func (wq *workQueue) Add(item *workItem) {
 	wq.workMut.Lock()
 	wq.pendingRequests = append(wq.pendingRequests, item)
 	wq.workMut.Unlock()
 }
 
-// Done -
+// Done signals that a work item was processed successfully, thus resets the backoff if any, and removes the item
+//  from the top of the list
 func (wq *workQueue) Done() {
 	wq.backOff = 0
 	if wq.Length() == 0 {
@@ -69,7 +70,7 @@ func (wq *workQueue) Done() {
 	wq.workMut.Unlock()
 }
 
-// GotBackOff -
+// GotBackOff signals that a backoff was received, and the backoff value should increase
 func (wq *workQueue) GotBackOff() {
 	if wq.backOff == 0 {
 		wq.backOff = backOffTime

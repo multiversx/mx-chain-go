@@ -45,7 +45,7 @@ func (ec *elasticClient) NodesInfo() (*esapi.Response, error) {
 	return ec.es.Nodes.Info()
 }
 
-// TemplateExists -
+// TemplateExists checks weather a template is already created
 func (ec *elasticClient) TemplateExists(index string) bool {
 	res, err := ec.es.Indices.ExistsTemplate([]string{index})
 	return ec.exists(res, err)
@@ -57,7 +57,7 @@ func (ec *elasticClient) IndexExists(index string) bool {
 	return ec.exists(res, err)
 }
 
-// PolicyExists -
+// PolicyExists checks if a policy was already created
 func (ec *elasticClient) PolicyExists(policy string) bool {
 	policyRoute := fmt.Sprintf(
 	"%s/%s/ism/policies/%s",
@@ -94,7 +94,7 @@ func (ec *elasticClient) PolicyExists(policy string) bool {
 	return existsRes.Ok
 }
 
-// AliasExists -
+// AliasExists checks if an index alias already exists
 func (ec *elasticClient) AliasExists(alias string) bool {
 	aliasRoute := fmt.Sprintf(
 		"%s/_alias/%s",
@@ -123,7 +123,7 @@ func (ec *elasticClient) AliasExists(alias string) bool {
 	return ec.exists(response, nil)
 }
 
-// CreateIndex -
+// CreateIndex creates an elasticsearch index
 func (ec *elasticClient) CreateIndex(index string) error {
 	res, err := ec.es.Indices.Create(index)
 	if err != nil {
@@ -133,7 +133,7 @@ func (ec *elasticClient) CreateIndex(index string) error {
 	return ec.parseResponse(res, nil, ec.elasticDefaultErrorResponseHandler)
 }
 
-// CreatePolicy -
+// CreatePolicy creates a new policy for elastic indexes. Policies define rollover parameters
 func (ec *elasticClient) CreatePolicy(policyName string, policy io.Reader) error {
 	policyRoute := fmt.Sprintf(
 		"%s/%s/ism/policies/%s",
@@ -173,7 +173,7 @@ func (ec *elasticClient) CreatePolicy(policyName string, policy io.Reader) error
 	return nil
 }
 
-// CreateIndexTemplate -
+// CreateIndexTemplate creates an elasticsearch index template
 func (ec *elasticClient) CreateIndexTemplate(templateName string, template io.Reader) error {
 	res, err := ec.es.Indices.PutTemplate(template, templateName)
 	if err != nil {
@@ -183,7 +183,7 @@ func (ec *elasticClient) CreateIndexTemplate(templateName string, template io.Re
 	return ec.parseResponse(res, nil, ec.elasticDefaultErrorResponseHandler)
 }
 
-// CreateAlias -
+// CreateAlias creates an index alias
 func (ec *elasticClient) CreateAlias(alias string, index string) error {
 	res, err := ec.es.Indices.PutAlias([]string{index}, alias)
 	if err != nil {
@@ -193,7 +193,7 @@ func (ec *elasticClient) CreateAlias(alias string, index string) error {
 	return ec.parseResponse(res, nil, ec.elasticDefaultErrorResponseHandler)
 }
 
-// CheckAndCreateTemplate -
+// CheckAndCreateTemplate creates an index template if it does not already exist
 func (ec *elasticClient) CheckAndCreateTemplate(templateName string, template io.Reader) error {
 	if ec.TemplateExists(templateName) {
 		return nil
@@ -202,7 +202,7 @@ func (ec *elasticClient) CheckAndCreateTemplate(templateName string, template io
 	return ec.CreateIndexTemplate(templateName, template)
 }
 
-// CheckAndCreatePolicy -
+// CheckAndCreatePolicy creates a new index policy if it does not already exist
 func (ec *elasticClient) CheckAndCreatePolicy(policyName string, policy io.Reader) error {
 	if ec.PolicyExists(policyName) {
 		return nil
@@ -211,7 +211,7 @@ func (ec *elasticClient) CheckAndCreatePolicy(policyName string, policy io.Reade
 	return ec.CreatePolicy(policyName, policy)
 }
 
-// CheckAndCreateIndex -
+// CheckAndCreateIndex creates a new index if it does not already exist
 func (ec *elasticClient) CheckAndCreateIndex(indexName string) error {
 	if ec.IndexExists(indexName) {
 		return nil
@@ -220,7 +220,7 @@ func (ec *elasticClient) CheckAndCreateIndex(indexName string) error {
 	return ec.CreateIndex(indexName)
 }
 
-// CheckAndCreateAlias -
+// CheckAndCreateAlias creates a new alias if it does not already exist
 func (ec *elasticClient) CheckAndCreateAlias(alias string, indexName string) error {
 	if ec.AliasExists(alias) {
 		return nil
@@ -240,7 +240,7 @@ func (ec *elasticClient) DoRequest(req *esapi.IndexRequest) error {
 	return ec.parseResponse(res, nil, ec.elasticDefaultErrorResponseHandler)
 }
 
-// DoBulkRequest -
+// DoBulkRequest will do a bulk of request to elastic server
 func (ec *elasticClient) DoBulkRequest(buff *bytes.Buffer, index string) error {
 	reader := bytes.NewReader(buff.Bytes())
 

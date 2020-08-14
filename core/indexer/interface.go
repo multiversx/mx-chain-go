@@ -21,7 +21,7 @@ type Indexer interface {
 	IsNilIndexer() bool
 }
 
-// ElasticIndexer -
+// ElasticIndexer defines the interface for the elastic search indexer
 type ElasticIndexer interface {
 	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int) error
 	SaveMiniblocks(header data.HeaderHandler, body *block.Body) map[string]bool
