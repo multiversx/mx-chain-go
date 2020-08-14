@@ -1,6 +1,8 @@
 package track
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -74,13 +76,41 @@ func (sbt *shardBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*
 		header, err := process.GetShardHeader(shardInfo.HeaderHash, sbt.headersPool, sbt.marshalizer, sbt.store)
 		if err != nil {
 			log.Trace("GetSelfHeaders.GetShardHeader", "error", err.Error())
-			continue
+
+			header, err = sbt.getTrackedShardHeaderWithNonceAndHash(shardInfo.ShardID, shardInfo.Nonce, shardInfo.HeaderHash)
+			if err != nil {
+				log.Trace("GetSelfHeaders.getTrackedShardHeaderWithNonceAndHash", "error", err.Error())
+				continue
+			}
 		}
 
 		selfHeadersInfo = append(selfHeadersInfo, &HeaderInfo{Hash: shardInfo.HeaderHash, Header: header})
 	}
 
 	return selfHeadersInfo
+}
+
+func (sbt *shardBlockTrack) getTrackedShardHeaderWithNonceAndHash(
+	shardID uint32,
+	nonce uint64,
+	hash []byte,
+) (*block.Header, error) {
+
+	headers, headersHashes := sbt.GetTrackedHeadersWithNonce(shardID, nonce)
+	for i := 0; i < len(headers); i++ {
+		if bytes.Compare(headersHashes[i], hash) != 0 {
+			continue
+		}
+
+		header, ok := headers[i].(*block.Header)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		return header, nil
+	}
+
+	return nil, process.ErrMissingHeader
 }
 
 // CleanupInvalidCrossHeaders cleans headers added to the block tracker that have become invalid after processing
