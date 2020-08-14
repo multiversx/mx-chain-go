@@ -29,7 +29,7 @@ func TestGetBlockByHash_InvalidShardShouldErr(t *testing.T) {
 func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryProcessorStub{
+	historyProc := &testscommon.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -98,7 +98,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	storerMock := mock.NewStorerMock()
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -145,7 +145,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryProcessorStub{
+	historyProc := &testscommon.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
@@ -219,7 +219,7 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},

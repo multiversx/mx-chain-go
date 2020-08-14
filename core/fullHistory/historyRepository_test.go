@@ -152,7 +152,7 @@ func TestHistoryRepository_GetTransaction(t *testing.T) {
 
 	proc, _ := NewHistoryRepository(args)
 
-	historyTx, err := proc.GetTransaction([]byte("txHash"))
+	historyTx, err := proc.GetTransactionsGroupMetadata([]byte("txHash"))
 	assert.Nil(t, err)
 	assert.Equal(t, round, historyTx.Round)
 	assert.Equal(t, epoch, historyTx.Epoch)

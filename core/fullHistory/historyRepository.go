@@ -173,8 +173,8 @@ func buildTransactionsGroupMetadata(
 	}
 }
 
-// GetTransaction will return a history transaction for the given hash from storage
-func (hp *historyProcessor) GetTransaction(hash []byte) (*HistoryTransactionWithEpoch, error) {
+// GetTransactionsGroupMetadata will return a history transaction for the given hash from storage
+func (hp *historyProcessor) GetTransactionsGroupMetadata(hash []byte) (*HistoryTransactionWithEpoch, error) {
 	epoch, err := hp.hashEpochStorer.GetEpoch(hash)
 	if err != nil {
 		return nil, err

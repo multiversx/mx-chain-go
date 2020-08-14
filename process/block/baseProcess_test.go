@@ -314,7 +314,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			Indexer:            &mock.IndexerMock{},
 			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
 			Version:            "softwareVersion",
-			HistoryRepository:  &mock.HistoryRepositoryStub{},
+			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
 		},
 	}
 

@@ -14,7 +14,7 @@ func (nhr *nilHistoryRepository) PutTransactionsData(_ *HistoryTransactionsData)
 }
 
 // GetTransaction returns a not implemented error
-func (nhr *nilHistoryRepository) GetTransaction(_ []byte) (*HistoryTransactionWithEpoch, error) {
+func (nhr *nilHistoryRepository) GetTransactionsGroupMetadata(_ []byte) (*HistoryTransactionWithEpoch, error) {
 	return nil, nil
 }
 

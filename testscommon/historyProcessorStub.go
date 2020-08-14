@@ -4,44 +4,44 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 )
 
-// HistoryProcessorStub -
-type HistoryProcessorStub struct {
-	PutTransactionsDataCalled func(htd *fullHistory.HistoryTransactionsData) error
-	GetTransactionCalled      func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error)
-	GetEpochForHashCalled     func(hash []byte) (uint32, error)
-	IsEnabledCalled           func() bool
+// HistoryRepositoryStub -
+type HistoryRepositoryStub struct {
+	PutTransactionsDataCalled          func(htd *fullHistory.HistoryTransactionsData) error
+	GetTransactionsGroupMetadataCalled func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error)
+	GetEpochForHashCalled              func(hash []byte) (uint32, error)
+	IsEnabledCalled                    func() bool
 }
 
-// PutTransactionsData will save in storage information about history transactions
-func (hp *HistoryProcessorStub) PutTransactionsData(historyTxsData *fullHistory.HistoryTransactionsData) error {
+// PutTransactionsData -
+func (hp *HistoryRepositoryStub) PutTransactionsData(historyTxsData *fullHistory.HistoryTransactionsData) error {
 	if hp.PutTransactionsDataCalled != nil {
 		return hp.PutTransactionsDataCalled(historyTxsData)
 	}
 	return nil
 }
 
-// GetTransaction will return a history transaction for the given hash from storage
-func (hp *HistoryProcessorStub) GetTransaction(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
-	if hp.GetTransactionCalled != nil {
-		return hp.GetTransactionCalled(hash)
+// GetTransactionsGroupMetadata -
+func (hp *HistoryRepositoryStub) GetTransactionsGroupMetadata(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
+	if hp.GetTransactionsGroupMetadataCalled != nil {
+		return hp.GetTransactionsGroupMetadataCalled(hash)
 	}
 	return nil, nil
 }
 
-// GetEpochForHash will return epoch for a given hash
-func (hp *HistoryProcessorStub) GetEpochForHash(hash []byte) (uint32, error) {
+// GetEpochForHash -
+func (hp *HistoryRepositoryStub) GetEpochForHash(hash []byte) (uint32, error) {
 	return hp.GetEpochForHashCalled(hash)
 }
 
-// IsEnabled will always return true because this is implementation of a history processor
-func (hp *HistoryProcessorStub) IsEnabled() bool {
+// IsEnabled -
+func (hp *HistoryRepositoryStub) IsEnabled() bool {
 	if hp.IsEnabledCalled != nil {
 		return hp.IsEnabledCalled()
 	}
 	return true
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (hp *HistoryProcessorStub) IsInterfaceNil() bool {
+// IsInterfaceNil -
+func (hp *HistoryRepositoryStub) IsInterfaceNil() bool {
 	return hp == nil
 }

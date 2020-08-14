@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -57,7 +58,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		NodesSetup:              nodeSetup,
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -239,7 +240,7 @@ func CreateNodeWithBLSAndTxKeys(
 		NodesSetup:              nodesSetup,
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 	}
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]

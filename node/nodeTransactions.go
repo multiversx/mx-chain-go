@@ -60,7 +60,7 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 		return n.castObjToTransaction(txObj, txType)
 	}
 
-	historyTx, err := n.historyRepository.GetTransaction(hash)
+	historyTx, err := n.historyRepository.GetTransactionsGroupMetadata(hash)
 	if err != nil {
 		// transaction is not in history storer
 		return nil, err

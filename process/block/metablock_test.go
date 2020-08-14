@@ -78,7 +78,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			Indexer:            &mock.IndexerMock{},
 			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
 			Version:            "softwareVersion",
-			HistoryRepository:  &mock.HistoryRepositoryStub{},
+			HistoryRepository:  &testscommon.HistoryRepositoryStub{},
 		},
 		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},

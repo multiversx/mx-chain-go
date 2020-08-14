@@ -9,7 +9,7 @@ type HistoryRepositoryFactory interface {
 // HistoryRepository provides methods needed for the history data processing
 type HistoryRepository interface {
 	PutTransactionsData(htd *HistoryTransactionsData) error
-	GetTransaction(hash []byte) (*HistoryTransactionWithEpoch, error)
+	GetTransactionsGroupMetadata(hash []byte) (*HistoryTransactionWithEpoch, error)
 	GetEpochForHash(hash []byte) (uint32, error)
 	IsEnabled() bool
 	IsInterfaceNil() bool
