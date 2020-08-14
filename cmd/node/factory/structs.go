@@ -2,7 +2,6 @@ package factory
 
 import (
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"math/big"
 	"time"
 
@@ -25,14 +24,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
+	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -1332,9 +1334,7 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
-	txSimulatorProcessorArgs := argsNewTxProcessor
-	txSimulatorProcessorArgs.Accounts = disabled.NewAccountsAdapter()
-	txSimulatorProcessor, err = transaction.NewTxProcessor(txSimulatorProcessorArgs)
+	err = createShardTxSimulatorProcessor(argsNewScProcessor, argsNewTxProcessor, shardCoordinator, data, core, stateComponents, txSimulatorProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -1597,18 +1597,7 @@ func newMetaBlockProcessor(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	//txSimulatorProcessorArgs := argsNewTxProcessor
-	accounts := disabled.NewAccountsAdapter()
-	txSimulatorProcessor, err = transaction.NewMetaTxProcessor(
-		core.Hasher,
-		core.InternalMarshalizer,
-		accounts,
-		stateComponents.AddressPubkeyConverter,
-		shardCoordinator,
-		scProcessor,
-		txTypeHandler,
-		economicsData,
-	)
+	err = createMetaTxSimulatorProcessor(argsNewScProcessor, shardCoordinator, data, core, stateComponents, txTypeHandler, txSimulatorProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -1810,6 +1799,140 @@ func newMetaBlockProcessor(
 	}
 
 	return metaProcessor, nil
+}
+
+func createShardTxSimulatorProcessor(
+	scProcArgs smartContract.ArgsNewSmartContractProcessor,
+	txProcArgs transaction.ArgsNewTxProcessor,
+	shardCoordinator sharding.Coordinator,
+	data *mainFactory.DataComponents,
+	core *mainFactory.CoreComponents,
+	stateComponents *mainFactory.StateComponents,
+	txSimulatorProcessor process.TransactionProcessor,
+) error {
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
+		shardCoordinator,
+		core.InternalMarshalizer,
+		core.Hasher,
+		stateComponents.AddressPubkeyConverter,
+		disabled.NewChainStorer(),
+		data.Datapool,
+	)
+	if err != nil {
+		return err
+	}
+
+	interimProcContainer, err := interimProcFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	if err != nil {
+		return err
+	}
+	scProcArgs.ScrForwarder = scForwarder
+
+	receiptTxInterim, err := interimProcContainer.Get(dataBlock.ReceiptBlock)
+	if err != nil {
+		return err
+	}
+	txProcArgs.ReceiptForwarder = receiptTxInterim
+
+	badTxInterim, err := interimProcContainer.Get(dataBlock.InvalidBlock)
+	if err != nil {
+		return err
+	}
+	scProcArgs.BadTxForwarder = badTxInterim
+	txProcArgs.BadTxForwarder = badTxInterim
+
+	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
+	txProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
+
+	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
+	if err != nil {
+		return err
+	}
+	txProcArgs.ScProcessor = scProcessor
+
+	txProcArgs.Accounts, err = txsimulator.NewReadOnlyAccountsDB(stateComponents.AccountsAdapter)
+	if err != nil {
+		return err
+	}
+
+	txSimulatorProcessor, err = transaction.NewTxProcessor(txProcArgs)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createMetaTxSimulatorProcessor(
+	scProcArgs smartContract.ArgsNewSmartContractProcessor,
+	shardCoordinator sharding.Coordinator,
+	data *mainFactory.DataComponents,
+	core *mainFactory.CoreComponents,
+	stateComponents *mainFactory.StateComponents,
+	txTypeHandler process.TxTypeHandler,
+	txSimulatorProcessor process.TransactionProcessor,
+) error {
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
+		shardCoordinator,
+		core.InternalMarshalizer,
+		core.Hasher,
+		stateComponents.AddressPubkeyConverter,
+		disabled.NewChainStorer(),
+		data.Datapool,
+	)
+	if err != nil {
+		return err
+	}
+
+	interimProcContainer, err := interimProcFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	if err != nil {
+		return err
+	}
+	scProcArgs.ScrForwarder = scForwarder
+
+	badTxInterim, err := interimProcContainer.Get(dataBlock.InvalidBlock)
+	if err != nil {
+		return err
+	}
+	scProcArgs.BadTxForwarder = badTxInterim
+
+	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
+
+	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
+	if err != nil {
+		return err
+	}
+
+	accountsWrapper, err := txsimulator.NewReadOnlyAccountsDB(stateComponents.AccountsAdapter)
+	if err != nil {
+		return err
+	}
+
+	txSimulatorProcessor, err = transaction.NewMetaTxProcessor(
+		core.Hasher,
+		core.InternalMarshalizer,
+		accountsWrapper,
+		stateComponents.AddressPubkeyConverter,
+		shardCoordinator,
+		scProcessor,
+		txTypeHandler,
+		&processDisabled.FeeHandler{},
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func newValidatorStatisticsProcessor(

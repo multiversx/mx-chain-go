@@ -296,7 +296,7 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 
 // SimulateTransactionExecution will simulate a transaction's execution and will return the results
 func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
-	return nf.txSimulatorProc.ProcessTx(nf.accountsState, tx)
+	return nf.txSimulatorProc.ProcessTx(tx)
 }
 
 // GetTransaction gets the transaction with a specified hash

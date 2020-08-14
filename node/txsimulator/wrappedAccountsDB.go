@@ -1,8 +1,6 @@
 package txsimulator
 
 import (
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -10,7 +8,6 @@ import (
 
 // readOnlyAccountsDB is a wrapper over an accounts db which works read-only. write operation are disabled
 type readOnlyAccountsDB struct {
-	mutAccounts      sync.RWMutex
 	originalAccounts state.AccountsAdapter
 }
 
@@ -25,17 +22,11 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 
 // GetExistingAccount will call the original accounts' function with the same name
 func (w *readOnlyAccountsDB) GetExistingAccount(address []byte) (state.AccountHandler, error) {
-	w.mutAccounts.RLock()
-	defer w.mutAccounts.RUnlock()
-
 	return w.originalAccounts.GetExistingAccount(address)
 }
 
 // LoadAccount will call the original accounts' function with the same name
 func (w *readOnlyAccountsDB) LoadAccount(address []byte) (state.AccountHandler, error) {
-	w.mutAccounts.RLock()
-	defer w.mutAccounts.RUnlock()
-
 	return w.originalAccounts.LoadAccount(address)
 }
 
@@ -56,9 +47,6 @@ func (w *readOnlyAccountsDB) Commit() ([]byte, error) {
 
 // JournalLen will call the original accounts' function with the same name
 func (w *readOnlyAccountsDB) JournalLen() int {
-	w.mutAccounts.RLock()
-	defer w.mutAccounts.RUnlock()
-
 	return w.originalAccounts.JournalLen()
 }
 
@@ -69,17 +57,11 @@ func (w *readOnlyAccountsDB) RevertToSnapshot(_ int) error {
 
 // GetNumCheckpoints will call the original accounts' function with the same name
 func (w *readOnlyAccountsDB) GetNumCheckpoints() uint32 {
-	w.mutAccounts.RLock()
-	defer w.mutAccounts.RUnlock()
-
 	return w.originalAccounts.GetNumCheckpoints()
 }
 
 // RootHash will call the original accounts' function with the same name
 func (w *readOnlyAccountsDB) RootHash() ([]byte, error) {
-	w.mutAccounts.RLock()
-	defer w.mutAccounts.RUnlock()
-
 	return w.originalAccounts.RootHash()
 }
 
@@ -106,17 +88,11 @@ func (w *readOnlyAccountsDB) SetStateCheckpoint(_ []byte) {
 
 // IsPruningEnabled will call the original accounts' function with the same name
 func (w *readOnlyAccountsDB) IsPruningEnabled() bool {
-	w.mutAccounts.RLock()
-	defer w.mutAccounts.RUnlock()
-
 	return w.originalAccounts.IsPruningEnabled()
 }
 
 // GetAllLeaves will call the original accounts' function with the same name
 func (w *readOnlyAccountsDB) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
-	w.mutAccounts.RLock()
-	defer w.mutAccounts.RUnlock()
-
 	return w.originalAccounts.GetAllLeaves(rootHash)
 }
 

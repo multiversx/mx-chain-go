@@ -211,7 +211,6 @@ func SimulateTransaction(c *gin.Context) {
 	}
 
 	executionResults.Hash = hex.EncodeToString(txHash)
-
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{

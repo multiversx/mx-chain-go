@@ -10,28 +10,29 @@ import (
 )
 
 type transactionSimulator struct {
-	txProcessor TransactionProcessor
+	txProcessor     TransactionProcessor
+	accountsAdapter state.AccountsAdapter
 }
 
 // New returns a new instance of a transactionSimulator
-func New(txProcessor TransactionProcessor) (*transactionSimulator, error) {
+func New(txProcessor TransactionProcessor, accountsAdapter state.AccountsAdapter) (*transactionSimulator, error) {
 	if check.IfNil(txProcessor) {
 		return nil, node.ErrNilTxSimulatorProcessor
 	}
+	if check.IfNil(accountsAdapter) {
+		return nil, node.ErrNilAccountsAdapter
+	}
+
+	txProcessor.SetAccountsAdapter(accountsAdapter)
 
 	return &transactionSimulator{
-		txProcessor: txProcessor,
+		txProcessor:     txProcessor,
+		accountsAdapter: accountsAdapter,
 	}, nil
 }
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
-func (ts *transactionSimulator) ProcessTx(accounts state.AccountsAdapter, tx *transaction.Transaction) (*transaction.SimulationResults, error) {
-	newAccounts, err := NewReadOnlyAccountsDB(accounts)
-	if err != nil {
-		return nil, err
-	}
-
-	ts.txProcessor.SetAccountsAdapter(newAccounts)
+func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 	retCode, err := ts.txProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return nil, err

@@ -65,7 +65,7 @@ type NodeHandler interface {
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
 type TransactionSimulatorProcessor interface {
-	ProcessTx(accounts state.AccountsAdapter, tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	IsInterfaceNil() bool
 }
 

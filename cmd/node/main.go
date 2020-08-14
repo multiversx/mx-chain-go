@@ -1250,7 +1250,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	transactionSimulator, err := txsimulator.New(txSimulatorProcessor)
+	transactionSimulator, err := txsimulator.New(txSimulatorProcessor, stateComponents.AccountsAdapter)
 	if err != nil {
 		return err
 	}
