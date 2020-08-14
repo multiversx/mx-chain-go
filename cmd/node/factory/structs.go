@@ -1764,7 +1764,7 @@ func newMetaBlockProcessor(
 		UserAccountsDB:          stateComponents.AccountsAdapter,
 		PeerAccountsDB:          stateComponents.PeerAccounts,
 		Marshalizer:             core.InternalMarshalizer,
-		RatingsData:             ratingsData,
+		StartRating:             ratingsData.StartRating(),
 		ValidatorInfoCreator:    validatorStatisticsProcessor,
 		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 		StakingSCAddress:        vm.StakingSCAddress,

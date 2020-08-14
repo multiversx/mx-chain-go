@@ -22,7 +22,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	UserAccountsDB       state.AccountsAdapter
 	PeerAccountsDB       state.AccountsAdapter
 	Marshalizer          marshal.Marshalizer
-	RatingsData          process.RatingsInfoHandler
+	StartRating          uint32
 	ValidatorInfoCreator epochStart.ValidatorInfoCreator
 
 	EndOfEpochCallerAddress []byte
@@ -54,9 +54,6 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if check.IfNil(args.Marshalizer) {
 		return nil, epochStart.ErrNilMarshalizer
 	}
-	if check.IfNil(args.RatingsData) {
-		return nil, epochStart.ErrNilRatingsInfoHandler
-	}
 	if check.IfNil(args.ValidatorInfoCreator) {
 		return nil, epochStart.ErrNilValidatorInfoProcessor
 	}
@@ -72,7 +69,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		userAccountsDB:          args.UserAccountsDB,
 		peerAccountsDB:          args.PeerAccountsDB,
 		marshalizer:             args.Marshalizer,
-		startRating:             args.RatingsData.StartRating(),
+		startRating:             args.StartRating,
 		validatorInfoCreator:    args.ValidatorInfoCreator,
 		endOfEpochCallerAddress: args.EndOfEpochCallerAddress,
 		stakingSCAddress:        args.StakingSCAddress,

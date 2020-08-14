@@ -1385,7 +1385,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			UserAccountsDB:          tpn.AccntState,
 			PeerAccountsDB:          tpn.PeerState,
 			Marshalizer:             TestMarshalizer,
-			RatingsData:             tpn.RatingsData,
+			StartRating:             tpn.RatingsData.StartRating(),
 			ValidatorInfoCreator:    tpn.ValidatorStatisticsProcessor,
 			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 			StakingSCAddress:        vm.StakingSCAddress,
