@@ -78,7 +78,7 @@ const (
 	// EpochByHashUnit is the epoch by hash storage unit identifier
 	EpochByHashUnit UnitType = 13
 	// MiniblocksHashByTxHashUnit is the miniblocks hash by tx hash storage unit identifier
-	MiniblocksHashByTxHashUnit UnitType = 14
+	MiniblockHashByTxHashUnit UnitType = 14
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

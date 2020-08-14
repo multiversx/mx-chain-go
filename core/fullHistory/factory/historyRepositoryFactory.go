@@ -61,7 +61,7 @@ func (hpf *historyRepositoryFactory) Create() (fullHistory.HistoryRepository, er
 		Marshalizer:                 hpf.marshalizer,
 		MiniblocksMetadataStorer:    hpf.store.GetStorer(dataRetriever.MiniblocksMetadataUnit),
 		EpochByHashStorer:           hpf.store.GetStorer(dataRetriever.EpochByHashUnit),
-		MiniblockHashByTxHashStorer: hpf.store.GetStorer(dataRetriever.MiniblocksHashByTxHashUnit),
+		MiniblockHashByTxHashStorer: hpf.store.GetStorer(dataRetriever.MiniblockHashByTxHashUnit),
 	}
 	return fullHistory.NewHistoryRepository(historyRepArgs)
 }
