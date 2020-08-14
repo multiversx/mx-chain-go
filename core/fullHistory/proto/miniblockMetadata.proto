@@ -7,8 +7,8 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-// TransactionsGroupMetadata is used to store information about a history transaction
-message TransactionsGroupMetadata {
+// MiniblockMetadata is used to store information about a history transaction
+message MiniblockMetadata {
     uint32 RcvShardID  = 1;
     uint32 SndShardID  = 2;
     uint64 Round       = 3;

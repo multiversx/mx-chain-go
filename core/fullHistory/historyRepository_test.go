@@ -122,7 +122,7 @@ func TestHistoryRepository_GetTransaction(t *testing.T) {
 	args.MiniblocksMetadataStorer = &mock.StorerStub{
 		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 			if epoch == epoch {
-				historyTx := &TransactionsGroupMetadata{
+				historyTx := &MiniblockMetadata{
 					Round: round,
 				}
 				historyTxBytes, _ := json.Marshal(historyTx)
@@ -134,7 +134,7 @@ func TestHistoryRepository_GetTransaction(t *testing.T) {
 
 	repo, _ := NewHistoryRepository(args)
 
-	historyTx, err := repo.GetTransactionsGroupMetadata([]byte("txHash"))
+	historyTx, err := repo.GetMiniblockMetadataByTxHash([]byte("txHash"))
 	assert.Nil(t, err)
 	assert.Equal(t, round, historyTx.Round)
 	assert.Equal(t, epoch, historyTx.Epoch)

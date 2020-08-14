@@ -13,7 +13,7 @@ type HistoryRepositoryFactory interface {
 // HistoryRepository provides methods needed for the history data processing
 type HistoryRepository interface {
 	RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
-	GetTransactionsGroupMetadata(hash []byte) (*TransactionsGroupMetadataWithEpoch, error)
+	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadataWithEpoch, error)
 	GetEpochByHash(hash []byte) (uint32, error)
 	IsEnabled() bool
 	IsInterfaceNil() bool

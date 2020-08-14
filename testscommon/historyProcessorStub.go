@@ -8,7 +8,7 @@ import (
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
 	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
-	GetTransactionsGroupMetadataCalled func(hash []byte) (*fullHistory.TransactionsGroupMetadataWithEpoch, error)
+	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*fullHistory.MiniblockMetadataWithEpoch, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
 	IsEnabledCalled                    func() bool
 }
@@ -21,10 +21,10 @@ func (hp *HistoryRepositoryStub) RecordBlock(blockHeaderHash []byte, blockHeader
 	return nil
 }
 
-// GetTransactionsGroupMetadata -
-func (hp *HistoryRepositoryStub) GetTransactionsGroupMetadata(hash []byte) (*fullHistory.TransactionsGroupMetadataWithEpoch, error) {
-	if hp.GetTransactionsGroupMetadataCalled != nil {
-		return hp.GetTransactionsGroupMetadataCalled(hash)
+// GetMiniblockMetadataByTxHash -
+func (hp *HistoryRepositoryStub) GetMiniblockMetadataByTxHash(hash []byte) (*fullHistory.MiniblockMetadataWithEpoch, error) {
+	if hp.GetMiniblockMetadataByTxHashCalled != nil {
+		return hp.GetMiniblockMetadataByTxHashCalled(hash)
 	}
 	return nil, nil
 }

@@ -7,7 +7,7 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-//EpochByHash is used to store information about a hash to know which epoch it belongs to
+// EpochByHash is used to store information about a hash to know which epoch it belongs to
 message EpochByHash {
     uint32 Epoch  = 1;
 }
