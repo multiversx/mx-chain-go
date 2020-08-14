@@ -72,8 +72,8 @@ import (
 )
 
 const (
-	// MaxTxsToRequest specifies the maximum number of txs to request
-	MaxTxsToRequest = 1000
+	// maxTxsToRequest specifies the maximum number of txs to request
+	maxTxsToRequest = 1000
 )
 
 //TODO remove this
@@ -156,7 +156,7 @@ type processComponentsFactoryArgs struct {
 	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               fullHistory.HistoryRepository
-	txSimulatorProcessor      process.TransactionProcessor
+	txSimulatorProcessor      *txsimulator.TransactionProcessor
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -200,7 +200,7 @@ func NewProcessComponentsFactoryArgs(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo fullHistory.HistoryRepository,
-	txSimulatorProcessor process.TransactionProcessor,
+	txSimulatorProcessor *txsimulator.TransactionProcessor,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -293,7 +293,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		args.requestedItemsHandler,
 		args.whiteListHandler,
-		MaxTxsToRequest,
+		maxTxsToRequest,
 		args.shardCoordinator.SelfId(),
 		time.Second,
 	)
@@ -1086,7 +1086,7 @@ func newBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
-	txSimulatorProcessor process.TransactionProcessor,
+	txSimulatorProcessor *txsimulator.TransactionProcessor,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1182,7 +1182,7 @@ func newShardBlockProcessor(
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
 	historyRepository fullHistory.HistoryRepository,
-	txSimulatorProcessor process.TransactionProcessor,
+	txSimulatorProcessor *txsimulator.TransactionProcessor,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -1476,7 +1476,7 @@ func newMetaBlockProcessor(
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
 	historyRepository fullHistory.HistoryRepository,
-	txSimulatorProcessor process.TransactionProcessor,
+	txSimulatorProcessor *txsimulator.TransactionProcessor,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1808,7 +1808,7 @@ func createShardTxSimulatorProcessor(
 	data *mainFactory.DataComponents,
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
-	txSimulatorProcessor process.TransactionProcessor,
+	txSimulatorProcessor *txsimulator.TransactionProcessor,
 ) error {
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
@@ -1860,7 +1860,7 @@ func createShardTxSimulatorProcessor(
 		return err
 	}
 
-	txSimulatorProcessor, err = transaction.NewTxProcessor(txProcArgs)
+	*txSimulatorProcessor, err = transaction.NewTxProcessor(txProcArgs)
 	if err != nil {
 		return err
 	}
@@ -1875,7 +1875,7 @@ func createMetaTxSimulatorProcessor(
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
 	txTypeHandler process.TxTypeHandler,
-	txSimulatorProcessor process.TransactionProcessor,
+	txSimulatorProcessor *txsimulator.TransactionProcessor,
 ) error {
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
@@ -1918,7 +1918,7 @@ func createMetaTxSimulatorProcessor(
 		return err
 	}
 
-	txSimulatorProcessor, err = transaction.NewMetaTxProcessor(
+	*txSimulatorProcessor, err = transaction.NewMetaTxProcessor(
 		core.Hasher,
 		core.InternalMarshalizer,
 		accountsWrapper,

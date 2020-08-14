@@ -128,6 +128,11 @@ func (txProc *txProcessor) SetAccountsAdapter(accounts state.AccountsAdapter) {
 	}
 }
 
+// GetSmartContractResults returns the smart contract results in the current round
+func (txProc *txProcessor) GetSmartContractResults() map[string]data.TransactionHandler {
+	return txProc.scrForwarder.GetAllCurrentFinishedTxs()
+}
+
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
 	if check.IfNil(tx) {

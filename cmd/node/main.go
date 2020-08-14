@@ -1243,7 +1243,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer,
 		tpsBenchmark,
 		historyRepository,
-		txSimulatorProcessor,
+		&txSimulatorProcessor,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {

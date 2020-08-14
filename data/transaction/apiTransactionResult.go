@@ -1,6 +1,9 @@
 package transaction
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+)
 
 // ApiTransactionResult is the data transfer object which will be returned on the get transaction by hash endpoint
 type ApiTransactionResult struct {
@@ -27,7 +30,8 @@ type ApiTransactionResult struct {
 
 // SimulationResults is the data transfer object which will hold results for simulation a transaction's execution
 type SimulationResults struct {
-	Status    core.TransactionStatus `json:"status,omitempty"`
-	ScResults []string               `json:"scResults,omitempty"`
-	Hash      string                 `json:"hash,omitempty"`
+	Status     core.TransactionStatus                              `json:"status,omitempty"`
+	FailReason string                                              `json:"failReason,omitempty"`
+	ScResults  map[string]*smartContractResult.SmartContractResult `json:"scResults,omitempty"`
+	Hash       string                                              `json:"hash,omitempty"`
 }
