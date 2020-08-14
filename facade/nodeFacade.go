@@ -329,16 +329,6 @@ func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput
 	return nf.apiResolver.ExecuteSCQuery(query)
 }
 
-// ExecuteQueryWithCallerAndValue retrieves data from existing SC trie but also applies the caller and the value
-func (nf *nodeFacade) ExecuteQueryWithCallerAndValue(query *process.SCQuery, callerAddr string, callValue *big.Int) (*vmcommon.VMOutput, error) {
-	decodedAddress, err := nf.DecodeAddressPubkey(callerAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	return nf.apiResolver.ExecuteQueryWithCallerAndValue(query, decodedAddress, callValue)
-}
-
 // PprofEnabled returns if profiling mode should be active or not on the application
 func (nf *nodeFacade) PprofEnabled() bool {
 	return nf.config.PprofEnabled

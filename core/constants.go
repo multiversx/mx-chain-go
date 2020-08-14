@@ -2,7 +2,6 @@ package core
 
 import (
 	"math"
-	"math/big"
 	"time"
 )
 
@@ -382,13 +381,6 @@ const (
 	// NsNotCalculated defines ID of a state which is not calculated
 	NsNotCalculated
 )
-
-// ScQueryDefaultCallerAddress is used when no caller address is set to a request to the sc query service
-// represents the bech32 address for a byte slice filled with zeros
-var ScQueryDefaultCallerAddress = "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu"
-
-// ScQueryDefaultCallValue is used when no call value is set to a request to the sc query service
-var ScQueryDefaultCallValue = big.NewInt(-1)
 
 // MetricP2PPeerInfo is the metric for the node's p2p info
 const MetricP2PPeerInfo = "erd_p2p_peer_info"

@@ -1,8 +1,6 @@
 package external
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -42,11 +40,6 @@ func NewNodeApiResolver(
 // ExecuteSCQuery retrieves data stored in a SC account through a VM
 func (nar *NodeApiResolver) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	return nar.scQueryService.ExecuteQuery(query)
-}
-
-// ExecuteQueryWithCallerAndValue retrieves data stored in a SC account through a VM but also includes the caller and the value
-func (nar *NodeApiResolver) ExecuteQueryWithCallerAndValue(query *process.SCQuery, callerAddr []byte, callValue *big.Int) (*vmcommon.VMOutput, error) {
-	return nar.scQueryService.ExecuteQueryWithCallerAndValue(query, callerAddr, callValue)
 }
 
 // StatusMetrics returns an implementation of the StatusMetricsHandler interface

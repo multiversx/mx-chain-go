@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-gonic/gin"
@@ -25,7 +24,6 @@ const (
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	ExecuteSCQuery(*process.SCQuery) (*vmcommon.VMOutput, error)
-	ExecuteQueryWithCallerAndValue(query *process.SCQuery, callerAddress string, callValue *big.Int) (*vmcommon.VMOutput, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	IsInterfaceNil() bool
 }
@@ -107,22 +105,18 @@ func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, errors.ErrInvalidJSONRequest
 	}
 
-	command, callerAddr, callValue, err := createSCQuery(ef, &request)
+	command, err := createSCQuery(ef, &request)
 	if err != nil {
 		return nil, err
-	}
-
-	if callValue.Cmp(core.ScQueryDefaultCallValue) != 0 {
-		return ef.ExecuteQueryWithCallerAndValue(command, callerAddr, callValue)
 	}
 
 	return ef.ExecuteSCQuery(command)
 }
 
-func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery, string, *big.Int, error) {
+func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery, error) {
 	decodedAddress, err := fh.DecodeAddressPubkey(request.ScAddress)
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("'%s' is not a valid address: %s", request.ScAddress, err.Error())
+		return nil, fmt.Errorf("'%s' is not a valid address: %s", request.ScAddress, err.Error())
 	}
 
 	arguments := make([][]byte, len(request.Args))
@@ -130,31 +124,36 @@ func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery,
 	for i, arg := range request.Args {
 		argBytes, err = hex.DecodeString(arg)
 		if err != nil {
-			return nil, "", nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
+			return nil, fmt.Errorf("'%s' is not a valid hex string: %s", arg, err.Error())
 		}
 
 		arguments[i] = append(arguments[i], argBytes...)
 	}
 
-	callerAddress := core.ScQueryDefaultCallerAddress
-	if len(request.CallerAddr) > 0 {
-		callerAddress = request.CallerAddr
-	}
-
-	callValue := core.ScQueryDefaultCallValue
-	if len(request.CallValue) > 0 {
-		var ok bool
-		callValue, ok = big.NewInt(0).SetString(request.CallValue, 10)
-		if !ok {
-			return nil, "", nil, fmt.Errorf("non numeric value provided: %s", request.CallValue)
-		}
-	}
-
-	return &process.SCQuery{
+	scQuery := &process.SCQuery{
 		ScAddress: decodedAddress,
 		FuncName:  request.FuncName,
 		Arguments: arguments,
-	}, callerAddress, callValue, nil
+	}
+
+	if len(request.CallerAddr) > 0 {
+		callerAddress, errDecodeCaller := fh.DecodeAddressPubkey(request.CallerAddr)
+		if errDecodeCaller != nil {
+			return nil, errDecodeCaller
+		}
+
+		scQuery.CallerAddr = callerAddress
+	}
+
+	if len(request.CallValue) > 0 {
+		callValue, ok := big.NewInt(0).SetString(request.CallValue, 10)
+		if !ok {
+			return nil, fmt.Errorf("non numeric call value provided: %s", request.CallValue)
+		}
+		scQuery.CallValue = callValue
+	}
+
+	return scQuery, nil
 }
 
 func returnBadRequest(context *gin.Context, errScope string, err error) {

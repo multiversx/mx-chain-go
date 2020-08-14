@@ -30,7 +30,6 @@ type Facade struct {
 	ValidateTransactionHandler              func(tx *transaction.Transaction) error
 	SendBulkTransactionsHandler             func(txs []*transaction.Transaction) (uint64, error)
 	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vmcommon.VMOutput, error)
-	ExecuteQueryWithValueHandler            func(query *process.SCQuery, callerAddr string, callValue *big.Int) (*vmcommon.VMOutput, error)
 	StatusMetricsHandler                    func() external.StatusMetricsHandler
 	ValidatorStatisticsHandler              func() (map[string]*state.ValidatorApiResponse, error)
 	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (uint64, error)
@@ -148,15 +147,6 @@ func (f *Facade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiRespons
 // ExecuteSCQuery is a mock implementation.
 func (f *Facade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	return f.ExecuteSCQueryHandler(query)
-}
-
-// ExecuteQueryWithCallerAndValue -
-func (f *Facade) ExecuteQueryWithCallerAndValue(query *process.SCQuery, callerAddr string, callValue *big.Int) (*vmcommon.VMOutput, error) {
-	if f.ExecuteQueryWithValueHandler != nil {
-		return f.ExecuteQueryWithValueHandler(query, callerAddr, callValue)
-	}
-
-	return nil, nil
 }
 
 // StatusMetrics is the mock implementation for the StatusMetrics
