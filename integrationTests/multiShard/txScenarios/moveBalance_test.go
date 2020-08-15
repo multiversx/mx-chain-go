@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/vm/factory"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,12 +55,12 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	_ = createAndSendTransaction(nodes[1], players[3], players[3].Address, sendValue, []byte(""), integrationTests.MinTxGasPrice-1, integrationTests.MinTxGasLimit)
 	time.Sleep(100 * time.Millisecond)
 	// send value to staking contract without data should consume gas
-	tx3 := createAndSendTransaction(nodes[0], players[4], factory.AuctionSCAddress, sendValue, []byte(""), integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
+	tx3 := createAndSendTransaction(nodes[0], players[4], vm.AuctionSCAddress, sendValue, []byte(""), integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
 	time.Sleep(100 * time.Millisecond)
 	// send value to staking contract with data should consume gas
 	txData := []byte("contract@qwt")
 	gasLimitTxWithData := nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1
-	_ = createAndSendTransaction(nodes[0], players[6], factory.AuctionSCAddress, sendValue, txData, integrationTests.MinTxGasPrice, gasLimitTxWithData)
+	_ = createAndSendTransaction(nodes[0], players[6], vm.AuctionSCAddress, sendValue, txData, integrationTests.MinTxGasPrice, gasLimitTxWithData)
 	time.Sleep(100 * time.Millisecond)
 
 	nrRoundsToTest := int64(7)
