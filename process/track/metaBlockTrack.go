@@ -1,6 +1,9 @@
 package track
 
 import (
+	"bytes"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -69,13 +72,36 @@ func (mbt *metaBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*H
 		metaBlock, err := process.GetMetaHeader(metaBlockHash, mbt.headersPool, mbt.marshalizer, mbt.store)
 		if err != nil {
 			log.Trace("GetSelfHeaders.GetMetaHeader", "error", err.Error())
-			continue
+
+			metaBlock, err = mbt.getTrackedMetaBlockWithHash(metaBlockHash)
+			if err != nil {
+				log.Trace("GetSelfHeaders.getTrackedMetaBlockWithHash", "error", err.Error())
+				continue
+			}
 		}
 
 		selfMetaBlocksInfo = append(selfMetaBlocksInfo, &HeaderInfo{Hash: metaBlockHash, Header: metaBlock})
 	}
 
 	return selfMetaBlocksInfo
+}
+
+func (mbt *metaBlockTrack) getTrackedMetaBlockWithHash(hash []byte) (*block.MetaBlock, error) {
+	metaBlocks, metaBlocksHashes := mbt.GetTrackedHeaders(core.MetachainShardId)
+	for i := 0; i < len(metaBlocks); i++ {
+		if bytes.Compare(metaBlocksHashes[i], hash) != 0 {
+			continue
+		}
+
+		metaBlock, ok := metaBlocks[i].(*block.MetaBlock)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		return metaBlock, nil
+	}
+
+	return nil, process.ErrMissingHeader
 }
 
 // CleanupInvalidCrossHeaders cleans headers added to the block tracker that have become invalid after processing

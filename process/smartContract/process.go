@@ -778,7 +778,7 @@ func (sc *scProcessor) processVMOutput(
 			"return message", vmOutput.ReturnMessage,
 		)
 
-		if callType == vmcommon.AsynchronousCall {
+		if callType == vmcommon.AsynchronousCall || callType == vmcommon.AsynchronousCallBack {
 			return []data.TransactionHandler{scrForSender}, consumedFee, nil
 		}
 
