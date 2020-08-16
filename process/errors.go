@@ -877,3 +877,6 @@ var ErrRelayedGasPriceMissmatch = errors.New("relayed gas price missmatch")
 
 // ErrNilUserAccount signals that nil user account was provided
 var ErrNilUserAccount = errors.New("nil user account")
+
+// ErrNilEpochStartSystemSCProcessor signals that nil epoch start system sc processor was provided
+var ErrNilEpochStartSystemSCProcessor = errors.New("nil epoch start system sc processor")

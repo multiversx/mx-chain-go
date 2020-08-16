@@ -30,7 +30,6 @@ import (
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
@@ -434,7 +433,7 @@ func setStakedData(
 ) error {
 
 	scQueryBlsKeys := &process.SCQuery{
-		ScAddress: vmFactory.StakingSCAddress,
+		ScAddress: vm.StakingSCAddress,
 		FuncName:  "isStaked",
 	}
 
@@ -447,7 +446,7 @@ func setStakedData(
 		tx := &transaction.Transaction{
 			Nonce:     0,
 			Value:     new(big.Int).Set(stakeValue),
-			RcvAddr:   vmFactory.AuctionSCAddress,
+			RcvAddr:   vm.AuctionSCAddress,
 			SndAddr:   nodeInfo.AddressBytes(),
 			GasPrice:  0,
 			GasLimit:  math.MaxUint64,

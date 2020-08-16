@@ -89,6 +89,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 		EpochRewardsCreator:          &mock.EpochRewardsCreatorStub{},
 		EpochValidatorInfoCreator:    &mock.EpochValidatorInfoCreatorStub{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+		EpochSystemSCProcessor:       &mock.EpochStartSystemSCStub{},
 	}
 	return arguments
 }

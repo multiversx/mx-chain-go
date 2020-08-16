@@ -19,7 +19,10 @@ func (coordinator *ShardCoordinatorStub) NumberOfShards() uint32 {
 
 // ComputeId -
 func (coordinator *ShardCoordinatorStub) ComputeId(address []byte) uint32 {
-	return coordinator.ComputeIdCalled(address)
+	if coordinator.ComputeIdCalled != nil {
+		return coordinator.ComputeIdCalled(address)
+	}
+	return 0
 }
 
 // SelfId -

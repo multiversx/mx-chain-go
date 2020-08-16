@@ -1767,6 +1767,26 @@ func newMetaBlockProcessor(
 		HistoryRepository:      historyRepository,
 		EpochNotifier:          epochNotifier,
 	}
+
+	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
+	if err != nil {
+		return nil, err
+	}
+	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
+		SystemVM:                systemVM,
+		UserAccountsDB:          stateComponents.AccountsAdapter,
+		PeerAccountsDB:          stateComponents.PeerAccounts,
+		Marshalizer:             core.InternalMarshalizer,
+		StartRating:             ratingsData.StartRating(),
+		ValidatorInfoCreator:    validatorStatisticsProcessor,
+		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
+		StakingSCAddress:        vm.StakingSCAddress,
+	}
+	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
+	if err != nil {
+		return nil, err
+	}
+
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,
 		SCDataGetter:                 scDataGetter,
@@ -1777,6 +1797,7 @@ func newMetaBlockProcessor(
 		EpochRewardsCreator:          epochRewards,
 		EpochValidatorInfoCreator:    validatorInfoCreator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
