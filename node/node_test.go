@@ -558,8 +558,13 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 		},
 	}
 
+	stateComponents := getDefaultStateComponents()
+	processComponents := getDefaultProcessComponents()
+
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
 	nonce := uint64(0)
@@ -570,6 +575,8 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	gasLimit := uint64(20)
 	txData := []byte("-")
 	signature := "-"
+
+	stateComponents.Accounts = nil
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
 
@@ -712,9 +719,12 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = &mock.AccountsStub{}
 
+	processComponents := getDefaultProcessComponents()
+
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
 	nonce := uint64(0)
