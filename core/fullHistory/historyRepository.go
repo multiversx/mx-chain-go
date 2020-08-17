@@ -250,11 +250,22 @@ func (hp *historyProcessor) onNotarizedBlock(metaBlockNonce uint64, metaBlockHas
 func (hp *historyProcessor) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, blockHeader block.ShardData, miniblockHeader block.MiniBlockHeader) {
 	miniblockHash := miniblockHeader.Hash
 	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
-	isAtSource := miniblockHeader.SenderShardID == blockHeader.ShardID
+	notarizedAtSource := miniblockHeader.SenderShardID == blockHeader.ShardID
+
+	iDontCare := miniblockHeader.SenderShardID != hp.selfShardID && miniblockHeader.ReceiverShardID != hp.selfShardID
+	if iDontCare {
+		log.Trace("onNotarizedMiniblock(): skipping",
+			"miniblockHash", miniblockHash,
+			"sender shard", miniblockHeader.SenderShardID,
+			"receiver shard", miniblockHeader.ReceiverShardID,
+		)
+		return
+	}
 
 	metadata, err := hp.getMiniblockMetadataByMiniblockHash(miniblockHash)
 	if err != nil {
-		log.Warn("onNotarizedMiniblock(): cannot get miniblock metadata", "miniblockHash", miniblockHash, "err", err)
+		// Question for review: is there a way to be notified about the "source notarization", but at destination (cross-shard miniblock)?
+		log.Debug("onNotarizedMiniblock(): cannot get miniblock metadata (yet)", "miniblockHash", miniblockHash, "err", err)
 		return
 	}
 
@@ -271,7 +282,7 @@ func (hp *historyProcessor) onNotarizedMiniblock(metaBlockNonce uint64, metaBloc
 		)
 	} else {
 		// Is cross-shard miniblock
-		if isAtSource {
+		if notarizedAtSource {
 			metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
 			metadata.NotarizedAtSourceInMetaHash = metaBlockHash
 
@@ -281,6 +292,7 @@ func (hp *historyProcessor) onNotarizedMiniblock(metaBlockNonce uint64, metaBloc
 				"meta nonce", metaBlockNonce,
 			)
 		} else {
+			// Cross-shard, notarized at destination
 			metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
 			metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
 
