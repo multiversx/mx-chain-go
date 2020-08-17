@@ -186,3 +186,6 @@ var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHand
 
 // ErrNilTxSimulatorProcessor signals that a nil transaction simulator processor has been provided
 var ErrNilTxSimulatorProcessor = errors.New("nil transaction simulator processor")
+
+// ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
+var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")

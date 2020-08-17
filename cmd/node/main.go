@@ -1203,7 +1203,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	var txSimulatorProcessor txsimulator.TransactionProcessor
+	txSimulatorProcessorArgs := &txsimulator.Args{
+		AddressPubKeyConverter: addressPubkeyConverter,
+	}
 
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
@@ -1247,14 +1249,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		tpsBenchmark,
 		historyRepository,
 		epochNotifier,
-		&txSimulatorProcessor,
+		txSimulatorProcessorArgs,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
 		return err
 	}
 
-	transactionSimulator, err := txsimulator.New(txSimulatorProcessor, stateComponents.AccountsAdapter)
+	transactionSimulator, err := txsimulator.New(*txSimulatorProcessorArgs)
 	if err != nil {
 		return err
 	}

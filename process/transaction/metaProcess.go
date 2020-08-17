@@ -3,7 +3,6 @@ package transaction
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -19,16 +18,6 @@ var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
 type metaTxProcessor struct {
 	*baseTxProcessor
 	txTypeHandler process.TxTypeHandler
-}
-
-// GetSmartContractResults returns the smart contract results
-func (txProc *metaTxProcessor) GetSmartContractResults() map[string]data.TransactionHandler {
-	return make(map[string]data.TransactionHandler)
-}
-
-// SetAccountsAdapter updates the accounts adapter
-func (txProc *metaTxProcessor) SetAccountsAdapter(accounts state.AccountsAdapter) {
-	txProc.accounts = accounts
 }
 
 // NewMetaTxProcessor creates a new txProcessor engine

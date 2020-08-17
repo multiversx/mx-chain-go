@@ -26,27 +26,6 @@ import (
 
 //TODO increase code coverage
 
-type interf interface {
-	a() int
-}
-
-type impl struct{}
-
-func (i *impl) a() int {
-	return 3
-}
-
-func putValue(aaa *interf) {
-	impll := &impl{}
-	*aaa = impll
-}
-
-func TestAbc(t *testing.T) {
-	var x interf
-	putValue(&x)
-	fmt.Println(x.a())
-}
-
 func createMockArguments() ArgNodeFacade {
 	return ArgNodeFacade{
 		Node:                   &mock.NodeStub{},

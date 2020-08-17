@@ -1,34 +1,48 @@
 package txsimulator
 
 import (
+	"encoding/hex"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// Args holds the arguments required for creating a new transaction simulator
+type Args struct {
+	TransactionProcessor       TransactionProcessor
+	IntermmediateProcContainer process.IntermediateProcessorContainer
+	AddressPubKeyConverter     core.PubkeyConverter
+}
+
 type transactionSimulator struct {
-	txProcessor     TransactionProcessor
-	accountsAdapter state.AccountsAdapter
+	txProcessor            TransactionProcessor
+	intermProcContainer    process.IntermediateProcessorContainer
+	addressPubKeyConverter core.PubkeyConverter
 }
 
 // New returns a new instance of a transactionSimulator
-func New(txProcessor TransactionProcessor, accountsAdapter state.AccountsAdapter) (*transactionSimulator, error) {
-	if check.IfNil(txProcessor) {
+func New(args Args) (*transactionSimulator, error) {
+	if check.IfNil(args.TransactionProcessor) {
 		return nil, node.ErrNilTxSimulatorProcessor
 	}
-	if check.IfNil(accountsAdapter) {
-		return nil, node.ErrNilAccountsAdapter
+	if check.IfNil(args.IntermmediateProcContainer) {
+		return nil, node.ErrNilIntermediateProcessorContainer
+	}
+	if check.IfNil(args.AddressPubKeyConverter) {
+		return nil, node.ErrNilPubkeyConverter
 	}
 
-	txProcessor.SetAccountsAdapter(accountsAdapter)
-
 	return &transactionSimulator{
-		txProcessor:     txProcessor,
-		accountsAdapter: accountsAdapter,
+		txProcessor:            args.TransactionProcessor,
+		intermProcContainer:    args.IntermmediateProcContainer,
+		addressPubKeyConverter: args.AddressPubKeyConverter,
 	}, nil
 }
 
@@ -42,26 +56,93 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*transac
 		txStatus = core.TxStatusNotExecuted
 	}
 
-	smartContractResultsToRet := make(map[string]*smartContractResult.SmartContractResult)
-	smartContractResults := ts.txProcessor.GetSmartContractResults()
-
-	for hash, scr := range smartContractResults {
-		scrWithType, ok := scr.(*smartContractResult.SmartContractResult)
-		if !ok {
-			continue
-		}
-		smartContractResultsToRet[hash] = scrWithType
-	}
-
 	if retCode == vmcommon.Ok {
 		txStatus = core.TxStatusExecuted
 	}
 
-	return &transaction.SimulationResults{
+	results := &transaction.SimulationResults{
 		Status:     txStatus,
 		FailReason: failReason,
-		ScResults:  smartContractResultsToRet,
-	}, nil
+	}
+
+	err = ts.addIntermediateTxsToResult(results)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.SimulationResults) error {
+	scrForwarder, err := ts.intermProcContainer.Get(block.SmartContractResultBlock)
+	if err != nil {
+		return err
+	}
+	receiptsForwarder, err := ts.intermProcContainer.Get(block.ReceiptBlock)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if scrForwarder != nil {
+			scrForwarder.CreateBlockStarted()
+		}
+		if receiptsForwarder != nil {
+			receiptsForwarder.CreateBlockStarted()
+		}
+	}()
+
+	scResults := make(map[string]*transaction.SmartContractResultApi)
+	for hash, value := range scrForwarder.GetAllCurrentFinishedTxs() {
+		scr, ok := value.(*smartContractResult.SmartContractResult)
+		if !ok {
+			continue
+		}
+		scResults[hex.EncodeToString([]byte(hash))] = ts.adaptSmartContractResult(scr)
+	}
+
+	result.ScResults = scResults
+
+	receipts := make(map[string]*transaction.ReceiptApi)
+	for hash, value := range receiptsForwarder.GetAllCurrentFinishedTxs() {
+		rcpt, ok := value.(*receipt.Receipt)
+		if !ok {
+			continue
+		}
+		receipts[hex.EncodeToString([]byte(hash))] = ts.adaptReceipt(rcpt)
+	}
+	result.Receipts = receipts
+
+	return nil
+}
+
+func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) *transaction.SmartContractResultApi {
+	return &transaction.SmartContractResultApi{
+		Nonce:          scr.Nonce,
+		Value:          scr.Value,
+		RcvAddr:        ts.addressPubKeyConverter.Encode(scr.RcvAddr),
+		SndAddr:        ts.addressPubKeyConverter.Encode(scr.SndAddr),
+		RelayerAddr:    ts.addressPubKeyConverter.Encode(scr.RelayerAddr),
+		RelayedValue:   scr.RelayedValue,
+		Code:           string(scr.Code),
+		Data:           string(scr.Data),
+		PrevTxHash:     hex.EncodeToString(scr.PrevTxHash),
+		OriginalTxHash: hex.EncodeToString(scr.OriginalTxHash),
+		GasLimit:       scr.GasLimit,
+		GasPrice:       scr.GasPrice,
+		CallType:       scr.CallType,
+		CodeMetadata:   string(scr.CodeMetadata),
+		ReturnMessage:  string(scr.ReturnMessage),
+		OriginalSender: ts.addressPubKeyConverter.Encode(scr.OriginalSender),
+	}
+}
+
+func (ts *transactionSimulator) adaptReceipt(rcpt *receipt.Receipt) *transaction.ReceiptApi {
+	return &transaction.ReceiptApi{
+		Value:   rcpt.Value,
+		SndAddr: ts.addressPubKeyConverter.Encode(rcpt.SndAddr),
+		Data:    string(rcpt.Data),
+		TxHash:  hex.EncodeToString(rcpt.TxHash),
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

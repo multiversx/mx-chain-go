@@ -133,18 +133,6 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	return txProc, nil
 }
 
-// SetAccountsAdapter will update the accounts adapter if the provided one is not nil
-func (txProc *txProcessor) SetAccountsAdapter(accounts state.AccountsAdapter) {
-	if !check.IfNil(accounts) {
-		txProc.accounts = accounts
-	}
-}
-
-// GetSmartContractResults returns the smart contract results in the current round
-func (txProc *txProcessor) GetSmartContractResults() map[string]data.TransactionHandler {
-	return txProc.scrForwarder.GetAllCurrentFinishedTxs()
-}
-
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
 	if check.IfNil(tx) {
