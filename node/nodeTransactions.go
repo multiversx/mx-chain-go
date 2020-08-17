@@ -92,10 +92,10 @@ func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblo
 	}
 
 	tx.Epoch = miniblockMetadata.Epoch
-	tx.MBHash = hex.EncodeToString(miniblockMetadata.MbHash)
+	tx.MBHash = hex.EncodeToString(miniblockMetadata.MiniblockHash)
 	tx.BlockHash = hex.EncodeToString(miniblockMetadata.HeaderHash)
-	tx.RcvShard = miniblockMetadata.RcvShardID
-	tx.SndShard = miniblockMetadata.SndShardID
+	tx.RcvShard = miniblockMetadata.DestinationShardID
+	tx.SndShard = miniblockMetadata.SourceShardID
 	tx.Round = miniblockMetadata.Round
 	tx.BlockNonce = miniblockMetadata.HeaderNonce
 	return tx

@@ -12,6 +12,10 @@ func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 	return new(nilHistoryRepository), nil
 }
 
+// RegisterToBlockTracker does nothing
+func (nhr *nilHistoryRepository) RegisterToBlockTracker(blockTracker BlockTracker) {
+}
+
 // RecordBlock returns a not implemented error
 func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler) error {
 	return nil

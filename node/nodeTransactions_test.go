@@ -164,13 +164,13 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 			},
 			GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
 				return &fullHistory.MiniblockMetadata{
-					Epoch:       epoch,
-					MbHash:      mbHash,
-					HeaderHash:  blockHash,
-					HeaderNonce: blockNonce,
-					SndShardID:  sndShard,
-					RcvShardID:  rcvShard,
-					Round:       round,
+					Epoch:              epoch,
+					MiniblockHash:      mbHash,
+					HeaderHash:         blockHash,
+					HeaderNonce:        blockNonce,
+					SourceShardID:      sndShard,
+					DestinationShardID: rcvShard,
+					Round:              round,
 				}, nil
 			},
 		}),
