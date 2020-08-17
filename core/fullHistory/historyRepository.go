@@ -79,6 +79,24 @@ func (hp *historyProcessor) onNotarizedBlockHeaders(shardID uint32, headers []da
 	if shardID != core.MetachainShardId {
 		return
 	}
+
+	log.Trace("onNotarizedBlockHeaders()", "shardID", shardID, "len(headers)", len(headers))
+
+	// for i := 0; i < len(headers); i++ {
+	// 	header := headers[i]
+	// 	headerHash := headersHashes[i]
+
+	// 	metaBlock, ok := header.(*block.MetaBlock)
+	// 	if !ok {
+	// 		log.Error("onNotarizedBlockHeaders(): cannot convert to *block.Metablock")
+	// 		return
+	// 	}
+
+	// 	// shardHeaderHashes := make([]string, len(blockHeader.ShardInfo))
+	// 	// for idx := 0; idx < len(blockHeader.ShardInfo); idx++ {
+	// 	// 	shardHeaderHashes[idx] = hex.EncodeToString(blockHeader.ShardInfo[idx].HeaderHash)
+	// 	// }
+	// }
 }
 
 // RecordBlock records a block
@@ -121,14 +139,14 @@ func (hp *historyProcessor) saveMiniblockMetadata(blockHeaderHash []byte, blockH
 	}
 
 	miniblockMetadata := &MiniblockMetadata{
-		Epoch:       epoch,
-		HeaderHash:  blockHeaderHash,
-		MbHash:      miniblockHash,
-		Round:       blockHeader.GetRound(),
-		HeaderNonce: blockHeader.GetNonce(),
-		SndShardID:  miniblock.GetSenderShardID(),
-		RcvShardID:  miniblock.GetReceiverShardID(),
-		Status:      []byte(hp.getMiniblockStatus(miniblock)),
+		Epoch:              epoch,
+		HeaderHash:         blockHeaderHash,
+		MiniblockHash:      miniblockHash,
+		Round:              blockHeader.GetRound(),
+		HeaderNonce:        blockHeader.GetNonce(),
+		SourceShardID:      miniblock.GetSenderShardID(),
+		DestinationShardID: miniblock.GetReceiverShardID(),
+		Status:             []byte(hp.getMiniblockStatus(miniblock)),
 	}
 
 	miniblockMetadataBytes, err := hp.marshalizer.Marshal(miniblockMetadata)
