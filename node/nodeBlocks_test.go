@@ -69,11 +69,11 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	_ = storerMock.Put(headerHash, blockBytes)
 
 	expectedBlock := &apiBlock.APIBlock{
-		Nonce:   nonce,
-		Round:   round,
-		ShardID: shardID,
-		Epoch:   epoch,
-		Hash:    hex.EncodeToString(headerHash),
+		Nonce: nonce,
+		Round: round,
+		Shard: shardID,
+		Epoch: epoch,
+		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*apiBlock.APIMiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
@@ -123,18 +123,18 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	_ = storerMock.Put(headerHash, headerBytes)
 
 	expectedBlock := &apiBlock.APIBlock{
-		Nonce:   nonce,
-		Round:   round,
-		ShardID: core.MetachainShardId,
-		Epoch:   epoch,
-		Hash:    hex.EncodeToString(headerHash),
+		Nonce: nonce,
+		Round: round,
+		Shard: core.MetachainShardId,
+		Epoch: epoch,
+		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*apiBlock.APIMiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
 				Type: block.TxBlock.String(),
 			},
 		},
-		NotarizedBlockHashes: []string{},
+		NotarizedBlocks: []*apiBlock.APINotarizedBlock{},
 	}
 
 	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
@@ -189,11 +189,11 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	_ = storerMock.Put(func() []byte { hashBytes, _ := hex.DecodeString(headerHash); return hashBytes }(), headerBytes)
 
 	expectedBlock := &apiBlock.APIBlock{
-		Nonce:   nonce,
-		Round:   round,
-		ShardID: shardID,
-		Epoch:   epoch,
-		Hash:    headerHash,
+		Nonce: nonce,
+		Round: round,
+		Shard: shardID,
+		Epoch: epoch,
+		Hash:  headerHash,
 		MiniBlocks: []*apiBlock.APIMiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
@@ -246,11 +246,11 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 	)
 
 	expectedBlock := &apiBlock.APIBlock{
-		Nonce:   nonce,
-		Round:   round,
-		ShardID: shardID,
-		Epoch:   epoch,
-		Hash:    headerHash,
+		Nonce: nonce,
+		Round: round,
+		Shard: shardID,
+		Epoch: epoch,
+		Hash:  headerHash,
 		MiniBlocks: []*apiBlock.APIMiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),

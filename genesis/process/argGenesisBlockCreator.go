@@ -45,6 +45,7 @@ type ArgsGenesisBlockCreator struct {
 	TrieStorageManagers      map[string]data.StorageManager
 	ChainID                  string
 	SystemSCConfig           config.SystemSmartContractsConfig
+	GeneralConfig            *config.GeneralSettingsConfig
 	BlockSignKeyGen          crypto.KeyGenerator
 	ImportStartHandler       update.ImportStartHandler
 	WorkingDir               string

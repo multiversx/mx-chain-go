@@ -30,6 +30,7 @@ type stakingSC struct {
 	unBondPeriod             uint64
 	stakeAccessAddr          []byte
 	jailAccessAddr           []byte
+	endOfEpochAccessAddr     []byte
 	numRoundsWithoutBleed    uint64
 	bleedPercentagePerRound  float64
 	maximumPercentageToBleed float64
@@ -41,13 +42,14 @@ type stakingSC struct {
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
 type ArgsNewStakingSmartContract struct {
-	StakingSCConfig   config.StakingSystemSCConfig
-	MinNumNodes       uint64
-	Eei               vm.SystemEI
-	StakingAccessAddr []byte
-	JailAccessAddr    []byte
-	GasCost           vm.GasCost
-	Marshalizer       marshal.Marshalizer
+	StakingSCConfig      config.StakingSystemSCConfig
+	MinNumNodes          uint64
+	Eei                  vm.SystemEI
+	StakingAccessAddr    []byte
+	JailAccessAddr       []byte
+	EndOfEpochAccessAddr []byte
+	GasCost              vm.GasCost
+	Marshalizer          marshal.Marshalizer
 }
 
 // NewStakingSmartContract creates a staking smart contract
@@ -62,6 +64,9 @@ func NewStakingSmartContract(
 	}
 	if len(args.JailAccessAddr) < 1 {
 		return nil, vm.ErrInvalidJailAccessAddress
+	}
+	if len(args.EndOfEpochAccessAddr) < 1 {
+		return nil, vm.ErrInvalidEndOfEpochAccessAddress
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
@@ -91,6 +96,7 @@ func NewStakingSmartContract(
 		minNumNodes:              args.MinNumNodes,
 		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:              args.Marshalizer,
+		endOfEpochAccessAddr:     args.EndOfEpochAccessAddr,
 	}
 	conversionOk := true
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
@@ -134,6 +140,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.changeRewardAddress(args)
 	case "changeValidatorKeys":
 		return r.changeValidatorKey(args)
+	case "switchJailedWithWaiting":
+		return r.switchJailedWithWaiting(args)
 	}
 
 	return vmcommon.UserError
@@ -357,6 +365,7 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		)
 		stakedData.JailedRound = math.MaxUint64
 		stakedData.UnJailedNonce = r.eei.BlockChainHook().CurrentNonce()
+		stakedData.Jailed = false
 
 		err = r.saveStakingData(argument, stakedData)
 		if err != nil {
@@ -431,6 +440,7 @@ func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 		stakedData.JailedRound = r.eei.BlockChainHook().CurrentRound()
 		stakedData.JailedNonce = r.eei.BlockChainHook().CurrentNonce()
+		stakedData.Jailed = true
 		err = r.saveStakingData(argument, stakedData)
 		if err != nil {
 			r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
@@ -534,6 +544,12 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 		return vmcommon.UserError
 	}
 
+	if registrationData.Jailed {
+		r.eei.AddReturnMessage("cannot register or stake jailed node")
+		return vmcommon.UserError
+	}
+
+	registrationData.RewardAddress = args.Arguments[1]
 	if !onlyRegister {
 		if registrationData.StakeValue.Cmp(stakeValue) < 0 {
 			registrationData.StakeValue.Set(stakeValue)
@@ -565,8 +581,6 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 		registrationData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
 		registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	}
-
-	registrationData.RewardAddress = args.Arguments[1]
 
 	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {
@@ -606,7 +620,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		r.eei.AddReturnMessage("unStake is not possible for address with is already unStaked")
 		return vmcommon.UserError
 	}
-	if registrationData.JailedRound != math.MaxUint64 {
+	if registrationData.Jailed {
 		r.eei.AddReturnMessage("unStake is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
@@ -707,7 +721,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s which is staked", encodedBlsKey))
 		return vmcommon.UserError
 	}
-	if registrationData.JailedRound != math.MaxUint64 {
+	if registrationData.Jailed {
 		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for jailed key %s", encodedBlsKey))
 		return vmcommon.UserError
 	}
@@ -783,6 +797,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	registrationData.StakeValue = registrationData.StakeValue.Sub(stakedValue, slashValue)
 	registrationData.JailedRound = r.eei.BlockChainHook().CurrentRound()
 	registrationData.JailedNonce = r.eei.BlockChainHook().CurrentNonce()
+	registrationData.Jailed = true
 
 	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {
@@ -997,6 +1012,49 @@ func (r *stakingSC) saveWaitingListHead(waitingList *WaitingList) error {
 
 func (r *stakingSC) createWaitingListKey(blsKey []byte) []byte {
 	return []byte(waitingElementPrefix + string(blsKey))
+}
+
+func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.endOfEpochAccessAddr) {
+		r.eei.AddReturnMessage("switchJailedWithWaiting function not allowed to be called by address " + string(args.CallerAddr))
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		return vmcommon.UserError
+	}
+
+	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
+	if err != nil {
+		return vmcommon.UserError
+	}
+	if len(registrationData.RewardAddress) == 0 {
+		return vmcommon.UserError
+	}
+	if !registrationData.Staked {
+		return vmcommon.UserError
+	}
+	if registrationData.Jailed {
+		r.eei.AddReturnMessage(vm.ErrBLSPublicKeyAlreadyJailed.Error())
+		return vmcommon.UserError
+	}
+	err = r.moveFirstFromWaitingToStakedIfNeeded(args.Arguments[0])
+	if err != nil {
+		r.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	r.removeFromStakedNodes()
+	registrationData.Staked = false
+	registrationData.UnStakedEpoch = r.eei.BlockChainHook().CurrentEpoch()
+	registrationData.UnStakedNonce = r.eei.BlockChainHook().CurrentNonce()
+	registrationData.Jailed = true
+	err = r.saveStakingData(args.Arguments[0], registrationData)
+	if err != nil {
+		r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

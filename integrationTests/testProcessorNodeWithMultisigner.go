@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -59,6 +60,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
+		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -241,6 +243,7 @@ func CreateNodeWithBLSAndTxKeys(
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
+		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
