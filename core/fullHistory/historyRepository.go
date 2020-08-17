@@ -71,32 +71,67 @@ func (hp *historyProcessor) RegisterToBlockTracker(blockTracker BlockTracker) {
 		return
 	}
 
-	blockTracker.RegisterCrossNotarizedHeadersHandler(hp.onNotarizedBlockHeaders)
-	blockTracker.RegisterSelfNotarizedHeadersHandler(hp.onNotarizedBlockHeaders)
+	blockTracker.RegisterCrossNotarizedHeadersHandler(hp.onNotarizedBlocks)
+	blockTracker.RegisterSelfNotarizedHeadersHandler(hp.onNotarizedBlocks)
 }
 
-func (hp *historyProcessor) onNotarizedBlockHeaders(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+func (hp *historyProcessor) onNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 	if shardID != core.MetachainShardId {
 		return
 	}
 
 	log.Trace("onNotarizedBlockHeaders()", "shardID", shardID, "len(headers)", len(headers))
 
-	// for i := 0; i < len(headers); i++ {
-	// 	header := headers[i]
-	// 	headerHash := headersHashes[i]
+	for i := 0; i < len(headers); i++ {
+		header := headers[i]
+		headerHash := headersHashes[i]
 
-	// 	metaBlock, ok := header.(*block.MetaBlock)
-	// 	if !ok {
-	// 		log.Error("onNotarizedBlockHeaders(): cannot convert to *block.Metablock")
-	// 		return
-	// 	}
+		metaBlock, ok := header.(*block.MetaBlock)
+		if !ok {
+			log.Error("onNotarizedBlockHeaders(): cannot convert to *block.Metablock")
+			return
+		}
 
-	// 	// shardHeaderHashes := make([]string, len(blockHeader.ShardInfo))
-	// 	// for idx := 0; idx < len(blockHeader.ShardInfo); idx++ {
-	// 	// 	shardHeaderHashes[idx] = hex.EncodeToString(blockHeader.ShardInfo[idx].HeaderHash)
-	// 	// }
-	// }
+		for _, shardData := range metaBlock.ShardInfo {
+			hp.onNotarizedBlock(metaBlock.GetNonce(), headerHash, shardData)
+		}
+	}
+}
+
+func (hp *historyProcessor) onNotarizedBlock(metaBlockNonce uint64, metaBlockHash []byte, blockHeader block.ShardData) {
+	for _, miniblockHeader := range blockHeader.GetShardMiniBlockHeaders() {
+		miniblockHash := miniblockHeader.Hash
+		isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
+
+		metadata, err := hp.getMiniblockMetadataByMiniblockHash(miniblockHash)
+		if err != nil {
+			log.Warn("onNotarizedBlock(): cannot get miniblock metadata", "miniblockHash", miniblockHash, "err", err)
+			continue
+		}
+
+		if isIntra {
+			metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
+			metadata.NotarizedAtSourceInMetaHash = metaBlockHash
+			metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
+			metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
+		} else {
+			// Is cross-shard miniblock
+			isAtSource := hp.selfShardID == blockHeader.ShardID
+			if isAtSource {
+				metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
+				metadata.NotarizedAtSourceInMetaHash = metaBlockHash
+			} else {
+				metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
+				metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
+			}
+		}
+
+		err = hp.putMiniblockMetadata(miniblockHash, metadata)
+		if err != nil {
+			log.Warn("onNotarizedBlock(): cannot update miniblock metadata", "miniblockHash", miniblockHash, "err", err)
+			continue
+		}
+	}
 }
 
 // RecordBlock records a block
@@ -149,14 +184,9 @@ func (hp *historyProcessor) saveMiniblockMetadata(blockHeaderHash []byte, blockH
 		Status:             []byte(hp.getMiniblockStatus(miniblock)),
 	}
 
-	miniblockMetadataBytes, err := hp.marshalizer.Marshal(miniblockMetadata)
+	err = hp.putMiniblockMetadata(miniblockHash, miniblockMetadata)
 	if err != nil {
 		return err
-	}
-
-	err = hp.miniblocksMetadataStorer.Put(miniblockHash, miniblockMetadataBytes)
-	if err != nil {
-		return newErrCannotSaveMiniblockMetadata(miniblockHash, err)
 	}
 
 	for _, txHash := range miniblock.TxHashes {
@@ -192,12 +222,30 @@ func (hp *historyProcessor) GetMiniblockMetadataByTxHash(hash []byte) (*Minibloc
 		return nil, err
 	}
 
-	epoch, err := hp.epochByHashIndex.getEpochByHash(miniblockHash)
+	return hp.getMiniblockMetadataByMiniblockHash(miniblockHash)
+}
+
+func (hp *historyProcessor) putMiniblockMetadata(hash []byte, metadata *MiniblockMetadata) error {
+	metadataBytes, err := hp.marshalizer.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+
+	err = hp.miniblocksMetadataStorer.Put(hash, metadataBytes)
+	if err != nil {
+		return newErrCannotSaveMiniblockMetadata(hash, err)
+	}
+
+	return nil
+}
+
+func (hp *historyProcessor) getMiniblockMetadataByMiniblockHash(hash []byte) (*MiniblockMetadata, error) {
+	epoch, err := hp.epochByHashIndex.getEpochByHash(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	metadataBytes, err := hp.miniblocksMetadataStorer.GetFromEpoch(miniblockHash, epoch)
+	metadataBytes, err := hp.miniblocksMetadataStorer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err
 	}
