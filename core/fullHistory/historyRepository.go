@@ -3,6 +3,8 @@
 package fullHistory
 
 import (
+	"fmt"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -76,11 +78,11 @@ func (hp *historyProcessor) RegisterToBlockTracker(blockTracker BlockTracker) {
 }
 
 func (hp *historyProcessor) onNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+	log.Trace("onNotarizedBlocks()", "shardID", shardID, "len(headers)", len(headers))
+
 	if shardID != core.MetachainShardId {
 		return
 	}
-
-	log.Trace("onNotarizedBlocks()", "shardID", shardID, "len(headers)", len(headers))
 
 	for i := 0; i < len(headers); i++ {
 		header := headers[i]
@@ -88,10 +90,12 @@ func (hp *historyProcessor) onNotarizedBlocks(shardID uint32, headers []data.Hea
 
 		metaBlock, ok := header.(*block.MetaBlock)
 		if !ok {
-			log.Error("onNotarizedBlocks(): cannot convert to *block.Metablock")
+			// Question for review: why, on every round, there's a header of type = *block.Header (even if shardID = metachain)?
+			log.Error("onNotarizedBlocks(): cannot convert to *block.Metablock", "type", fmt.Sprintf("%T", header))
 			return
 		}
 
+		log.Trace("onNotarizedBlocks()", "len(ShardInfo)", len(metaBlock.ShardInfo))
 		for _, shardData := range metaBlock.ShardInfo {
 			hp.onNotarizedBlock(metaBlock.GetNonce(), headerHash, shardData)
 		}
@@ -99,44 +103,67 @@ func (hp *historyProcessor) onNotarizedBlocks(shardID uint32, headers []data.Hea
 }
 
 func (hp *historyProcessor) onNotarizedBlock(metaBlockNonce uint64, metaBlockHash []byte, blockHeader block.ShardData) {
+	log.Trace("onNotarizedBlock()",
+		"metaBlockNonce", metaBlockNonce,
+		"nonce", blockHeader.Nonce,
+		"shard", blockHeader.ShardID,
+		"len(miniblocks)", len(blockHeader.ShardMiniBlockHeaders),
+	)
+
 	for _, miniblockHeader := range blockHeader.GetShardMiniBlockHeaders() {
-		miniblockHash := miniblockHeader.Hash
-		isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
-		isAtSource := miniblockHeader.SenderShardID == blockHeader.ShardID
+		hp.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, blockHeader, miniblockHeader)
+	}
+}
 
-		metadata, err := hp.getMiniblockMetadataByMiniblockHash(miniblockHash)
-		if err != nil {
-			log.Warn("onNotarizedBlock(): cannot get miniblock metadata", "miniblockHash", miniblockHash, "err", err)
-			continue
-		}
+func (hp *historyProcessor) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, blockHeader block.ShardData, miniblockHeader block.MiniBlockHeader) {
+	miniblockHash := miniblockHeader.Hash
+	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
+	isAtSource := miniblockHeader.SenderShardID == blockHeader.ShardID
 
-		if isIntra {
+	metadata, err := hp.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	if err != nil {
+		log.Warn("onNotarizedMiniblock(): cannot get miniblock metadata", "miniblockHash", miniblockHash, "err", err)
+		return
+	}
+
+	if isIntra {
+		metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
+		metadata.NotarizedAtSourceInMetaHash = metaBlockHash
+		metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
+		metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
+
+		log.Trace("onNotarizedMiniblock() intra",
+			"miniblock", miniblockHash,
+			"direction", fmt.Sprintf("[%d -> %d]", metadata.SourceShardID, metadata.DestinationShardID),
+			"meta nonce", metaBlockNonce,
+		)
+	} else {
+		// Is cross-shard miniblock
+		if isAtSource {
 			metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
 			metadata.NotarizedAtSourceInMetaHash = metaBlockHash
+
+			log.Trace("onNotarizedMiniblock() cross at source",
+				"miniblock", miniblockHash,
+				"direction", fmt.Sprintf("[%d -> %d]", metadata.SourceShardID, metadata.DestinationShardID),
+				"meta nonce", metaBlockNonce,
+			)
+		} else {
 			metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
 			metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
 
-			log.Trace("onNotarizedBlock() intra", "miniblock", miniblockHash, "meta nonce", metaBlockNonce)
-		} else {
-			// Is cross-shard miniblock
-			if isAtSource {
-				metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
-				metadata.NotarizedAtSourceInMetaHash = metaBlockHash
-
-				log.Trace("onNotarizedBlock() cross at source", "miniblock", miniblockHash, "meta nonce", metaBlockNonce)
-			} else {
-				metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
-				metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
-
-				log.Trace("onNotarizedBlock() cross at destination", "miniblock", miniblockHash, "meta nonce", metaBlockNonce)
-			}
+			log.Trace("onNotarizedMiniblock() cross at destination",
+				"miniblock", miniblockHash,
+				"direction", fmt.Sprintf("[%d -> %d]", metadata.SourceShardID, metadata.DestinationShardID),
+				"meta nonce", metaBlockNonce,
+			)
 		}
+	}
 
-		err = hp.putMiniblockMetadata(miniblockHash, metadata)
-		if err != nil {
-			log.Warn("onNotarizedBlock(): cannot update miniblock metadata", "miniblockHash", miniblockHash, "err", err)
-			continue
-		}
+	err = hp.putMiniblockMetadata(miniblockHash, metadata)
+	if err != nil {
+		log.Warn("onNotarizedMiniblock(): cannot update miniblock metadata", "miniblockHash", miniblockHash, "err", err)
+		return
 	}
 }
 
@@ -267,7 +294,7 @@ func (hp *historyProcessor) getMiniblockMetadataByMiniblockHash(hash []byte) (*M
 
 // GetEpochByHash will return epoch for a given hash
 // This works for Blocks, Miniblocks.
-// It doesn't work for transactions (not needed!
+// It doesn't work for transactions (not needed)!
 func (hp *historyProcessor) GetEpochByHash(hash []byte) (uint32, error) {
 	return hp.epochByHashIndex.getEpochByHash(hash)
 }
