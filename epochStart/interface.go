@@ -2,6 +2,7 @@ package epochStart
 
 import (
 	"context"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -87,6 +88,12 @@ type Notifier interface {
 type ValidatorStatisticsProcessorHandler interface {
 	Process(info data.ShardValidatorInfoHandler) error
 	Commit() ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// ValidatorInfoCreator defines the methods to create a validator info
+type ValidatorInfoCreator interface {
+	PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
 	IsInterfaceNil() bool
 }
 

@@ -13,6 +13,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -212,27 +213,29 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		},
 		BuiltInFunctions: context.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 
 	context.ScProcessor, err = smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
-		Accounts:          context.Accounts,
-		Hasher:            hasher,
-		PubkeyConv:        pkConverter,
-		Marshalizer:       marshalizer,
-		SignMarshalizer:   marshalizer,
-		ShardCoordinator:  oneShardCoordinator,
-		ScProcessor:       context.ScProcessor,
-		TxFeeHandler:      context.UnsignexTxHandler,
-		TxTypeHandler:     txTypeHandler,
-		EconomicsFee:      context.EconomicsFee,
-		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:        smartContract.NewArgumentParser(),
-		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		DisabledRelayedTx: false,
+		Accounts:             context.Accounts,
+		Hasher:               hasher,
+		PubkeyConv:           pkConverter,
+		Marshalizer:          marshalizer,
+		SignMarshalizer:      marshalizer,
+		ShardCoordinator:     oneShardCoordinator,
+		ScProcessor:          context.ScProcessor,
+		TxFeeHandler:         context.UnsignexTxHandler,
+		TxTypeHandler:        txTypeHandler,
+		EconomicsFee:         context.EconomicsFee,
+		ReceiptForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:       &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:           smartContract.NewArgumentParser(),
+		ScrForwarder:         &mock.IntermediateTransactionHandlerMock{},
+		RelayedTxEnableEpoch: 0,
+		EpochNotifier:        forking.NewGenericEpochNotifier(),
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)
