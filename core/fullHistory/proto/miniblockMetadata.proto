@@ -16,5 +16,6 @@ message MiniblockMetadata {
     bytes  HeaderHash  = 5;
     bytes  MbHash      = 6;
     bytes  Status      = 7;
+    uint32 Epoch       = 8;
 }
 

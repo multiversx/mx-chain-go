@@ -18,7 +18,7 @@ func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ d
 }
 
 // GetTransaction returns a not implemented error
-func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*MiniblockMetadataWithEpoch, error) {
+func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*MiniblockMetadata, error) {
 	return nil, nil
 }
 

@@ -86,7 +86,7 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 	return tx, nil
 }
 
-func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblockMetadata *fullHistory.MiniblockMetadataWithEpoch) *transaction.ApiTransactionResult {
+func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblockMetadata *fullHistory.MiniblockMetadata) *transaction.ApiTransactionResult {
 	if tx == nil {
 		tx = &transaction.ApiTransactionResult{}
 	}

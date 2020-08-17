@@ -3,8 +3,6 @@
 package fullHistory
 
 import (
-	"fmt"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -27,16 +25,10 @@ type HistoryRepositoryArguments struct {
 	Hasher                      hashing.Hasher
 }
 
-// MiniblockMetadataWithEpoch holds miniblock metadata and epoch
-type MiniblockMetadataWithEpoch struct {
-	Epoch uint32
-	*MiniblockMetadata
-}
-
 type historyProcessor struct {
 	selfShardID                uint32
 	miniblocksMetadataStorer   storage.Storer
-	miniblockHashByTxHashIndex interface{}
+	miniblockHashByTxHashIndex *miniblockHashByTxHashIndex
 	epochByHashIndex           *epochByHashIndex
 	marshalizer                marshal.Marshalizer
 	hasher                     hashing.Hasher
@@ -61,13 +53,15 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcess
 	}
 
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
+	miniblockHashByTxHashIndex := newMiniblockHashByTxHashIndex(arguments.MiniblockHashByTxHashStorer)
 
 	return &historyProcessor{
-		selfShardID:              arguments.SelfShardID,
-		miniblocksMetadataStorer: arguments.MiniblocksMetadataStorer,
-		marshalizer:              arguments.Marshalizer,
-		hasher:                   arguments.Hasher,
-		epochByHashIndex:         hashToEpochIndex,
+		selfShardID:                arguments.SelfShardID,
+		miniblocksMetadataStorer:   arguments.MiniblocksMetadataStorer,
+		marshalizer:                arguments.Marshalizer,
+		hasher:                     arguments.Hasher,
+		epochByHashIndex:           hashToEpochIndex,
+		miniblockHashByTxHashIndex: miniblockHashByTxHashIndex,
 	}, nil
 }
 
@@ -100,7 +94,7 @@ func (hp *historyProcessor) RecordBlock(blockHeaderHash []byte, blockHeader data
 }
 
 func (hp *historyProcessor) saveMiniblockMetadata(blockHeaderHash []byte, blockHeader data.HeaderHandler, miniblock *block.MiniBlock, epoch uint32) error {
-	miniblockHash, err := core.CalculateHash(hp.marshalizer, hp.hasher, miniblock)
+	miniblockHash, err := hp.computeMiniblockHash(miniblock)
 	if err != nil {
 		return err
 	}
@@ -111,6 +105,7 @@ func (hp *historyProcessor) saveMiniblockMetadata(blockHeaderHash []byte, blockH
 	}
 
 	miniblockMetadata := &MiniblockMetadata{
+		Epoch:       epoch,
 		HeaderHash:  blockHeaderHash,
 		MbHash:      miniblockHash,
 		Round:       blockHeader.GetRound(),
@@ -125,15 +120,24 @@ func (hp *historyProcessor) saveMiniblockMetadata(blockHeaderHash []byte, blockH
 		return err
 	}
 
+	err = hp.miniblocksMetadataStorer.Put(miniblockHash, miniblockMetadataBytes)
+	if err != nil {
+		return newErrCannotSaveMiniblockMetadata(miniblockHash, err)
+	}
+
 	for _, txHash := range miniblock.TxHashes {
-		// Question for review: so, it means that, for 1000 txs in a miniblock, we save the same thing 1000 times, right?
-		err = hp.saveTransactionMetadata(miniblockMetadataBytes, txHash, epoch)
+		err := hp.miniblockHashByTxHashIndex.putMiniblockByTx(txHash, miniblockHash)
 		if err != nil {
-			log.Warn("cannot save tx in storage", "hash", string(txHash), "error", err.Error())
+			log.Warn("miniblockHashByTxHashIndex.putMiniblockByTx()", "txHash", txHash, "err", err)
+			continue
 		}
 	}
 
 	return nil
+}
+
+func (hp *historyProcessor) computeMiniblockHash(miniblock *block.MiniBlock) ([]byte, error) {
+	return core.CalculateHash(hp.marshalizer, hp.hasher, miniblock)
 }
 
 func (hp *historyProcessor) getMiniblockStatus(miniblock *block.MiniBlock) core.TransactionStatus {
@@ -147,28 +151,19 @@ func (hp *historyProcessor) getMiniblockStatus(miniblock *block.MiniBlock) core.
 	return core.TxStatusPartiallyExecuted
 }
 
-func (hp *historyProcessor) saveTransactionMetadata(historyTxBytes []byte, txHash []byte, epoch uint32) error {
-	err := hp.epochByHashIndex.saveEpochByHash(txHash, epoch)
-	if err != nil {
-		return newErrCannotSaveEpochByHash("tx", txHash, err)
-	}
-
-	err = hp.miniblocksMetadataStorer.Put(txHash, historyTxBytes)
-	if err != nil {
-		return fmt.Errorf("cannot save in storage history transaction %w", err)
-	}
-
-	return nil
-}
-
 // GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage
-func (hp *historyProcessor) GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadataWithEpoch, error) {
-	epoch, err := hp.epochByHashIndex.getEpochByHash(hash)
+func (hp *historyProcessor) GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error) {
+	miniblockHash, err := hp.miniblockHashByTxHashIndex.getMiniblockByTx(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	metadataBytes, err := hp.miniblocksMetadataStorer.GetFromEpoch(hash, epoch)
+	epoch, err := hp.epochByHashIndex.getEpochByHash(miniblockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	metadataBytes, err := hp.miniblocksMetadataStorer.GetFromEpoch(miniblockHash, epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -179,13 +174,12 @@ func (hp *historyProcessor) GetMiniblockMetadataByTxHash(hash []byte) (*Minibloc
 		return nil, err
 	}
 
-	return &MiniblockMetadataWithEpoch{
-		Epoch:             epoch,
-		MiniblockMetadata: metadata,
-	}, nil
+	return metadata, nil
 }
 
 // GetEpochByHash will return epoch for a given hash
+// This works for Blocks, Miniblocks.
+// It doesn't work for transactions (not needed!
 func (hp *historyProcessor) GetEpochByHash(hash []byte) (uint32, error) {
 	return hp.epochByHashIndex.getEpochByHash(hash)
 }

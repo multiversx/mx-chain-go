@@ -1,23 +1,21 @@
 package fullHistory
 
 import (
-	"bytes"
-	"encoding/json"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockHistoryRepoArgs() HistoryRepositoryArguments {
 	return HistoryRepositoryArguments{
 		SelfShardID:                 0,
-		MiniblocksMetadataStorer:    &mock.StorerStub{},
-		MiniblockHashByTxHashStorer: &mock.StorerStub{},
-		EpochByHashStorer:           &mock.StorerStub{},
+		MiniblocksMetadataStorer:    genericmocks.NewStorerMock(),
+		MiniblockHashByTxHashStorer: genericmocks.NewStorerMock(),
+		EpochByHashStorer:           genericmocks.NewStorerMock(),
 		Marshalizer:                 &mock.MarshalizerMock{},
 		Hasher:                      &mock.HasherMock{},
 	}
@@ -65,23 +63,9 @@ func TestNewHistoryRepository(t *testing.T) {
 func TestHistoryRepository_RecordBlock(t *testing.T) {
 	t.Parallel()
 
-	txHash := []byte("txHash")
-	countCalledHashEpoch := 0
 	args := createMockHistoryRepoArgs()
-	args.EpochByHashStorer = &mock.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			countCalledHashEpoch++
-			return nil
-		},
-	}
-	args.MiniblocksMetadataStorer = &mock.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			assert.True(t, bytes.Equal(txHash, key))
-			return nil
-		},
-	}
-
-	repo, _ := NewHistoryRepository(args)
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
 
 	headerHash := []byte("headerHash")
 	blockHeader := &block.Header{
@@ -90,74 +74,106 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 	blockBody := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			{
-				TxHashes:        [][]byte{txHash},
+				TxHashes:        [][]byte{[]byte("txA")},
 				SenderShardID:   0,
 				ReceiverShardID: 1,
+			},
+			{
+				TxHashes:        [][]byte{[]byte("txB")},
+				SenderShardID:   0,
+				ReceiverShardID: 2,
 			},
 		},
 	}
 
-	err := repo.RecordBlock(headerHash, blockHeader, blockBody)
-	assert.Nil(t, err)
-	assert.Equal(t, 3, countCalledHashEpoch)
+	err = repo.RecordBlock(headerHash, blockHeader, blockBody)
+	require.Nil(t, err)
+	// Two miniblocks
+	require.Equal(t, 2, len(repo.miniblocksMetadataStorer.(*genericmocks.StorerMock).Data))
+	// One block, two miniblocks
+	require.Equal(t, 3, len(repo.epochByHashIndex.storer.(*genericmocks.StorerMock).Data))
+	// Two transactions
+	require.Equal(t, 2, len(repo.miniblockHashByTxHashIndex.storer.(*genericmocks.StorerMock).Data))
 }
 
-func TestHistoryRepository_GetTransaction(t *testing.T) {
+func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
 	t.Parallel()
 
-	epoch := uint32(10)
 	args := createMockHistoryRepoArgs()
-	args.EpochByHashStorer = &mock.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			hashEpochData := EpochByHash{
-				Epoch: epoch,
-			}
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
 
-			hashEpochBytes, _ := json.Marshal(hashEpochData)
-			return hashEpochBytes, nil
-		},
+	miniblockA := &block.MiniBlock{
+		Type:     block.TxBlock,
+		TxHashes: [][]byte{[]byte("txA")},
+	}
+	miniblockB := &block.MiniBlock{
+		Type:     block.InvalidBlock,
+		TxHashes: [][]byte{[]byte("txB")},
 	}
 
-	round := uint64(1000)
-	args.MiniblocksMetadataStorer = &mock.StorerStub{
-		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-			if epoch == epoch {
-				historyTx := &MiniblockMetadata{
-					Round: round,
-				}
-				historyTxBytes, _ := json.Marshal(historyTx)
-				return historyTxBytes, nil
-			}
-			return nil, nil
-		},
-	}
+	repo.RecordBlock([]byte("fooblock"),
+		&block.Header{Epoch: 42, Round: 4321},
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				miniblockA,
+				miniblockB,
+			},
+		})
 
-	repo, _ := NewHistoryRepository(args)
+	metadata, err := repo.GetMiniblockMetadataByTxHash([]byte("txA"))
+	require.Nil(t, err)
+	require.Equal(t, 42, int(metadata.Epoch))
+	require.Equal(t, 4321, int(metadata.Round))
 
-	historyTx, err := repo.GetMiniblockMetadataByTxHash([]byte("txHash"))
-	assert.Nil(t, err)
-	assert.Equal(t, round, historyTx.Round)
-	assert.Equal(t, epoch, historyTx.Epoch)
+	metadata, err = repo.GetMiniblockMetadataByTxHash([]byte("txB"))
+	require.Nil(t, err)
+	require.Equal(t, 42, int(metadata.Epoch))
+	require.Equal(t, 4321, int(metadata.Round))
+
+	metadata, err = repo.GetMiniblockMetadataByTxHash([]byte("foobar"))
+	require.NotNil(t, err)
 }
 
 func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 	t.Parallel()
 
-	epoch := uint32(10)
 	args := createMockHistoryRepoArgs()
-	args.EpochByHashStorer = &mock.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			hashEpochData := EpochByHash{
-				Epoch: epoch,
-			}
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
 
-			hashEpochBytes, _ := json.Marshal(hashEpochData)
-			return hashEpochBytes, nil
-		},
+	miniblockA := &block.MiniBlock{
+		TxHashes: [][]byte{[]byte("txA")},
 	}
-	repo, _ := NewHistoryRepository(args)
+	miniblockB := &block.MiniBlock{
+		TxHashes: [][]byte{[]byte("txB")},
+	}
+	miniblockHashA, err := repo.computeMiniblockHash(miniblockA)
+	miniblockHashB, err := repo.computeMiniblockHash(miniblockB)
 
-	resEpoch, err := repo.GetEpochByHash([]byte("txHash"))
-	assert.NoError(t, err)
-	assert.Equal(t, epoch, resEpoch)
+	repo.RecordBlock([]byte("fooblock"), &block.Header{Epoch: 42}, &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			miniblockA,
+			miniblockB,
+		},
+	})
+
+	// Get epoch by block hash
+	epoch, err := repo.GetEpochByHash([]byte("fooblock"))
+	require.Nil(t, err)
+	require.Equal(t, 42, int(epoch))
+
+	// Get epoch by miniblock hash
+	epoch, err = repo.GetEpochByHash(miniblockHashA)
+	require.Nil(t, err)
+	require.Equal(t, 42, int(epoch))
+	epoch, err = repo.GetEpochByHash(miniblockHashB)
+	require.Nil(t, err)
+	require.Equal(t, 42, int(epoch))
+
+	// Get epoch by transaction hash DOES NOT WORK (not needed)
+	epoch, err = repo.GetEpochByHash([]byte("txA"))
+	require.NotNil(t, err)
+	epoch, err = repo.GetEpochByHash([]byte("txA"))
+	require.NotNil(t, err)
 }
