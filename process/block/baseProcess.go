@@ -75,9 +75,10 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer      indexer.Indexer
-	tpsBenchmark statistics.TPSBenchmark
-	historyRepo  fullHistory.HistoryRepository
+	indexer       indexer.Indexer
+	tpsBenchmark  statistics.TPSBenchmark
+	historyRepo   fullHistory.HistoryRepository
+	epochNotifier process.EpochNotifier
 }
 
 type bootStorerDataArgs struct {
@@ -420,6 +421,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if len(arguments.Version) == 0 {
 		return process.ErrEmptySoftwareVersion
+	}
+	if check.IfNil(arguments.EpochNotifier) {
+		return process.ErrNilEpochNotifier
 	}
 
 	return nil

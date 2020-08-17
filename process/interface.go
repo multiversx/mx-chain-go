@@ -911,3 +911,11 @@ type NodesCoordinator interface {
 	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	IsInterfaceNil() bool
 }
+
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
+	CurrentEpoch() uint32
+	CheckEpoch(epoch uint32)
+	IsInterfaceNil() bool
+}
