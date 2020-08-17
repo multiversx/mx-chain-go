@@ -410,7 +410,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 		}
 
 		currentShardId := peerAccount.GetShardId()
-		validatorInfoData := vs.peerAccountToValidatorInfo(peerAccount)
+		validatorInfoData := vs.PeerAccountToValidatorInfo(peerAccount)
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
 
@@ -432,7 +432,8 @@ func getActualList(peerAccount state.PeerAccountHandler) string {
 	return string(core.LeavingList)
 }
 
-func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
+// PeerAccountToValidatorInfo creates a validator info from the given peer account
+func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
 	chance := vs.rater.GetChance(peerAccount.GetRating())
 	startRatingChance := vs.rater.GetChance(vs.rater.GetStartRating())
 	ratingModifier := float32(chance) / float32(startRatingChance)

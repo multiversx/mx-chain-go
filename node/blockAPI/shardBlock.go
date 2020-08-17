@@ -75,10 +75,10 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		numOfTxs += mb.TxCount
 
 		miniblockAPI := &apiBlock.APIMiniBlock{
-			Hash:               hex.EncodeToString(mb.Hash),
-			Type:               mb.Type.String(),
-			SourceShardID:      mb.SenderShardID,
-			DestinationShardID: mb.ReceiverShardID,
+			Hash:             hex.EncodeToString(mb.Hash),
+			Type:             mb.Type.String(),
+			SourceShard:      mb.SenderShardID,
+			DestinationShard: mb.ReceiverShardID,
 		}
 		if withTxs {
 			miniblockAPI.Transactions = sbp.getTxsByMb(&mb, headerEpoch)
@@ -91,7 +91,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		Nonce:         blockHeader.Nonce,
 		Round:         blockHeader.Round,
 		Epoch:         blockHeader.Epoch,
-		ShardID:       blockHeader.ShardID,
+		Shard:         blockHeader.ShardID,
 		Hash:          hex.EncodeToString(hash),
 		PrevBlockHash: hex.EncodeToString(blockHeader.PrevHash),
 		NumTxs:        numOfTxs,

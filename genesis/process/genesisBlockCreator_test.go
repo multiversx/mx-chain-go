@@ -90,6 +90,11 @@ func createMockArgument(
 		BlockSignKeyGen:     &mock.KeyGenMock{},
 		ImportStartHandler:  &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:    nodePrice,
+		GeneralConfig: &config.GeneralSettingsConfig{
+			RelayedTransactionsEnableEpoch: 0,
+			SCDeployEnableEpoch:            0,
+			BuiltInFunctionsEnableEpoch:    0,
+		},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
