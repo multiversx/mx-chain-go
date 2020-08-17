@@ -37,6 +37,16 @@ type NodeStub struct {
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetBlockByHashCalled                           func(hash string, withTxs bool) (*block.APIBlock, error)
 	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*block.APIBlock, error)
+	GetUsernameCalled                              func(address string) (string, error)
+}
+
+// GetUsername -
+func (ns *NodeStub) GetUsername(address string) (string, error) {
+	if ns.GetUsernameCalled != nil {
+		return ns.GetUsernameCalled(address)
+	}
+
+	return "", nil
 }
 
 // GetValueForKey -
