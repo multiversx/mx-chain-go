@@ -17,8 +17,8 @@ type ApiTransactionResult struct {
 	Data                              []byte                 `json:"data,omitempty"`
 	Code                              string                 `json:"code,omitempty"`
 	Signature                         string                 `json:"signature,omitempty"`
-	SourceShard                       uint32                 `json:"sourceShard,omitempty"`
-	DestinationShard                  uint32                 `json:"destinationShard,omitempty"`
+	SourceShard                       uint32                 `json:"sourceShard"`
+	DestinationShard                  uint32                 `json:"destinationShard"`
 	BlockNonce                        uint64                 `json:"blockNonce,omitempty"`
 	BlockHash                         string                 `json:"blockHash,omitempty"`
 	NotarizedAtSourceInMetaNonce      uint64                 `json:"notarizedAtSourceInMetaNonce,omitempty"`

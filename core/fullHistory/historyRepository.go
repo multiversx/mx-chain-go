@@ -80,7 +80,7 @@ func (hp *historyProcessor) onNotarizedBlocks(shardID uint32, headers []data.Hea
 		return
 	}
 
-	log.Trace("onNotarizedBlockHeaders()", "shardID", shardID, "len(headers)", len(headers))
+	log.Trace("onNotarizedBlocks()", "shardID", shardID, "len(headers)", len(headers))
 
 	for i := 0; i < len(headers); i++ {
 		header := headers[i]
@@ -88,7 +88,7 @@ func (hp *historyProcessor) onNotarizedBlocks(shardID uint32, headers []data.Hea
 
 		metaBlock, ok := header.(*block.MetaBlock)
 		if !ok {
-			log.Error("onNotarizedBlockHeaders(): cannot convert to *block.Metablock")
+			log.Error("onNotarizedBlocks(): cannot convert to *block.Metablock")
 			return
 		}
 
