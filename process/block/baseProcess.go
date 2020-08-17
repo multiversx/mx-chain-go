@@ -1206,6 +1206,6 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {
 	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody)
 	if err != nil {
-		log.Warn("history processor: cannot save transaction data", "blockHeaderHash", blockHeaderHash, "error", err.Error())
+		log.Warn("historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
 	}
 }
