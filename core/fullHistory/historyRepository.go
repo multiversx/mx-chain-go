@@ -114,15 +114,21 @@ func (hp *historyProcessor) onNotarizedBlock(metaBlockNonce uint64, metaBlockHas
 			metadata.NotarizedAtSourceInMetaHash = metaBlockHash
 			metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
 			metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
+
+			log.Trace("onNotarizedBlock() intra", "miniblock", miniblockHash, "meta nonce", metaBlockNonce)
 		} else {
 			// Is cross-shard miniblock
 			isAtSource := hp.selfShardID == blockHeader.ShardID
 			if isAtSource {
 				metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
 				metadata.NotarizedAtSourceInMetaHash = metaBlockHash
+
+				log.Trace("onNotarizedBlock() cross at source", "miniblock", miniblockHash, "meta nonce", metaBlockNonce)
 			} else {
 				metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
 				metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
+
+				log.Trace("onNotarizedBlock() cross at destination", "miniblock", miniblockHash, "meta nonce", metaBlockNonce)
 			}
 		}
 
