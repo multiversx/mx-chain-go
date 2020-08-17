@@ -7,10 +7,18 @@ import (
 
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
+	RegisterToBlockTrackerCalled       func(blockTracker fullHistory.BlockTracker)
 	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
 	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*fullHistory.MiniblockMetadata, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
 	IsEnabledCalled                    func() bool
+}
+
+// RegisterToBlockTracker -
+func (hp *HistoryRepositoryStub) RegisterToBlockTracker(blockTracker fullHistory.BlockTracker) {
+	if hp.RegisterToBlockTrackerCalled != nil {
+		hp.RegisterToBlockTrackerCalled(blockTracker)
+	}
 }
 
 // RecordBlock -

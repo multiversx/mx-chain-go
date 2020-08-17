@@ -65,6 +65,22 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcess
 	}, nil
 }
 
+func (hp *historyProcessor) RegisterToBlockTracker(blockTracker BlockTracker) {
+	if check.IfNil(blockTracker) {
+		log.Error("RegisterToBlockTracker(): blockTracker is nil")
+		return
+	}
+
+	blockTracker.RegisterCrossNotarizedHeadersHandler(hp.onNotarizedBlockHeaders)
+	blockTracker.RegisterSelfNotarizedHeadersHandler(hp.onNotarizedBlockHeaders)
+}
+
+func (hp *historyProcessor) onNotarizedBlockHeaders(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+	if shardID != core.MetachainShardId {
+		return
+	}
+}
+
 // RecordBlock records a block
 func (hp *historyProcessor) RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
 	body, ok := blockBody.(*block.Body)

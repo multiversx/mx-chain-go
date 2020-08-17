@@ -1246,6 +1246,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	historyRepository.RegisterToBlockTracker(processComponents.BlockTracker)
+
 	hardForkTrigger, err := createHardForkTrigger(
 		generalConfig,
 		cryptoParams.KeyGenerator,
