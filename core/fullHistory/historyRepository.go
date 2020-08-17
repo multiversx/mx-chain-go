@@ -102,6 +102,7 @@ func (hp *historyProcessor) onNotarizedBlock(metaBlockNonce uint64, metaBlockHas
 	for _, miniblockHeader := range blockHeader.GetShardMiniBlockHeaders() {
 		miniblockHash := miniblockHeader.Hash
 		isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
+		isAtSource := miniblockHeader.SenderShardID == blockHeader.ShardID
 
 		metadata, err := hp.getMiniblockMetadataByMiniblockHash(miniblockHash)
 		if err != nil {
@@ -118,7 +119,6 @@ func (hp *historyProcessor) onNotarizedBlock(metaBlockNonce uint64, metaBlockHas
 			log.Trace("onNotarizedBlock() intra", "miniblock", miniblockHash, "meta nonce", metaBlockNonce)
 		} else {
 			// Is cross-shard miniblock
-			isAtSource := hp.selfShardID == blockHeader.ShardID
 			if isAtSource {
 				metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
 				metadata.NotarizedAtSourceInMetaHash = metaBlockHash
