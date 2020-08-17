@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
@@ -26,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -245,7 +245,7 @@ func createConsensusOnlyNode(
 	pubKeys []crypto.PublicKey,
 	testKeyGen crypto.KeyGenerator,
 	consensusType string,
-	epochStartRegistrationHandler epochStart.RegistrationHandler,
+	epochStartRegistrationHandler mainFactory.EpochStartNotifier,
 ) (
 	*node.Node,
 	p2p.Messenger,
@@ -368,58 +368,78 @@ func createConsensusOnlyNode(
 
 	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, singleBlsSigner, testKeyGen)
-
 	accntAdapter := createAccountsDB(testMarshalizer)
+
+	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents.NtpTimer = syncer
+	coreComponents.RoundHandler = rounder
+	coreComponents.IntMarsh = testMarshalizer
+	coreComponents.VmMarsh = &marshal.JsonMarshalizer{}
+	coreComponents.TxMarsh = &marshal.JsonMarshalizer{}
+	coreComponents.Hash = testHasher
+	coreComponents.AddrPubKeyConv = testPubkeyConverter
+	coreComponents.ChainIdCalled = func() string {
+		return string(consensusChainID)
+	}
+	coreComponents.UInt64ByteSliceConv = &mock.Uint64ByteSliceConverterMock{}
+	coreComponents.WDTimer = &mock.WatchdogMock{}
+
+	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
+	cryptoComponents.PrivKey = privKey
+	cryptoComponents.PubKey = privKey.GeneratePublic()
+	cryptoComponents.BlockSig = singleBlsSigner
+	cryptoComponents.TxSig = singlesigner
+	cryptoComponents.MultiSig = testMultiSig
+	cryptoComponents.BlKeyGen = testKeyGen
+	cryptoComponents.PeerSignHandler = peerSigHandler
+
+	processComponents := integrationTests.GetDefaultProcessComponents()
+	processComponents.ForkDetect = forkDetector
+	processComponents.ShardCoord = shardCoordinator
+	processComponents.NodesCoord = nodesCoordinator
+	processComponents.BlockProcess = blockProcessor
+	processComponents.BlockTrack = &mock.BlockTrackerStub{}
+	processComponents.IntContainer = &mock.InterceptorsContainerStub{}
+	processComponents.ResFinder = resolverFinder
+	processComponents.EpochTrigger = epochStartTrigger
+	processComponents.EpochNotifier = epochStartRegistrationHandler
+	processComponents.BlackListHdl = &mock.TimeCacheStub{}
+	processComponents.BootSore = &mock.BoostrapStorerMock{}
+	processComponents.HeaderSigVerif = &mock.HeaderSigVerifierStub{}
+	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
+	processComponents.ReqHandler = &mock.RequestHandlerStub{}
+
+	dataComponents := integrationTests.GetDefaultDataComponents()
+	dataComponents.BlockChain = blockChain
+	dataComponents.DataPool = testscommon.CreatePoolsHolder(1, 0)
+	dataComponents.Store = createTestStore()
+
+	stateComponents := integrationTests.GetDefaultStateComponents()
+	stateComponents.Accounts = accntAdapter
+
+	networkComponents := integrationTests.GetDefaultNetworkComponents()
+	networkComponents.Messenger = messenger
+	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
+
 	n, err := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithNetworkComponents(networkComponents),
 		node.WithInitialNodesPubKeys(inPubKeys),
 		node.WithRoundDuration(roundTime),
 		node.WithConsensusGroupSize(int(consensusSize)),
-		node.WithSyncer(syncer),
 		node.WithGenesisTime(time.Unix(startTime, 0)),
-		node.WithRounder(rounder),
-		node.WithSingleSigner(singleBlsSigner),
-		node.WithPrivKey(privKey),
-		node.WithForkDetector(forkDetector),
-		node.WithMessenger(messenger),
-		node.WithInternalMarshalizer(testMarshalizer, 0),
-		node.WithVmMarshalizer(&marshal.JsonMarshalizer{}),
-		node.WithTxSignMarshalizer(&marshal.JsonMarshalizer{}),
-		node.WithHasher(testHasher),
-		node.WithAddressPubkeyConverter(testPubkeyConverter),
-		node.WithAccountsAdapter(accntAdapter),
-		node.WithKeyGen(testKeyGen),
-		node.WithShardCoordinator(shardCoordinator),
-		node.WithNodesCoordinator(nodesCoordinator),
-		node.WithBlockChain(blockChain),
-		node.WithMultiSigner(testMultiSig),
-		node.WithTxSingleSigner(singlesigner),
-		node.WithPubKey(privKey.GeneratePublic()),
-		node.WithBlockProcessor(blockProcessor),
-		node.WithDataPool(testscommon.CreatePoolsHolder(1, 0)),
-		node.WithDataStore(createTestStore()),
-		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
-		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithEpochStartTrigger(epochStartTrigger),
-		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithNetworkShardingCollector(mock.NewNetworkShardingCollectorMock()),
-		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
-		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
-		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
-		node.WithChainID(consensusChainID),
-		node.WithRequestHandler(&mock.RequestHandlerStub{}),
-		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
 		node.WithSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
-		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
-		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithPeerSignatureHandler(peerSigHandler),
 	)
 
 	if err != nil {

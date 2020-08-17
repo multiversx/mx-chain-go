@@ -157,17 +157,15 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
-	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:            TestMarshalizer,
-		Hash:                TestHasher,
-		UInt64ByteSliceConv: TestUint64Converter,
-	}
+	coreComponents := GetDefaultCoreComponents()
+	coreComponents.IntMarsh = TestMarshalizer
+	coreComponents.Hash = TestHasher
+	coreComponents.UInt64ByteSliceConv = TestUint64Converter
 
-	dataComponents := &mock.DataComponentsMock{
-		Storage:    tpn.Storage,
-		DataPool:   tpn.DataPool,
-		BlockChain: tpn.BlockChain,
-	}
+	dataComponents := GetDefaultDataComponents()
+	dataComponents.Store = tpn.Storage
+	dataComponents.DataPool = tpn.DataPool
+	dataComponents.BlockChain = tpn.BlockChain
 
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:    coreComponents,

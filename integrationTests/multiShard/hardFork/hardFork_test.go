@@ -274,26 +274,24 @@ func hardForkImport(
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
-		coreComponents := &mock.CoreComponentsMock{
-			IntMarsh:            integrationTests.TestMarshalizer,
-			TxMarsh:             integrationTests.TestMarshalizer,
-			Hash:                integrationTests.TestHasher,
-			UInt64ByteSliceConv: integrationTests.TestUint64Converter,
-			ValPubKeyConv:       integrationTests.TestValidatorPubkeyConverter,
-			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
-			ChainIdCalled: func() string {
-				return string(node.ChainID)
-			},
-			MinTransactionVersionCalled: func() uint32 {
-				return integrationTests.MinTransactionVersion
-			},
+		coreComponents := integrationTests.GetDefaultCoreComponents()
+		coreComponents.IntMarsh = integrationTests.TestMarshalizer
+		coreComponents.TxMarsh = integrationTests.TestMarshalizer
+		coreComponents.Hash = integrationTests.TestHasher
+		coreComponents.UInt64ByteSliceConv = integrationTests.TestUint64Converter
+		coreComponents.AddrPubKeyConv = integrationTests.TestAddressPubkeyConverter
+		coreComponents.ValPubKeyConv = integrationTests.TestValidatorPubkeyConverter
+		coreComponents.ChainIdCalled = func() string {
+			return string(node.ChainID)
+		}
+		coreComponents.MinTransactionVersionCalled = func() uint32 {
+			return integrationTests.MinTransactionVersion
 		}
 
-		dataComponents := &mock.DataComponentsMock{
-			Storage:    node.Storage,
-			DataPool:   node.DataPool,
-			BlockChain: node.BlockChain,
-		}
+		dataComponents := integrationTests.GetDefaultDataComponents()
+		dataComponents.Store = node.Storage
+		dataComponents.DataPool = node.DataPool
+		dataComponents.BlockChain = node.BlockChain
 
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:          0,
@@ -418,25 +416,23 @@ func createHardForkExporter(
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], exportConfig)
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], keysConfig)
 
-		coreComponents := &mock.CoreComponentsMock{
-			IntMarsh:            integrationTests.TestMarshalizer,
-			TxMarsh:             integrationTests.TestTxSignMarshalizer,
-			Hash:                integrationTests.TestHasher,
-			UInt64ByteSliceConv: integrationTests.TestUint64Converter,
-			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
-			ValPubKeyConv:       integrationTests.TestValidatorPubkeyConverter,
-			ChainIdCalled: func() string {
-				return string(node.ChainID)
-			},
+		coreComponents := integrationTests.GetDefaultCoreComponents()
+		coreComponents.IntMarsh = integrationTests.TestMarshalizer
+		coreComponents.TxMarsh = integrationTests.TestTxSignMarshalizer
+		coreComponents.Hash = integrationTests.TestHasher
+		coreComponents.UInt64ByteSliceConv = integrationTests.TestUint64Converter
+		coreComponents.AddrPubKeyConv = integrationTests.TestAddressPubkeyConverter
+		coreComponents.ValPubKeyConv = integrationTests.TestValidatorPubkeyConverter
+		coreComponents.ChainIdCalled = func() string {
+			return string(node.ChainID)
 		}
 
-		cryptoComponents := &mock.CryptoComponentsMock{
-			BlockSig: node.OwnAccount.BlockSingleSigner,
-			TxSig:    node.OwnAccount.SingleSigner,
-			MultiSig: node.MultiSigner,
-			BlKeyGen: node.OwnAccount.KeygenBlockSign,
-			TxKeyGen: node.OwnAccount.KeygenTxSign,
-		}
+		cryptoComponents := integrationTests.GetDefaultCryptoComponents()
+		cryptoComponents.BlockSig = node.OwnAccount.BlockSingleSigner
+		cryptoComponents.TxSig = node.OwnAccount.SingleSigner
+		cryptoComponents.MultiSig = node.MultiSigner
+		cryptoComponents.BlKeyGen = node.OwnAccount.KeygenBlockSign
+		cryptoComponents.TxKeyGen = node.OwnAccount.KeygenTxSign
 
 		argsExportHandler := factory.ArgsExporter{
 			CoreComponents:    coreComponents,

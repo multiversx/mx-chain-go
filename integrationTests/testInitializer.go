@@ -529,24 +529,24 @@ func CreateFullGenesisBlocks(
 	gasSchedule = arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:            TestMarshalizer,
-		TxMarsh:             TestTxSignMarshalizer,
-		Hash:                TestHasher,
-		UInt64ByteSliceConv: TestUint64Converter,
-		AddrPubKeyConv:      TestAddressPubkeyConverter,
-		ChainIdCalled: func() string {
-			return "undefined"
-		},
-		MinTransactionVersionCalled: func() uint32 {
-			return 1
-		},
+	coreComponents := GetDefaultCoreComponents()
+	coreComponents.IntMarsh = TestMarshalizer
+	coreComponents.TxMarsh = TestTxSignMarshalizer
+	coreComponents.Hash = TestHasher
+	coreComponents.UInt64ByteSliceConv = TestUint64Converter
+	coreComponents.AddrPubKeyConv = TestAddressPubkeyConverter
+	coreComponents.ChainIdCalled = func() string {
+		return "undefined"
 	}
-	dataComponents := &mock.DataComponentsMock{
-		Storage:    store,
-		DataPool:   dataPool,
-		BlockChain: blkc,
+	coreComponents.MinTransactionVersionCalled = func() uint32 {
+		return 1
 	}
+
+	dataComponents := GetDefaultDataComponents()
+	dataComponents.Store = store
+	dataComponents.DataPool = dataPool
+	dataComponents.BlockChain = blkc
+
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:                 coreComponents,
 		Data:                 dataComponents,
@@ -624,17 +624,16 @@ func CreateGenesisMetaBlock(
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	coreComponents := &mock.CoreComponentsMock{
-		IntMarsh:            marshalizer,
-		Hash:                hasher,
-		UInt64ByteSliceConv: uint64Converter,
-		AddrPubKeyConv:      pubkeyConv,
-	}
-	dataComponents := &mock.DataComponentsMock{
-		Storage:    store,
-		DataPool:   dataPool,
-		BlockChain: blkc,
-	}
+	coreComponents := GetDefaultCoreComponents()
+	coreComponents.IntMarsh = marshalizer
+	coreComponents.Hash = hasher
+	coreComponents.UInt64ByteSliceConv = uint64Converter
+	coreComponents.AddrPubKeyConv = pubkeyConv
+
+	dataComponents := GetDefaultDataComponents()
+	dataComponents.Store = store
+	dataComponents.DataPool = dataPool
+	dataComponents.BlockChain = blkc
 
 	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:                 coreComponents,
@@ -1766,16 +1765,27 @@ func generateValidTx(
 	_, _ = accnts.Commit()
 
 	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
+
+	coreComponents := GetDefaultCoreComponents()
+	coreComponents.IntMarsh = TestMarshalizer
+	coreComponents.TxMarsh = TestTxSignMarshalizer
+	coreComponents.VmMarsh = TestMarshalizer
+	coreComponents.Hash = TestHasher
+	coreComponents.AddrPubKeyConv = TestAddressPubkeyConverter
+	coreComponents.ValPubKeyConv = TestValidatorPubkeyConverter
+
+	cryptoComponents := GetDefaultCryptoComponents()
+	cryptoComponents.TxSig = &ed25519SingleSig.Ed25519Signer{}
+	cryptoComponents.TxKeyGen = signing.NewKeyGenerator(ed25519.NewEd25519())
+	cryptoComponents.BlKeyGen = signing.NewKeyGenerator(ed25519.NewEd25519())
+
+	stateComponents := GetDefaultStateComponents()
+	stateComponents.Accounts = accnts
+
 	mockNode, _ := node.NewNode(
-		node.WithInternalMarshalizer(TestMarshalizer, 100),
-		node.WithVmMarshalizer(TestVmMarshalizer),
-		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
-		node.WithHasher(TestHasher),
-		node.WithAddressPubkeyConverter(TestAddressPubkeyConverter),
-		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
-		node.WithKeyGen(signing.NewKeyGenerator(ed25519.NewEd25519())),
-		node.WithTxSingleSigner(&ed25519SingleSig.Ed25519Signer{}),
-		node.WithAccountsAdapter(accnts),
+		node.WithCoreComponents(coreComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithTxAccumulator(txAccumulator),
 	)
 

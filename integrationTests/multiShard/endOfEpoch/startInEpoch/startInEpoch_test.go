@@ -177,25 +177,27 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	nodeToJoinLate.Messenger = messenger
 
 	rounder := &mock.RounderMock{IndexField: int64(round)}
+	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
+	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.Pk
+	cryptoComponents.BlockSig = &mock.SignerMock{}
+	cryptoComponents.TxSig = &mock.SignerMock{}
+	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
+
+	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents.IntMarsh = integrationTests.TestMarshalizer
+	coreComponents.TxMarsh = integrationTests.TestMarshalizer
+	coreComponents.Hash = integrationTests.TestHasher
+	coreComponents.AddrPubKeyConv = integrationTests.TestAddressPubkeyConverter
+	coreComponents.UInt64ByteSliceConv = uint64Converter
+	coreComponents.PathHdl = &mock.PathManagerStub{}
+	coreComponents.ChainIdCalled = func() string {
+		return string(integrationTests.ChainID)
+	}
+
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
-		CryptoComponentsHolder: &mock.CryptoComponentsMock{
-			PubKey:   nodeToJoinLate.NodeKeys.Pk,
-			BlockSig: &mock.SignerMock{},
-			TxSig:    &mock.SignerMock{},
-			BlKeyGen: &mock.KeyGenMock{},
-			TxKeyGen: &mock.KeyGenMock{},
-		},
-		CoreComponentsHolder: &mock.CoreComponentsMock{
-			IntMarsh:            integrationTests.TestMarshalizer,
-			TxMarsh:             integrationTests.TestTxSignMarshalizer,
-			Hash:                integrationTests.TestHasher,
-			UInt64ByteSliceConv: uint64Converter,
-			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
-			PathHdl:             &mock.PathManagerStub{},
-			ChainIdCalled: func() string {
-				return string(integrationTests.ChainID)
-			},
-		},
+		CryptoComponentsHolder:     cryptoComponents,
+		CoreComponentsHolder:       coreComponents,
 		Messenger:                  nodeToJoinLate.Messenger,
 		GeneralConfig:              generalConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -16,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -143,35 +145,50 @@ func (tP2pNode *TestP2PNode) initNode() {
 	)
 	log.LogIfError(err)
 
+	coreComponents := GetDefaultCoreComponents()
+	coreComponents.IntMarsh = TestMarshalizer
+	coreComponents.Hash = TestHasher
+	coreComponents.ValPubKeyConv = TestValidatorPubkeyConverter
+
+	cryptoComponents := GetDefaultCryptoComponents()
+	cryptoComponents.BlKeyGen = tP2pNode.KeyGen
+	cryptoComponents.PrivKey = tP2pNode.NodeKeys.Sk
+	cryptoComponents.PubKey = tP2pNode.NodeKeys.Pk
+	cryptoComponents.BlockSig = tP2pNode.SingleSigner
+	cryptoComponents.PeerSignHandler = psh
+
+	processComponents := GetDefaultProcessComponents()
+	processComponents.ShardCoord = tP2pNode.ShardCoordinator
+	processComponents.NodesCoord = tP2pNode.NodesCoordinator
+	processComponents.ValidatorProvider = &mock.ValidatorsProviderStub{}
+	processComponents.ValidatorStatistics = &mock.ValidatorStatisticsProcessorStub{
+		GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
+			return map[uint32][]*state.ValidatorInfo{
+				0: {{PublicKey: []byte("pk0")}},
+			}, nil
+		},
+	}
+	processComponents.EpochNotifier = &mock.EpochStartNotifierStub{}
+	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{}
+
+	networkComponents := GetDefaultNetworkComponents()
+	networkComponents.Messenger = tP2pNode.Messenger
+	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
+	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+
+	dataComponents := GetDefaultDataComponents()
+	dataComponents.Store = tP2pNode.Storage
+
 	tP2pNode.Node, err = node.NewNode(
-		node.WithMessenger(tP2pNode.Messenger),
-		node.WithInternalMarshalizer(TestMarshalizer, 100),
-		node.WithHasher(TestHasher),
-		node.WithKeyGen(tP2pNode.KeyGen),
-		node.WithShardCoordinator(tP2pNode.ShardCoordinator),
-		node.WithNodesCoordinator(tP2pNode.NodesCoordinator),
-		node.WithSingleSigner(tP2pNode.SingleSigner),
-		node.WithPrivKey(tP2pNode.NodeKeys.Sk),
-		node.WithPubKey(tP2pNode.NodeKeys.Pk),
+		node.WithCoreComponents(coreComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithDataComponents(dataComponents),
 		node.WithNetworkShardingCollector(tP2pNode.NetworkShardingUpdater),
-		node.WithDataStore(tP2pNode.Storage),
 		node.WithInitialNodesPubKeys(pubkeys),
-		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
-			GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {{PublicKey: []byte("pk0")}},
-				}, nil
-			},
-		}),
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
-		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
-		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
-		node.WithPeerSignatureHandler(psh),
 	)
 	log.LogIfError(err)
 
@@ -182,7 +199,26 @@ func (tP2pNode *TestP2PNode) initNode() {
 		HeartbeatRefreshIntervalInSec:       5,
 		HideInactiveValidatorIntervalInSec:  600,
 	}
-	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
+
+	hbCompArgs := factory.HeartbeatComponentsFactoryArgs{
+		Config: config.Config{
+			Heartbeat: hbConfig,
+		},
+		Prefs:             config.Preferences{},
+		AppVersion:        "test",
+		GenesisTime:       time.Time{},
+		HardforkTrigger:   hardforkTrigger,
+		CoreComponents:    coreComponents,
+		DataComponents:    dataComponents,
+		NetworkComponents: networkComponents,
+		CryptoComponents:  cryptoComponents,
+		ProcessComponents: processComponents,
+	}
+
+	managedHBComponents, err := factory.NewManagedHeartbeatComponents(hbCompArgs)
+	log.LogIfError(err)
+
+	err = managedHBComponents.Create()
 	log.LogIfError(err)
 }
 
