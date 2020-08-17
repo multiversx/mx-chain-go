@@ -3,6 +3,8 @@ package relayedTx
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"math/big"
 	"testing"
 	"time"
@@ -17,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-go/vm/factory"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -258,7 +260,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	initalSupply := big.NewInt(10000000000)
 	tokenIssuer := nodes[0]
 	txData := "issue" + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(initalSupply.Bytes())
-	integrationTests.CreateAndSendTransaction(tokenIssuer, issuePrice, factory.ESDTSCAddress, txData)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, issuePrice, vm.ESDTSCAddress, txData)
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := int64(10)
@@ -317,6 +319,116 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 
 	players = append(players, relayer)
 	checkPlayerBalances(t, nodes, players)
+}
+
+func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	nodes, idxProposers, players, relayer, advertiser := createGeneralSetupForRelayTxTest()
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	for _, node := range nodes {
+		node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+	}
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	ownerNode := nodes[0]
+	scCode := arwen.GetSCCode("attestation.wasm")
+	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+
+	registerValue := big.NewInt(100)
+	integrationTests.CreateAndSendTransactionWithGasLimit(
+		nodes[0],
+		big.NewInt(0),
+		integrationTests.MaxGasLimitPerBlock-1,
+		make([]byte, 32),
+		[]byte(arwen.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(registerValue.Bytes())+"@"+hex.EncodeToString(relayer.Address)+"@"+"ababab"),
+		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
+	)
+	time.Sleep(time.Second)
+
+	registerVMGas := uint64(100000)
+	savePublicInfoVMGas := uint64(100000)
+	attestVMGas := uint64(100000)
+
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+
+	uniqueIDs := make([]string, len(players))
+	for i, player := range players {
+		uniqueIDs[i] = core.UniqueIdentifier()
+		_ = createAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, registerValue,
+			registerVMGas, []byte("register@"+hex.EncodeToString([]byte(uniqueIDs[i]))))
+	}
+	time.Sleep(time.Second)
+
+	nrRoundsToPropagateMultiShard := int64(10)
+	for i := int64(0); i <= nrRoundsToPropagateMultiShard; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+	}
+
+	cryptoHook := hooks.NewVMCryptoHook()
+	privateInfos := make([]string, len(players))
+	for i := range players {
+		privateInfos[i] = core.UniqueIdentifier()
+		publicInfo, _ := cryptoHook.Keccak256([]byte(privateInfos[i]))
+		createAndSendSimpleTransaction(nodes, relayer, scAddress, big.NewInt(0), savePublicInfoVMGas,
+			[]byte("savePublicInfo@"+hex.EncodeToString([]byte(uniqueIDs[i]))+"@"+hex.EncodeToString(publicInfo)))
+	}
+	time.Sleep(time.Second)
+
+	nrRoundsToPropagate := int64(5)
+	for i := int64(0); i <= nrRoundsToPropagate; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+	}
+
+	for i, player := range players {
+		_ = createAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, big.NewInt(0), attestVMGas,
+			[]byte("attest@"+hex.EncodeToString([]byte(uniqueIDs[i]))+"@"+hex.EncodeToString([]byte(privateInfos[i]))))
+	}
+	time.Sleep(time.Second)
+
+	nrRoundsToPropagateMultiShard = int64(20)
+	for i := int64(0); i <= nrRoundsToPropagateMultiShard; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+	}
+
+	for i, player := range players {
+		checkAttestedPublicKeys(t, ownerNode, scAddress, []byte(uniqueIDs[i]), player.Address)
+	}
+}
+
+func checkAttestedPublicKeys(
+	t *testing.T,
+	node *integrationTests.TestProcessorNode,
+	scAddress []byte,
+	obfuscatedData []byte,
+	userAddress []byte,
+) {
+	scQuery := node.SCQueryService
+	vmOutput, err := scQuery.ExecuteQuery(&process.SCQuery{
+		ScAddress: scAddress,
+		FuncName:  "getPublicKey",
+		Arguments: [][]byte{obfuscatedData},
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
+	assert.Equal(t, vmOutput.ReturnData[0], userAddress)
 }
 
 func checkSCBalance(t *testing.T, node *integrationTests.TestProcessorNode, scAddress []byte, userAddress []byte, balance *big.Int) {
@@ -435,6 +547,24 @@ func createAndSendRelayedAndUserTx(
 	}
 
 	return relayedTx
+}
+
+func createAndSendSimpleTransaction(
+	nodes []*integrationTests.TestProcessorNode,
+	player *integrationTests.TestWalletAccount,
+	rcvAddr []byte,
+	value *big.Int,
+	gasLimit uint64,
+	txData []byte,
+) {
+	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address)
+
+	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData)
+	_, err := txDispatcherNode.SendTransaction(userTx)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
 }
 
 func getNodeWithinSameShardAsPlayer(

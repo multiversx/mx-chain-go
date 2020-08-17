@@ -156,6 +156,7 @@ type processComponentsFactoryArgs struct {
 	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               fullHistory.HistoryRepository
+	epochNotifier             process.EpochNotifier
 	txSimulatorProcessor      *txsimulator.TransactionProcessor
 }
 
@@ -200,6 +201,7 @@ func NewProcessComponentsFactoryArgs(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo fullHistory.HistoryRepository,
+	epochNotifier process.EpochNotifier,
 	txSimulatorProcessor *txsimulator.TransactionProcessor,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
@@ -243,6 +245,7 @@ func NewProcessComponentsFactoryArgs(
 		indexer:                   indexer,
 		tpsBenchmark:              tpsBenchmark,
 		historyRepo:               historyRepo,
+		epochNotifier:             epochNotifier,
 		txSimulatorProcessor:      txSimulatorProcessor,
 	}
 }
@@ -1009,6 +1012,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		ImportStartHandler:       args.importStartHandler,
 		WorkingDir:               workingDir,
 		GenesisString:            args.mainConfig.GeneralSettings.GenesisString,
+		GeneralConfig:            &args.mainConfig.GeneralSettings,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)
@@ -1117,6 +1121,7 @@ func newBlockProcessor(
 			processArgs.tpsBenchmark,
 			processArgs.version,
 			processArgs.historyRepo,
+			processArgs.epochNotifier,
 			txSimulatorProcessor,
 		)
 	}
@@ -1150,6 +1155,7 @@ func newBlockProcessor(
 			processArgs.tpsBenchmark,
 			processArgs.version,
 			processArgs.historyRepo,
+			processArgs.epochNotifier,
 			txSimulatorProcessor,
 		)
 	}
@@ -1182,6 +1188,7 @@ func newShardBlockProcessor(
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
 	historyRepository fullHistory.HistoryRepository,
+	epochNotifier process.EpochNotifier,
 	txSimulatorProcessor *txsimulator.TransactionProcessor,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
@@ -1279,24 +1286,25 @@ func newShardBlockProcessor(
 	}
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:      vmContainer,
-		ArgsParser:       argsParser,
-		Hasher:           core.Hasher,
-		Marshalizer:      core.InternalMarshalizer,
-		AccountsDB:       stateComponents.AccountsAdapter,
-		BlockChainHook:   vmFactory.BlockChainHookImpl(),
-		PubkeyConv:       stateComponents.AddressPubkeyConverter,
-		Coordinator:      shardCoordinator,
-		ScrForwarder:     scForwarder,
-		TxFeeHandler:     txFeeHandler,
-		EconomicsFee:     economics,
-		GasHandler:       gasHandler,
-		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:  txLogsProcessor,
-		TxTypeHandler:    txTypeHandler,
-		DisableDeploy:    config.GeneralSettings.DisableDeploy,
-		DisableBuiltIn:   config.GeneralSettings.DisableBuiltInFunctions,
-		BadTxForwarder:   badTxInterim,
+		VmContainer:        vmContainer,
+		ArgsParser:         argsParser,
+		Hasher:             core.Hasher,
+		Marshalizer:        core.InternalMarshalizer,
+		AccountsDB:         stateComponents.AccountsAdapter,
+		BlockChainHook:     vmFactory.BlockChainHookImpl(),
+		PubkeyConv:         stateComponents.AddressPubkeyConverter,
+		Coordinator:        shardCoordinator,
+		ScrForwarder:       scForwarder,
+		TxFeeHandler:       txFeeHandler,
+		EconomicsFee:       economics,
+		GasHandler:         gasHandler,
+		BuiltInFunctions:   vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:    txLogsProcessor,
+		TxTypeHandler:      txTypeHandler,
+		DeployEnableEpoch:  config.GeneralSettings.SCDeployEnableEpoch,
+		BuiltinEnableEpoch: config.GeneralSettings.BuiltInFunctionsEnableEpoch,
+		BadTxForwarder:     badTxInterim,
+		EpochNotifier:      epochNotifier,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1313,21 +1321,22 @@ func newShardBlockProcessor(
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:          stateComponents.AccountsAdapter,
-		Hasher:            core.Hasher,
-		PubkeyConv:        stateComponents.AddressPubkeyConverter,
-		Marshalizer:       core.InternalMarshalizer,
-		SignMarshalizer:   core.TxSignMarshalizer,
-		ShardCoordinator:  shardCoordinator,
-		ScProcessor:       scProcessor,
-		TxFeeHandler:      txFeeHandler,
-		TxTypeHandler:     txTypeHandler,
-		EconomicsFee:      economics,
-		ReceiptForwarder:  receiptTxInterim,
-		BadTxForwarder:    badTxInterim,
-		ArgsParser:        argsParser,
-		ScrForwarder:      scForwarder,
-		DisabledRelayedTx: config.GeneralSettings.DisableRelayedTx,
+		Accounts:             stateComponents.AccountsAdapter,
+		Hasher:               core.Hasher,
+		PubkeyConv:           stateComponents.AddressPubkeyConverter,
+		Marshalizer:          core.InternalMarshalizer,
+		SignMarshalizer:      core.TxSignMarshalizer,
+		ShardCoordinator:     shardCoordinator,
+		ScProcessor:          scProcessor,
+		TxFeeHandler:         txFeeHandler,
+		TxTypeHandler:        txTypeHandler,
+		EconomicsFee:         economics,
+		ReceiptForwarder:     receiptTxInterim,
+		BadTxForwarder:       badTxInterim,
+		ArgsParser:           argsParser,
+		ScrForwarder:         scForwarder,
+		RelayedTxEnableEpoch: config.GeneralSettings.RelayedTransactionsEnableEpoch,
+		EpochNotifier:        epochNotifier,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -1429,6 +1438,7 @@ func newShardBlockProcessor(
 		Indexer:                indexer,
 		TpsBenchmark:           tpsBenchmark,
 		HistoryRepository:      historyRepository,
+		EpochNotifier:          epochNotifier,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1476,6 +1486,7 @@ func newMetaBlockProcessor(
 	tpsBenchmark statistics.TPSBenchmark,
 	version string,
 	historyRepository fullHistory.HistoryRepository,
+	epochNotifier process.EpochNotifier,
 	txSimulatorProcessor *txsimulator.TransactionProcessor,
 ) (process.BlockProcessor, error) {
 
@@ -1577,6 +1588,7 @@ func newMetaBlockProcessor(
 		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  txLogsProcessor,
 		BadTxForwarder:   badTxForwarder,
+		EpochNotifier:    epochNotifier,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1775,7 +1787,28 @@ func newMetaBlockProcessor(
 		Indexer:                indexer,
 		TpsBenchmark:           tpsBenchmark,
 		HistoryRepository:      historyRepository,
+		EpochNotifier:          epochNotifier,
 	}
+
+	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
+	if err != nil {
+		return nil, err
+	}
+	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
+		SystemVM:                systemVM,
+		UserAccountsDB:          stateComponents.AccountsAdapter,
+		PeerAccountsDB:          stateComponents.PeerAccounts,
+		Marshalizer:             core.InternalMarshalizer,
+		StartRating:             ratingsData.StartRating(),
+		ValidatorInfoCreator:    validatorStatisticsProcessor,
+		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
+		StakingSCAddress:        vm.StakingSCAddress,
+	}
+	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
+	if err != nil {
+		return nil, err
+	}
+
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,
 		SCDataGetter:                 scDataGetter,
@@ -1786,6 +1819,7 @@ func newMetaBlockProcessor(
 		EpochRewardsCreator:          epochRewards,
 		EpochValidatorInfoCreator:    validatorInfoCreator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

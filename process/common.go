@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process")
@@ -651,4 +652,43 @@ func IsAllowedToSaveUnderKey(key []byte) bool {
 
 	trimmedKey := key[:prefixLen]
 	return !bytes.Equal(trimmedKey, []byte(core.ElrondProtectedKeyPrefix))
+}
+
+// SortVMOutputInsideData returns the output accounts as a sorted list
+func SortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
+	sort.Slice(vmOutput.DeletedAccounts, func(i, j int) bool {
+		return bytes.Compare(vmOutput.DeletedAccounts[i], vmOutput.DeletedAccounts[j]) < 0
+	})
+	sort.Slice(vmOutput.TouchedAccounts, func(i, j int) bool {
+		return bytes.Compare(vmOutput.TouchedAccounts[i], vmOutput.TouchedAccounts[j]) < 0
+	})
+
+	outPutAccounts := make([]*vmcommon.OutputAccount, len(vmOutput.OutputAccounts))
+	i := 0
+	for _, outAcc := range vmOutput.OutputAccounts {
+		outPutAccounts[i] = outAcc
+		i++
+	}
+
+	sort.Slice(outPutAccounts, func(i, j int) bool {
+		return bytes.Compare(outPutAccounts[i].Address, outPutAccounts[j].Address) < 0
+	})
+
+	return outPutAccounts
+}
+
+// GetSortedStorageUpdates returns the storage updates as a sorted list
+func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.StorageUpdate {
+	storageUpdates := make([]*vmcommon.StorageUpdate, len(account.StorageUpdates))
+	i := 0
+	for _, update := range account.StorageUpdates {
+		storageUpdates[i] = update
+		i++
+	}
+
+	sort.Slice(storageUpdates, func(i, j int) bool {
+		return bytes.Compare(storageUpdates[i].Offset, storageUpdates[j].Offset) < 0
+	})
+
+	return storageUpdates
 }

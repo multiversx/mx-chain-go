@@ -154,3 +154,9 @@ var ErrInvalidMaxNumberOfNodes = errors.New("invalid number of max number of nod
 
 // ErrTokenNameNotHumanReadable signals that token name is not human readable
 var ErrTokenNameNotHumanReadable = errors.New("token name is not human readable")
+
+// ErrBLSPublicKeyAlreadyJailed signals that bls public key was already jailed
+var ErrBLSPublicKeyAlreadyJailed = errors.New("bls public key already jailed")
+
+// ErrInvalidEndOfEpochAccessAddress signals that end of epoch access address is invalid
+var ErrInvalidEndOfEpochAccessAddress = errors.New("invalid end of epoch access address")

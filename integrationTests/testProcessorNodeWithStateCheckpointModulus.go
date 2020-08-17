@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -69,6 +70,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 	tpn.NodesSetup = nodesSetup
 

@@ -38,9 +38,19 @@ type Facade struct {
 	GetValueForKeyCalled                    func(address string, key string) (string, error)
 	GetPeerInfoCalled                       func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetThrottlerForEndpointCalled           func(endpoint string) (core.Throttler, bool)
+	GetUsernameCalled                       func(address string) (string, error)
 	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetNumCheckpointsFromAccountStateCalled func() uint32
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
+}
+
+// GetUsername -
+func (f *Facade) GetUsername(address string) (string, error) {
+	if f.GetUsernameCalled != nil {
+		return f.GetUsernameCalled(address)
+	}
+
+	return "", nil
 }
 
 // GetThrottlerForEndpoint -
