@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/outport/marshaling"
+	"github.com/ElrondNetwork/elrond-go/outport/messages"
 )
 
 var log = logger.GetOrCreate("outport")
@@ -48,18 +49,25 @@ func newOutportDriver(
 }
 
 // DigestCommittedBlock digests a block
-func (driver *outportDriver) DigestCommittedBlock(header data.HeaderHandler) {
+func (driver *outportDriver) DigestCommittedBlock(headerHash []byte, header data.HeaderHandler) {
 	if check.IfNil(header) {
 		return
 	}
 
-	message := NewMessageCommittedBlock(header)
+	message := messages.NewMessageCommittedBlock(header)
 	message.RegularTransactions = marshaling.NewSerializableMapStringTransactionHandler(driver.getRegularTransactions())
 	message.SmartContractResults = marshaling.NewSerializableMapStringTransactionHandler(driver.getSmartContractResults())
 	message.RewardTransactions = marshaling.NewSerializableMapStringTransactionHandler(driver.getRewardTransactions())
 	message.InvalidTransactions = marshaling.NewSerializableMapStringTransactionHandler(driver.getInvalidTransactions())
 	message.Receipts = marshaling.NewSerializableMapStringTransactionHandler(driver.getReceipts())
 	message.SmartContractLogs = nil
+
+	length, err := driver.sender.Send(message)
+	if err != nil {
+		log.Warn("DigestCommittedBlock(): could not send message", "err", err)
+	} else {
+		log.Trace("DigestCommittedBlock(): message sent", "length", length)
+	}
 }
 
 func (driver *outportDriver) getRegularTransactions() mapOfTxs {

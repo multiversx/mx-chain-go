@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ElrondNetwork/arwen-wasm-vm/ipc/marshaling"
+	"github.com/ElrondNetwork/elrond-go/outport/messages"
 )
 
 // Sender intermediates communication (message sending) via pipes
@@ -22,7 +23,7 @@ func NewSender(writer *os.File, marshalizer marshaling.Marshalizer) *Sender {
 }
 
 // Send sends a message over the pipe
-func (sender *Sender) Send(message MessageHandler) (int, error) {
+func (sender *Sender) Send(message messages.MessageHandler) (int, error) {
 	dataBytes, err := sender.marshalizer.Marshal(message)
 	if err != nil {
 		return 0, err
@@ -42,7 +43,7 @@ func (sender *Sender) Send(message MessageHandler) (int, error) {
 	return length, err
 }
 
-func (sender *Sender) sendMessageLengthAndKind(length int, kind MessageKind) error {
+func (sender *Sender) sendMessageLengthAndKind(length int, kind messages.MessageKind) error {
 	buffer := make([]byte, 8)
 	binary.LittleEndian.PutUint32(buffer[0:4], uint32(length))
 	binary.LittleEndian.PutUint32(buffer[4:8], uint32(kind))

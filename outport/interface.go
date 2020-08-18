@@ -3,6 +3,7 @@ package outport
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/outport/messages"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -15,7 +16,7 @@ type TransactionLogProcessor interface {
 
 // Driver defines the interface of the outport driver
 type Driver interface {
-	DigestCommittedBlock(header data.HeaderHandler)
+	DigestCommittedBlock(headerHash []byte, header data.HeaderHandler)
 	// TODO: add DigestInvalidTransaction()
 	IsInterfaceNil() bool
 }
@@ -28,7 +29,7 @@ type TransactionCoordinator interface {
 
 // sender is an internal interface
 type sender interface {
-	Send(message MessageHandler) (int, error)
+	Send(message messages.MessageHandler) (int, error)
 	Shutdown() error
 	IsInterfaceNil() bool
 }
