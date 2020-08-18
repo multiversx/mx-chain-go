@@ -802,7 +802,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	// set stake per node
 	setStakePerNodeTxData := "setStakePerNode@" + core.ConvertToEvenHexBigInt(nodePrice)
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setStakePerNodeTxData, 1)
+	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setStakePerNodeTxData, 500000)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
@@ -810,20 +810,20 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	addNodesTxData := fmt.Sprintf("addNodes@%s@%s",
 		hex.EncodeToString(stakerBLSKey),
 		hex.EncodeToString(stakerBLSSignature))
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, addNodesTxData, 1)
+	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, addNodesTxData, 500000)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// stake some coin!
 	// here the node account fills all the required stake
 	stakeTxData := "stake"
-	integrationTests.CreateAndSendTransaction(shardNode, totalStake, delegateSCAddress, stakeTxData, 1)
+	integrationTests.CreateAndSendTransaction(shardNode, totalStake, delegateSCAddress, stakeTxData, 500000)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// activate the delegation, this involves an async call to auction
 	stakeAllAvailableTxData := "stakeAllAvailable"
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData, 1)
+	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData, 8000000)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
@@ -841,9 +841,9 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		Arguments: [][]byte{},
 	}
 	vmOutput1, _ := shardNode.SCQueryService.ExecuteQuery(scQuery1)
-	assert.NotNil(t, vmOutput1)
-	assert.Equal(t, len(vmOutput1.ReturnData), 1)
-	assert.True(t, bytes.Equal(vmOutput1.ReturnData[0], []byte{1}))
+	require.NotNil(t, vmOutput1)
+	require.Equal(t, len(vmOutput1.ReturnData), 1)
+	require.True(t, bytes.Equal(vmOutput1.ReturnData[0], []byte{1}))
 
 	// check that node/signature are correctly set
 	scQuery2 := &process.SCQuery{
@@ -852,9 +852,9 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		Arguments: [][]byte{stakerBLSKey},
 	}
 	vmOutput2, _ := shardNode.SCQueryService.ExecuteQuery(scQuery2)
-	assert.NotNil(t, vmOutput2)
-	assert.Equal(t, len(vmOutput2.ReturnData), 1)
-	assert.True(t, bytes.Equal(stakerBLSSignature, vmOutput2.ReturnData[0]))
+	require.NotNil(t, vmOutput2)
+	require.Equal(t, len(vmOutput2.ReturnData), 1)
+	require.True(t, bytes.Equal(stakerBLSSignature, vmOutput2.ReturnData[0]))
 
 	// check that the stake got registered in delegation
 	scQuery3 := &process.SCQuery{
@@ -863,9 +863,9 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		Arguments: [][]byte{delegateSCOwner},
 	}
 	vmOutput3, _ := shardNode.SCQueryService.ExecuteQuery(scQuery3)
-	assert.NotNil(t, vmOutput3)
-	assert.Equal(t, len(vmOutput3.ReturnData), 1)
-	assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput3.ReturnData[0])) == 0)
+	require.NotNil(t, vmOutput3)
+	require.Equal(t, len(vmOutput3.ReturnData), 1)
+	require.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput3.ReturnData[0])) == 0)
 
 	// check that the stake got activated
 	scQuery4 := &process.SCQuery{
@@ -874,9 +874,9 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		Arguments: [][]byte{delegateSCOwner},
 	}
 	vmOutput4, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
-	assert.NotNil(t, vmOutput4)
-	assert.Equal(t, len(vmOutput4.ReturnData), 1)
-	assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput4.ReturnData[0])) == 0)
+	require.NotNil(t, vmOutput4)
+	require.Equal(t, len(vmOutput4.ReturnData), 1)
+	require.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput4.ReturnData[0])) == 0)
 
 	// check that the staking system smart contract has the value
 	for _, node := range nodes {
