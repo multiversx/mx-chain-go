@@ -124,14 +124,14 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.unStake(args)
 	case "unBond":
 		return r.unBond(args)
-	case "slash":
-		return r.slash(args)
 	case "get":
 		return r.get(args)
 	case "isStaked":
 		return r.isStaked(args)
 	case "setStakeValue":
 		return r.setStakeValueForCurrentEpoch(args)
+	case "slash":
+		return r.slash(args)
 	case "jail":
 		return r.jail(args)
 	case "unJail":
@@ -242,6 +242,9 @@ func (r *stakingSC) canUnBond() bool {
 }
 
 func (r *stakingSC) calculateStakeAfterBleed(startRound uint64, endRound uint64, stake *big.Int) *big.Int {
+	if startRound == 0 || endRound == 0 {
+		return stake
+	}
 	if startRound > endRound {
 		return stake
 	}
@@ -354,7 +357,7 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 			return vmcommon.UserError
 		}
 
-		if stakedData.UnJailedNonce <= stakedData.JailedNonce {
+		if stakedData.UnJailedNonce < stakedData.JailedNonce {
 			r.removeFromJailedNodes()
 		}
 
@@ -441,6 +444,7 @@ func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		stakedData.JailedRound = r.eei.BlockChainHook().CurrentRound()
 		stakedData.JailedNonce = r.eei.BlockChainHook().CurrentNonce()
 		stakedData.Jailed = true
+		stakedData.NumJailed = stakedData.NumJailed + 1
 		err = r.saveStakingData(argument, stakedData)
 		if err != nil {
 			r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
@@ -543,7 +547,6 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 		r.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
 		return vmcommon.UserError
 	}
-
 	if registrationData.Jailed {
 		r.eei.AddReturnMessage("cannot register or stake jailed node")
 		return vmcommon.UserError
@@ -557,11 +560,12 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 
 		if !r.canStake() && !registrationData.Staked {
 			r.eei.AddReturnMessage("staking is full")
-			err = r.addToWaitingList(args.Arguments[0])
+			err = r.addToWaitingList(args.Arguments[0], registrationData.NumJailed)
 			if err != nil {
 				r.eei.AddReturnMessage("error while adding to waiting")
 				return vmcommon.UserError
 			}
+			registrationData.UnJailedNonce = 0
 			registrationData.Waiting = true
 			r.eei.Finish([]byte{waiting})
 
@@ -726,6 +730,12 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 
+	currentNonce := r.eei.BlockChainHook().CurrentNonce()
+	if registrationData.UnStakedNonce > 0 && currentNonce-registrationData.UnStakedNonce < r.unBondPeriod {
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", encodedBlsKey))
+		return vmcommon.UserError
+	}
+
 	if r.isInWaiting(args.Arguments[0]) || registrationData.Waiting {
 		err = r.removeFromWaitingList(args.Arguments[0])
 		if err != nil {
@@ -740,11 +750,6 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.Ok
 	}
 
-	currentNonce := r.eei.BlockChainHook().CurrentNonce()
-	if currentNonce-registrationData.UnStakedNonce < r.unBondPeriod {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", encodedBlsKey))
-		return vmcommon.UserError
-	}
 	if !r.canUnBond() {
 		r.eei.AddReturnMessage("unbonding currently unavailable: number of total validators in the network is at minimum")
 		return vmcommon.UserError
@@ -798,6 +803,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	registrationData.JailedRound = r.eei.BlockChainHook().CurrentRound()
 	registrationData.JailedNonce = r.eei.BlockChainHook().CurrentNonce()
 	registrationData.Jailed = true
+	registrationData.NumJailed = registrationData.NumJailed + 1
 
 	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {
@@ -832,7 +838,7 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.UserError
 }
 
-func (r *stakingSC) addToWaitingList(blsKey []byte) error {
+func (r *stakingSC) addToWaitingList(blsKey []byte, numJailed uint32) error {
 	inWaitingListKey := r.createWaitingListKey(blsKey)
 	marshaledData := r.eei.GetStorage(inWaitingListKey)
 	if len(marshaledData) != 0 {
@@ -852,6 +858,18 @@ func (r *stakingSC) addToWaitingList(blsKey []byte) error {
 			BLSPublicKey: blsKey,
 			PreviousKey:  waitingList.LastKey,
 			NextKey:      make([]byte, 0),
+		}
+		return r.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
+	}
+
+	if numJailed == 1 {
+		nextKey := make([]byte, 0, len(waitingList.FirstKey))
+		copy(nextKey, waitingList.FirstKey)
+		waitingList.FirstKey = inWaitingListKey
+		elementInWaiting := &ElementInList{
+			BLSPublicKey: blsKey,
+			PreviousKey:  inWaitingListKey,
+			NextKey:      nextKey,
 		}
 		return r.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
 	}

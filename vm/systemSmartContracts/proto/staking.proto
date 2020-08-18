@@ -20,6 +20,7 @@ message StakedData {
 	uint64   UnJailedNonce = 10 [(gogoproto.jsontag) = "UnJailedNonce"];
 	bool     Jailed        = 11 [(gogoproto.jsontag) = "Jailed"];
 	bool     Waiting       = 12 [(gogoproto.jsontag) = "Waiting"];
+	uint32   NumJailed     = 13 [(gogoproto.jsontag) = "NumJailed"];
 }
 
 message StakingNodesConfig {
