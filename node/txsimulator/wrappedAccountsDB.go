@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/node"
 )
 
 // readOnlyAccountsDB is a wrapper over an accounts db which works read-only. write operation are disabled
@@ -14,7 +15,7 @@ type readOnlyAccountsDB struct {
 // NewReadOnlyAccountsDB returns a new instance of readOnlyAccountsDB
 func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsDB, error) {
 	if check.IfNil(accountsDB) {
-		return nil, state.ErrNilAccountsAdapter
+		return nil, node.ErrNilAccountsAdapter
 	}
 
 	return &readOnlyAccountsDB{originalAccounts: accountsDB}, nil
