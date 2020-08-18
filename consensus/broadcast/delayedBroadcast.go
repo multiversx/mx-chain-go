@@ -163,7 +163,7 @@ func (dbb *delayedBlockBroadcaster) SetHeaderForValidator(vData *validatorHeader
 		return spos.ErrNilHeaderHash
 	}
 
-	log.Debug("memory leak debug data",
+	log.Debug("SetHeaderForValidator",
 		"nbDelayedBroadcastData", len(dbb.delayedBroadcastData),
 		"nbValBroadcastData", len(dbb.valBroadcastData),
 		"nbValHeaderBroadcastData", len(dbb.valHeaderBroadcastData),
@@ -602,12 +602,13 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 
 	alarmsToCancel := make([]string, 0)
 	dbb.mutDataForBroadcast.RLock()
-	for _, broadcastData := range dbb.valHeaderBroadcastData {
+	for i, broadcastData := range dbb.valHeaderBroadcastData {
 		samePrevRandSeed := bytes.Equal(broadcastData.header.GetPrevRandSeed(), headerHandler.GetPrevRandSeed())
 		sameRound := broadcastData.header.GetRound() == headerHandler.GetRound()
 		sameHeader := samePrevRandSeed && sameRound
 
 		if sameHeader {
+			dbb.valHeaderBroadcastData = append(dbb.valHeaderBroadcastData[:i], dbb.valHeaderBroadcastData[i+1:]...)
 			// leader has broadcast the header so we can cancel the header alarm
 			alarmID := prefixHeaderAlarm + hex.EncodeToString(headerHash)
 			alarmsToCancel = append(alarmsToCancel, alarmID)
@@ -618,6 +619,7 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 			break
 		}
 	}
+
 	dbb.mutDataForBroadcast.RUnlock()
 
 	for _, alarmID := range alarmsToCancel {
