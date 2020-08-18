@@ -163,6 +163,12 @@ func (dbb *delayedBlockBroadcaster) SetHeaderForValidator(vData *validatorHeader
 		return spos.ErrNilHeaderHash
 	}
 
+	log.Debug("memory leak debug data",
+		"nbDelayedBroadcastData", len(dbb.delayedBroadcastData),
+		"nbValBroadcastData", len(dbb.valBroadcastData),
+		"nbValHeaderBroadcastData", len(dbb.valHeaderBroadcastData),
+	)
+
 	// set alarm only for validators that are aware that the block was finalized
 	if len(vData.header.GetSignature()) != 0 {
 		_, alreadyReceived := dbb.cacheHeaders.Get(vData.headerHash)
