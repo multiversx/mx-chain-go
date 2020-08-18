@@ -1203,8 +1203,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	txSimulatorProcessorArgs := &txsimulator.Args{
+	txSimulatorProcessorArgs := &txsimulator.ArgsTxSimulator{
 		AddressPubKeyConverter: addressPubkeyConverter,
+		ShardCoordinator:       shardCoordinator,
 	}
 
 	log.Trace("creating process components")
@@ -1256,7 +1257,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	transactionSimulator, err := txsimulator.New(*txSimulatorProcessorArgs)
+	transactionSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
 	if err != nil {
 		return err
 	}

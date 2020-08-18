@@ -157,7 +157,7 @@ type processComponentsFactoryArgs struct {
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               fullHistory.HistoryRepository
 	epochNotifier             process.EpochNotifier
-	txSimulatorProcessorArgs  *txsimulator.Args
+	txSimulatorProcessorArgs  *txsimulator.ArgsTxSimulator
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -202,7 +202,7 @@ func NewProcessComponentsFactoryArgs(
 	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo fullHistory.HistoryRepository,
 	epochNotifier process.EpochNotifier,
-	txSimulatorProcessorArgs *txsimulator.Args,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -1090,7 +1090,7 @@ func newBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
-	txSimulatorProcessorArgs *txsimulator.Args,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1189,7 +1189,7 @@ func newShardBlockProcessor(
 	version string,
 	historyRepository fullHistory.HistoryRepository,
 	epochNotifier process.EpochNotifier,
-	txSimulatorProcessorArgs *txsimulator.Args,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -1487,7 +1487,7 @@ func newMetaBlockProcessor(
 	version string,
 	historyRepository fullHistory.HistoryRepository,
 	epochNotifier process.EpochNotifier,
-	txSimulatorProcessorArgs *txsimulator.Args,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1842,7 +1842,7 @@ func createShardTxSimulatorProcessor(
 	data *mainFactory.DataComponents,
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
-	txSimulatorProcessorArgs *txsimulator.Args,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) error {
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
@@ -1911,7 +1911,7 @@ func createMetaTxSimulatorProcessor(
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
 	txTypeHandler process.TxTypeHandler,
-	txSimulatorProcessorArgs *txsimulator.Args,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) error {
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,

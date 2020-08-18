@@ -11,24 +11,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// Args holds the arguments required for creating a new transaction simulator
-type Args struct {
+// ArgsTxSimulator holds the arguments required for creating a new transaction simulator
+type ArgsTxSimulator struct {
 	TransactionProcessor       TransactionProcessor
 	IntermmediateProcContainer process.IntermediateProcessorContainer
 	AddressPubKeyConverter     core.PubkeyConverter
+	ShardCoordinator           sharding.Coordinator
 }
 
 type transactionSimulator struct {
 	txProcessor            TransactionProcessor
 	intermProcContainer    process.IntermediateProcessorContainer
 	addressPubKeyConverter core.PubkeyConverter
+	shardCoordinator       sharding.Coordinator
 }
 
-// New returns a new instance of a transactionSimulator
-func New(args Args) (*transactionSimulator, error) {
+// NewTransactionSimulator returns a new instance of a transactionSimulator
+func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error) {
 	if check.IfNil(args.TransactionProcessor) {
 		return nil, node.ErrNilTxSimulatorProcessor
 	}
@@ -38,11 +41,15 @@ func New(args Args) (*transactionSimulator, error) {
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, node.ErrNilPubkeyConverter
 	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, node.ErrNilShardCoordinator
+	}
 
 	return &transactionSimulator{
 		txProcessor:            args.TransactionProcessor,
 		intermProcContainer:    args.IntermmediateProcContainer,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
+		shardCoordinator:       args.ShardCoordinator,
 	}, nil
 }
 
@@ -74,22 +81,22 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*transac
 }
 
 func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.SimulationResults) error {
+	defer func() {
+		processorsKeys := ts.intermProcContainer.Keys()
+		for _, procKey := range processorsKeys {
+			processor, errGetProc := ts.intermProcContainer.Get(procKey)
+			if errGetProc != nil || processor == nil {
+				continue
+			}
+
+			processor.CreateBlockStarted()
+		}
+	}()
+
 	scrForwarder, err := ts.intermProcContainer.Get(block.SmartContractResultBlock)
 	if err != nil {
 		return err
 	}
-	receiptsForwarder, err := ts.intermProcContainer.Get(block.ReceiptBlock)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if scrForwarder != nil {
-			scrForwarder.CreateBlockStarted()
-		}
-		if receiptsForwarder != nil {
-			receiptsForwarder.CreateBlockStarted()
-		}
-	}()
 
 	scResults := make(map[string]*transaction.SmartContractResultApi)
 	for hash, value := range scrForwarder.GetAllCurrentFinishedTxs() {
@@ -99,8 +106,16 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.S
 		}
 		scResults[hex.EncodeToString([]byte(hash))] = ts.adaptSmartContractResult(scr)
 	}
-
 	result.ScResults = scResults
+
+	if ts.shardCoordinator.SelfId() == core.MetachainShardId {
+		return nil
+	}
+
+	receiptsForwarder, err := ts.intermProcContainer.Get(block.ReceiptBlock)
+	if err != nil {
+		return err
+	}
 
 	receipts := make(map[string]*transaction.ReceiptApi)
 	for hash, value := range receiptsForwarder.GetAllCurrentFinishedTxs() {
