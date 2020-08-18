@@ -1,6 +1,10 @@
 package outport
 
 import (
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -53,6 +57,36 @@ func TestOutportDriver_DigestCommittedBlock(t *testing.T) {
 	require.Equal(t, 300, int(sentMessage.Header.Nonce))
 	require.Len(t, sentMessage.RegularTransactions.Keys, 3)
 	require.Len(t, sentMessage.RegularTransactions.Values, 3)
+}
+
+func TestOutportDriver_DigestCommittedBlock_WithFileBasedSender(t *testing.T) {
+	config := createConfig()
+	txCoordinator := mock.NewTxCoordinatorMock()
+	logsProcessor := mock.NewTxLogsProcessorMock()
+	marshalizer := marshaling.CreateMarshalizer(marshaling.JSON)
+	file, err := ioutil.TempFile("", "prefix")
+	if err != nil {
+		require.Fail(t, "could not create file")
+	}
+	defer os.Remove(file.Name())
+	sender := NewSender(file, marshalizer)
+
+	driver, err := newOutportDriver(config, txCoordinator, logsProcessor, sender)
+	require.Nil(t, err)
+	require.NotNil(t, driver)
+
+	txCoordinator.AddTx(block.TxBlock, "tx1", &transaction.Transaction{SndAddr: []byte("alice"), Nonce: 42})
+	txCoordinator.AddTx(block.TxBlock, "tx2", &transaction.Transaction{SndAddr: []byte("alice"), Nonce: 43})
+	txCoordinator.AddTx(block.TxBlock, "tx3", &transaction.Transaction{SndAddr: []byte("alice"), Nonce: 44})
+
+	header := &block.Header{Nonce: 300}
+	driver.DigestCommittedBlock([]byte("foo"), header)
+
+	buffer := make([]byte, 4096)
+	file.Seek(0, io.SeekStart)
+	_, err = io.ReadFull(file, buffer)
+	require.Nil(t, err)
+	fmt.Println(buffer)
 }
 
 func createConfig() config.OutportConfig {

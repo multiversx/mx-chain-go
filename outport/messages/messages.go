@@ -108,6 +108,7 @@ type CommittedBlockHeader struct {
 	TxCount         uint32
 	AccumulatedFees string
 	DeveloperFees   string
+	// TODO: Add miniblock headers as well
 }
 
 // NewCommittedBlockHeader creates a CommittedBlockHeader
