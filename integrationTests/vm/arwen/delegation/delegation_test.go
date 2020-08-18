@@ -53,6 +53,7 @@ func TestDelegation_Claims(t *testing.T) {
 	defer context.Close()
 
 	// Genesis
+	context.GasLimit = 30000000
 	deployDelegation(context)
 	addNodes(context, 2500, 2)
 
@@ -61,6 +62,7 @@ func TestDelegation_Claims(t *testing.T) {
 	err = context.ExecuteSC(&context.Bob, "stakeGenesis@00"+NewBalance(2000).ToHex())
 	require.Nil(t, err)
 
+	context.GasLimit = 60000000
 	err = context.ExecuteSC(&context.Owner, "activateGenesis")
 	require.Nil(t, err)
 
@@ -94,6 +96,7 @@ func TestDelegation_Claims(t *testing.T) {
 	context.TakeAccountBalanceSnapshot(&context.Bob)
 	context.TakeAccountBalanceSnapshot(&context.Carol)
 
+	context.GasLimit = 20000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
 	require.Equal(t, 15518713, int(context.LastConsumedFee))
@@ -127,6 +130,7 @@ func TestDelegation_WithManyUsers_Claims(t *testing.T) {
 	context.InitAdditionalParticipants(numUsers)
 
 	// Genesis
+	context.GasLimit = 10000000000
 	deployDelegation(context)
 	addNodes(context, stakePerNode, numNodes)
 
@@ -135,6 +139,7 @@ func TestDelegation_WithManyUsers_Claims(t *testing.T) {
 		require.Nil(t, err)
 	}
 
+	context.GasLimit = 10000000000
 	err = context.ExecuteSC(&context.Owner, "activateGenesis")
 	require.Nil(t, err)
 	require.Equal(t, numUsers+1, int(context.QuerySCInt("getNumUsers", [][]byte{})))
@@ -154,6 +159,7 @@ func TestDelegation_WithManyUsers_Claims(t *testing.T) {
 	for _, user := range context.Participants {
 		context.TakeAccountBalanceSnapshot(user)
 
+		context.GasLimit = 20000000
 		err = context.ExecuteSC(user, "claimRewards")
 		require.Nil(t, err)
 		require.LessOrEqual(t, int(context.LastConsumedFee), 17000000)
