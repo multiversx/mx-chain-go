@@ -288,7 +288,7 @@ func (esd *elasticSearchDatabase) getMiniblocks(header data.HeaderHandler, body 
 			mb.ReceiverBlockHash = encodedHeaderHash
 		}
 
-		if mb.SenderShardID == mb.ReceiverShardID {
+		if mb.SenderShardID == mb.ReceiverShardID || mb.ReceiverShardID == core.AllShardId {
 			mb.ReceiverBlockHash = encodedHeaderHash
 		}
 
