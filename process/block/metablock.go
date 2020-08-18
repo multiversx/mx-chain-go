@@ -111,6 +111,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),
 		historyRepo:            arguments.HistoryRepository,
+		epochNotifier:          arguments.EpochNotifier,
 	}
 
 	mp := metaProcessor{
@@ -170,6 +171,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	mp.epochNotifier.CheckEpoch(headerHandler.GetEpoch())
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
 	log.Debug("started processing block",
@@ -639,6 +641,7 @@ func (mp *metaProcessor) CreateBlock(
 
 	mp.epochStartTrigger.Update(initialHdr.GetRound(), initialHdr.GetNonce())
 	metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
+	mp.epochNotifier.CheckEpoch(metaHdr.GetEpoch())
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
 
 	var body data.BodyHandler

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -84,6 +85,7 @@ func NewTestSyncNode(
 		NodesSetup:              nodesSetup,
 		MinTransactionVersion:   MinTransactionVersion,
 		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -186,6 +188,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		TpsBenchmark:           &testscommon.TpsBenchmarkMock{},
 		Version:                string(SoftwareVersion),
 		HistoryRepository:      tpn.HistoryRepository,
+		EpochNotifier:          tpn.EpochNotifier,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"math"
 	"math/big"
 	"testing"
 
@@ -23,6 +24,8 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
+
+const maxEpoch = math.MaxUint32
 
 func generateRandomByteSlice(size int) []byte {
 	buff := make([]byte, size)
@@ -64,21 +67,21 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 
 func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 	args := txproc.ArgsNewTxProcessor{
-		Accounts:          &mock.AccountsStub{},
-		Hasher:            mock.HasherMock{},
-		PubkeyConv:        createMockPubkeyConverter(),
-		Marshalizer:       &mock.MarshalizerMock{},
-		SignMarshalizer:   &mock.MarshalizerMock{},
-		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
-		ScProcessor:       &mock.SCProcessorMock{},
-		TxFeeHandler:      &mock.FeeAccumulatorStub{},
-		TxTypeHandler:     &mock.TxTypeHandlerMock{},
-		EconomicsFee:      feeHandlerMock(),
-		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:        &mock.ArgumentParserMock{},
-		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		DisabledRelayedTx: false,
+		Accounts:         &mock.AccountsStub{},
+		Hasher:           mock.HasherMock{},
+		PubkeyConv:       createMockPubkeyConverter(),
+		Marshalizer:      &mock.MarshalizerMock{},
+		SignMarshalizer:  &mock.MarshalizerMock{},
+		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		ScProcessor:      &mock.SCProcessorMock{},
+		TxFeeHandler:     &mock.FeeAccumulatorStub{},
+		TxTypeHandler:    &mock.TxTypeHandlerMock{},
+		EconomicsFee:     feeHandlerMock(),
+		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:       &mock.ArgumentParserMock{},
+		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 	return args
 }
@@ -164,6 +167,17 @@ func TestNewTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilUnsignedTxHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.EpochNotifier = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
 	assert.Nil(t, txProc)
 }
 
@@ -1233,7 +1247,7 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
-	args.DisabledRelayedTx = true
+	args.RelayedTxEnableEpoch = maxEpoch
 	called := false
 	args.BadTxForwarder = &mock.IntermediateTransactionHandlerMock{
 		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {

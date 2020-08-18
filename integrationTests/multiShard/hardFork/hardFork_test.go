@@ -340,6 +340,11 @@ func hardForkImport(
 					return true
 				},
 			},
+			GeneralConfig: &config.GeneralSettingsConfig{
+				BuiltInFunctionsEnableEpoch:    0,
+				SCDeployEnableEpoch:            0,
+				RelayedTransactionsEnableEpoch: 0,
+			},
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

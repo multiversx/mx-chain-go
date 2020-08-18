@@ -425,8 +425,11 @@ var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 // ErrNilEpochHandler signals that a nil epoch handler was provided
 var ErrNilEpochHandler = errors.New("nil epoch handler")
 
-// ErrNilEpochStartNotifier signals that the ErrNilEpochStartNotifier is nil
+// ErrNilEpochStartNotifier signals that the provided epochStartNotifier is nil
 var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
+
+// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
+var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
 // ErrInvalidCacheRefreshIntervalInSec signals that the cacheRefreshIntervalInSec is invalid - zero or less
 var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshIntervalInSec")

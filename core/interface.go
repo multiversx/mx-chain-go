@@ -58,3 +58,9 @@ type KeyValueHolder interface {
 	Key() []byte
 	Value() []byte
 }
+
+// EpochSubscriberHandler defines the behavior of a component that can be notified if a new epoch was confirmed
+type EpochSubscriberHandler interface {
+	EpochConfirmed(epoch uint32)
+	IsInterfaceNil() bool
+}
