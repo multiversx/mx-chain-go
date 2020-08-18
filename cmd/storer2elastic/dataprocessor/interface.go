@@ -37,3 +37,9 @@ type DataReplayerHandler interface {
 	Range(handler func(persistedData storer2ElasticData.RoundPersistedData) bool) error
 	IsInterfaceNil() bool
 }
+
+// TPSBenchmarkUpdaterHandler defines the actions that a TPS benchmark updater has to do
+type TPSBenchmarkUpdaterHandler interface {
+	IndexTPSForMetaBlock(metaBlock *block.MetaBlock)
+	IsInterfaceNil() bool
+}

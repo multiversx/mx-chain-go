@@ -17,6 +17,9 @@ var ErrNilMarshalizer = errors.New("nil marshalizer")
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
 
+// ErrNilTPSBenchmarkUpdater signals that a nil tps benchmark updater has been provided
+var ErrNilTPSBenchmarkUpdater = errors.New("nil tps benchmark updater")
+
 // ErrNilUint64ByteSliceConverter signals that a nil uint64 byte slice converter has been provided
 var ErrNilUint64ByteSliceConverter = errors.New("nil uint64 byte slice converter")
 

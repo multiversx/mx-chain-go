@@ -25,24 +25,26 @@ var log = logger.GetOrCreate("dataprocessor")
 
 // ArgsDataProcessor holds the arguments needed for creating a new dataProcessor
 type ArgsDataProcessor struct {
-	ElasticIndexer    indexer.Indexer
-	DataReplayer      DataReplayerHandler
-	GenesisNodesSetup sharding.GenesisNodesSetupHandler
-	ShardCoordinator  sharding.Coordinator
-	Marshalizer       marshal.Marshalizer
-	Hasher            hashing.Hasher
-	RatingsProcessor  *ratingsProcessor
+	ElasticIndexer      indexer.Indexer
+	DataReplayer        DataReplayerHandler
+	GenesisNodesSetup   sharding.GenesisNodesSetupHandler
+	ShardCoordinator    sharding.Coordinator
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	TPSBenchmarkUpdater TPSBenchmarkUpdaterHandler
+	RatingsProcessor    *ratingsProcessor
 }
 
 type dataProcessor struct {
-	elasticIndexer    indexer.Indexer
-	dataReplayer      DataReplayerHandler
-	genesisNodesSetup sharding.GenesisNodesSetupHandler
-	shardCoordinator  sharding.Coordinator
-	marshalizer       marshal.Marshalizer
-	hasher            hashing.Hasher
-	nodesCoordinators map[uint32]NodesCoordinator
-	ratingsProcessor  *ratingsProcessor
+	elasticIndexer      indexer.Indexer
+	dataReplayer        DataReplayerHandler
+	genesisNodesSetup   sharding.GenesisNodesSetupHandler
+	shardCoordinator    sharding.Coordinator
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	nodesCoordinators   map[uint32]NodesCoordinator
+	tpsBenchmarkUpdater TPSBenchmarkUpdaterHandler
+	ratingsProcessor    *ratingsProcessor
 }
 
 // NewDataProcessor returns a new instance of dataProcessor
@@ -65,15 +67,19 @@ func NewDataProcessor(args ArgsDataProcessor) (*dataProcessor, error) {
 	if check.IfNil(args.Hasher) {
 		return nil, ErrNilHasher
 	}
+	if check.IfNil(args.TPSBenchmarkUpdater) {
+		return nil, ErrNilTPSBenchmarkUpdater
+	}
 
 	dp := &dataProcessor{
-		elasticIndexer:    args.ElasticIndexer,
-		dataReplayer:      args.DataReplayer,
-		genesisNodesSetup: args.GenesisNodesSetup,
-		shardCoordinator:  args.ShardCoordinator,
-		marshalizer:       args.Marshalizer,
-		hasher:            args.Hasher,
-		ratingsProcessor:  args.RatingsProcessor,
+		elasticIndexer:      args.ElasticIndexer,
+		dataReplayer:        args.DataReplayer,
+		genesisNodesSetup:   args.GenesisNodesSetup,
+		shardCoordinator:    args.ShardCoordinator,
+		marshalizer:         args.Marshalizer,
+		hasher:              args.Hasher,
+		ratingsProcessor:    args.RatingsProcessor,
+		tpsBenchmarkUpdater: args.TPSBenchmarkUpdater,
 	}
 
 	nodesCoordinators, err := dp.createNodesCoordinators(args.GenesisNodesSetup)
@@ -106,6 +112,8 @@ func (dp *dataProcessor) processData(persistedData storer2ElasticData.RoundPersi
 	if err != nil {
 		log.Warn("error indexing header", "error", err)
 	}
+	metaBlock, _ := metaPersistedData.Header.(*block.MetaBlock)
+	dp.tpsBenchmarkUpdater.IndexTPSForMetaBlock(metaBlock)
 
 	for _, shardData := range persistedData.ShardHeaders {
 		err = dp.indexData(shardData)

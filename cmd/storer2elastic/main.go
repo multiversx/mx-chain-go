@@ -269,15 +269,21 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
+	tpsBenchmarkUpdater, err := dataprocessor.NewTPSBenchmarkUpdater(genesisNodesConfig, elasticIndexer)
+	if err != nil {
+		return err
+	}
+
 	dataProcessor, err := dataprocessor.NewDataProcessor(
 		dataprocessor.ArgsDataProcessor{
-			ElasticIndexer:    elasticIndexer,
-			DataReplayer:      dataReplayer,
-			GenesisNodesSetup: genesisNodesConfig,
-			Marshalizer:       marshalizer,
-			Hasher:            hasher,
-			ShardCoordinator:  shardCoordinator,
-			RatingsProcessor:  ratingsProcessor,
+			ElasticIndexer:      elasticIndexer,
+			DataReplayer:        dataReplayer,
+			GenesisNodesSetup:   genesisNodesConfig,
+			Marshalizer:         marshalizer,
+			Hasher:              hasher,
+			ShardCoordinator:    shardCoordinator,
+			TPSBenchmarkUpdater: tpsBenchmarkUpdater,
+			RatingsProcessor:    ratingsProcessor,
 		})
 	if err != nil {
 		return err
