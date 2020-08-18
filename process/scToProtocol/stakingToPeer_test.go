@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/vm/factory"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -174,7 +174,7 @@ func TestStakingToPeer_UpdateProtocolWrongTransactionTypeShouldErr(t *testing.T)
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
 		return &transaction.Transaction{
-			RcvAddr: factory.StakingSCAddress,
+			RcvAddr: vm.StakingSCAddress,
 		}, nil
 	}
 
@@ -194,7 +194,7 @@ func TestStakingToPeer_UpdateProtocolCannotGetStorageUpdatesShouldErr(t *testing
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
 		return &smartContractResult.SmartContractResult{
-			RcvAddr: factory.StakingSCAddress,
+			RcvAddr: vm.StakingSCAddress,
 		}, nil
 	}
 
@@ -219,7 +219,7 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
 		return &smartContractResult.SmartContractResult{
-			RcvAddr: factory.StakingSCAddress,
+			RcvAddr: vm.StakingSCAddress,
 		}, nil
 	}
 
@@ -265,7 +265,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
 		return &smartContractResult.SmartContractResult{
-			RcvAddr: factory.StakingSCAddress,
+			RcvAddr: vm.StakingSCAddress,
 		}, nil
 	}
 
@@ -321,7 +321,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
 		return &smartContractResult.SmartContractResult{
-			RcvAddr: factory.StakingSCAddress,
+			RcvAddr: vm.StakingSCAddress,
 		}, nil
 	}
 
@@ -382,7 +382,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
 		return &smartContractResult.SmartContractResult{
-			RcvAddr: factory.StakingSCAddress,
+			RcvAddr: vm.StakingSCAddress,
 		}, nil
 	}
 
@@ -442,7 +442,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
 		return &smartContractResult.SmartContractResult{
-			RcvAddr: factory.StakingSCAddress,
+			RcvAddr: vm.StakingSCAddress,
 		}, nil
 	}
 
@@ -503,7 +503,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	currTx := &mock.TxForCurrentBlockStub{}
 	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
 		return &smartContractResult.SmartContractResult{
-			RcvAddr: factory.StakingSCAddress,
+			RcvAddr: vm.StakingSCAddress,
 		}, nil
 	}
 

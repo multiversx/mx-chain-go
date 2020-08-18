@@ -3,6 +3,7 @@ package smartContract
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"math/big"
 	"testing"
 
@@ -20,6 +21,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const maxEpoch = math.MaxUint32
 
 func generateEmptyByteSlice(size int) []byte {
 	buff := make([]byte, size)
@@ -71,6 +74,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 }
 
@@ -184,7 +188,7 @@ func TestNewSmartContractProcessor_ErrNilUnsignedTxHandlerMock(t *testing.T) {
 	require.Equal(t, process.ErrNilUnsignedTxHandler, err)
 }
 
-func TestNewSmartContractProcessor_ErrErrNilGasHandlerMock(t *testing.T) {
+func TestNewSmartContractProcessor_ErrNilGasHandlerMock(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
@@ -193,6 +197,17 @@ func TestNewSmartContractProcessor_ErrErrNilGasHandlerMock(t *testing.T) {
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilGasHandler, err)
+}
+
+func TestNewSmartContractProcessor_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.EpochNotifier = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilEpochNotifier, err)
 }
 
 func TestNewSmartContractProcessor(t *testing.T) {
@@ -296,7 +311,7 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.DisableDeploy = true
+	arguments.DeployEnableEpoch = maxEpoch
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -329,7 +344,7 @@ func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.DisableBuiltIn = true
+	arguments.BuiltinEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	_ = arguments.BuiltInFunctions.Add(funcName, &mock.BuiltInFunctionStub{})
 	sc, err := NewSmartContractProcessor(arguments)
@@ -364,7 +379,7 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.DisableBuiltIn = true
+	arguments.BuiltinEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	localError := errors.New("failed built in call")
 	_ = arguments.BuiltInFunctions.Add(funcName, &mock.BuiltInFunctionStub{

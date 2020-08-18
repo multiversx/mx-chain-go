@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"math/big"
-	"sort"
 	"strings"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -20,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -37,17 +37,19 @@ const upgradeFunctionName = "upgradeContract"
 var zero = big.NewInt(0)
 
 type scProcessor struct {
-	accounts         state.AccountsAdapter
-	blockChainHook   process.BlockChainHookHandler
-	pubkeyConv       core.PubkeyConverter
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	shardCoordinator sharding.Coordinator
-	vmContainer      process.VirtualMachinesContainer
-	argsParser       process.ArgumentsParser
-	builtInFunctions process.BuiltInFunctionContainer
-	disableDeploy    bool
-	disableBuiltIn   bool
+	accounts           state.AccountsAdapter
+	blockChainHook     process.BlockChainHookHandler
+	pubkeyConv         core.PubkeyConverter
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	shardCoordinator   sharding.Coordinator
+	vmContainer        process.VirtualMachinesContainer
+	argsParser         process.ArgumentsParser
+	builtInFunctions   process.BuiltInFunctionContainer
+	deployEnableEpoch  uint32
+	builtinEnableEpoch uint32
+	flagDeploy         atomic.Flag
+	flagBuiltin        atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -61,24 +63,25 @@ type scProcessor struct {
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
 type ArgsNewSmartContractProcessor struct {
-	VmContainer      process.VirtualMachinesContainer
-	ArgsParser       process.ArgumentsParser
-	Hasher           hashing.Hasher
-	Marshalizer      marshal.Marshalizer
-	AccountsDB       state.AccountsAdapter
-	BlockChainHook   process.BlockChainHookHandler
-	PubkeyConv       core.PubkeyConverter
-	Coordinator      sharding.Coordinator
-	ScrForwarder     process.IntermediateTransactionHandler
-	TxFeeHandler     process.TransactionFeeHandler
-	EconomicsFee     process.FeeHandler
-	TxTypeHandler    process.TxTypeHandler
-	GasHandler       process.GasHandler
-	BuiltInFunctions process.BuiltInFunctionContainer
-	TxLogsProcessor  process.TransactionLogProcessor
-	BadTxForwarder   process.IntermediateTransactionHandler
-	DisableDeploy    bool
-	DisableBuiltIn   bool
+	VmContainer        process.VirtualMachinesContainer
+	ArgsParser         process.ArgumentsParser
+	Hasher             hashing.Hasher
+	Marshalizer        marshal.Marshalizer
+	AccountsDB         state.AccountsAdapter
+	BlockChainHook     process.BlockChainHookHandler
+	PubkeyConv         core.PubkeyConverter
+	Coordinator        sharding.Coordinator
+	ScrForwarder       process.IntermediateTransactionHandler
+	TxFeeHandler       process.TransactionFeeHandler
+	EconomicsFee       process.FeeHandler
+	TxTypeHandler      process.TxTypeHandler
+	GasHandler         process.GasHandler
+	BuiltInFunctions   process.BuiltInFunctionContainer
+	TxLogsProcessor    process.TransactionLogProcessor
+	BadTxForwarder     process.IntermediateTransactionHandler
+	DeployEnableEpoch  uint32
+	BuiltinEnableEpoch uint32
+	EpochNotifier      process.EpochNotifier
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -131,27 +134,32 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	sc := &scProcessor{
-		vmContainer:      args.VmContainer,
-		argsParser:       args.ArgsParser,
-		hasher:           args.Hasher,
-		marshalizer:      args.Marshalizer,
-		accounts:         args.AccountsDB,
-		blockChainHook:   args.BlockChainHook,
-		pubkeyConv:       args.PubkeyConv,
-		shardCoordinator: args.Coordinator,
-		scrForwarder:     args.ScrForwarder,
-		txFeeHandler:     args.TxFeeHandler,
-		economicsFee:     args.EconomicsFee,
-		txTypeHandler:    args.TxTypeHandler,
-		gasHandler:       args.GasHandler,
-		builtInFunctions: args.BuiltInFunctions,
-		txLogsProcessor:  args.TxLogsProcessor,
-		disableDeploy:    args.DisableDeploy,
-		disableBuiltIn:   args.DisableBuiltIn,
-		badTxForwarder:   args.BadTxForwarder,
+		vmContainer:        args.VmContainer,
+		argsParser:         args.ArgsParser,
+		hasher:             args.Hasher,
+		marshalizer:        args.Marshalizer,
+		accounts:           args.AccountsDB,
+		blockChainHook:     args.BlockChainHook,
+		pubkeyConv:         args.PubkeyConv,
+		shardCoordinator:   args.Coordinator,
+		scrForwarder:       args.ScrForwarder,
+		txFeeHandler:       args.TxFeeHandler,
+		economicsFee:       args.EconomicsFee,
+		txTypeHandler:      args.TxTypeHandler,
+		gasHandler:         args.GasHandler,
+		builtInFunctions:   args.BuiltInFunctions,
+		txLogsProcessor:    args.TxLogsProcessor,
+		badTxForwarder:     args.BadTxForwarder,
+		deployEnableEpoch:  args.DeployEnableEpoch,
+		builtinEnableEpoch: args.BuiltinEnableEpoch,
 	}
+
+	args.EpochNotifier.RegisterNotifyHandler(sc)
 
 	return sc, nil
 }
@@ -256,15 +264,15 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 		return 0, process.ErrNilSCDestAccount
 	}
 
-	var vm vmcommon.VMExecutionHandler
-	vm, err = findVMByTransaction(sc.vmContainer, tx)
+	var vmExec vmcommon.VMExecutionHandler
+	vmExec, err = findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
 		returnMessage = "cannot get vm from address"
 		log.Debug("get vm from address error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
 	}
 
-	vmOutput, err = vm.RunSmartContractCall(vmInput)
+	vmOutput, err = vmExec.RunSmartContractCall(vmInput)
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot)
@@ -392,7 +400,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return false, nil
 	}
 
-	if !check.IfNil(acntSnd) && sc.disableBuiltIn {
+	if !check.IfNil(acntSnd) && !sc.flagBuiltin.IsSet() {
 		return true, process.ErrBuiltInFunctionsAreDisabled
 	}
 
@@ -431,9 +439,9 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 
-	outputAccounts := sortVMOutputInsideData(vmOutput)
+	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
-		storageUpdates := getSortedStorageUpdates(outAcc)
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
 		scrResults = append(scrResults, scTx)
 	}
@@ -650,7 +658,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
 
-	if sc.disableDeploy {
+	if !sc.flagDeploy.IsSet() {
 		log.Trace("deploy is disabled")
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, process.ErrSmartContractDeploymentIsDisabled.Error(), []byte(""), snapshot)
 	}
@@ -661,13 +669,13 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
-	vm, err := sc.vmContainer.Get(vmType)
+	vmExec, err := sc.vmContainer.Get(vmType)
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
-	vmOutput, err = vm.RunSmartContractCreate(vmInput)
+	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
@@ -807,14 +815,14 @@ func (sc *scProcessor) processVMOutput(
 			"return message", vmOutput.ReturnMessage,
 		)
 
-		if callType == vmcommon.AsynchronousCall {
+		if callType == vmcommon.AsynchronousCall || callType == vmcommon.AsynchronousCallBack {
 			return []data.TransactionHandler{scrForSender}, consumedFee, nil
 		}
 
 		return nil, nil, fmt.Errorf(vmOutput.ReturnCode.String())
 	}
 
-	outPutAccounts := sortVMOutputInsideData(vmOutput)
+	outPutAccounts := process.SortVMOutputInsideData(vmOutput)
 
 	scrTxs, err := sc.processSCOutputAccounts(outPutAccounts, tx, txHash)
 	if err != nil {
@@ -864,43 +872,6 @@ func isTooMuchGasProvided(gasProvided uint64, gasRemained uint64) bool {
 
 	gasUsed := gasProvided - gasRemained
 	return gasProvided > gasUsed*process.MaxGasFeeHigherFactorAccepted
-}
-
-func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
-	sort.Slice(vmOutput.DeletedAccounts, func(i, j int) bool {
-		return bytes.Compare(vmOutput.DeletedAccounts[i], vmOutput.DeletedAccounts[j]) < 0
-	})
-	sort.Slice(vmOutput.TouchedAccounts, func(i, j int) bool {
-		return bytes.Compare(vmOutput.TouchedAccounts[i], vmOutput.TouchedAccounts[j]) < 0
-	})
-
-	outPutAccounts := make([]*vmcommon.OutputAccount, len(vmOutput.OutputAccounts))
-	i := 0
-	for _, outAcc := range vmOutput.OutputAccounts {
-		outPutAccounts[i] = outAcc
-		i++
-	}
-
-	sort.Slice(outPutAccounts, func(i, j int) bool {
-		return bytes.Compare(outPutAccounts[i].Address, outPutAccounts[j].Address) < 0
-	})
-
-	return outPutAccounts
-}
-
-func getSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.StorageUpdate {
-	storageUpdates := make([]*vmcommon.StorageUpdate, len(account.StorageUpdates))
-	i := 0
-	for _, update := range account.StorageUpdates {
-		storageUpdates[i] = update
-		i++
-	}
-
-	sort.Slice(storageUpdates, func(i, j int) bool {
-		return bytes.Compare(storageUpdates[i].Offset, storageUpdates[j].Offset) < 0
-	})
-
-	return storageUpdates
 }
 
 func (sc *scProcessor) createSCRsWhenError(
@@ -984,7 +955,7 @@ func (sc *scProcessor) createSmartContractResult(
 	result.SndAddr = tx.GetRcvAddr()
 	result.Code = outAcc.Code
 	result.Data = outAcc.Data
-	if bytes.Equal(result.GetRcvAddr(), factory.StakingSCAddress) {
+	if bytes.Equal(result.GetRcvAddr(), vm.StakingSCAddress) {
 		//TODO: write directly from staking smart contract to the validator trie - it gets complicated in reverts
 		// storage update for staking contract is used in stakingToPeer
 		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
@@ -1089,7 +1060,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			return nil, err
 		}
 
-		storageUpdates := getSortedStorageUpdates(outAcc)
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
 		scResults = append(scResults, scTx)
 
@@ -1361,6 +1332,15 @@ func (sc *scProcessor) checkUpgradePermission(contract state.UserAccountHandler,
 // IsPayable returns if address is payable, smart contract ca set to false
 func (sc *scProcessor) IsPayable(address []byte) (bool, error) {
 	return sc.blockChainHook.IsPayable(address)
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (sc *scProcessor) EpochConfirmed(epoch uint32) {
+	sc.flagDeploy.Toggle(epoch >= sc.deployEnableEpoch)
+	log.Debug("scProcessor: deployment of SC", "enabled", sc.flagDeploy.IsSet())
+
+	sc.flagBuiltin.Toggle(epoch >= sc.builtinEnableEpoch)
+	log.Debug("scProcessor: built in functions", "enabled", sc.flagDeploy.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

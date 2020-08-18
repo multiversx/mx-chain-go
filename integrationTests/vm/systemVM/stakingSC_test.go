@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/vm/factory"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -71,7 +71,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
-		integrationTests.CreateAndSendTransaction(node, nodePrice, factory.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, nodePrice, vm.AuctionSCAddress, txData, 1)
 	}
 
 	time.Sleep(time.Second)
@@ -88,7 +88,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unStake" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
 	}
 
 	time.Sleep(time.Second)
@@ -104,7 +104,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unBond" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
 	}
 
 	time.Sleep(time.Second)
@@ -184,7 +184,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
-		integrationTests.CreateAndSendTransaction(node, nodePrice, factory.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, nodePrice, vm.AuctionSCAddress, txData, 1)
 	}
 
 	time.Sleep(time.Second)
@@ -204,7 +204,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unStake" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
 	}
 	consumed := big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
@@ -223,7 +223,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unBond" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
 	}
 	consumed = big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
@@ -306,7 +306,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	var txData string
 	for _, node := range nodes {
 		txData = "changeRewardAddress" + "@" + hex.EncodeToString(rewardAccount.Address)
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
 	}
 
 	nbBlocksToProduce := roundsPerEpoch * 3

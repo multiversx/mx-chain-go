@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
@@ -587,6 +588,11 @@ func CreateFullGenesisBlocks(
 				return false
 			},
 		},
+		GeneralConfig: &config.GeneralSettingsConfig{
+			BuiltInFunctionsEnableEpoch:    0,
+			SCDeployEnableEpoch:            0,
+			RelayedTransactionsEnableEpoch: 0,
+		},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -665,6 +671,11 @@ func CreateGenesisMetaBlock(
 		BlockSignKeyGen:    &mock.KeyGenMock{},
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:   big.NewInt(1000),
+		GeneralConfig: &config.GeneralSettingsConfig{
+			RelayedTransactionsEnableEpoch: 0,
+			SCDeployEnableEpoch:            0,
+			BuiltInFunctionsEnableEpoch:    0,
+		},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -856,11 +867,11 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 				return fee
 			},
 		},
-		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:        smartContract.NewArgumentParser(),
-		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		DisabledRelayedTx: false,
+		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:       smartContract.NewArgumentParser(),
+		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 

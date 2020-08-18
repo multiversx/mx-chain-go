@@ -5,7 +5,9 @@ import (
 	"errors"
 	"math/big"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
@@ -19,38 +21,41 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var log = logger.GetOrCreate("process/transaction")
 var _ process.TransactionProcessor = (*txProcessor)(nil)
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
-	txFeeHandler      process.TransactionFeeHandler
-	txTypeHandler     process.TxTypeHandler
-	receiptForwarder  process.IntermediateTransactionHandler
-	badTxForwarder    process.IntermediateTransactionHandler
-	argsParser        process.ArgumentsParser
-	scrForwarder      process.IntermediateTransactionHandler
-	signMarshalizer   marshal.Marshalizer
-	disabledRelayedTx bool
+	txFeeHandler         process.TransactionFeeHandler
+	txTypeHandler        process.TxTypeHandler
+	receiptForwarder     process.IntermediateTransactionHandler
+	badTxForwarder       process.IntermediateTransactionHandler
+	argsParser           process.ArgumentsParser
+	scrForwarder         process.IntermediateTransactionHandler
+	signMarshalizer      marshal.Marshalizer
+	flagRelayedTx        atomic.Flag
+	relayedTxEnableEpoch uint32
 }
 
 // ArgsNewTxProcessor defines defines the arguments needed for new tx processor
 type ArgsNewTxProcessor struct {
-	Accounts          state.AccountsAdapter
-	Hasher            hashing.Hasher
-	PubkeyConv        core.PubkeyConverter
-	Marshalizer       marshal.Marshalizer
-	SignMarshalizer   marshal.Marshalizer
-	ShardCoordinator  sharding.Coordinator
-	ScProcessor       process.SmartContractProcessor
-	TxFeeHandler      process.TransactionFeeHandler
-	TxTypeHandler     process.TxTypeHandler
-	EconomicsFee      process.FeeHandler
-	ReceiptForwarder  process.IntermediateTransactionHandler
-	BadTxForwarder    process.IntermediateTransactionHandler
-	ArgsParser        process.ArgumentsParser
-	ScrForwarder      process.IntermediateTransactionHandler
-	DisabledRelayedTx bool
+	Accounts             state.AccountsAdapter
+	Hasher               hashing.Hasher
+	PubkeyConv           core.PubkeyConverter
+	Marshalizer          marshal.Marshalizer
+	SignMarshalizer      marshal.Marshalizer
+	ShardCoordinator     sharding.Coordinator
+	ScProcessor          process.SmartContractProcessor
+	TxFeeHandler         process.TransactionFeeHandler
+	TxTypeHandler        process.TxTypeHandler
+	EconomicsFee         process.FeeHandler
+	ReceiptForwarder     process.IntermediateTransactionHandler
+	BadTxForwarder       process.IntermediateTransactionHandler
+	ArgsParser           process.ArgumentsParser
+	ScrForwarder         process.IntermediateTransactionHandler
+	RelayedTxEnableEpoch uint32
+	EpochNotifier        process.EpochNotifier
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -97,6 +102,9 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	if check.IfNil(args.SignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:         args.Accounts,
@@ -108,17 +116,21 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		scProcessor:      args.ScProcessor,
 	}
 
-	return &txProcessor{
-		baseTxProcessor:   baseTxProcess,
-		txFeeHandler:      args.TxFeeHandler,
-		txTypeHandler:     args.TxTypeHandler,
-		receiptForwarder:  args.ReceiptForwarder,
-		badTxForwarder:    args.BadTxForwarder,
-		argsParser:        args.ArgsParser,
-		scrForwarder:      args.ScrForwarder,
-		signMarshalizer:   args.SignMarshalizer,
-		disabledRelayedTx: args.DisabledRelayedTx,
-	}, nil
+	txProc := &txProcessor{
+		baseTxProcessor:      baseTxProcess,
+		txFeeHandler:         args.TxFeeHandler,
+		txTypeHandler:        args.TxTypeHandler,
+		receiptForwarder:     args.ReceiptForwarder,
+		badTxForwarder:       args.BadTxForwarder,
+		argsParser:           args.ArgsParser,
+		scrForwarder:         args.ScrForwarder,
+		signMarshalizer:      args.SignMarshalizer,
+		relayedTxEnableEpoch: args.RelayedTxEnableEpoch,
+	}
+
+	args.EpochNotifier.RegisterNotifyHandler(txProc)
+
+	return txProc, nil
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
@@ -461,7 +473,7 @@ func (txProc *txProcessor) processRelayedTx(
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
 	}
 
-	if txProc.disabledRelayedTx {
+	if !txProc.flagRelayedTx.IsSet() {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxDisabled)
 	}
 
@@ -768,6 +780,12 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 	}
 
 	return nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (txProc *txProcessor) EpochConfirmed(epoch uint32) {
+	txProc.flagRelayedTx.Toggle(epoch >= txProc.relayedTxEnableEpoch)
+	log.Debug("txProcessor: relayed transactions", "enabled", txProc.flagRelayedTx.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
