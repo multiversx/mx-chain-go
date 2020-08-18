@@ -391,3 +391,6 @@ var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
 
 // ErrWrongTypeAssertion signals a wrong type assertion
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrBootstrapDataProviderCreationFailed signals a new bootstrapDataProvider creation has failed
+var ErrBootstrapDataProviderCreationFailed = errors.New("bootstrapDataProvider creation has failed")

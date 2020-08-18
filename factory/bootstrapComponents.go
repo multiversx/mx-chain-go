@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -89,7 +91,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	bootstrapDataProvider, err := storageFactory.NewBootstrapDataProvider(bcf.coreComponents.InternalMarshalizer())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", errors.ErrBootstrapDataProviderCreationFailed, err)
 	}
 
 	latestStorageDataProvider, err := factory.CreateLatestStorageDataProvider(
