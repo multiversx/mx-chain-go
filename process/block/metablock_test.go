@@ -79,7 +79,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			Indexer:            &mock.IndexerMock{},
 			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
 			HistoryRepository:  &mock.HistoryRepositoryStub{},
-			Version:            "softwareVersion",
+			EpochNotifier:      &mock.EpochNotifierStub{},
 			OutportDriver:      outport.NewDisabledOutportDriver(),
 		},
 		SCDataGetter:                 &mock.ScQueryStub{},
@@ -90,6 +90,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 		EpochRewardsCreator:          &mock.EpochRewardsCreatorStub{},
 		EpochValidatorInfoCreator:    &mock.EpochValidatorInfoCreatorStub{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+		EpochSystemSCProcessor:       &mock.EpochStartSystemSCStub{},
 	}
 	return arguments
 }

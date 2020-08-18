@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -573,6 +574,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
+
+	epochNotifier := forking.NewGenericEpochNotifier()
 
 	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.AddressPubkeyConverter)
 	if err != nil {
@@ -1240,6 +1243,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer,
 		tpsBenchmark,
 		historyRepository,
+		epochNotifier,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {

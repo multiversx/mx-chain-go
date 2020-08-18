@@ -78,6 +78,7 @@ type baseProcessor struct {
 	indexer       indexer.Indexer
 	tpsBenchmark  statistics.TPSBenchmark
 	historyRepo   fullHistory.HistoryRepository
+	epochNotifier process.EpochNotifier
 	outportDriver OutportDriver
 }
 
@@ -424,6 +425,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if len(arguments.Version) == 0 {
 		return process.ErrEmptySoftwareVersion
+	}
+	if check.IfNil(arguments.EpochNotifier) {
+		return process.ErrNilEpochNotifier
 	}
 
 	return nil

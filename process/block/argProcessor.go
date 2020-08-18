@@ -44,7 +44,7 @@ type ArgBaseProcessor struct {
 	Indexer                indexer.Indexer
 	TpsBenchmark           statistics.TPSBenchmark
 	HistoryRepository      fullHistory.HistoryRepository
-	Version                string
+	EpochNotifier          process.EpochNotifier
 	OutportDriver          outport.Driver
 }
 
@@ -65,5 +65,6 @@ type ArgMetaProcessor struct {
 	EpochEconomics               process.EndOfEpochEconomics
 	EpochRewardsCreator          process.EpochStartRewardsCreator
 	EpochValidatorInfoCreator    process.EpochStartValidatorInfoCreator
+	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 }

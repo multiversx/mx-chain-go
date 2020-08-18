@@ -107,8 +107,8 @@ func NewShardProcessorEmptyWith3shards(
 			Indexer:            &mock.IndexerMock{},
 			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
 			HistoryRepository:  &mock.HistoryRepositoryStub{},
+			EpochNotifier:      &mock.EpochNotifierStub{},
 			OutportDriver:      outport.NewDisabledOutportDriver(),
-			Version:            "softwareVersion",
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
