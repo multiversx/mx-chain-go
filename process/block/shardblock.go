@@ -1660,6 +1660,12 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 
 	if sp.blockTracker.IsShardStuck(core.MetachainShardId) {
 		log.Warn("shardProcessor.createMiniBlocks", "error", process.ErrShardIsStuck, "shard", core.MetachainShardId)
+
+		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
+		if len(interMBs) > 0 {
+			miniBlocks = append(miniBlocks, interMBs...)
+		}
+
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 

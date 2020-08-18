@@ -874,3 +874,6 @@ var ErrRelayedGasPriceMissmatch = errors.New("relayed gas price missmatch")
 
 // ErrNilUserAccount signals that nil user account was provided
 var ErrNilUserAccount = errors.New("nil user account")
+
+// ErrTooMuchGasProvided signals that too much gas has been provided
+var ErrTooMuchGasProvided = errors.New("too much gas has been provided")

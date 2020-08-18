@@ -408,6 +408,27 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		vmOutput = &vmcommon.VMOutput{ReturnCode: vmcommon.UserError, ReturnMessage: err.Error()}
 	}
 
+	if isTooMuchGasProvided(vmInput.GasProvided, vmOutput.GasRemaining) {
+		log.Warn("scProcessor.resolveBuiltInFunctions: too much gas has been provided",
+			"hash", txHash,
+			"nonce", tx.GetNonce(),
+			"value", tx.GetValue(),
+			"sender", tx.GetSndAddr(),
+			"receiver", tx.GetRcvAddr(),
+			"gas limit", tx.GetGasLimit(),
+			"gas price", tx.GetGasPrice(),
+			"gas provided", vmInput.GasProvided,
+			"gas remained", vmOutput.GasRemaining,
+			"gas used", vmInput.GasProvided-vmOutput.GasRemaining,
+			"return code", vmOutput.ReturnCode.String(),
+			"return message", vmOutput.ReturnMessage,
+		)
+
+		vmOutput.ReturnMessage += fmt.Sprintf("too much gas has been provided: gas used = %d, gas remained = %d",
+			vmInput.GasProvided-vmOutput.GasRemaining, vmOutput.GasRemaining)
+		vmOutput.GasRemaining = 0
+	}
+
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 
 	outputAccounts := sortVMOutputInsideData(vmOutput)
@@ -417,13 +438,8 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		scrResults = append(scrResults, scTx)
 	}
 
-	refund := big.NewInt(0)
-	if vmOutput.GasRefund != nil {
-		refund = vmOutput.GasRefund
-	}
-
 	scrForSender, consumedFee := sc.createSCRForSender(
-		refund,
+		vmOutput.GasRefund,
 		vmOutput.GasRemaining,
 		vmOutput.ReturnCode,
 		vmOutput.ReturnData,
@@ -751,8 +767,8 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
-	if isTooMuchGasProvided(vmOutput.GasRemaining, gasProvided) {
-		log.Trace("scProcessor.processVMOutput: too much gas has been provided",
+	if isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining) {
+		log.Warn("scProcessor.processVMOutput: too much gas has been provided",
 			"hash", txHash,
 			"nonce", tx.GetNonce(),
 			"value", tx.GetValue(),

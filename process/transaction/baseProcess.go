@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -14,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/transaction")
 
 type baseTxProcessor struct {
 	accounts         state.AccountsAdapter
@@ -189,4 +192,15 @@ func (txProc *baseTxProcessor) processIfTxErrorCrossShard(tx *transaction.Transa
 	}
 
 	return nil
+}
+
+func (txProc *baseTxProcessor) isCrossTxDstMe(adrSrc, adrDst []byte) bool {
+	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
+	shardForDst := txProc.shardCoordinator.ComputeId(adrDst)
+	shardForCurrentNode := txProc.shardCoordinator.SelfId()
+
+	srcInShard := shardForSrc == shardForCurrentNode
+	dstInShard := shardForDst == shardForCurrentNode
+
+	return !srcInShard && dstInShard
 }

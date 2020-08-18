@@ -351,7 +351,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	integrationTests.CreateAndSendTransactionWithGasLimit(
 		nodes[0],
 		big.NewInt(0),
-		integrationTests.MaxGasLimitPerBlock-1,
+		80000,
 		make([]byte, 32),
 		[]byte(arwen.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(registerValue.Bytes())+"@"+hex.EncodeToString(relayer.Address)+"@"+"ababab"),
 		integrationTests.ChainID,
@@ -359,9 +359,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	)
 	time.Sleep(time.Second)
 
-	registerVMGas := uint64(100000)
-	savePublicInfoVMGas := uint64(100000)
-	attestVMGas := uint64(100000)
+	registerVMGas := uint64(2000)
+	savePublicInfoVMGas := uint64(2000)
+	attestVMGas := uint64(2000)
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
