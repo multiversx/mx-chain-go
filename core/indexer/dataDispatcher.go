@@ -120,8 +120,8 @@ func (d *dataDispatcher) saveBlock(item *workItem) {
 	}
 
 	if len(saveBlockParams.signersIndexes) == 0 {
-		d.workQueue.Done()
 		log.Warn("block has no signers, returning")
+		d.workQueue.Done()
 		return
 	}
 
@@ -174,14 +174,12 @@ func (d *dataDispatcher) saveBlock(item *workItem) {
 func (d *dataDispatcher) startWorker() {
 	for {
 		time.Sleep(d.workQueue.GetCycleTime())
-		log.Info("doing some work now")
 		d.doWork()
 	}
 }
 
 func (d *dataDispatcher) doWork() {
 	if d.workQueue.Length() == 0 {
-		log.Info("no work to be done")
 		return
 	}
 
@@ -192,7 +190,6 @@ func (d *dataDispatcher) doWork() {
 
 	switch wi.Type {
 	case WorkTypeSaveBlock:
-		log.Info("saving block")
 		d.saveBlock(wi)
 		break
 	default:

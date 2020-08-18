@@ -2436,5 +2436,5 @@ func getElasticTemplates() (map[string]io.Reader, map[string]io.Reader) {
 	blocksPolicy, _ := core.OpenFile("./config/elasticIndexTemplates/blocks_policy.json")
 	indexPolicies["blocks_policy"] = blocksPolicy
 
-	return indexTemplates, indexTemplates
+	return indexTemplates, indexPolicies
 }
