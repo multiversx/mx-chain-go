@@ -416,7 +416,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		vmOutput = &vmcommon.VMOutput{ReturnCode: vmcommon.UserError, ReturnMessage: err.Error()}
 	}
 
-	if isTooMuchGasProvided(vmInput.GasProvided, vmOutput.GasRemaining) {
+	if vmInput.CallType != vmcommon.AsynchronousCall && isTooMuchGasProvided(vmInput.GasProvided, vmOutput.GasRemaining) {
 		log.Warn("scProcessor.resolveBuiltInFunctions: too much gas has been provided",
 			"hash", txHash,
 			"nonce", tx.GetNonce(),
@@ -775,7 +775,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
-	if isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining) {
+	if callType != vmcommon.AsynchronousCall && isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining) {
 		log.Warn("scProcessor.processVMOutput: too much gas has been provided",
 			"hash", txHash,
 			"nonce", tx.GetNonce(),
