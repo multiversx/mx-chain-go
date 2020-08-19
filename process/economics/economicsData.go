@@ -196,8 +196,8 @@ func (ed *EconomicsData) GasPerDataByte() uint64 {
 	return ed.gasPerDataByte
 }
 
-// ComputeFee computes the provided transaction's fee
-func (ed *EconomicsData) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
+// ComputeMoveBalanceFee computes the provided transaction's fee
+func (ed *EconomicsData) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
 	gasPrice := big.NewInt(0).SetUint64(tx.GetGasPrice())
 	gasLimit := big.NewInt(0).SetUint64(ed.ComputeGasLimit(tx))
 

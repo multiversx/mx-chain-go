@@ -582,7 +582,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &mock.FeeHandlerStub{
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(10)
 		},
 	}
@@ -622,7 +622,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	testAddresses := createTestAddresses(uint64(numRun))
 	fmt.Println("done")
 
-	gasLimit := feeHandler.ComputeFeeCalled(&transaction.Transaction{}).Uint64()
+	gasLimit := feeHandler.ComputeMoveBalanceFeeCalled(&transaction.Transaction{}).Uint64()
 	initAlice := big.NewInt(100000)
 	tx := vm.CreateMoveBalanceTx(ownerNonce, initAlice, ownerAddressBytes, alice, gasLimit)
 

@@ -491,7 +491,7 @@ func (sc *scProcessor) ProcessIfError(
 	scrIfError := sc.createSCRsWhenError(txHash, tx, returnCode, returnMessage)
 
 	if check.IfNil(acntSnd) {
-		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
+		moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
 		consumedFee.Sub(consumedFee, moveBalanceCost)
 	}
 
@@ -987,7 +987,7 @@ func (sc *scProcessor) createSCRForSender(
 
 	if check.IfNil(acntSnd) {
 		// cross shard move balance fee was already consumed at sender shard
-		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
+		moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
 		consumedFee.Sub(consumedFee, moveBalanceCost)
 		return scTx, consumedFee
 	}
