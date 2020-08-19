@@ -921,7 +921,7 @@ func (sc *scProcessor) computeActualConsumedGas(
 ) uint64 {
 	consumedGas := tx.GetGasLimit() - vmOutput.GasRemaining
 	if check.IfNil(acntSnd) {
-		consumedGas = consumedGas - sc.economicsFee.ComputeGasLimit(tx)
+		consumedGas -= sc.economicsFee.ComputeGasLimit(tx)
 	}
 	for _, outAcc := range vmOutput.OutputAccounts {
 		consumedGas -= outAcc.GasLimit
