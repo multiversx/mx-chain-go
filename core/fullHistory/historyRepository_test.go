@@ -94,7 +94,7 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 	// One block, two miniblocks
 	require.Equal(t, 3, len(repo.epochByHashIndex.storer.(*genericmocks.StorerMock).Data))
 	// Two transactions
-	require.Equal(t, 2, len(repo.miniblockHashByTxHashIndex.storer.(*genericmocks.StorerMock).Data))
+	require.Equal(t, 2, len(repo.miniblockHashByTxHashIndex.(*genericmocks.StorerMock).Data))
 }
 
 func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {

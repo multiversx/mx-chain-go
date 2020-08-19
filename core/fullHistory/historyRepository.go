@@ -30,7 +30,7 @@ type HistoryRepositoryArguments struct {
 type historyProcessor struct {
 	selfShardID                uint32
 	miniblocksMetadataStorer   storage.Storer
-	miniblockHashByTxHashIndex *miniblockHashByTxHashIndex
+	miniblockHashByTxHashIndex storage.Storer
 	epochByHashIndex           *epochByHashIndex
 	marshalizer                marshal.Marshalizer
 	hasher                     hashing.Hasher
@@ -55,7 +55,6 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcess
 	}
 
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
-	miniblockHashByTxHashIndex := newMiniblockHashByTxHashIndex(arguments.MiniblockHashByTxHashStorer)
 
 	return &historyProcessor{
 		selfShardID:                arguments.SelfShardID,
@@ -63,7 +62,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcess
 		marshalizer:                arguments.Marshalizer,
 		hasher:                     arguments.Hasher,
 		epochByHashIndex:           hashToEpochIndex,
-		miniblockHashByTxHashIndex: miniblockHashByTxHashIndex,
+		miniblockHashByTxHashIndex: arguments.MiniblockHashByTxHashStorer,
 	}, nil
 }
 
@@ -123,7 +122,7 @@ func (hp *historyProcessor) recordMiniblock(blockHeaderHash []byte, blockHeader 
 	}
 
 	for _, txHash := range miniblock.TxHashes {
-		err := hp.miniblockHashByTxHashIndex.putMiniblockByTx(txHash, miniblockHash)
+		err := hp.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
 		if err != nil {
 			log.Warn("miniblockHashByTxHashIndex.putMiniblockByTx()", "txHash", txHash, "err", err)
 			continue
@@ -150,7 +149,7 @@ func (hp *historyProcessor) getMiniblockStatus(miniblock *block.MiniBlock) core.
 
 // GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage
 func (hp *historyProcessor) GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error) {
-	miniblockHash, err := hp.miniblockHashByTxHashIndex.getMiniblockByTx(hash)
+	miniblockHash, err := hp.miniblockHashByTxHashIndex.Get(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -199,6 +198,7 @@ func (hp *historyProcessor) GetEpochByHash(hash []byte) (uint32, error) {
 	return hp.epochByHashIndex.getEpochByHash(hash)
 }
 
+// RegisterToBlockTracker registers the history repository to blockTracker events
 func (hp *historyProcessor) RegisterToBlockTracker(blockTracker BlockTracker) {
 	if check.IfNil(blockTracker) {
 		log.Error("RegisterToBlockTracker(): blockTracker is nil")
@@ -216,18 +216,14 @@ func (hp *historyProcessor) onNotarizedBlocks(shardID uint32, headers []data.Hea
 		return
 	}
 
-	for i := 0; i < len(headers); i++ {
-		header := headers[i]
+	for i, header := range headers {
 		headerHash := headersHashes[i]
 
 		metaBlock, ok := header.(*block.MetaBlock)
 		if !ok {
-			// Question for review: why, on every round, there's a header of type = *block.Header (even if shardID = metachain)?
-			log.Debug("onNotarizedBlocks(): cannot convert to *block.Metablock", "type", fmt.Sprintf("%T", header))
 			return
 		}
 
-		log.Trace("onNotarizedBlocks()", "index", i, "len(ShardInfo)", len(metaBlock.ShardInfo))
 		for _, shardData := range metaBlock.ShardInfo {
 			hp.onNotarizedBlock(metaBlock.GetNonce(), headerHash, shardData)
 		}
@@ -235,13 +231,6 @@ func (hp *historyProcessor) onNotarizedBlocks(shardID uint32, headers []data.Hea
 }
 
 func (hp *historyProcessor) onNotarizedBlock(metaBlockNonce uint64, metaBlockHash []byte, blockHeader block.ShardData) {
-	log.Trace("onNotarizedBlock()",
-		"metaBlockNonce", metaBlockNonce,
-		"nonce", blockHeader.Nonce,
-		"shard", blockHeader.ShardID,
-		"len(miniblocks)", len(blockHeader.ShardMiniBlockHeaders),
-	)
-
 	for _, miniblockHeader := range blockHeader.GetShardMiniBlockHeaders() {
 		hp.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, blockHeader, miniblockHeader)
 	}
@@ -254,11 +243,6 @@ func (hp *historyProcessor) onNotarizedMiniblock(metaBlockNonce uint64, metaBloc
 
 	iDontCare := miniblockHeader.SenderShardID != hp.selfShardID && miniblockHeader.ReceiverShardID != hp.selfShardID
 	if iDontCare {
-		log.Trace("onNotarizedMiniblock(): skipping",
-			"miniblockHash", miniblockHash,
-			"sender shard", miniblockHeader.SenderShardID,
-			"receiver shard", miniblockHeader.ReceiverShardID,
-		)
 		return
 	}
 
