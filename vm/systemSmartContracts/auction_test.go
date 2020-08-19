@@ -453,7 +453,7 @@ func TestStakingAuctionSC_ExecuteStakeUnJail(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	arguments.Function = "unJail"
-	arguments.Arguments = [][]byte{stakerPubKey}
+	arguments.Arguments = [][]byte{stakerPubKey, {0}}
 	arguments.CallValue = big.NewInt(1000)
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
@@ -1225,6 +1225,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		RewardAddress: callerAddress,
 		StakeValue:    nodePrice,
 		JailedRound:   math.MaxUint64,
+		SlashValue:    big.NewInt(0),
 	}
 
 	stakedRegistrationData := StakedData{
@@ -1278,6 +1279,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		RewardAddress: arguments.CallerAddr,
 		StakeValue:    nodePrice,
 		JailedRound:   math.MaxUint64,
+		SlashValue:    big.NewInt(0),
 	}
 	marshaledStakedData, _ := json.Marshal(stakedData)
 	eei.SetSCAddress(args.StakingSCAddress)
@@ -1557,6 +1559,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 		RewardAddress: stakerAddress,
 		StakeValue:    valueStakedByTheCaller,
 		JailedRound:   math.MaxUint64,
+		SlashValue:    big.NewInt(0),
 	}
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
 	eei.SetSCAddress(args.StakingSCAddress)
@@ -1599,6 +1602,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 		RewardAddress: stakerAddress,
 		StakeValue:    valueStakedByTheCaller,
 		JailedRound:   math.MaxUint64,
+		SlashValue:    big.NewInt(0),
 	}
 	assert.Equal(t, expectedRegistrationData, registrationData)
 
