@@ -396,7 +396,6 @@ type RouteConfig struct {
 // VersionByEpochs represents a version entry that will be applied between the provided epochs
 type VersionByEpochs struct {
 	StartEpoch uint32
-	EndEpoch   uint32
 	Version    string
 }
 

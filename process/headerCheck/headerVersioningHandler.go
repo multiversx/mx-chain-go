@@ -61,26 +61,30 @@ func NewHeaderVersioningHandler(
 }
 
 func (hvh *headerVersioningHandler) prepareVersions(versionsByEpochs []config.VersionByEpochs) ([]config.VersionByEpochs, error) {
+	if len(versionsByEpochs) == 0 {
+		return nil, ErrEmptyVersionsByEpochsList
+	}
+
 	sort.Slice(versionsByEpochs, func(i, j int) bool {
 		return versionsByEpochs[i].StartEpoch < versionsByEpochs[j].StartEpoch
 	})
 
 	currentEpoch := uint32(0)
-	for _, ver := range versionsByEpochs {
-		if ver.StartEpoch >= ver.EndEpoch {
-			return nil, fmt.Errorf("%w, StartEpoch is greater or equal to EndEpoch, version %s",
+	for idx, ver := range versionsByEpochs {
+		if idx == 0 && ver.StartEpoch != 0 {
+			return nil, fmt.Errorf("%w first version should start on epoch 0", ErrInvalidVersionOnEpochValues)
+		}
+
+		if idx > 0 && currentEpoch >= ver.StartEpoch {
+			return nil, fmt.Errorf("%w, StartEpoch is greater or equal to next epoch StartEpoch value, version %s",
 				ErrInvalidVersionOnEpochValues, ver.Version)
 		}
-		if currentEpoch != ver.StartEpoch {
-			return nil, fmt.Errorf("%w for version %s",
-				ErrInvalidVersionFoundGaps, ver.Version)
-		}
+		currentEpoch = ver.StartEpoch
+
 		if len(ver.Version) > core.MaxSoftwareVersionLengthInBytes {
 			return nil, fmt.Errorf("%w for version %s",
 				ErrInvalidVersionStringTooLong, ver.Version)
 		}
-
-		currentEpoch = ver.EndEpoch
 	}
 
 	return versionsByEpochs, nil
@@ -103,20 +107,20 @@ func (hvh *headerVersioningHandler) getMatchingVersion(epoch uint32) string {
 		return storedVersion
 	}
 
-	for _, ver := range hvh.versions {
-		if ver.StartEpoch <= epoch && epoch < ver.EndEpoch {
-			hvh.setInCache(epoch, ver.Version)
+	matchingVersion := hvh.versions[len(hvh.versions)-1].Version
+	for idx := 0; idx < len(hvh.versions)-1; idx++ {
+		crtVer := hvh.versions[idx]
+		nextVer := hvh.versions[idx+1]
+		if crtVer.StartEpoch <= epoch && epoch < nextVer.StartEpoch {
+			hvh.setInCache(epoch, crtVer.Version)
 
-			return ver.Version
+			return crtVer.Version
 		}
 	}
 
-	log.Debug("headerVersioningHandler.GetVersion version not found",
-		"epoch", epoch, "default version", hvh.defaultVersion)
+	hvh.setInCache(epoch, matchingVersion)
 
-	hvh.setInCache(epoch, hvh.defaultVersion)
-
-	return hvh.defaultVersion
+	return matchingVersion
 }
 
 func (hvh *headerVersioningHandler) getFromCache(epoch uint32) (string, bool) {

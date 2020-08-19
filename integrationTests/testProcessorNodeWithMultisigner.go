@@ -442,7 +442,6 @@ func createVersioningHandler() process.HeaderVersioningHandler {
 		[]config.VersionByEpochs{
 			{
 				StartEpoch: 0,
-				EndEpoch:   1000000,
 				Version:    "*",
 			},
 		},

@@ -21,17 +21,14 @@ import (
 var versionsCorrectlyConstructed = []config.VersionByEpochs{
 	{
 		StartEpoch: 0,
-		EndEpoch:   1,
 		Version:    "*",
 	},
 	{
 		StartEpoch: 1,
-		EndEpoch:   2,
 		Version:    "v1",
 	},
 	{
-		StartEpoch: 2,
-		EndEpoch:   1000,
+		StartEpoch: 5,
 		Version:    "v2",
 	},
 }
@@ -59,7 +56,10 @@ func TestNewHeaderVersioningHandler_InvalidVersionElementOnEpochValuesEqualShoul
 		[]config.VersionByEpochs{
 			{
 				StartEpoch: 0,
-				EndEpoch:   0,
+				Version:    "",
+			},
+			{
+				StartEpoch: 0,
 				Version:    "",
 			},
 		},
@@ -68,73 +68,6 @@ func TestNewHeaderVersioningHandler_InvalidVersionElementOnEpochValuesEqualShoul
 	)
 	require.True(t, check.IfNil(hdrIntVer))
 	require.True(t, errors.Is(err, ErrInvalidVersionOnEpochValues))
-}
-
-func TestNewHeaderVersioningHandler_InvalidVersionElementOnEpochValuesLessShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer, err := NewHeaderVersioningHandler(
-		[]byte("chainID"),
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 1,
-				EndEpoch:   0,
-				Version:    "",
-			},
-		},
-		defaultVersion,
-		&testscommon.CacherStub{},
-	)
-	require.True(t, check.IfNil(hdrIntVer))
-	require.True(t, errors.Is(err, ErrInvalidVersionOnEpochValues))
-}
-
-func TestNewHeaderVersioningHandler_InvalidVersionElementOnGapsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer, err := NewHeaderVersioningHandler(
-		[]byte("chainID"),
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				EndEpoch:   1,
-				Version:    "",
-			},
-			{
-				StartEpoch: 2,
-				EndEpoch:   3,
-				Version:    "",
-			},
-		},
-		defaultVersion,
-		&testscommon.CacherStub{},
-	)
-	require.True(t, check.IfNil(hdrIntVer))
-	require.True(t, errors.Is(err, ErrInvalidVersionFoundGaps))
-}
-
-func TestNewHeaderVersioningHandler_InvalidVersionElementOnInterlaceShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer, err := NewHeaderVersioningHandler(
-		[]byte("chainID"),
-		[]config.VersionByEpochs{
-			{
-				StartEpoch: 0,
-				EndEpoch:   2,
-				Version:    "",
-			},
-			{
-				StartEpoch: 1,
-				EndEpoch:   3,
-				Version:    "",
-			},
-		},
-		defaultVersion,
-		&testscommon.CacherStub{},
-	)
-	require.True(t, check.IfNil(hdrIntVer))
-	require.True(t, errors.Is(err, ErrInvalidVersionFoundGaps))
 }
 
 func TestNewHeaderVersioningHandler_InvalidVersionElementOnStringTooLongShouldErr(t *testing.T) {
@@ -145,7 +78,6 @@ func TestNewHeaderVersioningHandler_InvalidVersionElementOnStringTooLongShouldEr
 		[]config.VersionByEpochs{
 			{
 				StartEpoch: 0,
-				EndEpoch:   100,
 				Version:    strings.Repeat("a", core.MaxSoftwareVersionLengthInBytes+1),
 			},
 		},
@@ -180,6 +112,37 @@ func TestNewHeaderVersioningHandler_NilCacherShouldErr(t *testing.T) {
 	)
 	require.True(t, check.IfNil(hdrIntVer))
 	require.True(t, errors.Is(err, ErrInvalidSoftwareVersion))
+}
+
+func TestNewHeaderVersioningHandler_EmptyListShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdrIntVer, err := NewHeaderVersioningHandler(
+		[]byte("chainID"),
+		make([]config.VersionByEpochs, 0),
+		"",
+		&testscommon.CacherStub{},
+	)
+	require.True(t, check.IfNil(hdrIntVer))
+	require.True(t, errors.Is(err, ErrEmptyVersionsByEpochsList))
+}
+
+func TestNewHeaderVersioningHandler_ZerothElementIsNotOnEpochZeroShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdrIntVer, err := NewHeaderVersioningHandler(
+		[]byte("chainID"),
+		[]config.VersionByEpochs{
+			{
+				StartEpoch: 1,
+				Version:    "",
+			},
+		},
+		"",
+		&testscommon.CacherStub{},
+	)
+	require.True(t, check.IfNil(hdrIntVer))
+	require.True(t, errors.Is(err, ErrInvalidVersionOnEpochValues))
 }
 
 func TestNewHeaderVersioningHandler_ShouldWork(t *testing.T) {
@@ -232,12 +195,10 @@ func TestHeaderVersioningHandler_VerifySoftwareVersionWrongVersionShouldErr(t *t
 		[]config.VersionByEpochs{
 			{
 				StartEpoch: 0,
-				EndEpoch:   1,
 				Version:    "v1",
 			},
 			{
 				StartEpoch: 1,
-				EndEpoch:   2,
 				Version:    "v2",
 			},
 		},
@@ -262,12 +223,10 @@ func TestHeaderVersioningHandler_VerifySoftwareVersionWildcardShouldWork(t *test
 		[]config.VersionByEpochs{
 			{
 				StartEpoch: 0,
-				EndEpoch:   1,
 				Version:    "v1",
 			},
 			{
 				StartEpoch: 1,
-				EndEpoch:   2,
 				Version:    "*",
 			},
 		},
@@ -290,7 +249,7 @@ func TestHeaderVersioningHandler_VerifyHdrChainIDAndReferenceChainIDMismatchShou
 
 	hdrIntVer, _ := NewHeaderVersioningHandler(
 		[]byte("chainID"),
-		make([]config.VersionByEpochs, 0),
+		versionsCorrectlyConstructed,
 		"software",
 		&testscommon.CacherStub{},
 	)
@@ -308,13 +267,32 @@ func TestHeaderVersioningHandler_VerifyShouldWork(t *testing.T) {
 	expectedChainID := []byte("#chainID")
 	hdrIntVer, _ := NewHeaderVersioningHandler(
 		expectedChainID,
-		make([]config.VersionByEpochs, 0),
+		versionsCorrectlyConstructed,
 		"software",
 		&testscommon.CacherStub{},
 	)
 	mb := &block.MetaBlock{
 		SoftwareVersion: []byte("software"),
 		ChainID:         expectedChainID,
+	}
+	err := hdrIntVer.Verify(mb)
+	require.NoError(t, err)
+}
+
+func TestHeaderVersioningHandler_VerifyNotWildcardShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedChainID := []byte("#chainID")
+	hdrIntVer, _ := NewHeaderVersioningHandler(
+		expectedChainID,
+		versionsCorrectlyConstructed,
+		"software",
+		&testscommon.CacherStub{},
+	)
+	mb := &block.MetaBlock{
+		SoftwareVersion: []byte("v1"),
+		ChainID:         expectedChainID,
+		Epoch:           1,
 	}
 	err := hdrIntVer.Verify(mb)
 	require.NoError(t, err)
@@ -338,15 +316,19 @@ func TestHeaderVersioningHandler_GetVersionShouldWork(t *testing.T) {
 				case 1:
 					assert.Equal(t, "v1", value.(string))
 				case 2:
+					assert.Equal(t, "v1", value.(string))
+				case 3:
+					assert.Equal(t, "v1", value.(string))
+				case 4:
+					assert.Equal(t, "v1", value.(string))
+				case 5:
 					assert.Equal(t, "v2", value.(string))
-				case 500:
-					assert.Equal(t, "v2", value.(string))
-				case 999:
+				case 6:
 					assert.Equal(t, "v2", value.(string))
 				case 1000:
-					assert.Equal(t, defaultVersion, value.(string))
+					assert.Equal(t, "v2", value.(string))
 				case 1200:
-					assert.Equal(t, defaultVersion, value.(string))
+					assert.Equal(t, "v2", value.(string))
 				default:
 					assert.Fail(t, fmt.Sprintf("unexpected case for epoch %d", epoch))
 				}
@@ -358,12 +340,14 @@ func TestHeaderVersioningHandler_GetVersionShouldWork(t *testing.T) {
 
 	assert.Equal(t, defaultVersion, hdrIntVer.GetVersion(0))
 	assert.Equal(t, "v1", hdrIntVer.GetVersion(1))
-	assert.Equal(t, "v2", hdrIntVer.GetVersion(2))
-	assert.Equal(t, "v2", hdrIntVer.GetVersion(500))
-	assert.Equal(t, "v2", hdrIntVer.GetVersion(999))
-	assert.Equal(t, defaultVersion, hdrIntVer.GetVersion(1000))
-	assert.Equal(t, defaultVersion, hdrIntVer.GetVersion(1200))
-	assert.Equal(t, uint32(7), atomic.LoadUint32(&numPutCalls))
+	assert.Equal(t, "v1", hdrIntVer.GetVersion(2))
+	assert.Equal(t, "v1", hdrIntVer.GetVersion(3))
+	assert.Equal(t, "v1", hdrIntVer.GetVersion(4))
+	assert.Equal(t, "v2", hdrIntVer.GetVersion(5))
+	assert.Equal(t, "v2", hdrIntVer.GetVersion(6))
+	assert.Equal(t, "v2", hdrIntVer.GetVersion(1000))
+	assert.Equal(t, "v2", hdrIntVer.GetVersion(1200))
+	assert.Equal(t, uint32(9), atomic.LoadUint32(&numPutCalls))
 }
 
 func TestHeaderVersioningHandler_ExistsInInternalCacheShouldReturn(t *testing.T) {

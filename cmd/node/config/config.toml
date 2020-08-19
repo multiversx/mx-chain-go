@@ -26,7 +26,7 @@
 [Versions]
    DefaultVersion = "default"
    VersionsByEpochs = [
-       { StartEpoch = 0, EndEpoch = 1000000, Version = "*" },
+       { StartEpoch = 0, Version = "*" },
    ]
    [Versions.Cache]
         Name = "VersionsCache"
