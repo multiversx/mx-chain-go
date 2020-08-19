@@ -306,7 +306,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	var txData string
 	for _, node := range nodes {
 		txData = "changeRewardAddress" + "@" + hex.EncodeToString(rewardAccount.Address)
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, integrationTests.AdditionalGasLimit)
 	}
 
 	nbBlocksToProduce := roundsPerEpoch * 3

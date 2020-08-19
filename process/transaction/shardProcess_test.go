@@ -42,9 +42,6 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(0)
 		},
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return 1
-		},
 	}
 }
 
@@ -1115,7 +1112,7 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	tx.RcvAddr = userAddr
 	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
-	tx.GasLimit = 2
+	tx.GasLimit = 1
 
 	userTx := transaction.Transaction{
 		Nonce:    0,
