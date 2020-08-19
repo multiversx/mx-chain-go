@@ -35,6 +35,7 @@ func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 		VersionNumber:    "v0.1",
 		NodeDisplayName:  "undefined",
 		HardforkTrigger:  &mock.HardforkTriggerStub{},
+		ChainHandler:     &mock.ChainHandlerStub{},
 	}
 }
 
@@ -135,6 +136,17 @@ func TestNewSender_PropertyTooLongShouldErr(t *testing.T) {
 
 	assert.Nil(t, sender)
 	assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
+}
+
+func TestNewSender_NilChainHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatSender()
+	arg.ChainHandler = nil
+	sender, err := process.NewSender(arg)
+
+	assert.Nil(t, sender)
+	assert.True(t, errors.Is(err, heartbeat.ErrNilChainHandler))
 }
 
 func TestNewSender_ShouldWork(t *testing.T) {
