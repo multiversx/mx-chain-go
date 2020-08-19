@@ -756,7 +756,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		}
 	}()
 
-	initialVal := big.NewInt(1000000000)
+	initialVal := big.NewInt(100000000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
@@ -823,7 +823,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	// activate the delegation, this involves an async call to auction
 	stakeAllAvailableTxData := "stakeAllAvailable"
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData, 8000000)
+	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData, 500000)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
