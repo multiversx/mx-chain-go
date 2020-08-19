@@ -30,13 +30,12 @@ import (
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // CreateMetaGenesisBlock will create a metachain genesis block
-func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, _ uint32) (data.HeaderHandler, error) {
+func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, _ uint32) (data.HeaderHandler, [][]byte, error) {
 	if mustDoHardForkImportProcess(arg) {
 		return createMetaGenesisAfterHardFork(arg)
 	}
@@ -48,29 +47,29 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 	}
 	processors, err := createProcessorsForMetaGenesisBlock(arg, genesisOverrideConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = deploySystemSmartContracts(arg, processors.txProcessor, processors.systemSCs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = setStakedData(arg, processors, nodesListSplitter)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
 
 	magicDecoded, err := hex.DecodeString(arg.GenesisString)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	prevHash := arg.Hasher.Compute(arg.GenesisString)
 
@@ -103,26 +102,26 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 
 	validatorRootHash, err := arg.ValidatorAccounts.RootHash()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	header.SetValidatorStatsRootHash(validatorRootHash)
 
 	err = saveGenesisMetaToStorage(arg.Store, arg.Marshalizer, header)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = processors.vmContainer.Close()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return header, nil
+	return header, make([][]byte, 0), nil
 }
 
 func createMetaGenesisAfterHardFork(
 	arg ArgsGenesisBlockCreator,
-) (data.HeaderHandler, error) {
+) (data.HeaderHandler, [][]byte, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
 
@@ -135,7 +134,7 @@ func createMetaGenesisAfterHardFork(
 	}
 	metaBlockCreator, err := hardForkProcess.NewMetaBlockCreatorAfterHardfork(argsNewMetaBlockCreatorAfterHardFork)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hdrHandler, _, err := metaBlockCreator.CreateNewBlock(
@@ -145,26 +144,26 @@ func createMetaGenesisAfterHardFork(
 		arg.HardForkConfig.StartEpoch,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	metaHdr, ok := hdrHandler.(*block.MetaBlock)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = saveGenesisMetaToStorage(arg.Store, arg.Marshalizer, metaHdr)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return metaHdr, nil
+	return metaHdr, make([][]byte, 0), nil
 }
 
 func saveGenesisMetaToStorage(
@@ -434,7 +433,7 @@ func setStakedData(
 ) error {
 
 	scQueryBlsKeys := &process.SCQuery{
-		ScAddress: vmFactory.StakingSCAddress,
+		ScAddress: vm.StakingSCAddress,
 		FuncName:  "isStaked",
 	}
 
@@ -447,7 +446,7 @@ func setStakedData(
 		tx := &transaction.Transaction{
 			Nonce:     0,
 			Value:     new(big.Int).Set(stakeValue),
-			RcvAddr:   vmFactory.AuctionSCAddress,
+			RcvAddr:   vm.AuctionSCAddress,
 			SndAddr:   nodeInfo.AddressBytes(),
 			GasPrice:  0,
 			GasLimit:  math.MaxUint64,

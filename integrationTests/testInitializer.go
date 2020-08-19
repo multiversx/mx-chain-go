@@ -698,7 +698,7 @@ func CreateGenesisMetaBlock(
 	nodesHandler, err := mock.NewNodesHandlerMock(nodesSetup)
 	log.LogIfError(err)
 
-	metaHdr, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nodesHandler, shardCoordinator.SelfId())
+	metaHdr, _, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nodesHandler, shardCoordinator.SelfId())
 	log.LogIfError(err)
 
 	log.Info("meta genesis root hash", "hash", hex.EncodeToString(metaHdr.GetRootHash()))

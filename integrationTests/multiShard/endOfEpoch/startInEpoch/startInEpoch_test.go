@@ -8,6 +8,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
@@ -237,10 +239,18 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	assert.NotNil(t, bootstrapStorer)
 
 	argsBaseBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		BootStorer:          bootstrapStorer,
-		ForkDetector:        &mock.ForkDetectorStub{},
-		BlockProcessor:      &mock.BlockProcessorMock{},
-		ChainHandler:        &mock.BlockChainMock{},
+		BootStorer:     bootstrapStorer,
+		ForkDetector:   &mock.ForkDetectorStub{},
+		BlockProcessor: &mock.BlockProcessorMock{},
+		ChainHandler: &mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				if shardID != core.MetachainShardId {
+					return &block.Header{}
+				} else {
+					return &block.MetaBlock{}
+				}
+			},
+		},
 		Marshalizer:         integrationTests.TestMarshalizer,
 		Store:               storageServiceShard,
 		Uint64Converter:     uint64Converter,

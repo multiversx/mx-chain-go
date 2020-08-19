@@ -85,7 +85,7 @@
         FilePath = "BlockHeaders"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 1
+        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [BootstrapStorage]
@@ -98,7 +98,7 @@
         FilePath = "BootstrapData"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 1
+        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [MetaBlockStorage]
@@ -111,7 +111,7 @@
         FilePath = "MetaBlock"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 1
+        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [TxStorage]
@@ -188,7 +188,7 @@
         FilePath = "ShardHdrHashNonce"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 1
+        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [MetaHdrNonceHashStorage]
@@ -201,7 +201,7 @@
         FilePath = "MetaHdrHashNonce"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 1
+        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [AccountsTrieStorage]
@@ -462,7 +462,6 @@
 [TxSignMarshalizer]
    Type = "json"
 
-# TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
     MinRoundsBetweenEpochs = 200
     RoundsPerEpoch         = 200

@@ -40,6 +40,9 @@ var ErrNilTxFeeHandler = errors.New("trying to set a nil tx fee handler")
 // ErrNilPublicKey signals that a nil public key has been provided
 var ErrNilPublicKey = errors.New("trying to set nil public key")
 
+// ErrAccountNotFound signals that an account was not found in trie
+var ErrAccountNotFound = errors.New("account not found")
+
 // ErrZeroRoundDurationNotSupported signals that 0 seconds round duration is not supported
 var ErrZeroRoundDurationNotSupported = errors.New("0 round duration time is not supported")
 

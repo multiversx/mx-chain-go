@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
+	systemVm "github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -641,7 +641,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 			continue
 		}
 		scQuery := &process.SCQuery{
-			ScAddress: factory2.StakingSCAddress,
+			ScAddress: systemVm.StakingSCAddress,
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}
@@ -724,7 +724,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	delegateSCAddress := putDeploySCToDataPool(
 		"./testdata/delegate/delegation.wasm", delegateSCOwner, 0, big.NewInt(0),
-		"@"+hex.EncodeToString(factory2.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeForceUnstake)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond),
+		"@"+hex.EncodeToString(systemVm.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeForceUnstake)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond),
 		nodes)
 	shardNode.OwnAccount.Nonce++
 
@@ -828,7 +828,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 			continue
 		}
 		scQuery := &process.SCQuery{
-			ScAddress: factory2.StakingSCAddress,
+			ScAddress: systemVm.StakingSCAddress,
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}

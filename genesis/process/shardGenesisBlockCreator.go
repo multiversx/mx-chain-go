@@ -40,7 +40,7 @@ type deployedScMetrics struct {
 }
 
 // CreateShardGenesisBlock will create a shard genesis block
-func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, selfShardID uint32) (data.HeaderHandler, error) {
+func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, selfShardID uint32) (data.HeaderHandler, [][]byte, error) {
 	if mustDoHardForkImportProcess(arg) {
 		return createShardGenesisAfterHardFork(arg, selfShardID)
 	}
@@ -53,43 +53,43 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 
 	processors, err := createProcessorsForShard(arg, genesisOverrideConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	deployMetrics := &deployedScMetrics{}
 
-	err = deployInitialSmartContracts(processors, arg, deployMetrics)
+	scAddresses, err := deployInitialSmartContracts(processors, arg, deployMetrics)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	numSetBalances, err := setBalancesToTrie(arg)
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while setting the balances to trie",
+		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while setting the balances to trie",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
 	numStaked, err := increaseStakersNonces(processors, arg)
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing nonces",
+		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing nonces",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
 	delegationResult, err := executeDelegation(processors, arg, nodesListSplitter)
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while execution delegation",
+		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while execution delegation",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
 	numCrossShardDelegations, err := incrementNoncesForCrossShardDelegations(processors, arg)
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing crossshard nonce",
+		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing crossshard nonce",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while commiting",
+		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while commiting",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
@@ -125,18 +125,18 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 
 	err = processors.vmContainer.Close()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return header, nil
+	return header, scAddresses, nil
 }
 
-func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId uint32) (data.HeaderHandler, error) {
+func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId uint32) (data.HeaderHandler, [][]byte, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
 	processors, err := createProcessorsForShard(tmpArg, *arg.GeneralConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argsPendingTxProcessor := hardForkProcess.ArgsPendingTransactionProcessor{
@@ -149,7 +149,7 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId ui
 	}
 	pendingTxProcessor, err := hardForkProcess.NewPendingTransactionProcessor(argsPendingTxProcessor)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argsShardBlockAfterHardFork := hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{
@@ -165,7 +165,7 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId ui
 	}
 	shardBlockCreator, err := hardForkProcess.NewShardBlockCreatorAfterHardFork(argsShardBlockAfterHardFork)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hdrHandler, _, err := shardBlockCreator.CreateNewBlock(
@@ -175,16 +175,16 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId ui
 		arg.HardForkConfig.StartEpoch,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return hdrHandler, nil
+	return hdrHandler, make([][]byte, 0), nil
 }
 
 // setBalancesToTrie adds balances to trie
@@ -445,22 +445,26 @@ func deployInitialSmartContracts(
 	processors *genesisProcessors,
 	arg ArgsGenesisBlockCreator,
 	deployMetrics *deployedScMetrics,
-) error {
+) ([][]byte, error) {
 	smartContracts, err := arg.SmartContractParser.InitialSmartContractsSplitOnOwnersShards(arg.ShardCoordinator)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	var scAddresses = make([][]byte, 0)
 	currentShardSmartContracts := smartContracts[arg.ShardCoordinator.SelfId()]
 	for _, sc := range currentShardSmartContracts {
-		err = deployInitialSmartContract(processors, sc, arg, deployMetrics)
+		var scResulted [][]byte
+		scResulted, err = deployInitialSmartContract(processors, sc, arg, deployMetrics)
 		if err != nil {
-			return fmt.Errorf("%w for owner %s and filename %s",
+			return nil, fmt.Errorf("%w for owner %s and filename %s",
 				err, sc.GetOwner(), sc.GetFilename())
 		}
+
+		scAddresses = append(scAddresses, scResulted...)
 	}
 
-	return nil
+	return scAddresses, nil
 }
 
 func deployInitialSmartContract(
@@ -468,11 +472,11 @@ func deployInitialSmartContract(
 	sc genesis.InitialSmartContractHandler,
 	arg ArgsGenesisBlockCreator,
 	deployMetrics *deployedScMetrics,
-) error {
+) ([][]byte, error) {
 
 	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var deployProc genesis.DeployProcessor
@@ -488,7 +492,7 @@ func deployInitialSmartContract(
 		}
 		deployProc, err = intermediate.NewDeployLibrarySC(argDeployLibrary)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	case genesis.DelegationType:
 		deployMetrics.numDelegation++
@@ -502,7 +506,7 @@ func deployInitialSmartContract(
 		}
 		deployProc, err = intermediate.NewDeployProcessor(argDeploy)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 

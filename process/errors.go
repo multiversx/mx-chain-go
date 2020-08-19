@@ -868,3 +868,15 @@ var ErrRelayedTxDisabled = errors.New("relayed tx is disabled")
 
 // ErrEmptyConsensusGroup is raised when an operation is attempted with an empty consensus group
 var ErrEmptyConsensusGroup = errors.New("consensusGroup is empty")
+
+// ErrRelayedTxGasLimitMissmatch signals that relayed tx gas limit is higher then user tx gas limit
+var ErrRelayedTxGasLimitMissmatch = errors.New("relayed tx gas limit higher then user tx gas limit")
+
+// ErrRelayedGasPriceMissmatch signals that relayed gas price is not equal with user tx
+var ErrRelayedGasPriceMissmatch = errors.New("relayed gas price missmatch")
+
+// ErrNilUserAccount signals that nil user account was provided
+var ErrNilUserAccount = errors.New("nil user account")
+
+// ErrNilEpochStartSystemSCProcessor signals that nil epoch start system sc processor was provided
+var ErrNilEpochStartSystemSCProcessor = errors.New("nil epoch start system sc processor")

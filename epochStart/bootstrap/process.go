@@ -348,6 +348,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			Epoch:       epochToStart,
 			SelfShardId: newShardId,
 			NumOfShards: e.baseData.numberOfShards,
+			NodesConfig: e.nodesConfig,
 		}, nil
 	}
 

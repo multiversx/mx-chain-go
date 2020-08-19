@@ -64,5 +64,6 @@ type ArgMetaProcessor struct {
 	EpochEconomics               process.EndOfEpochEconomics
 	EpochRewardsCreator          process.EpochStartRewardsCreator
 	EpochValidatorInfoCreator    process.EpochStartValidatorInfoCreator
+	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 }
