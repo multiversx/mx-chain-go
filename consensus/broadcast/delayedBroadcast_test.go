@@ -565,6 +565,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 
 	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
 		time.Second
+
 	// should cancel alarm
 	dbb.InterceptedHeaderData("headerTopic", vArgs.headerHash, vArgs.header)
 	time.Sleep(sleepTime)
@@ -575,6 +576,70 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 
 	vbb = dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbb))
+}
+
+func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarmForHeaderBroadcast(t *testing.T) {
+	t.Parallel()
+
+	mbBroadcastCalled := atomic.Counter{}
+	txBroadcastCalled := atomic.Counter{}
+	headerBroadcastCalled := atomic.Counter{}
+
+	broadcastMiniBlocks := func(mbData map[uint32][]byte) error {
+		mbBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastTransactions := func(txData map[string][][]byte) error {
+		txBroadcastCalled.Increment()
+		return nil
+	}
+	broadcastHeader := func(header data.HeaderHandler) error {
+		headerBroadcastCalled.Increment()
+		return nil
+	}
+
+	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
+	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
+		ShardID: core.MetachainShardId,
+	}
+	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
+	require.Nil(t, err)
+
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	require.Nil(t, err)
+
+	vArgs := createValidatorDelayArgs(0)
+	vArgs.header.SetSignature([]byte("agg sig"))
+	vArgs.header.SetShardID(core.MetachainShardId)
+	validatorHeaderBroadcastData := broadcast.CreateValidatorHeaderBroadcastData(
+		vArgs.headerHash,
+		vArgs.header,
+		vArgs.metaMiniBlocks,
+		vArgs.metaTransactions,
+		vArgs.order,
+	)
+	err = dbb.SetHeaderForValidator(validatorHeaderBroadcastData)
+	require.Nil(t, err)
+
+	vhbd := dbb.GetValidatorHeaderBroadcastData()
+	require.Equal(t, 1, len(vhbd))
+	require.Equal(t, int64(0), headerBroadcastCalled.Get())
+	require.Equal(t, int64(0), mbBroadcastCalled.Get())
+	require.Equal(t, int64(0), txBroadcastCalled.Get())
+
+	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
+		time.Second
+
+	// should cancel alarm
+	dbb.InterceptedHeaderData("headerTopic", vArgs.headerHash, vArgs.header)
+	time.Sleep(sleepTime)
+
+	require.Equal(t, int64(0), headerBroadcastCalled.Get())
+	require.Equal(t, int64(0), mbBroadcastCalled.Get())
+	require.Equal(t, int64(0), txBroadcastCalled.Get())
+
+	vhbd = dbb.GetValidatorHeaderBroadcastData()
+	require.Equal(t, 0, len(vhbd))
 }
 
 func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore(t *testing.T) {
