@@ -323,14 +323,17 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	stakedData.UnJailedNonce = r.eei.BlockChainHook().CurrentNonce()
 	stakedData.Jailed = false
 
+	if args.Arguments[1][0] == 1 {
+		err = r.processStake(args.Arguments[0], stakedData)
+		if err != nil {
+			return vmcommon.UserError
+		}
+	}
+
 	err = r.saveStakingData(args.Arguments[0], stakedData)
 	if err != nil {
 		r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
 		return vmcommon.UserError
-	}
-
-	if args.Arguments[1][0] == 1 {
-
 	}
 
 	return vmcommon.Ok
@@ -468,32 +471,10 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 
 	registrationData.RewardAddress = args.Arguments[1]
 	if !onlyRegister {
-		if !r.canStake() && !registrationData.Staked {
-			r.eei.AddReturnMessage("staking is full")
-			err = r.addToWaitingList(args.Arguments[0], registrationData.NumJailed)
-			if err != nil {
-				r.eei.AddReturnMessage("error while adding to waiting")
-				return vmcommon.UserError
-			}
-			registrationData.UnJailedNonce = 0
-			registrationData.Waiting = true
-			r.eei.Finish([]byte{waiting})
-
-			err = r.saveStakingData(args.Arguments[0], registrationData)
-			if err != nil {
-				r.eei.AddReturnMessage("cannot save staking registered data: error " + err.Error())
-				return vmcommon.UserError
-			}
-
-			return vmcommon.Ok
+		err = r.processStake(args.Arguments[0], registrationData)
+		if err != nil {
+			return vmcommon.UserError
 		}
-
-		if !registrationData.Staked {
-			r.addToStakedNodes()
-		}
-		registrationData.Staked = true
-		registrationData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
-		registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	}
 
 	err = r.saveStakingData(args.Arguments[0], registrationData)
@@ -503,6 +484,37 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	}
 
 	return vmcommon.Ok
+}
+
+func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedData) error {
+	if !r.canStake() && !registrationData.Staked {
+		r.eei.AddReturnMessage("staking is full")
+		err := r.addToWaitingList(blsKey, registrationData.NumJailed)
+		if err != nil {
+			r.eei.AddReturnMessage("error while adding to waiting")
+			return err
+		}
+		registrationData.UnJailedNonce = 0
+		registrationData.Waiting = true
+		r.eei.Finish([]byte{waiting})
+
+		err = r.saveStakingData(blsKey, registrationData)
+		if err != nil {
+			r.eei.AddReturnMessage("cannot save staking registered data: error " + err.Error())
+			return err
+		}
+
+		return nil
+	}
+
+	if !registrationData.Staked {
+		r.addToStakedNodes()
+	}
+	registrationData.Staked = true
+	registrationData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
+	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
+
+	return nil
 }
 
 func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

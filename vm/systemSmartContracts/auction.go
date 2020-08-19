@@ -189,16 +189,10 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	for i, blsKey := range blsKeys {
 		vmOutput, err := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(args.Arguments[2*i+1])))
-		if err != nil {
-			s.eei.AddReturnMessage(err.Error())
+		if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
 			continue
-		}
-
-		if vmOutput.ReturnCode != vmcommon.Ok {
-			s.eei.Finish(blsKey)
-			s.eei.Finish([]byte{failed})
 		}
 	}
 

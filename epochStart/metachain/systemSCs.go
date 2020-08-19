@@ -85,6 +85,11 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 	return nil
 }
 
+func (s *systemSCProcessor) auctionSelection() error {
+
+	return nil
+}
+
 func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*state.ValidatorInfo) error {
 	jailedValidators := s.getSortedJailedNodes(validatorInfos)
 	for _, jailedValidator := range jailedValidators {
@@ -173,7 +178,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		}
 	}
 
-	account.SetListAndIndex(jailedValidator.ShardId, string(core.NewList), uint32(stakingData.RegisterNonce))
+	account.SetListAndIndex(jailedValidator.ShardId, string(core.NewList), uint32(stakingData.StakedNonce))
 	account.SetTempRating(s.startRating)
 	account.SetUnStakedEpoch(core.DefaultUnstakedEpoch)
 
