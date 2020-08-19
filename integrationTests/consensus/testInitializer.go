@@ -304,7 +304,7 @@ func createConsensusOnlyNode(
 	hdrMarshalized, _ := testMarshalizer.Marshal(header)
 	blockChain.SetGenesisHeaderHash(testHasher.Compute(string(hdrMarshalized)))
 
-	startTime := int64(0)
+	startTime := time.Now().Unix()
 
 	singlesigner := &ed25519SingleSig.Ed25519Signer{}
 	singleBlsSigner := &mclsinglesig.BlsSingleSigner{}
@@ -369,6 +369,7 @@ func createConsensusOnlyNode(
 	peerSigCache, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, singleBlsSigner, testKeyGen)
 	accntAdapter := createAccountsDB(testMarshalizer)
+	networkShardingCollector := mock.NewNetworkShardingCollectorMock()
 
 	coreComponents := integrationTests.GetDefaultCoreComponents()
 	coreComponents.NtpTimer = syncer
@@ -383,6 +384,7 @@ func createConsensusOnlyNode(
 	}
 	coreComponents.UInt64ByteSliceConv = &mock.Uint64ByteSliceConverterMock{}
 	coreComponents.WDTimer = &mock.WatchdogMock{}
+	coreComponents.StartTime = time.Unix(startTime, 0)
 
 	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = privKey
@@ -408,6 +410,9 @@ func createConsensusOnlyNode(
 	processComponents.HeaderSigVerif = &mock.HeaderSigVerifierStub{}
 	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
 	processComponents.ReqHandler = &mock.RequestHandlerStub{}
+	processComponents.PeerMapper = networkShardingCollector
+	// TODO: have rounder only in one component
+	processComponents.RoundHandler = rounder
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
 	dataComponents.BlockChain = blockChain
@@ -432,10 +437,10 @@ func createConsensusOnlyNode(
 		node.WithInitialNodesPubKeys(inPubKeys),
 		node.WithRoundDuration(roundTime),
 		node.WithConsensusGroupSize(int(consensusSize)),
-		node.WithGenesisTime(time.Unix(startTime, 0)),
 		node.WithConsensusType(consensusType),
+		node.WithGenesisTime(time.Unix(startTime, 0)),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
-		node.WithNetworkShardingCollector(mock.NewNetworkShardingCollectorMock()),
+		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),

@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -31,7 +30,6 @@ func createDefaultConfig() config.P2PConfig {
 }
 
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
-	_ = logger.SetLogLevel("p2p:TRACE")
 	p2pConfig := createDefaultConfig()
 	p2pConfig.Sharding = config.ShardingConfig{
 		TargetPeerCount:         10,

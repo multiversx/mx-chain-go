@@ -170,6 +170,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 	}
 	processComponents.EpochNotifier = &mock.EpochStartNotifierStub{}
 	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{}
+	processComponents.PeerMapper = tP2pNode.NetworkShardingUpdater
 
 	networkComponents := GetDefaultNetworkComponents()
 	networkComponents.Messenger = tP2pNode.Messenger
