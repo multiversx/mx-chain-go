@@ -324,7 +324,7 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	stakedData.Jailed = false
 
 	if args.Arguments[1][0] == 1 {
-		err = r.processStake(args.Arguments[0], stakedData)
+		err = r.processStake(args.Arguments[0], stakedData, stakedData.NumJailed == 1)
 		if err != nil {
 			return vmcommon.UserError
 		}
@@ -471,7 +471,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 
 	registrationData.RewardAddress = args.Arguments[1]
 	if !onlyRegister {
-		err = r.processStake(args.Arguments[0], registrationData)
+		err = r.processStake(args.Arguments[0], registrationData, false)
 		if err != nil {
 			return vmcommon.UserError
 		}
@@ -486,10 +486,10 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedData) error {
+func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedData, addFirst bool) error {
 	if !r.canStake() && !registrationData.Staked {
 		r.eei.AddReturnMessage("staking is full")
-		err := r.addToWaitingList(blsKey, registrationData.NumJailed)
+		err := r.addToWaitingList(blsKey, addFirst)
 		if err != nil {
 			r.eei.AddReturnMessage("error while adding to waiting")
 			return err
@@ -749,7 +749,7 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.UserError
 }
 
-func (r *stakingSC) addToWaitingList(blsKey []byte, numJailed uint32) error {
+func (r *stakingSC) addToWaitingList(blsKey []byte, addFirst bool) error {
 	inWaitingListKey := r.createWaitingListKey(blsKey)
 	marshaledData := r.eei.GetStorage(inWaitingListKey)
 	if len(marshaledData) != 0 {
@@ -773,7 +773,7 @@ func (r *stakingSC) addToWaitingList(blsKey []byte, numJailed uint32) error {
 		return r.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
 	}
 
-	if numJailed == 1 {
+	if addFirst {
 		nextKey := make([]byte, 0, len(waitingList.FirstKey))
 		copy(nextKey, waitingList.FirstKey)
 		waitingList.FirstKey = inWaitingListKey
