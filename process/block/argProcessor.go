@@ -43,6 +43,7 @@ type ArgBaseProcessor struct {
 	BlockSizeThrottler     process.BlockSizeThrottler
 	Indexer                indexer.Indexer
 	TpsBenchmark           statistics.TPSBenchmark
+	Version                string
 	HistoryRepository      fullHistory.HistoryRepository
 	EpochNotifier          process.EpochNotifier
 	OutportDriver          outport.Driver
