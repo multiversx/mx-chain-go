@@ -146,10 +146,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		)
 	}
 
-	cost := big.NewInt(0)
-	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-	cost.Add(cost, tx.Value)
-
+	cost := big.NewInt(0).Add(txFee, tx.Value)
 	if stAcc.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
