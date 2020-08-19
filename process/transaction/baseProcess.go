@@ -190,14 +190,3 @@ func (txProc *baseTxProcessor) processIfTxErrorCrossShard(tx *transaction.Transa
 
 	return nil
 }
-
-func (txProc *baseTxProcessor) isCrossTxDstMe(adrSrc, adrDst []byte) bool {
-	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
-	shardForDst := txProc.shardCoordinator.ComputeId(adrDst)
-	shardForCurrentNode := txProc.shardCoordinator.SelfId()
-
-	srcInShard := shardForSrc == shardForCurrentNode
-	dstInShard := shardForDst == shardForCurrentNode
-
-	return !srcInShard && dstInShard
-}

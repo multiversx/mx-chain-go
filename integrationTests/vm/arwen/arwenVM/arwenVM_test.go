@@ -312,7 +312,7 @@ func TestWASMMetering(t *testing.T) {
 	ownerBalance := big.NewInt(0xfffffffffffffff)
 	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	gasPrice := uint64(1)
-	gasLimit := uint64(500)
+	gasLimit := uint64(0xffffffffffffffff)
 	transferOnCalls := big.NewInt(1)
 
 	scCode := arwen.GetSCCode("../testdata/misc/cpucalculate_arwen.wasm")
