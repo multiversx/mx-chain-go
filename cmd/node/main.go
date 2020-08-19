@@ -1113,6 +1113,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	statsFolder := filepath.Join(workingDir, defaultStatsPath)
 	copyConfigToStatsFolder(
+		log,
 		statsFolder,
 		[]string{
 			configurationFileName,
@@ -1513,7 +1514,10 @@ func cleanupStorageIfNecessary(workingDir string, ctx *cli.Context, log logger.L
 	return nil
 }
 
-func copyConfigToStatsFolder(statsFolder string, configs []string) {
+func copyConfigToStatsFolder(log logger.Logger, statsFolder string, configs []string) {
+	err := os.MkdirAll(statsFolder, os.ModePerm)
+	log.LogIfError(err)
+
 	for _, configFile := range configs {
 		copySingleFile(statsFolder, configFile)
 	}
