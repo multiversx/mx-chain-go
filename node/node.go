@@ -164,6 +164,11 @@ func (n *Node) addCloserInstances(closers ...update.Closer) error {
 	return nil
 }
 
+// GetConsensusGroupSize returns the configured consensus size
+func (n *Node) GetConsensusGroupSize() int {
+	return n.consensusGroupSize
+}
+
 // GetBalance gets the balance for a specific address
 func (n *Node) GetBalance(address string) (*big.Int, error) {
 	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.stateComponents.AccountsAdapter()) {

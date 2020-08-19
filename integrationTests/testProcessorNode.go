@@ -1957,6 +1957,7 @@ func (tpn *TestProcessorNode) initHeaderValidator() {
 	tpn.HeaderValidator, _ = block.NewHeaderValidator(argsHeaderValidator)
 }
 
+// GetDefaultCoreComponents -
 func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 	return &mock.CoreComponentsStub{
 		IntMarsh:            TestMarshalizer,
@@ -1986,6 +1987,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 	}
 }
 
+// GetDefaultProcessComponents -
 func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 	return &mock.ProcessComponentsStub{
 		NodesCoord: &mock.NodesCoordinatorMock{},
@@ -2015,6 +2017,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 	}
 }
 
+// GetDefaultDataComponents -
 func GetDefaultDataComponents() *mock.DataComponentsStub {
 	return &mock.DataComponentsStub{
 		BlockChain: &mock.BlockChainMock{},
@@ -2024,6 +2027,7 @@ func GetDefaultDataComponents() *mock.DataComponentsStub {
 	}
 }
 
+// GetDefaultCryptoComponents -
 func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 	return &mock.CryptoComponentsStub{
 		PubKey:          &mock.PublicKeyMock{},
@@ -2041,6 +2045,7 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 	}
 }
 
+// GetDefaultStateComponents -
 func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 	return &testscommon.StateComponentsMock{
 		PeersAcc:        &mock.AccountsStub{},
@@ -2050,6 +2055,7 @@ func GetDefaultStateComponents() *testscommon.StateComponentsMock {
 	}
 }
 
+// GetDefaultNetworkComponents -
 func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 	return &mock.NetworkComponentsStub{
 		Messenger:       &mock.MessengerStub{},
@@ -2059,11 +2065,22 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 	}
 }
 
+// GetDefaultHeartbeatComponents -
 func GetDefaultHeartbeatComponents() *mock.HeartbeatComponentsStub {
 	return &mock.HeartbeatComponentsStub{
 		HBMessenger: &mock.HeartbeatMessageHandlerStub{},
 		HBMonitor:   &mock.HeartbeatMonitorStub{},
 		HBSender:    &mock.HeartbeatSenderStub{},
 		HBStorer:    &mock.HeartbeatStorerStub{},
+	}
+}
+
+// GetDefaultStatusComponents -
+func GetDefaultStatusComponents() *mock.StatusComponentsStub {
+	return &mock.StatusComponentsStub{
+		TPSBench:             &testscommon.TpsBenchmarkMock{},
+		Indexer:              &mock.NilIndexer{},
+		SoftwareVersionCheck: &mock.SoftwareVersionCheckerMock{},
+		AppStatusHandler:     &mock.AppStatusHandlerStub{},
 	}
 }

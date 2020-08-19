@@ -59,7 +59,7 @@ func (dcs *DataComponentsStub) Datapool() dataRetriever.PoolsHolder {
 
 // MiniBlocksProvider -
 func (dcs *DataComponentsStub) MiniBlocksProvider() factory.MiniBlockProvider {
-	return dcs.MiniBlocksProvider()
+	return dcs.MbProvider
 }
 
 // Clone -

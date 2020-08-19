@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -101,18 +102,30 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 			return nil
 		}
 
+		statusComponents := integrationTests.GetDefaultStatusComponents()
+
 		consensusArgs := factory.ConsensusComponentsFactoryArgs{
-			Config:              nil,
-			ConsensusGroupSize:  0,
+			Config: config.Config{
+				Consensus: config.ConsensusConfig{
+					Type: blsConsensusType,
+				},
+				ValidatorPubkeyConverter: config.PubkeyConfig{
+					Length:          96,
+					Type:            "bls",
+					SignatureLength: 48,
+				},
+			},
+
+			ConsensusGroupSize:  n.node.GetConsensusGroupSize(),
 			BootstrapRoundIndex: 0,
 			HardforkTrigger:     n.node.GetHardforkTrigger(),
-			CoreComponents:      nil,
-			NetworkComponents:   nil,
-			CryptoComponents:    nil,
-			DataComponents:      nil,
-			ProcessComponents:   nil,
-			StateComponents:     nil,
-			StatusComponents:    n.node.getStatus,
+			CoreComponents:      n.node.GetCoreComponents(),
+			NetworkComponents:   n.node.GetNetworkComponents(),
+			CryptoComponents:    n.node.GetCryptoComponents(),
+			DataComponents:      n.node.GetDataComponents(),
+			ProcessComponents:   n.node.GetProcessComponents(),
+			StateComponents:     n.node.GetStateComponents(),
+			StatusComponents:    statusComponents,
 		}
 
 		managedConsensusComponents, err := factory.NewManagedConsensusComponents(consensusArgs)
