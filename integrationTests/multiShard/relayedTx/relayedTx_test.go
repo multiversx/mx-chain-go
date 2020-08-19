@@ -3,11 +3,12 @@ package relayedTx
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -21,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
@@ -351,7 +353,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	integrationTests.CreateAndSendTransactionWithGasLimit(
 		nodes[0],
 		big.NewInt(0),
-		80000,
+		2000000,
 		make([]byte, 32),
 		[]byte(arwen.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(registerValue.Bytes())+"@"+hex.EncodeToString(relayer.Address)+"@"+"ababab"),
 		integrationTests.ChainID,
@@ -359,9 +361,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	)
 	time.Sleep(time.Second)
 
-	registerVMGas := uint64(2000)
-	savePublicInfoVMGas := uint64(2000)
-	attestVMGas := uint64(2000)
+	registerVMGas := uint64(100000)
+	savePublicInfoVMGas := uint64(100000)
+	attestVMGas := uint64(100000)
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
@@ -426,9 +428,9 @@ func checkAttestedPublicKeys(
 		FuncName:  "getPublicKey",
 		Arguments: [][]byte{obfuscatedData},
 	})
-	assert.Nil(t, err)
-	assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
-	assert.Equal(t, vmOutput.ReturnData[0], userAddress)
+	require.Nil(t, err)
+	require.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
+	require.Equal(t, vmOutput.ReturnData[0], userAddress)
 }
 
 func checkSCBalance(t *testing.T, node *integrationTests.TestProcessorNode, scAddress []byte, userAddress []byte, balance *big.Int) {
