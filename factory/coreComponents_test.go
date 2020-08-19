@@ -3,7 +3,6 @@ package factory_test
 import (
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -398,7 +397,6 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 			},
 		},
 		WorkingDirectory:    "home",
-		GenesisTime:         time.Now(),
 		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 		NodesFilename:       "mock/nodesSetupMock.json",
 		EconomicsConfig:     createDummyEconomicsConfig(),

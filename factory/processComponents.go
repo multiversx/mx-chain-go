@@ -89,7 +89,7 @@ type ProcessComponentsFactoryArgs struct {
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
 	EconomicsData             *economics.EconomicsData
-	NodesConfig               *sharding.NodesSetup
+	NodesConfig               NodesSetupHandler
 	GasSchedule               map[string]map[string]uint64
 	Rounder                   consensus.Rounder
 	ShardCoordinator          sharding.Coordinator
@@ -129,7 +129,7 @@ type processComponentsFactory struct {
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             *economics.EconomicsData
-	nodesConfig               *sharding.NodesSetup
+	nodesConfig               NodesSetupHandler
 	gasSchedule               map[string]map[string]uint64
 	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
@@ -564,7 +564,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
 		argEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        time.Unix(pcf.nodesConfig.StartTime, 0),
+			GenesisTime:        time.Unix(pcf.nodesConfig.GetStartTime(), 0),
 			Settings:           &pcf.coreFactoryArgs.Config.EpochStartConfig,
 			Epoch:              pcf.startEpochNum,
 			EpochStartRound:    pcf.data.Blockchain().GetGenesisHeader().GetRound(),
@@ -600,7 +600,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	arg := processGenesis.ArgsGenesisBlockCreator{
 		Core:                 pcf.coreData,
 		Data:                 pcf.data,
-		GenesisTime:          uint64(pcf.nodesConfig.StartTime),
+		GenesisTime:          uint64(pcf.nodesConfig.GetStartTime()),
 		StartEpochNum:        pcf.startEpochNum,
 		Accounts:             pcf.state.AccountsAdapter(),
 		InitialNodesSetup:    pcf.nodesConfig,
@@ -902,10 +902,10 @@ func (pcf *processComponentsFactory) newForkDetector(
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
-		return sync.NewShardForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.nodesConfig.StartTime)
+		return sync.NewShardForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.nodesConfig.GetStartTime())
 	}
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
-		return sync.NewMetaForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.nodesConfig.StartTime)
+		return sync.NewMetaForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.nodesConfig.GetStartTime())
 	}
 
 	return nil, errors.New("could not create fork detector")

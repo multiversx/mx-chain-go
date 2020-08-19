@@ -40,8 +40,22 @@ type EpochStartNotifier interface {
 
 // NodesSetupHandler defines which actions should be done for handling initial nodes setup
 type NodesSetupHandler interface {
+	AllInitialNodes() []sharding.GenesisNodeInfoHandler
+	InitialNodesInfoForShard(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
+	InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	GetStartTime() int64
 	InitialNodesPubKeys() map[uint32][]string
+	NumberOfShards() uint32
+	GetShardIDForPubKey(pubkey []byte) (uint32, error)
 	InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error)
+	GetShardConsensusGroupSize() uint32
+	GetMetaConsensusGroupSize() uint32
+	GetRoundDuration() uint64
+	MinNumberOfMetaNodes() uint32
+	MinNumberOfShardNodes() uint32
+	MinNumberOfNodes() uint32
+	GetHysteresis() float32
+	GetAdaptivity() bool
 	IsInterfaceNil() bool
 }
 
