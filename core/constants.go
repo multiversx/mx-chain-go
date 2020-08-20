@@ -355,6 +355,8 @@ const (
 	TxStatusPartiallyExecuted TransactionStatus = "partially-executed"
 	// TxStatusExecuted represents the status of a transaction which was received and executed
 	TxStatusExecuted TransactionStatus = "executed"
+	// TxStatusNotExecuted represents the status of a transaction which was received and not executed
+	TxStatusNotExecuted TransactionStatus = "not-executed"
 	// TxStatusInvalid represents the status of a transaction which was considered invalid
 	TxStatusInvalid TransactionStatus = "invalid"
 )
