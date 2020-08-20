@@ -104,6 +104,7 @@ func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblo
 	tx.NotarizedAtSourceInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtSourceInMetaHash)
 	tx.NotarizedAtDestinationInMetaNonce = miniblockMetadata.NotarizedAtDestinationInMetaNonce
 	tx.NotarizedAtDestinationInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtDestinationInMetaHash)
+	tx.Status = core.TransactionStatus(miniblockMetadata.Status)
 
 	return tx
 }
