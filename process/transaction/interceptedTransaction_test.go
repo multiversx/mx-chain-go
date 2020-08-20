@@ -943,38 +943,6 @@ func TestInterceptedTransaction_SenderShardId(t *testing.T) {
 	assert.Equal(t, senderShard, result)
 }
 
-func TestInterceptedTransaction_FeeCallsTxFeeHandler(t *testing.T) {
-	t.Parallel()
-
-	minTxVersion := uint32(1)
-	chainID := []byte("chain")
-	tx := &dataTransaction.Transaction{
-		Nonce:     0,
-		Value:     big.NewInt(2),
-		Data:      []byte("data"),
-		GasLimit:  3,
-		GasPrice:  4,
-		RcvAddr:   recvAddress,
-		SndAddr:   senderAddress,
-		Signature: sigOk,
-		ChainID:   chainID,
-		Version:   minTxVersion,
-	}
-
-	computeFeeCalled := false
-	txFeeHandler := createFreeTxFeeHandler()
-	txi, _ := createInterceptedTxFromPlainTx(tx, txFeeHandler, chainID, minTxVersion)
-	txFeeHandler.ComputeFeeCalled = func(tx process.TransactionWithFeeHandler) *big.Int {
-		computeFeeCalled = true
-
-		return big.NewInt(0)
-	}
-
-	_ = txi.Fee()
-
-	assert.True(t, computeFeeCalled)
-}
-
 func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
 	t.Parallel()
 

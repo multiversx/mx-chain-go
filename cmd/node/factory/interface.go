@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -28,5 +30,12 @@ type P2PAntifloodHandler interface {
 	CanProcessMessagesOnTopic(peer core.PeerID, topic string, numMessages uint32) error
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
+	IsInterfaceNil() bool
+}
+
+// FileLoggingHandler will handle log file rotation
+type FileLoggingHandler interface {
+	ChangeFileLifeSpan(newDuration time.Duration) error
+	Close() error
 	IsInterfaceNil() bool
 }

@@ -89,6 +89,10 @@
          # if it's fields are valid. It will return the hash of the transaction
         { Name = "/send", Open = true },
 
+        # /transaction/simulate will receive a single transaction in JSON format and will simulate it's execution
+        # in order to check that it will be successfully executed when sending it for propagation
+        { Name = "/simulate", Open = false },
+
          # /transaction/send-multiple will receive an array of transactions in JSON format and will propagate through
          # the network those whose fields are valid. It will return the number of valid transactions propagated
          { Name = "/send-multiple", Open = true },

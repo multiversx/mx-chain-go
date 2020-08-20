@@ -425,17 +425,8 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		scrResults = append(scrResults, scTx)
 	}
 
-	refund := big.NewInt(0)
-	if vmOutput.GasRefund != nil {
-		refund = vmOutput.GasRefund
-	}
-
 	scrForSender, consumedFee := sc.createSCRForSender(
-		refund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		vmOutput.ReturnMessage,
+		vmOutput,
 		tx,
 		txHash,
 		acntSnd,
@@ -491,7 +482,7 @@ func (sc *scProcessor) ProcessIfError(
 	scrIfError := sc.createSCRsWhenError(txHash, tx, returnCode, returnMessage)
 
 	if check.IfNil(acntSnd) {
-		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
+		moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
 		consumedFee.Sub(consumedFee, moveBalanceCost)
 	}
 
@@ -759,11 +750,7 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	scrForSender, consumedFee := sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		vmOutput.ReturnMessage,
+		vmOutput,
 		tx,
 		txHash,
 		acntSnd,
@@ -927,30 +914,37 @@ func (sc *scProcessor) createSmartContractResult(
 	return result
 }
 
+func (sc *scProcessor) computeActualConsumedGas(
+	tx data.TransactionHandler,
+	vmOutput *vmcommon.VMOutput,
+	acntSnd state.UserAccountHandler,
+) uint64 {
+	consumedGas := tx.GetGasLimit() - vmOutput.GasRemaining
+	if check.IfNil(acntSnd) {
+		consumedGas -= sc.economicsFee.ComputeGasLimit(tx)
+	}
+	for _, outAcc := range vmOutput.OutputAccounts {
+		consumedGas -= outAcc.GasLimit
+	}
+
+	return consumedGas
+}
+
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)
 // give back the user the unused gas money
 func (sc *scProcessor) createSCRForSender(
-	gasRefund *big.Int,
-	gasRemaining uint64,
-	returnCode vmcommon.ReturnCode,
-	returnData [][]byte,
-	returnMessage string,
+	vmOutput *vmcommon.VMOutput,
 	tx data.TransactionHandler,
 	txHash []byte,
 	acntSnd state.UserAccountHandler,
 	callType vmcommon.CallType,
 ) (*smartContractResult.SmartContractResult, *big.Int) {
-	if gasRefund == nil {
-		gasRefund = big.NewInt(0)
+	if vmOutput.GasRefund == nil {
+		vmOutput.GasRefund = big.NewInt(0)
 	}
-	storageFreeRefund := big.NewInt(0).Mul(gasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
 
-	consumedFee := big.NewInt(0)
-	consumedFee.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
-
-	refundErd := big.NewInt(0)
-	refundErd.Mul(big.NewInt(0).SetUint64(gasRemaining), big.NewInt(0).SetUint64(tx.GetGasPrice()))
-	consumedFee.Sub(consumedFee, refundErd)
+	storageFreeRefund := big.NewInt(0).Mul(vmOutput.GasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
+	refundErd := core.SafeMul(vmOutput.GasRemaining, tx.GetGasPrice())
 
 	rcvAddress := tx.GetSndAddr()
 	if callType == vmcommon.AsynchronousCallBack {
@@ -967,31 +961,24 @@ func (sc *scProcessor) createSCRForSender(
 	scTx.SndAddr = tx.GetRcvAddr()
 	scTx.Nonce = tx.GetNonce() + 1
 	scTx.PrevTxHash = txHash
-	scTx.GasLimit = gasRemaining
+	scTx.GasLimit = vmOutput.GasRemaining
 	scTx.GasPrice = tx.GetGasPrice()
-	scTx.ReturnMessage = []byte(returnMessage)
+	scTx.ReturnMessage = []byte(vmOutput.ReturnMessage)
 	setOriginalTxHash(scTx, txHash, tx)
 
 	if callType == vmcommon.AsynchronousCall {
 		scTx.CallType = vmcommon.AsynchronousCallBack
-		scTx.Data = []byte("@" + core.ConvertToEvenHex(int(returnCode)))
+		scTx.Data = []byte("@" + core.ConvertToEvenHex(int(vmOutput.ReturnCode)))
 	} else {
-		scTx.Data = []byte("@" + hex.EncodeToString([]byte(returnCode.String())))
+		scTx.Data = []byte("@" + hex.EncodeToString([]byte(vmOutput.ReturnCode.String())))
 	}
 
-	for _, retData := range returnData {
+	for _, retData := range vmOutput.ReturnData {
 		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
 	}
 
 	log.Trace("createSCRForSender ", "data", string(scTx.Data))
-
-	if check.IfNil(acntSnd) {
-		// cross shard move balance fee was already consumed at sender shard
-		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
-		consumedFee.Sub(consumedFee, moveBalanceCost)
-		return scTx, consumedFee
-	}
-
+	consumedFee := core.SafeMul(sc.computeActualConsumedGas(tx, vmOutput, acntSnd), tx.GetGasPrice())
 	return scTx, consumedFee
 }
 

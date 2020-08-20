@@ -1563,7 +1563,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 
 	sendValue := big.NewInt(5)
 	receiverAddress := []byte("12345678901234567890123456789012")
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(10000000000)
 
 	integrationTests.MintAllNodes(nodes, initialVal)
 
