@@ -26,7 +26,7 @@ type Transaction struct {
 	Signature            string        `json:"signature"`
 	Timestamp            time.Duration `json:"timestamp"`
 	Status               string        `json:"status"`
-	SmartContractResults []ScResult    `json:"scResults"`
+	SmartContractResults []ScResult    `json:"scResults,omitempty"`
 	Log                  TxLog         `json:"-"`
 }
 
@@ -46,18 +46,22 @@ type Event struct {
 
 // ScResult is a structure containing all the fields that need to be saved for a smart contract result
 type ScResult struct {
-	Nonce         uint64 `json:"nonce"`
-	GasLimit      uint64 `json:"gasLimit"`
-	GasPrice      uint64 `json:"gasPrice"`
-	Value         string `json:"value"`
-	Sender        string `json:"sender"`
-	Receiver      string `json:"receiver"`
-	Code          string `json:"code"`
-	Data          []byte `json:"data"`
-	PreTxHash     string `json:"prevTxHash"`
-	CallType      string `json:"callType"`
-	CodeMetadata  []byte `json:"codeMetaData"`
-	ReturnMessage string `json:"returnMessage"`
+	Hash           string `json:"hash"`
+	Nonce          uint64 `json:"nonce"`
+	GasLimit       uint64 `json:"gasLimit"`
+	GasPrice       uint64 `json:"gasPrice"`
+	Value          string `json:"value"`
+	Sender         string `json:"sender"`
+	Receiver       string `json:"receiver"`
+	RelayerAddr    string `json:"relayerAddr,omitempty"`
+	RelayedValue   string `json:"relayedValue,omitempty"`
+	Code           string `json:"code,omitempty"`
+	Data           []byte `json:"data,omitempty"`
+	PreTxHash      string `json:"prevTxHash"`
+	OriginalTxHash string `json:"originalTxHash"`
+	CallType       string `json:"callType"`
+	CodeMetadata   []byte `json:"codeMetaData,omitempty"`
+	ReturnMessage  string `json:"returnMessage,omitempty"`
 }
 
 // Block is a structure containing all the fields that need
