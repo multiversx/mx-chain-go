@@ -39,7 +39,7 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(0)
 		},
 	}
@@ -721,7 +721,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 			return nil
 		},
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return txCost
 		},
 	}
@@ -906,7 +906,7 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
 	args := createArgsForTxProcessor()
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
 	}
@@ -938,7 +938,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 
 	args := createArgsForTxProcessor()
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
 	}
@@ -991,7 +991,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 	moveBalanceFee := big.NewInt(50)
 	args := createArgsForTxProcessor()
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
 	}
@@ -1045,7 +1045,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 	args.ScProcessor = scProcessorMock
 	args.ShardCoordinator = shardC
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(1)
 		},
 	}
@@ -1083,7 +1083,7 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 	args.Accounts = adb
 	args.ShardCoordinator = shardC
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(1)
 		},
 	}

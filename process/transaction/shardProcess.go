@@ -236,7 +236,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return nil
 	}
 
-	txFee := txProc.economicsFee.ComputeFee(tx)
+	txFee := core.SafeMul(tx.GasPrice, tx.GasLimit)
 	err := acntSnd.SubFromBalance(txFee)
 	if err != nil {
 		return err
@@ -324,7 +324,7 @@ func (txProc *txProcessor) processTxFee(
 
 	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
 	if isCrossShardSCCall {
-		totalCost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+		totalCost := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
 			return nil, err
@@ -496,7 +496,7 @@ func (txProc *txProcessor) processRelayedTx(
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedGasPriceMissmatch)
 	}
 
-	totalFee, remainingFee, remainingGasLimit := txProc.computeRelayedTxFees(tx)
+	totalFee, remainingFee, relayerFee, remainingGasLimit := txProc.computeRelayedTxFees(tx)
 	if userTx.GasLimit != remainingGasLimit {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxGasLimitMissmatch)
 	}
@@ -523,7 +523,7 @@ func (txProc *txProcessor) processRelayedTx(
 			return 0, err
 		}
 
-		txProc.txFeeHandler.ProcessTransactionFee(remainingFee, big.NewInt(0), txHash)
+		txProc.txFeeHandler.ProcessTransactionFee(relayerFee, big.NewInt(0), txHash)
 	}
 
 	if check.IfNil(acntDst) {
@@ -548,13 +548,13 @@ func (txProc *txProcessor) processRelayedTx(
 	return txProc.processUserTx(tx, userTx, adrSrc, tx.Value, tx.Nonce, txHash)
 }
 
-func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int, uint64) {
+func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int, *big.Int, uint64) {
 	relayerGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
-	relayerFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(relayerGasLimit), big.NewInt(0).SetUint64(tx.GetGasPrice()))
-	totalFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+	relayerFee := core.SafeMul(relayerGasLimit, tx.GetGasPrice())
+	totalFee := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	remainingFee := big.NewInt(0).Sub(totalFee, relayerFee)
 
-	return totalFee, remainingFee, tx.GasLimit - relayerGasLimit
+	return totalFee, remainingFee, relayerFee, tx.GasLimit - relayerGasLimit
 }
 
 func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
@@ -572,7 +572,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	if err != nil {
 		return err
 	}
-	consumedFee := txProc.economicsFee.ComputeFee(userTx)
+	consumedFee := core.SafeMul(userTx.GasLimit, userTx.GasPrice)
 	err = userAcnt.SubFromBalance(consumedFee)
 	if err != nil {
 		return err
@@ -763,7 +763,12 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 		return err
 	}
 
-	totalFee := txProc.economicsFee.ComputeFee(userTx)
+	totalFee := core.SafeMul(userTx.GetGasPrice(), userTx.GetGasLimit())
+	senderShardID := txProc.shardCoordinator.ComputeId(userTx.SndAddr)
+	if senderShardID != txProc.shardCoordinator.SelfId() {
+		totalFee.Sub(totalFee, txProc.economicsFee.ComputeMoveBalanceFee(userTx))
+	}
+
 	txProc.txFeeHandler.ProcessTransactionFee(totalFee, big.NewInt(0), originalTxHash)
 
 	if !check.IfNil(relayerAcnt) {

@@ -1026,6 +1026,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		PeerShardMapper:          n.networkShardingCollector,
 		SizeCheckDelta:           n.sizeCheckDelta,
 		ValidatorsProvider:       n.validatorsProvider,
+		CurrentBlockProvider:     n.blkc,
 	}
 
 	var err error

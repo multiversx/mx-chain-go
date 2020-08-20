@@ -47,6 +47,7 @@ func createMockArgument() ArgHeartbeat {
 		PeerShardMapper:          &mock.NetworkShardingCollectorStub{},
 		SizeCheckDelta:           0,
 		ValidatorsProvider:       &mock.ValidatorsProviderStub{},
+		CurrentBlockProvider:     &mock.CurrentBlockProviderStub{},
 	}
 
 	return arg
