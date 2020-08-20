@@ -173,7 +173,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 
 	switch txType {
 	case process.MoveBalance:
-		err = txProc.processMoveBalance(tx, tx.SndAddr, tx.RcvAddr, txProc.economicsFee.ComputeFee(tx))
+		err = txProc.processMoveBalance(tx, tx.SndAddr, tx.RcvAddr, txProc.economicsFee.ComputeMoveBalanceFee(tx))
 		if err != nil {
 			return vmcommon.UserError, txProc.executeAfterFailedMoveBalanceTransaction(tx, err)
 		}
@@ -697,7 +697,7 @@ func (txProc *txProcessor) getUserTxCost(
 		}
 	}
 
-	return txProc.economicsFee.ComputeFee(userTx)
+	return txProc.economicsFee.ComputeMoveBalanceFee(userTx)
 }
 
 func (txProc *baseTxProcessor) isCrossTxFromMe(adrSrc, adrDst []byte) bool {
