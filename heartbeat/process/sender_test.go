@@ -28,14 +28,14 @@ func createMockArgHeartbeatSender() process.ArgHeartbeatSender {
 				return nil, nil
 			},
 		},
-		Topic:            "",
-		ShardCoordinator: &mock.ShardCoordinatorMock{},
-		PeerTypeProvider: &mock.PeerTypeProviderStub{},
-		StatusHandler:    &mock.AppStatusHandlerStub{},
-		VersionNumber:    "v0.1",
-		NodeDisplayName:  "undefined",
-		HardforkTrigger:  &mock.HardforkTriggerStub{},
-		ChainHandler:     &mock.ChainHandlerStub{},
+		Topic:                "",
+		ShardCoordinator:     &mock.ShardCoordinatorMock{},
+		PeerTypeProvider:     &mock.PeerTypeProviderStub{},
+		StatusHandler:        &mock.AppStatusHandlerStub{},
+		VersionNumber:        "v0.1",
+		NodeDisplayName:      "undefined",
+		HardforkTrigger:      &mock.HardforkTriggerStub{},
+		CurrentBlockProvider: &mock.CurrentBlockProviderStub{},
 	}
 }
 
@@ -138,15 +138,15 @@ func TestNewSender_PropertyTooLongShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 }
 
-func TestNewSender_NilChainHandlerShouldErr(t *testing.T) {
+func TestNewSender_NilCurrentBlockProviderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHeartbeatSender()
-	arg.ChainHandler = nil
+	arg.CurrentBlockProvider = nil
 	sender, err := process.NewSender(arg)
 
 	assert.Nil(t, sender)
-	assert.True(t, errors.Is(err, heartbeat.ErrNilChainHandler))
+	assert.True(t, errors.Is(err, heartbeat.ErrNilCurrentBlockProvider))
 }
 
 func TestNewSender_ShouldWork(t *testing.T) {

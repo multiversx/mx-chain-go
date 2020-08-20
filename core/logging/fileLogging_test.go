@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +26,7 @@ func TestNewFileLogging_ShouldWork(t *testing.T) {
 
 	fl, err := NewFileLogging(dir, logsDirectory)
 
-	assert.NotNil(t, fl)
+	assert.False(t, check.IfNil(fl))
 	assert.Nil(t, err)
 }
 

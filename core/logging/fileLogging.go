@@ -19,8 +19,8 @@ const defaultFileLifeSpan = time.Hour * 24
 
 var log = logger.GetOrCreate("core/logging")
 
-// FileLogging is able to rotate the log files
-type FileLogging struct {
+// fileLogging is able to rotate the log files
+type fileLogging struct {
 	chLifeSpanChanged chan time.Duration
 	mutFile           sync.Mutex
 	currentFile       *os.File
@@ -32,8 +32,8 @@ type FileLogging struct {
 }
 
 // NewFileLogging creates a file log watcher used to break the log file into multiple smaller files
-func NewFileLogging(workingDir string, defaultLogsPath string) (*FileLogging, error) {
-	fl := &FileLogging{
+func NewFileLogging(workingDir string, defaultLogsPath string) (*fileLogging, error) {
+	fl := &fileLogging{
 		workingDir:        workingDir,
 		defaultLogsPath:   defaultLogsPath,
 		chLifeSpanChanged: make(chan time.Duration),
@@ -43,7 +43,7 @@ func NewFileLogging(workingDir string, defaultLogsPath string) (*FileLogging, er
 
 	//we need this function as to call file.Close() when the code panics and the defer func associated
 	//with the file pointer in the main func will never be reached
-	runtime.SetFinalizer(fl, func(fileLogHandler *FileLogging) {
+	runtime.SetFinalizer(fl, func(fileLogHandler *fileLogging) {
 		_ = fileLogHandler.currentFile.Close()
 	})
 
@@ -54,13 +54,19 @@ func NewFileLogging(workingDir string, defaultLogsPath string) (*FileLogging, er
 	return fl, nil
 }
 
-func (fl *FileLogging) createFile() (*os.File, error) {
+func (fl *fileLogging) createFile() (*os.File, error) {
 	logDirectory := filepath.Join(fl.workingDir, fl.defaultLogsPath)
 
-	return core.CreateFile("elrond-go", logDirectory, "log")
+	return core.CreateFile(
+		core.ArgCreateFileArgument{
+			Prefix:        "elrond-go",
+			Directory:     logDirectory,
+			FileExtension: "log",
+		},
+	)
 }
 
-func (fl *FileLogging) recreateLogFile() {
+func (fl *fileLogging) recreateLogFile() {
 	newFile, err := fl.createFile()
 	if err != nil {
 		log.Error("error creating new log file", "error", err)
@@ -78,9 +84,7 @@ func (fl *FileLogging) recreateLogFile() {
 	}
 
 	errNotCritical := redirects.RedirectStderr(newFile)
-	if errNotCritical != nil {
-		log.Error("error redirecting std error, moving on", "error", errNotCritical)
-	}
+	log.LogIfError(errNotCritical, "step", "redirecting std error")
 
 	fl.currentFile = newFile
 
@@ -89,17 +93,13 @@ func (fl *FileLogging) recreateLogFile() {
 	}
 
 	errNotCritical = oldFile.Close()
-	if errNotCritical != nil {
-		log.Error("error closing old log file, moving on...", "error", errNotCritical)
-	}
+	log.LogIfError(errNotCritical, "step", "closing old log file")
 
 	errNotCritical = logger.RemoveLogObserver(oldFile)
-	if errNotCritical != nil {
-		log.Error("error removing old log observer, moving on...", "error", errNotCritical)
-	}
+	log.LogIfError(errNotCritical, "step", "removing old log observer")
 }
 
-func (fl *FileLogging) autoRecreateFile(ctx context.Context) {
+func (fl *fileLogging) autoRecreateFile(ctx context.Context) {
 	fileLifeSpan := defaultFileLifeSpan
 	for {
 		select {
@@ -115,7 +115,7 @@ func (fl *FileLogging) autoRecreateFile(ctx context.Context) {
 }
 
 // ChangeFileLifeSpan changes the log file span
-func (fl *FileLogging) ChangeFileLifeSpan(newDuration time.Duration) error {
+func (fl *fileLogging) ChangeFileLifeSpan(newDuration time.Duration) error {
 	if newDuration < minFileLifeSpan {
 		return fmt.Errorf("%w, provided %v", core.ErrInvalidLogFileMinLifeSpan, newDuration)
 	}
@@ -132,7 +132,7 @@ func (fl *FileLogging) ChangeFileLifeSpan(newDuration time.Duration) error {
 }
 
 // Close closes the file logging handler
-func (fl *FileLogging) Close() error {
+func (fl *fileLogging) Close() error {
 	fl.mutIsClosed.Lock()
 	if fl.isClosed {
 		fl.mutIsClosed.Unlock()
@@ -149,4 +149,9 @@ func (fl *FileLogging) Close() error {
 	fl.cancelFunc()
 
 	return err
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (fl *fileLogging) IsInterfaceNil() bool {
+	return fl == nil
 }

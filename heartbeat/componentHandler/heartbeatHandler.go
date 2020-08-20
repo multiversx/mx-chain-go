@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
@@ -49,7 +48,7 @@ type ArgHeartbeat struct {
 	PeerShardMapper          heartbeat.NetworkShardingCollector
 	SizeCheckDelta           uint32
 	ValidatorsProvider       peerProcess.ValidatorsProvider
-	ChainHandler             data.ChainHandler
+	CurrentBlockProvider     heartbeat.CurrentBlockProvider
 }
 
 // HeartbeatHandler is the struct used to manage heartbeat subsystem consisting of a heartbeat sender and monitor
@@ -124,7 +123,7 @@ func (hbh *HeartbeatHandler) create() error {
 		NodeDisplayName:      arg.PrefsConfig.NodeDisplayName,
 		KeyBaseIdentity:      arg.PrefsConfig.Identity,
 		HardforkTrigger:      arg.HardforkTrigger,
-		ChainHandler:         arg.ChainHandler,
+		CurrentBlockProvider: arg.CurrentBlockProvider,
 	}
 
 	hbh.sender, err = process.NewSender(argSender)

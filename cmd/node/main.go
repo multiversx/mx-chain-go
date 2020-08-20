@@ -471,7 +471,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
 	workingDir := getWorkingDir(ctx, log)
 
-	var fileLogging *logging.FileLogging
+	var fileLogging factory.FileLoggingHandler
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
@@ -573,7 +573,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
 
-	if fileLogging != nil {
+	if !check.IfNil(fileLogging) {
 		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(generalConfig.Logs.LogFileLifeSpanInSec))
 		if err != nil {
 			return err
@@ -1436,7 +1436,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Debug("closing node")
-	if fileLogging != nil {
+	if !check.IfNil(fileLogging) {
 		err = fileLogging.Close()
 		log.LogIfError(err)
 	}

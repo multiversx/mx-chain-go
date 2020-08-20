@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -28,7 +27,7 @@ type ArgHeartbeatSender struct {
 	NodeDisplayName      string
 	KeyBaseIdentity      string
 	HardforkTrigger      heartbeat.HardforkTrigger
-	ChainHandler         data.ChainHandler
+	CurrentBlockProvider heartbeat.CurrentBlockProvider
 }
 
 // Sender periodically sends heartbeat messages on a pubsub topic
@@ -45,7 +44,7 @@ type Sender struct {
 	nodeDisplayName      string
 	keyBaseIdentity      string
 	hardforkTrigger      heartbeat.HardforkTrigger
-	chainHandler         data.ChainHandler
+	currentBlockProvider heartbeat.CurrentBlockProvider
 }
 
 // NewSender will create a new sender instance
@@ -74,8 +73,8 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 	if check.IfNil(arg.HardforkTrigger) {
 		return nil, heartbeat.ErrNilHardforkTrigger
 	}
-	if check.IfNil(arg.ChainHandler) {
-		return nil, heartbeat.ErrNilChainHandler
+	if check.IfNil(arg.CurrentBlockProvider) {
+		return nil, heartbeat.ErrNilCurrentBlockProvider
 	}
 	err := VerifyHeartbeatProperyLen("application version string", []byte(arg.VersionNumber))
 	if err != nil {
@@ -95,7 +94,7 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		nodeDisplayName:      arg.NodeDisplayName,
 		keyBaseIdentity:      arg.KeyBaseIdentity,
 		hardforkTrigger:      arg.HardforkTrigger,
-		chainHandler:         arg.ChainHandler,
+		currentBlockProvider: arg.CurrentBlockProvider,
 	}
 
 	return sender, nil
@@ -104,7 +103,7 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 // SendHeartbeat broadcasts a new heartbeat message
 func (s *Sender) SendHeartbeat() error {
 	nonce := uint64(0)
-	crtBlock := s.chainHandler.GetCurrentBlockHeader()
+	crtBlock := s.currentBlockProvider.GetCurrentBlockHeader()
 	if !check.IfNil(crtBlock) {
 		nonce = crtBlock.GetNonce()
 	}
