@@ -416,26 +416,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		vmOutput = &vmcommon.VMOutput{ReturnCode: vmcommon.UserError, ReturnMessage: err.Error()}
 	}
 
-	if vmInput.CallType != vmcommon.AsynchronousCall && isTooMuchGasProvided(vmInput.GasProvided, vmOutput.GasRemaining) {
-		log.Trace("scProcessor.resolveBuiltInFunctions: too much gas has been provided",
-			"hash", txHash,
-			"nonce", tx.GetNonce(),
-			"value", tx.GetValue(),
-			"sender", tx.GetSndAddr(),
-			"receiver", tx.GetRcvAddr(),
-			"gas limit", tx.GetGasLimit(),
-			"gas price", tx.GetGasPrice(),
-			"gas provided", vmInput.GasProvided,
-			"gas remained", vmOutput.GasRemaining,
-			"gas used", vmInput.GasProvided-vmOutput.GasRemaining,
-			"return code", vmOutput.ReturnCode.String(),
-			"return message", vmOutput.ReturnMessage,
-		)
-
-		vmOutput.ReturnMessage += fmt.Sprintf("too much gas has been provided: gas used = %d, gas remained = %d",
-			vmInput.GasProvided-vmOutput.GasRemaining, vmOutput.GasRemaining)
-		vmOutput.GasRemaining = 0
-	}
+	sc.penalizeUserIfNeeded(tx, txHash, vmInput.CallType, vmInput.GasProvided, vmOutput)
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 
@@ -775,26 +756,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
-	if callType != vmcommon.AsynchronousCall && isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining) {
-		log.Trace("scProcessor.processVMOutput: too much gas has been provided",
-			"hash", txHash,
-			"nonce", tx.GetNonce(),
-			"value", tx.GetValue(),
-			"sender", tx.GetSndAddr(),
-			"receiver", tx.GetRcvAddr(),
-			"gas limit", tx.GetGasLimit(),
-			"gas price", tx.GetGasPrice(),
-			"gas provided", gasProvided,
-			"gas remained", vmOutput.GasRemaining,
-			"gas used", gasProvided-vmOutput.GasRemaining,
-			"return code", vmOutput.ReturnCode.String(),
-			"return message", vmOutput.ReturnMessage,
-		)
-
-		vmOutput.ReturnMessage += fmt.Sprintf("too much gas has been provided: gas used = %d, gas remained = %d",
-			gasProvided-vmOutput.GasRemaining, vmOutput.GasRemaining)
-		vmOutput.GasRemaining = 0
-	}
+	sc.penalizeUserIfNeeded(tx, txHash, callType, gasProvided, vmOutput)
 
 	scrForSender, consumedFee := sc.createSCRForSender(
 		vmOutput.GasRefund,
@@ -863,6 +825,38 @@ func (sc *scProcessor) processVMOutput(
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 
 	return scrTxs, consumedFee, nil
+}
+
+func (sc *scProcessor) penalizeUserIfNeeded(
+	tx data.TransactionHandler,
+	txHash []byte,
+	callType vmcommon.CallType,
+	gasProvided uint64,
+	vmOutput *vmcommon.VMOutput,
+) {
+	isTooMuchGasProvided := callType != vmcommon.AsynchronousCall && isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
+	if !isTooMuchGasProvided {
+		return
+	}
+
+	log.Trace("scProcessor.penalizeUserIfNeeded: too much gas has been provided",
+		"hash", txHash,
+		"nonce", tx.GetNonce(),
+		"value", tx.GetValue(),
+		"sender", tx.GetSndAddr(),
+		"receiver", tx.GetRcvAddr(),
+		"gas limit", tx.GetGasLimit(),
+		"gas price", tx.GetGasPrice(),
+		"gas provided", gasProvided,
+		"gas remained", vmOutput.GasRemaining,
+		"gas used", gasProvided-vmOutput.GasRemaining,
+		"return code", vmOutput.ReturnCode.String(),
+		"return message", vmOutput.ReturnMessage,
+	)
+
+	vmOutput.ReturnMessage += fmt.Sprintf("too much gas has been provided: gas used = %d, gas remained = %d",
+		gasProvided-vmOutput.GasRemaining, vmOutput.GasRemaining)
+	vmOutput.GasRemaining = 0
 }
 
 func isTooMuchGasProvided(gasProvided uint64, gasRemained uint64) bool {
