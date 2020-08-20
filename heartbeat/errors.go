@@ -98,3 +98,6 @@ var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
 
 // ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
 var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")
+
+// ErrNilCurrentBlockProvider signals that a nil current block provider
+var ErrNilCurrentBlockProvider = errors.New("nil current block provider")

@@ -541,7 +541,7 @@ type FeeHandler interface {
 	DeveloperPercentage() float64
 	MaxGasLimitPerBlock(shardID uint32) uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
-	ComputeFee(tx TransactionWithFeeHandler) *big.Int
+	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
 	MinGasPrice() uint64
 	IsInterfaceNil() bool
