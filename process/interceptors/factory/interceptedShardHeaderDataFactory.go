@@ -12,13 +12,13 @@ import (
 var _ process.InterceptedDataFactory = (*interceptedShardHeaderDataFactory)(nil)
 
 type interceptedShardHeaderDataFactory struct {
-	marshalizer       marshal.Marshalizer
-	hasher            hashing.Hasher
-	shardCoordinator  sharding.Coordinator
-	headerSigVerifier process.InterceptedHeaderSigVerifier
-	headerVersioning  process.HeaderVersioningHandler
-	validityAttester  process.ValidityAttester
-	epochStartTrigger process.EpochStartTriggerHandler
+	marshalizer             marshal.Marshalizer
+	hasher                  hashing.Hasher
+	shardCoordinator        sharding.Coordinator
+	headerSigVerifier       process.InterceptedHeaderSigVerifier
+	headerIntegrityVerifier process.HeaderIntegrityVerifier
+	validityAttester        process.ValidityAttester
+	epochStartTrigger       process.EpochStartTriggerHandler
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -41,8 +41,8 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if check.IfNil(argument.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
-	if check.IfNil(argument.HeaderVersioning) {
-		return nil, process.ErrNilHeaderVersioningHandler
+	if check.IfNil(argument.HeaderIntegrityVerifier) {
+		return nil, process.ErrNilHeaderIntegrityVerifier
 	}
 	if check.IfNil(argument.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
@@ -52,27 +52,27 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	}
 
 	return &interceptedShardHeaderDataFactory{
-		marshalizer:       argument.ProtoMarshalizer,
-		hasher:            argument.Hasher,
-		shardCoordinator:  argument.ShardCoordinator,
-		headerSigVerifier: argument.HeaderSigVerifier,
-		headerVersioning:  argument.HeaderVersioning,
-		validityAttester:  argument.ValidityAttester,
-		epochStartTrigger: argument.EpochStartTrigger,
+		marshalizer:             argument.ProtoMarshalizer,
+		hasher:                  argument.Hasher,
+		shardCoordinator:        argument.ShardCoordinator,
+		headerSigVerifier:       argument.HeaderSigVerifier,
+		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,
+		validityAttester:        argument.ValidityAttester,
+		epochStartTrigger:       argument.EpochStartTrigger,
 	}, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		HdrBuff:           buff,
-		Marshalizer:       ishdf.marshalizer,
-		Hasher:            ishdf.hasher,
-		ShardCoordinator:  ishdf.shardCoordinator,
-		HeaderSigVerifier: ishdf.headerSigVerifier,
-		HeaderVersioning:  ishdf.headerVersioning,
-		ValidityAttester:  ishdf.validityAttester,
-		EpochStartTrigger: ishdf.epochStartTrigger,
+		HdrBuff:                 buff,
+		Marshalizer:             ishdf.marshalizer,
+		Hasher:                  ishdf.hasher,
+		ShardCoordinator:        ishdf.shardCoordinator,
+		HeaderSigVerifier:       ishdf.headerSigVerifier,
+		HeaderIntegrityVerifier: ishdf.headerIntegrityVerifier,
+		ValidityAttester:        ishdf.validityAttester,
+		EpochStartTrigger:       ishdf.epochStartTrigger,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

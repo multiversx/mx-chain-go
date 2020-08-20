@@ -136,8 +136,8 @@ type RandSeedVerifier interface {
 	IsInterfaceNil() bool
 }
 
-// HeaderVersioningHandler encapsulates methods useful to check that a header's versioning is correct
-type HeaderVersioningHandler interface {
+// HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
+type HeaderIntegrityVerifier interface {
 	Verify(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }

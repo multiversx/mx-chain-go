@@ -77,15 +77,15 @@ func NewTestSyncNode(
 				return nil
 			},
 		},
-		StorageBootstrapper:   &mock.StorageBootstrapperMock{},
-		HeaderSigVerifier:     &mock.HeaderSigVerifierStub{},
-		HeaderVersioning:      CreateHeaderVersioning(),
-		ChainID:               ChainID,
-		EpochStartTrigger:     &mock.EpochStartTriggerStub{},
-		NodesSetup:            nodesSetup,
-		MinTransactionVersion: MinTransactionVersion,
-		HistoryRepository:     &mock.HistoryRepositoryStub{},
-		EpochNotifier:         forking.NewGenericEpochNotifier(),
+		StorageBootstrapper:     &mock.StorageBootstrapperMock{},
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
+		ChainID:                 ChainID,
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		NodesSetup:              nodesSetup,
+		MinTransactionVersion:   MinTransactionVersion,
+		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -179,16 +179,16 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker:           tpn.BlockTracker,
-		DataPool:               tpn.DataPool,
-		StateCheckpointModulus: stateCheckpointModulus,
-		BlockChain:             tpn.BlockChain,
-		BlockSizeThrottler:     TestBlockSizeThrottler,
-		Indexer:                indexer.NewNilIndexer(),
-		TpsBenchmark:           &testscommon.TpsBenchmarkMock{},
-		HistoryRepository:      tpn.HistoryRepository,
-		EpochNotifier:          tpn.EpochNotifier,
-		HeaderVersioning:       tpn.HeaderVersioning,
+		BlockTracker:            tpn.BlockTracker,
+		DataPool:                tpn.DataPool,
+		StateCheckpointModulus:  stateCheckpointModulus,
+		BlockChain:              tpn.BlockChain,
+		BlockSizeThrottler:      TestBlockSizeThrottler,
+		Indexer:                 indexer.NewNilIndexer(),
+		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
+		HistoryRepository:       tpn.HistoryRepository,
+		EpochNotifier:           tpn.EpochNotifier,
+		HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

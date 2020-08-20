@@ -163,8 +163,8 @@ var ErrNilPoolAdder = errors.New("nil pool adder")
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
-// ErrNilHeaderVersioningHandler signals that a nil header versioning handler has been provided
-var ErrNilHeaderVersioningHandler = errors.New("nil header versioning handler")
+// ErrNilHeaderIntegrityVerifier signals that a nil header integrity verifier has been provided
+var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in consensus")

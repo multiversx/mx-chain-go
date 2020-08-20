@@ -125,8 +125,8 @@ var ErrNilBlockSigner = errors.New("nil block signer")
 // ErrNilHeaderSigVerifier signals that nil header sig verifier was provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
-// ErrNilHeaderVersioning signals that a nil header versioning handler was provided
-var ErrNilHeaderVersioning = errors.New("nil header versioning handler")
+// ErrNilHeaderIntegrityVerifier signals that nil header integrity verifier was provided
+var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
 
 // ErrNilValidityAttester signals that nil validity was provided
 var ErrNilValidityAttester = errors.New("nil validity attester")

@@ -64,7 +64,7 @@ type ArgsExporter struct {
 	KeyGen                   crypto.KeyGenerator
 	BlockSigner              crypto.SingleSigner
 	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
-	HeaderVersioning         process.HeaderVersioningHandler
+	HeaderIntegrityVerifier  process.HeaderIntegrityVerifier
 	ValidityAttester         process.ValidityAttester
 	InputAntifloodHandler    process.P2PAntifloodHandler
 	OutputAntifloodHandler   process.P2PAntifloodHandler
@@ -105,7 +105,7 @@ type exportHandlerFactory struct {
 	addressPubKeyConverter   core.PubkeyConverter
 	validatorPubKeyConverter core.PubkeyConverter
 	headerSigVerifier        process.InterceptedHeaderSigVerifier
-	headerVersioning         process.HeaderVersioningHandler
+	headerIntegrityVerifier  process.HeaderIntegrityVerifier
 	validityAttester         process.ValidityAttester
 	resolverContainer        dataRetriever.ResolversContainer
 	inputAntifloodHandler    process.P2PAntifloodHandler
@@ -186,8 +186,8 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, update.ErrNilHeaderSigVerifier
 	}
-	if check.IfNil(args.HeaderVersioning) {
-		return nil, update.ErrNilHeaderVersioning
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return nil, update.ErrNilHeaderIntegrityVerifier
 	}
 	if check.IfNil(args.ValidityAttester) {
 		return nil, update.ErrNilValidityAttester
@@ -238,7 +238,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		keyGen:                   args.KeyGen,
 		blockSigner:              args.BlockSigner,
 		headerSigVerifier:        args.HeaderSigVerifier,
-		headerVersioning:         args.HeaderVersioning,
+		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
 		validityAttester:         args.ValidityAttester,
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
@@ -450,35 +450,35 @@ func (e *exportHandlerFactory) prepareFolders(folder string) error {
 
 func (e *exportHandlerFactory) createInterceptors() error {
 	argsInterceptors := ArgsNewFullSyncInterceptorsContainerFactory{
-		Accounts:               e.accounts,
-		ShardCoordinator:       e.shardCoordinator,
-		NodesCoordinator:       e.nodesCoordinator,
-		Messenger:              e.messenger,
-		Store:                  e.storageService,
-		Marshalizer:            e.marshalizer,
-		TxSignMarshalizer:      e.txSignMarshalizer,
-		Hasher:                 e.hasher,
-		KeyGen:                 e.keyGen,
-		BlockSignKeyGen:        e.blockKeyGen,
-		SingleSigner:           e.singleSigner,
-		BlockSingleSigner:      e.blockSigner,
-		MultiSigner:            e.multiSigner,
-		DataPool:               e.dataPool,
-		AddressPubkeyConverter: e.addressPubKeyConverter,
-		MaxTxNonceDeltaAllowed: math.MaxInt32,
-		TxFeeHandler:           &disabled.FeeHandler{},
-		BlockBlackList:         timecache.NewTimeCache(time.Second),
-		HeaderSigVerifier:      e.headerSigVerifier,
-		HeaderVersioning:       e.headerVersioning,
-		SizeCheckDelta:         math.MaxUint32,
-		ValidityAttester:       e.validityAttester,
-		EpochStartTrigger:      e.epochStartTrigger,
-		WhiteListHandler:       e.whiteListHandler,
-		WhiteListerVerifiedTxs: e.whiteListerVerifiedTxs,
-		InterceptorsContainer:  e.interceptorsContainer,
-		AntifloodHandler:       e.inputAntifloodHandler,
-		NonceConverter:         e.uint64Converter,
-		ChainID:                e.chainID,
+		Accounts:                e.accounts,
+		ShardCoordinator:        e.shardCoordinator,
+		NodesCoordinator:        e.nodesCoordinator,
+		Messenger:               e.messenger,
+		Store:                   e.storageService,
+		Marshalizer:             e.marshalizer,
+		TxSignMarshalizer:       e.txSignMarshalizer,
+		Hasher:                  e.hasher,
+		KeyGen:                  e.keyGen,
+		BlockSignKeyGen:         e.blockKeyGen,
+		SingleSigner:            e.singleSigner,
+		BlockSingleSigner:       e.blockSigner,
+		MultiSigner:             e.multiSigner,
+		DataPool:                e.dataPool,
+		AddressPubkeyConverter:  e.addressPubKeyConverter,
+		MaxTxNonceDeltaAllowed:  math.MaxInt32,
+		TxFeeHandler:            &disabled.FeeHandler{},
+		BlockBlackList:          timecache.NewTimeCache(time.Second),
+		HeaderSigVerifier:       e.headerSigVerifier,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		SizeCheckDelta:          math.MaxUint32,
+		ValidityAttester:        e.validityAttester,
+		EpochStartTrigger:       e.epochStartTrigger,
+		WhiteListHandler:        e.whiteListHandler,
+		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
+		InterceptorsContainer:   e.interceptorsContainer,
+		AntifloodHandler:        e.inputAntifloodHandler,
+		NonceConverter:          e.uint64Converter,
+		ChainID:                 e.chainID,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

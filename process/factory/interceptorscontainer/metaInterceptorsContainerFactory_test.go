@@ -194,15 +194,15 @@ func TestNewMetaInterceptorsContainerFactory_NilHeaderSigVerifierShouldErr(t *te
 	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
 }
 
-func TestNewMetaInterceptorsContainerFactory_NilHeaderVersioningShouldErr(t *testing.T) {
+func TestNewMetaInterceptorsContainerFactory_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.HeaderVersioning = nil
+	args.HeaderIntegrityVerifier = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilHeaderVersioningHandler, err)
+	assert.Equal(t, process.ErrNilHeaderIntegrityVerifier, err)
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
@@ -477,34 +477,34 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryArgs {
 	return interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-		ShardCoordinator:       mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:       mock.NewNodesCoordinatorMock(),
-		Messenger:              &mock.TopicHandlerStub{},
-		Store:                  createMetaStore(),
-		ProtoMarshalizer:       &mock.MarshalizerMock{},
-		TxSignMarshalizer:      &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
-		MultiSigner:            mock.NewMultiSigner(),
-		DataPool:               createMetaDataPools(),
-		Accounts:               &mock.AccountsStub{},
-		AddressPubkeyConverter: mock.NewPubkeyConverterMock(32),
-		SingleSigner:           &mock.SignerMock{},
-		BlockSingleSigner:      &mock.SignerMock{},
-		KeyGen:                 &mock.SingleSignKeyGenMock{},
-		BlockKeyGen:            &mock.SingleSignKeyGenMock{},
-		MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
-		TxFeeHandler:           &mock.FeeHandlerStub{},
-		BlackList:              &mock.BlackListHandlerStub{},
-		HeaderSigVerifier:      &mock.HeaderSigVerifierStub{},
-		HeaderVersioning:       &mock.HeaderVersioningHandlerStub{},
-		SizeCheckDelta:         0,
-		ValidityAttester:       &mock.ValidityAttesterStub{},
-		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
-		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
-		WhiteListHandler:       &mock.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs: &mock.WhiteListHandlerStub{},
-		ArgumentsParser:        &mock.ArgumentParserMock{},
-		ChainID:                []byte("chainID"),
-		MinTransactionVersion:  1,
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
+		Messenger:               &mock.TopicHandlerStub{},
+		Store:                   createMetaStore(),
+		ProtoMarshalizer:        &mock.MarshalizerMock{},
+		TxSignMarshalizer:       &mock.MarshalizerMock{},
+		Hasher:                  &mock.HasherMock{},
+		MultiSigner:             mock.NewMultiSigner(),
+		DataPool:                createMetaDataPools(),
+		Accounts:                &mock.AccountsStub{},
+		AddressPubkeyConverter:  mock.NewPubkeyConverterMock(32),
+		SingleSigner:            &mock.SignerMock{},
+		BlockSingleSigner:       &mock.SignerMock{},
+		KeyGen:                  &mock.SingleSignKeyGenMock{},
+		BlockKeyGen:             &mock.SingleSignKeyGenMock{},
+		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
+		TxFeeHandler:            &mock.FeeHandlerStub{},
+		BlackList:               &mock.BlackListHandlerStub{},
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		SizeCheckDelta:          0,
+		ValidityAttester:        &mock.ValidityAttesterStub{},
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
+		WhiteListHandler:        &mock.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		ArgumentsParser:         &mock.ArgumentParserMock{},
+		ChainID:                 []byte("chainID"),
+		MinTransactionVersion:   1,
 	}
 }

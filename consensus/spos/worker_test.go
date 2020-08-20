@@ -88,7 +88,7 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 		PeerSignatureHandler:     peerSigHandler,
 		SyncTimer:                syncTimerMock,
 		HeaderSigVerifier:        &mock.HeaderSigVerifierStub{},
-		HeaderVersioning:         &mock.HeaderVersioningHandlerStub{},
+		HeaderIntegrityVerifier:  &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                  chainID,
 		NetworkShardingCollector: createMockNetworkShardingCollector(),
 		AntifloodHandler:         createMockP2PAntifloodHandler(),
@@ -291,15 +291,15 @@ func TestWorker_NewWorkerHeaderSigVerifierNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilHeaderSigVerifier, err)
 }
 
-func TestWorker_NewWorkerHeaderVersioningHandlerShouldFail(t *testing.T) {
+func TestWorker_NewWorkerHeaderIntegrityVerifierShouldFail(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs()
-	workerArgs.HeaderVersioning = nil
+	workerArgs.HeaderIntegrityVerifier = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, spos.ErrNilHeaderVersioningHandler, err)
+	assert.Equal(t, spos.ErrNilHeaderIntegrityVerifier, err)
 }
 
 func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {

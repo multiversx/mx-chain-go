@@ -196,11 +196,11 @@ func TestNewShardInterceptorsContainerFactory_NilHeaderIntegrityVerifierShouldEr
 	t.Parallel()
 
 	args := getArgumentsShard()
-	args.HeaderVersioning = nil
+	args.HeaderIntegrityVerifier = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilHeaderVersioningHandler, err)
+	assert.Equal(t, process.ErrNilHeaderIntegrityVerifier, err)
 }
 
 func TestNewShardInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
@@ -527,34 +527,34 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactoryArgs {
 	return interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
-		Accounts:               &mock.AccountsStub{},
-		ShardCoordinator:       mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:       mock.NewNodesCoordinatorMock(),
-		Messenger:              &mock.TopicHandlerStub{},
-		Store:                  createShardStore(),
-		ProtoMarshalizer:       &mock.MarshalizerMock{},
-		TxSignMarshalizer:      &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
-		KeyGen:                 &mock.SingleSignKeyGenMock{},
-		BlockSignKeyGen:        &mock.SingleSignKeyGenMock{},
-		SingleSigner:           &mock.SignerMock{},
-		BlockSingleSigner:      &mock.SignerMock{},
-		MultiSigner:            mock.NewMultiSigner(),
-		DataPool:               createShardDataPools(),
-		AddressPubkeyConverter: mock.NewPubkeyConverterMock(32),
-		MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
-		TxFeeHandler:           &mock.FeeHandlerStub{},
-		BlockBlackList:         &mock.BlackListHandlerStub{},
-		HeaderSigVerifier:      &mock.HeaderSigVerifierStub{},
-		HeaderVersioning:       &mock.HeaderVersioningHandlerStub{},
-		SizeCheckDelta:         0,
-		ValidityAttester:       &mock.ValidityAttesterStub{},
-		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
-		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
-		WhiteListHandler:       &mock.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs: &mock.WhiteListHandlerStub{},
-		ArgumentsParser:        &mock.ArgumentParserMock{},
-		ChainID:                []byte("chainID"),
-		MinTransactionVersion:  1,
+		Accounts:                &mock.AccountsStub{},
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
+		Messenger:               &mock.TopicHandlerStub{},
+		Store:                   createShardStore(),
+		ProtoMarshalizer:        &mock.MarshalizerMock{},
+		TxSignMarshalizer:       &mock.MarshalizerMock{},
+		Hasher:                  &mock.HasherMock{},
+		KeyGen:                  &mock.SingleSignKeyGenMock{},
+		BlockSignKeyGen:         &mock.SingleSignKeyGenMock{},
+		SingleSigner:            &mock.SignerMock{},
+		BlockSingleSigner:       &mock.SignerMock{},
+		MultiSigner:             mock.NewMultiSigner(),
+		DataPool:                createShardDataPools(),
+		AddressPubkeyConverter:  mock.NewPubkeyConverterMock(32),
+		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
+		TxFeeHandler:            &mock.FeeHandlerStub{},
+		BlockBlackList:          &mock.BlackListHandlerStub{},
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		SizeCheckDelta:          0,
+		ValidityAttester:        &mock.ValidityAttesterStub{},
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
+		WhiteListHandler:        &mock.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
+		ArgumentsParser:         &mock.ArgumentParserMock{},
+		ChainID:                 []byte("chainID"),
+		MinTransactionVersion:   1,
 	}
 }

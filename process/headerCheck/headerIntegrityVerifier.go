@@ -18,21 +18,20 @@ import (
 const wildcard = "*"
 const keySize = 4
 
-type headerVersioningHandler struct {
+type headerIntegrityVerifier struct {
 	referenceChainID []byte
 	versions         []config.VersionByEpochs
 	defaultVersion   string
 	versionCache     storage.Cacher
 }
 
-// NewHeaderVersioningHandler returns a new instance of a structure capable of handling the versions of a header
-// based on the provided epoch
-func NewHeaderVersioningHandler(
+// NewHeaderIntegrityVerifier returns a new instance of a structure capable of verifying the integrity of a provided header
+func NewHeaderIntegrityVerifier(
 	referenceChainID []byte,
 	versionsByEpochs []config.VersionByEpochs,
 	defaultVersion string,
 	versionCache storage.Cacher,
-) (*headerVersioningHandler, error) {
+) (*headerIntegrityVerifier, error) {
 
 	if len(referenceChainID) == 0 {
 		return nil, ErrInvalidReferenceChainID
@@ -41,26 +40,26 @@ func NewHeaderVersioningHandler(
 		return nil, fmt.Errorf("%w, in NewHeaderVersioningHandler", ErrNilCacher)
 	}
 
-	hvh := &headerVersioningHandler{
+	hdrIntVer := &headerIntegrityVerifier{
 		referenceChainID: referenceChainID,
 		defaultVersion:   defaultVersion,
 		versionCache:     versionCache,
 	}
 	var err error
-	hvh.versions, err = hvh.prepareVersions(versionsByEpochs)
+	hdrIntVer.versions, err = hdrIntVer.prepareVersions(versionsByEpochs)
 	if err != nil {
 		return nil, err
 	}
 
-	err = hvh.checkVersionLength([]byte(defaultVersion))
+	err = hdrIntVer.checkVersionLength([]byte(defaultVersion))
 	if err != nil {
 		return nil, err
 	}
 
-	return hvh, err
+	return hdrIntVer, err
 }
 
-func (hvh *headerVersioningHandler) prepareVersions(versionsByEpochs []config.VersionByEpochs) ([]config.VersionByEpochs, error) {
+func (hdrIntVer *headerIntegrityVerifier) prepareVersions(versionsByEpochs []config.VersionByEpochs) ([]config.VersionByEpochs, error) {
 	if len(versionsByEpochs) == 0 {
 		return nil, ErrEmptyVersionsByEpochsList
 	}
@@ -91,43 +90,43 @@ func (hvh *headerVersioningHandler) prepareVersions(versionsByEpochs []config.Ve
 }
 
 // GetVersion returns the version by providing the epoch
-func (hvh *headerVersioningHandler) GetVersion(epoch uint32) string {
-	ver := hvh.getMatchingVersion(epoch)
+func (hdrIntVer *headerIntegrityVerifier) GetVersion(epoch uint32) string {
+	ver := hdrIntVer.getMatchingVersion(epoch)
 	if ver == wildcard {
-		return hvh.defaultVersion
+		return hdrIntVer.defaultVersion
 	}
 
 	return ver
 }
 
 // GetVersion returns the version by providing the epoch
-func (hvh *headerVersioningHandler) getMatchingVersion(epoch uint32) string {
-	storedVersion, ok := hvh.getFromCache(epoch)
+func (hdrIntVer *headerIntegrityVerifier) getMatchingVersion(epoch uint32) string {
+	storedVersion, ok := hdrIntVer.getFromCache(epoch)
 	if ok {
 		return storedVersion
 	}
 
-	matchingVersion := hvh.versions[len(hvh.versions)-1].Version
-	for idx := 0; idx < len(hvh.versions)-1; idx++ {
-		crtVer := hvh.versions[idx]
-		nextVer := hvh.versions[idx+1]
+	matchingVersion := hdrIntVer.versions[len(hdrIntVer.versions)-1].Version
+	for idx := 0; idx < len(hdrIntVer.versions)-1; idx++ {
+		crtVer := hdrIntVer.versions[idx]
+		nextVer := hdrIntVer.versions[idx+1]
 		if crtVer.StartEpoch <= epoch && epoch < nextVer.StartEpoch {
-			hvh.setInCache(epoch, crtVer.Version)
+			hdrIntVer.setInCache(epoch, crtVer.Version)
 
 			return crtVer.Version
 		}
 	}
 
-	hvh.setInCache(epoch, matchingVersion)
+	hdrIntVer.setInCache(epoch, matchingVersion)
 
 	return matchingVersion
 }
 
-func (hvh *headerVersioningHandler) getFromCache(epoch uint32) (string, bool) {
+func (hdrIntVer *headerIntegrityVerifier) getFromCache(epoch uint32) (string, bool) {
 	key := make([]byte, keySize)
 	binary.BigEndian.PutUint32(key, epoch)
 
-	obj, ok := hvh.versionCache.Get(key)
+	obj, ok := hdrIntVer.versionCache.Get(key)
 	if !ok {
 		return "", false
 	}
@@ -137,28 +136,28 @@ func (hvh *headerVersioningHandler) getFromCache(epoch uint32) (string, bool) {
 	return str, ok
 }
 
-func (hvh *headerVersioningHandler) setInCache(epoch uint32, version string) {
+func (hdrIntVer *headerIntegrityVerifier) setInCache(epoch uint32, version string) {
 	key := make([]byte, keySize)
 	binary.BigEndian.PutUint32(key, epoch)
 
-	_ = hvh.versionCache.Put(key, version, len(key)+len(version))
+	_ = hdrIntVer.versionCache.Put(key, version, len(key)+len(version))
 }
 
 // Verify will check the header's fields such as the chain ID or the software version
-func (hvh *headerVersioningHandler) Verify(hdr data.HeaderHandler) error {
+func (hdrIntVer *headerIntegrityVerifier) Verify(hdr data.HeaderHandler) error {
 	if len(hdr.GetReserved()) > 0 {
 		return process.ErrReservedFieldNotSupportedYet
 	}
 
-	err := hvh.checkSoftwareVersion(hdr)
+	err := hdrIntVer.checkSoftwareVersion(hdr)
 	if err != nil {
 		return err
 	}
 
-	return hvh.checkChainID(hdr)
+	return hdrIntVer.checkChainID(hdr)
 }
 
-func (hvh *headerVersioningHandler) checkVersionLength(version []byte) error {
+func (hdrIntVer *headerIntegrityVerifier) checkVersionLength(version []byte) error {
 	if len(version) == 0 || len(version) > core.MaxSoftwareVersionLengthInBytes {
 		return fmt.Errorf("%w when checking lenghts", ErrInvalidSoftwareVersion)
 	}
@@ -167,13 +166,13 @@ func (hvh *headerVersioningHandler) checkVersionLength(version []byte) error {
 }
 
 // checkSoftwareVersion returns nil if the software version has the correct length
-func (hvh *headerVersioningHandler) checkSoftwareVersion(hdr data.HeaderHandler) error {
-	err := hvh.checkVersionLength(hdr.GetSoftwareVersion())
+func (hdrIntVer *headerIntegrityVerifier) checkSoftwareVersion(hdr data.HeaderHandler) error {
+	err := hdrIntVer.checkVersionLength(hdr.GetSoftwareVersion())
 	if err != nil {
 		return err
 	}
 
-	version := hvh.getMatchingVersion(hdr.GetEpoch())
+	version := hdrIntVer.getMatchingVersion(hdr.GetEpoch())
 	if version == wildcard {
 		return nil
 	}
@@ -190,12 +189,12 @@ func (hvh *headerVersioningHandler) checkSoftwareVersion(hdr data.HeaderHandler)
 
 // checkChainID returns nil if the header's chain ID matches the one provided
 // otherwise, it will error
-func (hvh *headerVersioningHandler) checkChainID(hdr data.HeaderHandler) error {
-	if !bytes.Equal(hvh.referenceChainID, hdr.GetChainID()) {
+func (hdrIntVer *headerIntegrityVerifier) checkChainID(hdr data.HeaderHandler) error {
+	if !bytes.Equal(hdrIntVer.referenceChainID, hdr.GetChainID()) {
 		return fmt.Errorf(
 			"%w, expected: %s, got %s",
 			ErrInvalidChainID,
-			hex.EncodeToString(hvh.referenceChainID),
+			hex.EncodeToString(hdrIntVer.referenceChainID),
 			hex.EncodeToString(hdr.GetChainID()),
 		)
 	}
@@ -204,6 +203,6 @@ func (hvh *headerVersioningHandler) checkChainID(hdr data.HeaderHandler) error {
 }
 
 // IsInterfaceNil returns true if the value under the interface is nil
-func (hvh *headerVersioningHandler) IsInterfaceNil() bool {
-	return hvh == nil
+func (hdrIntVer *headerIntegrityVerifier) IsInterfaceNil() bool {
+	return hdrIntVer == nil
 }

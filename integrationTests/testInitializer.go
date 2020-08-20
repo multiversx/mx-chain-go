@@ -1111,9 +1111,9 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 	return binary.BigEndian.Uint64(buff)
 }
 
-// CreateHeaderVersioning outputs a valid header versioning handler
-func CreateHeaderVersioning() process.HeaderVersioningHandler {
-	headerVersioning, _ := headerCheck.NewHeaderVersioningHandler(
+// CreateHeaderIntegrityVerifier outputs a valid header integrity verifier handler
+func CreateHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	headerVersioning, _ := headerCheck.NewHeaderIntegrityVerifier(
 		ChainID,
 		[]config.VersionByEpochs{
 			{

@@ -35,24 +35,24 @@ type epochStartMetaSyncer struct {
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	RequestHandler     RequestHandler
-	Messenger          Messenger
-	Marshalizer        marshal.Marshalizer
-	TxSignMarshalizer  marshal.Marshalizer
-	ShardCoordinator   sharding.Coordinator
-	KeyGen             crypto.KeyGenerator
-	BlockKeyGen        crypto.KeyGenerator
-	Hasher             hashing.Hasher
-	Signer             crypto.SingleSigner
-	BlockSigner        crypto.SingleSigner
-	ChainID            []byte
-	EconomicsData      *economics.EconomicsData
-	WhitelistHandler   process.WhiteListHandler
-	AddressPubkeyConv  core.PubkeyConverter
-	NonceConverter     typeConverters.Uint64ByteSliceConverter
-	StartInEpochConfig config.EpochStartConfig
-	ArgsParser         process.ArgumentsParser
-	HeaderVersioning   process.HeaderVersioningHandler
+	RequestHandler          RequestHandler
+	Messenger               Messenger
+	Marshalizer             marshal.Marshalizer
+	TxSignMarshalizer       marshal.Marshalizer
+	ShardCoordinator        sharding.Coordinator
+	KeyGen                  crypto.KeyGenerator
+	BlockKeyGen             crypto.KeyGenerator
+	Hasher                  hashing.Hasher
+	Signer                  crypto.SingleSigner
+	BlockSigner             crypto.SingleSigner
+	ChainID                 []byte
+	EconomicsData           *economics.EconomicsData
+	WhitelistHandler        process.WhiteListHandler
+	AddressPubkeyConv       core.PubkeyConverter
+	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	StartInEpochConfig      config.EpochStartConfig
+	ArgsParser              process.ArgumentsParser
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -64,8 +64,8 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	if check.IfNil(args.AddressPubkeyConv) {
 		return nil, epochStart.ErrNilPubkeyConverter
 	}
-	if check.IfNil(args.HeaderVersioning) {
-		return nil, epochStart.ErrNilHeaderVersioningHandler
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return nil, epochStart.ErrNilHeaderIntegrityVerifier
 	}
 
 	e := &epochStartMetaSyncer{
@@ -90,23 +90,23 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	e.metaBlockProcessor = processor
 
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:  args.Marshalizer,
-		TxSignMarshalizer: args.TxSignMarshalizer,
-		Hasher:            args.Hasher,
-		ShardCoordinator:  args.ShardCoordinator,
-		MultiSigVerifier:  disabled.NewMultiSigVerifier(),
-		NodesCoordinator:  disabled.NewNodesCoordinator(),
-		KeyGen:            args.KeyGen,
-		BlockKeyGen:       args.BlockKeyGen,
-		Signer:            args.Signer,
-		BlockSigner:       args.BlockSigner,
-		AddressPubkeyConv: args.AddressPubkeyConv,
-		FeeHandler:        args.EconomicsData,
-		HeaderSigVerifier: disabled.NewHeaderSigVerifier(),
-		HeaderVersioning:  args.HeaderVersioning,
-		ValidityAttester:  disabled.NewValidityAttester(),
-		EpochStartTrigger: disabled.NewEpochStartTrigger(),
-		ArgsParser:        args.ArgsParser,
+		ProtoMarshalizer:        args.Marshalizer,
+		TxSignMarshalizer:       args.TxSignMarshalizer,
+		Hasher:                  args.Hasher,
+		ShardCoordinator:        args.ShardCoordinator,
+		MultiSigVerifier:        disabled.NewMultiSigVerifier(),
+		NodesCoordinator:        disabled.NewNodesCoordinator(),
+		KeyGen:                  args.KeyGen,
+		BlockKeyGen:             args.BlockKeyGen,
+		Signer:                  args.Signer,
+		BlockSigner:             args.BlockSigner,
+		AddressPubkeyConv:       args.AddressPubkeyConv,
+		FeeHandler:              args.EconomicsData,
+		HeaderSigVerifier:       disabled.NewHeaderSigVerifier(),
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
+		ValidityAttester:        disabled.NewValidityAttester(),
+		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
+		ArgsParser:              args.ArgsParser,
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)

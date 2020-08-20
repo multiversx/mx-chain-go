@@ -578,6 +578,9 @@ var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
+// ErrNilHeaderIntegrityVerifier signals that a nil header integrity verifier has been provided
+var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
+
 // ErrFailedTransaction signals that transaction is of type failed.
 var ErrFailedTransaction = errors.New("failed transaction, gas consumed")
 
@@ -766,9 +769,6 @@ var ErrNilDebugger = errors.New("nil debug handler")
 
 // ErrBuiltInFunctionCalledWithValue signals that builtin function was called with value that is not allowed
 var ErrBuiltInFunctionCalledWithValue = errors.New("built in function called with tx value is not allowed")
-
-// ErrNilHeaderVersioningHandler signals that a nil versioning handler was provided
-var ErrNilHeaderVersioningHandler = errors.New("nil header versioning handler")
 
 // ErrEmptyFloodPreventerList signals that an empty flood preventer list has been provided
 var ErrEmptyFloodPreventerList = errors.New("empty flood preventer provided")

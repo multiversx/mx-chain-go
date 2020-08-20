@@ -35,10 +35,10 @@ var versionsCorrectlyConstructed = []config.VersionByEpochs{
 
 const defaultVersion = "default"
 
-func TestNewHeaderVersioningHandler_InvalidReferenceChainIDShouldErr(t *testing.T) {
+func TestNewHeaderIntegrityVerifier_InvalidReferenceChainIDShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, err := NewHeaderVersioningHandler(
+	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		nil,
 		make([]config.VersionByEpochs, 0),
 		defaultVersion,
@@ -48,10 +48,10 @@ func TestNewHeaderVersioningHandler_InvalidReferenceChainIDShouldErr(t *testing.
 	require.Equal(t, ErrInvalidReferenceChainID, err)
 }
 
-func TestNewHeaderVersioningHandler_InvalidVersionElementOnEpochValuesEqualShouldErr(t *testing.T) {
+func TestNewHeaderIntegrityVerifierr_InvalidVersionElementOnEpochValuesEqualShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, err := NewHeaderVersioningHandler(
+	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		[]config.VersionByEpochs{
 			{
@@ -70,10 +70,10 @@ func TestNewHeaderVersioningHandler_InvalidVersionElementOnEpochValuesEqualShoul
 	require.True(t, errors.Is(err, ErrInvalidVersionOnEpochValues))
 }
 
-func TestNewHeaderVersioningHandler_InvalidVersionElementOnStringTooLongShouldErr(t *testing.T) {
+func TestNewHeaderIntegrityVerifier_InvalidVersionElementOnStringTooLongShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, err := NewHeaderVersioningHandler(
+	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		[]config.VersionByEpochs{
 			{
@@ -88,10 +88,10 @@ func TestNewHeaderVersioningHandler_InvalidVersionElementOnStringTooLongShouldEr
 	require.True(t, errors.Is(err, ErrInvalidVersionStringTooLong))
 }
 
-func TestNewHeaderVersioningHandler_InvalidDefaultVersionShouldErr(t *testing.T) {
+func TestNewHeaderIntegrityVerifierr_InvalidDefaultVersionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, err := NewHeaderVersioningHandler(
+	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		versionsCorrectlyConstructed,
 		defaultVersion,
@@ -101,10 +101,10 @@ func TestNewHeaderVersioningHandler_InvalidDefaultVersionShouldErr(t *testing.T)
 	require.True(t, errors.Is(err, ErrNilCacher))
 }
 
-func TestNewHeaderVersioningHandler_NilCacherShouldErr(t *testing.T) {
+func TestNewHeaderIntegrityVerifier_NilCacherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, err := NewHeaderVersioningHandler(
+	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		versionsCorrectlyConstructed,
 		"",
@@ -114,10 +114,10 @@ func TestNewHeaderVersioningHandler_NilCacherShouldErr(t *testing.T) {
 	require.True(t, errors.Is(err, ErrInvalidSoftwareVersion))
 }
 
-func TestNewHeaderVersioningHandler_EmptyListShouldErr(t *testing.T) {
+func TestNewHeaderIntegrityVerifier_EmptyListShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, err := NewHeaderVersioningHandler(
+	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		make([]config.VersionByEpochs, 0),
 		"",
@@ -127,10 +127,10 @@ func TestNewHeaderVersioningHandler_EmptyListShouldErr(t *testing.T) {
 	require.True(t, errors.Is(err, ErrEmptyVersionsByEpochsList))
 }
 
-func TestNewHeaderVersioningHandler_ZerothElementIsNotOnEpochZeroShouldErr(t *testing.T) {
+func TestNewHeaderIntegrityVerifier_ZerothElementIsNotOnEpochZeroShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, err := NewHeaderVersioningHandler(
+	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		[]config.VersionByEpochs{
 			{
@@ -145,10 +145,10 @@ func TestNewHeaderVersioningHandler_ZerothElementIsNotOnEpochZeroShouldErr(t *te
 	require.True(t, errors.Is(err, ErrInvalidVersionOnEpochValues))
 }
 
-func TestNewHeaderVersioningHandler_ShouldWork(t *testing.T) {
+func TestNewHeaderIntegrityVerifier_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, err := NewHeaderVersioningHandler(
+	hdrIntVer, err := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		versionsCorrectlyConstructed,
 		defaultVersion,
@@ -158,13 +158,13 @@ func TestNewHeaderVersioningHandler_ShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestHeaderVersioningHandler_PopulatedReservedShouldErr(t *testing.T) {
+func TestHeaderIntegrityVerifier_PopulatedReservedShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hdr := &block.MetaBlock{
 		Reserved: []byte("r"),
 	}
-	hdrIntVer, _ := NewHeaderVersioningHandler(
+	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		make([]config.VersionByEpochs, 0),
 		defaultVersion,
@@ -174,10 +174,10 @@ func TestHeaderVersioningHandler_PopulatedReservedShouldErr(t *testing.T) {
 	require.Equal(t, process.ErrReservedFieldNotSupportedYet, err)
 }
 
-func TestHeaderVersioningHandler_VerifySoftwareVersionEmptyVersionInHeaderShouldErr(t *testing.T) {
+func TestHeaderIntegrityVerifier_VerifySoftwareVersionEmptyVersionInHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, _ := NewHeaderVersioningHandler(
+	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		make([]config.VersionByEpochs, 0),
 		defaultVersion,
@@ -187,10 +187,10 @@ func TestHeaderVersioningHandler_VerifySoftwareVersionEmptyVersionInHeaderShould
 	require.True(t, errors.Is(err, ErrInvalidSoftwareVersion))
 }
 
-func TestHeaderVersioningHandler_VerifySoftwareVersionWrongVersionShouldErr(t *testing.T) {
+func TestHeaderIntegrityVerifierr_VerifySoftwareVersionWrongVersionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, _ := NewHeaderVersioningHandler(
+	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		[]config.VersionByEpochs{
 			{
@@ -215,10 +215,10 @@ func TestHeaderVersioningHandler_VerifySoftwareVersionWrongVersionShouldErr(t *t
 	require.True(t, errors.Is(err, ErrSoftwareVersionMismatch))
 }
 
-func TestHeaderVersioningHandler_VerifySoftwareVersionWildcardShouldWork(t *testing.T) {
+func TestHeaderIntegrityVerifier_VerifySoftwareVersionWildcardShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, _ := NewHeaderVersioningHandler(
+	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		[]config.VersionByEpochs{
 			{
@@ -244,10 +244,10 @@ func TestHeaderVersioningHandler_VerifySoftwareVersionWildcardShouldWork(t *test
 	assert.Nil(t, err)
 }
 
-func TestHeaderVersioningHandler_VerifyHdrChainIDAndReferenceChainIDMismatchShouldErr(t *testing.T) {
+func TestHeaderIntegrityVerifier_VerifyHdrChainIDAndReferenceChainIDMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer, _ := NewHeaderVersioningHandler(
+	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		versionsCorrectlyConstructed,
 		"software",
@@ -261,11 +261,11 @@ func TestHeaderVersioningHandler_VerifyHdrChainIDAndReferenceChainIDMismatchShou
 	require.True(t, errors.Is(err, ErrInvalidChainID))
 }
 
-func TestHeaderVersioningHandler_VerifyShouldWork(t *testing.T) {
+func TestHeaderIntegrityVerifier_VerifyShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedChainID := []byte("#chainID")
-	hdrIntVer, _ := NewHeaderVersioningHandler(
+	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		expectedChainID,
 		versionsCorrectlyConstructed,
 		"software",
@@ -279,11 +279,11 @@ func TestHeaderVersioningHandler_VerifyShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestHeaderVersioningHandler_VerifyNotWildcardShouldWork(t *testing.T) {
+func TestHeaderIntegrityVerifier_VerifyNotWildcardShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedChainID := []byte("#chainID")
-	hdrIntVer, _ := NewHeaderVersioningHandler(
+	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		expectedChainID,
 		versionsCorrectlyConstructed,
 		"software",
@@ -298,11 +298,11 @@ func TestHeaderVersioningHandler_VerifyNotWildcardShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestHeaderVersioningHandler_GetVersionShouldWork(t *testing.T) {
+func TestHeaderIntegrityVerifier_GetVersionShouldWork(t *testing.T) {
 	t.Parallel()
 
 	numPutCalls := uint32(0)
-	hdrIntVer, _ := NewHeaderVersioningHandler(
+	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		versionsCorrectlyConstructed,
 		defaultVersion,
@@ -350,11 +350,11 @@ func TestHeaderVersioningHandler_GetVersionShouldWork(t *testing.T) {
 	assert.Equal(t, uint32(9), atomic.LoadUint32(&numPutCalls))
 }
 
-func TestHeaderVersioningHandler_ExistsInInternalCacheShouldReturn(t *testing.T) {
+func TestHeaderIntegrityVerifier_ExistsInInternalCacheShouldReturn(t *testing.T) {
 	t.Parallel()
 
 	cachedVersion := "cached version"
-	hdrIntVer, _ := NewHeaderVersioningHandler(
+	hdrIntVer, _ := NewHeaderIntegrityVerifier(
 		[]byte("chainID"),
 		versionsCorrectlyConstructed,
 		defaultVersion,

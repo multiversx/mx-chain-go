@@ -239,5 +239,5 @@ var ErrNilEndOfEpochCallerAddress = errors.New("nil end of epoch caller address"
 // ErrNilStakingSCAddress signals that nil staking system smart contract address was provided
 var ErrNilStakingSCAddress = errors.New("nil staking system smart contract address")
 
-// ErrNilHeaderVersioningHandler signals that nil a versioning handler was provided
-var ErrNilHeaderVersioningHandler = errors.New("nil header versioning handler")
+// ErrNilHeaderIntegrityVerifier signals that a nil header integrity verifier was provided
+var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier handler")

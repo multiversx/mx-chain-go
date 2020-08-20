@@ -123,12 +123,12 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer                indexer.Indexer
-	blocksBlackListHandler process.TimeCacher
-	bootStorer             process.BootStorer
-	requestedItemsHandler  dataRetriever.RequestedItemsHandler
-	headerSigVerifier      spos.RandSeedVerifier
-	headerVersioning       spos.HeaderVersioningHandler
+	indexer                 indexer.Indexer
+	blocksBlackListHandler  process.TimeCacher
+	bootStorer              process.BootStorer
+	requestedItemsHandler   dataRetriever.RequestedItemsHandler
+	headerSigVerifier       spos.RandSeedVerifier
+	headerIntegrityVerifier spos.HeaderIntegrityVerifier
 
 	chainID               []byte
 	minTransactionVersion uint32
@@ -297,7 +297,7 @@ func (n *Node) StartConsensus() error {
 		PeerSignatureHandler:     n.peerSigHandler,
 		SyncTimer:                n.syncTimer,
 		HeaderSigVerifier:        n.headerSigVerifier,
-		HeaderVersioning:         n.headerVersioning,
+		HeaderIntegrityVerifier:  n.headerIntegrityVerifier,
 		ChainID:                  n.chainID,
 		NetworkShardingCollector: n.networkShardingCollector,
 		AntifloodHandler:         n.inputAntifloodHandler,

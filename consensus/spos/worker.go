@@ -31,23 +31,23 @@ const sleepTime = 5 * time.Millisecond
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
-	consensusService     ConsensusService
-	blockChain           data.ChainHandler
-	blockProcessor       process.BlockProcessor
-	bootstrapper         process.Bootstrapper
-	broadcastMessenger   consensus.BroadcastMessenger
-	consensusState       *ConsensusState
-	forkDetector         process.ForkDetector
-	marshalizer          marshal.Marshalizer
-	hasher               hashing.Hasher
-	rounder              consensus.Rounder
-	shardCoordinator     sharding.Coordinator
-	peerSignatureHandler crypto.PeerSignatureHandler
-	syncTimer            ntp.SyncTimer
-	headerSigVerifier    RandSeedVerifier
-	headerVersioning     HeaderVersioningHandler
-	appStatusHandler     core.AppStatusHandler
-	chainID              []byte
+	consensusService        ConsensusService
+	blockChain              data.ChainHandler
+	blockProcessor          process.BlockProcessor
+	bootstrapper            process.Bootstrapper
+	broadcastMessenger      consensus.BroadcastMessenger
+	consensusState          *ConsensusState
+	forkDetector            process.ForkDetector
+	marshalizer             marshal.Marshalizer
+	hasher                  hashing.Hasher
+	rounder                 consensus.Rounder
+	shardCoordinator        sharding.Coordinator
+	peerSignatureHandler    crypto.PeerSignatureHandler
+	syncTimer               ntp.SyncTimer
+	headerSigVerifier       RandSeedVerifier
+	headerIntegrityVerifier HeaderIntegrityVerifier
+	appStatusHandler        core.AppStatusHandler
+	chainID                 []byte
 
 	networkShardingCollector consensus.NetworkShardingCollector
 
@@ -91,7 +91,7 @@ type WorkerArgs struct {
 	PeerSignatureHandler     crypto.PeerSignatureHandler
 	SyncTimer                ntp.SyncTimer
 	HeaderSigVerifier        RandSeedVerifier
-	HeaderVersioning         HeaderVersioningHandler
+	HeaderIntegrityVerifier  HeaderIntegrityVerifier
 	ChainID                  []byte
 	NetworkShardingCollector consensus.NetworkShardingCollector
 	AntifloodHandler         consensus.P2PAntifloodHandler
@@ -122,7 +122,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		peerSignatureHandler:     args.PeerSignatureHandler,
 		syncTimer:                args.SyncTimer,
 		headerSigVerifier:        args.HeaderSigVerifier,
-		headerVersioning:         args.HeaderVersioning,
+		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
 		chainID:                  args.ChainID,
 		appStatusHandler:         statusHandler.NewNilStatusHandler(),
 		networkShardingCollector: args.NetworkShardingCollector,
@@ -203,8 +203,8 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	if check.IfNil(args.HeaderSigVerifier) {
 		return ErrNilHeaderSigVerifier
 	}
-	if check.IfNil(args.HeaderVersioning) {
-		return ErrNilHeaderVersioningHandler
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return ErrNilHeaderIntegrityVerifier
 	}
 	if len(args.ChainID) == 0 {
 		return ErrInvalidChainID
@@ -415,7 +415,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		"nbTxs", header.GetTxCount(),
 		"val stats root hash", header.GetValidatorStatsRootHash())
 
-	err := wrk.headerVersioning.Verify(header)
+	err := wrk.headerIntegrityVerifier.Verify(header)
 	if err != nil {
 		return fmt.Errorf("%w : verify header integrity from consensus topic failed", err)
 	}

@@ -11,14 +11,14 @@ import (
 
 func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 	arg := &ArgInterceptedBlockHeader{
-		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
-		Hasher:            mock.HasherMock{},
-		Marshalizer:       &mock.MarshalizerMock{},
-		HdrBuff:           []byte("test buffer"),
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		HeaderVersioning:  &mock.HeaderVersioningHandlerStub{},
-		ValidityAttester:  &mock.ValidityAttesterStub{},
-		EpochStartTrigger: &mock.EpochStartTriggerStub{},
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		Hasher:                  mock.HasherMock{},
+		Marshalizer:             &mock.MarshalizerMock{},
+		HdrBuff:                 []byte("test buffer"),
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:        &mock.ValidityAttesterStub{},
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 	}
 
 	return arg

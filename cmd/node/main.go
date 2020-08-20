@@ -918,7 +918,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	bootstrapHeaderVersioning, err := headerCheck.NewHeaderVersioningHandler(
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
 		[]byte(genesisNodesConfig.ChainID),
 		generalConfig.Versions.VersionsByEpochs,
 		generalConfig.Versions.DefaultVersion,
@@ -957,7 +957,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              coreComponents.StatusHandler,
-		HeaderVersioning:           bootstrapHeaderVersioning,
+		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -2040,7 +2040,7 @@ func createHardForkTrigger(
 		KeyGen:                   crypto.TxSignKeyGen,
 		BlockSigner:              crypto.SingleSigner,
 		HeaderSigVerifier:        process.HeaderSigVerifier,
-		HeaderVersioning:         process.HeaderVersioning,
+		HeaderIntegrityVerifier:  process.HeaderIntegrityVerifier,
 		MaxTrieLevelInMemory:     config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		InputAntifloodHandler:    network.InputAntifloodHandler,
 		OutputAntifloodHandler:   network.OutputAntifloodHandler,
@@ -2206,7 +2206,7 @@ func createNode(
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
-		node.WithHeaderVersioning(process.HeaderVersioning),
+		node.WithHeaderIntegrityVerifier(process.HeaderIntegrityVerifier),
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithValidatorsProvider(process.ValidatorsProvider),
 		node.WithChainID(coreData.ChainID),

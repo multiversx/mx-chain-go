@@ -406,7 +406,7 @@ func createConsensusOnlyNode(
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
-		node.WithHeaderVersioning(integrationTests.CreateHeaderVersioning()),
+		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
 		node.WithChainID(integrationTests.ChainID),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),

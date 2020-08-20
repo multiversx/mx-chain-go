@@ -43,7 +43,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	keyIndex int,
 	ownAccount *TestWalletAccount,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
-	headerVersioning process.HeaderVersioningHandler,
+	headerIntegrityVerifier process.HeaderIntegrityVerifier,
 	nodeSetup sharding.GenesisNodesSetupHandler,
 ) *TestProcessorNode {
 
@@ -51,17 +51,17 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 	tpn := &TestProcessorNode{
-		ShardCoordinator:      shardCoordinator,
-		Messenger:             messenger,
-		NodesCoordinator:      nodesCoordinator,
-		HeaderSigVerifier:     headerSigVerifier,
-		HeaderVersioning:      headerVersioning,
-		ChainID:               ChainID,
-		NodesSetup:            nodeSetup,
-		RatingsData:           ratingsData,
-		MinTransactionVersion: MinTransactionVersion,
-		HistoryRepository:     &mock.HistoryRepositoryStub{},
-		EpochNotifier:         forking.NewGenericEpochNotifier(),
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		ChainID:                 ChainID,
+		NodesSetup:              nodeSetup,
+		RatingsData:             ratingsData,
+		MinTransactionVersion:   MinTransactionVersion,
+		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -234,17 +234,17 @@ func CreateNodeWithBLSAndTxKeys(
 
 	messenger := CreateMessengerWithKadDht(seedAddress)
 	tpn := &TestProcessorNode{
-		ShardCoordinator:      shardCoordinator,
-		Messenger:             messenger,
-		NodesCoordinator:      nodesCoordinator,
-		HeaderSigVerifier:     &mock.HeaderSigVerifierStub{},
-		HeaderVersioning:      CreateHeaderVersioning(),
-		ChainID:               ChainID,
-		NodesSetup:            nodesSetup,
-		RatingsData:           ratingsData,
-		MinTransactionVersion: MinTransactionVersion,
-		HistoryRepository:     &mock.HistoryRepositoryStub{},
-		EpochNotifier:         forking.NewGenericEpochNotifier(),
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
+		ChainID:                 ChainID,
+		NodesSetup:              nodesSetup,
+		RatingsData:             ratingsData,
+		MinTransactionVersion:   MinTransactionVersion,
+		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
@@ -431,13 +431,13 @@ func CreateNode(
 		keyIndex,
 		nil,
 		&mock.HeaderSigVerifierStub{},
-		CreateHeaderVersioning(),
+		CreateHeaderIntegrityVerifier(),
 		nodesSetup,
 	)
 }
 
-func createVersioningHandler() process.HeaderVersioningHandler {
-	headerVersioning, _ := headerCheck.NewHeaderVersioningHandler(
+func createHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	headerVersioning, _ := headerCheck.NewHeaderIntegrityVerifier(
 		ChainID,
 		[]config.VersionByEpochs{
 			{
@@ -529,7 +529,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				i,
 				nil,
 				headerSig,
-				createVersioningHandler(),
+				createHeaderIntegrityVerifier(),
 				nodesSetup,
 			)
 		}
@@ -627,7 +627,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				i,
 				ownAccount,
 				headerSig,
-				createVersioningHandler(),
+				createHeaderIntegrityVerifier(),
 				nodesSetup,
 			)
 		}

@@ -9,12 +9,12 @@ import (
 
 // ArgInterceptedBlockHeader is the argument for the intercepted header
 type ArgInterceptedBlockHeader struct {
-	HdrBuff           []byte
-	Marshalizer       marshal.Marshalizer
-	Hasher            hashing.Hasher
-	ShardCoordinator  sharding.Coordinator
-	HeaderSigVerifier process.InterceptedHeaderSigVerifier
-	HeaderVersioning  process.HeaderVersioningHandler
-	ValidityAttester  process.ValidityAttester
-	EpochStartTrigger process.EpochStartTriggerHandler
+	HdrBuff                 []byte
+	Marshalizer             marshal.Marshalizer
+	Hasher                  hashing.Hasher
+	ShardCoordinator        sharding.Coordinator
+	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	ValidityAttester        process.ValidityAttester
+	EpochStartTrigger       process.EpochStartTriggerHandler
 }
