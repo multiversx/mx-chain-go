@@ -301,7 +301,7 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 2 || len(args.Arguments[1]) != 1 {
-		r.eei.AddReturnMessage("wrong arguments number")
+		r.eei.AddReturnMessage("wrong number of arguments, wanted 2")
 		return vmcommon.UserError
 	}
 

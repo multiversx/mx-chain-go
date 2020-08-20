@@ -151,7 +151,7 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 
 func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) == 0 || len(args.Arguments)%2 != 0 {
-		s.eei.AddReturnMessage("invalid number of arguments: expected paired number")
+		s.eei.AddReturnMessage("invalid number of arguments: expected even number")
 		return vmcommon.UserError
 	}
 
