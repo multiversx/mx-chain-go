@@ -31,7 +31,6 @@ type ArgStatusHandlers struct {
 	Uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
 	ChanStartViews               chan struct{}
 	ChanLogRewrite               chan struct{}
-	LogFile                      *os.File
 }
 
 // StatusHandlersInfo is struct that stores all components that are returned when status handlers are created
@@ -51,7 +50,6 @@ func NewStatusHandlersFactoryArgs(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 	chanStartViews chan struct{},
 	chanLogRewrite chan struct{},
-	logFile *os.File,
 ) (*ArgStatusHandlers, error) {
 	baseErrMessage := "error creating status handler factory arguments"
 	if ctx == nil {
@@ -77,7 +75,6 @@ func NewStatusHandlersFactoryArgs(
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		ChanStartViews:           chanStartViews,
 		ChanLogRewrite:           chanLogRewrite,
-		LogFile:                  logFile,
 	}, nil
 }
 
@@ -103,17 +100,14 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 			if !ok {
 				return
 			}
-			logger.ClearLogObservers()
+			err = logger.RemoveLogObserver(os.Stdout)
+			if err != nil {
+				log.Warn("cannot remove the log observer for std out", "error", err)
+			}
+
 			err = logger.AddLogObserver(writer, &logger.PlainFormatter{})
 			if err != nil {
 				log.Warn("cannot add log observer for TermUI", "error", err)
-			}
-			if arguments.LogFile == nil {
-				return
-			}
-			err = logger.AddLogObserver(arguments.LogFile, &logger.PlainFormatter{})
-			if err != nil {
-				log.Warn("cannot add log observer for file", "error", err)
 			}
 		}()
 

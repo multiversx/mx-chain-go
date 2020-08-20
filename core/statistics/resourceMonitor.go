@@ -1,13 +1,10 @@
 package statistics
 
 import (
-	"fmt"
 	"io/ioutil"
-	"os"
 	"path"
 	"path/filepath"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -21,24 +18,17 @@ import (
 // ResourceMonitor outputs statistics about resources used by the binary
 type ResourceMonitor struct {
 	startTime time.Time
-	file      *os.File
-	mutFile   sync.RWMutex
 }
 
 // NewResourceMonitor creates a new ResourceMonitor instance
-func NewResourceMonitor(file *os.File) (*ResourceMonitor, error) {
-	if file == nil {
-		return nil, ErrNilFileToWriteStats
-	}
-
+func NewResourceMonitor() *ResourceMonitor {
 	return &ResourceMonitor{
 		startTime: time.Now(),
-		file:      file,
-	}, nil
+	}
 }
 
 // GenerateStatistics creates a new statistic string
-func (rm *ResourceMonitor) GenerateStatistics(generalConfig *config.Config, pathManager storage.PathManagerHandler, shardId string) string {
+func (rm *ResourceMonitor) GenerateStatistics(generalConfig *config.Config, pathManager storage.PathManagerHandler, shardId string) []interface{} {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
@@ -73,33 +63,28 @@ func (rm *ResourceMonitor) GenerateStatistics(generalConfig *config.Config, path
 	peerTrieEvictionWaitingListDbFilePath := filepath.Join(peerTrieStoragePath, generalConfig.EvictionWaitingList.DB.FilePath)
 	peerTrieSnapshotsDbFilePath := filepath.Join(peerTrieStoragePath, generalConfig.TrieSnapshotDB.FilePath)
 
-	return fmt.Sprintf("timestamp: %d, uptime: %v, num go: %d, alloc: %s, heap alloc: %s, heap idle: %s"+
-		", heap inuse: %s, heap sys: %s, heap released: %s, heap num objs: %d, sys mem: %s, "+
-		"total mem: %s, num GC: %d, FDs: %d, num opened files: %d, num conns: %d,"+
-		" accountsTrieDbMem: %s, evictionDbMem: %s, snapshotsDbMem: %s, peerTrieDbMem: %s, peerTrieEvictionDbMem: %s, peerTrieSnapshotsDbMem: %s\n",
-		time.Now().Unix(),
-		time.Duration(time.Now().UnixNano()-rm.startTime.UnixNano()).Round(time.Second),
-		runtime.NumGoroutine(),
-		core.ConvertBytes(memStats.Alloc),
-		core.ConvertBytes(memStats.HeapAlloc),
-		core.ConvertBytes(memStats.HeapIdle),
-		core.ConvertBytes(memStats.HeapInuse),
-		core.ConvertBytes(memStats.HeapSys),
-		core.ConvertBytes(memStats.HeapReleased),
-		memStats.HeapObjects,
-		core.ConvertBytes(memStats.Sys),
-		core.ConvertBytes(memStats.TotalAlloc),
-		memStats.NumGC,
-		fileDescriptors,
-		numOpenFiles,
-		numConns,
-		getDirMemSize(trieDbFilePath),
-		getDirMemSize(evictionWaitingListDbFilePath),
-		getDirMemSize(snapshotsDbFilePath),
-		getDirMemSize(peerTrieDbFilePath),
-		getDirMemSize(peerTrieEvictionWaitingListDbFilePath),
-		getDirMemSize(peerTrieSnapshotsDbFilePath),
-	)
+	return []interface{}{
+		"timestamp", time.Now().Unix(),
+		"uptime", time.Duration(time.Now().UnixNano() - rm.startTime.UnixNano()).Round(time.Second),
+		"num go", runtime.NumGoroutine(),
+		"alloc", core.ConvertBytes(memStats.Alloc),
+		"heap alloc", core.ConvertBytes(memStats.HeapAlloc),
+		"heap idle", core.ConvertBytes(memStats.HeapIdle),
+		"heap inuse", core.ConvertBytes(memStats.HeapInuse),
+		"heap sys", core.ConvertBytes(memStats.HeapSys),
+		"heap num objs", memStats.HeapObjects,
+		"sys mem", core.ConvertBytes(memStats.Sys),
+		"num GC", memStats.NumGC,
+		"FDs", fileDescriptors,
+		"num opened files", numOpenFiles,
+		"num conns", numConns,
+		"accountsTrieDbMem", getDirMemSize(trieDbFilePath),
+		"evictionDbMem", getDirMemSize(evictionWaitingListDbFilePath),
+		"snapshotsDbMem", getDirMemSize(snapshotsDbFilePath),
+		"peerTrieDbMem", getDirMemSize(peerTrieDbFilePath),
+		"peerTrieEvictionDbMem", getDirMemSize(peerTrieEvictionWaitingListDbFilePath),
+		"peerTrieSnapshotsDbMem", getDirMemSize(peerTrieSnapshotsDbFilePath),
+	}
 }
 
 func getDirMemSize(dir string) string {
@@ -114,33 +99,8 @@ func getDirMemSize(dir string) string {
 }
 
 // SaveStatistics generates and saves statistic data on the disk
-func (rm *ResourceMonitor) SaveStatistics(generalConfig *config.Config, pathManager storage.PathManagerHandler, shardId string) error {
-	rm.mutFile.RLock()
-	defer rm.mutFile.RUnlock()
-	if rm.file == nil {
-		return ErrNilFileToWriteStats
-	}
+func (rm *ResourceMonitor) SaveStatistics(generalConfig *config.Config, pathManager storage.PathManagerHandler, shardId string) {
 
 	stats := rm.GenerateStatistics(generalConfig, pathManager, shardId)
-	_, err := rm.file.WriteString(stats)
-	if err != nil {
-		return err
-	}
-
-	err = rm.file.Sync()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Close closes the file used for statistics
-func (rm *ResourceMonitor) Close() error {
-	rm.mutFile.Lock()
-	defer rm.mutFile.Unlock()
-
-	err := rm.file.Close()
-	rm.file = nil
-	return err
+	log.Debug("node statistics", stats...)
 }
