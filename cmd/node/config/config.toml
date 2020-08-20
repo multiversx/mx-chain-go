@@ -649,3 +649,6 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+
+[Logs]
+    LogFileLifeSpanInSec = 86400

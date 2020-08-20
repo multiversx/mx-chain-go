@@ -161,9 +161,15 @@ type Config struct {
 
 	SoftwareVersionConfig SoftwareVersionConfig
 	FullHistory           FullHistoryConfig
+	Logs                  LogsConfig
 }
 
-// StoragePruningConfig will hold settings relates to storage pruning
+// LogsConfig will hold settings related to the logging sub-system
+type LogsConfig struct {
+	LogFileLifeSpanInSec int
+}
+
+// StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
 	Enabled             bool
 	CleanOldEpochsData  bool

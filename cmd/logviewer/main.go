@@ -224,7 +224,13 @@ func getLowestLogLevel(logLevels []logger.LogLevel) logger.LogLevel {
 
 func prepareLogFile() error {
 	logDirectory := filepath.Join(argsConfig.workingDir, defaultLogPath)
-	logsFile, err := core.CreateFile("logviewer", logDirectory, "log")
+	logsFile, err := core.CreateFile(
+		core.ArgCreateFileArgument{
+			Prefix:        "logviewer",
+			Directory:     logDirectory,
+			FileExtension: "log",
+		},
+	)
 	if err != nil {
 		return err
 	}
