@@ -1039,6 +1039,7 @@ func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 	registrationData.Staked = false
 	registrationData.UnStakedEpoch = r.eei.BlockChainHook().CurrentEpoch()
 	registrationData.UnStakedNonce = r.eei.BlockChainHook().CurrentNonce()
+	registrationData.StakedNonce = math.MaxUint64
 	registrationData.Jailed = true
 	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {

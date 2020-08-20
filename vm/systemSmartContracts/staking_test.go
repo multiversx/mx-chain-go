@@ -1123,6 +1123,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Jailed)
 	assert.False(t, stakedData.Staked)
+	assert.True(t, stakedData.StakedNonce == math.MaxUint64)
 }
 
 func doUnJail(t *testing.T, sc *stakingSC, callerAddr, addrToUnJail []byte, expectedCode vmcommon.ReturnCode) {
