@@ -17,7 +17,6 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -32,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -373,8 +373,6 @@ VERSION:
 		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network." +
 			"Should be enabled if data is not available in local disk.",
 	}
-
-	rm *statistics.ResourceMonitor
 )
 
 // appVersion should be populated at build time using ldflags
@@ -474,11 +472,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
 	workingDir := getWorkingDir(ctx, log)
 
-	var logFile *os.File
+	var fileLogging factory.FileLoggingHandler
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
-		logFile, err = prepareLogFile(workingDir)
+		fileLogging, err = logging.NewFileLogging(workingDir, defaultLogsPath)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
@@ -574,6 +572,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Debug("config", "file", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
+	}
+
+	if !check.IfNil(fileLogging) {
+		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(generalConfig.Logs.LogFileLifeSpanInSec))
+		if err != nil {
+			return err
+		}
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
@@ -784,7 +789,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreComponents.Uint64ByteSliceConverter,
 		chanCreateViews,
 		chanLogRewrite,
-		logFile,
 	)
 	if err != nil {
 		return err
@@ -980,7 +984,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	logger.SetCorrelationShard(shardIdString)
 
 	log.Trace("initializing stats file")
-	err = initStatsFileMonitor(generalConfig, cryptoParams.PublicKeyString, log, workingDir, pathManager, shardId)
+	err = initStatsFileMonitor(generalConfig, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -1110,6 +1114,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	statsFolder := filepath.Join(workingDir, defaultStatsPath)
 	copyConfigToStatsFolder(
+		log,
 		statsFolder,
 		[]string{
 			configurationFileName,
@@ -1444,6 +1449,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Debug("closing node")
+	if !check.IfNil(fileLogging) {
+		err = fileLogging.Close()
+		log.LogIfError(err)
+	}
 
 	return nil
 }
@@ -1467,11 +1476,6 @@ func closeAllComponents(
 	dataTries := triesComponents.TriesContainer.GetAll()
 	for _, trie := range dataTries {
 		err = trie.ClosePersister()
-		log.LogIfError(err)
-	}
-
-	if rm != nil {
-		err = rm.Close()
 		log.LogIfError(err)
 	}
 
@@ -1523,7 +1527,10 @@ func cleanupStorageIfNecessary(workingDir string, ctx *cli.Context, log logger.L
 	return nil
 }
 
-func copyConfigToStatsFolder(statsFolder string, configs []string) {
+func copyConfigToStatsFolder(log logger.Logger, statsFolder string, configs []string) {
+	err := os.MkdirAll(statsFolder, os.ModePerm)
+	log.LogIfError(err)
+
 	for _, configFile := range configs {
 		copySingleFile(statsFolder, configFile)
 	}
@@ -1576,32 +1583,6 @@ func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
 	log.Trace("working directory", "path", workingDir)
 
 	return workingDir
-}
-
-func prepareLogFile(workingDir string) (*os.File, error) {
-	logDirectory := filepath.Join(workingDir, defaultLogsPath)
-	fileForLog, err := core.CreateFile("elrond-go", logDirectory, "log")
-	if err != nil {
-		return nil, err
-	}
-
-	//we need this function as to close file.Close() when the code panics and the defer func associated
-	//with the file pointer in the main func will never be reached
-	runtime.SetFinalizer(fileForLog, func(f *os.File) {
-		_ = f.Close()
-	})
-
-	err = redirects.RedirectStderr(fileForLog)
-	if err != nil {
-		return nil, err
-	}
-
-	err = logger.AddLogObserver(fileForLog, &logger.PlainFormatter{})
-	if err != nil {
-		return nil, fmt.Errorf("%w adding file log observer", err)
-	}
-
-	return fileForLog, nil
 }
 
 func indexValidatorsListIfNeeded(
@@ -2278,18 +2259,10 @@ func createPeerHonestyHandler(
 
 func initStatsFileMonitor(
 	config *config.Config,
-	pubKeyString string,
-	log logger.Logger,
-	workingDir string,
 	pathManager storage.PathManagerHandler,
 	shardId string,
 ) error {
-	statsFile, err := core.CreateFile(core.GetTrimmedPk(pubKeyString), filepath.Join(workingDir, defaultStatsPath), "txt")
-	if err != nil {
-		return err
-	}
-
-	err = startStatisticsMonitor(statsFile, config, log, pathManager, shardId)
+	err := startStatisticsMonitor(config, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -2298,9 +2271,7 @@ func initStatsFileMonitor(
 }
 
 func startStatisticsMonitor(
-	file *os.File,
 	generalConfig *config.Config,
-	log logger.Logger,
 	pathManager storage.PathManagerHandler,
 	shardId string,
 ) error {
@@ -2312,15 +2283,11 @@ func startStatisticsMonitor(
 		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
 	}
 
-	resMon, err := statistics.NewResourceMonitor(file)
-	if err != nil {
-		return err
-	}
+	resMon := statistics.NewResourceMonitor()
 
 	go func() {
 		for {
-			err = resMon.SaveStatistics(generalConfig, pathManager, shardId)
-			log.LogIfError(err)
+			resMon.SaveStatistics(generalConfig, pathManager, shardId)
 			time.Sleep(time.Second * time.Duration(generalConfig.ResourceStats.RefreshIntervalInSec))
 		}
 	}()

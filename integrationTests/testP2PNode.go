@@ -172,6 +172,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
 		node.WithPeerSignatureHandler(psh),
+		node.WithBlockChain(&mock.BlockChainMock{}),
 	)
 	log.LogIfError(err)
 
