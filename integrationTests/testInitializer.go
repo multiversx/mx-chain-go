@@ -858,7 +858,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 				return nil
 			},
-			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 				fee := big.NewInt(0).SetUint64(tx.GetGasLimit())
 				fee.Mul(fee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
 
