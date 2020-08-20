@@ -354,3 +354,90 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
 	require.Equal(t, 4002, int(metadata.NotarizedAtDestinationInMetaNonce))
 }
+
+func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestination(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHistoryRepoArgs()
+	args.SelfShardID = 14
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
+
+	// Assumming these miniblocks of transactions,
+	miniblockA := &block.MiniBlock{
+		SenderShardID:   12,
+		ReceiverShardID: 14,
+		TxHashes:        [][]byte{[]byte("txA")},
+	}
+	miniblockB := &block.MiniBlock{
+		SenderShardID:   13,
+		ReceiverShardID: 14,
+		TxHashes:        [][]byte{[]byte("txB")},
+	}
+	miniblockHashA, _ := repo.computeMiniblockHash(miniblockA)
+	miniblockHashB, _ := repo.computeMiniblockHash(miniblockB)
+
+	// Let's receive a metablock and the notifications of "notarization at source"
+	metablock := &block.MetaBlock{
+		Nonce: 4001,
+		ShardInfo: []block.ShardData{
+			{
+				ShardID: 12,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						SenderShardID:   12,
+						ReceiverShardID: 14,
+						Hash:            miniblockHashA,
+					},
+				},
+			},
+			{
+				ShardID: 13,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						SenderShardID:   13,
+						ReceiverShardID: 14,
+						Hash:            miniblockHashB,
+					},
+				},
+			},
+		},
+	}
+
+	repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
+
+	// Notifications have been queued
+	require.Equal(t, 2, repo.notarizedAtSourceNotifications.Len())
+
+	// Let's commit the blocks at destination
+	repo.RecordBlock([]byte("fooBlock"),
+		&block.Header{Epoch: 42, Round: 4321},
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				miniblockA,
+			},
+		},
+	)
+	repo.RecordBlock([]byte("barBlock"),
+		&block.Header{Epoch: 42, Round: 4322},
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				miniblockB,
+			},
+		},
+	)
+
+	// Notifications have been cleared
+	require.Equal(t, 0, repo.notarizedAtSourceNotifications.Len())
+
+	// Check "notarization coordinates"
+	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
+	require.Nil(t, err)
+	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
+
+	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashB)
+	require.Nil(t, err)
+	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
+}

@@ -8,6 +8,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -34,6 +35,14 @@ type historyProcessor struct {
 	epochByHashIndex           *epochByHashIndex
 	marshalizer                marshal.Marshalizer
 	hasher                     hashing.Hasher
+
+	// This map temporarily holds notifications of "notarized at source", for destination shard
+	notarizedAtSourceNotifications *container.MutexMap
+}
+
+type notarizedAtSourceNotification struct {
+	metaNonce uint64
+	metaHash  []byte
 }
 
 // NewHistoryRepository will create a new instance of HistoryRepository
@@ -57,12 +66,13 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcess
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
 
 	return &historyProcessor{
-		selfShardID:                arguments.SelfShardID,
-		miniblocksMetadataStorer:   arguments.MiniblocksMetadataStorer,
-		marshalizer:                arguments.Marshalizer,
-		hasher:                     arguments.Hasher,
-		epochByHashIndex:           hashToEpochIndex,
-		miniblockHashByTxHashIndex: arguments.MiniblockHashByTxHashStorer,
+		selfShardID:                    arguments.SelfShardID,
+		miniblocksMetadataStorer:       arguments.MiniblocksMetadataStorer,
+		marshalizer:                    arguments.Marshalizer,
+		hasher:                         arguments.Hasher,
+		epochByHashIndex:               hashToEpochIndex,
+		miniblockHashByTxHashIndex:     arguments.MiniblockHashByTxHashStorer,
+		notarizedAtSourceNotifications: container.NewMutexMap(),
 	}, nil
 }
 
@@ -114,6 +124,16 @@ func (hp *historyProcessor) recordMiniblock(blockHeaderHash []byte, blockHeader 
 		SourceShardID:      miniblock.GetSenderShardID(),
 		DestinationShardID: miniblock.GetReceiverShardID(),
 		Status:             []byte(hp.getMiniblockStatus(miniblock)),
+	}
+
+	// Here we need to use queued notifications
+	notification, ok := hp.notarizedAtSourceNotifications.Get(string(miniblockHash))
+	if ok {
+		notificationTyped := notification.(*notarizedAtSourceNotification)
+		miniblockMetadata.NotarizedAtSourceInMetaNonce = notificationTyped.metaNonce
+		miniblockMetadata.NotarizedAtSourceInMetaHash = notificationTyped.metaHash
+
+		hp.notarizedAtSourceNotifications.Remove(string(miniblockHash))
 	}
 
 	err = hp.putMiniblockMetadata(miniblockHash, miniblockMetadata)
@@ -248,8 +268,24 @@ func (hp *historyProcessor) onNotarizedMiniblock(metaBlockNonce uint64, metaBloc
 
 	metadata, err := hp.getMiniblockMetadataByMiniblockHash(miniblockHash)
 	if err != nil {
-		// Question for review: is there a way to be notified about the "source notarization", but at destination (cross-shard miniblock)?
-		log.Debug("onNotarizedMiniblock(): cannot get miniblock metadata (yet)", "miniblockHash", miniblockHash, "err", err)
+		if notarizedAtSource {
+			// At destination, we receive the notification about "notarizedAtSource" before committing the block (at destination):
+			// a) @source: source block is committed
+			// b) @metachain: source block is notarized
+			// c) @source & @destination: notified about b) 	<< we are here, under this condition
+			// d) @destination: destination block is committed
+			// e) @metachain: destination block is notarized
+			// f) @source & @destination: notified about e)
+
+			// Therefore, we should hold on to the notification at b) and use it at d)
+			hp.notarizedAtSourceNotifications.Set(string(miniblockHash), &notarizedAtSourceNotification{
+				metaNonce: metaBlockNonce,
+				metaHash:  metaBlockHash,
+			})
+		} else {
+			log.Warn("onNotarizedMiniblock() unexpected: cannot get miniblock metadata", "miniblock", miniblockHash, "err", err)
+		}
+
 		return
 	}
 
