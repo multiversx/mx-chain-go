@@ -194,13 +194,13 @@ type ValidatorStatisticsConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec int
-	MaxComputableRounds      uint64
-	StartInEpochEnabled      bool
-	DisableDeploy            bool
-	DisableBuiltInFunctions  bool
-	DisableRelayedTx         bool
-	GenesisString            string
+	StatusPollingIntervalSec       int
+	MaxComputableRounds            uint64
+	StartInEpochEnabled            bool
+	SCDeployEnableEpoch            uint32
+	BuiltInFunctionsEnableEpoch    uint32
+	RelayedTransactionsEnableEpoch uint32
+	GenesisString                  string
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
