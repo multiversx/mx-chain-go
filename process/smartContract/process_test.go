@@ -2161,6 +2161,34 @@ func TestScProcessor_checkUpgradePermission(t *testing.T) {
 	require.Equal(t, process.ErrUpgradeNotAllowed, err)
 }
 
+func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
+	t.Parallel()
+
+	gasProvided := uint64(1000)
+	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
+
+	callType := vmcommon.DirectCall
+	vmOutput := &vmcommon.VMOutput{
+		GasRemaining: maxGasToRemain,
+	}
+	penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	assert.Equal(t, uint64(maxGasToRemain), vmOutput.GasRemaining)
+
+	callType = vmcommon.AsynchronousCall
+	vmOutput = &vmcommon.VMOutput{
+		GasRemaining: maxGasToRemain + 1,
+	}
+	penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	assert.Equal(t, uint64(maxGasToRemain+1), vmOutput.GasRemaining)
+
+	callType = vmcommon.DirectCall
+	vmOutput = &vmcommon.VMOutput{
+		GasRemaining: maxGasToRemain + 1,
+	}
+	penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
+}
+
 func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 	t.Parallel()
 

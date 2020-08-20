@@ -34,3 +34,15 @@ func (txProc *txProcessor) ProcessTxFee(
 func (inTx *InterceptedTransaction) SetWhitelistHandler(handler process.WhiteListHandler) {
 	inTx.whiteListerVerifiedTxs = handler
 }
+
+func (txProc *txProcessor) GetUserTxCost(
+	userTx *transaction.Transaction,
+	userTxHash []byte,
+	userTxType process.TransactionType,
+) *big.Int {
+	return txProc.getUserTxCost(userTx, userTxHash, userTxType)
+}
+
+func (txProc *baseTxProcessor) IsCrossTxFromMe(adrSrc, adrDst []byte) bool {
+	return txProc.isCrossTxFromMe(adrSrc, adrDst)
+}

@@ -416,7 +416,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		vmOutput = &vmcommon.VMOutput{ReturnCode: vmcommon.UserError, ReturnMessage: err.Error()}
 	}
 
-	sc.penalizeUserIfNeeded(tx, txHash, vmInput.CallType, vmInput.GasProvided, vmOutput)
+	penalizeUserIfNeeded(tx, txHash, vmInput.CallType, vmInput.GasProvided, vmOutput)
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 
@@ -756,7 +756,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
-	sc.penalizeUserIfNeeded(tx, txHash, callType, gasProvided, vmOutput)
+	penalizeUserIfNeeded(tx, txHash, callType, gasProvided, vmOutput)
 
 	scrForSender, consumedFee := sc.createSCRForSender(
 		vmOutput.GasRefund,
@@ -827,7 +827,7 @@ func (sc *scProcessor) processVMOutput(
 	return scrTxs, consumedFee, nil
 }
 
-func (sc *scProcessor) penalizeUserIfNeeded(
+func penalizeUserIfNeeded(
 	tx data.TransactionHandler,
 	txHash []byte,
 	callType vmcommon.CallType,
