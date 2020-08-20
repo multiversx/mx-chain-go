@@ -44,6 +44,7 @@ type ArgBaseProcessor struct {
 	TpsBenchmark           statistics.TPSBenchmark
 	Version                string
 	HistoryRepository      fullHistory.HistoryRepository
+	EpochNotifier          process.EpochNotifier
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

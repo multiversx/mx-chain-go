@@ -7,7 +7,9 @@ import (
 	"math/big"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -43,7 +45,13 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		return createShardGenesisAfterHardFork(arg, selfShardID)
 	}
 
-	processors, err := createProcessorsForShard(arg)
+	genesisOverrideConfig := config.GeneralSettingsConfig{
+		BuiltInFunctionsEnableEpoch:    0,
+		SCDeployEnableEpoch:            0,
+		RelayedTransactionsEnableEpoch: 0,
+	}
+
+	processors, err := createProcessorsForShard(arg, genesisOverrideConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -126,7 +134,7 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId uint32) (data.HeaderHandler, [][]byte, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
-	processors, err := createProcessorsForShard(tmpArg)
+	processors, err := createProcessorsForShard(tmpArg, *arg.GeneralConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -217,7 +225,7 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 	return arg.Accounts.SaveAccount(account)
 }
 
-func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, error) {
+func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:               arg.GasMap,
 		MapDNSAddresses:      make(map[string]struct{}),
@@ -302,24 +310,30 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		return nil, err
 	}
 
+	epochNotifier := forking.NewGenericEpochNotifier()
+	epochNotifier.CheckEpoch(arg.StartEpochNum)
+
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:      vmContainer,
-		ArgsParser:       smartContract.NewArgumentParser(),
-		Hasher:           arg.Hasher,
-		Marshalizer:      arg.Marshalizer,
-		AccountsDB:       arg.Accounts,
-		BlockChainHook:   vmFactoryImpl.BlockChainHookImpl(),
-		PubkeyConv:       arg.PubkeyConv,
-		Coordinator:      arg.ShardCoordinator,
-		ScrForwarder:     scForwarder,
-		TxFeeHandler:     genesisFeeHandler,
-		EconomicsFee:     genesisFeeHandler,
-		TxTypeHandler:    txTypeHandler,
-		GasHandler:       gasHandler,
-		BuiltInFunctions: vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:  arg.TxLogsProcessor,
-		BadTxForwarder:   badTxInterim,
+		VmContainer:        vmContainer,
+		ArgsParser:         smartContract.NewArgumentParser(),
+		Hasher:             arg.Hasher,
+		Marshalizer:        arg.Marshalizer,
+		AccountsDB:         arg.Accounts,
+		BlockChainHook:     vmFactoryImpl.BlockChainHookImpl(),
+		PubkeyConv:         arg.PubkeyConv,
+		Coordinator:        arg.ShardCoordinator,
+		ScrForwarder:       scForwarder,
+		TxFeeHandler:       genesisFeeHandler,
+		EconomicsFee:       genesisFeeHandler,
+		TxTypeHandler:      txTypeHandler,
+		GasHandler:         gasHandler,
+		BuiltInFunctions:   vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:    arg.TxLogsProcessor,
+		BadTxForwarder:     badTxInterim,
+		EpochNotifier:      epochNotifier,
+		BuiltinEnableEpoch: generalConfig.BuiltInFunctionsEnableEpoch,
+		DeployEnableEpoch:  generalConfig.SCDeployEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -336,21 +350,22 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:          arg.Accounts,
-		Hasher:            arg.Hasher,
-		PubkeyConv:        arg.PubkeyConv,
-		Marshalizer:       arg.Marshalizer,
-		SignMarshalizer:   arg.SignMarshalizer,
-		ShardCoordinator:  arg.ShardCoordinator,
-		ScProcessor:       scProcessor,
-		TxFeeHandler:      genesisFeeHandler,
-		TxTypeHandler:     txTypeHandler,
-		EconomicsFee:      genesisFeeHandler,
-		ReceiptForwarder:  receiptTxInterim,
-		BadTxForwarder:    badTxInterim,
-		ArgsParser:        smartContract.NewArgumentParser(),
-		ScrForwarder:      scForwarder,
-		DisabledRelayedTx: false,
+		Accounts:             arg.Accounts,
+		Hasher:               arg.Hasher,
+		PubkeyConv:           arg.PubkeyConv,
+		Marshalizer:          arg.Marshalizer,
+		SignMarshalizer:      arg.SignMarshalizer,
+		ShardCoordinator:     arg.ShardCoordinator,
+		ScProcessor:          scProcessor,
+		TxFeeHandler:         genesisFeeHandler,
+		TxTypeHandler:        txTypeHandler,
+		EconomicsFee:         genesisFeeHandler,
+		ReceiptForwarder:     receiptTxInterim,
+		BadTxForwarder:       badTxInterim,
+		ArgsParser:           smartContract.NewArgumentParser(),
+		ScrForwarder:         scForwarder,
+		EpochNotifier:        epochNotifier,
+		RelayedTxEnableEpoch: generalConfig.RelayedTransactionsEnableEpoch,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
