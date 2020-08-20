@@ -54,6 +54,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
+	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -1207,6 +1208,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	txSimulatorProcessorArgs := &txsimulator.ArgsTxSimulator{
+		AddressPubKeyConverter: addressPubkeyConverter,
+		ShardCoordinator:       shardCoordinator,
+	}
+
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		&coreArgs,
@@ -1249,8 +1255,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		tpsBenchmark,
 		historyRepository,
 		epochNotifier,
+		txSimulatorProcessorArgs,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
+	if err != nil {
+		return err
+	}
+
+	transactionSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
 	if err != nil {
 		return err
 	}
@@ -1384,6 +1396,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	argNodeFacade := facade.ArgNodeFacade{
 		Node:                   currentNode,
 		ApiResolver:            apiResolver,
+		TxSimulatorProcessor:   transactionSimulator,
 		RestAPIServerDebugMode: restAPIServerDebugMode,
 		WsAntifloodConfig:      generalConfig.Antiflood.WebServer,
 		FacadeConfig: config.FacadeConfig{
