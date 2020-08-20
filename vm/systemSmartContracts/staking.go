@@ -749,7 +749,7 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.UserError
 }
 
-func (r *stakingSC) addToWaitingList(blsKey []byte, addFirst bool) error {
+func (r *stakingSC) addToWaitingList(blsKey []byte, addJailed bool) error {
 	inWaitingListKey := r.createWaitingListKey(blsKey)
 	marshaledData := r.eei.GetStorage(inWaitingListKey)
 	if len(marshaledData) != 0 {
@@ -765,6 +765,10 @@ func (r *stakingSC) addToWaitingList(blsKey []byte, addFirst bool) error {
 	if waitingList.Length == 1 {
 		waitingList.FirstKey = inWaitingListKey
 		waitingList.LastKey = inWaitingListKey
+		if addJailed {
+			waitingList.LastJailedKey = inWaitingListKey
+		}
+
 		elementInWaiting := &ElementInList{
 			BLSPublicKey: blsKey,
 			PreviousKey:  waitingList.LastKey,
@@ -773,18 +777,15 @@ func (r *stakingSC) addToWaitingList(blsKey []byte, addFirst bool) error {
 		return r.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
 	}
 
-	if addFirst {
-		nextKey := make([]byte, 0, len(waitingList.FirstKey))
-		copy(nextKey, waitingList.FirstKey)
-		waitingList.FirstKey = inWaitingListKey
-		elementInWaiting := &ElementInList{
-			BLSPublicKey: blsKey,
-			PreviousKey:  inWaitingListKey,
-			NextKey:      nextKey,
-		}
-		return r.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
+	if addJailed {
+		return r.insertAfter(waitingList, waitingList.LastJailedKey, blsKey)
 	}
 
+	return r.addToEndOfTheList(waitingList, blsKey)
+}
+
+func (r *stakingSC) addToEndOfTheList(waitingList *WaitingList, blsKey []byte) error {
+	inWaitingListKey := r.createWaitingListKey(blsKey)
 	oldLastKey := make([]byte, len(waitingList.LastKey))
 	copy(oldLastKey, waitingList.LastKey)
 
@@ -806,6 +807,67 @@ func (r *stakingSC) addToWaitingList(blsKey []byte, addFirst bool) error {
 
 	waitingList.LastKey = inWaitingListKey
 	return r.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
+}
+
+func (r *stakingSC) insertAfter(
+	waitingList *WaitingList,
+	after []byte,
+	blsKey []byte,
+) error {
+	inWaitingListKey := r.createWaitingListKey(blsKey)
+	if len(after) == 0 {
+		nextKey := make([]byte, 0, len(waitingList.FirstKey))
+		copy(nextKey, waitingList.FirstKey)
+		waitingList.FirstKey = inWaitingListKey
+		waitingList.LastJailedKey = inWaitingListKey
+		elementInWaiting := &ElementInList{
+			BLSPublicKey: blsKey,
+			PreviousKey:  inWaitingListKey,
+			NextKey:      nextKey,
+		}
+		return r.saveElementAndList(inWaitingListKey, elementInWaiting, waitingList)
+	}
+
+	lastJailedElement, err := r.getWaitingListElement(waitingList.LastJailedKey)
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(waitingList.LastKey, waitingList.LastJailedKey) {
+		waitingList.LastJailedKey = inWaitingListKey
+		return r.addToEndOfTheList(waitingList, blsKey)
+	}
+
+	firstNonJailedElement, err := r.getWaitingListElement(lastJailedElement.NextKey)
+	if err != nil {
+		return err
+	}
+
+	elementInWaiting := &ElementInList{
+		BLSPublicKey: blsKey,
+		PreviousKey:  make([]byte, len(inWaitingListKey)),
+		NextKey:      make([]byte, len(inWaitingListKey)),
+	}
+	copy(elementInWaiting.PreviousKey, waitingList.LastJailedKey)
+	copy(elementInWaiting.NextKey, lastJailedElement.NextKey)
+
+	lastJailedElement.NextKey = inWaitingListKey
+	firstNonJailedElement.PreviousKey = inWaitingListKey
+	waitingList.LastJailedKey = inWaitingListKey
+
+	err = r.saveWaitingListElement(elementInWaiting.PreviousKey, lastJailedElement)
+	if err != nil {
+		return err
+	}
+	err = r.saveWaitingListElement(elementInWaiting.NextKey, firstNonJailedElement)
+	if err != nil {
+		return err
+	}
+	err = r.saveWaitingListElement(inWaitingListKey, elementInWaiting)
+	if err != nil {
+		return err
+	}
+	return r.saveWaitingListHead(waitingList)
 }
 
 func (r *stakingSC) saveElementAndList(key []byte, element *ElementInList, waitingList *WaitingList) error {
@@ -912,9 +974,10 @@ func (r *stakingSC) saveWaitingListElement(key []byte, element *ElementInList) e
 
 func (r *stakingSC) getWaitingListHead() (*WaitingList, error) {
 	waitingList := &WaitingList{
-		FirstKey: make([]byte, 0),
-		LastKey:  make([]byte, 0),
-		Length:   0,
+		FirstKey:      make([]byte, 0),
+		LastKey:       make([]byte, 0),
+		Length:        0,
+		LastJailedKey: make([]byte, 0),
 	}
 	marshaledData := r.eei.GetStorage([]byte(waitingListHeadKey))
 	if len(marshaledData) == 0 {

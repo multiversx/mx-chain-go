@@ -38,7 +38,8 @@ message ElementInList {
 }
 
 message WaitingList {
-	bytes FirstKey = 1 [(gogoproto.jsontag) = "FirstKey"];
-	bytes LastKey  = 2 [(gogoproto.jsontag) = "LastKey"];
-	uint32 Length  = 3 [(gogoproto.jsontag) = "Length"];
+	bytes FirstKey      = 1 [(gogoproto.jsontag) = "FirstKey"];
+	bytes LastKey       = 2 [(gogoproto.jsontag) = "LastKey"];
+	uint32 Length       = 3 [(gogoproto.jsontag) = "Length"];
+	bytes LastJailedKey = 4 [(gogoproto.jsontag) = "LastJailedKey"];
 }
