@@ -925,7 +925,7 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 	}}
 	acntDst := &mock.UserAccountStub{}
 
-	cost, err := execTx.ProcessTxFee(tx, acntSnd, acntDst, args.EconomicsFee.ComputeFee(tx))
+	cost, err := execTx.ProcessTxFee(tx, acntSnd, acntDst, args.EconomicsFee.ComputeMoveBalanceFee(tx))
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
 }
@@ -956,7 +956,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 		return nil
 	}}
 
-	cost, err := execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeFee(tx))
+	cost, err := execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
 
@@ -968,7 +968,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 		Data:     []byte("data"),
 	}
 
-	cost, err = execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeFee(tx))
+	cost, err = execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
 
@@ -980,7 +980,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 		GasLimit: moveBalanceFee.Uint64(),
 	}
 
-	cost, err = execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeFee(tx))
+	cost, err = execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
 }
@@ -1013,7 +1013,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 		return nil
 	}}
 
-	cost, err := execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeFee(tx))
+	cost, err := execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
 }
@@ -1280,7 +1280,7 @@ func TestTxProcessor_GetUserTxCostShouldWork(t *testing.T) {
 	args := createArgsForTxProcessor()
 	args.ShardCoordinator = shardC
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return cost
 		},
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
