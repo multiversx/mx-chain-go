@@ -1058,14 +1058,14 @@ func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, vmcommon.UserError)
 
 	// unJail wrong access address should not work
-	doUnJail(t, stakingSmartContract, []byte("addr"), stakerPubKey, vmcommon.UserError)
+	doUnJail(t, stakingSmartContract, []byte("addr"), stakerPubKey, []byte{0}, vmcommon.UserError)
 	// cannot do unJail on a address that not stake
-	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("addr"), vmcommon.UserError)
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("addr"), []byte{0}, vmcommon.UserError)
 	// unJail should work
 	blockChainHook.CurrentRoundCalled = func() uint64 {
 		return 1200
 	}
-	doUnJail(t, stakingSmartContract, stakingAccessAddress, stakerPubKey, vmcommon.Ok)
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, stakerPubKey, []byte{0}, vmcommon.Ok)
 }
 
 func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
@@ -1122,15 +1122,81 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 	stakedData := &StakedData{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Jailed)
-	assert.False(t, stakedData.Staked)
-	assert.True(t, stakedData.StakedNonce == math.MaxUint64)
+	assert.True(t, stakedData.Staked)
 }
 
-func doUnJail(t *testing.T, sc *stakingSC, callerAddr, addrToUnJail []byte, expectedCode vmcommon.ReturnCode) {
+func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(100)
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.Eei = eei
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	stakerAddress := []byte("stakerAddr")
+	stakerPubKey := []byte("stakerPublicKey")
+	callerAddress := []byte("data")
+
+	// do stake should work
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firstKey"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
+
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("firstKey"), vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("secondKey"), vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fourthKey"), vmcommon.UserError)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "switchJailedWithWaiting"
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
+	arguments.Arguments = [][]byte{[]byte("firstKey")}
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+	// check if account is staked should return error code
+	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("firstKey"), vmcommon.UserError)
+
+	arguments = CreateVmContractCallInput()
+	arguments.Function = "switchJailedWithWaiting"
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
+	arguments.Arguments = [][]byte{[]byte("secondKey")}
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fourthKey"), vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("secondKey"), vmcommon.UserError)
+
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fifthKey"))
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fifthKey"), vmcommon.UserError)
+
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firstKey"), []byte{1}, vmcommon.Ok)
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), []byte{1}, vmcommon.Ok)
+
+	waitingList, _ := stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, uint32(3), waitingList.Length)
+	assert.Equal(t, []byte("w_secondKey"), waitingList.LastJailedKey)
+	assert.Equal(t, []byte("w_firstKey"), waitingList.FirstKey)
+	assert.Equal(t, []byte("w_fifthKey"), waitingList.LastKey)
+}
+
+func doUnJail(t *testing.T, sc *stakingSC, callerAddr, addrToUnJail []byte, withStake []byte, expectedCode vmcommon.ReturnCode) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "unJail"
 	arguments.CallerAddr = callerAddr
-	arguments.Arguments = [][]byte{addrToUnJail, {0}}
+	arguments.Arguments = [][]byte{addrToUnJail, withStake}
 
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, expectedCode, retCode)
