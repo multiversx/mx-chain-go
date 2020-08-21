@@ -23,6 +23,16 @@
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 
+[Versions]
+   DefaultVersion = "default"
+   VersionsByEpochs = [
+       { StartEpoch = 0, Version = "*" },
+   ]
+   [Versions.Cache]
+        Name = "VersionsCache"
+        Capacity = 100
+        Type = "LRU"
+
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = true

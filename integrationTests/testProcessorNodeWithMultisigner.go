@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -42,7 +43,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	keyIndex int,
 	ownAccount *TestWalletAccount,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
-	headerIntegrityVerifier process.InterceptedHeaderIntegrityVerifier,
+	headerIntegrityVerifier process.HeaderIntegrityVerifier,
 	nodeSetup sharding.GenesisNodesSetupHandler,
 ) *TestProcessorNode {
 
@@ -212,20 +213,20 @@ func CreateNodeWithBLSAndTxKeys(
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := CreateMemUnit()
 	argFactory := ArgIndexHashedNodesCoordinatorFactory{
-		nodesPerShard,
-		nbMetaNodes,
-		shardConsensusGroupSize,
-		metaConsensusGroupSize,
-		shardId,
-		nbShards,
-		validatorsMap,
-		waitingMap,
-		keyIndex,
-		cp,
-		epochStartSubscriber,
-		TestHasher,
-		cache,
-		bootStorer,
+		nodesPerShard:           nodesPerShard,
+		nbMetaNodes:             nbMetaNodes,
+		shardConsensusGroupSize: shardConsensusGroupSize,
+		metaConsensusGroupSize:  metaConsensusGroupSize,
+		shardId:                 shardId,
+		nbShards:                nbShards,
+		validatorsMap:           validatorsMap,
+		waitingMap:              waitingMap,
+		keyIndex:                keyIndex,
+		cp:                      cp,
+		epochStartSubscriber:    epochStartSubscriber,
+		hasher:                  TestHasher,
+		consensusGroupCache:     cache,
+		bootStorer:              bootStorer,
 	}
 	nodesCoordinator := coordinatorFactory.CreateNodesCoordinator(argFactory)
 
@@ -237,7 +238,7 @@ func CreateNodeWithBLSAndTxKeys(
 		Messenger:               messenger,
 		NodesCoordinator:        nodesCoordinator,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
 		RatingsData:             ratingsData,
@@ -430,9 +431,25 @@ func CreateNode(
 		keyIndex,
 		nil,
 		&mock.HeaderSigVerifierStub{},
-		&mock.HeaderIntegrityVerifierStub{},
+		CreateHeaderIntegrityVerifier(),
 		nodesSetup,
 	)
+}
+
+func createHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	headerVersioning, _ := headerCheck.NewHeaderIntegrityVerifier(
+		ChainID,
+		[]config.VersionByEpochs{
+			{
+				StartEpoch: 0,
+				Version:    "*",
+			},
+		},
+		"default",
+		testscommon.NewCacherMock(),
+	)
+
+	return headerVersioning
 }
 
 // CreateNodesWithNodesCoordinatorAndHeaderSigVerifier returns a map with nodes per shard each using a real nodes coordinator and header sig verifier
@@ -499,7 +516,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			KeyGen:            keyGen,
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
-		headerIntegrityVerifier, _ := headerCheck.NewHeaderIntegrityVerifier(ChainID)
+
 		for i := range validatorList {
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
@@ -512,7 +529,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				i,
 				nil,
 				headerSig,
-				headerIntegrityVerifier,
+				createHeaderIntegrityVerifier(),
 				nodesSetup,
 			)
 		}
@@ -599,7 +616,6 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
-			headerIntegrityVerifier, _ := headerCheck.NewHeaderIntegrityVerifier(ChainID)
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
 				shardId,
@@ -611,7 +627,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				i,
 				ownAccount,
 				headerSig,
-				headerIntegrityVerifier,
+				createHeaderIntegrityVerifier(),
 				nodesSetup,
 			)
 		}
