@@ -116,6 +116,6 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 			MinNumConnectedPeersToStart:       2,
 			MinNumOfPeersToConsiderBlockValid: 2,
 		},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
-
 }

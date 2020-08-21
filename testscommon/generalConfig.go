@@ -229,6 +229,15 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		Versions: config.VersionsConfig{
+			DefaultVersion: "default",
+			VersionsByEpochs: []config.VersionByEpochs{
+				{
+					StartEpoch: 0,
+					Version:    "*",
+				},
+			},
+		},
 	}
 }
 
