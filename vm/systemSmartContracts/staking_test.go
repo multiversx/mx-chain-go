@@ -1150,12 +1150,12 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	callerAddress := []byte("data")
 
 	// do stake should work
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firstKey"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firsstKey"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
 
-	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("firstKey"), vmcommon.Ok)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("firsstKey"), vmcommon.Ok)
 	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("secondKey"), vmcommon.Ok)
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
 	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fourthKey"), vmcommon.UserError)
@@ -1163,12 +1163,12 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "switchJailedWithWaiting"
 	arguments.CallerAddr = args.EndOfEpochAccessAddr
-	arguments.Arguments = [][]byte{[]byte("firstKey")}
+	arguments.Arguments = [][]byte{[]byte("firsstKey")}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
 	// check if account is staked should return error code
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.Ok)
-	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("firstKey"), vmcommon.UserError)
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("firsstKey"), vmcommon.UserError)
 
 	arguments = CreateVmContractCallInput()
 	arguments.Function = "switchJailedWithWaiting"
@@ -1179,17 +1179,26 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fourthKey"), vmcommon.Ok)
 	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("secondKey"), vmcommon.UserError)
 
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fifthKey"))
-	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fifthKey"), vmcommon.UserError)
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fifthhKey"))
+	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fifthhKey"), vmcommon.UserError)
 
-	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firstKey"), []byte{1}, vmcommon.Ok)
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), []byte{1}, vmcommon.Ok)
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), []byte{1}, vmcommon.Ok)
 
 	waitingList, _ := stakingSmartContract.getWaitingListHead()
 	assert.Equal(t, uint32(3), waitingList.Length)
 	assert.Equal(t, []byte("w_secondKey"), waitingList.LastJailedKey)
-	assert.Equal(t, []byte("w_firstKey"), waitingList.FirstKey)
-	assert.Equal(t, []byte("w_fifthKey"), waitingList.LastKey)
+	assert.Equal(t, []byte("w_firsstKey"), waitingList.FirstKey)
+	assert.Equal(t, []byte("w_fifthhKey"), waitingList.LastKey)
+
+	stakingSmartContract.unBondPeriod = 0
+	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
+	waitingList, _ = stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, []byte("w_firsstKey"), waitingList.LastJailedKey)
+
+	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
+	waitingList, _ = stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, 0, len(waitingList.LastJailedKey))
 }
 
 func doUnJail(t *testing.T, sc *stakingSC, callerAddr, addrToUnJail []byte, withStake []byte, expectedCode vmcommon.ReturnCode) {
@@ -1227,6 +1236,16 @@ func doUnStake(t *testing.T, sc *stakingSC, callerAddr, stakerAddr, stakerPubKey
 	arguments.Function = "unStake"
 	arguments.CallerAddr = callerAddr
 	arguments.Arguments = [][]byte{stakerPubKey, stakerAddr}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, expectedCode, retCode)
+}
+
+func doUnBond(t *testing.T, sc *stakingSC, callerAddr, stakerPubKey []byte, expectedCode vmcommon.ReturnCode) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "unBond"
+	arguments.CallerAddr = callerAddr
+	arguments.Arguments = [][]byte{stakerPubKey}
 
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, expectedCode, retCode)

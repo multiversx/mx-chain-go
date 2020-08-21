@@ -874,11 +874,11 @@ func (r *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		return nil
 	}
 
-	if bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
-		waitingList.LastJailedKey = make([]byte, 0)
-	}
-
 	if bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey) {
+		if bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
+			waitingList.LastJailedKey = make([]byte, 0)
+		}
+
 		nextElement, err := r.getWaitingListElement(elementToRemove.NextKey)
 		if err != nil {
 			return err
@@ -889,6 +889,8 @@ func (r *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		return r.saveElementAndList(elementToRemove.NextKey, nextElement, waitingList)
 	}
 
+	waitingList.LastJailedKey = make([]byte, len(elementToRemove.PreviousKey))
+	copy(waitingList.LastJailedKey, elementToRemove.PreviousKey)
 	previousElement, err := r.getWaitingListElement(elementToRemove.PreviousKey)
 	if err != nil {
 		return err
