@@ -94,6 +94,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.StatusHandler) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilStatusHandler)
 	}
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return epochStart.ErrNilHeaderIntegrityVerifier
+	}
 
 	return nil
 }

@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -2450,7 +2449,7 @@ func createUpdateTestArgs(consensusGroup map[string][]sharding.Validator) peer.A
 			key := fmt.Sprintf(consensusGroupFormat, string(randomness), round, shardId, epoch)
 			validatorsArray, ok := consensusGroup[key]
 			if !ok {
-				return nil, spos.ErrEmptyConsensusGroup
+				return nil, process.ErrEmptyConsensusGroup
 			}
 			return validatorsArray, nil
 		},
