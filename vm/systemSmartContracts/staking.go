@@ -189,20 +189,6 @@ func (r *stakingSC) removeFromStakedNodes() {
 	r.setConfig(stakeConfig)
 }
 
-func (r *stakingSC) addToJailedNodes() {
-	stakeConfig := r.getConfig()
-	stakeConfig.JailedNodes++
-	r.setConfig(stakeConfig)
-}
-
-func (r *stakingSC) removeFromJailedNodes() {
-	stakeConfig := r.getConfig()
-	if stakeConfig.JailedNodes > 0 {
-		stakeConfig.JailedNodes--
-	}
-	r.setConfig(stakeConfig)
-}
-
 func (r *stakingSC) numSpareNodes() int64 {
 	stakeConfig := r.getConfig()
 	return stakeConfig.StakedNodes - stakeConfig.JailedNodes - stakeConfig.MinNumNodes
@@ -315,10 +301,6 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 
-	if stakedData.UnJailedNonce < stakedData.JailedNonce {
-		r.removeFromJailedNodes()
-	}
-
 	stakedData.JailedRound = math.MaxUint64
 	stakedData.UnJailedNonce = r.eei.BlockChainHook().CurrentNonce()
 	stakedData.Jailed = false
@@ -398,10 +380,6 @@ func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		if len(stakedData.RewardAddress) == 0 {
 			r.eei.AddReturnMessage("cannot jail a key that is not registered")
 			return vmcommon.UserError
-		}
-
-		if stakedData.UnJailedNonce <= stakedData.JailedNonce {
-			r.addToJailedNodes()
 		}
 
 		stakedData.JailedRound = r.eei.BlockChainHook().CurrentRound()
@@ -558,6 +536,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	registrationData.Staked = false
 	registrationData.UnStakedEpoch = r.eei.BlockChainHook().CurrentEpoch()
 	registrationData.UnStakedNonce = r.eei.BlockChainHook().CurrentNonce()
+	registrationData.Waiting = false
 
 	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {
@@ -697,10 +676,6 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	if !registrationData.Staked {
 		r.eei.AddReturnMessage("cannot slash already unstaked or user not staked")
 		return vmcommon.UserError
-	}
-
-	if registrationData.UnJailedNonce >= registrationData.JailedNonce {
-		r.addToJailedNodes()
 	}
 
 	slashValue := big.NewInt(0).SetBytes(args.Arguments[1])
@@ -898,6 +873,11 @@ func (r *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		r.eei.SetStorage([]byte(waitingListHeadKey), nil)
 		return nil
 	}
+
+	if bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
+		waitingList.LastJailedKey = make([]byte, 0)
+	}
+
 	if bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey) {
 		nextElement, err := r.getWaitingListElement(elementToRemove.NextKey)
 		if err != nil {

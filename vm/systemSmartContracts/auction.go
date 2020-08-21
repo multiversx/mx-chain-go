@@ -160,7 +160,7 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 	totalUnJailPrice := big.NewInt(0).Mul(auctionConfig.UnJailPrice, big.NewInt(int64(numBLSKeys)))
 
 	if totalUnJailPrice.Cmp(args.CallValue) != 0 {
-		s.eei.AddReturnMessage("insufficient funds sent for unJail")
+		s.eei.AddReturnMessage("wanted exact unjail price * numNodes")
 		return vmcommon.UserError
 	}
 
@@ -187,13 +187,21 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
+	transferBack := big.NewInt(0)
 	for i, blsKey := range blsKeys {
 		vmOutput, err := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(args.Arguments[2*i+1])))
 		if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
+			transferBack.Add(transferBack, auctionConfig.UnJailPrice)
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
 			continue
 		}
+	}
+
+	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, transferBack, nil, 0)
+	if err != nil {
+		s.eei.AddReturnMessage("transfer error on unBond function")
+		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
@@ -970,6 +978,9 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	totalUnBond.Sub(totalUnBond, totalSlashed)
+	if totalUnBond.Cmp(zero) < 0 {
+		totalUnBond.Set(zero)
+	}
 	if registrationData.LockedStake.Cmp(totalUnBond) < 0 {
 		s.eei.AddReturnMessage("contract error on unBond function, lockedStake < totalUnBond")
 		return vmcommon.UserError
@@ -988,7 +999,6 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	zero := big.NewInt(0)
 	if registrationData.LockedStake.Cmp(zero) == 0 && registrationData.TotalStakeValue.Cmp(zero) == 0 {
 		s.eei.SetStorage(args.CallerAddr, nil)
 	} else {
