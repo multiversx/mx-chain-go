@@ -592,6 +592,7 @@ func CreateFullGenesisBlocks(
 			BuiltInFunctionsEnableEpoch:    0,
 			SCDeployEnableEpoch:            0,
 			RelayedTransactionsEnableEpoch: 0,
+			PenalizedTooMuchGasEnableEpoch: 0,
 		},
 	}
 
@@ -672,9 +673,10 @@ func CreateGenesisMetaBlock(
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:   big.NewInt(1000),
 		GeneralConfig: &config.GeneralSettingsConfig{
-			RelayedTransactionsEnableEpoch: 0,
-			SCDeployEnableEpoch:            0,
 			BuiltInFunctionsEnableEpoch:    0,
+			SCDeployEnableEpoch:            0,
+			RelayedTransactionsEnableEpoch: 0,
+			PenalizedTooMuchGasEnableEpoch: 0,
 		},
 	}
 

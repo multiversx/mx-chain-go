@@ -27,35 +27,38 @@ var _ process.TransactionProcessor = (*txProcessor)(nil)
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
-	txFeeHandler         process.TransactionFeeHandler
-	txTypeHandler        process.TxTypeHandler
-	receiptForwarder     process.IntermediateTransactionHandler
-	badTxForwarder       process.IntermediateTransactionHandler
-	argsParser           process.ArgumentsParser
-	scrForwarder         process.IntermediateTransactionHandler
-	signMarshalizer      marshal.Marshalizer
-	flagRelayedTx        atomic.Flag
-	relayedTxEnableEpoch uint32
+	txFeeHandler                   process.TransactionFeeHandler
+	txTypeHandler                  process.TxTypeHandler
+	receiptForwarder               process.IntermediateTransactionHandler
+	badTxForwarder                 process.IntermediateTransactionHandler
+	argsParser                     process.ArgumentsParser
+	scrForwarder                   process.IntermediateTransactionHandler
+	signMarshalizer                marshal.Marshalizer
+	flagRelayedTx                  atomic.Flag
+	flagPenalizedTooMuchGas        atomic.Flag
+	relayedTxEnableEpoch           uint32
+	penalizedTooMuchGasEnableEpoch uint32
 }
 
 // ArgsNewTxProcessor defines defines the arguments needed for new tx processor
 type ArgsNewTxProcessor struct {
-	Accounts             state.AccountsAdapter
-	Hasher               hashing.Hasher
-	PubkeyConv           core.PubkeyConverter
-	Marshalizer          marshal.Marshalizer
-	SignMarshalizer      marshal.Marshalizer
-	ShardCoordinator     sharding.Coordinator
-	ScProcessor          process.SmartContractProcessor
-	TxFeeHandler         process.TransactionFeeHandler
-	TxTypeHandler        process.TxTypeHandler
-	EconomicsFee         process.FeeHandler
-	ReceiptForwarder     process.IntermediateTransactionHandler
-	BadTxForwarder       process.IntermediateTransactionHandler
-	ArgsParser           process.ArgumentsParser
-	ScrForwarder         process.IntermediateTransactionHandler
-	RelayedTxEnableEpoch uint32
-	EpochNotifier        process.EpochNotifier
+	Accounts                       state.AccountsAdapter
+	Hasher                         hashing.Hasher
+	PubkeyConv                     core.PubkeyConverter
+	Marshalizer                    marshal.Marshalizer
+	SignMarshalizer                marshal.Marshalizer
+	ShardCoordinator               sharding.Coordinator
+	ScProcessor                    process.SmartContractProcessor
+	TxFeeHandler                   process.TransactionFeeHandler
+	TxTypeHandler                  process.TxTypeHandler
+	EconomicsFee                   process.FeeHandler
+	ReceiptForwarder               process.IntermediateTransactionHandler
+	BadTxForwarder                 process.IntermediateTransactionHandler
+	ArgsParser                     process.ArgumentsParser
+	ScrForwarder                   process.IntermediateTransactionHandler
+	RelayedTxEnableEpoch           uint32
+	PenalizedTooMuchGasEnableEpoch uint32
+	EpochNotifier                  process.EpochNotifier
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -117,15 +120,16 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	}
 
 	txProc := &txProcessor{
-		baseTxProcessor:      baseTxProcess,
-		txFeeHandler:         args.TxFeeHandler,
-		txTypeHandler:        args.TxTypeHandler,
-		receiptForwarder:     args.ReceiptForwarder,
-		badTxForwarder:       args.BadTxForwarder,
-		argsParser:           args.ArgsParser,
-		scrForwarder:         args.ScrForwarder,
-		signMarshalizer:      args.SignMarshalizer,
-		relayedTxEnableEpoch: args.RelayedTxEnableEpoch,
+		baseTxProcessor:                baseTxProcess,
+		txFeeHandler:                   args.TxFeeHandler,
+		txTypeHandler:                  args.TxTypeHandler,
+		receiptForwarder:               args.ReceiptForwarder,
+		badTxForwarder:                 args.BadTxForwarder,
+		argsParser:                     args.ArgsParser,
+		scrForwarder:                   args.ScrForwarder,
+		signMarshalizer:                args.SignMarshalizer,
+		relayedTxEnableEpoch:           args.RelayedTxEnableEpoch,
+		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
@@ -675,6 +679,10 @@ func (txProc *txProcessor) getUserTxCost(
 	userTxHash []byte,
 	userTxType process.TransactionType,
 ) *big.Int {
+	if !txProc.flagPenalizedTooMuchGas.IsSet() {
+		return txProc.economicsFee.ComputeMoveBalanceFee(userTx)
+	}
+
 	isCrossTxWithMoveBalance := userTxType == process.MoveBalance && txProc.isCrossTxFromMe(userTx.SndAddr, userTx.RcvAddr)
 	if isCrossTxWithMoveBalance {
 		gasUsed := txProc.economicsFee.ComputeGasLimit(userTx)
@@ -797,6 +805,9 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 func (txProc *txProcessor) EpochConfirmed(epoch uint32) {
 	txProc.flagRelayedTx.Toggle(epoch >= txProc.relayedTxEnableEpoch)
 	log.Debug("txProcessor: relayed transactions", "enabled", txProc.flagRelayedTx.IsSet())
+
+	txProc.flagPenalizedTooMuchGas.Toggle(epoch >= txProc.penalizedTooMuchGasEnableEpoch)
+	log.Debug("txProcessor: penalized too much gas", "enabled", txProc.flagPenalizedTooMuchGas.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

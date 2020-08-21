@@ -254,13 +254,14 @@ type TestProcessorNode struct {
 	ChainID               []byte
 	MinTransactionVersion uint32
 
-	ExportHandler        update.ExportHandler
-	WaitTime             time.Duration
-	HistoryRepository    fullHistory.HistoryRepository
-	EpochNotifier        process.EpochNotifier
-	BuiltinEnableEpoch   uint32
-	DeployEnableEpoch    uint32
-	RelayedTxEnableEpoch uint32
+	ExportHandler                  update.ExportHandler
+	WaitTime                       time.Duration
+	HistoryRepository              fullHistory.HistoryRepository
+	EpochNotifier                  process.EpochNotifier
+	BuiltinEnableEpoch             uint32
+	DeployEnableEpoch              uint32
+	RelayedTxEnableEpoch           uint32
+	PenalizedTooMuchGasEnableEpoch uint32
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -388,12 +389,14 @@ func NewTestProcessorNodeSoftFork(
 	builtinEnableEpoch uint32,
 	deployEnableEpoch uint32,
 	relayedTxEnableEpoch uint32,
+	penalizedTooMuchGasEnableEpoch uint32,
 ) *TestProcessorNode {
 
 	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
 	tpn.BuiltinEnableEpoch = builtinEnableEpoch
 	tpn.DeployEnableEpoch = deployEnableEpoch
 	tpn.RelayedTxEnableEpoch = relayedTxEnableEpoch
+	tpn.PenalizedTooMuchGasEnableEpoch = penalizedTooMuchGasEnableEpoch
 	tpn.initTestNode()
 
 	return tpn
@@ -1048,46 +1051,48 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:        tpn.VMContainer,
-		ArgsParser:         tpn.ArgsParser,
-		Hasher:             TestHasher,
-		Marshalizer:        TestMarshalizer,
-		AccountsDB:         tpn.AccntState,
-		BlockChainHook:     vmFactory.BlockChainHookImpl(),
-		PubkeyConv:         TestAddressPubkeyConverter,
-		Coordinator:        tpn.ShardCoordinator,
-		ScrForwarder:       tpn.ScrForwarder,
-		TxFeeHandler:       tpn.FeeAccumulator,
-		EconomicsFee:       tpn.EconomicsData,
-		TxTypeHandler:      txTypeHandler,
-		GasHandler:         tpn.GasHandler,
-		BuiltInFunctions:   tpn.BlockchainHook.GetBuiltInFunctions(),
-		TxLogsProcessor:    &mock.TxLogsProcessorStub{},
-		BadTxForwarder:     badBlocksHandler,
-		EpochNotifier:      tpn.EpochNotifier,
-		DeployEnableEpoch:  tpn.DeployEnableEpoch,
-		BuiltinEnableEpoch: tpn.BuiltinEnableEpoch,
+		VmContainer:                    tpn.VMContainer,
+		ArgsParser:                     tpn.ArgsParser,
+		Hasher:                         TestHasher,
+		Marshalizer:                    TestMarshalizer,
+		AccountsDB:                     tpn.AccntState,
+		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
+		PubkeyConv:                     TestAddressPubkeyConverter,
+		Coordinator:                    tpn.ShardCoordinator,
+		ScrForwarder:                   tpn.ScrForwarder,
+		TxFeeHandler:                   tpn.FeeAccumulator,
+		EconomicsFee:                   tpn.EconomicsData,
+		TxTypeHandler:                  txTypeHandler,
+		GasHandler:                     tpn.GasHandler,
+		BuiltInFunctions:               tpn.BlockchainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
+		BadTxForwarder:                 badBlocksHandler,
+		EpochNotifier:                  tpn.EpochNotifier,
+		DeployEnableEpoch:              tpn.DeployEnableEpoch,
+		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(argsNewScProcessor)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:             tpn.AccntState,
-		Hasher:               TestHasher,
-		PubkeyConv:           TestAddressPubkeyConverter,
-		Marshalizer:          TestMarshalizer,
-		SignMarshalizer:      TestTxSignMarshalizer,
-		ShardCoordinator:     tpn.ShardCoordinator,
-		ScProcessor:          tpn.ScProcessor,
-		TxFeeHandler:         tpn.FeeAccumulator,
-		TxTypeHandler:        txTypeHandler,
-		EconomicsFee:         tpn.EconomicsData,
-		ReceiptForwarder:     receiptsHandler,
-		BadTxForwarder:       badBlocksHandler,
-		ArgsParser:           tpn.ArgsParser,
-		ScrForwarder:         tpn.ScrForwarder,
-		EpochNotifier:        tpn.EpochNotifier,
-		RelayedTxEnableEpoch: tpn.RelayedTxEnableEpoch,
+		Accounts:                       tpn.AccntState,
+		Hasher:                         TestHasher,
+		PubkeyConv:                     TestAddressPubkeyConverter,
+		Marshalizer:                    TestMarshalizer,
+		SignMarshalizer:                TestTxSignMarshalizer,
+		ShardCoordinator:               tpn.ShardCoordinator,
+		ScProcessor:                    tpn.ScProcessor,
+		TxFeeHandler:                   tpn.FeeAccumulator,
+		TxTypeHandler:                  txTypeHandler,
+		EconomicsFee:                   tpn.EconomicsData,
+		ReceiptForwarder:               receiptsHandler,
+		BadTxForwarder:                 badBlocksHandler,
+		ArgsParser:                     tpn.ArgsParser,
+		ScrForwarder:                   tpn.ScrForwarder,
+		EpochNotifier:                  tpn.EpochNotifier,
+		RelayedTxEnableEpoch:           tpn.RelayedTxEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 
@@ -1211,25 +1216,26 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:        tpn.VMContainer,
-		ArgsParser:         tpn.ArgsParser,
-		Hasher:             TestHasher,
-		Marshalizer:        TestMarshalizer,
-		AccountsDB:         tpn.AccntState,
-		BlockChainHook:     vmFactory.BlockChainHookImpl(),
-		PubkeyConv:         TestAddressPubkeyConverter,
-		Coordinator:        tpn.ShardCoordinator,
-		ScrForwarder:       tpn.ScrForwarder,
-		TxFeeHandler:       tpn.FeeAccumulator,
-		EconomicsFee:       tpn.EconomicsData,
-		TxTypeHandler:      txTypeHandler,
-		GasHandler:         tpn.GasHandler,
-		BuiltInFunctions:   tpn.BlockchainHook.GetBuiltInFunctions(),
-		TxLogsProcessor:    &mock.TxLogsProcessorStub{},
-		BadTxForwarder:     badBlocksHandler,
-		EpochNotifier:      tpn.EpochNotifier,
-		BuiltinEnableEpoch: tpn.BuiltinEnableEpoch,
-		DeployEnableEpoch:  tpn.DeployEnableEpoch,
+		VmContainer:                    tpn.VMContainer,
+		ArgsParser:                     tpn.ArgsParser,
+		Hasher:                         TestHasher,
+		Marshalizer:                    TestMarshalizer,
+		AccountsDB:                     tpn.AccntState,
+		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
+		PubkeyConv:                     TestAddressPubkeyConverter,
+		Coordinator:                    tpn.ShardCoordinator,
+		ScrForwarder:                   tpn.ScrForwarder,
+		TxFeeHandler:                   tpn.FeeAccumulator,
+		EconomicsFee:                   tpn.EconomicsData,
+		TxTypeHandler:                  txTypeHandler,
+		GasHandler:                     tpn.GasHandler,
+		BuiltInFunctions:               tpn.BlockchainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
+		BadTxForwarder:                 badBlocksHandler,
+		EpochNotifier:                  tpn.EpochNotifier,
+		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
+		DeployEnableEpoch:              tpn.DeployEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor

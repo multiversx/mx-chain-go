@@ -1319,3 +1319,42 @@ func TestTxProcessor_IsCrossTxFromMeShouldWork(t *testing.T) {
 	assert.False(t, execTx.IsCrossTxFromMe([]byte("ADR1"), []byte("ADR0")))
 	assert.True(t, execTx.IsCrossTxFromMe([]byte("ADR0"), []byte("ADR1")))
 }
+
+func TestTxProcessor_GetUserTxCostShouldWorkOnFlagActivation(t *testing.T) {
+	t.Parallel()
+
+	gasLimit := uint64(1)
+	gasPrice := uint64(10)
+	cost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasPrice), big.NewInt(0).SetUint64(gasLimit))
+
+	tx := &transaction.Transaction{}
+	tx.SndAddr = []byte("SND0")
+	tx.RcvAddr = []byte("RCV1")
+	tx.GasPrice = gasPrice
+	tx.GasLimit = gasLimit*process.MaxGasFeeHigherFactorAccepted + 1
+
+	penalizeCost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
+
+	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
+	args := createArgsForTxProcessor()
+	args.ShardCoordinator = shardC
+	args.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return cost
+		},
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return gasLimit
+		},
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	execTx.SetPenalizedTooMuchGasEnableEpoch(1)
+
+	execTx.EpochConfirmed(0)
+	actualCost := execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
+	assert.Equal(t, cost, actualCost)
+
+	execTx.EpochConfirmed(1)
+	actualCost = execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
+	assert.Equal(t, penalizeCost, actualCost)
+}

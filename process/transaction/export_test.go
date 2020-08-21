@@ -46,3 +46,7 @@ func (txProc *txProcessor) GetUserTxCost(
 func (txProc *baseTxProcessor) IsCrossTxFromMe(adrSrc, adrDst []byte) bool {
 	return txProc.isCrossTxFromMe(adrSrc, adrDst)
 }
+
+func (txProc *txProcessor) SetPenalizedTooMuchGasEnableEpoch(epoch uint32) {
+	txProc.penalizedTooMuchGasEnableEpoch = epoch
+}

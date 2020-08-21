@@ -37,19 +37,21 @@ const upgradeFunctionName = "upgradeContract"
 var zero = big.NewInt(0)
 
 type scProcessor struct {
-	accounts           state.AccountsAdapter
-	blockChainHook     process.BlockChainHookHandler
-	pubkeyConv         core.PubkeyConverter
-	hasher             hashing.Hasher
-	marshalizer        marshal.Marshalizer
-	shardCoordinator   sharding.Coordinator
-	vmContainer        process.VirtualMachinesContainer
-	argsParser         process.ArgumentsParser
-	builtInFunctions   process.BuiltInFunctionContainer
-	deployEnableEpoch  uint32
-	builtinEnableEpoch uint32
-	flagDeploy         atomic.Flag
-	flagBuiltin        atomic.Flag
+	accounts                       state.AccountsAdapter
+	blockChainHook                 process.BlockChainHookHandler
+	pubkeyConv                     core.PubkeyConverter
+	hasher                         hashing.Hasher
+	marshalizer                    marshal.Marshalizer
+	shardCoordinator               sharding.Coordinator
+	vmContainer                    process.VirtualMachinesContainer
+	argsParser                     process.ArgumentsParser
+	builtInFunctions               process.BuiltInFunctionContainer
+	deployEnableEpoch              uint32
+	builtinEnableEpoch             uint32
+	penalizedTooMuchGasEnableEpoch uint32
+	flagDeploy                     atomic.Flag
+	flagBuiltin                    atomic.Flag
+	flagPenalizedTooMuchGas        atomic.Flag
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -63,25 +65,26 @@ type scProcessor struct {
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
 type ArgsNewSmartContractProcessor struct {
-	VmContainer        process.VirtualMachinesContainer
-	ArgsParser         process.ArgumentsParser
-	Hasher             hashing.Hasher
-	Marshalizer        marshal.Marshalizer
-	AccountsDB         state.AccountsAdapter
-	BlockChainHook     process.BlockChainHookHandler
-	PubkeyConv         core.PubkeyConverter
-	Coordinator        sharding.Coordinator
-	ScrForwarder       process.IntermediateTransactionHandler
-	TxFeeHandler       process.TransactionFeeHandler
-	EconomicsFee       process.FeeHandler
-	TxTypeHandler      process.TxTypeHandler
-	GasHandler         process.GasHandler
-	BuiltInFunctions   process.BuiltInFunctionContainer
-	TxLogsProcessor    process.TransactionLogProcessor
-	BadTxForwarder     process.IntermediateTransactionHandler
-	DeployEnableEpoch  uint32
-	BuiltinEnableEpoch uint32
-	EpochNotifier      process.EpochNotifier
+	VmContainer                    process.VirtualMachinesContainer
+	ArgsParser                     process.ArgumentsParser
+	Hasher                         hashing.Hasher
+	Marshalizer                    marshal.Marshalizer
+	AccountsDB                     state.AccountsAdapter
+	BlockChainHook                 process.BlockChainHookHandler
+	PubkeyConv                     core.PubkeyConverter
+	Coordinator                    sharding.Coordinator
+	ScrForwarder                   process.IntermediateTransactionHandler
+	TxFeeHandler                   process.TransactionFeeHandler
+	EconomicsFee                   process.FeeHandler
+	TxTypeHandler                  process.TxTypeHandler
+	GasHandler                     process.GasHandler
+	BuiltInFunctions               process.BuiltInFunctionContainer
+	TxLogsProcessor                process.TransactionLogProcessor
+	BadTxForwarder                 process.IntermediateTransactionHandler
+	DeployEnableEpoch              uint32
+	BuiltinEnableEpoch             uint32
+	PenalizedTooMuchGasEnableEpoch uint32
+	EpochNotifier                  process.EpochNotifier
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -139,24 +142,25 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	}
 
 	sc := &scProcessor{
-		vmContainer:        args.VmContainer,
-		argsParser:         args.ArgsParser,
-		hasher:             args.Hasher,
-		marshalizer:        args.Marshalizer,
-		accounts:           args.AccountsDB,
-		blockChainHook:     args.BlockChainHook,
-		pubkeyConv:         args.PubkeyConv,
-		shardCoordinator:   args.Coordinator,
-		scrForwarder:       args.ScrForwarder,
-		txFeeHandler:       args.TxFeeHandler,
-		economicsFee:       args.EconomicsFee,
-		txTypeHandler:      args.TxTypeHandler,
-		gasHandler:         args.GasHandler,
-		builtInFunctions:   args.BuiltInFunctions,
-		txLogsProcessor:    args.TxLogsProcessor,
-		badTxForwarder:     args.BadTxForwarder,
-		deployEnableEpoch:  args.DeployEnableEpoch,
-		builtinEnableEpoch: args.BuiltinEnableEpoch,
+		vmContainer:                    args.VmContainer,
+		argsParser:                     args.ArgsParser,
+		hasher:                         args.Hasher,
+		marshalizer:                    args.Marshalizer,
+		accounts:                       args.AccountsDB,
+		blockChainHook:                 args.BlockChainHook,
+		pubkeyConv:                     args.PubkeyConv,
+		shardCoordinator:               args.Coordinator,
+		scrForwarder:                   args.ScrForwarder,
+		txFeeHandler:                   args.TxFeeHandler,
+		economicsFee:                   args.EconomicsFee,
+		txTypeHandler:                  args.TxTypeHandler,
+		gasHandler:                     args.GasHandler,
+		builtInFunctions:               args.BuiltInFunctions,
+		txLogsProcessor:                args.TxLogsProcessor,
+		badTxForwarder:                 args.BadTxForwarder,
+		deployEnableEpoch:              args.DeployEnableEpoch,
+		builtinEnableEpoch:             args.BuiltinEnableEpoch,
+		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
@@ -416,7 +420,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		vmOutput = &vmcommon.VMOutput{ReturnCode: vmcommon.UserError, ReturnMessage: err.Error()}
 	}
 
-	penalizeUserIfNeeded(tx, txHash, vmInput.CallType, vmInput.GasProvided, vmOutput)
+	sc.penalizeUserIfNeeded(tx, txHash, vmInput.CallType, vmInput.GasProvided, vmOutput)
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 
@@ -752,7 +756,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
-	penalizeUserIfNeeded(tx, txHash, callType, gasProvided, vmOutput)
+	sc.penalizeUserIfNeeded(tx, txHash, callType, gasProvided, vmOutput)
 
 	scrForSender, consumedFee := sc.createSCRForSender(
 		vmOutput,
@@ -819,13 +823,17 @@ func (sc *scProcessor) processVMOutput(
 	return scrTxs, consumedFee, nil
 }
 
-func penalizeUserIfNeeded(
+func (sc *scProcessor) penalizeUserIfNeeded(
 	tx data.TransactionHandler,
 	txHash []byte,
 	callType vmcommon.CallType,
 	gasProvided uint64,
 	vmOutput *vmcommon.VMOutput,
 ) {
+	if !sc.flagPenalizedTooMuchGas.IsSet() {
+		return
+	}
+
 	isTooMuchGasProvided := callType != vmcommon.AsynchronousCall && isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
 	if !isTooMuchGasProvided {
 		return
@@ -846,7 +854,7 @@ func penalizeUserIfNeeded(
 		"return message", vmOutput.ReturnMessage,
 	)
 
-	vmOutput.ReturnMessage += fmt.Sprintf("too much gas has been provided: gas used = %d, gas remained = %d",
+	vmOutput.ReturnMessage += fmt.Sprintf("too much gas has been provided: gas needed = %d, gas remained = %d",
 		gasProvided-vmOutput.GasRemaining, vmOutput.GasRemaining)
 	vmOutput.GasRemaining = 0
 }
@@ -1326,7 +1334,10 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32) {
 	log.Debug("scProcessor: deployment of SC", "enabled", sc.flagDeploy.IsSet())
 
 	sc.flagBuiltin.Toggle(epoch >= sc.builtinEnableEpoch)
-	log.Debug("scProcessor: built in functions", "enabled", sc.flagDeploy.IsSet())
+	log.Debug("scProcessor: built in functions", "enabled", sc.flagBuiltin.IsSet())
+
+	sc.flagPenalizedTooMuchGas.Toggle(epoch >= sc.penalizedTooMuchGasEnableEpoch)
+	log.Debug("scProcessor: penalized too much gas", "enabled", sc.flagPenalizedTooMuchGas.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

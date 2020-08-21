@@ -206,6 +206,7 @@ type GeneralSettingsConfig struct {
 	SCDeployEnableEpoch            uint32
 	BuiltInFunctionsEnableEpoch    uint32
 	RelayedTransactionsEnableEpoch uint32
+	PenalizedTooMuchGasEnableEpoch uint32
 	GenesisString                  string
 }
 

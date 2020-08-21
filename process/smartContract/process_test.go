@@ -2144,6 +2144,9 @@ func TestScProcessor_checkUpgradePermission(t *testing.T) {
 func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
 	t.Parallel()
 
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
 	gasProvided := uint64(1000)
 	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
 
@@ -2151,21 +2154,21 @@ func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
 	vmOutput := &vmcommon.VMOutput{
 		GasRemaining: maxGasToRemain,
 	}
-	penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
 	assert.Equal(t, uint64(maxGasToRemain), vmOutput.GasRemaining)
 
 	callType = vmcommon.AsynchronousCall
 	vmOutput = &vmcommon.VMOutput{
 		GasRemaining: maxGasToRemain + 1,
 	}
-	penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
 	assert.Equal(t, uint64(maxGasToRemain+1), vmOutput.GasRemaining)
 
 	callType = vmcommon.DirectCall
 	vmOutput = &vmcommon.VMOutput{
 		GasRemaining: maxGasToRemain + 1,
 	}
-	penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
 	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
 }
 
@@ -2186,4 +2189,27 @@ func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 
 	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1)
 	assert.True(t, isTooMuchGas)
+}
+
+func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T) {
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	gasProvided := uint64(1000)
+	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
+
+	callType := vmcommon.DirectCall
+	vmOutput := &vmcommon.VMOutput{
+		GasRemaining: maxGasToRemain + 1,
+	}
+
+	sc.penalizedTooMuchGasEnableEpoch = 1
+
+	sc.EpochConfirmed(0)
+	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	assert.Equal(t, uint64(maxGasToRemain+1), vmOutput.GasRemaining)
+
+	sc.EpochConfirmed(1)
+	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
 }
