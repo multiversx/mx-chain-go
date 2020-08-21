@@ -21,7 +21,7 @@ var _ process.InterceptedData = (*InterceptedHeader)(nil)
 type InterceptedHeader struct {
 	hdr               *block.Header
 	sigVerifier       process.InterceptedHeaderSigVerifier
-	integrityVerifier process.InterceptedHeaderIntegrityVerifier
+	integrityVerifier process.HeaderIntegrityVerifier
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
 	hash              []byte

@@ -161,9 +161,16 @@ type Config struct {
 
 	SoftwareVersionConfig SoftwareVersionConfig
 	FullHistory           FullHistoryConfig
+	Versions              VersionsConfig
+	Logs                  LogsConfig
 }
 
-// StoragePruningConfig will hold settings relates to storage pruning
+// LogsConfig will hold settings related to the logging sub-system
+type LogsConfig struct {
+	LogFileLifeSpanInSec int
+}
+
+// StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
 	Enabled             bool
 	CleanOldEpochsData  bool
@@ -390,4 +397,17 @@ type APIPackageConfig struct {
 type RouteConfig struct {
 	Name string
 	Open bool
+}
+
+// VersionByEpochs represents a version entry that will be applied between the provided epochs
+type VersionByEpochs struct {
+	StartEpoch uint32
+	Version    string
+}
+
+// VersionsConfig represents the versioning config area
+type VersionsConfig struct {
+	DefaultVersion   string
+	VersionsByEpochs []VersionByEpochs
+	Cache            CacheConfig
 }

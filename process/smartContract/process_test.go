@@ -1349,11 +1349,7 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
 	_, _ = sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		"",
+		vmOutput,
 		tx,
 		txHash,
 		acntSrc,
@@ -1383,11 +1379,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	txHash := []byte("txHash")
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
 	sctx, consumed := sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		"",
+		vmOutput,
 		tx,
 		txHash,
 		nil,
@@ -1399,11 +1391,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
 	sctx, consumed = sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		"",
+		vmOutput,
 		tx,
 		txHash,
 		nil,
@@ -1441,11 +1429,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
 	scr, _ := sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		"",
+		vmOutput,
 		tx,
 		txHash,
 		acntSrc,
@@ -1484,11 +1468,7 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 10, GasRefund: refundGas}
 	scr, _ := sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		"",
+		vmOutput,
 		tx,
 		txHash,
 		acntSrc,

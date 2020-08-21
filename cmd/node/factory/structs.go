@@ -24,14 +24,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
+	processDisabled "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -69,8 +72,8 @@ import (
 )
 
 const (
-	// MaxTxsToRequest specifies the maximum number of txs to request
-	MaxTxsToRequest = 1000
+	// maxTxsToRequest specifies the maximum number of txs to request
+	maxTxsToRequest = 1000
 )
 
 //TODO remove this
@@ -154,6 +157,7 @@ type processComponentsFactoryArgs struct {
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               fullHistory.HistoryRepository
 	epochNotifier             process.EpochNotifier
+	txSimulatorProcessorArgs  *txsimulator.ArgsTxSimulator
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -198,6 +202,7 @@ func NewProcessComponentsFactoryArgs(
 	tpsBenchmark statistics.TPSBenchmark,
 	historyRepo fullHistory.HistoryRepository,
 	epochNotifier process.EpochNotifier,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -241,6 +246,7 @@ func NewProcessComponentsFactoryArgs(
 		tpsBenchmark:              tpsBenchmark,
 		historyRepo:               historyRepo,
 		epochNotifier:             epochNotifier,
+		txSimulatorProcessorArgs:  txSimulatorProcessorArgs,
 	}
 }
 
@@ -258,7 +264,17 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier([]byte(args.nodesConfig.ChainID))
+
+	versionsCache, err := createCache(args.mainConfig.Versions.Cache)
+	if err != nil {
+		return nil, err
+	}
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
+		[]byte(args.nodesConfig.ChainID),
+		args.mainConfig.Versions.VersionsByEpochs,
+		args.mainConfig.Versions.DefaultVersion,
+		versionsCache,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +306,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		resolversFinder,
 		args.requestedItemsHandler,
 		args.whiteListHandler,
-		MaxTxsToRequest,
+		maxTxsToRequest,
 		args.shardCoordinator.SelfId(),
 		time.Second,
 	)
@@ -481,6 +497,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		headerValidator,
 		blockTracker,
 		pendingMiniBlocksHandler,
+		args.txSimulatorProcessorArgs,
+		headerIntegrityVerifier,
 	)
 	if err != nil {
 		return nil, err
@@ -1083,6 +1101,8 @@ func newBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1111,9 +1131,10 @@ func newBlockProcessor(
 			processArgs.smartContractParser,
 			processArgs.indexer,
 			processArgs.tpsBenchmark,
-			processArgs.version,
+			headerIntegrityVerifier,
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
+			txSimulatorProcessorArgs,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1144,9 +1165,10 @@ func newBlockProcessor(
 			processArgs.systemSCConfig,
 			processArgs.indexer,
 			processArgs.tpsBenchmark,
-			processArgs.version,
+			headerIntegrityVerifier,
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
+			txSimulatorProcessorArgs,
 		)
 	}
 
@@ -1176,9 +1198,10 @@ func newShardBlockProcessor(
 	smartContractParser genesis.InitialSmartContractParser,
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
-	version string,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	historyRepository fullHistory.HistoryRepository,
 	epochNotifier process.EpochNotifier,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -1332,6 +1355,11 @@ func newShardBlockProcessor(
 		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
 	}
 
+	err = createShardTxSimulatorProcessor(argsNewScProcessor, argsNewTxProcessor, shardCoordinator, data, core, stateComponents, txSimulatorProcessorArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 	if err != nil {
 		return nil, err
@@ -1397,32 +1425,32 @@ func newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Version:                version,
-		AccountsDB:             accountsDb,
-		ForkDetector:           forkDetector,
-		Hasher:                 core.Hasher,
-		Marshalizer:            core.InternalMarshalizer,
-		Store:                  data.Store,
-		ShardCoordinator:       shardCoordinator,
-		NodesCoordinator:       nodesCoordinator,
-		Uint64Converter:        core.Uint64ByteSliceConverter,
-		RequestHandler:         requestHandler,
-		BlockChainHook:         vmFactory.BlockChainHookImpl(),
-		TxCoordinator:          txCoordinator,
-		Rounder:                rounder,
-		EpochStartTrigger:      epochStartTrigger,
-		HeaderValidator:        headerValidator,
-		BootStorer:             bootStorer,
-		BlockTracker:           blockTracker,
-		DataPool:               data.Datapool,
-		FeeHandler:             txFeeHandler,
-		BlockChain:             data.Blkc,
-		StateCheckpointModulus: stateCheckpointModulus,
-		BlockSizeThrottler:     blockSizeThrottler,
-		Indexer:                indexer,
-		TpsBenchmark:           tpsBenchmark,
-		HistoryRepository:      historyRepository,
-		EpochNotifier:          epochNotifier,
+		AccountsDB:              accountsDb,
+		ForkDetector:            forkDetector,
+		Hasher:                  core.Hasher,
+		Marshalizer:             core.InternalMarshalizer,
+		Store:                   data.Store,
+		ShardCoordinator:        shardCoordinator,
+		NodesCoordinator:        nodesCoordinator,
+		Uint64Converter:         core.Uint64ByteSliceConverter,
+		RequestHandler:          requestHandler,
+		BlockChainHook:          vmFactory.BlockChainHookImpl(),
+		TxCoordinator:           txCoordinator,
+		Rounder:                 rounder,
+		EpochStartTrigger:       epochStartTrigger,
+		HeaderValidator:         headerValidator,
+		BootStorer:              bootStorer,
+		BlockTracker:            blockTracker,
+		DataPool:                data.Datapool,
+		FeeHandler:              txFeeHandler,
+		BlockChain:              data.Blkc,
+		StateCheckpointModulus:  stateCheckpointModulus,
+		BlockSizeThrottler:      blockSizeThrottler,
+		Indexer:                 indexer,
+		TpsBenchmark:            tpsBenchmark,
+		HistoryRepository:       historyRepository,
+		EpochNotifier:           epochNotifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1468,9 +1496,10 @@ func newMetaBlockProcessor(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
-	version string,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	historyRepository fullHistory.HistoryRepository,
 	epochNotifier process.EpochNotifier,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1590,6 +1619,11 @@ func newMetaBlockProcessor(
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
+	}
+
+	err = createMetaTxSimulatorProcessor(argsNewScProcessor, shardCoordinator, data, core, stateComponents, txTypeHandler, txSimulatorProcessorArgs)
+	if err != nil {
+		return nil, err
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
@@ -1740,32 +1774,32 @@ func newMetaBlockProcessor(
 	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Version:                version,
-		AccountsDB:             accountsDb,
-		ForkDetector:           forkDetector,
-		Hasher:                 core.Hasher,
-		Marshalizer:            core.InternalMarshalizer,
-		Store:                  data.Store,
-		ShardCoordinator:       shardCoordinator,
-		NodesCoordinator:       nodesCoordinator,
-		Uint64Converter:        core.Uint64ByteSliceConverter,
-		RequestHandler:         requestHandler,
-		BlockChainHook:         vmFactory.BlockChainHookImpl(),
-		TxCoordinator:          txCoordinator,
-		EpochStartTrigger:      epochStartTrigger,
-		Rounder:                rounder,
-		HeaderValidator:        headerValidator,
-		BootStorer:             bootStorer,
-		BlockTracker:           blockTracker,
-		DataPool:               data.Datapool,
-		FeeHandler:             txFeeHandler,
-		BlockChain:             data.Blkc,
-		StateCheckpointModulus: stateCheckpointModulus,
-		BlockSizeThrottler:     blockSizeThrottler,
-		Indexer:                indexer,
-		TpsBenchmark:           tpsBenchmark,
-		HistoryRepository:      historyRepository,
-		EpochNotifier:          epochNotifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		AccountsDB:              accountsDb,
+		ForkDetector:            forkDetector,
+		Hasher:                  core.Hasher,
+		Marshalizer:             core.InternalMarshalizer,
+		Store:                   data.Store,
+		ShardCoordinator:        shardCoordinator,
+		NodesCoordinator:        nodesCoordinator,
+		Uint64Converter:         core.Uint64ByteSliceConverter,
+		RequestHandler:          requestHandler,
+		BlockChainHook:          vmFactory.BlockChainHookImpl(),
+		TxCoordinator:           txCoordinator,
+		EpochStartTrigger:       epochStartTrigger,
+		Rounder:                 rounder,
+		HeaderValidator:         headerValidator,
+		BootStorer:              bootStorer,
+		BlockTracker:            blockTracker,
+		DataPool:                data.Datapool,
+		FeeHandler:              txFeeHandler,
+		BlockChain:              data.Blkc,
+		StateCheckpointModulus:  stateCheckpointModulus,
+		BlockSizeThrottler:      blockSizeThrottler,
+		Indexer:                 indexer,
+		TpsBenchmark:            tpsBenchmark,
+		HistoryRepository:       historyRepository,
+		EpochNotifier:           epochNotifier,
 	}
 
 	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
@@ -1811,6 +1845,144 @@ func newMetaBlockProcessor(
 	}
 
 	return metaProcessor, nil
+}
+
+func createShardTxSimulatorProcessor(
+	scProcArgs smartContract.ArgsNewSmartContractProcessor,
+	txProcArgs transaction.ArgsNewTxProcessor,
+	shardCoordinator sharding.Coordinator,
+	data *mainFactory.DataComponents,
+	core *mainFactory.CoreComponents,
+	stateComponents *mainFactory.StateComponents,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+) error {
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
+		shardCoordinator,
+		core.InternalMarshalizer,
+		core.Hasher,
+		stateComponents.AddressPubkeyConverter,
+		disabled.NewChainStorer(),
+		data.Datapool,
+	)
+	if err != nil {
+		return err
+	}
+
+	interimProcContainer, err := interimProcFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	if err != nil {
+		return err
+	}
+	scProcArgs.ScrForwarder = scForwarder
+
+	receiptTxInterim, err := interimProcContainer.Get(dataBlock.ReceiptBlock)
+	if err != nil {
+		return err
+	}
+	txProcArgs.ReceiptForwarder = receiptTxInterim
+
+	badTxInterim, err := interimProcContainer.Get(dataBlock.InvalidBlock)
+	if err != nil {
+		return err
+	}
+	scProcArgs.BadTxForwarder = badTxInterim
+	txProcArgs.BadTxForwarder = badTxInterim
+
+	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
+	txProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
+
+	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
+	if err != nil {
+		return err
+	}
+	txProcArgs.ScProcessor = scProcessor
+
+	txProcArgs.Accounts, err = txsimulator.NewReadOnlyAccountsDB(stateComponents.AccountsAdapter)
+	if err != nil {
+		return err
+	}
+
+	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(txProcArgs)
+	if err != nil {
+		return err
+	}
+
+	txSimulatorProcessorArgs.IntermmediateProcContainer = interimProcContainer
+
+	return nil
+}
+
+func createMetaTxSimulatorProcessor(
+	scProcArgs smartContract.ArgsNewSmartContractProcessor,
+	shardCoordinator sharding.Coordinator,
+	data *mainFactory.DataComponents,
+	core *mainFactory.CoreComponents,
+	stateComponents *mainFactory.StateComponents,
+	txTypeHandler process.TxTypeHandler,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+) error {
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
+		shardCoordinator,
+		core.InternalMarshalizer,
+		core.Hasher,
+		stateComponents.AddressPubkeyConverter,
+		disabled.NewChainStorer(),
+		data.Datapool,
+	)
+	if err != nil {
+		return err
+	}
+
+	interimProcContainer, err := interimProcFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	if err != nil {
+		return err
+	}
+	scProcArgs.ScrForwarder = scForwarder
+
+	badTxInterim, err := interimProcContainer.Get(dataBlock.InvalidBlock)
+	if err != nil {
+		return err
+	}
+	scProcArgs.BadTxForwarder = badTxInterim
+
+	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
+
+	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
+	if err != nil {
+		return err
+	}
+
+	accountsWrapper, err := txsimulator.NewReadOnlyAccountsDB(stateComponents.AccountsAdapter)
+	if err != nil {
+		return err
+	}
+
+	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(
+		core.Hasher,
+		core.InternalMarshalizer,
+		accountsWrapper,
+		stateComponents.AddressPubkeyConverter,
+		shardCoordinator,
+		scProcessor,
+		txTypeHandler,
+		&processDisabled.FeeHandler{},
+	)
+	if err != nil {
+		return err
+	}
+
+	txSimulatorProcessorArgs.IntermmediateProcContainer = interimProcContainer
+
+	return nil
 }
 
 func newValidatorStatisticsProcessor(

@@ -1,6 +1,11 @@
 package transaction
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/core"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+)
 
 // ApiTransactionResult is the data transfer object which will be returned on the get transaction by hash endpoint
 type ApiTransactionResult struct {
@@ -23,4 +28,41 @@ type ApiTransactionResult struct {
 	MiniBlockHash    string                 `json:"miniblockHash,omitempty"`
 	BlockHash        string                 `json:"blockHash,omitempty"`
 	Status           core.TransactionStatus `json:"status,omitempty"`
+}
+
+// SimulationResults is the data transfer object which will hold results for simulation a transaction's execution
+type SimulationResults struct {
+	Status     core.TransactionStatus             `json:"status,omitempty"`
+	FailReason string                             `json:"failReason,omitempty"`
+	ScResults  map[string]*SmartContractResultApi `json:"scResults,omitempty"`
+	Receipts   map[string]*ReceiptApi             `json:"receipts,omitempty"`
+	Hash       string                             `json:"hash,omitempty"`
+}
+
+// SmartContractResultApi represents a smart contract result with changed fields' types in order to make it friendly for API's json
+type SmartContractResultApi struct {
+	Nonce          uint64            `json:"nonce"`
+	Value          *big.Int          `json:"value"`
+	RcvAddr        string            `json:"receiver"`
+	SndAddr        string            `json:"sender"`
+	RelayerAddr    string            `json:"relayerAddress"`
+	RelayedValue   *big.Int          `json:"relayedValue"`
+	Code           string            `json:"code"`
+	Data           string            `json:"data"`
+	PrevTxHash     string            `json:"prevTxHash"`
+	OriginalTxHash string            `json:"originalTxHash"`
+	GasLimit       uint64            `json:"gasLimit"`
+	GasPrice       uint64            `json:"gasPrice"`
+	CallType       vmcommon.CallType `json:"callType"`
+	CodeMetadata   string            `json:"codeMetadata"`
+	ReturnMessage  string            `json:"returnMessage"`
+	OriginalSender string            `json:"originalSender"`
+}
+
+// ReceiptApi represents a receipt with changed fields' types in order to make it friendly for API's json
+type ReceiptApi struct {
+	Value   *big.Int `json:"value"`
+	SndAddr string   `json:"sender"`
+	Data    string   `json:"data,omitempty"`
+	TxHash  string   `json:"txHash"`
 }

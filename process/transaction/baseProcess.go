@@ -137,7 +137,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		return process.ErrWrongTypeAssertion
 	}
 
-	txFee := txProc.economicsFee.ComputeFee(tx)
+	txFee := core.SafeMul(tx.GasLimit, tx.GasPrice)
 	if stAcc.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,
@@ -146,10 +146,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		)
 	}
 
-	cost := big.NewInt(0)
-	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-	cost.Add(cost, tx.Value)
-
+	cost := big.NewInt(0).Add(txFee, tx.Value)
 	if stAcc.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
