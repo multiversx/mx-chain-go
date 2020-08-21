@@ -20,6 +20,9 @@
    # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
    RelayedTransactionsEnableEpoch = 0
 
+   # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
+   PenalizedTooMuchGasEnableEpoch = 0
+
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 

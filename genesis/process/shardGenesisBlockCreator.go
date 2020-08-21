@@ -49,6 +49,7 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		BuiltInFunctionsEnableEpoch:    0,
 		SCDeployEnableEpoch:            0,
 		RelayedTransactionsEnableEpoch: 0,
+		PenalizedTooMuchGasEnableEpoch: 0,
 	}
 
 	processors, err := createProcessorsForShard(arg, genesisOverrideConfig)
@@ -315,25 +316,26 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:        vmContainer,
-		ArgsParser:         smartContract.NewArgumentParser(),
-		Hasher:             arg.Hasher,
-		Marshalizer:        arg.Marshalizer,
-		AccountsDB:         arg.Accounts,
-		BlockChainHook:     vmFactoryImpl.BlockChainHookImpl(),
-		PubkeyConv:         arg.PubkeyConv,
-		Coordinator:        arg.ShardCoordinator,
-		ScrForwarder:       scForwarder,
-		TxFeeHandler:       genesisFeeHandler,
-		EconomicsFee:       genesisFeeHandler,
-		TxTypeHandler:      txTypeHandler,
-		GasHandler:         gasHandler,
-		BuiltInFunctions:   vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:    arg.TxLogsProcessor,
-		BadTxForwarder:     badTxInterim,
-		EpochNotifier:      epochNotifier,
-		BuiltinEnableEpoch: generalConfig.BuiltInFunctionsEnableEpoch,
-		DeployEnableEpoch:  generalConfig.SCDeployEnableEpoch,
+		VmContainer:                    vmContainer,
+		ArgsParser:                     smartContract.NewArgumentParser(),
+		Hasher:                         arg.Hasher,
+		Marshalizer:                    arg.Marshalizer,
+		AccountsDB:                     arg.Accounts,
+		BlockChainHook:                 vmFactoryImpl.BlockChainHookImpl(),
+		PubkeyConv:                     arg.PubkeyConv,
+		Coordinator:                    arg.ShardCoordinator,
+		ScrForwarder:                   scForwarder,
+		TxFeeHandler:                   genesisFeeHandler,
+		EconomicsFee:                   genesisFeeHandler,
+		TxTypeHandler:                  txTypeHandler,
+		GasHandler:                     gasHandler,
+		BuiltInFunctions:               vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:                arg.TxLogsProcessor,
+		BadTxForwarder:                 badTxInterim,
+		EpochNotifier:                  epochNotifier,
+		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
+		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -350,22 +352,23 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:             arg.Accounts,
-		Hasher:               arg.Hasher,
-		PubkeyConv:           arg.PubkeyConv,
-		Marshalizer:          arg.Marshalizer,
-		SignMarshalizer:      arg.SignMarshalizer,
-		ShardCoordinator:     arg.ShardCoordinator,
-		ScProcessor:          scProcessor,
-		TxFeeHandler:         genesisFeeHandler,
-		TxTypeHandler:        txTypeHandler,
-		EconomicsFee:         genesisFeeHandler,
-		ReceiptForwarder:     receiptTxInterim,
-		BadTxForwarder:       badTxInterim,
-		ArgsParser:           smartContract.NewArgumentParser(),
-		ScrForwarder:         scForwarder,
-		EpochNotifier:        epochNotifier,
-		RelayedTxEnableEpoch: generalConfig.RelayedTransactionsEnableEpoch,
+		Accounts:                       arg.Accounts,
+		Hasher:                         arg.Hasher,
+		PubkeyConv:                     arg.PubkeyConv,
+		Marshalizer:                    arg.Marshalizer,
+		SignMarshalizer:                arg.SignMarshalizer,
+		ShardCoordinator:               arg.ShardCoordinator,
+		ScProcessor:                    scProcessor,
+		TxFeeHandler:                   genesisFeeHandler,
+		TxTypeHandler:                  txTypeHandler,
+		EconomicsFee:                   genesisFeeHandler,
+		ReceiptForwarder:               receiptTxInterim,
+		BadTxForwarder:                 badTxInterim,
+		ArgsParser:                     smartContract.NewArgumentParser(),
+		ScrForwarder:                   scForwarder,
+		EpochNotifier:                  epochNotifier,
+		RelayedTxEnableEpoch:           generalConfig.RelayedTransactionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
