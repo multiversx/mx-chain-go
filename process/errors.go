@@ -770,9 +770,6 @@ var ErrNilDebugger = errors.New("nil debug handler")
 // ErrBuiltInFunctionCalledWithValue signals that builtin function was called with value that is not allowed
 var ErrBuiltInFunctionCalledWithValue = errors.New("built in function called with tx value is not allowed")
 
-// ErrEmptySoftwareVersion signals that empty software version was called
-var ErrEmptySoftwareVersion = errors.New("empty software version")
-
 // ErrEmptyFloodPreventerList signals that an empty flood preventer list has been provided
 var ErrEmptyFloodPreventerList = errors.New("empty flood preventer provided")
 
@@ -868,6 +865,9 @@ var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled
 
 // ErrRelayedTxDisabled signals that relayed tx are disabled
 var ErrRelayedTxDisabled = errors.New("relayed tx is disabled")
+
+// ErrEmptyConsensusGroup is raised when an operation is attempted with an empty consensus group
+var ErrEmptyConsensusGroup = errors.New("consensusGroup is empty")
 
 // ErrRelayedTxGasLimitMissmatch signals that relayed tx gas limit is higher then user tx gas limit
 var ErrRelayedTxGasLimitMissmatch = errors.New("relayed tx gas limit higher then user tx gas limit")

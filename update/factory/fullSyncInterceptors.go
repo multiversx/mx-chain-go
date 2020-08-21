@@ -71,7 +71,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	TxFeeHandler            process.FeeHandler
 	BlockBlackList          process.TimeCacher
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	SizeCheckDelta          uint32
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler

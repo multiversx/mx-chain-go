@@ -19,6 +19,7 @@ type HeaderSigVerifierHandler interface {
 // HeaderIntegrityVerifierHandler is the interface needed to check that a header's integrity is correct
 type HeaderIntegrityVerifierHandler interface {
 	Verify(header data.HeaderHandler) error
+	GetVersion(epoch uint32) string
 	IsInterfaceNil() bool
 }
 

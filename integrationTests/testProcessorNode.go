@@ -57,7 +57,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
@@ -234,7 +233,7 @@ type TestProcessorNode struct {
 
 	MultiSigner             crypto.MultiSigner
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rater                        sharding.PeerAccountListAndRatingHandler
@@ -338,13 +337,13 @@ func newBaseTestProcessorNode(
 	}
 
 	messenger := CreateMessengerWithKadDht(initialNodeAddr)
-	headerIntegrityVerifier, _ := headerCheck.NewHeaderIntegrityVerifier(ChainID)
+
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
 		NodesCoordinator:        nodesCoordinator,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
 		NodesSetup:              nodesSetup,
@@ -474,7 +473,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		Messenger:               messenger,
 		NodesCoordinator:        nodesCoordinator,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
 		NodesSetup: &mock.NodesSetupStub{
 			MinNumberOfNodesCalled: func() uint32 {
@@ -1318,16 +1317,16 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				return nil
 			},
 		},
-		BlockTracker:           tpn.BlockTracker,
-		DataPool:               tpn.DataPool,
-		StateCheckpointModulus: stateCheckpointModulus,
-		BlockChain:             tpn.BlockChain,
-		BlockSizeThrottler:     TestBlockSizeThrottler,
-		Indexer:                indexer.NewNilIndexer(),
-		TpsBenchmark:           &testscommon.TpsBenchmarkMock{},
-		Version:                string(SoftwareVersion),
-		HistoryRepository:      tpn.HistoryRepository,
-		EpochNotifier:          tpn.EpochNotifier,
+		BlockTracker:            tpn.BlockTracker,
+		DataPool:                tpn.DataPool,
+		StateCheckpointModulus:  stateCheckpointModulus,
+		BlockChain:              tpn.BlockChain,
+		BlockSizeThrottler:      TestBlockSizeThrottler,
+		Indexer:                 indexer.NewNilIndexer(),
+		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
+		HistoryRepository:       tpn.HistoryRepository,
+		EpochNotifier:           tpn.EpochNotifier,
+		HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

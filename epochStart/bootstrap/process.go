@@ -104,6 +104,7 @@ type epochStartBootstrap struct {
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
+	headerIntegrityVerifier    process.HeaderIntegrityVerifier
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -172,6 +173,7 @@ type ArgsEpochStartBootstrap struct {
 	AddressPubkeyConverter     core.PubkeyConverter
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
+	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -212,6 +214,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		shuffledOut:                false,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
+		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -451,22 +454,23 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		RequestHandler:     e.requestHandler,
-		Messenger:          e.messenger,
-		Marshalizer:        e.marshalizer,
-		TxSignMarshalizer:  e.txSignMarshalizer,
-		ShardCoordinator:   e.shardCoordinator,
-		Hasher:             e.hasher,
-		ChainID:            []byte(e.genesisNodesConfig.GetChainId()),
-		EconomicsData:      e.economicsData,
-		KeyGen:             e.keyGen,
-		BlockKeyGen:        e.blockKeyGen,
-		Signer:             e.singleSigner,
-		BlockSigner:        e.blockSingleSigner,
-		WhitelistHandler:   e.whiteListHandler,
-		AddressPubkeyConv:  e.addressPubkeyConverter,
-		NonceConverter:     e.uint64Converter,
-		StartInEpochConfig: e.generalConfig.EpochStartConfig,
+		RequestHandler:          e.requestHandler,
+		Messenger:               e.messenger,
+		Marshalizer:             e.marshalizer,
+		TxSignMarshalizer:       e.txSignMarshalizer,
+		ShardCoordinator:        e.shardCoordinator,
+		Hasher:                  e.hasher,
+		ChainID:                 []byte(e.genesisNodesConfig.GetChainId()),
+		EconomicsData:           e.economicsData,
+		KeyGen:                  e.keyGen,
+		BlockKeyGen:             e.blockKeyGen,
+		Signer:                  e.singleSigner,
+		BlockSigner:             e.blockSingleSigner,
+		WhitelistHandler:        e.whiteListHandler,
+		AddressPubkeyConv:       e.addressPubkeyConverter,
+		NonceConverter:          e.uint64Converter,
+		StartInEpochConfig:      e.generalConfig.EpochStartConfig,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -480,24 +484,25 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		Config:                 e.generalConfig,
-		ShardCoordinator:       e.shardCoordinator,
-		ProtoMarshalizer:       e.marshalizer,
-		TxSignMarshalizer:      e.txSignMarshalizer,
-		Hasher:                 e.hasher,
-		Messenger:              e.messenger,
-		DataPool:               e.dataPool,
-		SingleSigner:           e.singleSigner,
-		BlockSingleSigner:      e.blockSingleSigner,
-		KeyGen:                 e.keyGen,
-		BlockKeyGen:            e.blockKeyGen,
-		WhiteListHandler:       e.whiteListHandler,
-		WhiteListerVerifiedTxs: e.whiteListerVerifiedTxs,
-		AddressPubkeyConv:      e.addressPubkeyConverter,
-		NonceConverter:         e.uint64Converter,
-		ChainID:                []byte(e.genesisNodesConfig.GetChainId()),
-		ArgumentsParser:        e.argumentsParser,
-		MinTransactionVersion:  e.genesisNodesConfig.GetMinTransactionVersion(),
+		Config:                  e.generalConfig,
+		ShardCoordinator:        e.shardCoordinator,
+		ProtoMarshalizer:        e.marshalizer,
+		TxSignMarshalizer:       e.txSignMarshalizer,
+		Hasher:                  e.hasher,
+		Messenger:               e.messenger,
+		DataPool:                e.dataPool,
+		SingleSigner:            e.singleSigner,
+		BlockSingleSigner:       e.blockSingleSigner,
+		KeyGen:                  e.keyGen,
+		BlockKeyGen:             e.blockKeyGen,
+		WhiteListHandler:        e.whiteListHandler,
+		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
+		AddressPubkeyConv:       e.addressPubkeyConverter,
+		NonceConverter:          e.uint64Converter,
+		ChainID:                 []byte(e.genesisNodesConfig.GetChainId()),
+		ArgumentsParser:         e.argumentsParser,
+		MinTransactionVersion:   e.genesisNodesConfig.GetMinTransactionVersion(),
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

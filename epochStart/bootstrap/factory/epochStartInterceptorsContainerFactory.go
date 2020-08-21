@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -27,24 +26,25 @@ const timeSpanForBadHeaders = time.Minute
 // ArgsEpochStartInterceptorContainer holds the arguments needed for creating a new epoch start interceptors
 // container factory
 type ArgsEpochStartInterceptorContainer struct {
-	Config                 config.Config
-	ShardCoordinator       sharding.Coordinator
-	TxSignMarshalizer      marshal.Marshalizer
-	ProtoMarshalizer       marshal.Marshalizer
-	Hasher                 hashing.Hasher
-	Messenger              process.TopicHandler
-	DataPool               dataRetriever.PoolsHolder
-	SingleSigner           crypto.SingleSigner
-	BlockSingleSigner      crypto.SingleSigner
-	KeyGen                 crypto.KeyGenerator
-	BlockKeyGen            crypto.KeyGenerator
-	WhiteListHandler       update.WhiteListHandler
-	WhiteListerVerifiedTxs update.WhiteListHandler
-	AddressPubkeyConv      core.PubkeyConverter
-	NonceConverter         typeConverters.Uint64ByteSliceConverter
-	ChainID                []byte
-	ArgumentsParser        process.ArgumentsParser
-	MinTransactionVersion  uint32
+	Config                  config.Config
+	ShardCoordinator        sharding.Coordinator
+	TxSignMarshalizer       marshal.Marshalizer
+	ProtoMarshalizer        marshal.Marshalizer
+	Hasher                  hashing.Hasher
+	Messenger               process.TopicHandler
+	DataPool                dataRetriever.PoolsHolder
+	SingleSigner            crypto.SingleSigner
+	BlockSingleSigner       crypto.SingleSigner
+	KeyGen                  crypto.KeyGenerator
+	BlockKeyGen             crypto.KeyGenerator
+	WhiteListHandler        update.WhiteListHandler
+	WhiteListerVerifiedTxs  update.WhiteListHandler
+	AddressPubkeyConv       core.PubkeyConverter
+	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	ChainID                 []byte
+	ArgumentsParser         process.ArgumentsParser
+	MinTransactionVersion   uint32
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -60,10 +60,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	blackListHandler := timecache.NewTimeCache(timeSpanForBadHeaders)
 	feeHandler := &disabledGenesis.FeeHandler{}
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(args.ChainID)
-	if err != nil {
-		return nil, err
-	}
 	sizeCheckDelta := 0
 	validityAttester := disabled.NewValidityAttester()
 	epochStartTrigger := disabled.NewEpochStartTrigger()
@@ -88,7 +84,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		TxFeeHandler:            feeHandler,
 		BlackList:               blackListHandler,
 		HeaderSigVerifier:       headerSigVerifier,
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
 		SizeCheckDelta:          uint32(sizeCheckDelta),
 		ValidityAttester:        validityAttester,
 		EpochStartTrigger:       epochStartTrigger,
