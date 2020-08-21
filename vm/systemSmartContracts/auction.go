@@ -200,7 +200,7 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, transferBack, nil, 0)
 	if err != nil {
-		s.eei.AddReturnMessage("transfer error on unBond function")
+		s.eei.AddReturnMessage("transfer error on unJail function")
 		return vmcommon.UserError
 	}
 
