@@ -399,6 +399,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	var pendingMiniBlocksHandler process.PendingMiniBlocksHandler
+	pendingMiniBlocksHandler, err = pendingMb.NewNilPendingMiniBlocks()
+	if err != nil {
+		return nil, err
+	}
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
 		pendingMiniBlocksHandler, err = pendingMb.NewPendingMiniBlocks()
 		if err != nil {

@@ -19,15 +19,19 @@ import (
 
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
-	Config           config.Config
-	ShardCoordinator sharding.Coordinator
-	Core             CoreComponentsHolder
+	Config              config.Config
+	ShardCoordinator    sharding.Coordinator
+	Core                CoreComponentsHolder
+	TriesContainer      state.TriesHolder
+	TrieStorageManagers map[string]data.StorageManager
 }
 
 type stateComponentsFactory struct {
-	config           config.Config
-	shardCoordinator sharding.Coordinator
-	core             CoreComponentsHolder
+	config              config.Config
+	shardCoordinator    sharding.Coordinator
+	core                CoreComponentsHolder
+	triesContainer      state.TriesHolder
+	trieStorageManagers map[string]data.StorageManager
 }
 
 // stateComponents struct holds the state components of the Elrond protocol
@@ -56,30 +60,39 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, errors.ErrNilShardCoordinator
 	}
+	if check.IfNil(args.TriesContainer) {
+		return nil, errors.ErrNilTriesContainer
+	}
+	if len(args.TrieStorageManagers) == 0 {
+		return nil, errors.ErrNilTriesStorageManagers
+	}
+	for _, storageManager := range args.TrieStorageManagers {
+		if check.IfNil(storageManager) {
+			return nil, errors.ErrNilTrieStorageManager
+		}
+	}
 
 	return &stateComponentsFactory{
-		config:           args.Config,
-		core:             args.Core,
-		shardCoordinator: args.ShardCoordinator,
+		config:              args.Config,
+		shardCoordinator:    args.ShardCoordinator,
+		core:                args.Core,
+		triesContainer:      args.TriesContainer,
+		trieStorageManagers: args.TrieStorageManagers,
 	}, nil
 }
 
 // Create creates the state components
 func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	accountFactory := factoryState.NewAccountCreator()
-	triesContainer, triesStorageManagers, err := scf.createTries()
-	if err != nil {
-		return nil, err
-	}
 
-	merkleTrie := triesContainer.Get([]byte(trieFactory.UserAccountTrie))
+	merkleTrie := scf.triesContainer.Get([]byte(trieFactory.UserAccountTrie))
 	accountsAdapter, err := state.NewAccountsDB(merkleTrie, scf.core.Hasher(), scf.core.InternalMarshalizer(), accountFactory)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
 	accountFactory = factoryState.NewPeerAccountCreator()
-	merkleTrie = triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
+	merkleTrie = scf.triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
 	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, scf.core.Hasher(), scf.core.InternalMarshalizer(), accountFactory)
 	if err != nil {
 		return nil, err
@@ -90,8 +103,8 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	return &stateComponents{
 		peerAccounts:        peerAdapter,
 		accountsAdapter:     accountsAdapter,
-		triesContainer:      triesContainer,
-		trieStorageManagers: triesStorageManagers,
+		triesContainer:      scf.triesContainer,
+		trieStorageManagers: scf.trieStorageManagers,
 		closeFunc:           cancelFunc,
 	}, nil
 }
@@ -149,7 +162,7 @@ func convertShardIDToString(shardID uint32) string {
 	return fmt.Sprintf("%d", shardID)
 }
 
-// Closes all underlying components that need closing
+// Close closes all underlying components that need closing
 func (pc *stateComponents) Close() error {
 	pc.closeFunc()
 

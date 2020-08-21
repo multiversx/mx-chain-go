@@ -246,6 +246,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Config:                               *cfgs.generalConfig,
 		CoreComponentsHolder:                 managedCoreComponents,
 		ActivateBLSPubKeyMessageVerification: cfgs.systemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
+		KeyLoader:                            &core.KeyLoader{},
 	}
 
 	managedCryptoComponents, err := mainFactory.NewManagedCryptoComponents(cryptoComponentsHandlerArgs)
@@ -341,6 +342,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	args := mainFactory.NetworkComponentsFactoryArgs{
 		P2pConfig:     *cfgs.p2pConfig,
 		MainConfig:    *cfgs.generalConfig,
+		RatingsConfig: *cfgs.ratingsConfig,
 		StatusHandler: managedCoreComponents.StatusHandler(),
 		Marshalizer:   managedCoreComponents.InternalMarshalizer(),
 		Syncer:        managedCoreComponents.SyncTimer(),
@@ -466,10 +468,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating state components")
+	triesComponents, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:           *cfgs.generalConfig,
-		ShardCoordinator: shardCoordinator,
-		Core:             managedCoreComponents,
+		Config:              *cfgs.generalConfig,
+		ShardCoordinator:    shardCoordinator,
+		Core:                managedCoreComponents,
+		TriesContainer:      triesComponents,
+		TrieStorageManagers: trieStorageManagers,
 	}
 	managedStateComponents, err := mainFactory.NewManagedStateComponents(stateArgs)
 	if err != nil {
@@ -719,6 +724,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Version:                   version,
 		ImportStartHandler:        importStartHandler,
 		WorkingDir:                workingDir,
+		Indexer:                   managedStatusComponents.ElasticIndexer(),
+		TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
+		HistoryRepo:               historyRepository,
 	}
 
 	managedProcessComponents, err := mainFactory.NewManagedProcessComponents(processArgs)
