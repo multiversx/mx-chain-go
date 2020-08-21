@@ -53,7 +53,6 @@ const signatureSize = 48
 const publicKeySize = 96
 
 var p2pBootstrapDelay = time.Second * 5
-var consensusChainID = []byte("consensus chain ID")
 var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 type testNode struct {
@@ -408,7 +407,7 @@ func createConsensusOnlyNode(
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
 		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
-		node.WithChainID(consensusChainID),
+		node.WithChainID(integrationTests.ChainID),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),

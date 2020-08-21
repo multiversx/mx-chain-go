@@ -32,7 +32,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	TxFeeHandler            process.FeeHandler
 	BlockBlackList          process.TimeCacher
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	WhiteListHandler        process.WhiteListHandler
@@ -65,7 +65,7 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	TxFeeHandler            process.FeeHandler
 	BlackList               process.TimeCacher
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	WhiteListHandler        process.WhiteListHandler

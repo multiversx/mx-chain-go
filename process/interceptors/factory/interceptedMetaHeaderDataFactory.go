@@ -16,7 +16,7 @@ type interceptedMetaHeaderDataFactory struct {
 	hasher                  hashing.Hasher
 	shardCoordinator        sharding.Coordinator
 	headerSigVerifier       process.InterceptedHeaderSigVerifier
-	headerIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
+	headerIntegrityVerifier process.HeaderIntegrityVerifier
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
 }

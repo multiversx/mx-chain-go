@@ -264,7 +264,17 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier([]byte(args.nodesConfig.ChainID))
+
+	versionsCache, err := createCache(args.mainConfig.Versions.Cache)
+	if err != nil {
+		return nil, err
+	}
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
+		[]byte(args.nodesConfig.ChainID),
+		args.mainConfig.Versions.VersionsByEpochs,
+		args.mainConfig.Versions.DefaultVersion,
+		versionsCache,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -488,6 +498,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		blockTracker,
 		pendingMiniBlocksHandler,
 		args.txSimulatorProcessorArgs,
+		headerIntegrityVerifier,
 	)
 	if err != nil {
 		return nil, err
@@ -1091,6 +1102,7 @@ func newBlockProcessor(
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1119,7 +1131,7 @@ func newBlockProcessor(
 			processArgs.smartContractParser,
 			processArgs.indexer,
 			processArgs.tpsBenchmark,
-			processArgs.version,
+			headerIntegrityVerifier,
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
@@ -1153,7 +1165,7 @@ func newBlockProcessor(
 			processArgs.systemSCConfig,
 			processArgs.indexer,
 			processArgs.tpsBenchmark,
-			processArgs.version,
+			headerIntegrityVerifier,
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
@@ -1186,7 +1198,7 @@ func newShardBlockProcessor(
 	smartContractParser genesis.InitialSmartContractParser,
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
-	version string,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	historyRepository fullHistory.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
@@ -1415,32 +1427,32 @@ func newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Version:                version,
-		AccountsDB:             accountsDb,
-		ForkDetector:           forkDetector,
-		Hasher:                 core.Hasher,
-		Marshalizer:            core.InternalMarshalizer,
-		Store:                  data.Store,
-		ShardCoordinator:       shardCoordinator,
-		NodesCoordinator:       nodesCoordinator,
-		Uint64Converter:        core.Uint64ByteSliceConverter,
-		RequestHandler:         requestHandler,
-		BlockChainHook:         vmFactory.BlockChainHookImpl(),
-		TxCoordinator:          txCoordinator,
-		Rounder:                rounder,
-		EpochStartTrigger:      epochStartTrigger,
-		HeaderValidator:        headerValidator,
-		BootStorer:             bootStorer,
-		BlockTracker:           blockTracker,
-		DataPool:               data.Datapool,
-		FeeHandler:             txFeeHandler,
-		BlockChain:             data.Blkc,
-		StateCheckpointModulus: stateCheckpointModulus,
-		BlockSizeThrottler:     blockSizeThrottler,
-		Indexer:                indexer,
-		TpsBenchmark:           tpsBenchmark,
-		HistoryRepository:      historyRepository,
-		EpochNotifier:          epochNotifier,
+		AccountsDB:              accountsDb,
+		ForkDetector:            forkDetector,
+		Hasher:                  core.Hasher,
+		Marshalizer:             core.InternalMarshalizer,
+		Store:                   data.Store,
+		ShardCoordinator:        shardCoordinator,
+		NodesCoordinator:        nodesCoordinator,
+		Uint64Converter:         core.Uint64ByteSliceConverter,
+		RequestHandler:          requestHandler,
+		BlockChainHook:          vmFactory.BlockChainHookImpl(),
+		TxCoordinator:           txCoordinator,
+		Rounder:                 rounder,
+		EpochStartTrigger:       epochStartTrigger,
+		HeaderValidator:         headerValidator,
+		BootStorer:              bootStorer,
+		BlockTracker:            blockTracker,
+		DataPool:                data.Datapool,
+		FeeHandler:              txFeeHandler,
+		BlockChain:              data.Blkc,
+		StateCheckpointModulus:  stateCheckpointModulus,
+		BlockSizeThrottler:      blockSizeThrottler,
+		Indexer:                 indexer,
+		TpsBenchmark:            tpsBenchmark,
+		HistoryRepository:       historyRepository,
+		EpochNotifier:           epochNotifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1486,7 +1498,7 @@ func newMetaBlockProcessor(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
-	version string,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	historyRepository fullHistory.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
@@ -1764,32 +1776,32 @@ func newMetaBlockProcessor(
 	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
-		Version:                version,
-		AccountsDB:             accountsDb,
-		ForkDetector:           forkDetector,
-		Hasher:                 core.Hasher,
-		Marshalizer:            core.InternalMarshalizer,
-		Store:                  data.Store,
-		ShardCoordinator:       shardCoordinator,
-		NodesCoordinator:       nodesCoordinator,
-		Uint64Converter:        core.Uint64ByteSliceConverter,
-		RequestHandler:         requestHandler,
-		BlockChainHook:         vmFactory.BlockChainHookImpl(),
-		TxCoordinator:          txCoordinator,
-		EpochStartTrigger:      epochStartTrigger,
-		Rounder:                rounder,
-		HeaderValidator:        headerValidator,
-		BootStorer:             bootStorer,
-		BlockTracker:           blockTracker,
-		DataPool:               data.Datapool,
-		FeeHandler:             txFeeHandler,
-		BlockChain:             data.Blkc,
-		StateCheckpointModulus: stateCheckpointModulus,
-		BlockSizeThrottler:     blockSizeThrottler,
-		Indexer:                indexer,
-		TpsBenchmark:           tpsBenchmark,
-		HistoryRepository:      historyRepository,
-		EpochNotifier:          epochNotifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		AccountsDB:              accountsDb,
+		ForkDetector:            forkDetector,
+		Hasher:                  core.Hasher,
+		Marshalizer:             core.InternalMarshalizer,
+		Store:                   data.Store,
+		ShardCoordinator:        shardCoordinator,
+		NodesCoordinator:        nodesCoordinator,
+		Uint64Converter:         core.Uint64ByteSliceConverter,
+		RequestHandler:          requestHandler,
+		BlockChainHook:          vmFactory.BlockChainHookImpl(),
+		TxCoordinator:           txCoordinator,
+		EpochStartTrigger:       epochStartTrigger,
+		Rounder:                 rounder,
+		HeaderValidator:         headerValidator,
+		BootStorer:              bootStorer,
+		BlockTracker:            blockTracker,
+		DataPool:                data.Datapool,
+		FeeHandler:              txFeeHandler,
+		BlockChain:              data.Blkc,
+		StateCheckpointModulus:  stateCheckpointModulus,
+		BlockSizeThrottler:      blockSizeThrottler,
+		Indexer:                 indexer,
+		TpsBenchmark:            tpsBenchmark,
+		HistoryRepository:       historyRepository,
+		EpochNotifier:           epochNotifier,
 	}
 
 	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
