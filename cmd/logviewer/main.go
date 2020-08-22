@@ -26,13 +26,13 @@ const (
 )
 
 type config struct {
-	workingDir       string
-	address          string
-	logLevelPatterns string
-	logFile          bool
-	useWss           bool
-	withCorrelation  bool
-	withLoggerName   bool
+	workingDir         string
+	address            string
+	logLevel           string
+	logSave            bool
+	useWss             bool
+	logWithCorrelation bool
+	logWithLoggerName  bool
 }
 
 var (
@@ -58,43 +58,40 @@ VERSION:
 		Value:       "127.0.0.1:8080",
 		Destination: &argsConfig.address,
 	}
-
-	// logLevelPatterns defines the logger levels and patterns
-	logLevelPatterns = cli.StringFlag{
-		Name:        "level",
-		Usage:       "This flag specifies the logger levels and patterns",
+	// logLevel defines the logger level
+	logLevel = cli.StringFlag{
+		Name: "log-level",
+		Usage: "This flag specifies the logger `level(s)`. It can contain multiple comma-separated value. For example" +
+			", if set to *:INFO the logs for all packages will have the INFO level. However, if set to *:INFO,api:DEBUG" +
+			" the logs for all packages will have the INFO level, excepting the api package which will receive a DEBUG" +
+			" log level.",
 		Value:       "*:" + logger.LogInfo.String(),
-		Destination: &argsConfig.logLevelPatterns,
+		Destination: &argsConfig.logLevel,
 	}
-
 	//logFile is used when the log output needs to be logged in a file
-	logFile = cli.BoolFlag{
-		Name:        "file",
-		Usage:       "Will automatically log into a file",
-		Destination: &argsConfig.logFile,
+	logSaveFile = cli.BoolFlag{
+		Name:        "log-save",
+		Usage:       "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
+		Destination: &argsConfig.logSave,
 	}
-
 	//useWss is used when the user require connection through wss
 	useWss = cli.BoolFlag{
 		Name:        "use-wss",
 		Usage:       "Will use wss instead of ws when creating the web socket",
 		Destination: &argsConfig.useWss,
 	}
-
-	// withCorrelation is used when the user wants to include the log correlation elements in logs
-	withCorrelation = cli.BoolFlag{
-		Name:        "correlation",
-		Usage:       "Will include log correlation elements",
-		Destination: &argsConfig.withCorrelation,
+	//logWithCorrelation is used to enable log correlation elements
+	logWithCorrelation = cli.BoolFlag{
+		Name:        "log-correlation",
+		Usage:       "Boolean option for enabling log correlation elements.",
+		Destination: &argsConfig.logWithCorrelation,
 	}
-
-	// withLoggerName is used when the user wants to include the logger name in logs
-	withLoggerName = cli.BoolFlag{
-		Name:        "logger-name",
-		Usage:       "Will include logger name",
-		Destination: &argsConfig.withLoggerName,
+	//logWithLoggerName is used to enable log correlation elements
+	logWithLoggerName = cli.BoolFlag{
+		Name:        "log-logger-name",
+		Usage:       "Boolean option for logger name in the logs.",
+		Destination: &argsConfig.logWithLoggerName,
 	}
-
 	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
 		Name:        "working-directory",
@@ -136,12 +133,12 @@ func initCliFlags() {
 	cliApp.Usage = "Logviewer application used to communicate with elrond-go node to log the message lines"
 	cliApp.Flags = []cli.Flag{
 		address,
-		logLevelPatterns,
-		logFile,
+		logLevel,
+		logSaveFile,
 		workingDirectory,
 		useWss,
-		withCorrelation,
-		withLoggerName,
+		logWithCorrelation,
+		logWithLoggerName,
 	}
 	cliApp.Authors = []cli.Author{
 		{
@@ -155,7 +152,7 @@ func startLogViewer(ctx *cli.Context) error {
 	log.Info("logviewer application started", "version", cliApp.Version)
 
 	var err error
-	logLevels, _, err := logger.ParseLogLevelAndMatchingString(argsConfig.logLevelPatterns)
+	logLevels, _, err := logger.ParseLogLevelAndMatchingString(argsConfig.logLevel)
 	if err != nil {
 		return err
 	}
@@ -168,7 +165,7 @@ func startLogViewer(ctx *cli.Context) error {
 		}
 	}
 
-	if argsConfig.logFile {
+	if argsConfig.logSave {
 		err = prepareLogFile()
 		if err != nil {
 			return err
@@ -180,22 +177,31 @@ func startLogViewer(ctx *cli.Context) error {
 	}
 
 	profile := &logger.Profile{
-		LogLevelPatterns: argsConfig.logLevelPatterns,
-		WithCorrelation:  argsConfig.withCorrelation,
-		WithLoggerName:   argsConfig.withLoggerName,
+		LogLevelPatterns: argsConfig.logLevel,
+		WithCorrelation:  argsConfig.logWithCorrelation,
+		WithLoggerName:   argsConfig.logWithLoggerName,
 	}
-
-	err = profile.Apply()
-	log.LogIfError(err)
+	customLogProfile := ctx.IsSet(logLevel.Name) || ctx.IsSet(logWithLoggerName.Name) || ctx.IsSet(logWithCorrelation.Name)
+	if customLogProfile {
+		err = profile.Apply()
+		log.LogIfError(err)
+	}
 
 	go func() {
 		for {
-			webSocket, err = openWebSocket(argsConfig.address, profile)
+			webSocket, err = openWebSocket(argsConfig.address)
 			if err != nil {
 				log.Error(fmt.Sprintf("logviewer websocket error, retrying in %v...", retryDuration), "error", err.Error())
 				time.Sleep(retryDuration)
 				continue
 			}
+
+			if customLogProfile {
+				err = sendProfile(webSocket, profile)
+			} else {
+				err = sendDefaultProfileIdentifier(webSocket)
+			}
+			log.LogIfError(err)
 
 			listeningOnWebSocket()
 			time.Sleep(retryDuration)
@@ -238,7 +244,7 @@ func prepareLogFile() error {
 	return logger.AddLogObserver(logsFile, &logger.PlainFormatter{})
 }
 
-func openWebSocket(address string, profile *logger.Profile) (*websocket.Conn, error) {
+func openWebSocket(address string) (*websocket.Conn, error) {
 	scheme := ws
 
 	if argsConfig.useWss {
@@ -256,17 +262,20 @@ func openWebSocket(address string, profile *logger.Profile) (*websocket.Conn, er
 		return nil, err
 	}
 
+	return conn, nil
+}
+
+func sendProfile(conn *websocket.Conn, profile *logger.Profile) error {
 	profileMessage, err := profile.Marshal()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = conn.WriteMessage(websocket.TextMessage, profileMessage)
-	if err != nil {
-		return nil, err
-	}
+	return conn.WriteMessage(websocket.TextMessage, profileMessage)
+}
 
-	return conn, nil
+func sendDefaultProfileIdentifier(conn *websocket.Conn) error {
+	return conn.WriteMessage(websocket.TextMessage, []byte(core.DefaultLogProfileIdentifier))
 }
 
 func listeningOnWebSocket() {
