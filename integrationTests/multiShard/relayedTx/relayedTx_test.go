@@ -105,7 +105,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 	integrationTests.CreateAndSendTransactionWithGasLimit(
 		nodes[0],
 		big.NewInt(0),
-		integrationTests.MaxGasLimitPerBlock-1,
+		20000,
 		make([]byte, 32),
 		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
 		integrationTests.ChainID,
@@ -283,7 +283,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	integrationTests.CreateAndSendTransactionWithGasLimit(
 		nodes[0],
 		big.NewInt(0),
-		integrationTests.MaxGasLimitPerBlock-1,
+		200000,
 		make([]byte, 32),
 		[]byte(arwen.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(registerValue.Bytes())+"@"+hex.EncodeToString(relayer.Address)+"@"+"ababab"),
 		integrationTests.ChainID,
