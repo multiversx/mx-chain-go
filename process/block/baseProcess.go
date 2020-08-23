@@ -1207,16 +1207,9 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	bp.txCoordinator.RequestMiniBlocks(headerHandler)
 }
 
-func (bp *baseProcessor) saveHistoryData(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) {
-	historyTransactionData := &fullHistory.HistoryTransactionsData{
-		HeaderHash:    headerHash,
-		HeaderHandler: header,
-		BodyHandler:   body,
-	}
-
-	err := bp.historyRepo.PutTransactionsData(historyTransactionData)
+func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {
+	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody)
 	if err != nil {
-		log.Warn("history processor: cannot save transaction data",
-			"error", err.Error())
+		log.Warn("historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
 	}
 }

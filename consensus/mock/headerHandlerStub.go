@@ -207,6 +207,11 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(destId uint32) map[stri
 	return hhs.GetMiniBlockHeadersWithDstCalled(destId)
 }
 
+// GetMiniBlockHeadersHashes -
+func (hhs *HeaderHandlerStub) GetMiniBlockHeadersHashes() [][]byte {
+	panic("implement me")
+}
+
 // GetValidatorStatsRootHash -
 func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
 	return []byte("vs root hash")

@@ -345,9 +345,10 @@ type HardforkConfig struct {
 
 // FullHistoryConfig holds the configuration for the full history node
 type FullHistoryConfig struct {
-	Enabled                         bool
-	HistoryTransactionStorageConfig StorageConfig
-	HashEpochStorageConfig          StorageConfig
+	Enabled                            bool
+	MiniblocksMetadataStorageConfig    StorageConfig
+	MiniblockHashByTxHashStorageConfig StorageConfig
+	EpochByHashStorageConfig           StorageConfig
 }
 
 // DebugConfig will hold debugging configuration
