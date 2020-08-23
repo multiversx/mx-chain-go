@@ -633,21 +633,31 @@
 
 [FullHistory]
     Enabled = false
-    [FullHistory.HistoryTransactionStorageConfig.Cache]
-        Name = "FullHistory.HistoryTransactionsConfig"
+    [FullHistory.MiniblocksMetadataStorageConfig.Cache]
+        Name = "FullHistory.MiniblocksMetadataStorage"
         Capacity = 20000
         Type = "LRU"
-    [FullHistory.HistoryTransactionStorageConfig.DB]
-        FilePath = "FullHistory.HistoryTransactions/MainDB"
+    [FullHistory.MiniblocksMetadataStorageConfig.DB]
+        FilePath = "FullHistory/MiniblocksMetadata"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
-    [FullHistory.HashEpochStorageConfig.Cache]
-        Name = "HashEpochStorage"
+    [FullHistory.MiniblockHashByTxHashStorageConfig.Cache]
+        Name = "FullHistory.MiniblockHashByTxHashStorage"
         Capacity = 20000
         Type = "LRU"
-    [FullHistory.HashEpochStorageConfig.DB]
+    [FullHistory.MiniblockHashByTxHashStorageConfig.DB]
+        FilePath = "FullHistory/MiniblockHashByTxHash"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+    [FullHistory.EpochByHashStorageConfig.Cache]
+        Name = "EpochByHashStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [FullHistory.EpochByHashStorageConfig.DB]
         FilePath = "HashEpochDB"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2

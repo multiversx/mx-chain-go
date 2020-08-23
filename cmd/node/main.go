@@ -1279,6 +1279,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	historyRepository.RegisterToBlockTracker(processComponents.BlockTracker)
+
 	transactionSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
 	if err != nil {
 		return err
