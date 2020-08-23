@@ -632,7 +632,7 @@
     PollingIntervalInMinutes = 65
 
 [FullHistory]
-    Enabled = true # DISABLE AFTER TESTS!
+    Enabled = false
     [FullHistory.MiniblocksMetadataStorageConfig.Cache]
         Name = "FullHistory.MiniblocksMetadataStorage"
         Capacity = 20000
