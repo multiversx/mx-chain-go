@@ -347,7 +347,7 @@ func TestWASMMetering(t *testing.T) {
 
 	testingValue := uint64(15)
 
-	gasLimit = uint64(2000)
+	gasLimit = uint64(500)
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,

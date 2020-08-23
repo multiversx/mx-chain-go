@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go-logger/proto"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli"
@@ -148,6 +150,10 @@ func waitForProfile(conn *websocket.Conn) error {
 		return err
 	}
 
+	if bytes.Equal(message, []byte(core.DefaultLogProfileIdentifier)) {
+		return nil
+	}
+
 	profile, err := logger.UnmarshalProfile(message)
 	if err != nil {
 		return err
@@ -209,7 +215,7 @@ func shouldSendMessage(messageLogLevel int32) bool {
 	mutLogLevelPattern.RLock()
 	defer mutLogLevelPattern.RUnlock()
 
-	lastLogLevelForWebsocket := logger.LogNone
+	lastLogLevelForWebsocket := logger.LogInfo
 	for i := 0; i < len(logLevels); i++ {
 		level := logLevels[i]
 		pattern := patterns[i]
