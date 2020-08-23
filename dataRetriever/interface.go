@@ -73,10 +73,12 @@ const (
 	StatusMetricsUnit UnitType = 10
 	// TxLogsUnit is the transactions logs storage unit identifier
 	TxLogsUnit UnitType = 11
-	// TransactionHistoryUnit is the transactions history storage unit identifier
-	TransactionHistoryUnit UnitType = 12
+	// MiniblocksMetadataUnit is the miniblocks metadata storage unit identifier
+	MiniblocksMetadataUnit UnitType = 12
 	// EpochByHashUnit is the epoch by hash storage unit identifier
 	EpochByHashUnit UnitType = 13
+	// MiniblocksHashByTxHashUnit is the miniblocks hash by tx hash storage unit identifier
+	MiniblockHashByTxHashUnit UnitType = 14
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

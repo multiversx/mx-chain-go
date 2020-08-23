@@ -60,7 +60,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		NodesSetup:              nodeSetup,
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
@@ -243,7 +243,7 @@ func CreateNodeWithBLSAndTxKeys(
 		NodesSetup:              nodesSetup,
 		RatingsData:             ratingsData,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 

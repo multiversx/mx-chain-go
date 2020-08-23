@@ -348,7 +348,7 @@ func newBaseTestProcessorNode(
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
 		NodesSetup:              nodesSetup,
-		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
@@ -484,7 +484,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 			},
 		},
 		MinTransactionVersion: MinTransactionVersion,
-		HistoryRepository:     &mock.HistoryRepositoryStub{},
+		HistoryRepository:     &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:         forking.NewGenericEpochNotifier(),
 	}
 
