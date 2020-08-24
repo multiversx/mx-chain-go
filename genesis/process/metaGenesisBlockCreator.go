@@ -291,6 +291,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		EconomicsFee:                   genesisFeeHandler,
 		TxTypeHandler:                  txTypeHandler,
 		GasHandler:                     gasHandler,
+		GasSchedule:                    arg.GasMap,
 		BuiltInFunctions:               virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                arg.TxLogsProcessor,
 		BadTxForwarder:                 badTxForwarder,
