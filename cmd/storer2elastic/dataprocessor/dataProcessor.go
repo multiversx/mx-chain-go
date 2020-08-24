@@ -206,7 +206,7 @@ func (dp *dataProcessor) createNodesCoordinatorForShard(nodesConfig sharding.Gen
 		Marshalizer:             dp.marshalizer,
 		Hasher:                  dp.hasher,
 		Shuffler:                dataProcessorDisabled.NewNodesShuffler(),
-		EpochStartNotifier:      &disabled.EpochStartNotifier{},
+		EpochStartNotifier:      disabled.NewEpochStartNotifier(),
 		BootStorer:              memDB,
 		ShardIDAsObserver:       shardID,
 		NbShards:                nodesConfig.NumberOfShards(),
@@ -285,7 +285,8 @@ func (dp *dataProcessor) uniqueMiniBlocksSlice(mbs []*block.MiniBlock) []*block.
 			continue
 		}
 
-		if _, value := keys[string(hash)]; !value {
+		_, valueOk := keys[string(hash)]
+		if !valueOk {
 			keys[string(hash)] = true
 			list = append(list, entry)
 		}
