@@ -88,6 +88,7 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 		}
 		tx.Hash = hex.EncodeToString([]byte(txHash))
 		tx.MiniBlockHash = hex.EncodeToString([]byte(miniblockHash))
+		tx.Status = transaction.ComputeStatusKnowingMiniblock(miniblock, bap.selfShardID)
 
 		txs = append(txs, tx)
 	}

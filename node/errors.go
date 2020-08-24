@@ -43,6 +43,12 @@ var ErrNilPublicKey = errors.New("trying to set nil public key")
 // ErrAccountNotFound signals that an account was not found in trie
 var ErrAccountNotFound = errors.New("account not found")
 
+// ErrTransactionNotFound signals that a transaction was not found
+var ErrTransactionNotFound = errors.New("transaction not found")
+
+// ErrCannotRetrieveTransaction signals that a transaction was not found
+var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")
+
 // ErrZeroRoundDurationNotSupported signals that 0 seconds round duration is not supported
 var ErrZeroRoundDurationNotSupported = errors.New("0 round duration time is not supported")
 
