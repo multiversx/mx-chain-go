@@ -116,6 +116,7 @@ func (hp *historyProcessor) recordMiniblock(blockHeaderHash []byte, blockHeader 
 	}
 
 	miniblockMetadata := &MiniblockMetadata{
+		Type:               int32(miniblock.Type),
 		Epoch:              epoch,
 		HeaderHash:         blockHeaderHash,
 		MiniblockHash:      miniblockHash,

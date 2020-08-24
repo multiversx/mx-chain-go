@@ -21,5 +21,6 @@ message MiniblockMetadata {
     uint64 NotarizedAtDestinationInMetaNonce    = 10;
     bytes NotarizedAtSourceInMetaHash           = 11;
     bytes NotarizedAtDestinationInMetaHash      = 12;
+    int32 Type                                  = 13;
 }
 
