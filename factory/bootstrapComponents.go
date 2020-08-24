@@ -2,6 +2,7 @@ package factory
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -94,14 +95,15 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, fmt.Errorf("%w: %v", errors.ErrBootstrapDataProviderCreationFailed, err)
 	}
 
-	latestStorageDataProvider, err := factory.CreateLatestStorageDataProvider(
-		bootstrapDataProvider,
-		bcf.coreComponents.InternalMarshalizer(),
-		bcf.coreComponents.Hasher(),
-		bcf.config,
-		bcf.coreComponents.ChainID(),
+	parentDir := filepath.Join(
 		bcf.workingDir,
 		core.DefaultDBPath,
+		bcf.coreComponents.ChainID())
+
+	latestStorageDataProvider, err := factory.CreateLatestStorageDataProvider(
+		bootstrapDataProvider,
+		bcf.config,
+		parentDir,
 		core.DefaultEpochString,
 		core.DefaultShardString,
 	)
@@ -112,11 +114,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	unitOpener, err := factory.CreateUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
-		bcf.coreComponents.InternalMarshalizer(),
 		bcf.config,
-		bcf.coreComponents.ChainID(),
-		bcf.workingDir,
-		core.DefaultDBPath,
 		core.DefaultEpochString,
 		core.DefaultShardString,
 	)

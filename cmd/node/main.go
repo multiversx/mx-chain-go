@@ -455,7 +455,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		CryptoComponents:      managedCryptoComponents,
 		NetworkComponents:     managedNetworkComponents,
 	}
-
 	managedBootstrapComponents, err := mainFactory.NewManagedBootstrapComponents(bootstrapComponentsFactoryArgs)
 	if err != nil {
 		return err

@@ -108,6 +108,19 @@ func TestNewBootstrapComponentsFactory_NilWorkingDir(t *testing.T) {
 	require.Equal(t, errorsErd.ErrInvalidWorkingDir, err)
 }
 
+func TestBootstrapComponentsFactory_Create_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getBootStrapArgs()
+
+	bcf, _ := factory.NewBootstrapComponentsFactory(args)
+
+	bc, err := bcf.Create()
+
+	require.NotNil(t, bc)
+	require.Nil(t, err)
+}
+
 func TestBootstrapComponentsFactory_Create_BootstrapDataProviderCreationFail(t *testing.T) {
 	t.Parallel()
 
