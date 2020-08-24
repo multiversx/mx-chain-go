@@ -59,6 +59,7 @@ type scProcessor struct {
 	economicsFee   process.FeeHandler
 	txTypeHandler  process.TxTypeHandler
 	gasHandler     process.GasHandler
+	gasSchedule    map[string]map[string]uint64
 
 	txLogsProcessor process.TransactionLogProcessor
 }
@@ -78,6 +79,7 @@ type ArgsNewSmartContractProcessor struct {
 	EconomicsFee                   process.FeeHandler
 	TxTypeHandler                  process.TxTypeHandler
 	GasHandler                     process.GasHandler
+	GasSchedule                    map[string]map[string]uint64
 	BuiltInFunctions               process.BuiltInFunctionContainer
 	TxLogsProcessor                process.TransactionLogProcessor
 	BadTxForwarder                 process.IntermediateTransactionHandler
@@ -128,6 +130,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.GasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if args.GasSchedule == nil {
+		return nil, process.ErrNilGasSchedule
+	}
 	if check.IfNil(args.BuiltInFunctions) {
 		return nil, process.ErrNilBuiltInFunction
 	}
@@ -155,6 +160,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		economicsFee:                   args.EconomicsFee,
 		txTypeHandler:                  args.TxTypeHandler,
 		gasHandler:                     args.GasHandler,
+		gasSchedule:                    args.GasSchedule,
 		builtInFunctions:               args.BuiltInFunctions,
 		txLogsProcessor:                args.TxLogsProcessor,
 		badTxForwarder:                 args.BadTxForwarder,
@@ -408,6 +414,11 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return true, process.ErrBuiltInFunctionsAreDisabled
 	}
 
+	lockedGas, err := sc.handleAsyncStepGas(vmInput)
+	if err != nil {
+		return true, err
+	}
+
 	// TODO: returned error should be protocol error - vmOutput error must be used for user errors
 	// return error here only if acntSnd is not nil - so this is sender shard
 	vmOutput, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
@@ -417,10 +428,18 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 			return true, err
 		}
 
-		vmOutput = &vmcommon.VMOutput{ReturnCode: vmcommon.UserError, ReturnMessage: err.Error()}
+		vmOutput = &vmcommon.VMOutput{
+			ReturnCode:    vmcommon.UserError,
+			ReturnMessage: err.Error(),
+			GasRemaining:  lockedGas,
+		}
 	}
 
 	sc.penalizeUserIfNeeded(tx, txHash, vmInput.CallType, vmInput.GasProvided, vmOutput)
+
+	// Restore gas set aside for the async callback, if any; this amount will
+	// still be available to the async callback, even after being penalized for providing too much gas
+	vmOutput.GasRemaining += lockedGas
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 
@@ -834,12 +853,13 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		return
 	}
 
-	isTooMuchGasProvided := callType != vmcommon.AsynchronousCall && isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
+	isTooMuchGasProvided := isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
 	if !isTooMuchGasProvided {
 		return
 	}
 
-	log.Trace("scProcessor.penalizeUserIfNeeded: too much gas has been provided",
+	gasUsed := gasProvided - vmOutput.GasRemaining
+	log.Trace("scProcessor.penalizeUserIfNeeded: too much gas provided",
 		"hash", txHash,
 		"nonce", tx.GetNonce(),
 		"value", tx.GetValue(),
@@ -849,13 +869,13 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		"gas price", tx.GetGasPrice(),
 		"gas provided", gasProvided,
 		"gas remained", vmOutput.GasRemaining,
-		"gas used", gasProvided-vmOutput.GasRemaining,
+		"gas used", gasUsed,
 		"return code", vmOutput.ReturnCode.String(),
 		"return message", vmOutput.ReturnMessage,
 	)
 
-	vmOutput.ReturnMessage += fmt.Sprintf("too much gas has been provided: gas needed = %d, gas remained = %d",
-		gasProvided-vmOutput.GasRemaining, vmOutput.GasRemaining)
+	vmOutput.ReturnMessage += fmt.Sprintf("too much gas provided: gas needed = %d, gas remained = %d",
+		gasUsed, vmOutput.GasRemaining)
 	vmOutput.GasRemaining = 0
 }
 
@@ -1338,6 +1358,32 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32) {
 
 	sc.flagPenalizedTooMuchGas.Toggle(epoch >= sc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("scProcessor: penalized too much gas", "enabled", sc.flagPenalizedTooMuchGas.IsSet())
+}
+
+func (sc *scProcessor) handleAsyncStepGas(input *vmcommon.ContractCallInput) (uint64, error) {
+	if input.CallType != vmcommon.AsynchronousCall {
+		return 0, nil
+	}
+
+	asyncCallStepCost := sc.gasSchedule["ElrondAPICost"]["AsyncCallStep"]
+	asyncCallbackGasLock := sc.gasSchedule["ElrondAPICost"]["AsyncCallbackGasLock"]
+
+	// gasToLock is the amount of gas to set aside for the callback, to avoid it
+	// being used by executing built-in functions; this amount will be restored
+	// to the caller, so that there is sufficient gas for the async callback
+	gasToLock := asyncCallStepCost + asyncCallbackGasLock
+
+	// gasToDeduct also contains an extra asyncCallStepCost, apart from
+	// gasToLock; asyncCallStepCost will be deducted, but not refunded, just as
+	// Arwen does when executing an async call
+	gasToDeduct := asyncCallStepCost + gasToLock
+	if input.GasProvided <= gasToDeduct {
+		return 0, process.ErrNotEnoughGas
+	}
+
+	input.GasProvided -= gasToDeduct
+
+	return gasToLock, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
