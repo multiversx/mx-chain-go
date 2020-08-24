@@ -324,12 +324,14 @@ func CreateMockArguments(
 					return nil
 				},
 			},
-			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
-			Indexer:            &mock.IndexerMock{},
-			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
-			Version:            "softwareVersion",
-			HistoryRepository:  &mock.HistoryRepositoryStub{},
+			BlockTracker:            mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
+			BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
+			Indexer:                 &mock.IndexerMock{},
+			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
+			Version:                 "softwareVersion",
+			HistoryRepository:       &mock.HistoryRepositoryStub{},
+			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+			EpochNotifier:           &mock.EpochNotifierStub{},
 		},
 	}
 

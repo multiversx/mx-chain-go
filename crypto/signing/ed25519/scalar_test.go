@@ -145,7 +145,7 @@ func TestEd255192IsKeyValid_ErrOnWrongStructure(t *testing.T) {
 	suite := ed25519.NewEd25519()
 	privateKey, _ := suite.CreateKeyPair()
 	privateKeyBytes, _ := (privateKey.GetUnderlyingObj()).(goEd25519.PrivateKey)
-	privateKeyBytes[len(privateKeyBytes) -1]++
+	privateKeyBytes[len(privateKeyBytes)-1]++
 
 	err := ed25519.IsKeyValid(privateKeyBytes)
 	assert.Equal(t, crypto.ErrWrongPrivateKeyStructure, err)

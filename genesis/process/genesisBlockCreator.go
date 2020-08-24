@@ -1,6 +1,7 @@
 package process
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"path"
@@ -32,7 +33,7 @@ import (
 
 const accountStartNonce = uint64(0)
 
-type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, selfShardId uint32) (data.HeaderHandler, error)
+type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, selfShardId uint32) (data.HeaderHandler, [][]byte, error)
 
 type genesisBlockCreator struct {
 	arg                 ArgsGenesisBlockCreator
@@ -194,6 +195,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.Core.TxMarshalizer()) {
 		return process.ErrNilMarshalizer
 	}
+	if arg.GeneralConfig == nil {
+		return genesis.ErrNilGeneralSettingsConfig
+	}
 
 	return nil
 }
@@ -261,6 +265,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		}
 	}
 
+	allScAddresses := make([][]byte, 0)
 	selfShardId := gbc.arg.ShardCoordinator.SelfId()
 	nodesListSplitter, err := intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
 	if err != nil {
@@ -277,11 +282,13 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 				err, shardID)
 		}
 
-		genesisBlock, err = gbc.shardCreatorHandler(newArgument, nodesListSplitter, selfShardId)
+		var scResults [][]byte
+		genesisBlock, scResults, err = gbc.shardCreatorHandler(newArgument, nodesListSplitter, selfShardId)
 		if err != nil {
 			return nil, fmt.Errorf("'%w' while generating genesis block for shard %d",
 				err, shardID)
 		}
+		allScAddresses = append(allScAddresses, scResults...)
 
 		genesisBlocks[shardID] = genesisBlock
 		err = gbc.saveGenesisBlock(genesisBlock)
@@ -302,9 +309,16 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 
 	chain := blockchain.NewMetaChain()
 	newArgument.Data.SetBlockchain(chain)
-	genesisBlock, err = gbc.metaCreatorHandler(newArgument, nodesListSplitter, selfShardId)
+	var scResults [][]byte
+	genesisBlock, scResults, err = gbc.metaCreatorHandler(newArgument, nodesListSplitter, selfShardId)
 	if err != nil {
 		return nil, fmt.Errorf("'%w' while generating genesis block for metachain", err)
+	}
+	allScAddresses = append(allScAddresses, scResults...)
+
+	err = gbc.checkDelegationsAgainstDeployedSC(allScAddresses, gbc.arg.AccountsParser)
+	if err != nil {
+		return nil, err
 	}
 
 	genesisBlocks[core.MetachainShardId] = genesisBlock
@@ -430,4 +444,38 @@ func (gbc *genesisBlockCreator) saveGenesisBlock(header data.HeaderHandler) erro
 	}
 
 	return gbc.arg.Data.StorageService().Put(unitType, hash, blockBuff)
+}
+
+func (gbc *genesisBlockCreator) checkDelegationsAgainstDeployedSC(
+	allScAddresses [][]byte,
+	accountsParser genesis.AccountsParser,
+) error {
+	initialAccounts := accountsParser.InitialAccounts()
+	for _, ia := range initialAccounts {
+		dh := ia.GetDelegationHandler()
+		if check.IfNil(dh) {
+			continue
+		}
+		if len(dh.AddressBytes()) == 0 {
+			continue
+		}
+
+		found := gbc.searchDeployedContract(allScAddresses, dh.AddressBytes())
+		if !found {
+			return fmt.Errorf("%w for SC address %s, address %s",
+				genesis.ErrMissingDeployedSC, dh.GetAddress(), ia.GetAddress())
+		}
+	}
+
+	return nil
+}
+
+func (gbc *genesisBlockCreator) searchDeployedContract(allScAddresses [][]byte, address []byte) bool {
+	for _, addr := range allScAddresses {
+		if bytes.Equal(addr, address) {
+			return true
+		}
+	}
+
+	return false
 }

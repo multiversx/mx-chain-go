@@ -68,7 +68,7 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
-	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlock, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNonceAtEpochStart, initUint)

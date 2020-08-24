@@ -127,10 +127,11 @@ func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
 }
 
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
+	expectedErr := errors.New("error")
 
 	accAdapter := &mock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
-			return nil, errors.New("error")
+			return nil, expectedErr
 		},
 	}
 	coreComponents := getDefaultCoreComponents()
@@ -146,8 +147,7 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 	_, err := n.GetBalance(createDummyHexAddress(64))
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "could not fetch sender address from provided param")
+	assert.Equal(t, expectedErr, err)
 }
 
 func createDummyHexAddress(hexChars int) string {
@@ -202,6 +202,29 @@ func TestGetBalance(t *testing.T) {
 	balance, err := n.GetBalance(createDummyHexAddress(64))
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(100), balance)
+}
+
+func TestGetUsername(t *testing.T) {
+	expectedUsername := []byte("elrond")
+
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		acc, _ := state.NewUserAccount(address)
+		acc.UserName = expectedUsername
+		acc.IncreaseNonce(1)
+
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+	)
+	username, err := n.GetUsername(createDummyHexAddress(64))
+	assert.Nil(t, err)
+	assert.Equal(t, string(expectedUsername), username)
 }
 
 //------- GenerateTransaction
@@ -1457,7 +1480,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return 100
 		},
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(100)
 		},
 		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {

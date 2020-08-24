@@ -19,7 +19,7 @@ var _ process.InterceptedData = (*InterceptedMetaHeader)(nil)
 type InterceptedMetaHeader struct {
 	hdr               *block.MetaBlock
 	sigVerifier       process.InterceptedHeaderSigVerifier
-	integrityVerifier process.InterceptedHeaderIntegrityVerifier
+	integrityVerifier process.HeaderIntegrityVerifier
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
 	hash              []byte

@@ -50,7 +50,7 @@ type ArgsExporter struct {
 	InterceptorsContainer    process.InterceptorsContainer
 	NodesCoordinator         sharding.NodesCoordinator
 	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
+	HeaderIntegrityVerifier  process.HeaderIntegrityVerifier
 	ValidityAttester         process.ValidityAttester
 	InputAntifloodHandler    process.P2PAntifloodHandler
 	OutputAntifloodHandler   process.P2PAntifloodHandler
@@ -81,7 +81,7 @@ type exportHandlerFactory struct {
 	accounts                 state.AccountsAdapter
 	nodesCoordinator         sharding.NodesCoordinator
 	headerSigVerifier        process.InterceptedHeaderSigVerifier
-	headerIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
+	headerIntegrityVerifier  process.HeaderIntegrityVerifier
 	validityAttester         process.ValidityAttester
 	resolverContainer        dataRetriever.ResolversContainer
 	inputAntifloodHandler    process.P2PAntifloodHandler

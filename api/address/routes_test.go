@@ -49,6 +49,16 @@ type valueForKeyResponse struct {
 	Code  string                  `json:"code"`
 }
 
+type usernameResponseData struct {
+	Username string `json:"username"`
+}
+
+type usernameResponse struct {
+	Data  usernameResponseData `json:"data"`
+	Error string               `json:"error"`
+	Code  string               `json:"code"`
+}
+
 func TestAddressRoute_EmptyTrailReturns404(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
@@ -255,6 +265,66 @@ func TestGetValueForKey_ShouldWork(t *testing.T) {
 	assert.Equal(t, testValue, valueForKeyResponseObj.Data.Value)
 }
 
+func TestGetUsername_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/testAddress/username", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetUsername_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetUsernameCalled: func(_ string) (string, error) {
+			return "", expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/username", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	usernameResponseObj := usernameResponse{}
+	loadResponse(resp.Body, &usernameResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(usernameResponseObj.Error, expectedErr.Error()))
+}
+
+func TestGetUsername_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	testUsername := "value"
+	facade := mock.Facade{
+		GetUsernameCalled: func(_ string) (string, error) {
+			return testUsername, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/username", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	usernameResponseObj := usernameResponse{}
+	loadResponse(resp.Body, &usernameResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, testUsername, usernameResponseObj.Data.Username)
+}
+
 func TestGetAccount_NilContextShouldError(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
@@ -381,6 +451,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 				[]config.RouteConfig{
 					{Name: "/:address", Open: true},
 					{Name: "/:address/balance", Open: true},
+					{Name: "/:address/username", Open: true},
 					{Name: "/:address/key/:key", Open: true},
 				},
 			},

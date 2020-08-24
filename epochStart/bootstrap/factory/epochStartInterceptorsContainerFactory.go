@@ -13,7 +13,6 @@ import (
 	disabledGenesis "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -36,6 +35,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	NonceConverter         typeConverters.Uint64ByteSliceConverter
 	ChainID                []byte
 	ArgumentsParser        process.ArgumentsParser
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -82,7 +82,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		TxFeeHandler:            feeHandler,
 		BlackList:               blackListHandler,
 		HeaderSigVerifier:       headerSigVerifier,
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
 		SizeCheckDelta:          uint32(sizeCheckDelta),
 		ValidityAttester:        validityAttester,
 		EpochStartTrigger:       epochStartTrigger,

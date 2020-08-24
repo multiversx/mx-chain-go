@@ -33,27 +33,29 @@ type dataComponentsHolder interface {
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
-	CoreComponents         coreComponentsHolder
-	DataComponents         dataComponentsHolder
-	AccountsDB             map[state.AccountsDbIdentifier]state.AccountsAdapter
-	ForkDetector           process.ForkDetector
-	ShardCoordinator       sharding.Coordinator
-	NodesCoordinator       sharding.NodesCoordinator
-	FeeHandler             process.TransactionFeeHandler
-	RequestHandler         process.RequestHandler
-	BlockChainHook         process.BlockChainHookHandler
-	TxCoordinator          process.TransactionCoordinator
-	EpochStartTrigger      process.EpochStartTriggerHandler
-	HeaderValidator        process.HeaderConstructionValidator
-	Rounder                consensus.Rounder
-	BootStorer             process.BootStorer
-	BlockTracker           process.BlockTracker
-	StateCheckpointModulus uint
-	BlockSizeThrottler     process.BlockSizeThrottler
-	Indexer                indexer.Indexer
-	TpsBenchmark           statistics.TPSBenchmark
-	Version                string
-	HistoryRepository      fullHistory.HistoryRepository
+	CoreComponents          coreComponentsHolder
+	DataComponents          dataComponentsHolder
+	AccountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
+	ForkDetector            process.ForkDetector
+	ShardCoordinator        sharding.Coordinator
+	NodesCoordinator        sharding.NodesCoordinator
+	FeeHandler              process.TransactionFeeHandler
+	RequestHandler          process.RequestHandler
+	BlockChainHook          process.BlockChainHookHandler
+	TxCoordinator           process.TransactionCoordinator
+	EpochStartTrigger       process.EpochStartTriggerHandler
+	HeaderValidator         process.HeaderConstructionValidator
+	Rounder                 consensus.Rounder
+	BootStorer              process.BootStorer
+	BlockTracker            process.BlockTracker
+	StateCheckpointModulus  uint
+	BlockSizeThrottler      process.BlockSizeThrottler
+	Indexer                 indexer.Indexer
+	TpsBenchmark            statistics.TPSBenchmark
+	Version                 string
+	HistoryRepository       fullHistory.HistoryRepository
+	EpochNotifier           process.EpochNotifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
@@ -73,5 +75,6 @@ type ArgMetaProcessor struct {
 	EpochEconomics               process.EndOfEpochEconomics
 	EpochRewardsCreator          process.EpochStartRewardsCreator
 	EpochValidatorInfoCreator    process.EpochStartValidatorInfoCreator
+	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 }

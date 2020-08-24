@@ -225,8 +225,8 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 // MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
-// MetricHighestFinalBlockInShard is the metric that stores the highest nonce block notarized by metachain for current shard
-const MetricHighestFinalBlockInShard = "erd_highest_notarized_block_by_metachain_for_current_shard"
+// MetricHighestFinalBlock is the metric for the nonce of the highest final block
+const MetricHighestFinalBlock = "erd_highest_final_nonce"
 
 // MetricLatestTagSoftwareVersion is the metric that stores the latest tag software version
 const MetricLatestTagSoftwareVersion = "erd_latest_tag_software_version"
@@ -358,6 +358,10 @@ const (
 	TxStatusPartiallyExecuted TransactionStatus = "partially-executed"
 	// TxStatusExecuted represents the status of a transaction which was received and executed
 	TxStatusExecuted TransactionStatus = "executed"
+	// TxStatusNotExecuted represents the status of a transaction which was received and not executed
+	TxStatusNotExecuted TransactionStatus = "not-executed"
+	// TxStatusInvalid represents the status of a transaction which was considered invalid
+	TxStatusInvalid TransactionStatus = "invalid"
 )
 
 const (
@@ -516,3 +520,7 @@ const WrongP2PMessageBlacklistDuration = time.Second * 7200
 
 // MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
 const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
+
+// DefaultLogProfileIdentifier represents the default log profile used when the logviewer/termui applications do not
+// need to change the current logging profile
+const DefaultLogProfileIdentifier = "[default log profile]"

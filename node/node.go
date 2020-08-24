@@ -171,29 +171,33 @@ func (n *Node) GetConsensusGroupSize() int {
 
 // GetBalance gets the balance for a specific address
 func (n *Node) GetBalance(address string) (*big.Int, error) {
-	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.stateComponents.AccountsAdapter()) {
-		return nil, errors.New("initialize AccountsAdapter and PubkeyConverter first")
-	}
-
-	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	account, err := n.getAccountHandler(address)
 	if err != nil {
-		return nil, errors.New("invalid address, could not decode from: " + err.Error())
-	}
-	accWrp, err := n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
-	if err != nil {
-		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
+		return nil, err
 	}
 
-	if check.IfNil(accWrp) {
-		return big.NewInt(0), nil
-	}
-
-	account, ok := accWrp.(state.UserAccountHandler)
+	userAccount, ok := n.castAccountToUserAccount(account)
 	if !ok {
 		return big.NewInt(0), nil
 	}
 
-	return account.GetBalance(), nil
+	return userAccount.GetBalance(), nil
+}
+
+// GetUsername gets the username for a specific address
+func (n *Node) GetUsername(address string) (string, error) {
+	account, err := n.getAccountHandler(address)
+	if err != nil {
+		return "", err
+	}
+
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return "", ErrAccountNotFound
+	}
+
+	username := userAccount.GetUserName()
+	return string(username), nil
 }
 
 // GetValueForKey will return the value for a key from a given account
@@ -203,33 +207,43 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 		return "", fmt.Errorf("invalid key: %w", err)
 	}
 
-	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.stateComponents.AccountsAdapter()) {
-		return "", fmt.Errorf("initialize AccountsAdapter and PubkeyConverter first")
+	account, err := n.getAccountHandler(address)
+	if err != nil {
+		return "", err
 	}
 
-	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
-	if err != nil {
-		return "", fmt.Errorf("invalid address, could not decode from: %w", err)
-	}
-	accWrp, err := n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
-	if err != nil {
-		return "", fmt.Errorf("could not fetch sender address from provided param: %w", err)
-	}
-
-	if check.IfNil(accWrp) {
-		return "", fmt.Errorf("account not found")
-	}
-	account, ok := accWrp.(state.UserAccountHandler)
+	userAccount, ok := n.castAccountToUserAccount(account)
 	if !ok {
-		return "", fmt.Errorf("account not found - cannot convert to UserAccountHandler")
+		return "", ErrAccountNotFound
 	}
 
-	valueBytes, err := account.DataTrieTracker().RetrieveValue(keyBytes)
+	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue(keyBytes)
 	if err != nil {
 		return "", fmt.Errorf("fetching value error: %w", err)
 	}
 
 	return hex.EncodeToString(valueBytes), nil
+}
+
+func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
+	if check.IfNil(n.coreComponents.AddressPubKeyConverter()) || check.IfNil(n.stateComponents.AccountsAdapter()) {
+		return nil, errors.New("initialize AccountsAdapter and PubkeyConverter first")
+	}
+
+	addr, err := n.coreComponents.AddressPubKeyConverter().Decode(address)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from: " + err.Error())
+	}
+	return n.accounts.GetExistingAccount(addr)
+}
+
+func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {
+	if check.IfNil(ah) {
+		return nil, false
+	}
+
+	account, ok := ah.(state.UserAccountHandler)
+	return account, ok
 }
 
 // createChronologyHandler method creates a chronology object

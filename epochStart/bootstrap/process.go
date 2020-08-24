@@ -87,6 +87,7 @@ type epochStartBootstrap struct {
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
+	headerIntegrityVerifier    process.HeaderIntegrityVerifier
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -142,6 +143,7 @@ type ArgsEpochStartBootstrap struct {
 	Rounder                    epochStart.Rounder
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
+	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -169,6 +171,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		statusHandler:              args.StatusHandler,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
+		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -302,6 +305,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			Epoch:       epochToStart,
 			SelfShardId: newShardId,
 			NumOfShards: e.baseData.numberOfShards,
+			NodesConfig: e.nodesConfig,
 		}, nil
 	}
 
@@ -415,6 +419,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		EconomicsData:          e.economicsData,
 		WhitelistHandler:       e.whiteListHandler,
 		StartInEpochConfig:     e.generalConfig.EpochStartConfig,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -437,6 +442,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		WhiteListHandler:       e.whiteListHandler,
 		WhiteListerVerifiedTxs: e.whiteListerVerifiedTxs,
 		ArgumentsParser:        e.argumentsParser,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

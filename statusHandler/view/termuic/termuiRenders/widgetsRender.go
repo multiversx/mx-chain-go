@@ -274,8 +274,8 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 
 	shardId := wr.presenter.GetShardId()
 	if shardId != uint64(core.MetachainShardId) {
-		highestFinalBlockInShard := wr.presenter.GetHighestFinalBlockInShard()
-		rows[4][0] += fmt.Sprintf(", final nonce: %d", highestFinalBlockInShard)
+		highestFinalBlock := wr.presenter.GetHighestFinalBlock()
+		rows[4][0] += fmt.Sprintf(", final nonce: %d", highestFinalBlock)
 	}
 
 	consensusState := wr.presenter.GetConsensusState()

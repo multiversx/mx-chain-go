@@ -33,6 +33,7 @@ type metaProcessor struct {
 	epochEconomics               process.EndOfEpochEconomics
 	epochRewardsCreator          process.EpochStartRewardsCreator
 	validatorInfoCreator         process.EpochStartValidatorInfoCreator
+	epochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	pendingMiniBlocksHandler     process.PendingMiniBlocksHandler
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	shardsHeadersNonce           *sync.Map
@@ -77,6 +78,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if check.IfNil(arguments.ValidatorStatisticsProcessor) {
 		return nil, process.ErrNilValidatorStatistics
 	}
+	if check.IfNil(arguments.EpochSystemSCProcessor) {
+		return nil, process.ErrNilEpochStartSystemSCProcessor
+	}
 
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
@@ -105,8 +109,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		indexer:                arguments.Indexer,
 		tpsBenchmark:           arguments.TpsBenchmark,
 		genesisNonce:           genesisHdr.GetNonce(),
-		version:                core.TrimSoftwareVersion(arguments.Version),
-		historyRepo:            arguments.HistoryRepository,
+		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
+		historyRepo:             arguments.HistoryRepository,
+		epochNotifier:           arguments.EpochNotifier,
 	}
 
 	mp := metaProcessor{
@@ -120,6 +125,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		epochRewardsCreator:          arguments.EpochRewardsCreator,
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
+		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
 	}
 
 	mp.txCounter = NewTransactionCounter()
@@ -165,6 +171,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	mp.epochNotifier.CheckEpoch(headerHandler.GetEpoch())
 	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
 	log.Debug("started processing block",
@@ -360,6 +367,11 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
+	if err != nil {
+		return err
+	}
+
 	err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, allValidatorsInfo)
 	if err != nil {
 		return err
@@ -371,11 +383,6 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	}
 
 	err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
-	if err != nil {
-		return err
-	}
-
-	err = mp.scToProtocol.UpdateProtocol(body, header.Nonce)
 	if err != nil {
 		return err
 	}
@@ -634,6 +641,8 @@ func (mp *metaProcessor) CreateBlock(
 
 	mp.epochStartTrigger.Update(initialHdr.GetRound(), initialHdr.GetNonce())
 	metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
+	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch))
+	mp.epochNotifier.CheckEpoch(metaHdr.GetEpoch())
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
 
 	var body data.BodyHandler
@@ -733,6 +742,11 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 	metaBlock.EpochStart.Economics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
+
+	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
+	if err != nil {
+		return nil, err
+	}
 
 	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorsInfo)
 	if err != nil {
@@ -1086,9 +1100,10 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.tpsBenchmark.Update(header)
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
-	mp.saveHistoryData(headerHash, headerHandler, bodyHandler)
+	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
-	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
+	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
+	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce)
 
 	headersPool := mp.dataPool.Headers()
 	numShardHeadersFromPool := 0
@@ -1122,7 +1137,7 @@ func (mp *metaProcessor) CommitBlock(
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
 		pendingMiniBlocks:          mp.getPendingMiniBlocks(),
-		highestFinalBlockNonce:     mp.forkDetector.GetHighestFinalBlockNonce(),
+		highestFinalBlockNonce:     highestFinalBlockNonce,
 	}
 
 	mp.prepareDataForBootStorer(args)
@@ -1969,7 +1984,6 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) data.Header
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		DeveloperFees:          big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
-		SoftwareVersion:        []byte(mp.version),
 	}
 
 	mp.epochStartTrigger.Update(round, nonce)

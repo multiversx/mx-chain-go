@@ -216,11 +216,14 @@ type PeerShardResolver interface {
 
 // ConnectedPeersInfo represents the DTO structure used to output the metrics for connected peers
 type ConnectedPeersInfo struct {
+	SelfShardID          uint32
 	UnknownPeers         []string
-	IntraShardValidators []string
-	IntraShardObservers  []string
-	CrossShardValidators []string
-	CrossShardObservers  []string
+	IntraShardValidators map[uint32][]string
+	IntraShardObservers  map[uint32][]string
+	CrossShardValidators map[uint32][]string
+	CrossShardObservers  map[uint32][]string
+	NumValidators        map[uint32]int
+	NumObservers         map[uint32]int
 }
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component

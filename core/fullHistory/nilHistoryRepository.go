@@ -1,5 +1,9 @@
 package fullHistory
 
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+)
+
 type nilHistoryRepository struct {
 }
 
@@ -8,22 +12,26 @@ func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 	return new(nilHistoryRepository), nil
 }
 
-// PutTransactionsData returns a not implemented error
-func (nhr *nilHistoryRepository) PutTransactionsData(_ *HistoryTransactionsData) error {
+// RegisterToBlockTracker does nothing
+func (nhr *nilHistoryRepository) RegisterToBlockTracker(blockTracker BlockTracker) {
+}
+
+// RecordBlock returns a not implemented error
+func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler) error {
 	return nil
 }
 
 // GetTransaction returns a not implemented error
-func (nhr *nilHistoryRepository) GetTransaction(_ []byte) (*HistoryTransactionWithEpoch, error) {
+func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*MiniblockMetadata, error) {
 	return nil, nil
 }
 
-// GetEpochForHash returns a not implemented error
-func (nhr *nilHistoryRepository) GetEpochForHash(_ []byte) (uint32, error) {
+// GetEpochByHash returns a not implemented error
+func (nhr *nilHistoryRepository) GetEpochByHash(_ []byte) (uint32, error) {
 	return 0, nil
 }
 
-// IsEnabled -
+// IsEnabled returns false
 func (nhr *nilHistoryRepository) IsEnabled() bool {
 	return false
 }

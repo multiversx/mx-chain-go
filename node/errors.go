@@ -40,6 +40,9 @@ var ErrNilTxFeeHandler = errors.New("trying to set a nil tx fee handler")
 // ErrNilPublicKey signals that a nil public key has been provided
 var ErrNilPublicKey = errors.New("trying to set nil public key")
 
+// ErrAccountNotFound signals that an account was not found in trie
+var ErrAccountNotFound = errors.New("account not found")
+
 // ErrZeroRoundDurationNotSupported signals that 0 seconds round duration is not supported
 var ErrZeroRoundDurationNotSupported = errors.New("0 round duration time is not supported")
 
@@ -177,6 +180,12 @@ var ErrNilHistoryRepository = errors.New("history repository is nil")
 
 // ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
 var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")
+
+// ErrNilTxSimulatorProcessor signals that a nil transaction simulator processor has been provided
+var ErrNilTxSimulatorProcessor = errors.New("nil transaction simulator processor")
+
+// ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
+var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
 
 // ErrNilBootstrapComponents signals that a nil bootstrap components instance has been provided
 var ErrNilBootstrapComponents = errors.New("nil bootstrap componennts")

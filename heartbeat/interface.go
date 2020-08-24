@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -29,7 +30,7 @@ type P2PMessenger interface {
 
 // MessageHandler defines what a message processor for heartbeat should do
 type MessageHandler interface {
-	CreateHeartbeatFromP2PMessage(message p2p.MessageP2P) (*data.Heartbeat, error)
+	CreateHeartbeatFromP2PMessage(message p2p.MessageP2P) (*heartbeatData.Heartbeat, error)
 	IsInterfaceNil() bool
 }
 
@@ -50,8 +51,8 @@ type Timer interface {
 type HeartbeatStorageHandler interface {
 	LoadGenesisTime() (time.Time, error)
 	UpdateGenesisTime(genesisTime time.Time) error
-	LoadHeartBeatDTO(pubKey string) (*data.HeartbeatDTO, error)
-	SavePubkeyData(pubkey []byte, heartbeat *data.HeartbeatDTO) error
+	LoadHeartBeatDTO(pubKey string) (*heartbeatData.HeartbeatDTO, error)
+	SavePubkeyData(pubkey []byte, heartbeat *heartbeatData.HeartbeatDTO) error
 	LoadKeys() ([][]byte, error)
 	SaveKeys(peersSlice [][]byte) error
 	IsInterfaceNil() bool
@@ -103,5 +104,11 @@ type PeerBlackListHandler interface {
 type ValidatorStatisticsProcessor interface {
 	RootHash() ([]byte, error)
 	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
+	IsInterfaceNil() bool
+}
+
+// CurrentBlockProvider can provide the current block that the node was able to commit
+type CurrentBlockProvider interface {
+	GetCurrentBlockHeader() data.HeaderHandler
 	IsInterfaceNil() bool
 }

@@ -53,7 +53,6 @@ const signatureSize = 48
 const publicKeySize = 96
 
 var p2pBootstrapDelay = time.Second * 5
-var consensusChainID = []byte("consensus chain ID")
 var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 type testNode struct {

@@ -16,7 +16,6 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -24,9 +23,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -45,12 +46,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
+	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
+	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	processFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -96,7 +100,6 @@ VERSION:
    {{.Version}}
    {{end}}
 `
-	rm *statistics.ResourceMonitor
 )
 
 // appVersion should be populated at build time using ldflags
@@ -178,6 +181,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	cfgs, err = readConfigs(log, ctx)
 	if err != nil {
 		return err
+	}
+
+	if !check.IfNil(fileLogging) {
+		err = fileLogging.ChangeFileLifeSpan(time.Second * time.Duration(cfgs.generalConfig.Logs.LogFileLifeSpanInSec))
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Trace("creating core components")
@@ -322,7 +332,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		managedCoreComponents.Uint64ByteSliceConverter(),
 		chanCreateViews,
 		chanLogRewrite,
-		logFile,
 	)
 	if err != nil {
 		return err
@@ -409,16 +418,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	versionsCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.Versions.Cache))
+	if err != nil {
+		return err
+	}
+
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
+		[]byte(genesisNodesConfig.ChainID),
+		generalConfig.Versions.VersionsByEpochs,
+		generalConfig.Versions.DefaultVersion,
+		versionsCache,
+	)
+	if err != nil {
+		return err
+	}
+
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
-		Config:                *cfgs.generalConfig,
-		WorkingDir:            workingDir,
-		DestinationAsObserver: destShardIdAsObserver,
-		GenesisNodesSetup:     nodesSetup,
-		NodeShuffler:          nodesShuffler,
-		ShardCoordinator:      genesisShardCoordinator,
-		CoreComponents:        managedCoreComponents,
-		CryptoComponents:      managedCryptoComponents,
-		NetworkComponents:     managedNetworkComponents,
+		Config:                  *cfgs.generalConfig,
+		WorkingDir:              workingDir,
+		DestinationAsObserver:   destShardIdAsObserver,
+		GenesisNodesSetup:       nodesSetup,
+		NodeShuffler:            nodesShuffler,
+		ShardCoordinator:        genesisShardCoordinator,
+		CoreComponents:          managedCoreComponents,
+		CryptoComponents:        managedCryptoComponents,
+		NetworkComponents:       managedNetworkComponents,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
 	}
 
 	managedBootstrapComponents, err := mainFactory.NewManagedBootstrapComponents(bootstrapComponentsFactoryArgs)
@@ -458,9 +483,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("initializing stats file")
 	err = initStatsFileMonitor(
 		cfgs.generalConfig,
-		managedCryptoComponents.PublicKeyString(),
-		log,
-		workingDir,
 		managedCoreComponents.PathHandler(),
 		shardId)
 	if err != nil {
@@ -603,6 +625,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	statsFolder := filepath.Join(workingDir, core.DefaultStatsPath)
 	copyConfigToStatsFolder(
+		log,
 		statsFolder,
 		[]string{
 			cfgs.configurationFileName,
@@ -688,6 +711,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	txSimulatorProcessorArgs := &txsimulator.ArgsTxSimulator{
+		AddressPubKeyConverter: addressPubkeyConverter,
+		ShardCoordinator:       shardCoordinator,
+	}
+
+	epochNotifier := forking.NewGenericEpochNotifier()
+
 	log.Trace("creating process components")
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
 		CoreFactoryArgs:           (*mainFactory.CoreComponentsFactoryArgs)(&coreArgs),
@@ -727,6 +757,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Indexer:                   managedStatusComponents.ElasticIndexer(),
 		TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
 		HistoryRepo:               historyRepository,
+		epochNotifier,
+		txSimulatorProcessorArgs,
 	}
 
 	managedProcessComponents, err := mainFactory.NewManagedProcessComponents(processArgs)
@@ -734,6 +766,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	err = managedProcessComponents.Create()
+	if err != nil {
+		return err
+	}
+
+	historyRepository.RegisterToBlockTracker(processComponents.BlockTracker)
+
+	transactionSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
 	if err != nil {
 		return err
 	}
@@ -850,6 +889,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	argNodeFacade := facade.ArgNodeFacade{
 		Node:                   currentNode,
 		ApiResolver:            apiResolver,
+		TxSimulatorProcessor:   transactionSimulator,
 		RestAPIServerDebugMode: restAPIServerDebugMode,
 		WsAntifloodConfig:      cfgs.generalConfig.Antiflood.WebServer,
 		FacadeConfig: config.FacadeConfig{
@@ -922,6 +962,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Debug("closing node")
+	if !check.IfNil(fileLogging) {
+		err = fileLogging.Close()
+		log.LogIfError(err)
+	}
 
 	return nil
 }
@@ -945,11 +989,6 @@ func closeAllComponents(
 	dataTries := stateComponents.TriesContainer().GetAll()
 	for _, trie := range dataTries {
 		err = trie.ClosePersister()
-		log.LogIfError(err)
-	}
-
-	if rm != nil {
-		err = rm.Close()
 		log.LogIfError(err)
 	}
 
@@ -1001,7 +1040,10 @@ func cleanupStorageIfNecessary(workingDir string, ctx *cli.Context, log logger.L
 	return nil
 }
 
-func copyConfigToStatsFolder(statsFolder string, configs []string) {
+func copyConfigToStatsFolder(log logger.Logger, statsFolder string, configs []string) {
+	err := os.MkdirAll(statsFolder, os.ModePerm)
+	log.LogIfError(err)
+
 	for _, configFile := range configs {
 		copySingleFile(statsFolder, configFile)
 	}
@@ -1629,18 +1671,10 @@ func createNode(
 
 func initStatsFileMonitor(
 	config *config.Config,
-	pubKeyString string,
-	log logger.Logger,
-	workingDir string,
 	pathManager storage.PathManagerHandler,
 	shardId string,
 ) error {
-	statsFile, err := core.CreateFile(core.GetTrimmedPk(pubKeyString), filepath.Join(workingDir, core.DefaultStatsPath), "txt")
-	if err != nil {
-		return err
-	}
-
-	err = startStatisticsMonitor(statsFile, config, log, pathManager, shardId)
+	err := startStatisticsMonitor(config, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -1649,9 +1683,7 @@ func initStatsFileMonitor(
 }
 
 func startStatisticsMonitor(
-	file *os.File,
 	generalConfig *config.Config,
-	log logger.Logger,
 	pathManager storage.PathManagerHandler,
 	shardId string,
 ) error {
@@ -1663,15 +1695,11 @@ func startStatisticsMonitor(
 		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
 	}
 
-	resMon, err := statistics.NewResourceMonitor(file)
-	if err != nil {
-		return err
-	}
+	resMon := statistics.NewResourceMonitor()
 
 	go func() {
 		for {
-			err = resMon.SaveStatistics(generalConfig, pathManager, shardId)
-			log.LogIfError(err)
+			resMon.SaveStatistics(generalConfig, pathManager, shardId)
 			time.Sleep(time.Second * time.Duration(generalConfig.ResourceStats.RefreshIntervalInSec))
 		}
 	}()
@@ -1784,12 +1812,12 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }
 
-func updateLogger(workingDir string, ctx *cli.Context, log logger.Logger) (*os.File, error) {
-	var logFile *os.File
+func updateLogger(workingDir string, ctx *cli.Context, log logger.Logger) (factory.FileLoggingHandler, error) {
+	var fileLogging factory.FileLoggingHandler
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
-		logFile, err = prepareLogFile(workingDir)
+		fileLogging, err = prepareLogFile(workingDir)
 		if err != nil {
 			return nil, fmt.Errorf("%w creating a log file", err)
 		}
@@ -1822,7 +1850,7 @@ func updateLogger(workingDir string, ctx *cli.Context, log logger.Logger) (*os.F
 	}
 	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", noAnsiColor)
 
-	return logFile, nil
+	return fileLogging, nil
 }
 
 func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {

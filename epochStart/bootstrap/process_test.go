@@ -140,6 +140,7 @@ func createMockEpochStartBootstrapArgs(
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		ArgumentsParser:            &mock.ArgumentParserMock{},
 		StatusHandler:              &mock.AppStatusHandlerStub{},
+		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
 	}
 }
 
