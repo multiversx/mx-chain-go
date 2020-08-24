@@ -158,7 +158,7 @@ func (hp *historyProcessor) computeMiniblockHash(miniblock *block.MiniBlock) ([]
 	return core.CalculateHash(hp.marshalizer, hp.hasher, miniblock)
 }
 
-func (hp *historyProcessor) getMiniblockStatus(miniblock *block.MiniBlock) transaction.TransactionStatus {
+func (hp *historyProcessor) getMiniblockStatus(miniblock *block.MiniBlock) transaction.TxStatus {
 	if miniblock.Type == block.InvalidBlock {
 		return transaction.TxStatusInvalid
 	}

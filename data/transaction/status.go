@@ -1,17 +1,17 @@
 package transaction
 
-// TransactionStatus is the type used to represent the status of a transaction
-type TransactionStatus string
+// TxStatus is the status of a transaction
+type TxStatus string
 
 const (
-	// TxStatusReceived represents the status of a transaction which was received but not yet executed
-	TxStatusReceived TransactionStatus = "received"
+	// TxStatusReceived = transaction was received but not yet executed
+	TxStatusReceived TxStatus = "received"
 	// TxStatusPartiallyExecuted represent the status of a transaction which was received and executed on source shard
-	TxStatusPartiallyExecuted TransactionStatus = "partially-executed"
+	TxStatusPartiallyExecuted TxStatus = "partially-executed"
 	// TxStatusExecuted represents the status of a transaction which was received and executed
-	TxStatusExecuted TransactionStatus = "executed"
+	TxStatusExecuted TxStatus = "executed"
 	// TxStatusNotExecuted represents the status of a transaction which was received and not executed
-	TxStatusNotExecuted TransactionStatus = "not-executed"
+	TxStatusNotExecuted TxStatus = "not-executed"
 	// TxStatusInvalid represents the status of a transaction which was considered invalid
-	TxStatusInvalid TransactionStatus = "invalid"
+	TxStatusInvalid TxStatus = "invalid"
 )

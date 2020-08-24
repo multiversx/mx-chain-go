@@ -11,7 +11,7 @@ func (n *Node) CreateConsensusTopic(messageProcessor p2p.MessageProcessor) error
 	return n.createConsensusTopic(messageProcessor)
 }
 
-func (n *Node) ComputeTransactionStatus(tx data.TransactionHandler, isInPool bool) transaction.TransactionStatus {
+func (n *Node) ComputeTransactionStatus(tx data.TransactionHandler, isInPool bool) transaction.TxStatus {
 	return n.computeTransactionStatus(tx, isInPool)
 }
 
