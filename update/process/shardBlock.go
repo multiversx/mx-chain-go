@@ -217,12 +217,12 @@ func (s *shardBlockCreator) saveAllTransactionsToStorageIfSelfShard(
 		}
 	}
 
-	finalReceiptHash, marshalizedReceiptsHashes, errNotCritical := s.txCoordinator.CreateMarshalizedReceipts()
+	marshalizedReceiptsHashes, errNotCritical := s.txCoordinator.CreateMarshalizedReceipts()
 	if errNotCritical != nil {
 		log.Warn("saveAllTransactionsToStorageIfSelfShard.CreateMarshalizedReceipts", "error", errNotCritical.Error())
 	}
 
-	errNotCritical = s.storage.Put(dataRetriever.ReceiptsUnit, finalReceiptHash, marshalizedReceiptsHashes)
+	errNotCritical = s.storage.Put(dataRetriever.ReceiptsUnit, shardHdr.GetReceiptsHash(), marshalizedReceiptsHashes)
 	if errNotCritical != nil {
 		log.Warn("saveAllTransactionsToStorageIfSelfShard.Put -> ReceiptsUnit", "error", errNotCritical.Error())
 	}

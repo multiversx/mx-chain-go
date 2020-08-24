@@ -29,7 +29,7 @@ type TransactionCoordinatorMock struct {
 	GetAllCurrentUsedTxsCalled                  func(blockType block.Type) map[string]data.TransactionHandler
 	VerifyCreatedBlockTransactionsCalled        func(hdr data.HeaderHandler, body *block.Body) error
 	CreatePostProcessMiniBlocksCalled           func() block.MiniBlockSlice
-	CreateMarshalizedReceiptsCalled             func() ([]byte, []byte, error)
+	CreateMarshalizedReceiptsCalled             func() ([]byte, error)
 }
 
 // CreatePostProcessMiniBlocks -
@@ -177,9 +177,9 @@ func (tcm *TransactionCoordinatorMock) VerifyCreatedBlockTransactions(hdr data.H
 }
 
 // CreateMarshalizedReceipts -
-func (tcm *TransactionCoordinatorMock) CreateMarshalizedReceipts() ([]byte, []byte, error) {
+func (tcm *TransactionCoordinatorMock) CreateMarshalizedReceipts() ([]byte, error) {
 	if tcm.CreateMarshalizedReceiptsCalled == nil {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	return tcm.CreateMarshalizedReceiptsCalled()
