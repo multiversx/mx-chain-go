@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -157,15 +158,15 @@ func (hp *historyProcessor) computeMiniblockHash(miniblock *block.MiniBlock) ([]
 	return core.CalculateHash(hp.marshalizer, hp.hasher, miniblock)
 }
 
-func (hp *historyProcessor) getMiniblockStatus(miniblock *block.MiniBlock) core.TransactionStatus {
+func (hp *historyProcessor) getMiniblockStatus(miniblock *block.MiniBlock) transaction.TransactionStatus {
 	if miniblock.Type == block.InvalidBlock {
-		return core.TxStatusInvalid
+		return transaction.TxStatusInvalid
 	}
 	if miniblock.ReceiverShardID == hp.selfShardID {
-		return core.TxStatusExecuted
+		return transaction.TxStatusExecuted
 	}
 
-	return core.TxStatusPartiallyExecuted
+	return transaction.TxStatusPartiallyExecuted
 }
 
 // GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage

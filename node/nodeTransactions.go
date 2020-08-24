@@ -104,7 +104,7 @@ func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblo
 	tx.NotarizedAtSourceInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtSourceInMetaHash)
 	tx.NotarizedAtDestinationInMetaNonce = miniblockMetadata.NotarizedAtDestinationInMetaNonce
 	tx.NotarizedAtDestinationInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtDestinationInMetaHash)
-	tx.Status = core.TransactionStatus(miniblockMetadata.Status)
+	tx.Status = transaction.TransactionStatus(miniblockMetadata.Status)
 
 	return tx
 }
@@ -247,7 +247,7 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 	}
 }
 
-func (n *Node) prepareNormalTx(tx *transaction.Transaction, status core.TransactionStatus) (*transaction.ApiTransactionResult, error) {
+func (n *Node) prepareNormalTx(tx *transaction.Transaction, status transaction.TransactionStatus) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Type:      string(normalTx),
 		Nonce:     tx.Nonce,
@@ -262,7 +262,7 @@ func (n *Node) prepareNormalTx(tx *transaction.Transaction, status core.Transact
 	}, nil
 }
 
-func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx, status core.TransactionStatus) (*transaction.ApiTransactionResult, error) {
+func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx, status transaction.TransactionStatus) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Type:     string(rewardTx),
 		Round:    tx.GetRound(),
@@ -276,7 +276,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx, status core.Transactio
 
 func (n *Node) prepareUnsignedTx(
 	tx *smartContractResult.SmartContractResult,
-	status core.TransactionStatus,
+	status transaction.TransactionStatus,
 ) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Type:      string(unsignedTx),
@@ -293,7 +293,9 @@ func (n *Node) prepareUnsignedTx(
 	}, nil
 }
 
-func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool bool) core.TransactionStatus {
+func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool bool) transaction.TransactionStatus {
+	// receive miniblock type as well, if possible?
+
 	selfShardID := n.shardCoordinator.SelfId()
 	receiverShardID := n.shardCoordinator.ComputeId(tx.GetRcvAddr())
 
@@ -308,20 +310,19 @@ func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool boo
 
 	isDestinationMe := selfShardID == receiverShardID
 	if isInPool {
-
 		isCrossShard := senderShardID != receiverShardID
 		if isDestinationMe && isCrossShard {
-			return core.TxStatusPartiallyExecuted
+			return transaction.TxStatusPartiallyExecuted
 		}
 
-		return core.TxStatusReceived
+		return transaction.TxStatusReceived
 	}
 
 	// transaction is in storage
 	if isDestinationMe {
-		return core.TxStatusExecuted
+		return transaction.TxStatusExecuted
 	}
 
 	// is in storage on source shard
-	return core.TxStatusPartiallyExecuted
+	return transaction.TxStatusPartiallyExecuted
 }
