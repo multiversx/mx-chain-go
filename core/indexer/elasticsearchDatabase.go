@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -189,6 +190,7 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 		TxCount:               header.GetTxCount(),
 		StateRootHash:         hex.EncodeToString(header.GetRootHash()),
 		PrevHash:              hex.EncodeToString(header.GetPrevHash()),
+		SearchOrder:           esd.computeBlockSearchOrder(header),
 	}
 
 	if header.GetNonce() == 0 {
@@ -449,3 +451,17 @@ func (esd *elasticSearchDatabase) foundedObjMap(hashes []string, index string) (
 
 	return getDecodedResponseMultiGet(response), nil
 }
+
+func (esd *elasticSearchDatabase) computeBlockSearchOrder(header data.HeaderHandler) uint32 {
+	shardIdentifier := esd.txDatabaseProcessor.createShardIdentifier(header.GetShardID())
+	stringOrder := fmt.Sprintf("%d%d", shardIdentifier, header.GetNonce())
+
+	order, err := strconv.ParseUint(stringOrder, 10, 32)
+	if err != nil {
+		log.Debug("elasticsearchDatabase.computeBlockSearchOrder", "could not set uint32 search order", err.Error())
+		return 0
+	}
+
+	return uint32(order)
+}
+
