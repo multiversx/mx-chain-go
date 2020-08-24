@@ -30,6 +30,7 @@ type flags struct {
 	configFilePath     string
 	nodeConfigFilePath string
 	nodesSetupFilePath string
+	startingEpoch      int
 	numShards          int
 	timeout            int
 }
@@ -90,6 +91,13 @@ VERSION:
 		Destination: &flagsValues.numShards,
 	}
 
+	startingEpochFlag = cli.IntFlag{
+		Name:        "starting-epoch",
+		Usage:       "This uint flag specifies the epoch to start when indexing",
+		Value:       1,
+		Destination: &flagsValues.startingEpoch,
+	}
+
 	flagsValues = &flags{}
 
 	log                      = logger.GetOrCreate("storer2elastic")
@@ -129,6 +137,7 @@ func initCliFlags() {
 		nodeConfigFilePathFlag,
 		nodesSetupFilePathFlag,
 		numOfShardsFlag,
+		startingEpochFlag,
 	}
 	cliApp.Authors = []cli.Author{
 		{
@@ -262,6 +271,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		Marshalizer:              marshalizer,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		HeaderMarshalizer:        headerMarshalizer,
+		StartingEpoch:            uint32(flagsValues.startingEpoch),
 	}
 
 	dataReplayer, err := dataprocessor.NewDataReplayer(dataReplayerArgs)

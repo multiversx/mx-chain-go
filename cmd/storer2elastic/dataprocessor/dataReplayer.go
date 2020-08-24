@@ -32,6 +32,7 @@ type dataReplayer struct {
 	marshalizer       marshal.Marshalizer
 	uint64Converter   typeConverters.Uint64ByteSliceConverter
 	headerMarshalizer HeaderMarshalizerHandler
+	startingEpoch     uint32
 }
 
 type persistersHolder struct {
@@ -56,6 +57,7 @@ type DataReplayerArgs struct {
 	Marshalizer              marshal.Marshalizer
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	HeaderMarshalizer        HeaderMarshalizerHandler
+	StartingEpoch            uint32
 }
 
 // NewDataReplayer returns a new instance of dataReplayer
@@ -83,6 +85,7 @@ func NewDataReplayer(args DataReplayerArgs) (*dataReplayer, error) {
 		marshalizer:       args.Marshalizer,
 		uint64Converter:   args.Uint64ByteSliceConverter,
 		headerMarshalizer: args.HeaderMarshalizer,
+		startingEpoch:     args.StartingEpoch,
 	}, nil
 }
 
@@ -118,7 +121,6 @@ func (dr *dataReplayer) startIndexing(errChan chan error, persistedDataHandler f
 		return
 	}
 
-	// TODO: check if some epochs are missing and log this
 	metachainRecords, err := getMetaChainDatabasesInfo(records)
 	if err != nil {
 		errChan <- err
@@ -126,6 +128,10 @@ func (dr *dataReplayer) startIndexing(errChan chan error, persistedDataHandler f
 	}
 
 	for _, metaDB := range metachainRecords {
+		if metaDB.Epoch < dr.startingEpoch {
+			continue
+		}
+
 		err = dr.processMetaChainDatabase(metaDB, records, persistedDataHandler)
 		if err != nil {
 			errChan <- err
@@ -294,7 +300,7 @@ func (dr *dataReplayer) processMetaBlock(
 		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, &shardInfo, metaBlock.Epoch, shardPersisters[shardInfo.ShardID])
 		if errProcessShardInfo != nil {
 			log.Warn("cannot process shard info", "error", errProcessShardInfo)
-			return nil, err
+			return nil, errProcessShardInfo
 		}
 
 		shardsHeaderData[shardInfo.ShardID] = shardHdrData
