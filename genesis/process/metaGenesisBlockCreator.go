@@ -44,6 +44,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		BuiltInFunctionsEnableEpoch:    0,
 		SCDeployEnableEpoch:            0,
 		RelayedTransactionsEnableEpoch: 0,
+		PenalizedTooMuchGasEnableEpoch: 0,
 	}
 	processors, err := createProcessorsForMetaGenesisBlock(arg, genesisOverrideConfig)
 	if err != nil {
@@ -277,25 +278,26 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	argsParser := smartContract.NewArgumentParser()
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:        vmContainer,
-		ArgsParser:         argsParser,
-		Hasher:             arg.Hasher,
-		Marshalizer:        arg.Marshalizer,
-		AccountsDB:         arg.Accounts,
-		BlockChainHook:     virtualMachineFactory.BlockChainHookImpl(),
-		PubkeyConv:         arg.PubkeyConv,
-		Coordinator:        arg.ShardCoordinator,
-		ScrForwarder:       scForwarder,
-		TxFeeHandler:       genesisFeeHandler,
-		EconomicsFee:       genesisFeeHandler,
-		TxTypeHandler:      txTypeHandler,
-		GasHandler:         gasHandler,
-		BuiltInFunctions:   virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:    arg.TxLogsProcessor,
-		BadTxForwarder:     badTxForwarder,
-		EpochNotifier:      epochNotifier,
-		DeployEnableEpoch:  generalConfig.SCDeployEnableEpoch,
-		BuiltinEnableEpoch: generalConfig.BuiltInFunctionsEnableEpoch,
+		VmContainer:                    vmContainer,
+		ArgsParser:                     argsParser,
+		Hasher:                         arg.Hasher,
+		Marshalizer:                    arg.Marshalizer,
+		AccountsDB:                     arg.Accounts,
+		BlockChainHook:                 virtualMachineFactory.BlockChainHookImpl(),
+		PubkeyConv:                     arg.PubkeyConv,
+		Coordinator:                    arg.ShardCoordinator,
+		ScrForwarder:                   scForwarder,
+		TxFeeHandler:                   genesisFeeHandler,
+		EconomicsFee:                   genesisFeeHandler,
+		TxTypeHandler:                  txTypeHandler,
+		GasHandler:                     gasHandler,
+		BuiltInFunctions:               virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:                arg.TxLogsProcessor,
+		BadTxForwarder:                 badTxForwarder,
+		EpochNotifier:                  epochNotifier,
+		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

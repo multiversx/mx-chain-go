@@ -80,7 +80,6 @@ func TestEd25519SignerVerify_NilPublicKeyShouldErr(t *testing.T) {
 func TestEd25519SignerVerify_InvalidPublicKeyTypeShouldErr(t *testing.T) {
 	signer := &singlesig.Ed25519Signer{}
 
-
 	publicKey := &mock.PublicKeyStub{
 		PointStub: func() crypto.Point {
 			return &mock.PointMock{
@@ -97,7 +96,6 @@ func TestEd25519SignerVerify_InvalidPublicKeyTypeShouldErr(t *testing.T) {
 
 func TestEd25519SignerVerify_InvalidPublicKeyLengthShouldErr(t *testing.T) {
 	signer := &singlesig.Ed25519Signer{}
-
 
 	publicKey := &mock.PublicKeyStub{
 		PointStub: func() crypto.Point {

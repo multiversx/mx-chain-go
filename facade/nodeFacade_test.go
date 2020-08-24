@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //TODO increase code coverage
@@ -30,6 +31,7 @@ func createMockArguments() ArgNodeFacade {
 		Node:                   &mock.NodeStub{},
 		ApiResolver:            &mock.ApiResolverStub{},
 		RestAPIServerDebugMode: false,
+		TxSimulatorProcessor:   &mock.TxExecutionSimulatorStub{},
 		WsAntifloodConfig: config.WebServerAntifloodConfig{
 			SimultaneousRequests:         1,
 			SameSourceRequests:           1,
@@ -369,7 +371,8 @@ func TestNodeFacade_GetDataValue(t *testing.T) {
 			return &vmcommon.VMOutput{}, nil
 		},
 	}
-	nf, _ := NewNodeFacade(arg)
+	nf, err := NewNodeFacade(arg)
+	require.NoError(t, err)
 
 	_, _ = nf.ExecuteSCQuery(nil)
 	assert.True(t, wasCalled)

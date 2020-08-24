@@ -26,10 +26,27 @@ func (txProc *txProcessor) IncreaseNonce(acntSrc state.UserAccountHandler) {
 func (txProc *txProcessor) ProcessTxFee(
 	tx *transaction.Transaction,
 	acntSnd, acntDst state.UserAccountHandler,
+	cost *big.Int,
 ) (*big.Int, error) {
-	return txProc.processTxFee(tx, acntSnd, acntDst)
+	return txProc.processTxFee(tx, acntSnd, acntDst, cost)
 }
 
 func (inTx *InterceptedTransaction) SetWhitelistHandler(handler process.WhiteListHandler) {
 	inTx.whiteListerVerifiedTxs = handler
+}
+
+func (txProc *txProcessor) GetUserTxCost(
+	userTx *transaction.Transaction,
+	userTxHash []byte,
+	userTxType process.TransactionType,
+) *big.Int {
+	return txProc.getUserTxCost(userTx, userTxHash, userTxType)
+}
+
+func (txProc *baseTxProcessor) IsCrossTxFromMe(adrSrc, adrDst []byte) bool {
+	return txProc.isCrossTxFromMe(adrSrc, adrDst)
+}
+
+func (txProc *txProcessor) SetPenalizedTooMuchGasEnableEpoch(epoch uint32) {
+	txProc.penalizedTooMuchGasEnableEpoch = epoch
 }

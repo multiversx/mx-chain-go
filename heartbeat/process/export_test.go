@@ -103,6 +103,11 @@ func GetMaxSizeInBytes() int {
 	return maxSizeInBytes
 }
 
+// GetNonce -
+func (hbmi *heartbeatMessageInfo) GetNonce() uint64 {
+	return hbmi.nonce
+}
+
 // RefreshHeartbeatMessageInfo -
 func (m *Monitor) RefreshHeartbeatMessageInfo() {
 	m.refreshHeartbeatMessageInfo()

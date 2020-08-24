@@ -321,7 +321,15 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *data.Heartbeat) {
 
 	peerType, computedShardID := m.computePeerTypeAndShardID(hb.Pubkey)
 
-	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName, hb.Identity, peerType)
+	hbmi.HeartbeatReceived(
+		computedShardID,
+		hb.ShardID,
+		hb.VersionNumber,
+		hb.NodeDisplayName,
+		hb.Identity,
+		peerType,
+		hb.Nonce,
+	)
 	hbDTO := m.convertToExportedStruct(hbmi)
 
 	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
@@ -453,6 +461,7 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 			NodeDisplayName: v.nodeDisplayName,
 			Identity:        v.identity,
 			PeerType:        v.peerType,
+			Nonce:           v.nonce,
 		}
 		status = append(status, tmp)
 	}
@@ -495,6 +504,7 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) data.Heartbea
 		NodeDisplayName: v.nodeDisplayName,
 		Identity:        v.identity,
 		PeerType:        v.peerType,
+		Nonce:           v.nonce,
 	}
 
 	ret.TimeStamp = v.timeStamp.UnixNano()
@@ -517,6 +527,7 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 		nodeDisplayName:             hbDTO.NodeDisplayName,
 		identity:                    hbDTO.Identity,
 		peerType:                    hbDTO.PeerType,
+		nonce:                       hbDTO.Nonce,
 	}
 
 	hbmi.maxInactiveTime = time.Duration(hbDTO.MaxInactiveTime)

@@ -541,7 +541,7 @@ type FeeHandler interface {
 	DeveloperPercentage() float64
 	MaxGasLimitPerBlock(shardID uint32) uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
-	ComputeFee(tx TransactionWithFeeHandler) *big.Int
+	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
 	MinGasPrice() uint64
 	IsInterfaceNil() bool
@@ -652,10 +652,11 @@ type InterceptedHeaderSigVerifier interface {
 	IsInterfaceNil() bool
 }
 
-// InterceptedHeaderIntegrityVerifier is the interface needed at interceptors level to check that a header's integrity
+// HeaderIntegrityVerifier is the interface needed to check that a header's integrity
 // is correct
-type InterceptedHeaderIntegrityVerifier interface {
+type HeaderIntegrityVerifier interface {
 	Verify(header data.HeaderHandler) error
+	GetVersion(epoch uint32) string
 	IsInterfaceNil() bool
 }
 
