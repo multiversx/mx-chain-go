@@ -37,7 +37,6 @@ type CoreComponentsFactoryArgs struct {
 	EconomicsConfig     config.EconomicsConfig
 	NodesFilename       string
 	WorkingDirectory    string
-	GenesisTime         time.Time
 	ChanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
@@ -48,7 +47,6 @@ type coreComponentsFactory struct {
 	economicsConfig     config.EconomicsConfig
 	nodesFilename       string
 	workingDir          string
-	genesisTime         time.Time
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
@@ -85,7 +83,6 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *coreComponentsFac
 		workingDir:          args.WorkingDirectory,
 		chanStopNodeProcess: args.ChanStopNodeProcess,
 		nodesFilename:       args.NodesFilename,
-		genesisTime:         args.GenesisTime,
 	}
 }
 
@@ -132,13 +129,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	syncer.StartSyncingTime()
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
-	startRound := int64(0)
-	if ccf.config.Hardfork.AfterHardFork {
-		startRound = int64(ccf.config.Hardfork.StartRound)
-	}
-
-	log.Debug("config", "file", ccf.nodesFilename)
-
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		ccf.nodesFilename,
 		addressPubkeyConverter,
@@ -148,8 +138,32 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	startRound := int64(0)
+	if ccf.config.Hardfork.AfterHardFork {
+		log.Debug("changed genesis time after hardfork",
+			"old genesis time", genesisNodesConfig.StartTime,
+			"new genesis time", ccf.config.Hardfork.GenesisTime)
+		genesisNodesConfig.StartTime = ccf.config.Hardfork.GenesisTime
+		startRound = int64(ccf.config.Hardfork.StartRound)
+	}
+
+	if genesisNodesConfig.StartTime == 0 {
+		time.Sleep(1000 * time.Millisecond)
+		ntpTime := syncer.CurrentTime()
+		genesisNodesConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
+	}
+
+	startTime := time.Unix(genesisNodesConfig.StartTime, 0)
+
+	log.Info("start time",
+		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
+		"seconds", startTime.Unix())
+
+	log.Debug("config", "file", ccf.nodesFilename)
+
+	genesisTime := time.Unix(genesisNodesConfig.StartTime, 0)
 	rounder, err := round.NewRound(
-		time.Unix(genesisNodesConfig.StartTime, 0),
+		genesisTime,
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
 		syncer,
@@ -208,7 +222,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		economicsData:            economicsData,
 		ratingsData:              ratingsData,
 		rater:                    rater,
-		genesisTime:              ccf.genesisTime,
+		genesisTime:              genesisTime,
 		chainID:                  ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:    ccf.config.GeneralSettings.MinTransactionVersion,
 	}, nil
