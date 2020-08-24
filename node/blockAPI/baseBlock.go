@@ -27,10 +27,11 @@ type baseAPIBockProcessor struct {
 var log = logger.GetOrCreate("node/blockAPI")
 
 func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epoch uint32) []*transaction.ApiTransactionResult {
-	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, mbHeader.Hash, epoch)
+	miniblockHash := mbHeader.Hash
+	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
 		log.Warn("cannot get miniblock from storage",
-			"hash", hex.EncodeToString(mbHeader.Hash),
+			"hash", hex.EncodeToString(miniblockHash),
 			"error", err.Error())
 		return nil
 	}
@@ -39,18 +40,20 @@ func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epo
 	err = bap.marshalizer.Unmarshal(miniBlock, mbBytes)
 	if err != nil {
 		log.Warn("cannot unmarshal miniblock",
-			"hash", hex.EncodeToString(mbHeader.Hash),
+			"hash", hex.EncodeToString(miniblockHash),
 			"error", err.Error())
 		return nil
 	}
 
 	switch miniBlock.Type {
 	case block.TxBlock:
-		return bap.getTxsFromMiniblock(miniBlock, epoch, "normal", dataRetriever.TransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, "normal", dataRetriever.TransactionUnit)
 	case block.RewardsBlock:
-		return bap.getTxsFromMiniblock(miniBlock, epoch, "reward", dataRetriever.RewardTransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, "reward", dataRetriever.RewardTransactionUnit)
 	case block.SmartContractResultBlock:
-		return bap.getTxsFromMiniblock(miniBlock, epoch, "unsigned", dataRetriever.UnsignedTransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, "unsigned", dataRetriever.UnsignedTransactionUnit)
+	case block.InvalidBlock:
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, "normal", dataRetriever.TransactionUnit)
 	default:
 		return nil
 	}
@@ -58,6 +61,7 @@ func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epo
 
 func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 	miniblock *block.MiniBlock,
+	miniblockHash []byte,
 	epoch uint32,
 	txType string,
 	unit dataRetriever.UnitType,
@@ -83,6 +87,7 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 			continue
 		}
 		tx.Hash = hex.EncodeToString([]byte(txHash))
+		tx.MiniBlockHash = hex.EncodeToString([]byte(miniblockHash))
 
 		txs = append(txs, tx)
 	}
