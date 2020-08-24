@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data"
+	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -130,7 +132,11 @@ func TestStateComponents_Close_ShouldWork(t *testing.T) {
 }
 
 func getStateArgs(coreComponents factory.CoreComponentsHolder) factory.StateComponentsFactoryArgs {
-	return factory.StateComponentsFactoryArgs{
+	storageManagers := make(map[string]data.StorageManager)
+	storageManagers[trieFactory.UserAccountTrie] = &mock.StorageManagerStub{}
+	storageManagers[trieFactory.PeerAccountTrie] = &mock.StorageManagerStub{}
+
+	stateComponentsFactoryArgs := factory.StateComponentsFactoryArgs{
 		Config: config.Config{
 			AddressPubkeyConverter: config.PubkeyConfig{
 				Length:          32,
@@ -202,7 +208,15 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder) factory.StateComp
 		},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
 		Core:             coreComponents,
+		TriesContainer: &mock.TriesHolderStub{
+			GetCalled: func(bytes []byte) data.Trie {
+				return &mock.TrieStub{}
+			},
+		},
+		TrieStorageManagers: storageManagers,
 	}
+
+	return stateComponentsFactoryArgs
 }
 
 func getCoreComponents() factory.CoreComponentsHolder {
