@@ -96,7 +96,7 @@ func (bap *baseAPIBockProcessor) getFromStorer(unit dataRetriever.UnitType, key 
 		return bap.store.Get(unit, key)
 	}
 
-	epoch, err := bap.historyRepo.GetEpochForHash(key)
+	epoch, err := bap.historyRepo.GetEpochByHash(key)
 	if err != nil {
 		return nil, err
 	}

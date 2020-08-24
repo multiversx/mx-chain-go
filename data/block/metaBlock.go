@@ -132,6 +132,15 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 	return hashDst
 }
 
+// GetMiniBlockHeadersHashes gets the miniblock hashes
+func (m *MetaBlock) GetMiniBlockHeadersHashes() [][]byte {
+	result := make([][]byte, 0, len(m.MiniBlockHeaders))
+	for _, miniblock := range m.MiniBlockHeaders {
+		result = append(result, miniblock.Hash)
+	}
+	return result
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *MetaBlock) IsInterfaceNil() bool {
 	return m == nil

@@ -26,7 +26,7 @@ type ArgInterceptedDataFactory struct {
 	FeeHandler              process.FeeHandler
 	WhiteListerVerifiedTxs  process.WhiteListHandler
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	ArgsParser              process.ArgumentsParser

@@ -45,7 +45,7 @@ func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (ma
 
 // GetValidatorsIndexes -
 func (ncm *NodesCoordinatorMock) GetValidatorsIndexes(_ []string, _ uint32) ([]uint64, error) {
-	return nil, nil
+	return make([]uint64, 2), nil
 }
 
 // ComputeConsensusGroup -
@@ -118,7 +118,7 @@ func (ncm *NodesCoordinatorMock) GetSavedStateKey() []byte {
 // ShardIdForEpoch returns the nodesCoordinator configured ShardId for specified epoch if epoch configuration exists,
 // otherwise error
 func (ncm *NodesCoordinatorMock) ShardIdForEpoch(_ uint32) (uint32, error) {
-	panic("not implemented")
+	return 0, nil
 }
 
 // ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler

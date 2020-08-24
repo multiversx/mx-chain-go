@@ -73,3 +73,9 @@ var ErrNilStore = errors.New("nil data storage service")
 
 // ErrNilSignalChan returns whenever a nil signal channel is provided
 var ErrNilSignalChan = errors.New("nil signal channel")
+
+// ErrInvalidLogFileMinLifeSpan signals that an invalid log file life span was provided
+var ErrInvalidLogFileMinLifeSpan = errors.New("minimum log file life span is invalid")
+
+// ErrFileLoggingProcessIsClosed signals that the file logging process is closed
+var ErrFileLoggingProcessIsClosed = errors.New("file logging process is closed")

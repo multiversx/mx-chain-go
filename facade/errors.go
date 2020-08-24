@@ -22,3 +22,6 @@ var ErrNilPeerState = errors.New("nil peer state")
 
 // ErrNilAccountState signals that a nil account state has been provided
 var ErrNilAccountState = errors.New("nil account state")
+
+// ErrNilTransactionSimulatorProcessor signals that a nil transaction simulator processor has been provided
+var ErrErrNilTransactionSimulatorProcessor = errors.New("nil transaction simulator processor")

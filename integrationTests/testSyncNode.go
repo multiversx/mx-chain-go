@@ -79,12 +79,12 @@ func NewTestSyncNode(
 		},
 		StorageBootstrapper:     &mock.StorageBootstrapperMock{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		NodesSetup:              nodesSetup,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 
@@ -179,16 +179,16 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				return nil
 			},
 		},
-		BlockTracker:           tpn.BlockTracker,
-		DataPool:               tpn.DataPool,
-		StateCheckpointModulus: stateCheckpointModulus,
-		BlockChain:             tpn.BlockChain,
-		BlockSizeThrottler:     TestBlockSizeThrottler,
-		Indexer:                indexer.NewNilIndexer(),
-		TpsBenchmark:           &testscommon.TpsBenchmarkMock{},
-		Version:                string(SoftwareVersion),
-		HistoryRepository:      tpn.HistoryRepository,
-		EpochNotifier:          tpn.EpochNotifier,
+		BlockTracker:            tpn.BlockTracker,
+		DataPool:                tpn.DataPool,
+		StateCheckpointModulus:  stateCheckpointModulus,
+		BlockChain:              tpn.BlockChain,
+		BlockSizeThrottler:      TestBlockSizeThrottler,
+		Indexer:                 indexer.NewNilIndexer(),
+		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
+		HistoryRepository:       tpn.HistoryRepository,
+		EpochNotifier:           tpn.EpochNotifier,
+		HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

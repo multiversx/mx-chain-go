@@ -60,44 +60,52 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 		return n.castObjToTransaction(txObj, txType)
 	}
 
-	historyTx, err := n.historyRepository.GetTransaction(hash)
+	miniblockMetadata, err := n.historyRepository.GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
 		// transaction is not in history storer
 		return nil, err
 	}
 
-	txBytes, txType, found := n.getTxBytesFromStorageByEpoch(hash, historyTx.Epoch)
+	txBytes, txType, found := n.getTxBytesFromStorageByEpoch(hash, miniblockMetadata.Epoch)
 	if !found {
 		// this should never happen because transaction was found in history storer should be also found in transaction
 		// storer
 		log.Warn("node transaction: cannot find transaction in storage")
-		return putHistoryFieldsInTransaction(nil, historyTx), nil
+		return putHistoryFieldsInTransaction(nil, miniblockMetadata), nil
 	}
 
 	tx, err := n.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		// this should never happen
 		log.Warn("node transaction: cannot unmarshal transaction", "error", err.Error())
-		return putHistoryFieldsInTransaction(nil, historyTx), nil
+		return putHistoryFieldsInTransaction(nil, miniblockMetadata), nil
 	}
 
 	// merge data about transaction from history storer and transaction storer
-	tx = putHistoryFieldsInTransaction(tx, historyTx)
+	tx = putHistoryFieldsInTransaction(tx, miniblockMetadata)
 	return tx, nil
 }
 
-func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, historyFields *fullHistory.HistoryTransactionWithEpoch) *transaction.ApiTransactionResult {
+func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblockMetadata *fullHistory.MiniblockMetadata) *transaction.ApiTransactionResult {
 	if tx == nil {
 		tx = &transaction.ApiTransactionResult{}
 	}
 
-	tx.Epoch = historyFields.Epoch
-	tx.MiniBlockHash = hex.EncodeToString(historyFields.MbHash)
-	tx.BlockHash = hex.EncodeToString(historyFields.HeaderHash)
-	tx.DestinationShard = historyFields.RcvShardID
-	tx.SourceShard = historyFields.SndShardID
-	tx.Round = historyFields.Round
-	tx.BlockNonce = historyFields.HeaderNonce
+	tx.Epoch = miniblockMetadata.Epoch
+	tx.Round = miniblockMetadata.Round
+
+	tx.MiniBlockHash = hex.EncodeToString(miniblockMetadata.MiniblockHash)
+	tx.DestinationShard = miniblockMetadata.DestinationShardID
+	tx.SourceShard = miniblockMetadata.SourceShardID
+
+	tx.BlockNonce = miniblockMetadata.HeaderNonce
+	tx.BlockHash = hex.EncodeToString(miniblockMetadata.HeaderHash)
+	tx.NotarizedAtSourceInMetaNonce = miniblockMetadata.NotarizedAtSourceInMetaNonce
+	tx.NotarizedAtSourceInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtSourceInMetaHash)
+	tx.NotarizedAtDestinationInMetaNonce = miniblockMetadata.NotarizedAtDestinationInMetaNonce
+	tx.NotarizedAtDestinationInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtDestinationInMetaHash)
+	tx.Status = core.TransactionStatus(miniblockMetadata.Status)
+
 	return tx
 }
 
