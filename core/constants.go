@@ -345,6 +345,16 @@ const BuiltInCost = "BuiltInCost"
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
 const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 
+// ElrondAPICost represents the field name of the Elrond SC API (EEI) gas costs
+const ElrondAPICost = "ElrondAPICost"
+
+// AsyncCallStep is the field name for the gas cost for any of the two steps required to execute an async call
+const AsyncCallStepField = "AsyncCallStep"
+
+// AsyncCallbackGasLock is the field name for the gas amount to be locked
+// before executing the destination async call, to be put aside for the async callback
+const AsyncCallbackGasLockField = "AsyncCallbackGasLock"
+
 // TransactionStatus is the type used to represent the status of a transaction
 type TransactionStatus string
 

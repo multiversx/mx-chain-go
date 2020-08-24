@@ -59,7 +59,9 @@ type scProcessor struct {
 	economicsFee   process.FeeHandler
 	txTypeHandler  process.TxTypeHandler
 	gasHandler     process.GasHandler
-	gasSchedule    map[string]map[string]uint64
+
+	asyncCallbackGasLock uint64
+	asyncCallStepCost    uint64
 
 	txLogsProcessor process.TransactionLogProcessor
 }
@@ -146,6 +148,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		return nil, process.ErrNilEpochNotifier
 	}
 
+	apiCosts := args.GasSchedule[core.ElrondAPICost]
+
 	sc := &scProcessor{
 		vmContainer:                    args.VmContainer,
 		argsParser:                     args.ArgsParser,
@@ -160,7 +164,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		economicsFee:                   args.EconomicsFee,
 		txTypeHandler:                  args.TxTypeHandler,
 		gasHandler:                     args.GasHandler,
-		gasSchedule:                    args.GasSchedule,
+		asyncCallStepCost:              apiCosts[core.AsyncCallStepField],
+		asyncCallbackGasLock:           apiCosts[core.AsyncCallbackGasLockField],
 		builtInFunctions:               args.BuiltInFunctions,
 		txLogsProcessor:                args.TxLogsProcessor,
 		badTxForwarder:                 args.BadTxForwarder,
@@ -853,7 +858,7 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		return
 	}
 
-	isTooMuchGasProvided := isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
+	isTooMuchGasProvided := callType != vmcommon.AsynchronousCall && isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
 	if !isTooMuchGasProvided {
 		return
 	}
@@ -1365,18 +1370,15 @@ func (sc *scProcessor) handleAsyncStepGas(input *vmcommon.ContractCallInput) (ui
 		return 0, nil
 	}
 
-	asyncCallStepCost := sc.gasSchedule["ElrondAPICost"]["AsyncCallStep"]
-	asyncCallbackGasLock := sc.gasSchedule["ElrondAPICost"]["AsyncCallbackGasLock"]
-
 	// gasToLock is the amount of gas to set aside for the callback, to avoid it
 	// being used by executing built-in functions; this amount will be restored
 	// to the caller, so that there is sufficient gas for the async callback
-	gasToLock := asyncCallStepCost + asyncCallbackGasLock
+	gasToLock := sc.asyncCallStepCost + sc.asyncCallbackGasLock
 
 	// gasToDeduct also contains an extra asyncCallStepCost, apart from
 	// gasToLock; asyncCallStepCost will be deducted, but not refunded, just as
 	// Arwen does when executing an async call
-	gasToDeduct := asyncCallStepCost + gasToLock
+	gasToDeduct := sc.asyncCallStepCost + gasToLock
 	if input.GasProvided <= gasToDeduct {
 		return 0, process.ErrNotEnoughGas
 	}
