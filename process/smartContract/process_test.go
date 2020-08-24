@@ -47,6 +47,10 @@ func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, stat
 }
 
 func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
+	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 1000
+	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
 	return ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
 		ArgsParser:  &mock.ArgumentParserMock{},
@@ -73,6 +77,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
+		GasSchedule:      gasSchedule,
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
