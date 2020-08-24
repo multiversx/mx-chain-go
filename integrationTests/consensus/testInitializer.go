@@ -154,6 +154,7 @@ func createTestStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, createMemUnit())
+	store.AddStorer(dataRetriever.ReceiptsUnit, createMemUnit())
 	return store
 }
 
