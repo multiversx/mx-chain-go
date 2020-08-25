@@ -56,8 +56,8 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 	}
 
 	tx.Status = (&transaction.StatusComputer{
-		SourceShard:      tx.SourceShard,
-		DestinationShard: tx.DestinationShard,
+		SourceShard:      n.shardCoordinator.ComputeId(tx.Tx.GetSndAddr()),
+		DestinationShard: n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()),
 		Receiver:         tx.Tx.GetRcvAddr(),
 		TransactionData:  tx.Data,
 		SelfShard:        n.shardCoordinator.SelfId(),
@@ -128,8 +128,9 @@ func (n *Node) getTransactionFromCurrentEpochStorage(hash []byte) (*transaction.
 	}
 
 	tx.Status = (&transaction.StatusComputer{
-		SourceShard:      tx.SourceShard,
-		DestinationShard: tx.DestinationShard,
+		// Question for review: should not be long-term (only short-term) problems here in case of adaptive sharding, since we return from "current epoch" storage, correct?
+		SourceShard:      n.shardCoordinator.ComputeId(tx.Tx.GetSndAddr()),
+		DestinationShard: n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()),
 		Receiver:         tx.Tx.GetRcvAddr(),
 		TransactionData:  tx.Data,
 		SelfShard:        n.shardCoordinator.SelfId(),
@@ -271,57 +272,44 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 }
 
 func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
-	sourceShard := n.shardCoordinator.ComputeId(tx.GetSndAddr())
-	destinationShard := n.shardCoordinator.ComputeId(tx.GetRcvAddr())
-
 	return &transaction.ApiTransactionResult{
-		Tx:               tx,
-		Type:             string(txTypeNormal),
-		Nonce:            tx.Nonce,
-		Value:            tx.Value.String(),
-		Receiver:         n.addressPubkeyConverter.Encode(tx.RcvAddr),
-		Sender:           n.addressPubkeyConverter.Encode(tx.SndAddr),
-		GasPrice:         tx.GasPrice,
-		GasLimit:         tx.GasLimit,
-		Data:             tx.Data,
-		Signature:        hex.EncodeToString(tx.Signature),
-		SourceShard:      sourceShard,
-		DestinationShard: destinationShard,
+		Tx:        tx,
+		Type:      string(txTypeNormal),
+		Nonce:     tx.Nonce,
+		Value:     tx.Value.String(),
+		Receiver:  n.addressPubkeyConverter.Encode(tx.RcvAddr),
+		Sender:    n.addressPubkeyConverter.Encode(tx.SndAddr),
+		GasPrice:  tx.GasPrice,
+		GasLimit:  tx.GasLimit,
+		Data:      tx.Data,
+		Signature: hex.EncodeToString(tx.Signature),
 	}, nil
 }
 
 func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTransactionResult, error) {
-	destinationShard := n.shardCoordinator.ComputeId(tx.GetRcvAddr())
-
 	return &transaction.ApiTransactionResult{
-		Tx:               tx,
-		Type:             string(txTypeReward),
-		Round:            tx.GetRound(),
-		Epoch:            tx.GetEpoch(),
-		Value:            tx.GetValue().String(),
-		Sender:           "metachain",
-		Receiver:         n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
-		SourceShard:      core.MetachainShardId,
-		DestinationShard: destinationShard,
+		Tx:          tx,
+		Type:        string(txTypeReward),
+		Round:       tx.GetRound(),
+		Epoch:       tx.GetEpoch(),
+		Value:       tx.GetValue().String(),
+		Sender:      "metachain",
+		Receiver:    n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
+		SourceShard: core.MetachainShardId,
 	}, nil
 }
 
 func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
-	sourceShard := n.shardCoordinator.ComputeId(tx.GetSndAddr())
-	destinationShard := n.shardCoordinator.ComputeId(tx.GetRcvAddr())
-
 	return &transaction.ApiTransactionResult{
-		Tx:               tx,
-		Type:             string(txTypeUnsigned),
-		Nonce:            tx.GetNonce(),
-		Value:            tx.GetValue().String(),
-		Receiver:         n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
-		Sender:           n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
-		GasPrice:         tx.GetGasPrice(),
-		GasLimit:         tx.GetGasLimit(),
-		Data:             tx.GetData(),
-		Code:             string(tx.GetCode()),
-		SourceShard:      sourceShard,
-		DestinationShard: destinationShard,
+		Tx:       tx,
+		Type:     string(txTypeUnsigned),
+		Nonce:    tx.GetNonce(),
+		Value:    tx.GetValue().String(),
+		Receiver: n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
+		Sender:   n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
+		GasPrice: tx.GetGasPrice(),
+		GasLimit: tx.GetGasLimit(),
+		Data:     tx.GetData(),
+		Code:     string(tx.GetCode()),
 	}, nil
 }
