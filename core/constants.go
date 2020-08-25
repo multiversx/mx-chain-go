@@ -165,11 +165,11 @@ const MetricNetworkRecvBps = "erd_network_recv_bps"
 // MetricNetworkRecvBpsPeak is the metric for monitoring network received peak bytes per second
 const MetricNetworkRecvBpsPeak = "erd_network_recv_bps_peak"
 
-// MetricNetworkRecvBytesInCurrentEpoch is the metric for monitoring network received bytes in current epoch
-const MetricNetworkRecvBytesInCurrentEpoch = "erd_network_recv_bytes_in_epoch"
+// MetricNetworkRecvBytesInCurrentEpochPerHost is the metric for monitoring network received bytes in current epoch per host
+const MetricNetworkRecvBytesInCurrentEpochPerHost = "erd_network_recv_bytes_in_epoch_per_host"
 
-// MetricNetworkSendBytesInCurrentEpoch is the metric for monitoring network send bytes in current epoch
-const MetricNetworkSendBytesInCurrentEpoch = "erd_network_sent_bytes_in_epoch"
+// MetricNetworkSendBytesInCurrentEpochPerHost is the metric for monitoring network send bytes in current epoch per host
+const MetricNetworkSendBytesInCurrentEpochPerHost = "erd_network_sent_bytes_in_epoch_per_host"
 
 // MetricNetworkSentPercent is the metric for monitoring network sent load [%]
 const MetricNetworkSentPercent = "erd_network_sent_percent"

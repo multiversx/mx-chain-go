@@ -73,8 +73,8 @@ func registerNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBpsPeak, netStats.BpsSentPeak())
 		appStatusHandler.SetUInt64Value(core.MetricNetworkSentPercent, netStats.PercentSent())
 
-		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBytesInCurrentEpoch, netStats.TotalBytesReceivedInCurrentEpoch())
-		appStatusHandler.SetUInt64Value(core.MetricNetworkSendBytesInCurrentEpoch, netStats.TotalBytesSentInCurrentEpoch())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBytesInCurrentEpochPerHost, netStats.TotalBytesReceivedInCurrentEpoch())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSendBytesInCurrentEpochPerHost, netStats.TotalBytesSentInCurrentEpoch())
 	})
 }
 

@@ -353,7 +353,7 @@ func (wr *WidgetsRender) prepareLoads() {
 	recvLoad := wr.presenter.GetNetworkRecvPercent()
 	recvBps := wr.presenter.GetNetworkRecvBps()
 	recvBpsPeak := wr.presenter.GetNetworkRecvBpsPeak()
-	wr.networkRecv.Title = "Network - recv:"
+	wr.networkRecv.Title = "Network - receive per host:"
 	wr.networkRecv.Percent = int(recvLoad)
 	wr.networkRecv.Label = fmt.Sprintf("%d%% / current: %s/s / peak: %s/s",
 		recvLoad, core.ConvertBytes(recvBps), core.ConvertBytes(recvBpsPeak))
@@ -361,7 +361,7 @@ func (wr *WidgetsRender) prepareLoads() {
 	sentLoad := wr.presenter.GetNetworkSentPercent()
 	sentBps := wr.presenter.GetNetworkSentBps()
 	sentBpsPeak := wr.presenter.GetNetworkSentBpsPeak()
-	wr.networkSent.Title = "Network - sent:"
+	wr.networkSent.Title = "Network - sent per host:"
 	wr.networkSent.Percent = int(sentLoad)
 	wr.networkSent.Label = fmt.Sprintf("%d%% / current: %s/s / peak: %s/s",
 		sentLoad, core.ConvertBytes(sentBps), core.ConvertBytes(sentBpsPeak))
@@ -375,7 +375,7 @@ func (wr *WidgetsRender) prepareLoads() {
 	totalBytesSentInEpoch := wr.presenter.GetNetworkSentBytesInEpoch()
 	totalBytesReceivedInEpoch := wr.presenter.GetNetworkReceivedBytesInEpoch()
 
-	wr.networkBytesInEpoch.Title = "Epoch - traffic:"
+	wr.networkBytesInEpoch.Title = "Epoch - traffic per host:"
 	wr.networkBytesInEpoch.Percent = 0
 	wr.networkBytesInEpoch.Label = fmt.Sprintf("sent: %s / received: %s", core.ConvertBytes(totalBytesSentInEpoch), core.ConvertBytes(totalBytesReceivedInEpoch))
 
