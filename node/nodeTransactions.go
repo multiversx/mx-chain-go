@@ -1,10 +1,12 @@
 package node
 
 import (
+	"bytes"
 	"encoding/hex"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/data"
 	rewardTxData "github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -297,4 +299,9 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		SourceShard:      sourceShard,
 		DestinationShard: destinationShard,
 	}, nil
+}
+
+func (n *Node) isDestAddressEmpty(tx data.TransactionHandler) bool {
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, n.addressPubkeyConverter.Len()))
+	return isEmptyAddress
 }
