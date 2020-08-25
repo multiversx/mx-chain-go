@@ -353,7 +353,7 @@ func (wr *WidgetsRender) prepareLoads() {
 	recvLoad := wr.presenter.GetNetworkRecvPercent()
 	recvBps := wr.presenter.GetNetworkRecvBps()
 	recvBpsPeak := wr.presenter.GetNetworkRecvBpsPeak()
-	wr.networkRecv.Title = "Network - receive per host:"
+	wr.networkRecv.Title = "Network - received per host:"
 	wr.networkRecv.Percent = int(recvLoad)
 	wr.networkRecv.Label = fmt.Sprintf("%d%% / current: %s/s / peak: %s/s",
 		recvLoad, core.ConvertBytes(recvBps), core.ConvertBytes(recvBpsPeak))
