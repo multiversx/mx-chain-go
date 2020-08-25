@@ -39,6 +39,8 @@ func (ut UnitType) String() string {
 		return "BootstrapUnit"
 	case StatusMetricsUnit:
 		return "StatusMetricsUnit"
+	case ReceiptsUnit:
+		return "ReceiptsUnit"
 	}
 
 	if ut < ShardHdrNonceHashDataUnit {
@@ -79,6 +81,8 @@ const (
 	EpochByHashUnit UnitType = 13
 	// MiniblocksHashByTxHashUnit is the miniblocks hash by tx hash storage unit identifier
 	MiniblockHashByTxHashUnit UnitType = 14
+	// ReceiptsUnit is the receipts storage unit identifier
+	ReceiptsUnit UnitType = 15
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
