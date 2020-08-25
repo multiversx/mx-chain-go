@@ -260,21 +260,24 @@ func (s *TpsBenchmark) removeMissingNonce(nonce uint64) {
 func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	s.blockNumber = header.Nonce
 	s.roundNumber = header.Round
-	s.lastBlockTxCount = header.TxCount
+
+	totalTxsWithoutPeerTxs := getNumOfTxsWithoutPeerTxs(header)
+
+	s.lastBlockTxCount = uint32(totalTxsWithoutPeerTxs)
 	shouldUpdateTotalNumAndPeak := s.shouldUpdateFields(header)
 	if shouldUpdateTotalNumAndPeak {
-		s.totalProcessedTxCount.Add(s.totalProcessedTxCount, big.NewInt(int64(header.TxCount)))
-		s.statusHandler.AddUint64(core.MetricNumProcessedTxs, uint64(header.TxCount))
+		s.totalProcessedTxCount.Add(s.totalProcessedTxCount, big.NewInt(0).SetUint64(totalTxsWithoutPeerTxs))
+		s.statusHandler.AddUint64(core.MetricNumProcessedTxs, totalTxsWithoutPeerTxs)
 	}
 	s.averageBlockTxCount.Quo(s.totalProcessedTxCount, big.NewInt(int64(header.Nonce)))
 
-	currentTPS := float64(uint64(header.TxCount) / s.roundTime)
+	currentTPS := float64(totalTxsWithoutPeerTxs / s.roundTime)
 	if currentTPS > s.peakTPS && shouldUpdateTotalNumAndPeak {
 		s.peakTPS = currentTPS
 	}
 
 	s.statusHandler.SetUInt64Value(core.MetricNonceForTPS, header.Nonce)
-	s.statusHandler.SetUInt64Value(core.MetricLastBlockTxCount, uint64(header.TxCount))
+	s.statusHandler.SetUInt64Value(core.MetricLastBlockTxCount, totalTxsWithoutPeerTxs)
 	s.statusHandler.SetUInt64Value(core.MetricPeakTPS, uint64(s.peakTPS))
 	s.statusHandler.SetStringValue(core.MetricAverageBlockTxCount, s.averageBlockTxCount.String())
 
@@ -284,13 +287,15 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 			return ErrInvalidShardId
 		}
 
+		totalTxsFromShardBlockWithoutPeerTxs := getNumTxsFromMiniblocksWithoutPeerTxs(shardInfo.ShardMiniBlockHeaders)
+
 		shardPeakTPS := shardStat.PeakTPS()
-		currentShardTPS := float64(uint64(shardInfo.TxCount) / s.roundTime)
+		currentShardTPS := float64(totalTxsFromShardBlockWithoutPeerTxs / s.roundTime)
 		if currentShardTPS > shardStat.PeakTPS() {
 			shardPeakTPS = currentShardTPS
 		}
 
-		bigTxCount := big.NewInt(int64(shardInfo.TxCount))
+		bigTxCount := big.NewInt(0).SetUint64(totalTxsFromShardBlockWithoutPeerTxs)
 		newTotalProcessedTxCount := big.NewInt(0).Add(shardStat.TotalProcessedTxCount(), bigTxCount)
 		roundsPassed := big.NewInt(int64(header.Round))
 		newAverageTPS := big.NewInt(0).Quo(newTotalProcessedTxCount, roundsPassed)
@@ -303,7 +308,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 
 			averageTPS:       newAverageTPS,
 			peakTPS:          shardPeakTPS,
-			lastBlockTxCount: header.TxCount,
+			lastBlockTxCount: uint32(totalTxsFromShardBlockWithoutPeerTxs),
 		}
 
 		log.Debug("TpsBenchmark.updateStatistics",
@@ -320,6 +325,31 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	}
 
 	return nil
+}
+
+func getNumOfTxsWithoutPeerTxs(metaBlock *block.MetaBlock) uint64 {
+	// get number of transactions from metablock miniblocks
+	totalTxs := getNumTxsFromMiniblocksWithoutPeerTxs(metaBlock.MiniBlockHeaders)
+
+	// get number of transactions from shard blocks that are included in metablock
+	for idx := 0; idx < len(metaBlock.ShardInfo); idx++ {
+		totalTxs += getNumTxsFromMiniblocksWithoutPeerTxs(metaBlock.ShardInfo[idx].ShardMiniBlockHeaders)
+	}
+
+	return totalTxs
+}
+
+func getNumTxsFromMiniblocksWithoutPeerTxs(miniblocks []block.MiniBlockHeader) uint64 {
+	totalTxs := uint64(0)
+	for idx := 0; idx < len(miniblocks); idx++ {
+		if miniblocks[idx].Type == block.PeerBlock {
+			continue
+		}
+
+		totalTxs += uint64(miniblocks[idx].TxCount)
+	}
+
+	return totalTxs
 }
 
 func (s *TpsBenchmark) shouldUpdateFields(metaBlock *block.MetaBlock) bool {
