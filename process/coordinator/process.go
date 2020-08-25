@@ -974,6 +974,10 @@ func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
 		receiptsHashes = append(receiptsHashes, mbHash)
 	}
 
+	if len(receiptsHashes) == 0 {
+		return nil, nil
+	}
+
 	receiptsBatch := &batch.Batch{Data: receiptsHashes}
 	marshalizedReceiptsHashes, err := tc.marshalizer.Marshal(receiptsBatch)
 	if err != nil {
