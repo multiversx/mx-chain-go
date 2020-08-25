@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
@@ -21,39 +22,62 @@ const (
 	TxStatusInvalid TxStatus = "invalid"
 )
 
-// ComputeStatusWhenHistoricalTransaction computes the transaction status for a historical transaction
-func ComputeStatusKnowingMiniblock(miniblockType block.Type, destinationShard uint32, selfShard uint32) TxStatus {
-	if miniblockType == block.InvalidBlock {
-		return TxStatusInvalid
-	}
-	if destinationShard == selfShard {
-		return TxStatusExecuted
-	}
-
-	return TxStatusPartiallyExecuted
+// StatusComputer computes a transaction status
+type StatusComputer struct {
+	MiniblockType    block.Type
+	SourceShard      uint32
+	DestinationShard uint32
+	Receiver         []byte
+	TransactionData  []byte
+	SelfShard        uint32
 }
 
 // ComputeStatusWhenInPool computes the transaction status when transaction is in pool
-func ComputeStatusWhenInPool(sourceShard uint32, destinationShard uint32, selfShard uint32) TxStatus {
-	isDestinationMe := selfShard == destinationShard
-	isCrossShard := sourceShard != destinationShard
-	if isDestinationMe && isCrossShard {
+func (params *StatusComputer) ComputeStatusWhenInPool() TxStatus {
+	if params.isContractDeploy() {
+		return TxStatusReceived
+	}
+	if params.isDestinationMe() && params.isCrossShard() {
 		return TxStatusPartiallyExecuted
 	}
 
 	return TxStatusReceived
 }
 
-// ComputeStatusWhenInCurrentEpochStorage computes the transaction status when transaction is in current epoch's storage
-func ComputeStatusWhenInCurrentEpochStorage(sourceShard uint32, destinationShard uint32, selfShard uint32) TxStatus {
+// ComputeStatusWhenInStorageKnowingMiniblock computes the transaction status for a historical transaction
+func (params *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxStatus {
+	if params.MiniblockType == block.InvalidBlock {
+		return TxStatusInvalid
+	}
+
+	if params.isDestinationMe() || params.isContractDeploy() {
+		return TxStatusExecuted
+	}
+
+	return TxStatusPartiallyExecuted
+}
+
+// ComputeStatusWhenInStorageNotKnowingMiniblock computes the transaction status when transaction is in current epoch's storage
+func (params *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock() TxStatus {
 	// Question for review: here we cannot know if the transaction is, actually, "invalid".
 	// However, when "fullHistory" indexing is enabled, this function is not used.
 
-	isDestinationMe := selfShard == destinationShard
-	if isDestinationMe {
+	if params.isDestinationMe() || params.isContractDeploy() {
 		return TxStatusExecuted
 	}
 
 	// At least partially executed (since in source's storage)
 	return TxStatusPartiallyExecuted
+}
+
+func (params *StatusComputer) isDestinationMe() bool {
+	return params.SelfShard == params.DestinationShard
+}
+
+func (params *StatusComputer) isCrossShard() bool {
+	return params.SourceShard != params.DestinationShard
+}
+
+func (params *StatusComputer) isContractDeploy() bool {
+	return core.IsEmptyAddress(params.Receiver) && len(params.TransactionData) > 0
 }

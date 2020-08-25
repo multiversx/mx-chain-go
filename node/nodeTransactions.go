@@ -55,7 +55,14 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 		return nil, err
 	}
 
-	tx.Status = transaction.ComputeStatusWhenInPool(tx.SourceShard, tx.DestinationShard, n.shardCoordinator.SelfId())
+	tx.Status = (&transaction.StatusComputer{
+		SourceShard:      tx.SourceShard,
+		DestinationShard: tx.DestinationShard,
+		Receiver:         tx.Tx.GetRcvAddr(),
+		TransactionData:  tx.Data,
+		SelfShard:        n.shardCoordinator.SelfId(),
+	}).ComputeStatusWhenInPool()
+
 	return tx, nil
 }
 
@@ -78,7 +85,14 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 	}
 
 	putHistoryFieldsInTransaction(tx, miniblockMetadata)
-	tx.Status = transaction.ComputeStatusKnowingMiniblock(tx.MiniBlockType, tx.DestinationShard, n.shardCoordinator.SelfId())
+
+	tx.Status = (&transaction.StatusComputer{
+		MiniblockType:    tx.MiniBlockType,
+		DestinationShard: tx.DestinationShard,
+		Receiver:         tx.Tx.GetRcvAddr(),
+		TransactionData:  tx.Data,
+		SelfShard:        n.shardCoordinator.SelfId(),
+	}).ComputeStatusWhenInStorageKnowingMiniblock()
 
 	return tx, nil
 }
@@ -113,7 +127,14 @@ func (n *Node) getTransactionFromCurrentEpochStorage(hash []byte) (*transaction.
 		return nil, err
 	}
 
-	tx.Status = transaction.ComputeStatusWhenInCurrentEpochStorage(tx.SourceShard, tx.DestinationShard, n.shardCoordinator.SelfId())
+	tx.Status = (&transaction.StatusComputer{
+		SourceShard:      tx.SourceShard,
+		DestinationShard: tx.DestinationShard,
+		Receiver:         tx.Tx.GetRcvAddr(),
+		TransactionData:  tx.Data,
+		SelfShard:        n.shardCoordinator.SelfId(),
+	}).ComputeStatusWhenInStorageNotKnowingMiniblock()
+
 	return tx, nil
 }
 
@@ -254,6 +275,7 @@ func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTra
 	destinationShard := n.shardCoordinator.ComputeId(tx.GetRcvAddr())
 
 	return &transaction.ApiTransactionResult{
+		Tx:               tx,
 		Type:             string(normalTx),
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
@@ -272,6 +294,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTrans
 	destinationShard := n.shardCoordinator.ComputeId(tx.GetRcvAddr())
 
 	return &transaction.ApiTransactionResult{
+		Tx:               tx,
 		Type:             string(rewardTx),
 		Round:            tx.GetRound(),
 		Epoch:            tx.GetEpoch(),
@@ -288,6 +311,7 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 	destinationShard := n.shardCoordinator.ComputeId(tx.GetRcvAddr())
 
 	return &transaction.ApiTransactionResult{
+		Tx:               tx,
 		Type:             string(unsignedTx),
 		Nonce:            tx.GetNonce(),
 		Value:            tx.GetValue().String(),
@@ -301,8 +325,3 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		DestinationShard: destinationShard,
 	}, nil
 }
-
-// func (n *Node) isDestAddressEmpty(tx data.TransactionHandler) bool {
-// 	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, n.addressPubkeyConverter.Len()))
-// 	return isEmptyAddress
-// }
