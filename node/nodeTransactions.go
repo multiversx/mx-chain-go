@@ -15,10 +15,10 @@ import (
 type transactionType string
 
 const (
-	normalTx   transactionType = "normal"
-	unsignedTx transactionType = "unsigned"
-	rewardTx   transactionType = "reward"
-	invalidTx  transactionType = "invalid"
+	txTypeNormal   transactionType = "normal"
+	txTypeUnsigned transactionType = "unsigned"
+	txTypeReward   transactionType = "reward"
+	txTypeInvalid  transactionType = "invalid"
 )
 
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and
@@ -142,22 +142,22 @@ func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transactionType, 
 	txsPool := n.dataPool.Transactions()
 	txObj, found := txsPool.SearchFirstData(hash)
 	if found && txObj != nil {
-		return txObj, normalTx, true
+		return txObj, txTypeNormal, true
 	}
 
 	rewardTxsPool := n.dataPool.RewardTransactions()
 	txObj, found = rewardTxsPool.SearchFirstData(hash)
 	if found && txObj != nil {
-		return txObj, rewardTx, true
+		return txObj, txTypeReward, true
 	}
 
 	unsignedTxsPool := n.dataPool.UnsignedTransactions()
 	txObj, found = unsignedTxsPool.SearchFirstData(hash)
 	if found && txObj != nil {
-		return txObj, unsignedTx, true
+		return txObj, txTypeUnsigned, true
 	}
 
-	return nil, invalidTx, false
+	return nil, txTypeInvalid, false
 }
 
 func (n *Node) isTxInStorage(hash []byte) bool {
@@ -182,75 +182,75 @@ func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transactionType, bool
 	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.SearchFirst(hash)
 	if err == nil {
-		return txBytes, normalTx, true
+		return txBytes, txTypeNormal, true
 	}
 
 	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
 	txBytes, err = rewardTxsStorer.SearchFirst(hash)
 	if err == nil {
-		return txBytes, rewardTx, true
+		return txBytes, txTypeReward, true
 	}
 
 	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	txBytes, err = unsignedTxsStorer.SearchFirst(hash)
 	if err == nil {
-		return txBytes, unsignedTx, true
+		return txBytes, txTypeUnsigned, true
 	}
 
-	return nil, invalidTx, false
+	return nil, txTypeInvalid, false
 }
 
 func (n *Node) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transactionType, bool) {
 	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
-		return txBytes, normalTx, true
+		return txBytes, txTypeNormal, true
 	}
 
 	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
 	txBytes, err = rewardTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
-		return txBytes, rewardTx, true
+		return txBytes, txTypeReward, true
 	}
 
 	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	txBytes, err = unsignedTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
-		return txBytes, unsignedTx, true
+		return txBytes, txTypeUnsigned, true
 	}
 
-	return nil, invalidTx, false
+	return nil, txTypeInvalid, false
 }
 
 func (n *Node) castObjToTransaction(txObj interface{}, txType transactionType) (*transaction.ApiTransactionResult, error) {
 	switch txType {
-	case normalTx:
+	case txTypeNormal:
 		if tx, ok := txObj.(*transaction.Transaction); ok {
 			return n.prepareNormalTx(tx)
 		}
-	case rewardTx:
+	case txTypeReward:
 		if tx, ok := txObj.(*rewardTxData.RewardTx); ok {
 			return n.prepareRewardTx(tx)
 		}
-	case unsignedTx:
+	case txTypeUnsigned:
 		if tx, ok := txObj.(*smartContractResult.SmartContractResult); ok {
 			return n.prepareUnsignedTx(tx)
 		}
 	}
 
-	return &transaction.ApiTransactionResult{Type: string(invalidTx)}, nil // this shouldn't happen
+	return &transaction.ApiTransactionResult{Type: string(txTypeInvalid)}, nil // this shouldn't happen
 }
 
 func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*transaction.ApiTransactionResult, error) {
 	switch txType {
-	case normalTx:
+	case txTypeNormal:
 		var tx transaction.Transaction
 		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
 		return n.prepareNormalTx(&tx)
-	case rewardTx:
+	case txTypeReward:
 		var tx rewardTxData.RewardTx
 		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
@@ -258,7 +258,7 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 		}
 		return n.prepareRewardTx(&tx)
 
-	case unsignedTx:
+	case txTypeUnsigned:
 		var tx smartContractResult.SmartContractResult
 		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
@@ -266,7 +266,7 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 		}
 		return n.prepareUnsignedTx(&tx)
 	default:
-		return &transaction.ApiTransactionResult{Type: string(invalidTx)}, nil // this shouldn't happen
+		return &transaction.ApiTransactionResult{Type: string(txTypeInvalid)}, nil // this shouldn't happen
 	}
 }
 
@@ -276,7 +276,7 @@ func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTra
 
 	return &transaction.ApiTransactionResult{
 		Tx:               tx,
-		Type:             string(normalTx),
+		Type:             string(txTypeNormal),
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
 		Receiver:         n.addressPubkeyConverter.Encode(tx.RcvAddr),
@@ -295,7 +295,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTrans
 
 	return &transaction.ApiTransactionResult{
 		Tx:               tx,
-		Type:             string(rewardTx),
+		Type:             string(txTypeReward),
 		Round:            tx.GetRound(),
 		Epoch:            tx.GetEpoch(),
 		Value:            tx.GetValue().String(),
@@ -312,7 +312,7 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 
 	return &transaction.ApiTransactionResult{
 		Tx:               tx,
-		Type:             string(unsignedTx),
+		Type:             string(txTypeUnsigned),
 		Nonce:            tx.GetNonce(),
 		Value:            tx.GetValue().String(),
 		Receiver:         n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
