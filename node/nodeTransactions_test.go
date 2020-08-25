@@ -11,10 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
 	"github.com/stretchr/testify/assert"
@@ -32,27 +30,11 @@ func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
 func TestNode_GetTransaction_FromPool(t *testing.T) {
 	t.Parallel()
 
-	shardCoordinator := &mock.ShardCoordinatorMock{
-		SelfShardId: 1,
-		ComputeIdCalled: func(address []byte) uint32 {
-			if address == nil {
-				return core.MetachainShardId
-			}
-			if bytes.Equal(address, []byte("alice")) {
-				return 1
-			}
-			if bytes.Equal(address, []byte("bob")) {
-				return 2
-			}
-			panic("bad test")
-		},
-	}
-
 	dataPool := testscommon.NewPoolsHolderMock()
 	n, err := node.NewNode(
 		node.WithDataPool(dataPool),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(shardCoordinator),
+		node.WithShardCoordinator(createShardCoordinator()),
 	)
 	require.Nil(t, err)
 
@@ -122,49 +104,16 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	t.Parallel()
 
-	shardCoordinator := &mock.ShardCoordinatorMock{
-		SelfShardId: 1,
-		ComputeIdCalled: func(address []byte) uint32 {
-			if address == nil {
-				return core.MetachainShardId
-			}
-			if bytes.Equal(address, []byte("alice")) {
-				return 1
-			}
-			if bytes.Equal(address, []byte("bob")) {
-				return 2
-			}
-			panic("bad test")
-		},
-	}
-
-	transactionsStorer := genericmocks.NewStorerMock()
-	rewardsStorer := genericmocks.NewStorerMock()
-	unsignedStorer := genericmocks.NewStorerMock()
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			if unitType == dataRetriever.TransactionUnit {
-				return transactionsStorer
-			}
-			if unitType == dataRetriever.RewardTransactionUnit {
-				return rewardsStorer
-			}
-			if unitType == dataRetriever.UnsignedTransactionUnit {
-				return unsignedStorer
-			}
-			panic("bad test")
-		},
-	}
-
+	chainStorer := genericmocks.NewChainStorerMock()
 	marshalizer := &mock.MarshalizerFake{}
 	dataPool := testscommon.NewPoolsHolderMock()
 
 	n, err := node.NewNode(
 		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
+		node.WithDataStore(chainStorer),
 		node.WithInternalMarshalizer(marshalizer, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(shardCoordinator),
+		node.WithShardCoordinator(createShardCoordinator()),
 		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
@@ -177,13 +126,13 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 
 	// Cross-shard, we are source
 	txA := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
-	transactionsStorer.PutWithMarshalizer([]byte("a"), txA, marshalizer)
+	chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, marshalizer)
 	// Cross-shard, we are destination
 	txB := &transaction.Transaction{Nonce: 7, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
-	transactionsStorer.PutWithMarshalizer([]byte("b"), txB, marshalizer)
+	chainStorer.Transactions.PutWithMarshalizer([]byte("b"), txB, marshalizer)
 	// Intra-shard
 	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
-	transactionsStorer.PutWithMarshalizer([]byte("c"), txC, marshalizer)
+	chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, marshalizer)
 
 	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
 	require.Nil(t, err)
@@ -202,7 +151,7 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	// Reward transactions
 
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
-	rewardsStorer.PutWithMarshalizer([]byte("d"), txD, marshalizer)
+	chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, marshalizer)
 
 	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
 	require.Nil(t, err)
@@ -213,13 +162,13 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 
 	// Cross-shard, we are source
 	txE := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
-	unsignedStorer.PutWithMarshalizer([]byte("e"), txE, marshalizer)
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("e"), txE, marshalizer)
 	// Cross-shard, we are destination
 	txF := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
-	unsignedStorer.PutWithMarshalizer([]byte("f"), txF, marshalizer)
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("f"), txF, marshalizer)
 	// Intra-shard
 	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
-	unsignedStorer.PutWithMarshalizer([]byte("g"), txG, marshalizer)
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, marshalizer)
 
 	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
 	require.Nil(t, err)
@@ -241,7 +190,7 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	require.Nil(t, tx)
 
 	// Badly serialized transaction
-	transactionsStorer.Put([]byte("badly-serialized"), []byte("this isn't good"))
+	chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
 	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")))
 	require.NotNil(t, err)
 	require.Nil(t, tx)
@@ -250,41 +199,7 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 func TestNode_GetFullHistoryTransaction(t *testing.T) {
 	t.Parallel()
 
-	shardCoordinator := &mock.ShardCoordinatorMock{
-		SelfShardId: 1,
-		ComputeIdCalled: func(address []byte) uint32 {
-			if address == nil {
-				return core.MetachainShardId
-			}
-			if bytes.Equal(address, []byte("alice")) {
-				return 1
-			}
-			if bytes.Equal(address, []byte("bob")) {
-				return 2
-			}
-			panic("bad test")
-		},
-	}
-
-	transactionsStorer := genericmocks.NewStorerMock()
-	rewardsStorer := genericmocks.NewStorerMock()
-	unsignedStorer := genericmocks.NewStorerMock()
-
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			if unitType == dataRetriever.TransactionUnit {
-				return transactionsStorer
-			}
-			if unitType == dataRetriever.RewardTransactionUnit {
-				return rewardsStorer
-			}
-			if unitType == dataRetriever.UnsignedTransactionUnit {
-				return unsignedStorer
-			}
-			panic("bad test")
-		},
-	}
-
+	chainStorer := genericmocks.NewChainStorerMock()
 	marshalizer := &mock.MarshalizerFake{}
 	dataPool := testscommon.NewPoolsHolderMock()
 
@@ -294,10 +209,10 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 
 	n, err := node.NewNode(
 		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
+		node.WithDataStore(chainStorer),
 		node.WithInternalMarshalizer(marshalizer, 0),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(shardCoordinator),
+		node.WithShardCoordinator(createShardCoordinator()),
 		node.WithHistoryRepository(historyRepo),
 	)
 	require.Nil(t, err)
@@ -306,7 +221,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 
 	// Cross-shard, we are source
 	txA := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
-	transactionsStorer.PutWithMarshalizer([]byte("a"), txA, marshalizer)
+	chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, marshalizer)
 
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
 		return &fullHistory.MiniblockMetadata{
@@ -324,7 +239,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 
 	// Cross-shard, we are destination
 	txB := &transaction.Transaction{Nonce: 7, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
-	transactionsStorer.PutWithMarshalizer([]byte("b"), txB, marshalizer)
+	chainStorer.Transactions.PutWithMarshalizer([]byte("b"), txB, marshalizer)
 
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
 		return &fullHistory.MiniblockMetadata{
@@ -342,7 +257,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 
 	// Intra-shard
 	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
-	transactionsStorer.PutWithMarshalizer([]byte("c"), txC, marshalizer)
+	chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, marshalizer)
 
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
 		return &fullHistory.MiniblockMetadata{
@@ -361,7 +276,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 	// Reward transactions
 
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
-	rewardsStorer.PutWithMarshalizer([]byte("d"), txD, marshalizer)
+	chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, marshalizer)
 
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
 		return &fullHistory.MiniblockMetadata{
@@ -382,7 +297,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 
 	// Cross-shard, we are source
 	txE := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
-	unsignedStorer.PutWithMarshalizer([]byte("e"), txE, marshalizer)
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("e"), txE, marshalizer)
 
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
 		return &fullHistory.MiniblockMetadata{
@@ -400,7 +315,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 
 	// Cross-shard, we are destination
 	txF := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
-	unsignedStorer.PutWithMarshalizer([]byte("f"), txF, marshalizer)
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("f"), txF, marshalizer)
 
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
 		return &fullHistory.MiniblockMetadata{
@@ -418,7 +333,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 
 	// Intra-shard
 	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
-	unsignedStorer.PutWithMarshalizer([]byte("g"), txG, marshalizer)
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, marshalizer)
 
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
 		return &fullHistory.MiniblockMetadata{
@@ -443,7 +358,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 	require.Nil(t, tx)
 
 	// Badly serialized transaction
-	transactionsStorer.Put([]byte("badly-serialized"), []byte("this isn't good"))
+	chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
 		return &fullHistory.MiniblockMetadata{}, nil
 	}
@@ -481,4 +396,24 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0d", tx.NotarizedAtSourceInMetaHash)
 	require.Equal(t, 4253, int(tx.NotarizedAtDestinationInMetaNonce))
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
+}
+
+func createShardCoordinator() *mock.ShardCoordinatorMock {
+	shardCoordinator := &mock.ShardCoordinatorMock{
+		SelfShardId: 1,
+		ComputeIdCalled: func(address []byte) uint32 {
+			if address == nil {
+				return core.MetachainShardId
+			}
+			if bytes.Equal(address, []byte("alice")) {
+				return 1
+			}
+			if bytes.Equal(address, []byte("bob")) {
+				return 2
+			}
+			panic("bad test")
+		},
+	}
+
+	return shardCoordinator
 }
