@@ -988,14 +988,16 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
 		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime))
 	}
 
-	marshalizedReceiptsHashes, errNotCritical := bp.txCoordinator.CreateMarshalizedReceipts()
-	if errNotCritical != nil {
-		log.Warn("saveBody.CreateMarshalizedReceipts", "error", errNotCritical.Error())
-	}
-
-	errNotCritical = bp.store.Put(dataRetriever.ReceiptsUnit, header.GetReceiptsHash(), marshalizedReceiptsHashes)
-	if errNotCritical != nil {
-		log.Warn("saveBody.Put -> ReceiptsUnit", "error", errNotCritical.Error())
+	if len(header.GetReceiptsHash()) > 0 {
+		marshalizedReceiptsHashes, errNotCritical := bp.txCoordinator.CreateMarshalizedReceipts()
+		if errNotCritical != nil {
+			log.Warn("saveBody.CreateMarshalizedReceipts", "error", errNotCritical.Error())
+		} else {
+			errNotCritical = bp.store.Put(dataRetriever.ReceiptsUnit, header.GetReceiptsHash(), marshalizedReceiptsHashes)
+			if errNotCritical != nil {
+				log.Warn("saveBody.Put -> ReceiptsUnit", "error", errNotCritical.Error())
+			}
+		}
 	}
 
 	elapsedTime := time.Since(startTime)

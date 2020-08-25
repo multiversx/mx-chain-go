@@ -70,7 +70,7 @@
         Name = "ReceiptsStorage"
         Capacity = 1000
         Type = "SizeLRU"
-        SizeInBytes = 104857600 #100MB
+        SizeInBytes = 10485760 #10MB
     [ReceiptsStorage.DB]
         FilePath = "Receipts"
         Type = "LvlDBSerial"
