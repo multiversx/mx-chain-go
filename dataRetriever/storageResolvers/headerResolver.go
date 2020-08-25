@@ -1,6 +1,8 @@
 package storageResolvers
 
 import (
+	"sync"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -24,6 +26,7 @@ type ArgHeaderResolver struct {
 type headerResolver struct {
 	*storageResolver
 	nonceConverter           typeConverters.Uint64ByteSliceConverter
+	mutEpochHandler          sync.RWMutex
 	epochHandler             dataRetriever.EpochHandler
 	hdrStorage               storage.Storer
 	hdrNoncesStorage         storage.Storer
@@ -65,9 +68,13 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*headerResolver, error) {
 
 // RequestDataFromHash searches the hash in provided storage and then will send to self the message
 func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
-	shouldNotifyEpochChange := hdrRes.currentEpoch == hdrRes.epochHandler.MetaEpoch()
+	hdrRes.mutEpochHandler.RLock()
+	metaEpoch := hdrRes.epochHandler.MetaEpoch()
+	hdrRes.mutEpochHandler.RUnlock()
+
+	shouldNotifyEpochChange := hdrRes.currentEpoch == metaEpoch
 	if shouldNotifyEpochChange {
-		hdrRes.currentEpoch = hdrRes.epochHandler.MetaEpoch() + 1
+		hdrRes.currentEpoch = metaEpoch + 1
 		hdrRes.manualEpochStartNotifier.NewEpoch(hdrRes.currentEpoch)
 	}
 
@@ -101,7 +108,10 @@ func (hdrRes *headerResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 		return dataRetriever.ErrNilEpochHandler
 	}
 
+	hdrRes.mutEpochHandler.Lock()
 	hdrRes.epochHandler = epochHandler
+	hdrRes.mutEpochHandler.Unlock()
+
 	return nil
 }
 
