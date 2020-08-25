@@ -332,8 +332,8 @@ func getNumOfTxsWithoutPeerTxs(metaBlock *block.MetaBlock) uint64 {
 	totalTxs := getNumTxsFromMiniblocksWithoutPeerTxs(metaBlock.MiniBlockHeaders)
 
 	// get number of transactions from shard blocks that are included in metablock
-	for idx := 0; idx < len(metaBlock.ShardInfo); idx++ {
-		totalTxs += getNumTxsFromMiniblocksWithoutPeerTxs(metaBlock.ShardInfo[idx].ShardMiniBlockHeaders)
+	for _, shardInfo := range metaBlock.ShardInfo {
+		totalTxs += getNumTxsFromMiniblocksWithoutPeerTxs(shardInfo.ShardMiniBlockHeaders)
 	}
 
 	return totalTxs
@@ -341,12 +341,12 @@ func getNumOfTxsWithoutPeerTxs(metaBlock *block.MetaBlock) uint64 {
 
 func getNumTxsFromMiniblocksWithoutPeerTxs(miniblocks []block.MiniBlockHeader) uint64 {
 	totalTxs := uint64(0)
-	for idx := 0; idx < len(miniblocks); idx++ {
-		if miniblocks[idx].Type == block.PeerBlock {
+	for _, mb := range miniblocks {
+		if mb.Type == block.PeerBlock {
 			continue
 		}
 
-		totalTxs += uint64(miniblocks[idx].TxCount)
+		totalTxs += uint64(mb.TxCount)
 	}
 
 	return totalTxs
