@@ -34,6 +34,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p-pubsub/pb"
 )
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
@@ -951,10 +952,27 @@ func (netMes *networkMessenger) SendToConnectedPeer(topic string, buff []byte, p
 		return nil
 	}
 
+	if peerID == netMes.ID() {
+		return netMes.sendDirectToSelf(topic, buffToSend)
+	}
+
 	err = netMes.ds.Send(topic, buffToSend, peerID)
 	netMes.debugger.AddOutgoingMessage(topic, uint64(len(buffToSend)), err != nil)
 
 	return err
+}
+
+func (netMes *networkMessenger) sendDirectToSelf(topic string, buff []byte) error {
+	msg := &pubsub.Message{
+		Message: &pubsub_pb.Message{
+			From:     netMes.ID().Bytes(),
+			Data:     buff,
+			Seqno:    netMes.ds.NextSeqno(),
+			TopicIDs: []string{topic},
+		},
+	}
+
+	return netMes.directMessageHandler(msg, netMes.ID())
 }
 
 func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fromConnectedPeer core.PeerID) error {

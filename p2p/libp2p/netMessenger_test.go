@@ -1012,6 +1012,34 @@ func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testi
 	_ = mes2.Close()
 }
 
+func TestLibp2pMessenger_SendDirectWithRealNetToSelfShouldWork(t *testing.T) {
+	msg := []byte("test message")
+
+	fmt.Println("Messenger 1:")
+	mes1, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())
+
+	wg := &sync.WaitGroup{}
+	chanDone := make(chan bool)
+	wg.Add(1)
+
+	go func() {
+		wg.Wait()
+		chanDone <- true
+	}()
+
+	prepareMessengerForMatchDataReceive(mes1, msg, wg)
+
+	fmt.Printf("Messenger 1 is sending message from %s to self...\n", mes1.ID().Pretty())
+	err := mes1.SendToConnectedPeer("test", msg, mes1.ID())
+	assert.Nil(t, err)
+
+	time.Sleep(time.Second)
+
+	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
+
+	_ = mes1.Close()
+}
+
 //------- Bootstrap
 
 func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *testing.T) {

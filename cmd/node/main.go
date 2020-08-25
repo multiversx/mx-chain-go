@@ -374,6 +374,14 @@ VERSION:
 		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network." +
 			"Should be enabled if data is not available in local disk.",
 	}
+
+	// importDbDirectory defines a flag for the optional import DB directory on which will node will re-check the blockchain against
+	importDbDirectory = cli.StringFlag{
+		Name: "import-db",
+		Usage: "This flag, if set, will make the node start the import process using the provided data path. Will re-check" +
+			"and re-process everything",
+		Value: "",
+	}
 )
 
 // appVersion should be populated at build time using ldflags
@@ -441,6 +449,7 @@ func main() {
 		numEpochsToSave,
 		numActivePersisters,
 		startInEpoch,
+		importDbDirectory,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -521,6 +530,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	log.Debug("config", "file", configurationFileName)
+
+	applyCompatibleConfigs(log, generalConfig, ctx)
 
 	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
 	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
@@ -1273,6 +1284,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		historyRepository,
 		epochNotifier,
 		txSimulatorProcessorArgs,
+		ctx.GlobalString(importDbDirectory.Name),
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1474,6 +1486,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	return nil
+}
+
+func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.Context) {
+	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
+	if len(importDbDirectoryValue) > 0 {
+		log.Info("import DB directory is set, turning off start in epoch", "value", importDbDirectoryValue)
+		config.GeneralSettings.StartInEpochEnabled = false
+	}
 }
 
 func closeAllComponents(
