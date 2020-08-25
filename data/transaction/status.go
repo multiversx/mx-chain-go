@@ -34,10 +34,7 @@ type StatusComputer struct {
 
 // ComputeStatusWhenInPool computes the transaction status when transaction is in pool
 func (params *StatusComputer) ComputeStatusWhenInPool() TxStatus {
-	if params.isContractDeploy() {
-		return TxStatusReceived
-	}
-	if params.isDestinationMe() && params.isCrossShard() {
+	if params.isDestinationMe() && params.isCrossShard() && !params.isContractDeploy() {
 		return TxStatusPartiallyExecuted
 	}
 
@@ -46,7 +43,7 @@ func (params *StatusComputer) ComputeStatusWhenInPool() TxStatus {
 
 // ComputeStatusWhenInStorageKnowingMiniblock computes the transaction status for a historical transaction
 func (params *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxStatus {
-	if params.MiniblockType == block.InvalidBlock {
+	if params.isMiniblockInvalid() {
 		return TxStatusInvalid
 	}
 
@@ -68,6 +65,10 @@ func (params *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock() Tx
 
 	// At least partially executed (since in source's storage)
 	return TxStatusPartiallyExecuted
+}
+
+func (params *StatusComputer) isMiniblockInvalid() bool {
+	return params.MiniblockType == block.InvalidBlock
 }
 
 func (params *StatusComputer) isDestinationMe() bool {

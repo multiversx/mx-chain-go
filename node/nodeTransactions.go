@@ -12,15 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
-type transactionType string
-
-const (
-	txTypeNormal   transactionType = "normal"
-	txTypeUnsigned transactionType = "unsigned"
-	txTypeReward   transactionType = "reward"
-	txTypeInvalid  transactionType = "invalid"
-)
-
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and
 // will return the transaction in a format which can be respected by all types of transactions (normal, reward or unsigned)
 func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult, error) {
@@ -139,26 +130,26 @@ func (n *Node) getTransactionFromCurrentEpochStorage(hash []byte) (*transaction.
 	return tx, nil
 }
 
-func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transactionType, bool) {
+func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transaction.TxType, bool) {
 	txsPool := n.dataPool.Transactions()
 	txObj, found := txsPool.SearchFirstData(hash)
 	if found && txObj != nil {
-		return txObj, txTypeNormal, true
+		return txObj, transaction.TxTypeNormal, true
 	}
 
 	rewardTxsPool := n.dataPool.RewardTransactions()
 	txObj, found = rewardTxsPool.SearchFirstData(hash)
 	if found && txObj != nil {
-		return txObj, txTypeReward, true
+		return txObj, transaction.TxTypeReward, true
 	}
 
 	unsignedTxsPool := n.dataPool.UnsignedTransactions()
 	txObj, found = unsignedTxsPool.SearchFirstData(hash)
 	if found && txObj != nil {
-		return txObj, txTypeUnsigned, true
+		return txObj, transaction.TxTypeUnsigned, true
 	}
 
-	return nil, txTypeInvalid, false
+	return nil, transaction.TxTypeInvalid, false
 }
 
 func (n *Node) isTxInStorage(hash []byte) bool {
@@ -179,79 +170,83 @@ func (n *Node) isTxInStorage(hash []byte) bool {
 	return err == nil
 }
 
-func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transactionType, bool) {
+func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, bool) {
 	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.SearchFirst(hash)
 	if err == nil {
-		return txBytes, txTypeNormal, true
+		return txBytes, transaction.TxTypeNormal, true
 	}
 
 	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
 	txBytes, err = rewardTxsStorer.SearchFirst(hash)
 	if err == nil {
-		return txBytes, txTypeReward, true
+		return txBytes, transaction.TxTypeReward, true
 	}
 
 	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	txBytes, err = unsignedTxsStorer.SearchFirst(hash)
 	if err == nil {
-		return txBytes, txTypeUnsigned, true
+		return txBytes, transaction.TxTypeUnsigned, true
 	}
 
-	return nil, txTypeInvalid, false
+	return nil, transaction.TxTypeInvalid, false
 }
 
-func (n *Node) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transactionType, bool) {
+func (n *Node) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, transaction.TxType, bool) {
 	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
-		return txBytes, txTypeNormal, true
+		return txBytes, transaction.TxTypeNormal, true
 	}
 
 	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
 	txBytes, err = rewardTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
-		return txBytes, txTypeReward, true
+		return txBytes, transaction.TxTypeReward, true
 	}
 
 	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	txBytes, err = unsignedTxsStorer.GetFromEpoch(hash, epoch)
 	if err == nil {
-		return txBytes, txTypeUnsigned, true
+		return txBytes, transaction.TxTypeUnsigned, true
 	}
 
-	return nil, txTypeInvalid, false
+	return nil, transaction.TxTypeInvalid, false
 }
 
-func (n *Node) castObjToTransaction(txObj interface{}, txType transactionType) (*transaction.ApiTransactionResult, error) {
+func (n *Node) castObjToTransaction(txObj interface{}, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 	switch txType {
-	case txTypeNormal:
+	case transaction.TxTypeNormal:
+		fallthrough
+	case transaction.TxTypeInvalid:
 		if tx, ok := txObj.(*transaction.Transaction); ok {
 			return n.prepareNormalTx(tx)
 		}
-	case txTypeReward:
+	case transaction.TxTypeReward:
 		if tx, ok := txObj.(*rewardTxData.RewardTx); ok {
 			return n.prepareRewardTx(tx)
 		}
-	case txTypeUnsigned:
+	case transaction.TxTypeUnsigned:
 		if tx, ok := txObj.(*smartContractResult.SmartContractResult); ok {
 			return n.prepareUnsignedTx(tx)
 		}
 	}
 
-	return &transaction.ApiTransactionResult{Type: string(txTypeInvalid)}, nil // this shouldn't happen
+	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}, nil // this shouldn't happen
 }
 
-func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*transaction.ApiTransactionResult, error) {
+func (n *Node) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 	switch txType {
-	case txTypeNormal:
+	case transaction.TxTypeNormal:
+		fallthrough
+	case transaction.TxTypeInvalid:
 		var tx transaction.Transaction
 		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
 		return n.prepareNormalTx(&tx)
-	case txTypeReward:
+	case transaction.TxTypeReward:
 		var tx rewardTxData.RewardTx
 		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
@@ -259,22 +254,22 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transactionType) (*tr
 		}
 		return n.prepareRewardTx(&tx)
 
-	case txTypeUnsigned:
+	case transaction.TxTypeUnsigned:
 		var tx smartContractResult.SmartContractResult
 		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
 		return n.prepareUnsignedTx(&tx)
-	default:
-		return &transaction.ApiTransactionResult{Type: string(txTypeInvalid)}, nil // this shouldn't happen
 	}
+
+	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}, nil // this shouldn't happen
 }
 
 func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Tx:        tx,
-		Type:      string(txTypeNormal),
+		Type:      string(transaction.TxTypeNormal),
 		Nonce:     tx.Nonce,
 		Value:     tx.Value.String(),
 		Receiver:  n.addressPubkeyConverter.Encode(tx.RcvAddr),
@@ -289,7 +284,7 @@ func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTra
 func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Tx:          tx,
-		Type:        string(txTypeReward),
+		Type:        string(transaction.TxTypeReward),
 		Round:       tx.GetRound(),
 		Epoch:       tx.GetEpoch(),
 		Value:       tx.GetValue().String(),
@@ -302,7 +297,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTrans
 func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Tx:       tx,
-		Type:     string(txTypeUnsigned),
+		Type:     string(transaction.TxTypeUnsigned),
 		Nonce:    tx.GetNonce(),
 		Value:    tx.GetValue().String(),
 		Receiver: n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),

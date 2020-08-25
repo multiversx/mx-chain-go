@@ -46,7 +46,7 @@ var ErrAccountNotFound = errors.New("account not found")
 // ErrTransactionNotFound signals that a transaction was not found
 var ErrTransactionNotFound = errors.New("transaction not found")
 
-// ErrCannotRetrieveTransaction signals that a transaction was not found
+// ErrCannotRetrieveTransaction signals that a transaction cannot be retrieved
 var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")
 
 // ErrZeroRoundDurationNotSupported signals that 0 seconds round duration is not supported

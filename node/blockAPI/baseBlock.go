@@ -21,7 +21,7 @@ type baseAPIBockProcessor struct {
 	marshalizer              marshal.Marshalizer
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	historyRepo              fullHistory.HistoryRepository
-	unmarshalTx              func(txBytes []byte, txType string) (*transaction.ApiTransactionResult, error)
+	unmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -47,13 +47,13 @@ func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epo
 
 	switch miniBlock.Type {
 	case block.TxBlock:
-		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, "normal", dataRetriever.TransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeNormal, dataRetriever.TransactionUnit)
 	case block.RewardsBlock:
-		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, "reward", dataRetriever.RewardTransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeReward, dataRetriever.RewardTransactionUnit)
 	case block.SmartContractResultBlock:
-		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, "unsigned", dataRetriever.UnsignedTransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeUnsigned, dataRetriever.UnsignedTransactionUnit)
 	case block.InvalidBlock:
-		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, "normal", dataRetriever.TransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeInvalid, dataRetriever.TransactionUnit)
 	default:
 		return nil
 	}
@@ -63,7 +63,7 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 	miniblock *block.MiniBlock,
 	miniblockHash []byte,
 	epoch uint32,
-	txType string,
+	txType transaction.TxType,
 	unit dataRetriever.UnitType,
 ) []*transaction.ApiTransactionResult {
 	storer := bap.store.GetStorer(unit)
