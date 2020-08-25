@@ -15,7 +15,7 @@ message MiniblockMetadata {
     uint64 HeaderNonce          = 4;
     bytes  HeaderHash           = 5;
     bytes  MiniblockHash        = 6;
-    bytes  Status               = 7;
+    bytes  DeprecatedStatus     = 7 [deprecated=true]; 
     uint32 Epoch                = 8;
     uint64 NotarizedAtSourceInMetaNonce         = 9;
     uint64 NotarizedAtDestinationInMetaNonce    = 10;

@@ -399,7 +399,6 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 		NotarizedAtSourceInMetaHash:       []byte{13},
 		NotarizedAtDestinationInMetaNonce: 4253,
 		NotarizedAtDestinationInMetaHash:  []byte{12},
-		Status:                            []byte("fooStatus"),
 	}
 
 	node.PutHistoryFieldsInTransaction(tx, metadata)
@@ -415,5 +414,4 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0d", tx.NotarizedAtSourceInMetaHash)
 	require.Equal(t, 4253, int(tx.NotarizedAtDestinationInMetaNonce))
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
-	require.Equal(t, "fooStatus", string(tx.Status))
 }

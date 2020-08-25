@@ -21,12 +21,12 @@ const (
 	TxStatusInvalid TxStatus = "invalid"
 )
 
-// ComputeStatusKnowingMiniblock computes the transaction status knowing the parent miniblock
-func ComputeStatusKnowingMiniblock(miniblock *block.MiniBlock, selfShard uint32) TxStatus {
-	if miniblock.Type == block.InvalidBlock {
+// ComputeStatusWhenHistoricalTransaction computes the transaction status for a historical transaction
+func ComputeStatusKnowingMiniblock(miniblockType block.Type, destinationShard uint32, selfShard uint32) TxStatus {
+	if miniblockType == block.InvalidBlock {
 		return TxStatusInvalid
 	}
-	if miniblock.ReceiverShardID == selfShard {
+	if destinationShard == selfShard {
 		return TxStatusExecuted
 	}
 
@@ -44,8 +44,11 @@ func ComputeStatusWhenInPool(sourceShard uint32, destinationShard uint32, selfSh
 	return TxStatusReceived
 }
 
-// ComputeStatusWhenInStorage computes the transaction status when transaction is in storage
-func ComputeStatusWhenInStorage(sourceShard uint32, destinationShard uint32, selfShard uint32) TxStatus {
+// ComputeStatusWhenInCurrentEpochStorage computes the transaction status when transaction is in current epoch's storage
+func ComputeStatusWhenInCurrentEpochStorage(sourceShard uint32, destinationShard uint32, selfShard uint32) TxStatus {
+	// Question for review: here we cannot know if the transaction is, actually, "invalid".
+	// However, when "fullHistory" indexing is enabled, this function is not used.
+
 	isDestinationMe := selfShard == destinationShard
 	if isDestinationMe {
 		return TxStatusExecuted

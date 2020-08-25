@@ -1,12 +1,11 @@
 package node
 
 import (
-	"bytes"
 	"encoding/hex"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	rewardTxData "github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -79,6 +78,8 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 	}
 
 	putHistoryFieldsInTransaction(tx, miniblockMetadata)
+	tx.Status = transaction.ComputeStatusKnowingMiniblock(tx.MiniBlockType, tx.DestinationShard, n.shardCoordinator.SelfId())
+
 	return tx, nil
 }
 
@@ -86,6 +87,7 @@ func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblo
 	tx.Epoch = miniblockMetadata.Epoch
 	tx.Round = miniblockMetadata.Round
 
+	tx.MiniBlockType = block.Type(miniblockMetadata.Type)
 	tx.MiniBlockHash = hex.EncodeToString(miniblockMetadata.MiniblockHash)
 	tx.DestinationShard = miniblockMetadata.DestinationShardID
 	tx.SourceShard = miniblockMetadata.SourceShardID
@@ -96,7 +98,6 @@ func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblo
 	tx.NotarizedAtSourceInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtSourceInMetaHash)
 	tx.NotarizedAtDestinationInMetaNonce = miniblockMetadata.NotarizedAtDestinationInMetaNonce
 	tx.NotarizedAtDestinationInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtDestinationInMetaHash)
-	tx.Status = transaction.TxStatus(miniblockMetadata.Status)
 
 	return tx
 }
@@ -112,7 +113,7 @@ func (n *Node) getTransactionFromCurrentEpochStorage(hash []byte) (*transaction.
 		return nil, err
 	}
 
-	tx.Status = transaction.ComputeStatusWhenInStorage(tx.SourceShard, tx.DestinationShard, n.shardCoordinator.SelfId())
+	tx.Status = transaction.ComputeStatusWhenInCurrentEpochStorage(tx.SourceShard, tx.DestinationShard, n.shardCoordinator.SelfId())
 	return tx, nil
 }
 
@@ -301,7 +302,7 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 	}, nil
 }
 
-func (n *Node) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, n.addressPubkeyConverter.Len()))
-	return isEmptyAddress
-}
+// func (n *Node) isDestAddressEmpty(tx data.TransactionHandler) bool {
+// 	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, n.addressPubkeyConverter.Len()))
+// 	return isEmptyAddress
+// }
