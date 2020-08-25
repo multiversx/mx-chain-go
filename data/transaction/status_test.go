@@ -1,93 +1,135 @@
 package transaction
 
-// func TestNode_ComputeTransactionStatus(t *testing.T) {
-// 	t.Parallel()
+import (
+	"testing"
 
-// 	storer := &mock.ChainStorerMock{
-// 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-// 			return getStorerStub(false)
-// 		},
-// 	}
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/stretchr/testify/require"
+)
 
-// 	shardZeroAddr := []byte("addrShard0")
-// 	shardOneAddr := []byte("addrShard1")
-// 	shardCoordinator := &mock.ShardCoordinatorMock{
-// 		ComputeIdCalled: func(addr []byte) uint32 {
-// 			if bytes.Equal(shardZeroAddr, addr) {
-// 				return 0
-// 			}
-// 			return 1
-// 		},
-// 	}
+func TestStatusComputer_ComputeStatusWhenInPool(t *testing.T) {
+	computer := &StatusComputer{
+		SourceShard:      12,
+		DestinationShard: 13,
+		SelfShard:        12,
+	}
+	require.Equal(t, TxStatusReceived, computer.ComputeStatusWhenInPool())
 
-// 	n, _ := node.NewNode(
-// 		node.WithDataStore(storer),
-// 		node.WithShardCoordinator(shardCoordinator),
-// 	)
+	// Cross-shard, destination me
+	computer = &StatusComputer{
+		SourceShard:      12,
+		DestinationShard: 13,
+		SelfShard:        13,
+	}
+	require.Equal(t, TxStatusPartiallyExecuted, computer.ComputeStatusWhenInPool())
 
-// 	rwdTxCrossShard := &rewardTx.RewardTx{RcvAddr: shardZeroAddr}
-// 	normalTxIntraShard := &transaction.Transaction{RcvAddr: shardZeroAddr, SndAddr: shardZeroAddr}
-// 	normalTxCrossShard := &transaction.Transaction{RcvAddr: shardOneAddr, SndAddr: shardZeroAddr}
-// 	unsignedTxIntraShard := &smartContractResult.SmartContractResult{RcvAddr: shardZeroAddr, SndAddr: shardZeroAddr}
-// 	unsignedTxCrossShard := &smartContractResult.SmartContractResult{RcvAddr: shardOneAddr, SndAddr: shardZeroAddr}
+	// Contract deploy
+	computer = &StatusComputer{
+		SourceShard:      12,
+		DestinationShard: 13,
+		Receiver:         make([]byte, 32),
+		TransactionData:  []byte("deployingAContract"),
+		SelfShard:        13,
+	}
+	require.Equal(t, TxStatusReceived, computer.ComputeStatusWhenInPool())
+}
 
-// 	// cross shard reward tx in storage source shard
-// 	shardCoordinator.SelfShardId = core.MetachainShardId
-// 	txStatus := n.ComputeTransactionStatus(rwdTxCrossShard, false)
-// 	assert.Equal(t, transaction.TxStatusPartiallyExecuted, txStatus)
+func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T) {
+	// Invalid miniblock
+	computer := &StatusComputer{
+		MiniblockType:    block.InvalidBlock,
+		SourceShard:      12,
+		DestinationShard: 12,
+		SelfShard:        12,
+	}
+	require.Equal(t, TxStatusInvalid, computer.ComputeStatusWhenInStorageKnowingMiniblock())
 
-// 	// cross shard reward tx in pool source shard
-// 	shardCoordinator.SelfShardId = core.MetachainShardId
-// 	txStatus = n.ComputeTransactionStatus(rwdTxCrossShard, true)
-// 	assert.Equal(t, transaction.TxStatusReceived, txStatus)
+	// Intra-shard
+	computer = &StatusComputer{
+		MiniblockType:    block.TxBlock,
+		SourceShard:      12,
+		DestinationShard: 12,
+		SelfShard:        12,
+	}
+	require.Equal(t, TxStatusExecuted, computer.ComputeStatusWhenInStorageKnowingMiniblock())
 
-// 	// intra shard transaction in storage
-// 	shardCoordinator.SelfShardId = 0
-// 	txStatus = n.ComputeTransactionStatus(normalTxIntraShard, false)
-// 	assert.Equal(t, transaction.TxStatusExecuted, txStatus)
+	// Cross, at source
+	computer = &StatusComputer{
+		MiniblockType:    block.TxBlock,
+		SourceShard:      12,
+		DestinationShard: 13,
+		SelfShard:        12,
+	}
+	require.Equal(t, TxStatusPartiallyExecuted, computer.ComputeStatusWhenInStorageKnowingMiniblock())
 
-// 	// intra shard transaction in pool
-// 	shardCoordinator.SelfShardId = 0
-// 	txStatus = n.ComputeTransactionStatus(normalTxIntraShard, true)
-// 	assert.Equal(t, transaction.TxStatusReceived, txStatus)
+	// Cross, destination me
+	computer = &StatusComputer{
+		MiniblockType:    block.TxBlock,
+		SourceShard:      13,
+		DestinationShard: 12,
+		SelfShard:        12,
+	}
+	require.Equal(t, TxStatusExecuted, computer.ComputeStatusWhenInStorageKnowingMiniblock())
 
-// 	// cross shard transaction in storage source shard
-// 	shardCoordinator.SelfShardId = 0
-// 	txStatus = n.ComputeTransactionStatus(normalTxCrossShard, false)
-// 	assert.Equal(t, transaction.TxStatusPartiallyExecuted, txStatus)
+	computer = &StatusComputer{
+		MiniblockType:    block.RewardsBlock,
+		SourceShard:      core.MetachainShardId,
+		DestinationShard: 12,
+		SelfShard:        12,
+	}
+	require.Equal(t, TxStatusExecuted, computer.ComputeStatusWhenInStorageKnowingMiniblock())
 
-// 	// cross shard transaction in pool source shard
-// 	shardCoordinator.SelfShardId = 0
-// 	txStatus = n.ComputeTransactionStatus(normalTxCrossShard, true)
-// 	assert.Equal(t, transaction.TxStatusReceived, txStatus)
+	// Contract deploy
+	computer = &StatusComputer{
+		SourceShard:      12,
+		DestinationShard: 13,
+		Receiver:         make([]byte, 32),
+		TransactionData:  []byte("deployingAContract"),
+		SelfShard:        13,
+	}
+	require.Equal(t, TxStatusExecuted, computer.ComputeStatusWhenInStorageKnowingMiniblock())
+}
 
-// 	// cross shard transaction in storage destination shard
-// 	shardCoordinator.SelfShardId = 1
-// 	txStatus = n.ComputeTransactionStatus(normalTxCrossShard, false)
-// 	assert.Equal(t, transaction.TxStatusExecuted, txStatus)
+func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing.T) {
+	// Intra shard
+	computer := &StatusComputer{
+		SourceShard:      12,
+		DestinationShard: 12,
+		SelfShard:        12,
+	}
+	require.Equal(t, TxStatusExecuted, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
 
-// 	// cross shard transaction in pool destination shard
-// 	shardCoordinator.SelfShardId = 1
-// 	txStatus = n.ComputeTransactionStatus(normalTxCrossShard, true)
-// 	assert.Equal(t, transaction.TxStatusPartiallyExecuted, txStatus)
+	// Cross, at source
+	computer = &StatusComputer{
+		SourceShard:      12,
+		DestinationShard: 13,
+		SelfShard:        12,
+	}
+	require.Equal(t, TxStatusPartiallyExecuted, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
 
-// 	// intra shard scr in storage source shard
-// 	shardCoordinator.SelfShardId = 0
-// 	txStatus = n.ComputeTransactionStatus(unsignedTxIntraShard, false)
-// 	assert.Equal(t, transaction.TxStatusExecuted, txStatus)
+	// Cross, destination me
+	computer = &StatusComputer{
+		SourceShard:      13,
+		DestinationShard: 12,
+		SelfShard:        12,
+	}
+	require.Equal(t, TxStatusExecuted, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
 
-// 	// intra shard scr in pool source shard
-// 	shardCoordinator.SelfShardId = 0
-// 	txStatus = n.ComputeTransactionStatus(unsignedTxIntraShard, true)
-// 	assert.Equal(t, transaction.TxStatusReceived, txStatus)
+	computer = &StatusComputer{
+		SourceShard:      core.MetachainShardId,
+		DestinationShard: 12,
+		SelfShard:        12,
+	}
+	require.Equal(t, TxStatusExecuted, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
 
-// 	// cross shard scr in storage source shard
-// 	shardCoordinator.SelfShardId = 0
-// 	txStatus = n.ComputeTransactionStatus(unsignedTxCrossShard, false)
-// 	assert.Equal(t, transaction.TxStatusPartiallyExecuted, txStatus)
-
-// 	// cross shard scr in pool source shard
-// 	shardCoordinator.SelfShardId = 0
-// 	txStatus = n.ComputeTransactionStatus(unsignedTxCrossShard, true)
-// 	assert.Equal(t, transaction.TxStatusReceived, txStatus)
-// }
+	// Contract deploy
+	computer = &StatusComputer{
+		SourceShard:      12,
+		DestinationShard: 13,
+		Receiver:         make([]byte, 32),
+		TransactionData:  []byte("deployingAContract"),
+		SelfShard:        13,
+	}
+	require.Equal(t, TxStatusExecuted, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
+}
