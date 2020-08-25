@@ -87,7 +87,7 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 			continue
 		}
 		tx.Hash = hex.EncodeToString([]byte(txHash))
-		tx.MiniBlockType = miniblock.Type
+		tx.MiniBlockType = miniblock.Type.String()
 		tx.MiniBlockHash = hex.EncodeToString([]byte(miniblockHash))
 
 		tx.Status = (&transaction.StatusComputer{

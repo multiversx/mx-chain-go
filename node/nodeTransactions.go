@@ -87,7 +87,7 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 	putHistoryFieldsInTransaction(tx, miniblockMetadata)
 
 	tx.Status = (&transaction.StatusComputer{
-		MiniblockType:    tx.MiniBlockType,
+		MiniblockType:    block.Type(miniblockMetadata.Type),
 		DestinationShard: tx.DestinationShard,
 		Receiver:         tx.Tx.GetRcvAddr(),
 		TransactionData:  tx.Data,
@@ -101,7 +101,7 @@ func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblo
 	tx.Epoch = miniblockMetadata.Epoch
 	tx.Round = miniblockMetadata.Round
 
-	tx.MiniBlockType = block.Type(miniblockMetadata.Type)
+	tx.MiniBlockType = block.Type(miniblockMetadata.Type).String()
 	tx.MiniBlockHash = hex.EncodeToString(miniblockMetadata.MiniblockHash)
 	tx.DestinationShard = miniblockMetadata.DestinationShardID
 	tx.SourceShard = miniblockMetadata.SourceShardID

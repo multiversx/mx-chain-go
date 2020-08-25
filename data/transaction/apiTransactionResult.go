@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -32,7 +31,7 @@ type ApiTransactionResult struct {
 	NotarizedAtSourceInMetaHash       string                  `json:"NotarizedAtSourceInMetaHash,omitempty"`
 	NotarizedAtDestinationInMetaNonce uint64                  `json:"notarizedAtDestinationInMetaNonce,omitempty"`
 	NotarizedAtDestinationInMetaHash  string                  `json:"notarizedAtDestinationInMetaHash,omitempty"`
-	MiniBlockType                     block.Type              `json:"miniblockType,omitempty"`
+	MiniBlockType                     string                  `json:"miniblockType,omitempty"`
 	MiniBlockHash                     string                  `json:"miniblockHash,omitempty"`
 	Status                            TxStatus                `json:"status,omitempty"`
 }
