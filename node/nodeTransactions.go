@@ -1,6 +1,7 @@
 package node
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 
@@ -306,8 +307,12 @@ func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool boo
 		senderShardID = core.MetachainShardId
 	}
 
+	isScDeploy := n.isDestAddressEmpty(tx) && len(tx.GetData()) > 0
 	isDestinationMe := selfShardID == receiverShardID
 	if isInPool {
+		if isScDeploy {
+			return core.TxStatusReceived
+		}
 
 		isCrossShard := senderShardID != receiverShardID
 		if isDestinationMe && isCrossShard {
@@ -318,10 +323,15 @@ func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool boo
 	}
 
 	// transaction is in storage
-	if isDestinationMe {
+	if isDestinationMe || isScDeploy {
 		return core.TxStatusExecuted
 	}
 
 	// is in storage on source shard
 	return core.TxStatusPartiallyExecuted
+}
+
+func (n *Node) isDestAddressEmpty(tx data.TransactionHandler) bool {
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, n.addressPubkeyConverter.Len()))
+	return isEmptyAddress
 }
