@@ -177,6 +177,13 @@ type EpochHandler interface {
 	IsInterfaceNil() bool
 }
 
+// ManualEpochStartNotifier can manually notify an epoch change
+type ManualEpochStartNotifier interface {
+	NewEpoch(epoch uint32)
+	CurrentEpoch() uint32
+	IsInterfaceNil() bool
+}
+
 // EpochProviderByNonce defines the functionality needed for calculating an epoch based on nonce
 type EpochProviderByNonce interface {
 	EpochForNonce(nonce uint64) (uint32, error)
@@ -187,6 +194,7 @@ type EpochProviderByNonce interface {
 type MessageHandler interface {
 	ConnectedPeersOnTopic(topic string) []core.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
+	ID() core.PeerID
 	IsInterfaceNil() bool
 }
 

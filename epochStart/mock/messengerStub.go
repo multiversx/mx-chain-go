@@ -10,6 +10,7 @@ type MessengerStub struct {
 	ConnectedPeersCalled           func() []core.PeerID
 	RegisterMessageProcessorCalled func(topic string, handler p2p.MessageProcessor) error
 	UnjoinAllTopicsCalled          func() error
+	IDCalled                       func() core.PeerID
 }
 
 // ConnectedPeersOnTopic -
@@ -72,4 +73,13 @@ func (m *MessengerStub) ConnectedPeers() []core.PeerID {
 	}
 
 	return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
+}
+
+// ID -
+func (m *MessengerStub) ID() core.PeerID {
+	if m.IDCalled != nil {
+		return m.IDCalled()
+	}
+
+	return "peer ID"
 }

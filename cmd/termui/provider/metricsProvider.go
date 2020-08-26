@@ -62,7 +62,7 @@ func (smp *StatusMetricsProvider) StartUpdatingData() {
 				smp.applyMetricsToPresenter(metricsMap)
 			}
 
-			time.Sleep(time.Duration(smp.fetchInterval) * time.Second)
+			time.Sleep(time.Duration(smp.fetchInterval) * time.Millisecond)
 		}
 	}()
 }
