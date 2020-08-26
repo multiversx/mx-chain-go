@@ -978,12 +978,7 @@ func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
 		return nil, nil
 	}
 
-	marshalizedReceiptsBatch, err := tc.marshalizer.Marshal(receiptsBatch)
-	if err != nil {
-		return nil, err
-	}
-
-	return marshalizedReceiptsBatch, nil
+	return tc.marshalizer.Marshal(receiptsBatch)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
