@@ -132,7 +132,15 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 	}
 
 	notarizedHeaders := dp.computeNotarizedHeaders(data.Header)
-	dp.elasticIndexer.SaveBlock(data.Body, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders)
+	newBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
+	for _, mb := range data.Body.MiniBlocks {
+		if mb.Type == block.ReceiptBlock { // don't index receipt miniblocks
+			continue
+		}
+
+		newBody.MiniBlocks = append(newBody.MiniBlocks, mb)
+	}
+	dp.elasticIndexer.SaveBlock(newBody, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders)
 	dp.indexRoundInfo(signersIndexes, data.Header)
 	dp.logHeaderInfo(data.Header)
 	return nil
@@ -235,6 +243,10 @@ func (dp *dataProcessor) getShardIDs() []uint32 {
 }
 
 func (dp *dataProcessor) processValidatorsForEpoch(metaBlock *block.MetaBlock, body *block.Body) {
+	if metaBlock.Epoch == 0 {
+		return
+	}
+
 	peerMiniBlocks := make([]*block.MiniBlock, 0)
 
 	for _, mb := range body.MiniBlocks {

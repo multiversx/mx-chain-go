@@ -94,7 +94,7 @@ VERSION:
 	startingEpochFlag = cli.IntFlag{
 		Name:        "starting-epoch",
 		Usage:       "This uint flag specifies the epoch to start when indexing",
-		Value:       1,
+		Value:       0,
 		Destination: &flagsValues.startingEpoch,
 	}
 
@@ -269,6 +269,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		DatabaseReader:           dbReader,
 		ShardCoordinator:         shardCoordinator,
 		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		HeaderMarshalizer:        headerMarshalizer,
 		StartingEpoch:            uint32(flagsValues.startingEpoch),

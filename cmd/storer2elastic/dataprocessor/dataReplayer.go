@@ -1,6 +1,7 @@
 package dataprocessor
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -15,11 +16,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -32,6 +36,7 @@ type dataReplayer struct {
 	marshalizer       marshal.Marshalizer
 	uint64Converter   typeConverters.Uint64ByteSliceConverter
 	headerMarshalizer HeaderMarshalizerHandler
+	emptyReceiptHash  []byte
 	startingEpoch     uint32
 }
 
@@ -41,6 +46,7 @@ type persistersHolder struct {
 	unsignedTransactionsPersister storage.Persister
 	rewardTransactionsPersister   storage.Persister
 	shardHeadersPersister         storage.Persister
+	receiptsPersister             storage.Persister
 }
 
 type metaBlocksPersistersHolder struct {
@@ -55,6 +61,7 @@ type DataReplayerArgs struct {
 	GeneralConfig            config.Config
 	ShardCoordinator         sharding.Coordinator
 	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	HeaderMarshalizer        HeaderMarshalizerHandler
 	StartingEpoch            uint32
@@ -71,11 +78,19 @@ func NewDataReplayer(args DataReplayerArgs) (*dataReplayer, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
+	if check.IfNil(args.Hasher) {
+		return nil, ErrNilHasher
+	}
 	if check.IfNil(args.Uint64ByteSliceConverter) {
 		return nil, ErrNilUint64ByteSliceConverter
 	}
 	if check.IfNil(args.HeaderMarshalizer) {
 		return nil, ErrNilHeaderMarshalizer
+	}
+
+	emptyReceiptHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, &batch.Batch{Data: [][]byte{}})
+	if err != nil {
+		return nil, err
 	}
 
 	return &dataReplayer{
@@ -85,6 +100,7 @@ func NewDataReplayer(args DataReplayerArgs) (*dataReplayer, error) {
 		marshalizer:       args.Marshalizer,
 		uint64Converter:   args.Uint64ByteSliceConverter,
 		headerMarshalizer: args.HeaderMarshalizer,
+		emptyReceiptHash:  emptyReceiptHash,
 		startingEpoch:     args.StartingEpoch,
 	}, nil
 }
@@ -371,7 +387,7 @@ func (dr *dataReplayer) processHeader(persisters *persistersHolder, hdr data.Hea
 		}
 	}
 
-	body, txPool, err := dr.processBodyAndTransactionsPoolForHeader(persisters, miniBlocksHashes)
+	body, txPool, err := dr.processBodyAndTransactionsPoolForHeader(hdr, persisters, miniBlocksHashes)
 	if err != nil {
 		return nil, err
 	}
@@ -394,6 +410,7 @@ func (dr *dataReplayer) getShardIDs() []uint32 {
 }
 
 func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
+	header data.HeaderHandler,
 	persisters *persistersHolder,
 	mbHashes []string,
 ) (*block.Body, map[string]data.TransactionHandler, error) {
@@ -402,15 +419,14 @@ func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
 
 	blockBody := &block.Body{}
 	for _, mbHash := range mbHashes {
-		mbBytes, err := mbUnit.Get([]byte(mbHash))
+		recoveredMiniBlock, err := dr.getMiniBlockFromStorage(mbUnit, []byte(mbHash))
 		if err != nil {
-			return nil, nil, fmt.Errorf("miniblock with hash %s not found in storage", mbHash)
-		}
+			if header.GetShardID() == core.MetachainShardId {
+				// could be miniblocks headers for shard, so we can continue
+				continue
+			}
 
-		recoveredMiniBlock := &block.MiniBlock{}
-		err = dr.marshalizer.Unmarshal(recoveredMiniBlock, mbBytes)
-		if err != nil {
-			return nil, nil, fmt.Errorf("%w when unmarshaling miniblock with hash %s", err, mbHash)
+			return nil, nil, err
 		}
 
 		err = dr.processTransactionsForMiniBlock(persisters, recoveredMiniBlock.TxHashes, txPool, recoveredMiniBlock.Type)
@@ -421,7 +437,71 @@ func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
 		blockBody.MiniBlocks = append(blockBody.MiniBlocks, recoveredMiniBlock)
 	}
 
+	receiptsMiniBlocks, err := dr.getReceiptsIfNeeded(persisters, header)
+	if err != nil {
+		return nil, nil, err
+	}
+	if receiptsMiniBlocks != nil {
+		blockBody.MiniBlocks = append(blockBody.MiniBlocks, receiptsMiniBlocks...)
+		for _, miniBlock := range receiptsMiniBlocks {
+			err = dr.processTransactionsForMiniBlock(persisters, miniBlock.TxHashes, txPool, miniBlock.Type)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+
 	return blockBody, txPool, nil
+}
+
+func (dr *dataReplayer) getReceiptsIfNeeded(holder *persistersHolder, hdr data.HeaderHandler) ([]*block.MiniBlock, error) {
+	if len(hdr.GetReceiptsHash()) == 0 {
+		return nil, nil
+	}
+	if bytes.Equal(hdr.GetReceiptsHash(), dr.emptyReceiptHash) {
+		return nil, nil
+	}
+
+	batchBytes, err := holder.receiptsPersister.Get(hdr.GetReceiptsHash())
+	if err != nil {
+		log.Warn("receipts hash not found", "hash", hdr.GetReceiptsHash())
+		return nil, nil
+	}
+
+	var batchObj batch.Batch
+	err = dr.marshalizer.Unmarshal(&batchObj, batchBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlocksToReturn := make([]*block.MiniBlock, 0)
+	for _, mbBytes := range batchObj.Data {
+		recoveredMiniBlock := &block.MiniBlock{}
+		errUnmarshalMb := dr.marshalizer.Unmarshal(recoveredMiniBlock, mbBytes)
+		if errUnmarshalMb != nil {
+			log.Warn("cannot unmarshal receipts miniblock")
+			return nil, errUnmarshalMb
+		}
+
+		miniBlocksToReturn = append(miniBlocksToReturn, recoveredMiniBlock)
+	}
+
+	return miniBlocksToReturn, nil
+}
+
+func (dr *dataReplayer) getMiniBlockFromStorage(mbUnit storage.Persister, mbHash []byte) (*block.MiniBlock, error) {
+	mbBytes, err := mbUnit.Get(mbHash)
+	if err != nil {
+		return nil, fmt.Errorf("miniblock with hash %s not found in storage", hex.EncodeToString(mbHash))
+	}
+
+	recoveredMiniBlock := &block.MiniBlock{}
+	err = dr.marshalizer.Unmarshal(recoveredMiniBlock, mbBytes)
+	if err != nil {
+		return nil, fmt.Errorf("%w when unmarshaling miniblock with hash %s", err, mbHash)
+	}
+
+	return recoveredMiniBlock, nil
 }
 
 func (dr *dataReplayer) processTransactionsForMiniBlock(
@@ -440,6 +520,8 @@ func (dr *dataReplayer) processTransactionsForMiniBlock(
 			tx, getTxErr = dr.getRewardTx(persisters, txHash)
 		case block.SmartContractResultBlock:
 			tx, getTxErr = dr.getUnsignedTx(persisters, txHash)
+		case block.ReceiptBlock:
+			tx, getTxErr = dr.getReceipt(persisters, txHash)
 		case block.PeerBlock:
 			// hashes stored inside peer blocks do not stand for a specific transaction, so skip
 			continue
@@ -509,6 +591,23 @@ func (dr *dataReplayer) getUnsignedTx(holder *persistersHolder, txHash []byte) (
 	return recoveredTx, nil
 }
 
+func (dr *dataReplayer) getReceipt(holder *persistersHolder, txHash []byte) (data.TransactionHandler, error) {
+	txBytes, err := holder.unsignedTransactionsPersister.Get(txHash)
+	if err != nil {
+		log.Warn("cannot get unsigned tx from storer", "txHash", txHash)
+		return nil, err
+	}
+
+	recoveredReceipt := &receipt.Receipt{}
+	err = dr.marshalizer.Unmarshal(recoveredReceipt, txBytes)
+	if err != nil {
+		log.Warn("cannot unmarshal receipt", "hash", txHash, "error", err)
+		return nil, err
+	}
+
+	return recoveredReceipt, nil
+}
+
 func (dr *dataReplayer) preparePersistersHolder(dbInfo *databasereader.DatabaseInfo) (*persistersHolder, error) {
 	persHold := &persistersHolder{}
 
@@ -542,6 +641,12 @@ func (dr *dataReplayer) preparePersistersHolder(dbInfo *databasereader.DatabaseI
 	}
 	persHold.rewardTransactionsPersister = rTxsPersister
 
+	receiptsPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.ReceiptsStorage.DB.FilePath)
+	if err != nil {
+		return nil, err
+	}
+	persHold.receiptsPersister = receiptsPersister
+
 	return persHold, nil
 }
 
@@ -559,6 +664,9 @@ func (dr *dataReplayer) closePersisters(persisters *persistersHolder) {
 	log.LogIfError(err)
 
 	err = persisters.rewardTransactionsPersister.Close()
+	log.LogIfError(err)
+
+	err = persisters.receiptsPersister.Close()
 	log.LogIfError(err)
 }
 
