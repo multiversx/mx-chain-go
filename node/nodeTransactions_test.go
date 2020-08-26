@@ -485,12 +485,15 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 			return 1
 		},
 	}
+	coreComponents:= getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
 	dataComponents := getDefaultDataComponents()
 	dataComponents.Store = storer
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = shardCoordinator
 
 	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
 	)
@@ -500,6 +503,8 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 	normalTxCrossShard := &transaction.Transaction{RcvAddr: shardOneAddr, SndAddr: shardZeroAddr}
 	unsignedTxIntraShard := &smartContractResult.SmartContractResult{RcvAddr: shardZeroAddr, SndAddr: shardZeroAddr}
 	unsignedTxCrossShard := &smartContractResult.SmartContractResult{RcvAddr: shardOneAddr, SndAddr: shardZeroAddr}
+	emptyDestAddress := make([]byte, coreComponents.AddrPubKeyConv.Len())
+	deployScTx := &transaction.Transaction{SndAddr: shardZeroAddr, RcvAddr: emptyDestAddress, Data: []byte("scscscscscscs")}
 
 	// cross shard reward tx in storage source shard
 	shardCoordinator.SelfShardId = core.MetachainShardId
@@ -560,6 +565,14 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 	shardCoordinator.SelfShardId = 0
 	txStatus = n.ComputeTransactionStatus(unsignedTxCrossShard, true)
 	assert.Equal(t, core.TxStatusReceived, txStatus)
+
+	// deploy  SC in pool
+	txStatus = n.ComputeTransactionStatus(deployScTx, true)
+	assert.Equal(t, core.TxStatusReceived, txStatus)
+
+	// deploy  SC in storage
+	txStatus = n.ComputeTransactionStatus(deployScTx, false)
+	assert.Equal(t, core.TxStatusExecuted, txStatus)
 }
 
 func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {

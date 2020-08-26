@@ -217,6 +217,18 @@ func (s *shardBlockCreator) saveAllTransactionsToStorageIfSelfShard(
 		}
 	}
 
+	marshalizedReceiptsHashes, errNotCritical := s.txCoordinator.CreateMarshalizedReceipts()
+	if errNotCritical != nil {
+		log.Warn("saveAllTransactionsToStorageIfSelfShard.CreateMarshalizedReceipts", "error", errNotCritical.Error())
+	} else {
+		if len(marshalizedReceiptsHashes) > 0 {
+			errNotCritical = s.storage.Put(dataRetriever.ReceiptsUnit, shardHdr.GetReceiptsHash(), marshalizedReceiptsHashes)
+			if errNotCritical != nil {
+				log.Warn("saveAllTransactionsToStorageIfSelfShard.Put -> ReceiptsUnit", "error", errNotCritical.Error())
+			}
+		}
+	}
+
 	mapTxs := s.importHandler.GetTransactions()
 	// save transactions from imported map
 	for _, miniBlock := range body.MiniBlocks {

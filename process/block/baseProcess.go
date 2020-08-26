@@ -969,7 +969,7 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return header
 }
 
-func (bp *baseProcessor) saveBody(body *block.Body) {
+func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
 	startTime := time.Now()
 
 	errNotCritical := bp.txCoordinator.SaveBlockDataToStorage(body)
@@ -992,6 +992,18 @@ func (bp *baseProcessor) saveBody(body *block.Body) {
 			log.Warn("saveBody.Put -> MiniBlockUnit", "error", errNotCritical.Error())
 		}
 		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime))
+	}
+
+	marshalizedReceiptsHashes, errNotCritical := bp.txCoordinator.CreateMarshalizedReceipts()
+	if errNotCritical != nil {
+		log.Warn("saveBody.CreateMarshalizedReceipts", "error", errNotCritical.Error())
+	} else {
+		if len(marshalizedReceiptsHashes) > 0 {
+			errNotCritical = bp.store.Put(dataRetriever.ReceiptsUnit, header.GetReceiptsHash(), marshalizedReceiptsHashes)
+			if errNotCritical != nil {
+				log.Warn("saveBody.Put -> ReceiptsUnit", "error", errNotCritical.Error())
+			}
+		}
 	}
 
 	elapsedTime := time.Since(startTime)

@@ -788,7 +788,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	sp.saveBody(body)
+	sp.saveBody(body, header)
 
 	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {

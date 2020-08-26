@@ -302,6 +302,7 @@ func getGeneralConfig() config.Config {
 	generalConfig.MetaHdrNonceHashStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.BlockHeaderStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.BootstrapStorage.DB.Type = string(storageUnit.LvlDBSerial)
+	generalConfig.ReceiptsStorage.DB.Type = string(storageUnit.LvlDBSerial)
 
 	return generalConfig
 }

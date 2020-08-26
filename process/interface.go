@@ -142,6 +142,7 @@ type TransactionCoordinator interface {
 
 	CreateReceiptsHash() ([]byte, error)
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
+	CreateMarshalizedReceipts() ([]byte, error)
 	IsInterfaceNil() bool
 }
 
