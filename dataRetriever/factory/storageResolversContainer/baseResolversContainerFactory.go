@@ -152,10 +152,10 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 		DataPacker:        brcf.dataPacker,
 		Marshalizer:       brcf.marshalizer,
 	}
-	txBlkResolver, err := storageResolvers.NewSliceResolver(arg)
+	mbResolver, err := storageResolvers.NewSliceResolver(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	return txBlkResolver, nil
+	return mbResolver, nil
 }

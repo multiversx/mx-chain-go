@@ -371,7 +371,7 @@ VERSION:
 			"Should be enabled if data is not available in local disk.",
 	}
 
-	// importDbDirectory defines a flag for the optional import DB directory on which will node will re-check the blockchain against
+	// importDbDirectory defines a flag for the optional import DB directory on which the node will re-check the blockchain against
 	importDbDirectory = cli.StringFlag{
 		Name: "import-db",
 		Usage: "This flag, if set, will make the node start the import process using the provided data path. Will re-check" +

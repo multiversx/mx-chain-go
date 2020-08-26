@@ -837,17 +837,17 @@ func newStorageResolver(
 	config *config.Config,
 	currentEpoch uint32,
 ) (dataRetriever.ResolversContainerFactory, error) {
-	pathMan, err := createPathManager(storageResolverImportPath, string(coreData.ChainID))
+	pathManager, err := createPathManager(storageResolverImportPath, string(coreData.ChainID))
 	if err != nil {
 		return nil, err
 	}
 
-	manEpochStartNotifier := notifier.NewManualEpochStartNotifier()
+	manualEpochStartNotifier := notifier.NewManualEpochStartNotifier()
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		config,
 		shardCoordinator,
-		pathMan,
-		manEpochStartNotifier,
+		pathManager,
+		manualEpochStartNotifier,
 		currentEpoch,
 	)
 	if err != nil {
@@ -865,7 +865,7 @@ func newStorageResolver(
 			coreData,
 			network,
 			store,
-			manEpochStartNotifier,
+			manualEpochStartNotifier,
 		)
 	}
 
@@ -879,7 +879,7 @@ func newStorageResolver(
 		coreData,
 		network,
 		store,
-		manEpochStartNotifier,
+		manualEpochStartNotifier,
 	)
 }
 
@@ -911,7 +911,7 @@ func createStorageResolversForMeta(
 	coreData *mainFactory.CoreComponents,
 	network *mainFactory.NetworkComponents,
 	store dataRetriever.StorageService,
-	manEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
+	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
 ) (dataRetriever.ResolversContainerFactory, error) {
 	dataPacker, err := partitioning.NewSimpleDataPacker(coreData.InternalMarshalizer)
 	if err != nil {
@@ -925,7 +925,7 @@ func createStorageResolversForMeta(
 		Marshalizer:              coreData.InternalMarshalizer,
 		Uint64ByteSliceConverter: coreData.Uint64ByteSliceConverter,
 		DataPacker:               dataPacker,
-		ManualEpochStartNotifier: manEpochStartNotifier,
+		ManualEpochStartNotifier: manualEpochStartNotifier,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -940,7 +940,7 @@ func createStorageResolversForShard(
 	coreData *mainFactory.CoreComponents,
 	network *mainFactory.NetworkComponents,
 	store dataRetriever.StorageService,
-	manEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
+	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
 ) (dataRetriever.ResolversContainerFactory, error) {
 	dataPacker, err := partitioning.NewSimpleDataPacker(coreData.InternalMarshalizer)
 	if err != nil {
@@ -954,7 +954,7 @@ func createStorageResolversForShard(
 		Marshalizer:              coreData.InternalMarshalizer,
 		Uint64ByteSliceConverter: coreData.Uint64ByteSliceConverter,
 		DataPacker:               dataPacker,
-		ManualEpochStartNotifier: manEpochStartNotifier,
+		ManualEpochStartNotifier: manualEpochStartNotifier,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {

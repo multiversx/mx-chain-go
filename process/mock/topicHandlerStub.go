@@ -10,6 +10,7 @@ type TopicHandlerStub struct {
 	HasTopicCalled                 func(name string) bool
 	CreateTopicCalled              func(name string, createChannelForTopic bool) error
 	RegisterMessageProcessorCalled func(topic string, handler p2p.MessageProcessor) error
+	IDCalled                       func() core.PeerID
 }
 
 // HasTopic -
@@ -29,6 +30,10 @@ func (ths *TopicHandlerStub) RegisterMessageProcessor(topic string, handler p2p.
 
 // ID -
 func (ths *TopicHandlerStub) ID() core.PeerID {
+	if ths.IDCalled != nil {
+		return ths.IDCalled()
+	}
+
 	return "peer ID"
 }
 

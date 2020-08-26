@@ -44,7 +44,7 @@ func preProcessMesage(
 }
 
 func isMessageFromSelfToSelf(fromConnectedPeer core.PeerID, message p2p.MessageP2P, id core.PeerID) bool {
-	return bytes.Equal(message.Signature(), id.Bytes()) && bytes.Equal(message.From(), id.Bytes()) && fromConnectedPeer == id
+	return bytes.Equal(message.Signature(), message.From()) && bytes.Equal(message.From(), id.Bytes()) && fromConnectedPeer == id
 }
 
 func processInterceptedData(
