@@ -77,6 +77,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	var rewardTxUnit *pruning.PruningStorer
 	var bootstrapUnit *pruning.PruningStorer
 	var txLogsUnit *pruning.PruningStorer
+	var receiptsUnit *pruning.PruningStorer
 	var err error
 
 	successfullyCreatedStorers := make([]storage.Storer, 0)
@@ -206,6 +207,13 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, txLogsUnit)
 
+	receiptsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ReceiptsStorage)
+	receiptsUnit, err = pruning.NewPruningStorer(receiptsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, receiptsUnit)
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
@@ -221,6 +229,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
+	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 
 	err = psf.setupFullHistory(store, &successfullyCreatedStorers)
 	if err != nil {
@@ -240,6 +249,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	var rewardTxUnit *pruning.PruningStorer
 	var bootstrapUnit *pruning.PruningStorer
 	var txLogsUnit *pruning.PruningStorer
+	var receiptsUnit *pruning.PruningStorer
 	var err error
 
 	successfullyCreatedStorers := make([]storage.Storer, 0)
@@ -367,6 +377,13 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, txLogsUnit)
 
+	receiptsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.ReceiptsStorage)
+	receiptsUnit, err = pruning.NewPruningStorer(receiptsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, receiptsUnit)
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
@@ -383,6 +400,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
+	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 
 	err = psf.setupFullHistory(store, &successfullyCreatedStorers)
 	if err != nil {

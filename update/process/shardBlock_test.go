@@ -41,6 +41,7 @@ func initStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
 	return store
 }
 
