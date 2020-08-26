@@ -24,7 +24,7 @@ func openLevelDB(path string, options *opt.Options) (*leveldb.DB, error) {
 			return nil, err
 		}
 
-		log.Debug("error opening db",
+		log.Debug("error opening DB",
 			"error", err,
 			"path", path,
 			"retry", retries,

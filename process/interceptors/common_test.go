@@ -18,7 +18,7 @@ const fromConnectedPeer = "from connected peer"
 func TestPreProcessMessage_NilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{}, nil, fromConnectedPeer, "")
+	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{}, nil, fromConnectedPeer, "", "")
 
 	assert.Equal(t, process.ErrNilMessage, err)
 }
@@ -27,7 +27,7 @@ func TestPreProcessMessage_NilDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	msg := &mock.P2PMessageMock{}
-	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{}, msg, fromConnectedPeer, "")
+	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{}, msg, fromConnectedPeer, "", "")
 
 	assert.Equal(t, process.ErrNilDataToProcess, err)
 }
@@ -50,7 +50,7 @@ func TestPreProcessMessage_AntifloodCanNotProcessShouldErr(t *testing.T) {
 		},
 	}
 
-	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "")
+	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "", "")
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -73,7 +73,7 @@ func TestPreProcessMessage_AntifloodTopicCanNotProcessShouldErr(t *testing.T) {
 		},
 	}
 
-	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "")
+	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "", "")
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -91,7 +91,7 @@ func TestPreProcessMessage_ThrottlerCanNotProcessShouldErr(t *testing.T) {
 	}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
 
-	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "")
+	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "", "")
 
 	assert.Equal(t, process.ErrSystemBusy, err)
 }
@@ -108,7 +108,39 @@ func TestPreProcessMessage_CanProcessReturnsNilAndCallsStartProcessing(t *testin
 		},
 	}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
-	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "")
+	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "", "")
+
+	assert.Nil(t, err)
+	assert.Equal(t, int32(1), throttler.StartProcessingCount())
+}
+
+func TestPreProcessMessage_CanProcessFromSelf(t *testing.T) {
+	t.Parallel()
+
+	currentPeerID := core.PeerID("current peer ID")
+
+	msg := &mock.P2PMessageMock{
+		DataField:      []byte("data to process"),
+		FromField:      currentPeerID.Bytes(),
+		SignatureField: currentPeerID.Bytes(),
+	}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			assert.Fail(t, "should have not called CanProcessCalled")
+			return false
+		},
+	}
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+			assert.Fail(t, "should have not called CanProcessMessageCalled")
+			return nil
+		},
+		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
+			assert.Fail(t, "should have not called CanProcessMessagesOnTopicCalled")
+			return nil
+		},
+	}
+	err := preProcessMesage(throttler, antifloodHandler, msg, currentPeerID, "", currentPeerID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
