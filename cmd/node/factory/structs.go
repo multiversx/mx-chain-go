@@ -2,7 +2,9 @@ package factory
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
+	"path/filepath"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -22,10 +24,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
+	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -64,6 +68,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -74,6 +79,14 @@ import (
 const (
 	// maxTxsToRequest specifies the maximum number of txs to request
 	maxTxsToRequest = 1000
+	// DefaultDBPath is the default DB path directory
+	DefaultDBPath = "db"
+	// DefaultEpochString is the default Epoch string when creating DB path
+	DefaultEpochString = "Epoch"
+	// DefaultStaticDbString is the default Static string when creating DB path
+	DefaultStaticDbString = "Static"
+	// DefaultShardString is the default Shard string when creating DB path
+	DefaultShardString = "Shard"
 )
 
 //TODO remove this
@@ -158,6 +171,7 @@ type processComponentsFactoryArgs struct {
 	historyRepo               fullHistory.HistoryRepository
 	epochNotifier             process.EpochNotifier
 	txSimulatorProcessorArgs  *txsimulator.ArgsTxSimulator
+	storageReolverImportPath  string
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -203,6 +217,7 @@ func NewProcessComponentsFactoryArgs(
 	historyRepo fullHistory.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	storageReolverImportPath string,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -247,6 +262,7 @@ func NewProcessComponentsFactoryArgs(
 		historyRepo:               historyRepo,
 		epochNotifier:             epochNotifier,
 		txSimulatorProcessorArgs:  txSimulatorProcessorArgs,
+		storageReolverImportPath:  storageReolverImportPath,
 	}
 }
 
@@ -287,6 +303,9 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.tries,
 		args.sizeCheckDelta,
 		args.numConcurrentResolverJobs,
+		args.storageReolverImportPath,
+		&args.mainConfig,
+		args.startEpochNum,
 	)
 	if err != nil {
 		return nil, err
@@ -791,7 +810,22 @@ func newResolverContainerFactory(
 	tries *mainFactory.TriesComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
+	storageResolverImportPath string,
+	config *config.Config,
+	currentEpoch uint32,
 ) (dataRetriever.ResolversContainerFactory, error) {
+
+	if len(storageResolverImportPath) > 0 {
+		log.Debug("starting with storage resolvers", "path", storageResolverImportPath)
+		return newStorageResolver(
+			shardCoordinator,
+			coreData,
+			network,
+			storageResolverImportPath,
+			config,
+			currentEpoch,
+		)
+	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardResolverContainerFactory(
@@ -817,6 +851,141 @@ func newResolverContainerFactory(
 	}
 
 	return nil, errors.New("could not create interceptor and resolver container factory")
+}
+
+func newStorageResolver(
+	shardCoordinator sharding.Coordinator,
+	coreData *mainFactory.CoreComponents,
+	network *mainFactory.NetworkComponents,
+	storageResolverImportPath string,
+	config *config.Config,
+	currentEpoch uint32,
+) (dataRetriever.ResolversContainerFactory, error) {
+	pathManager, err := createPathManager(storageResolverImportPath, string(coreData.ChainID))
+	if err != nil {
+		return nil, err
+	}
+
+	manualEpochStartNotifier := notifier.NewManualEpochStartNotifier()
+	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
+		config,
+		shardCoordinator,
+		pathManager,
+		manualEpochStartNotifier,
+		currentEpoch,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		store, errStore := storageServiceCreator.CreateForMeta()
+		if errStore != nil {
+			return nil, errStore
+		}
+
+		return createStorageResolversForMeta(
+			shardCoordinator,
+			coreData,
+			network,
+			store,
+			manualEpochStartNotifier,
+		)
+	}
+
+	store, err := storageServiceCreator.CreateForShard()
+	if err != nil {
+		return nil, err
+	}
+
+	return createStorageResolversForShard(
+		shardCoordinator,
+		coreData,
+		network,
+		store,
+		manualEpochStartNotifier,
+	)
+}
+
+func createPathManager(
+	storageResolverImportPath string,
+	chainID string,
+) (storage.PathManagerHandler, error) {
+	pathTemplateForPruningStorer := filepath.Join(
+		storageResolverImportPath,
+		DefaultDBPath,
+		chainID,
+		fmt.Sprintf("%s_%s", DefaultEpochString, core.PathEpochPlaceholder),
+		fmt.Sprintf("%s_%s", DefaultShardString, core.PathShardPlaceholder),
+		core.PathIdentifierPlaceholder)
+
+	pathTemplateForStaticStorer := filepath.Join(
+		storageResolverImportPath,
+		DefaultDBPath,
+		chainID,
+		DefaultStaticDbString,
+		fmt.Sprintf("%s_%s", DefaultShardString, core.PathShardPlaceholder),
+		core.PathIdentifierPlaceholder)
+
+	return pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
+}
+
+func createStorageResolversForMeta(
+	shardCoordinator sharding.Coordinator,
+	coreData *mainFactory.CoreComponents,
+	network *mainFactory.NetworkComponents,
+	store dataRetriever.StorageService,
+	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
+) (dataRetriever.ResolversContainerFactory, error) {
+	dataPacker, err := partitioning.NewSimpleDataPacker(coreData.InternalMarshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
+		ShardCoordinator:         shardCoordinator,
+		Messenger:                network.NetMessenger,
+		Store:                    store,
+		Marshalizer:              coreData.InternalMarshalizer,
+		Uint64ByteSliceConverter: coreData.Uint64ByteSliceConverter,
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: manualEpochStartNotifier,
+	}
+	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolversContainerFactory, nil
+}
+
+func createStorageResolversForShard(
+	shardCoordinator sharding.Coordinator,
+	coreData *mainFactory.CoreComponents,
+	network *mainFactory.NetworkComponents,
+	store dataRetriever.StorageService,
+	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
+) (dataRetriever.ResolversContainerFactory, error) {
+	dataPacker, err := partitioning.NewSimpleDataPacker(coreData.InternalMarshalizer)
+	if err != nil {
+		return nil, err
+	}
+
+	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
+		ShardCoordinator:         shardCoordinator,
+		Messenger:                network.NetMessenger,
+		Store:                    store,
+		Marshalizer:              coreData.InternalMarshalizer,
+		Uint64ByteSliceConverter: coreData.Uint64ByteSliceConverter,
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: manualEpochStartNotifier,
+	}
+	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolversContainerFactory, nil
 }
 
 func newShardInterceptorContainerFactory(
