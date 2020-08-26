@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
 func (n *Node) ComputeTransactionStatus(tx data.TransactionHandler, isInPool bool) core.TransactionStatus {

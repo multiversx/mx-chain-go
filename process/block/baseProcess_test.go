@@ -330,7 +330,7 @@ func CreateMockArguments(
 			Indexer:                 &mock.IndexerMock{},
 			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 			Version:                 "softwareVersion",
-			HistoryRepository:       &mock.HistoryRepositoryStub{},
+			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 			EpochNotifier:           &mock.EpochNotifierStub{},
 		},

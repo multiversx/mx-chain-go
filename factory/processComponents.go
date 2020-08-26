@@ -215,6 +215,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		tpsBenchmark:              args.TpsBenchmark,
 		historyRepo:               args.HistoryRepo,
 		headerIntegrityVerifier:   args.HeaderIntegrityVerifier,
+		epochNotifier:             args.EpochNotifier,
 	}, nil
 }
 

@@ -337,6 +337,6 @@ func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool boo
 }
 
 func (n *Node) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, n.addressPubkeyConverter.Len()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, n.coreComponents.AddressPubKeyConverter().Len()))
 	return isEmptyAddress
 }

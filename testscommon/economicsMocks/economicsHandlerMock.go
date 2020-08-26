@@ -1,19 +1,10 @@
-package testscommon
+package economicsMocks
 
 import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/process"
 )
-
-// TransactionWithFeeHandler represents a transaction structure that has economics variables defined
-type TransactionWithFeeHandler interface {
-	GetGasLimit() uint64
-	GetGasPrice() uint64
-	GetData() []byte
-	GetRcvAddr() []byte
-	GetValue() *big.Int
-}
 
 // EconomicsHandlerMock -
 type EconomicsHandlerMock struct {
@@ -26,9 +17,10 @@ type EconomicsHandlerMock struct {
 	SetMinGasPriceCalled                   func(minGasPrice uint64)
 	SetMinGasLimitCalled                   func(minGasLimit uint64)
 	MaxGasLimitPerBlockCalled              func() uint64
-	ComputeGasLimitCalled                  func(tx TransactionWithFeeHandler) uint64
-	ComputeFeeCalled                       func(tx TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValuesCalled            func(tx TransactionWithFeeHandler) error
+	ComputeGasLimitCalled                  func(tx process.TransactionWithFeeHandler) uint64
+	ComputeFeeCalled                       func(tx process.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValuesCalled            func(tx process.TransactionWithFeeHandler) error
+	ComputeMoveBalanceFeeCalled            func(tx process.TransactionWithFeeHandler) *big.Int
 	DeveloperPercentageCalled              func() float64
 	MinGasPriceCalled                      func() uint64
 }
@@ -113,6 +105,14 @@ func (ehm *EconomicsHandlerMock) CheckValidityTxValues(tx process.TransactionWit
 		return ehm.CheckValidityTxValuesCalled(tx)
 	}
 	return nil
+}
+
+// ComputeMoveBalanceFee -
+func (ehm *EconomicsHandlerMock) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
+	if ehm.ComputeMoveBalanceFeeCalled != nil {
+		return ehm.ComputeMoveBalanceFeeCalled(tx)
+	}
+	return big.NewInt(0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
