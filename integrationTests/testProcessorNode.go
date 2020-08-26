@@ -1008,10 +1008,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
-	if len(TestBuiltinFunctions) > 0 {
-		for name, function := range TestBuiltinFunctions {
-			builtInFuncs.Add(name, function)
-		}
+	for name, function := range TestBuiltinFunctions {
+		builtInFuncs.Add(name, function)
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
