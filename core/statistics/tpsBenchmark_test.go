@@ -22,8 +22,9 @@ func updateTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark, txCount uint32) {
 				TxCount: 5000,
 			},
 			{
-				Type:    block.TxBlock,
-				TxCount: txCount,
+				Type:            block.TxBlock,
+				TxCount:         txCount,
+				ReceiverShardID: 1,
 			},
 		},
 	}
@@ -183,7 +184,7 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
 	round := uint64(1)
 	blockNumber := round
-	totalTxCount := big.NewInt(int64(25))
+	totalTxCount := big.NewInt(int64(20))
 
 	metaBlock1 := &block.MetaBlock{
 		Nonce: blockNumber,
@@ -204,6 +205,12 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 					{
 						Type:    block.TxBlock,
 						TxCount: 5,
+					},
+					{
+						Type:            block.TxBlock,
+						TxCount:         2000,
+						SenderShardID:   0,
+						ReceiverShardID: 1,
 					},
 					{
 						Type:    block.SmartContractResultBlock,
@@ -443,8 +450,9 @@ func TestTPSBenchmarkShardStatistics_GettersAndSetters(t *testing.T) {
 				TxCount: 5000,
 			},
 			{
-				Type:    block.TxBlock,
-				TxCount: 5,
+				Type:            block.TxBlock,
+				TxCount:         5,
+				ReceiverShardID: 1,
 			},
 			{
 				Type:    block.SmartContractResultBlock,
@@ -493,8 +501,14 @@ func TestTpsBenchmark_ShouldUpdateSameNonceOnlyOnce(t *testing.T) {
 				TxCount: 5000,
 			},
 			{
-				Type:    block.TxBlock,
-				TxCount: txCount,
+				Type:            block.TxBlock,
+				TxCount:         txCount,
+				ReceiverShardID: 1,
+			},
+			{
+				Type:            block.RewardsBlock,
+				TxCount:         txCount,
+				ReceiverShardID: 1,
 			},
 			{
 				Type:    block.SmartContractResultBlock,
@@ -525,7 +539,7 @@ func TestTpsBenchmark_ShouldUpdateSameNonceOnlyOnce(t *testing.T) {
 	}
 	tpsBenchmark.Update(metaBlock2)
 
-	bigTxCount := big.NewInt(int64(txCount))
+	bigTxCount := big.NewInt(int64(2 * txCount))
 	assert.Equal(t, bigTxCount, tpsBenchmark.TotalProcessedTxCount())
 }
 
@@ -572,6 +586,46 @@ func TestTpsBenchmark_EmptyBlocksShouldNotUpdateMultipleTimes(t *testing.T) {
 
 	bigTxCount := big.NewInt(int64(txCount))
 	assert.Equal(t, bigTxCount, tpsBenchmark.TotalProcessedTxCount())
+}
+
+func TestTpsBenchmark_TpsShouldUpdateButTxsCountShouldNot(t *testing.T) {
+	t.Parallel()
+
+	nrOfShards := uint32(1)
+	roundDuration := uint64(6)
+	tpsBenchmark, _ := statistics.NewTPSBenchmark(nrOfShards, roundDuration)
+	txCount := uint32(60)
+
+	shardData := block.ShardData{
+		ShardID:    0,
+		HeaderHash: []byte{1},
+		ShardMiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Type:    block.PeerBlock,
+				TxCount: 5000,
+			},
+			{
+				Type:            block.TxBlock,
+				TxCount:         txCount,
+				ReceiverShardID: 1,
+			},
+			{
+				Type:    block.SmartContractResultBlock,
+				TxCount: 200,
+			},
+		},
+		TxCount: 5210,
+	}
+	metaBlock := &block.MetaBlock{
+		Nonce:     1,
+		Round:     2,
+		TxCount:   txCount,
+		ShardInfo: []block.ShardData{shardData},
+	}
+	tpsBenchmark.Update(metaBlock)
+
+	assert.Equal(t, big.NewInt(0), tpsBenchmark.TotalProcessedTxCount())
+	assert.Equal(t, float64(txCount)/float64(roundDuration), tpsBenchmark.LiveTPS())
 }
 
 func TestTpsBenchmark_Concurrent(t *testing.T) {
