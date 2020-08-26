@@ -197,6 +197,9 @@ func initPersistersInEpoch(
 	if oldestEpochActive < 0 {
 		oldestEpochActive = 0
 	}
+	if !args.CleanOldEpochsData {
+		oldestEpochKeep = 0
+	}
 
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
 		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
