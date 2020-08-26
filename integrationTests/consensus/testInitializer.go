@@ -380,7 +380,7 @@ func createConsensusOnlyNode(
 	coreComponents.Hash = testHasher
 	coreComponents.AddrPubKeyConv = testPubkeyConverter
 	coreComponents.ChainIdCalled = func() string {
-		return string(consensusChainID)
+		return string(integrationTests.ChainID)
 	}
 	coreComponents.UInt64ByteSliceConv = &mock.Uint64ByteSliceConverterMock{}
 	coreComponents.WDTimer = &mock.WatchdogMock{}

@@ -114,7 +114,7 @@ func NewShardProcessorEmptyWith3shards(
 			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 			Version:                 "softwareVersion",
 			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-			HistoryRepository:       &mock.HistoryRepositoryStub{},
+			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 			EpochNotifier:           &mock.EpochNotifierStub{},
 		},
 	}

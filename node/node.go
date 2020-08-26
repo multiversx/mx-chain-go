@@ -234,7 +234,7 @@ func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
-	return n.accounts.GetExistingAccount(addr)
+	return n.stateComponents.AccountsAdapter().GetExistingAccount(addr)
 }
 
 func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAccountHandler, bool) {

@@ -61,10 +61,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	blackListHandler := timecache.NewTimeCache(timeSpanForBadHeaders)
 	feeHandler := &disabledGenesis.FeeHandler{}
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier([]byte(args.CoreComponents.ChainID()))
-	if err != nil {
-		return nil, err
-	}
 	sizeCheckDelta := 0
 	validityAttester := disabled.NewValidityAttester()
 	epochStartTrigger := disabled.NewEpochStartTrigger()
