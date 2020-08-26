@@ -72,7 +72,7 @@ func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 	metaEpoch := hdrRes.epochHandler.MetaEpoch()
 	hdrRes.mutEpochHandler.RUnlock()
 
-	shouldNotifyEpochChange := hdrRes.currentEpoch == metaEpoch
+	shouldNotifyEpochChange := hdrRes.currentEpoch <= metaEpoch
 	if shouldNotifyEpochChange {
 		hdrRes.currentEpoch = metaEpoch + 1
 		hdrRes.manualEpochStartNotifier.NewEpoch(hdrRes.currentEpoch)
