@@ -40,7 +40,7 @@ type ElasticIndexerArgs struct {
 }
 
 type elasticIndexer struct {
-	database     databaseHandler
+	database     DatabaseHandler
 	options      *Options
 	coordinator  sharding.NodesCoordinator
 	marshalizer  marshal.Marshalizer
@@ -55,16 +55,16 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 		return nil, err
 	}
 
-	databaseArguments := elasticSearchDatabaseArgs{
-		addressPubkeyConverter:   arguments.AddressPubkeyConverter,
-		validatorPubkeyConverter: arguments.ValidatorPubkeyConverter,
-		url:                      arguments.Url,
-		userName:                 arguments.UserName,
-		password:                 arguments.Password,
-		marshalizer:              arguments.Marshalizer,
-		hasher:                   arguments.Hasher,
+	databaseArguments := ElasticSearchDatabaseArgs{
+		AddressPubkeyConverter:   arguments.AddressPubkeyConverter,
+		ValidatorPubkeyConverter: arguments.ValidatorPubkeyConverter,
+		Url:                      arguments.Url,
+		UserName:                 arguments.UserName,
+		Password:                 arguments.Password,
+		Marshalizer:              arguments.Marshalizer,
+		Hasher:                   arguments.Hasher,
 	}
-	client, err := newElasticSearchDatabase(databaseArguments)
+	client, err := NewElasticSearchDatabase(databaseArguments)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create indexer: %w", err)
 	}

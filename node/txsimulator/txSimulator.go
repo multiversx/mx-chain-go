@@ -55,16 +55,16 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
 func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
-	txStatus := core.TxStatusReceived
+	txStatus := transaction.TxStatusReceived
 	failReason := ""
 	retCode, err := ts.txProcessor.ProcessTransaction(tx)
 	if err != nil {
 		failReason = err.Error()
-		txStatus = core.TxStatusNotExecuted
+		txStatus = transaction.TxStatusNotExecuted
 	}
 
 	if retCode == vmcommon.Ok {
-		txStatus = core.TxStatusExecuted
+		txStatus = transaction.TxStatusExecuted
 	}
 
 	results := &transaction.SimulationResults{
