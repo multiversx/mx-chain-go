@@ -485,7 +485,7 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 			return 1
 		},
 	}
-	coreComponents:= getDefaultCoreComponents()
+	coreComponents := getDefaultCoreComponents()
 	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
 	dataComponents := getDefaultDataComponents()
 	dataComponents.Store = storer
