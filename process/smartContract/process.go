@@ -442,8 +442,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 
 	sc.penalizeUserIfNeeded(tx, txHash, vmInput.CallType, vmInput.GasProvided, vmOutput)
 
-	// Restore gas set aside for the async callback, if any; this amount will
-	// still be available to the async callback, even after being penalized for providing too much gas
+	// Restore gas set aside for the async callback, if applicable
 	vmOutput.GasRemaining += lockedGas
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
