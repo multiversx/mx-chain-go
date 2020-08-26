@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -33,16 +32,16 @@ type transactionSimulator struct {
 // NewTransactionSimulator returns a new instance of a transactionSimulator
 func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error) {
 	if check.IfNil(args.TransactionProcessor) {
-		return nil, node.ErrNilTxSimulatorProcessor
+		return nil, ErrNilTxSimulatorProcessor
 	}
 	if check.IfNil(args.IntermmediateProcContainer) {
-		return nil, node.ErrNilIntermediateProcessorContainer
+		return nil, ErrNilIntermediateProcessorContainer
 	}
 	if check.IfNil(args.AddressPubKeyConverter) {
-		return nil, node.ErrNilPubkeyConverter
+		return nil, ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.ShardCoordinator) {
-		return nil, node.ErrNilShardCoordinator
+		return nil, ErrNilShardCoordinator
 	}
 
 	return &transactionSimulator{

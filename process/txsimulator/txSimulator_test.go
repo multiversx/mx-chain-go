@@ -10,9 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +29,7 @@ func TestNewTransactionSimulator(t *testing.T) {
 				args.ShardCoordinator = nil
 				return args
 			},
-			exError: node.ErrNilShardCoordinator,
+			exError: ErrNilShardCoordinator,
 		},
 		{
 			name: "NilTransactionProcessor",
@@ -39,7 +38,7 @@ func TestNewTransactionSimulator(t *testing.T) {
 				args.TransactionProcessor = nil
 				return args
 			},
-			exError: node.ErrNilTxSimulatorProcessor,
+			exError: ErrNilTxSimulatorProcessor,
 		},
 		{
 			name: "NilIntermProcessorContainer",
@@ -48,7 +47,7 @@ func TestNewTransactionSimulator(t *testing.T) {
 				args.IntermmediateProcContainer = nil
 				return args
 			},
-			exError: node.ErrNilIntermediateProcessorContainer,
+			exError: ErrNilIntermediateProcessorContainer,
 		},
 		{
 			name: "Ok",

@@ -6,8 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/node"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +15,7 @@ func TestNewReadOnlyAccountsDB_NilOriginalAccountsDBShouldErr(t *testing.T) {
 
 	roAccDb, err := NewReadOnlyAccountsDB(nil)
 	require.True(t, check.IfNil(roAccDb))
-	require.Equal(t, node.ErrNilAccountsAdapter, err)
+	require.Equal(t, ErrNilAccountsAdapter, err)
 }
 
 func TestNewReadOnlyAccountsDB(t *testing.T) {
