@@ -23,18 +23,18 @@ const timeSpanForBadHeaders = time.Minute
 // ArgsEpochStartInterceptorContainer holds the arguments needed for creating a new epoch start interceptors
 // container factory
 type ArgsEpochStartInterceptorContainer struct {
-	CoreComponents         process.CoreComponentsHolder
-	CryptoComponents       process.CryptoComponentsHolder
-	Config                 config.Config
-	ShardCoordinator       sharding.Coordinator
-	Messenger              process.TopicHandler
-	DataPool               dataRetriever.PoolsHolder
-	WhiteListHandler       update.WhiteListHandler
-	WhiteListerVerifiedTxs update.WhiteListHandler
-	AddressPubkeyConv      core.PubkeyConverter
-	NonceConverter         typeConverters.Uint64ByteSliceConverter
-	ChainID                []byte
-	ArgumentsParser        process.ArgumentsParser
+	CoreComponents          process.CoreComponentsHolder
+	CryptoComponents        process.CryptoComponentsHolder
+	Config                  config.Config
+	ShardCoordinator        sharding.Coordinator
+	Messenger               process.TopicHandler
+	DataPool                dataRetriever.PoolsHolder
+	WhiteListHandler        update.WhiteListHandler
+	WhiteListerVerifiedTxs  update.WhiteListHandler
+	AddressPubkeyConv       core.PubkeyConverter
+	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	ChainID                 []byte
+	ArgumentsParser         process.ArgumentsParser
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 }
 

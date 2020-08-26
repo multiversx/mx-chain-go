@@ -394,6 +394,17 @@ func (m *managedProcessComponents) PeerShardMapper() process.NetworkShardingColl
 	return m.processComponents.peerShardMapper
 }
 
+func (m *managedProcessComponents) TransactionSimulatorProcessor() TransactionSimulatorProcessor {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.txSimulatorProcessor
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (m *managedProcessComponents) IsInterfaceNil() bool {
 	return m == nil

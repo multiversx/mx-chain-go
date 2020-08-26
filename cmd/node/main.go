@@ -46,8 +46,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
-	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
-	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -79,6 +77,7 @@ import (
 )
 
 const (
+	defaultLogsPath          = "logs"
 	notSetDestinationShardID = "disabled"
 	maxTimeToClose           = 10 * time.Second
 	maxMachineIDLen          = 10
@@ -168,7 +167,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
 
 	workingDir := getWorkingDir(ctx, log)
-	logFile, err := updateLogger(workingDir, ctx, log)
+	fileLogging, err := updateLogger(workingDir, ctx, log)
 	if err != nil {
 		return err
 	}
@@ -418,15 +417,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	versionsCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.Versions.Cache))
+	versionsCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(cfgs.generalConfig.Versions.Cache))
 	if err != nil {
 		return err
 	}
 
 	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
-		[]byte(genesisNodesConfig.ChainID),
-		generalConfig.Versions.VersionsByEpochs,
-		generalConfig.Versions.DefaultVersion,
+		[]byte(managedCoreComponents.ChainID()),
+		cfgs.generalConfig.Versions.VersionsByEpochs,
+		cfgs.generalConfig.Versions.DefaultVersion,
 		versionsCache,
 	)
 	if err != nil {
@@ -711,11 +710,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	txSimulatorProcessorArgs := &txsimulator.ArgsTxSimulator{
-		AddressPubKeyConverter: addressPubkeyConverter,
-		ShardCoordinator:       shardCoordinator,
-	}
-
 	epochNotifier := forking.NewGenericEpochNotifier()
 
 	log.Trace("creating process components")
@@ -757,8 +751,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Indexer:                   managedStatusComponents.ElasticIndexer(),
 		TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
 		HistoryRepo:               historyRepository,
-		epochNotifier,
-		txSimulatorProcessorArgs,
+		EpochNotifier:             epochNotifier,
 	}
 
 	managedProcessComponents, err := mainFactory.NewManagedProcessComponents(processArgs)
@@ -770,13 +763,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	historyRepository.RegisterToBlockTracker(processComponents.BlockTracker)
-
-	transactionSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
-	if err != nil {
-		return err
-	}
-
+	historyRepository.RegisterToBlockTracker(managedProcessComponents.BlockTracker())
 	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 	err = managedStatusComponents.StartPolling()
 
@@ -889,7 +876,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	argNodeFacade := facade.ArgNodeFacade{
 		Node:                   currentNode,
 		ApiResolver:            apiResolver,
-		TxSimulatorProcessor:   transactionSimulator,
+		TxSimulatorProcessor:   managedProcessComponents.TransactionSimulatorProcessor(),
 		RestAPIServerDebugMode: restAPIServerDebugMode,
 		WsAntifloodConfig:      cfgs.generalConfig.Antiflood.WebServer,
 		FacadeConfig: config.FacadeConfig{
@@ -1096,32 +1083,6 @@ func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
 	log.Trace("working directory", "path", workingDir)
 
 	return workingDir
-}
-
-func prepareLogFile(workingDir string) (*os.File, error) {
-	logDirectory := filepath.Join(workingDir, core.DefaultLogsPath)
-	fileForLog, err := core.CreateFile("elrond-go", logDirectory, "log")
-	if err != nil {
-		return nil, err
-	}
-
-	//we need this function as to close file.Close() when the code panics and the defer func associated
-	//with the file pointer in the main func will never be reached
-	runtime.SetFinalizer(fileForLog, func(f *os.File) {
-		_ = f.Close()
-	})
-
-	err = redirects.RedirectStderr(fileForLog)
-	if err != nil {
-		return nil, err
-	}
-
-	err = logger.AddLogObserver(fileForLog, &logger.PlainFormatter{})
-	if err != nil {
-		return nil, fmt.Errorf("%w adding file log observer", err)
-	}
-
-	return fileForLog, nil
 }
 
 func indexValidatorsListIfNeeded(
@@ -1817,7 +1778,7 @@ func updateLogger(workingDir string, ctx *cli.Context, log logger.Logger) (facto
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
-		fileLogging, err = prepareLogFile(workingDir)
+		fileLogging, err = logging.NewFileLogging(workingDir, defaultLogsPath)
 		if err != nil {
 			return nil, fmt.Errorf("%w creating a log file", err)
 		}

@@ -139,6 +139,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		NodeDisplayName:      hcf.prefs.Preferences.NodeDisplayName,
 		KeyBaseIdentity:      hcf.prefs.Preferences.Identity,
 		HardforkTrigger:      hcf.hardforkTrigger,
+		CurrentBlockProvider: hcf.dataComponents.Blockchain(),
 	}
 
 	hbc.sender, err = heartbeatProcess.NewSender(argSender)

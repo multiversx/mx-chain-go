@@ -31,15 +31,15 @@ type epochStartMetaSyncer struct {
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	CoreComponentsHolder   process.CoreComponentsHolder
-	CryptoComponentsHolder process.CryptoComponentsHolder
-	RequestHandler         RequestHandler
-	Messenger              Messenger
-	ShardCoordinator       sharding.Coordinator
-	EconomicsData          process.EconomicsHandler
-	WhitelistHandler       process.WhiteListHandler
-	StartInEpochConfig     config.EpochStartConfig
-	ArgsParser             process.ArgumentsParserHeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	CoreComponentsHolder    process.CoreComponentsHolder
+	CryptoComponentsHolder  process.CryptoComponentsHolder
+	RequestHandler          RequestHandler
+	Messenger               Messenger
+	ShardCoordinator        sharding.Coordinator
+	EconomicsData           process.EconomicsHandler
+	WhitelistHandler        process.WhiteListHandler
+	StartInEpochConfig      config.EpochStartConfig
+	ArgsParser              process.ArgumentsParser
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 }
 

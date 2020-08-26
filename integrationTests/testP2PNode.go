@@ -179,7 +179,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tP2pNode.Storage
-	dataComponents.Blockchain = &mock.BlockChainMock{}
+	dataComponents.BlockChain = &mock.BlockChainMock{}
 
 	tP2pNode.Node, err = node.NewNode(
 		node.WithCoreComponents(coreComponents),

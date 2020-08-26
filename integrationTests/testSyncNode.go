@@ -188,7 +188,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			},
 		},
 		BlockTracker:            tpn.BlockTracker,
-		StateCheckpointModulus: stateCheckpointModulus,
+		StateCheckpointModulus:  stateCheckpointModulus,
 		BlockSizeThrottler:      TestBlockSizeThrottler,
 		Indexer:                 indexer.NewNilIndexer(),
 		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},

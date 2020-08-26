@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -14,27 +15,29 @@ import (
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
 type BootstrapComponentsFactoryArgs struct {
-	Config                config.Config
-	WorkingDir            string
-	DestinationAsObserver uint32
-	GenesisNodesSetup     sharding.GenesisNodesSetupHandler
-	NodeShuffler          sharding.NodesShuffler
-	ShardCoordinator      sharding.Coordinator
-	CoreComponents        CoreComponentsHolder
-	CryptoComponents      CryptoComponentsHolder
-	NetworkComponents     NetworkComponentsHolder
+	Config                  config.Config
+	WorkingDir              string
+	DestinationAsObserver   uint32
+	GenesisNodesSetup       sharding.GenesisNodesSetupHandler
+	NodeShuffler            sharding.NodesShuffler
+	ShardCoordinator        sharding.Coordinator
+	CoreComponents          CoreComponentsHolder
+	CryptoComponents        CryptoComponentsHolder
+	NetworkComponents       NetworkComponentsHolder
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 }
 
 type bootstrapComponentsFactory struct {
-	config                config.Config
-	workingDir            string
-	destinationAsObserver uint32
-	genesisNodesSetup     sharding.GenesisNodesSetupHandler
-	nodesShuffler         sharding.NodesShuffler
-	shardCoordinator      sharding.Coordinator
-	coreComponents        CoreComponentsHolder
-	cryptoComponents      CryptoComponentsHolder
-	networkComponents     NetworkComponentsHolder
+	config                  config.Config
+	workingDir              string
+	destinationAsObserver   uint32
+	genesisNodesSetup       sharding.GenesisNodesSetupHandler
+	nodesShuffler           sharding.NodesShuffler
+	shardCoordinator        sharding.Coordinator
+	coreComponents          CoreComponentsHolder
+	cryptoComponents        CryptoComponentsHolder
+	networkComponents       NetworkComponentsHolder
+	headerIntegrityVerifier process.HeaderIntegrityVerifier
 }
 
 type bootstrapParamsHolder struct {
@@ -71,15 +74,16 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	}
 
 	return &bootstrapComponentsFactory{
-		config:                args.Config,
-		workingDir:            args.WorkingDir,
-		destinationAsObserver: args.DestinationAsObserver,
-		genesisNodesSetup:     args.GenesisNodesSetup,
-		nodesShuffler:         args.NodeShuffler,
-		shardCoordinator:      args.ShardCoordinator,
-		coreComponents:        args.CoreComponents,
-		cryptoComponents:      args.CryptoComponents,
-		networkComponents:     args.NetworkComponents,
+		config:                  args.Config,
+		workingDir:              args.WorkingDir,
+		destinationAsObserver:   args.DestinationAsObserver,
+		genesisNodesSetup:       args.GenesisNodesSetup,
+		nodesShuffler:           args.NodeShuffler,
+		shardCoordinator:        args.ShardCoordinator,
+		coreComponents:          args.CoreComponents,
+		cryptoComponents:        args.CryptoComponents,
+		networkComponents:       args.NetworkComponents,
+		headerIntegrityVerifier: args.HeaderIntegrityVerifier,
 	}, nil
 }
 
@@ -138,6 +142,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
+		HeaderIntegrityVerifier:    bcf.headerIntegrityVerifier,
 	}
 
 	epochStartBootstraper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)

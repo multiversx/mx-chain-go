@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -78,6 +79,7 @@ type P2PAntifloodHandler interface {
 // HeaderIntegrityVerifierHandler is the interface needed to check that a header's integrity is correct
 type HeaderIntegrityVerifierHandler interface {
 	Verify(header data.HeaderHandler) error
+	GetVersion(epoch uint32) string
 	IsInterfaceNil() bool
 }
 
@@ -208,6 +210,12 @@ type NetworkComponentsHandler interface {
 	NetworkComponentsHolder
 }
 
+// TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
+type TransactionSimulatorProcessor interface {
+	ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	IsInterfaceNil() bool
+}
+
 // ProcessComponentsHolder holds the process components
 type ProcessComponentsHolder interface {
 	NodesCoordinator() sharding.NodesCoordinator
@@ -231,6 +239,7 @@ type ProcessComponentsHolder interface {
 	TxLogsProcessor() process.TransactionLogProcessorDatabase
 	HeaderConstructionValidator() process.HeaderConstructionValidator
 	PeerShardMapper() process.NetworkShardingCollector
+	//TransactionSimulatorProcessor() TransactionSimulatorProcessor
 	IsInterfaceNil() bool
 }
 

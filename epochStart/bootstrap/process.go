@@ -411,14 +411,14 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:   e.coreComponentsHolder,
-		CryptoComponentsHolder: e.cryptoComponentsHolder,
-		RequestHandler:         e.requestHandler,
-		Messenger:              e.messenger,
-		ShardCoordinator:       e.shardCoordinator,
-		EconomicsData:          e.economicsData,
-		WhitelistHandler:       e.whiteListHandler,
-		StartInEpochConfig:     e.generalConfig.EpochStartConfig,
+		CoreComponentsHolder:    e.coreComponentsHolder,
+		CryptoComponentsHolder:  e.cryptoComponentsHolder,
+		RequestHandler:          e.requestHandler,
+		Messenger:               e.messenger,
+		ShardCoordinator:        e.shardCoordinator,
+		EconomicsData:           e.economicsData,
+		WhitelistHandler:        e.whiteListHandler,
+		StartInEpochConfig:      e.generalConfig.EpochStartConfig,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
@@ -433,15 +433,15 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		CoreComponents:         e.coreComponentsHolder,
-		CryptoComponents:       e.cryptoComponentsHolder,
-		Config:                 e.generalConfig,
-		ShardCoordinator:       e.shardCoordinator,
-		Messenger:              e.messenger,
-		DataPool:               e.dataPool,
-		WhiteListHandler:       e.whiteListHandler,
-		WhiteListerVerifiedTxs: e.whiteListerVerifiedTxs,
-		ArgumentsParser:        e.argumentsParser,
+		CoreComponents:          e.coreComponentsHolder,
+		CryptoComponents:        e.cryptoComponentsHolder,
+		Config:                  e.generalConfig,
+		ShardCoordinator:        e.shardCoordinator,
+		Messenger:               e.messenger,
+		DataPool:                e.dataPool,
+		WhiteListHandler:        e.whiteListHandler,
+		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
+		ArgumentsParser:         e.argumentsParser,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 	}
 

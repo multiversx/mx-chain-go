@@ -128,6 +128,9 @@ var ErrNilElasticIndexer = errors.New("nil elastic search indexer")
 // ErrNilElasticOptions signals that nil elastic options have been provided
 var ErrNilElasticOptions = errors.New("nil elastic options")
 
+// ErrNilEpochNotifier signals that a nil epoch notifier has been provided
+var ErrNilEpochNotifier = errors.New("nil epoch notifier")
+
 // ErrNilEpochStartBootstrapper signals that a nil epoch start bootstrapper was provided
 var ErrNilEpochStartBootstrapper = errors.New("nil epoch start bootstrapper")
 
@@ -352,6 +355,9 @@ var ErrNilTxSignKeyGen = errors.New("nil transaction signing key generator")
 
 // ErrNilTxSignMarshalizer signals that a nil transaction sign marshalizer was provided
 var ErrNilTxSignMarshalizer = errors.New("nil transaction marshalizer")
+
+// ErrNilTxSimulatorProcessorArgs signals that nil tx simulator processor arguments were provided
+var ErrNilTxSimulatorProcessorArgs = errors.New("nil tx simulator processor arguments")
 
 // ErrNilUint64ByteSliceConverter signals that a nil byte slice converter was provided
 var ErrNilUint64ByteSliceConverter = errors.New("nil byte slice converter")

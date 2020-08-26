@@ -681,8 +681,7 @@ type InterceptedHeaderSigVerifier interface {
 	IsInterfaceNil() bool
 }
 
-// HeaderIntegrityVerifier is the interface needed to check that a header's integrity
-// is correct
+// HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
 type HeaderIntegrityVerifier interface {
 	Verify(header data.HeaderHandler) error
 	GetVersion(epoch uint32) string
@@ -968,11 +967,5 @@ type CryptoComponentsHolder interface {
 	MultiSigner() crypto.MultiSigner
 	SetMultiSigner(ms crypto.MultiSigner) error
 	PublicKey() crypto.PublicKey
-	IsInterfaceNil() bool
-}
-
-// HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
-type HeaderIntegrityVerifier interface {
-	Verify(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
