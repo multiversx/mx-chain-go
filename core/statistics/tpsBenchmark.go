@@ -42,7 +42,6 @@ type TpsBenchmark struct {
 	lastBlockTxCount      uint32
 	totalProcessedTxCount *big.Int
 	shardStatistics       map[uint32]ShardStatistic
-	missingNonces         map[uint64]struct{}
 	statusHandler         core.AppStatusHandler
 	initialBlockNumber    int64
 }
@@ -95,7 +94,6 @@ func NewTPSBenchmarkWithInitialData(
 		totalProcessedTxCount: initialTpsBenchmark.TotalProcessedTxCount,
 		averageBlockTxCount:   initialTpsBenchmark.AverageBlockTxCount,
 		statusHandler:         appStatusHandler,
-		missingNonces:         make(map[uint64]struct{}),
 		initialBlockNumber:    int64(initialTpsBenchmark.BlockNumber),
 	}, nil
 }
@@ -122,7 +120,6 @@ func NewTPSBenchmark(
 		roundTime:             roundDuration,
 		shardStatistics:       shardStats,
 		statusHandler:         statusHandler.NewNilStatusHandler(),
-		missingNonces:         make(map[uint64]struct{}),
 		totalProcessedTxCount: big.NewInt(0),
 		averageBlockTxCount:   big.NewInt(0),
 		initialBlockNumber:    defaultBlockNumber,
@@ -198,63 +195,20 @@ func (s *TpsBenchmark) ShardStatistic(shardID uint32) ShardStatistic {
 	return ss
 }
 
-func (s *TpsBenchmark) isMissingNonce(nonce uint64) bool {
-	if nonce >= s.blockNumber {
-		return false
-	}
-
-	_, isMissing := s.missingNonces[nonce]
-
-	return isMissing
-}
-
-func (s *TpsBenchmark) isMetaBlockRelevant(mb *block.MetaBlock) bool {
-	if mb == nil {
-		return false
-	}
-	if mb.Nonce <= s.blockNumber && !s.isMissingNonce(mb.Nonce) {
-		return false
-	}
-	if len(mb.ShardInfo) < 1 {
-		return false
-	}
-
-	return true
-}
-
 // Update receives a metablock and updates all fields accordingly for each shard available in the meta block
 func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
 	if mblock == nil || mblock.IsInterfaceNil() {
 		return
 	}
 
-	mb := mblock.(*block.MetaBlock)
-	if mb == nil {
+	mb, ok := mblock.(*block.MetaBlock)
+	if !ok {
 		return
 	}
 
 	s.mut.Lock()
-	if !s.isMetaBlockRelevant(mb) {
-		s.mut.Unlock()
-		return
-	}
-
-	if mb.Nonce > s.blockNumber {
-		for i := s.blockNumber + 1; i < mb.Nonce; i++ {
-			s.addMissingNonce(i)
-		}
-	}
-	s.removeMissingNonce(mb.Nonce)
 	_ = s.updateStatistics(mb)
 	s.mut.Unlock()
-}
-
-func (s *TpsBenchmark) addMissingNonce(nonce uint64) {
-	s.missingNonces[nonce] = struct{}{}
-}
-
-func (s *TpsBenchmark) removeMissingNonce(nonce uint64) {
-	delete(s.missingNonces, nonce)
 }
 
 func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {

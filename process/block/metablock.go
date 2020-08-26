@@ -1098,7 +1098,8 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
-	mp.tpsBenchmark.Update(header)
+	mp.tpsBenchmark.Update(lastMetaBlock)
+
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 

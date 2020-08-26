@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func updateTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark, txCount uint32) {
+func updateTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark, txCount uint32, nonce uint64) {
 	shardData := block.ShardData{
 		ShardID:    1,
 		HeaderHash: []byte{1},
@@ -29,8 +29,8 @@ func updateTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark, txCount uint32) {
 		},
 	}
 	metaBlock := &block.MetaBlock{
-		Nonce:     1,
-		Round:     2,
+		Nonce:     nonce,
+		Round:     nonce,
 		ShardInfo: []block.ShardData{shardData},
 	}
 	tpsBenchmark.Update(metaBlock)
@@ -106,75 +106,6 @@ func TestTpsBenchmark_UpdateIrrelevantBlock(t *testing.T) {
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
 
 	tpsBenchmark.Update(nil)
-	assert.Equal(t, tpsBenchmark.BlockNumber(), uint64(0))
-}
-
-func TestTpsBenchmark_UpdateSmallerNonce(t *testing.T) {
-	t.Parallel()
-
-	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
-
-	round := uint64(2)
-	blockNumber := round
-
-	metaBlock := &block.MetaBlock{
-		Nonce: blockNumber - 1,
-		Round: round - 1,
-		ShardInfo: []block.ShardData{
-			{
-				ShardID:               0,
-				HeaderHash:            []byte{1},
-				ShardMiniBlockHeaders: []block.MiniBlockHeader{},
-				PrevRandSeed:          []byte{1},
-				PubKeysBitmap:         []byte{1},
-				Signature:             []byte{1},
-				TxCount:               10,
-				Round:                 uint64(1),
-				PrevHash:              []byte{1},
-				Nonce:                 uint64(1),
-			},
-		},
-	}
-	metaBlock2 := &block.MetaBlock{
-		Nonce: blockNumber,
-		Round: round,
-		ShardInfo: []block.ShardData{
-			{
-				ShardID:               0,
-				HeaderHash:            []byte{1},
-				ShardMiniBlockHeaders: []block.MiniBlockHeader{},
-				PrevRandSeed:          []byte{1},
-				PubKeysBitmap:         []byte{1},
-				Signature:             []byte{1},
-				TxCount:               10,
-				Round:                 uint64(1),
-				PrevHash:              []byte{1},
-				Nonce:                 uint64(1),
-			},
-		},
-	}
-	// Start with block with nonce 1 so it would be processed
-	tpsBenchmark.Update(metaBlock)
-	// Add second block, again, it would be processed
-	tpsBenchmark.Update(metaBlock2)
-	// Try adding the first block again, it should not be processed
-	tpsBenchmark.Update(metaBlock)
-
-	assert.Equal(t, tpsBenchmark.BlockNumber(), blockNumber)
-}
-
-func TestTpsBenchmark_UpdateEmptyShardInfoInMiniblock(t *testing.T) {
-	t.Parallel()
-
-	tpsBenchmark, _ := statistics.NewTPSBenchmark(1, 1)
-	blockNumber := uint64(1)
-
-	metaBlock := &block.MetaBlock{
-		Nonce:     blockNumber,
-		ShardInfo: make([]block.ShardData, 0),
-	}
-
-	tpsBenchmark.Update(metaBlock)
 	assert.Equal(t, tpsBenchmark.BlockNumber(), uint64(0))
 }
 
@@ -651,15 +582,16 @@ func testTpsBenchmarkConcurrent(t *testing.T) {
 	wg.Add(nrGoroutines)
 
 	for i := 0; i < nrGoroutines; i++ {
-		go func() {
+		go func(nonce int) {
 			time.Sleep(time.Millisecond)
-			updateTpsBenchmark(tpsBenchmark, txCount)
+			updateTpsBenchmark(tpsBenchmark, txCount, uint64(nonce))
 			wg.Done()
-		}()
+		}(i)
 	}
 	wg.Wait()
 
 	bigTxCount := big.NewInt(int64(txCount))
+	bigTxCount.Mul(bigTxCount, big.NewInt(int64(nrGoroutines)))
 	assert.Equal(t, bigTxCount, tpsBenchmark.TotalProcessedTxCount())
 }
 
