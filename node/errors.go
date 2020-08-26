@@ -189,3 +189,9 @@ var ErrNilTxSimulatorProcessor = errors.New("nil transaction simulator processor
 
 // ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
 var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
+
+// ErrTransactionNotFound signals that a transaction was not found
+var ErrTransactionNotFound = errors.New("transaction not found")
+
+// ErrCannotRetrieveTransaction signals that a transaction was not found
+var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")
