@@ -752,6 +752,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
 		HistoryRepo:               historyRepository,
 		EpochNotifier:             epochNotifier,
+		HeaderIntegrityVerifier:   headerIntegrityVerifier,
 	}
 
 	managedProcessComponents, err := mainFactory.NewManagedProcessComponents(processArgs)
