@@ -2,6 +2,7 @@ package node
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
@@ -60,19 +61,19 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransactionResult, error) {
 	miniblockMetadata, err := n.historyRepository.GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
-		return nil, NewErrTransactionNotFound(err)
+		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
 
 	txBytes, txType, found := n.getTxBytesFromStorageByEpoch(hash, miniblockMetadata.Epoch)
 	if !found {
 		log.Warn("getFullHistoryTransaction(): unexpected condition, cannot find transaction in storage")
-		return nil, NewErrCannotRetrieveTransaction(err)
+		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
 	}
 
 	tx, err := n.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		log.Warn("getFullHistoryTransaction(): unexpected condition, cannot unmarshal transaction")
-		return nil, NewErrCannotRetrieveTransaction(err)
+		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
 	}
 
 	putHistoryFieldsInTransaction(tx, miniblockMetadata)
@@ -110,7 +111,7 @@ func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblo
 func (n *Node) getTransactionFromStorage(hash []byte) (*transaction.ApiTransactionResult, error) {
 	txBytes, txType, found := n.getTxBytesFromStorage(hash)
 	if !found {
-		return nil, NewErrTransactionNotFound(nil)
+		return nil, ErrTransactionNotFound
 	}
 
 	tx, err := n.unmarshalTransaction(txBytes, txType)

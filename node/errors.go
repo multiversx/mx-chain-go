@@ -2,7 +2,6 @@ package node
 
 import (
 	"errors"
-	"fmt"
 )
 
 // ErrNilMarshalizer signals that a nil marshalizer has been provided
@@ -191,15 +190,8 @@ var ErrNilTxSimulatorProcessor = errors.New("nil transaction simulator processor
 // ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
 var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
 
-// NewErrTransactionNotFound creates an error which signals that a transaction was not found
-func NewErrTransactionNotFound(originalErr error) error {
-	if originalErr == nil {
-		return fmt.Errorf("transaction not found")
-	}
-	return fmt.Errorf("transaction not found, originalErr: %w", originalErr)
-}
+// ErrTransactionNotFound signals that a transaction was not found
+var ErrTransactionNotFound = errors.New("transaction not found")
 
-// NewErrCannotRetrieveTransaction creates an error which signals a transaction cannot be retrieved
-func NewErrCannotRetrieveTransaction(originalErr error) error {
-	return fmt.Errorf("transaction cannot be retrieved, originalErr: %w", originalErr)
-}
+// ErrCannotRetrieveTransaction signals that a transaction was not found
+var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")
