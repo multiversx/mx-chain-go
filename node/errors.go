@@ -2,6 +2,7 @@ package node
 
 import (
 	"errors"
+	"fmt"
 )
 
 // ErrNilMarshalizer signals that a nil marshalizer has been provided
@@ -42,12 +43,6 @@ var ErrNilPublicKey = errors.New("trying to set nil public key")
 
 // ErrAccountNotFound signals that an account was not found in trie
 var ErrAccountNotFound = errors.New("account not found")
-
-// ErrTransactionNotFound signals that a transaction was not found
-var ErrTransactionNotFound = errors.New("transaction not found")
-
-// ErrCannotRetrieveTransaction signals that a transaction cannot be retrieved
-var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")
 
 // ErrZeroRoundDurationNotSupported signals that 0 seconds round duration is not supported
 var ErrZeroRoundDurationNotSupported = errors.New("0 round duration time is not supported")
@@ -195,3 +190,16 @@ var ErrNilTxSimulatorProcessor = errors.New("nil transaction simulator processor
 
 // ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
 var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
+
+// NewErrTransactionNotFound creates an error which signals that a transaction was not found
+func NewErrTransactionNotFound(originalErr error) error {
+	if originalErr == nil {
+		return fmt.Errorf("transaction not found")
+	}
+	return fmt.Errorf("transaction not found, originalErr: %w", originalErr)
+}
+
+// NewErrCannotRetrieveTransaction creates an error which signals a transaction cannot be retrieved
+func NewErrCannotRetrieveTransaction(originalErr error) error {
+	return fmt.Errorf("transaction cannot be retrieved, originalErr: %w", originalErr)
+}

@@ -3,6 +3,7 @@ package node
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -163,7 +164,7 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 
 	// Missing transaction
 	tx, err := n.GetTransaction(hex.EncodeToString([]byte("missing")))
-	require.Equal(t, ErrTransactionNotFound, err)
+	require.Contains(t, err.Error(), "transaction not found")
 	require.Nil(t, tx)
 
 	// Badly serialized transaction
@@ -261,10 +262,11 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 
 	// Missing transaction
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
-		return nil, ErrTransactionNotFound
+		return nil, fmt.Errorf("fooError")
 	}
 	tx, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
-	require.Equal(t, ErrTransactionNotFound, err)
+	require.Contains(t, err.Error(), "transaction not found")
+	require.Contains(t, err.Error(), "fooError")
 	require.Nil(t, tx)
 
 	// Badly serialized transaction

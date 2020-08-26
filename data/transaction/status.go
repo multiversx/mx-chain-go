@@ -16,7 +16,6 @@ const (
 	// TxStatusExecuted = received and executed
 	TxStatusExecuted TxStatus = "executed"
 	// TxStatusNotExecuted = received and executed with error
-	// Question for review: not executed means "executed with error", correct?
 	TxStatusNotExecuted TxStatus = "not-executed"
 	// TxStatusInvalid = considered invalid
 	TxStatusInvalid TxStatus = "invalid"
@@ -34,7 +33,10 @@ type StatusComputer struct {
 
 // ComputeStatusWhenInPool computes the transaction status when transaction is in pool
 func (params *StatusComputer) ComputeStatusWhenInPool() TxStatus {
-	if params.isDestinationMe() && params.isCrossShard() && !params.isContractDeploy() {
+	if params.isContractDeploy() {
+		return TxStatusReceived
+	}
+	if params.isDestinationMe() && params.isCrossShard() {
 		return TxStatusPartiallyExecuted
 	}
 
@@ -46,7 +48,6 @@ func (params *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxSta
 	if params.isMiniblockInvalid() {
 		return TxStatusInvalid
 	}
-
 	if params.isDestinationMe() || params.isContractDeploy() {
 		return TxStatusExecuted
 	}
@@ -55,10 +56,9 @@ func (params *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxSta
 }
 
 // ComputeStatusWhenInStorageNotKnowingMiniblock computes the transaction status when transaction is in current epoch's storage
+// Limitation: in this case, since we do not know the miniblock type, we cannot know if a transaction is actually, "invalid".
+// However, when "fullHistory" indexing is enabled, this function is not used.
 func (params *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock() TxStatus {
-	// Question for review: here we cannot know if the transaction is, actually, "invalid".
-	// However, when "fullHistory" indexing is enabled, this function is not used.
-
 	if params.isDestinationMe() || params.isContractDeploy() {
 		return TxStatusExecuted
 	}

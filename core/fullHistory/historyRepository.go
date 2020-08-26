@@ -272,7 +272,11 @@ func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlo
 				metaHash:  metaBlockHash,
 			})
 		} else {
-			log.Warn("onNotarizedMiniblock() unexpected: cannot get miniblock metadata", "miniblock", miniblockHash, "err", err)
+			log.Debug("onNotarizedMiniblock() unexpected: cannot get miniblock metadata",
+				"miniblock", miniblockHash,
+				"direction", fmt.Sprintf("[%d -> %d]", miniblockHeader.SenderShardID, miniblockHeader.ReceiverShardID),
+				"meta nonce", metaBlockNonce,
+				"err", err)
 		}
 
 		return

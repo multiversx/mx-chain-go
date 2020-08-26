@@ -32,7 +32,7 @@ func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult,
 		return n.getFullHistoryTransaction(hash)
 	}
 
-	return n.getTransactionFromCurrentEpochStorage(hash)
+	return n.getTransactionFromStorage(hash)
 }
 
 func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTransactionResult, error) {
@@ -60,19 +60,19 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransactionResult, error) {
 	miniblockMetadata, err := n.historyRepository.GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
-		return nil, ErrTransactionNotFound
+		return nil, NewErrTransactionNotFound(err)
 	}
 
 	txBytes, txType, found := n.getTxBytesFromStorageByEpoch(hash, miniblockMetadata.Epoch)
 	if !found {
 		log.Warn("getFullHistoryTransaction(): unexpected condition, cannot find transaction in storage")
-		return nil, ErrCannotRetrieveTransaction
+		return nil, NewErrCannotRetrieveTransaction(err)
 	}
 
 	tx, err := n.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		log.Warn("getFullHistoryTransaction(): unexpected condition, cannot unmarshal transaction")
-		return nil, ErrCannotRetrieveTransaction
+		return nil, NewErrCannotRetrieveTransaction(err)
 	}
 
 	putHistoryFieldsInTransaction(tx, miniblockMetadata)
@@ -107,10 +107,10 @@ func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblo
 	return tx
 }
 
-func (n *Node) getTransactionFromCurrentEpochStorage(hash []byte) (*transaction.ApiTransactionResult, error) {
+func (n *Node) getTransactionFromStorage(hash []byte) (*transaction.ApiTransactionResult, error) {
 	txBytes, txType, found := n.getTxBytesFromStorage(hash)
 	if !found {
-		return nil, ErrTransactionNotFound
+		return nil, NewErrTransactionNotFound(nil)
 	}
 
 	tx, err := n.unmarshalTransaction(txBytes, txType)
@@ -119,7 +119,7 @@ func (n *Node) getTransactionFromCurrentEpochStorage(hash []byte) (*transaction.
 	}
 
 	tx.Status = (&transaction.StatusComputer{
-		// Question for review: should not be long-term (only short-term) problems here in case of adaptive sharding, since we return from "current epoch" storage, correct?
+		// TODO: take care of this when integrating the adaptivity
 		SourceShard:      n.shardCoordinator.ComputeId(tx.Tx.GetSndAddr()),
 		DestinationShard: n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()),
 		Receiver:         tx.Tx.GetRcvAddr(),
@@ -232,7 +232,8 @@ func (n *Node) castObjToTransaction(txObj interface{}, txType transaction.TxType
 		}
 	}
 
-	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}, nil // this shouldn't happen
+	log.Warn("castObjToTransaction() unexpected: unknown txType", "txType", txType)
+	return &transaction.ApiTransactionResult{Type: string(transaction.TxTypeInvalid)}, nil
 }
 
 func (n *Node) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
