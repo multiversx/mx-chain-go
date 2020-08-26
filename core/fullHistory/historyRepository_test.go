@@ -91,8 +91,8 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 	require.Nil(t, err)
 	// Two miniblocks
 	require.Equal(t, 2, len(repo.miniblocksMetadataStorer.(*genericmocks.StorerMock).Data))
-	// One block, two miniblocks
-	require.Equal(t, 3, len(repo.epochByHashIndex.storer.(*genericmocks.StorerMock).Data))
+	// One block, two miniblocks, two transactions
+	require.Equal(t, 5, len(repo.epochByHashIndex.storer.(*genericmocks.StorerMock).Data))
 	// Two transactions
 	require.Equal(t, 2, len(repo.miniblockHashByTxHashIndex.(*genericmocks.StorerMock).Data))
 }
@@ -173,11 +173,13 @@ func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 42, int(epoch))
 
-	// Get epoch by transaction hash DOES NOT WORK (not needed)
+	// Get epoch by transaction hash
 	epoch, err = repo.GetEpochByHash([]byte("txA"))
-	require.NotNil(t, err)
+	require.Nil(t, err)
+	require.Equal(t, 42, int(epoch))
 	epoch, err = repo.GetEpochByHash([]byte("txA"))
-	require.NotNil(t, err)
+	require.Nil(t, err)
+	require.Equal(t, 42, int(epoch))
 }
 
 func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
