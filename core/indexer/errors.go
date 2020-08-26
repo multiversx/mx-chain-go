@@ -13,9 +13,6 @@ var ErrBodyTypeAssertion = errors.New("elasticsearch - body type assertion faile
 // ErrNoHeader signals that we could not create an elasticsearch index
 var ErrNoHeader = errors.New("elasticsearch - no header")
 
-// ErrNoMiniblocks signals that we could not create an elasticsearch index
-var ErrNoMiniblocks = errors.New("elasticsearch - no miniblocks")
-
 //ErrEmptyUserName signals that user name for elastic search is empty
 var ErrEmptyUserName = errors.New("user name is empty")
 
