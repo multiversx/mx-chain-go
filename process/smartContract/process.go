@@ -460,7 +460,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		tx,
 		txHash,
 		acntSnd,
-		vmcommon.DirectCall,
+		vmInput.CallType,
 	)
 	if !check.IfNil(acntSnd) {
 		err = acntSnd.AddToBalance(scrForSender.Value)

@@ -107,6 +107,10 @@ var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+// TestBuiltinFunctions is an additional map of builtin functions to be added
+// to the scProcessor
+var TestBuiltinFunctions = make(map[string]process.BuiltinFunction)
+
 // TestBlockSizeThrottler represents a block size throttler used in adaptive block size computation
 var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
 
@@ -1003,6 +1007,12 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		Marshalizer:     TestMarshalizer,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+
+	if len(TestBuiltinFunctions) > 0 {
+		for name, function := range TestBuiltinFunctions {
+			builtInFuncs.Add(name, function)
+		}
+	}
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         tpn.AccntState,
