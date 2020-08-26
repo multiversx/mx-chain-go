@@ -31,7 +31,6 @@ type headerResolver struct {
 	hdrStorage               storage.Storer
 	hdrNoncesStorage         storage.Storer
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
-	currentEpoch             uint32
 }
 
 // NewHeaderResolver creates a new storage header resolver
@@ -72,11 +71,7 @@ func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 	metaEpoch := hdrRes.epochHandler.MetaEpoch()
 	hdrRes.mutEpochHandler.RUnlock()
 
-	shouldNotifyEpochChange := hdrRes.currentEpoch <= metaEpoch
-	if shouldNotifyEpochChange {
-		hdrRes.currentEpoch = metaEpoch + 1
-		hdrRes.manualEpochStartNotifier.NewEpoch(hdrRes.currentEpoch)
-	}
+	hdrRes.manualEpochStartNotifier.NewEpoch(metaEpoch + 1)
 
 	buff, err := hdrRes.hdrStorage.SearchFirst(hash)
 	if err != nil {

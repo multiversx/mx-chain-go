@@ -35,15 +35,37 @@ func TestManualEpochStartNotifier_NewEpochWorks(t *testing.T) {
 	t.Parallel()
 
 	newEpoch := uint32(6483)
-	epoch := uint32(0)
+	calledEpoch := uint32(0)
 	mesn := NewManualEpochStartNotifier()
 	mesn.RegisterHandler(&mock.ActionHandlerStub{
 		EpochStartActionCalled: func(hdr data.HeaderHandler) {
-			atomic.StoreUint32(&epoch, hdr.GetEpoch())
+			atomic.StoreUint32(&calledEpoch, hdr.GetEpoch())
 		},
 	})
 
 	mesn.NewEpoch(newEpoch)
 
-	assert.Equal(t, newEpoch, atomic.LoadUint32(&epoch))
+	assert.Equal(t, newEpoch, atomic.LoadUint32(&calledEpoch))
+}
+
+func TestManualEpochStartNotifier_NewEpochLowerValueShouldNotCallUpdate(t *testing.T) {
+	t.Parallel()
+
+	newEpoch := uint32(6483)
+	calledEpoch := uint32(0)
+	mesn := NewManualEpochStartNotifier()
+	mesn.RegisterHandler(&mock.ActionHandlerStub{
+		EpochStartActionCalled: func(hdr data.HeaderHandler) {
+			atomic.StoreUint32(&calledEpoch, hdr.GetEpoch())
+		},
+	})
+	assert.Equal(t, uint32(0), mesn.CurrentEpoch())
+
+	mesn.NewEpoch(newEpoch)
+	assert.Equal(t, newEpoch, mesn.CurrentEpoch())
+
+	mesn.NewEpoch(newEpoch - 1)
+	assert.Equal(t, newEpoch, mesn.CurrentEpoch())
+
+	assert.Equal(t, newEpoch, atomic.LoadUint32(&calledEpoch))
 }

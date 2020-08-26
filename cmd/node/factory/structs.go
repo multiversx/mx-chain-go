@@ -79,11 +79,14 @@ import (
 const (
 	// maxTxsToRequest specifies the maximum number of txs to request
 	maxTxsToRequest = 1000
-	//TODO merge these consts with the main consts
-	defaultDBPath         = "db"
-	defaultEpochString    = "Epoch"
-	defaultStaticDbString = "Static"
-	defaultShardString    = "Shard"
+	// DefaultDBPath is the default DB path directory
+	DefaultDBPath = "db"
+	// DefaultEpochString is the default Epoch string when creating DB path
+	DefaultEpochString = "Epoch"
+	// DefaultStaticDbString is the default Static string when creating DB path
+	DefaultStaticDbString = "Static"
+	// DefaultShardString is the default Shard string when creating DB path
+	DefaultShardString = "Shard"
 )
 
 //TODO remove this
@@ -840,7 +843,6 @@ func newStorageResolver(
 	}
 
 	manEpochStartNotifier := notifier.NewManualEpochStartNotifier()
-
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		config,
 		shardCoordinator,
@@ -887,18 +889,18 @@ func createPathManager(
 ) (storage.PathManagerHandler, error) {
 	pathTemplateForPruningStorer := filepath.Join(
 		storageResolverImportPath,
-		defaultDBPath,
+		DefaultDBPath,
 		chainID,
-		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
-		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		fmt.Sprintf("%s_%s", DefaultEpochString, core.PathEpochPlaceholder),
+		fmt.Sprintf("%s_%s", DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
 	pathTemplateForStaticStorer := filepath.Join(
 		storageResolverImportPath,
-		defaultDBPath,
+		DefaultDBPath,
 		chainID,
-		defaultStaticDbString,
-		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		DefaultStaticDbString,
+		fmt.Sprintf("%s_%s", DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
 	return pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)

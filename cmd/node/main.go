@@ -90,10 +90,6 @@ import (
 const (
 	defaultStatsPath             = "stats"
 	defaultLogsPath              = "logs"
-	defaultDBPath                = "db"
-	defaultEpochString           = "Epoch"
-	defaultStaticDbString        = "Static"
-	defaultShardString           = "Shard"
 	notSetDestinationShardID     = "disabled"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
@@ -710,18 +706,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
-		defaultDBPath,
+		factory.DefaultDBPath,
 		genesisNodesConfig.ChainID,
-		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
-		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		fmt.Sprintf("%s_%s", factory.DefaultEpochString, core.PathEpochPlaceholder),
+		fmt.Sprintf("%s_%s", factory.DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
 	pathTemplateForStaticStorer := filepath.Join(
 		workingDir,
-		defaultDBPath,
+		factory.DefaultDBPath,
 		genesisNodesConfig.ChainID,
-		defaultStaticDbString,
-		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		factory.DefaultStaticDbString,
+		fmt.Sprintf("%s_%s", factory.DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
 	var pathManager *pathmanager.PathManager
@@ -889,7 +885,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, defaultDBPath), appVersion)
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, factory.DefaultDBPath), appVersion)
 	if err != nil {
 		return err
 	}
@@ -906,9 +902,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		*generalConfig,
 		genesisNodesConfig.ChainID,
 		workingDir,
-		defaultDBPath,
-		defaultEpochString,
-		defaultShardString,
+		factory.DefaultDBPath,
+		factory.DefaultEpochString,
+		factory.DefaultShardString,
 	)
 	if err != nil {
 		return err
@@ -921,9 +917,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		*generalConfig,
 		genesisNodesConfig.ChainID,
 		workingDir,
-		defaultDBPath,
-		defaultEpochString,
-		defaultShardString,
+		factory.DefaultDBPath,
+		factory.DefaultEpochString,
+		factory.DefaultShardString,
 	)
 	if err != nil {
 		return err
@@ -961,9 +957,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		PathManager:                pathManager,
 		StorageUnitOpener:          unitOpener,
 		WorkingDir:                 workingDir,
-		DefaultDBPath:              defaultDBPath,
-		DefaultEpochString:         defaultEpochString,
-		DefaultShardString:         defaultShardString,
+		DefaultDBPath:              factory.DefaultDBPath,
+		DefaultEpochString:         factory.DefaultEpochString,
+		DefaultShardString:         factory.DefaultShardString,
 		Rater:                      rater,
 		DestinationShardAsObserver: destShardIdAsObserver,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
@@ -1556,7 +1552,7 @@ func cleanupStorageIfNecessary(workingDir string, ctx *cli.Context, log logger.L
 	if storageCleanupFlagValue {
 		dbPath := filepath.Join(
 			workingDir,
-			defaultDBPath)
+			factory.DefaultDBPath)
 		log.Trace("cleaning storage", "path", dbPath)
 		err := os.RemoveAll(dbPath)
 		if err != nil {

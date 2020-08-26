@@ -180,6 +180,7 @@ type EpochHandler interface {
 // ManualEpochStartNotifier can manually notify an epoch change
 type ManualEpochStartNotifier interface {
 	NewEpoch(epoch uint32)
+	CurrentEpoch() uint32
 	IsInterfaceNil() bool
 }
 

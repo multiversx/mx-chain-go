@@ -11,8 +11,10 @@ import (
 var log = logger.GetOrCreate("epochstart/notifier")
 
 type manualEpochStartNotifier struct {
-	mutHandlers sync.RWMutex
-	handlers    []epochStart.ActionHandler
+	mutHandlers     sync.RWMutex
+	handlers        []epochStart.ActionHandler
+	mutCurrentEpoch sync.RWMutex
+	currentEpoch    uint32
 }
 
 // NewManualEpochStartNotifier creates a new instance of a manual epoch start notifier
@@ -32,6 +34,14 @@ func (mesn *manualEpochStartNotifier) RegisterHandler(handler epochStart.ActionH
 
 // NewEpoch signals that a new epoch event has occurred
 func (mesn *manualEpochStartNotifier) NewEpoch(epoch uint32) {
+	mesn.mutCurrentEpoch.Lock()
+	if mesn.currentEpoch >= epoch {
+		mesn.mutCurrentEpoch.Unlock()
+		return
+	}
+	mesn.currentEpoch = epoch
+	mesn.mutCurrentEpoch.Unlock()
+
 	log.Info("manualEpochStartNotifier.NewEpoch", "epoch", epoch)
 
 	mesn.mutHandlers.RLock()
@@ -43,6 +53,14 @@ func (mesn *manualEpochStartNotifier) NewEpoch(epoch uint32) {
 		}
 		handler.EpochStartAction(hdr)
 	}
+}
+
+// CurrentEpoch returns the current epoch saved
+func (mesn *manualEpochStartNotifier) CurrentEpoch() uint32 {
+	mesn.mutCurrentEpoch.RLock()
+	defer mesn.mutCurrentEpoch.RUnlock()
+
+	return mesn.currentEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
