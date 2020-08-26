@@ -7,6 +7,7 @@ import (
 
 // MessengerStub -
 type MessengerStub struct {
+	ConnectedPeersOnTopicCalled       func(topic string) []core.PeerID
 	CloseCalled                       func() error
 	IDCalled                          func() core.PeerID
 	PeersCalled                       func() []core.PeerID
@@ -25,6 +26,15 @@ type MessengerStub struct {
 	SendToConnectedPeerCalled         func(topic string, buff []byte, peerID core.PeerID) error
 	OutgoingChannelLoadBalancerCalled func() p2p.ChannelLoadBalancer
 	BootstrapCalled                   func() error
+}
+
+// ConnectedPeersOnTopic -
+func (ms *MessengerStub) ConnectedPeersOnTopic(topic string) []core.PeerID {
+	if ms.ConnectedPeersOnTopicCalled != nil {
+		return ms.ConnectedPeersOnTopicCalled(topic)
+	}
+
+	return make([]core.PeerID, 0)
 }
 
 // RegisterMessageProcessor -
@@ -54,7 +64,11 @@ func (ms *MessengerStub) Close() error {
 
 // ID -
 func (ms *MessengerStub) ID() core.PeerID {
-	return ms.IDCalled()
+	if ms.IDCalled != nil {
+		return ms.IDCalled()
+	}
+
+	return ""
 }
 
 // Peers -

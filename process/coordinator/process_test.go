@@ -2564,11 +2564,13 @@ func TestTransactionCoordinator_CreateMarshalizedReceiptsShouldWork(t *testing.T
 	mb2 := &block.MiniBlock{
 		Type: block.ReceiptBlock,
 	}
-	mbHash1, _ := core.CalculateHash(tc.marshalizer, tc.hasher, mb1)
-	mbHash2, _ := core.CalculateHash(tc.marshalizer, tc.hasher, mb2)
-	mbHashes := [][]byte{mbHash1, mbHash2}
-	mbsBatch := &batch.Batch{Data: mbHashes}
-	expectedMarshalizedReceiptsHashes, _ := tc.marshalizer.Marshal(mbsBatch)
+
+	mbsBatch := &batch.Batch{}
+	marshalizedMb1, _ := tc.marshalizer.Marshal(mb1)
+	marshalizedMb2, _ := tc.marshalizer.Marshal(mb2)
+	mbsBatch.Data = append(mbsBatch.Data, marshalizedMb1)
+	mbsBatch.Data = append(mbsBatch.Data, marshalizedMb2)
+	expectedMarshalizedReceipts, _ := tc.marshalizer.Marshal(mbsBatch)
 
 	tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
 	tc.keysInterimProcs = append(tc.keysInterimProcs, block.ReceiptBlock)
@@ -2584,8 +2586,8 @@ func TestTransactionCoordinator_CreateMarshalizedReceiptsShouldWork(t *testing.T
 		},
 	}
 
-	marshalizedReceiptsHashes, err := tc.CreateMarshalizedReceipts()
+	marshalizedReceipts, err := tc.CreateMarshalizedReceipts()
 
 	assert.Nil(t, err)
-	assert.Equal(t, expectedMarshalizedReceiptsHashes, marshalizedReceiptsHashes)
+	assert.Equal(t, expectedMarshalizedReceipts, marshalizedReceipts)
 }

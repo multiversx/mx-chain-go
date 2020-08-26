@@ -348,28 +348,12 @@ const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 // ElrondAPICost represents the field name of the Elrond SC API (EEI) gas costs
 const ElrondAPICost = "ElrondAPICost"
 
-// AsyncCallStep is the field name for the gas cost for any of the two steps required to execute an async call
+// AsyncCallStepField is the field name for the gas cost for any of the two steps required to execute an async call
 const AsyncCallStepField = "AsyncCallStep"
 
-// AsyncCallbackGasLock is the field name for the gas amount to be locked
+// AsyncCallbackGasLockField is the field name for the gas amount to be locked
 // before executing the destination async call, to be put aside for the async callback
 const AsyncCallbackGasLockField = "AsyncCallbackGasLock"
-
-// TransactionStatus is the type used to represent the status of a transaction
-type TransactionStatus string
-
-const (
-	// TxStatusReceived represents the status of a transaction which was received but not yet executed
-	TxStatusReceived TransactionStatus = "received"
-	// TxStatusPartiallyExecuted represent the status of a transaction which was received and executed on source shard
-	TxStatusPartiallyExecuted TransactionStatus = "partially-executed"
-	// TxStatusExecuted represents the status of a transaction which was received and executed
-	TxStatusExecuted TransactionStatus = "executed"
-	// TxStatusNotExecuted represents the status of a transaction which was received and not executed
-	TxStatusNotExecuted TransactionStatus = "not-executed"
-	// TxStatusInvalid represents the status of a transaction which was considered invalid
-	TxStatusInvalid TransactionStatus = "invalid"
-)
 
 const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
