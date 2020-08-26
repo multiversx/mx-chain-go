@@ -163,7 +163,12 @@ func (hr *historyRepository) computeMiniblockHash(miniblock *block.MiniBlock) ([
 
 // GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage
 func (hr *historyRepository) GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error) {
-	miniblockHash, err := hr.miniblockHashByTxHashIndex.Get(hash)
+	epoch, err := hr.GetEpochByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	miniblockHash, err := hr.miniblockHashByTxHashIndex.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err
 	}
