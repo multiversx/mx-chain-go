@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -166,6 +167,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
 	return store
 }
 
@@ -2536,4 +2538,54 @@ func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *tes
 	lastKey := tc.keysTxPreProcs[preProcLen-1]
 
 	assert.Equal(t, block.RewardsBlock, lastKey)
+}
+
+func TestTransactionCoordinator_CreateMarshalizedReceiptsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tc, _ := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+
+	mb1 := &block.MiniBlock{
+		Type: block.SmartContractResultBlock,
+	}
+	mb2 := &block.MiniBlock{
+		Type: block.ReceiptBlock,
+	}
+	mbHash1, _ := core.CalculateHash(tc.marshalizer, tc.hasher, mb1)
+	mbHash2, _ := core.CalculateHash(tc.marshalizer, tc.hasher, mb2)
+	mbHashes := [][]byte{mbHash1, mbHash2}
+	mbsBatch := &batch.Batch{Data: mbHashes}
+	expectedMarshalizedReceiptsHashes, _ := tc.marshalizer.Marshal(mbsBatch)
+
+	tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
+	tc.keysInterimProcs = append(tc.keysInterimProcs, block.ReceiptBlock)
+
+	tc.interimProcessors[block.SmartContractResultBlock] = &mock.IntermediateTransactionHandlerMock{
+		GetCreatedInShardMiniBlockCalled: func() *block.MiniBlock {
+			return mb1
+		},
+	}
+	tc.interimProcessors[block.ReceiptBlock] = &mock.IntermediateTransactionHandlerMock{
+		GetCreatedInShardMiniBlockCalled: func() *block.MiniBlock {
+			return mb2
+		},
+	}
+
+	marshalizedReceiptsHashes, err := tc.CreateMarshalizedReceipts()
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedMarshalizedReceiptsHashes, marshalizedReceiptsHashes)
 }
