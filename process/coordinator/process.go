@@ -948,6 +948,10 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 		allReceiptsHashes = append(allReceiptsHashes, currHash)
 	}
 
+	if len(allReceiptsHashes) == 0 {
+		return nil, nil
+	}
+
 	finalReceiptHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, &batch.Batch{Data: allReceiptsHashes})
 	return finalReceiptHash, err
 }
