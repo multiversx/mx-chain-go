@@ -267,7 +267,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	shouldUpdateTotalNumAndPeak := s.shouldUpdateFields(header)
 	if shouldUpdateTotalNumAndPeak {
 		s.totalProcessedTxCount.Add(s.totalProcessedTxCount, big.NewInt(0).SetUint64(totalTxsForCount))
-		s.statusHandler.AddUint64(core.MetricNumProcessedTxs, totalTxsForTPS)
+		s.statusHandler.AddUint64(core.MetricNumProcessedTxs, totalTxsForCount)
 	}
 	s.averageBlockTxCount.Quo(s.totalProcessedTxCount, big.NewInt(int64(header.Nonce)))
 
