@@ -261,7 +261,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	s.blockNumber = header.Nonce
 	s.roundNumber = header.Round
 
-	totalTxsWithoutPeerTxs := getNumOfTxsWithoutPeerTxs(header)
+	totalTxsWithoutPeerTxs := getNumOfTxsWithoutPeerTxsAndSCRs(header)
 
 	s.lastBlockTxCount = uint32(totalTxsWithoutPeerTxs)
 	shouldUpdateTotalNumAndPeak := s.shouldUpdateFields(header)
@@ -287,7 +287,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 			return ErrInvalidShardId
 		}
 
-		totalTxsFromShardBlockWithoutPeerTxs := getNumTxsFromMiniblocksWithoutPeerTxs(shardInfo.ShardMiniBlockHeaders)
+		totalTxsFromShardBlockWithoutPeerTxs := getNumTxsFromMiniblocksWithoutPeerTxsAndSCRs(shardInfo.ShardMiniBlockHeaders)
 
 		shardPeakTPS := shardStat.PeakTPS()
 		currentShardTPS := float64(totalTxsFromShardBlockWithoutPeerTxs / s.roundTime)
@@ -327,22 +327,25 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	return nil
 }
 
-func getNumOfTxsWithoutPeerTxs(metaBlock *block.MetaBlock) uint64 {
+func getNumOfTxsWithoutPeerTxsAndSCRs(metaBlock *block.MetaBlock) uint64 {
 	// get number of transactions from metablock miniblocks
-	totalTxs := getNumTxsFromMiniblocksWithoutPeerTxs(metaBlock.MiniBlockHeaders)
+	totalTxs := getNumTxsFromMiniblocksWithoutPeerTxsAndSCRs(metaBlock.MiniBlockHeaders)
 
 	// get number of transactions from shard blocks that are included in metablock
 	for _, shardInfo := range metaBlock.ShardInfo {
-		totalTxs += getNumTxsFromMiniblocksWithoutPeerTxs(shardInfo.ShardMiniBlockHeaders)
+		totalTxs += getNumTxsFromMiniblocksWithoutPeerTxsAndSCRs(shardInfo.ShardMiniBlockHeaders)
 	}
 
 	return totalTxs
 }
 
-func getNumTxsFromMiniblocksWithoutPeerTxs(miniblocks []block.MiniBlockHeader) uint64 {
+func getNumTxsFromMiniblocksWithoutPeerTxsAndSCRs(miniblocks []block.MiniBlockHeader) uint64 {
 	totalTxs := uint64(0)
 	for _, mb := range miniblocks {
 		if mb.Type == block.PeerBlock {
+			continue
+		}
+		if mb.Type == block.SmartContractResultBlock {
 			continue
 		}
 

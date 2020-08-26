@@ -205,6 +205,10 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 						Type:    block.TxBlock,
 						TxCount: 5,
 					},
+					{
+						Type:    block.SmartContractResultBlock,
+						TxCount: 200,
+					},
 				},
 			},
 		},
@@ -216,6 +220,10 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 			{
 				Type:    block.TxBlock,
 				TxCount: 5,
+			},
+			{
+				Type:    block.SmartContractResultBlock,
+				TxCount: 200,
 			},
 		},
 	}
@@ -239,6 +247,10 @@ func TestTpsBenchmark_UpdateTotalNumberOfTx(t *testing.T) {
 					{
 						Type:    block.TxBlock,
 						TxCount: 5,
+					},
+					{
+						Type:    block.SmartContractResultBlock,
+						TxCount: 200,
 					},
 				},
 			},
@@ -281,11 +293,15 @@ func TestTpsBenchmark_UpdatePeakTps(t *testing.T) {
 						Type:    block.TxBlock,
 						TxCount: 5,
 					},
+					{
+						Type:    block.SmartContractResultBlock,
+						TxCount: 200,
+					},
 				},
 				PrevRandSeed:  []byte{1},
 				PubKeysBitmap: []byte{1},
 				Signature:     []byte{1},
-				TxCount:       5010,
+				TxCount:       5210,
 				Round:         uint64(1),
 				PrevHash:      []byte{1},
 				Nonce:         uint64(1),
@@ -314,11 +330,15 @@ func TestTpsBenchmark_UpdatePeakTps(t *testing.T) {
 						Type:    block.TxBlock,
 						TxCount: 10,
 					},
+					{
+						Type:    block.SmartContractResultBlock,
+						TxCount: 200,
+					},
 				},
 				PrevRandSeed:  []byte{1},
 				PubKeysBitmap: []byte{1},
 				Signature:     []byte{1},
-				TxCount:       5020,
+				TxCount:       5220,
 				Round:         uint64(1),
 				PrevHash:      []byte{1},
 				Nonce:         uint64(1),
@@ -358,8 +378,12 @@ func TestTPSBenchmark_GettersAndSetters(t *testing.T) {
 				Type:    block.TxBlock,
 				TxCount: 5,
 			},
+			{
+				Type:    block.SmartContractResultBlock,
+				TxCount: 200,
+			},
 		},
-		TxCount: 5100,
+		TxCount: 5210,
 	}
 	metaBlock := &block.MetaBlock{
 		Nonce:     blockNumber,
@@ -403,8 +427,12 @@ func TestTPSBenchmarkShardStatistics_GettersAndSetters(t *testing.T) {
 				Type:    block.TxBlock,
 				TxCount: 5,
 			},
+			{
+				Type:    block.SmartContractResultBlock,
+				TxCount: 200,
+			},
 		},
-		TxCount: 5005,
+		TxCount: 5205,
 	}
 	shardDataShard1 := block.ShardData{
 		ShardID:    1,
@@ -418,13 +446,17 @@ func TestTPSBenchmarkShardStatistics_GettersAndSetters(t *testing.T) {
 				Type:    block.TxBlock,
 				TxCount: 5,
 			},
+			{
+				Type:    block.SmartContractResultBlock,
+				TxCount: 200,
+			},
 		},
-		TxCount: 5005,
+		TxCount: 5205,
 	}
 	metaBlock := &block.MetaBlock{
 		Nonce:     blockNumber,
 		Round:     round,
-		TxCount:   10010,
+		TxCount:   10410,
 		ShardInfo: []block.ShardData{shardDataShard0, shardDataShard1},
 	}
 
@@ -464,13 +496,17 @@ func TestTpsBenchmark_ShouldUpdateSameNonceOnlyOnce(t *testing.T) {
 				Type:    block.TxBlock,
 				TxCount: txCount,
 			},
+			{
+				Type:    block.SmartContractResultBlock,
+				TxCount: 200,
+			},
 		},
-		TxCount: 5005,
+		TxCount: 5205,
 	}
 	metaBlock := &block.MetaBlock{
 		Nonce:     1,
 		Round:     2,
-		TxCount:   5005,
+		TxCount:   5205,
 		ShardInfo: []block.ShardData{shardData},
 	}
 	tpsBenchmark.Update(metaBlock)
@@ -513,8 +549,12 @@ func TestTpsBenchmark_EmptyBlocksShouldNotUpdateMultipleTimes(t *testing.T) {
 				Type:    block.TxBlock,
 				TxCount: txCount,
 			},
+			{
+				Type:    block.SmartContractResultBlock,
+				TxCount: 200,
+			},
 		},
-		TxCount: 5010,
+		TxCount: 5210,
 	}
 	shard2Data := block.ShardData{
 		ShardID:               1,
