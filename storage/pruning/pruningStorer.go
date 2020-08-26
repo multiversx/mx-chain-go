@@ -215,6 +215,7 @@ func initPersistersInEpoch(
 			if err != nil {
 				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
 			}
+			p.setIsClosed(true)
 		} else {
 			persisters = append(persisters, p)
 			log.Debug("appended a pruning active persister", "epoch", epoch, "identifier", args.Identifier)
