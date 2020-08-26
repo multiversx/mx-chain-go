@@ -349,7 +349,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	if args.startEpochNum == 0 {
-		err = indexGenesisBlock(args, genesisBlocks)
+		err = indexGenesisBlocks(args, genesisBlocks)
 		if err != nil {
 			return nil, err
 		}
@@ -628,20 +628,46 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 	return nil
 }
 
-func indexGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
+func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
+	// In Elastic Indexer, only index the metachain block
 	genesisBlockHeader := genesisBlocks[core.MetachainShardId]
 	genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
 	if err != nil {
 		return err
 	}
 
-	log.Info("indexGenesisBlock", "hash", genesisBlockHash)
-
+	log.Info("indexGenesisBlock(): indexer.SaveBlock", "hash", genesisBlockHash)
 	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
-	err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
-	if err != nil {
-		return err
+	// In "fullHistory" index, record both the metachain and the shard blocks
+	for shard, genesisBlockHeader := range genesisBlocks {
+		if args.shardCoordinator.SelfId() != shard {
+			continue
+		}
+
+		genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
+		if err != nil {
+			return err
+		}
+
+		log.Info("indexGenesisBlock(): historyRepo.RecordBlock", "shard", shard, "hash", genesisBlockHash)
+		err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
+		if err != nil {
+			return err
+		}
+
+		var nonceByHashDataUnit dataRetriever.UnitType
+		if shard == core.MetachainShardId {
+			nonceByHashDataUnit = dataRetriever.MetaHdrNonceHashDataUnit
+		} else {
+			nonceByHashDataUnit = dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(genesisBlockHeader.GetShardID())
+		}
+
+		nonceAsBytes := args.coreData.Uint64ByteSliceConverter.ToByteSlice(0)
+		err = args.data.Store.Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
