@@ -81,5 +81,5 @@ func (m *MessengerStub) ID() core.PeerID {
 		return m.IDCalled()
 	}
 
-	return ""
+	return "peer ID"
 }

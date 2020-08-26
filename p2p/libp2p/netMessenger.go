@@ -965,10 +965,11 @@ func (netMes *networkMessenger) SendToConnectedPeer(topic string, buff []byte, p
 func (netMes *networkMessenger) sendDirectToSelf(topic string, buff []byte) error {
 	msg := &pubsub.Message{
 		Message: &pubsub_pb.Message{
-			From:     netMes.ID().Bytes(),
-			Data:     buff,
-			Seqno:    netMes.ds.NextSeqno(),
-			TopicIDs: []string{topic},
+			From:      netMes.ID().Bytes(),
+			Data:      buff,
+			Seqno:     netMes.ds.NextSeqno(),
+			TopicIDs:  []string{topic},
+			Signature: netMes.ID().Bytes(),
 		},
 	}
 
