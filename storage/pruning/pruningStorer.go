@@ -202,6 +202,7 @@ func initPersistersInEpoch(
 	}
 
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
+		log.Debug("initPersistersInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
 		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
 		if err != nil {
 			return nil, nil, err
@@ -212,7 +213,7 @@ func initPersistersInEpoch(
 		if epoch < oldestEpochActive {
 			err = p.persister.Close()
 			if err != nil {
-				log.Debug("persister.Close()", "error", err.Error())
+				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
 			}
 		} else {
 			persisters = append(persisters, p)
