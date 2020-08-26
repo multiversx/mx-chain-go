@@ -142,7 +142,12 @@ func (hp *historyProcessor) recordMiniblock(blockHeaderHash []byte, blockHeader 
 	}
 
 	for _, txHash := range miniblock.TxHashes {
-		err := hp.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
+		err := hp.epochByHashIndex.saveEpochByHash(txHash, epoch)
+		if err != nil {
+			return newErrCannotSaveEpochByHash("transaction", txHash, err)
+		}
+
+		err = hp.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
 		if err != nil {
 			log.Warn("miniblockHashByTxHashIndex.putMiniblockByTx()", "txHash", txHash, "err", err)
 			continue
@@ -212,8 +217,7 @@ func (hp *historyProcessor) getMiniblockMetadataByMiniblockHash(hash []byte) (*M
 }
 
 // GetEpochByHash will return epoch for a given hash
-// This works for Blocks, Miniblocks.
-// It doesn't work for transactions (not needed)!
+// This works for Blocks, Miniblocks and Transactions
 func (hp *historyProcessor) GetEpochByHash(hash []byte) (uint32, error) {
 	return hp.epochByHashIndex.getEpochByHash(hash)
 }
