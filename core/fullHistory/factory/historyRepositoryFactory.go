@@ -56,11 +56,12 @@ func (hpf *historyRepositoryFactory) Create() (fullHistory.HistoryRepository, er
 	}
 
 	historyRepArgs := fullHistory.HistoryRepositoryArguments{
-		SelfShardID:     hpf.selfShardID,
-		Hasher:          hpf.hasher,
-		Marshalizer:     hpf.marshalizer,
-		HistoryStorer:   hpf.store.GetStorer(dataRetriever.TransactionHistoryUnit),
-		HashEpochStorer: hpf.store.GetStorer(dataRetriever.EpochByHashUnit),
+		SelfShardID:                 hpf.selfShardID,
+		Hasher:                      hpf.hasher,
+		Marshalizer:                 hpf.marshalizer,
+		MiniblocksMetadataStorer:    hpf.store.GetStorer(dataRetriever.MiniblocksMetadataUnit),
+		EpochByHashStorer:           hpf.store.GetStorer(dataRetriever.EpochByHashUnit),
+		MiniblockHashByTxHashStorer: hpf.store.GetStorer(dataRetriever.MiniblockHashByTxHashUnit),
 	}
 	return fullHistory.NewHistoryRepository(historyRepArgs)
 }

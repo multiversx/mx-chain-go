@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. transactionsGroupMetadata.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. miniblockMetadata.proto
 
 package fullHistory
 
@@ -8,6 +8,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -15,44 +16,44 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var (
-	log                   = logger.GetOrCreate("core/fullHistory")
-	errInvalidBodyHandler = fmt.Errorf("cannot convert bodyHandler in body")
-)
+var log = logger.GetOrCreate("core/fullHistory")
 
 // HistoryRepositoryArguments is a structure that stores all components that are needed to a history processor
 type HistoryRepositoryArguments struct {
-	SelfShardID     uint32
-	HistoryStorer   storage.Storer
-	HashEpochStorer storage.Storer
-	Marshalizer     marshal.Marshalizer
-	Hasher          hashing.Hasher
-}
-
-// HistoryTransactionsData is a structure that stores information about history transactions
-type HistoryTransactionsData struct {
-	HeaderHash    []byte
-	HeaderHandler data.HeaderHandler
-	BodyHandler   data.BodyHandler
-}
-
-// HistoryTransactionWithEpoch is a structure for a history transaction that also contain epoch
-type HistoryTransactionWithEpoch struct {
-	Epoch uint32
-	*TransactionsGroupMetadata
+	SelfShardID                 uint32
+	MiniblocksMetadataStorer    storage.Storer
+	MiniblockHashByTxHashStorer storage.Storer
+	EpochByHashStorer           storage.Storer
+	Marshalizer                 marshal.Marshalizer
+	Hasher                      hashing.Hasher
 }
 
 type historyProcessor struct {
-	selfShardID     uint32
-	historyStorer   storage.Storer
-	marshalizer     marshal.Marshalizer
-	hasher          hashing.Hasher
-	hashEpochStorer hashEpochRepository
+	selfShardID                uint32
+	miniblocksMetadataStorer   storage.Storer
+	miniblockHashByTxHashIndex storage.Storer
+	epochByHashIndex           *epochByHashIndex
+	marshalizer                marshal.Marshalizer
+	hasher                     hashing.Hasher
+
+	// This map temporarily holds notifications of "notarized at source", for destination shard
+	notarizedAtSourceNotifications *container.MutexMap
+}
+
+type notarizedAtSourceNotification struct {
+	metaNonce uint64
+	metaHash  []byte
 }
 
 // NewHistoryRepository will create a new instance of HistoryRepository
 func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcessor, error) {
-	if check.IfNil(arguments.HistoryStorer) {
+	if check.IfNil(arguments.MiniblocksMetadataStorer) {
+		return nil, core.ErrNilStore
+	}
+	if check.IfNil(arguments.MiniblockHashByTxHashStorer) {
+		return nil, core.ErrNilStore
+	}
+	if check.IfNil(arguments.EpochByHashStorer) {
 		return nil, core.ErrNilStore
 	}
 	if check.IfNil(arguments.Marshalizer) {
@@ -61,38 +62,40 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyProcess
 	if check.IfNil(arguments.Hasher) {
 		return nil, core.ErrNilHasher
 	}
-	if check.IfNil(arguments.HashEpochStorer) {
-		return nil, core.ErrNilStore
-	}
 
-	hashEpochStorer := newHashEpochStorer(arguments.HashEpochStorer, arguments.Marshalizer)
+	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
 
 	return &historyProcessor{
-		selfShardID:     arguments.SelfShardID,
-		historyStorer:   arguments.HistoryStorer,
-		marshalizer:     arguments.Marshalizer,
-		hasher:          arguments.Hasher,
-		hashEpochStorer: hashEpochStorer,
+		selfShardID:                    arguments.SelfShardID,
+		miniblocksMetadataStorer:       arguments.MiniblocksMetadataStorer,
+		marshalizer:                    arguments.Marshalizer,
+		hasher:                         arguments.Hasher,
+		epochByHashIndex:               hashToEpochIndex,
+		miniblockHashByTxHashIndex:     arguments.MiniblockHashByTxHashStorer,
+		notarizedAtSourceNotifications: container.NewMutexMap(),
 	}, nil
 }
 
-// PutTransactionsData will save in storage information about history transactions
-func (hp *historyProcessor) PutTransactionsData(historyTxsData *HistoryTransactionsData) error {
-	body, ok := historyTxsData.BodyHandler.(*block.Body)
+// RecordBlock records a block
+func (hp *historyProcessor) RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
+	body, ok := blockBody.(*block.Body)
 	if !ok {
-		return errInvalidBodyHandler
+		return errCannotCastToBlockBody
 	}
 
-	epoch := historyTxsData.HeaderHandler.GetEpoch()
+	epoch := blockHeader.GetEpoch()
 
-	err := hp.hashEpochStorer.SaveEpoch(historyTxsData.HeaderHash, epoch)
+	err := hp.epochByHashIndex.saveEpochByHash(blockHeaderHash, epoch)
 	if err != nil {
-		log.Warn("epochHashProcessor: cannot save header hash", "error", err.Error())
-		return err
+		return newErrCannotSaveEpochByHash("block header", blockHeaderHash, err)
 	}
 
-	for _, mb := range body.MiniBlocks {
-		err = hp.saveMiniblockData(historyTxsData, mb, epoch)
+	for _, miniblock := range body.MiniBlocks {
+		if miniblock.Type == block.PeerBlock {
+			continue
+		}
+
+		err = hp.recordMiniblock(blockHeaderHash, blockHeader, miniblock, epoch)
 		if err != nil {
 			continue
 		}
@@ -101,105 +104,231 @@ func (hp *historyProcessor) PutTransactionsData(historyTxsData *HistoryTransacti
 	return nil
 }
 
-func (hp *historyProcessor) saveMiniblockData(historyTxsData *HistoryTransactionsData, mb *block.MiniBlock, epoch uint32) error {
-	mbHash, err := core.CalculateHash(hp.marshalizer, hp.hasher, mb)
+func (hp *historyProcessor) recordMiniblock(blockHeaderHash []byte, blockHeader data.HeaderHandler, miniblock *block.MiniBlock, epoch uint32) error {
+	miniblockHash, err := hp.computeMiniblockHash(miniblock)
 	if err != nil {
-		log.Warn("cannot calculate miniblock hash", "error", err.Error())
 		return err
 	}
 
-	err = hp.hashEpochStorer.SaveEpoch(mbHash, epoch)
+	err = hp.epochByHashIndex.saveEpochByHash(miniblockHash, epoch)
 	if err != nil {
-		log.Warn("epochHashProcessor: cannot save miniblock hash", "error", err.Error())
+		return newErrCannotSaveEpochByHash("miniblock", miniblockHash, err)
+	}
+
+	miniblockMetadata := &MiniblockMetadata{
+		Epoch:              epoch,
+		HeaderHash:         blockHeaderHash,
+		MiniblockHash:      miniblockHash,
+		Round:              blockHeader.GetRound(),
+		HeaderNonce:        blockHeader.GetNonce(),
+		SourceShardID:      miniblock.GetSenderShardID(),
+		DestinationShardID: miniblock.GetReceiverShardID(),
+		Status:             []byte(hp.getMiniblockStatus(miniblock)),
+	}
+
+	// Here we need to use queued notifications
+	notification, ok := hp.notarizedAtSourceNotifications.Get(string(miniblockHash))
+	if ok {
+		notificationTyped := notification.(*notarizedAtSourceNotification)
+		miniblockMetadata.NotarizedAtSourceInMetaNonce = notificationTyped.metaNonce
+		miniblockMetadata.NotarizedAtSourceInMetaHash = notificationTyped.metaHash
+
+		hp.notarizedAtSourceNotifications.Remove(string(miniblockHash))
+	}
+
+	err = hp.putMiniblockMetadata(miniblockHash, miniblockMetadata)
+	if err != nil {
 		return err
 	}
 
-	var status core.TransactionStatus
-	if mb.ReceiverShardID == hp.selfShardID {
-		status = core.TxStatusExecuted
-	} else {
-		status = core.TxStatusPartiallyExecuted
-	}
-
-	transactionsMetadata := buildTransactionsGroupMetadata(historyTxsData.HeaderHandler, historyTxsData.HeaderHash, mbHash, mb.ReceiverShardID, mb.SenderShardID, status)
-	transactionsMetadataBytes, err := hp.marshalizer.Marshal(transactionsMetadata)
-	if err != nil {
-		log.Warn("cannot marshal history transaction", "error", err.Error())
-		return err
-	}
-
-	for _, txHash := range mb.TxHashes {
-		err = hp.saveTransactionMetadata(transactionsMetadataBytes, txHash, epoch)
+	for _, txHash := range miniblock.TxHashes {
+		err := hp.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
 		if err != nil {
-			log.Warn("cannot save in storage",
-				"hash", string(txHash),
-				"error", err.Error())
+			log.Warn("miniblockHashByTxHashIndex.putMiniblockByTx()", "txHash", txHash, "err", err)
+			continue
 		}
 	}
 
 	return nil
 }
 
-func (hp *historyProcessor) saveTransactionMetadata(historyTxBytes []byte, txHash []byte, epoch uint32) error {
-	err := hp.hashEpochStorer.SaveEpoch(txHash, epoch)
-	if err != nil {
-		return fmt.Errorf("epochHashProcessor:cannot save transaction hash %w", err)
+func (hp *historyProcessor) computeMiniblockHash(miniblock *block.MiniBlock) ([]byte, error) {
+	return core.CalculateHash(hp.marshalizer, hp.hasher, miniblock)
+}
+
+func (hp *historyProcessor) getMiniblockStatus(miniblock *block.MiniBlock) core.TransactionStatus {
+	if miniblock.Type == block.InvalidBlock {
+		return core.TxStatusInvalid
+	}
+	if miniblock.ReceiverShardID == hp.selfShardID {
+		return core.TxStatusExecuted
 	}
 
-	err = hp.historyStorer.Put(txHash, historyTxBytes)
+	return core.TxStatusPartiallyExecuted
+}
+
+// GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage
+func (hp *historyProcessor) GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error) {
+	miniblockHash, err := hp.miniblockHashByTxHashIndex.Get(hash)
 	if err != nil {
-		return fmt.Errorf("cannot save in storage history transaction %w", err)
+		return nil, err
+	}
+
+	return hp.getMiniblockMetadataByMiniblockHash(miniblockHash)
+}
+
+func (hp *historyProcessor) putMiniblockMetadata(hash []byte, metadata *MiniblockMetadata) error {
+	metadataBytes, err := hp.marshalizer.Marshal(metadata)
+	if err != nil {
+		return err
+	}
+
+	err = hp.miniblocksMetadataStorer.Put(hash, metadataBytes)
+	if err != nil {
+		return newErrCannotSaveMiniblockMetadata(hash, err)
 	}
 
 	return nil
 }
 
-func buildTransactionsGroupMetadata(
-	headerHandler data.HeaderHandler,
-	headerHash []byte,
-	mbHash []byte,
-	rcvShardID uint32,
-	sndShardID uint32,
-	status core.TransactionStatus,
-) *TransactionsGroupMetadata {
-	return &TransactionsGroupMetadata{
-		HeaderHash:  headerHash,
-		MbHash:      mbHash,
-		Round:       headerHandler.GetRound(),
-		HeaderNonce: headerHandler.GetNonce(),
-		RcvShardID:  rcvShardID,
-		SndShardID:  sndShardID,
-		Status:      []byte(status),
+func (hp *historyProcessor) getMiniblockMetadataByMiniblockHash(hash []byte) (*MiniblockMetadata, error) {
+	epoch, err := hp.epochByHashIndex.getEpochByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	metadataBytes, err := hp.miniblocksMetadataStorer.GetFromEpoch(hash, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata := &MiniblockMetadata{}
+	err = hp.marshalizer.Unmarshal(metadata, metadataBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return metadata, nil
+}
+
+// GetEpochByHash will return epoch for a given hash
+// This works for Blocks, Miniblocks.
+// It doesn't work for transactions (not needed)!
+func (hp *historyProcessor) GetEpochByHash(hash []byte) (uint32, error) {
+	return hp.epochByHashIndex.getEpochByHash(hash)
+}
+
+// RegisterToBlockTracker registers the history repository to blockTracker events
+func (hp *historyProcessor) RegisterToBlockTracker(blockTracker BlockTracker) {
+	if check.IfNil(blockTracker) {
+		log.Error("RegisterToBlockTracker(): blockTracker is nil")
+		return
+	}
+
+	blockTracker.RegisterCrossNotarizedHeadersHandler(hp.onNotarizedBlocks)
+	blockTracker.RegisterSelfNotarizedHeadersHandler(hp.onNotarizedBlocks)
+}
+
+func (hp *historyProcessor) onNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+	log.Trace("onNotarizedBlocks()", "shardID", shardID, "len(headers)", len(headers))
+
+	if shardID != core.MetachainShardId {
+		return
+	}
+
+	for i, header := range headers {
+		headerHash := headersHashes[i]
+
+		metaBlock, ok := header.(*block.MetaBlock)
+		if !ok {
+			return
+		}
+
+		for _, shardData := range metaBlock.ShardInfo {
+			hp.onNotarizedBlock(metaBlock.GetNonce(), headerHash, shardData)
+		}
 	}
 }
 
-// GetTransaction will return a history transaction for the given hash from storage
-func (hp *historyProcessor) GetTransaction(hash []byte) (*HistoryTransactionWithEpoch, error) {
-	epoch, err := hp.hashEpochStorer.GetEpoch(hash)
-	if err != nil {
-		return nil, err
+func (hp *historyProcessor) onNotarizedBlock(metaBlockNonce uint64, metaBlockHash []byte, blockHeader block.ShardData) {
+	for _, miniblockHeader := range blockHeader.GetShardMiniBlockHeaders() {
+		hp.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, blockHeader, miniblockHeader)
 	}
-
-	historyTxBytes, err := hp.historyStorer.GetFromEpoch(hash, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	historyTx := &TransactionsGroupMetadata{}
-	err = hp.marshalizer.Unmarshal(historyTx, historyTxBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &HistoryTransactionWithEpoch{
-		Epoch:                     epoch,
-		TransactionsGroupMetadata: historyTx,
-	}, nil
 }
 
-// GetEpochForHash will return epoch for a given hash
-func (hp *historyProcessor) GetEpochForHash(hash []byte) (uint32, error) {
-	return hp.hashEpochStorer.GetEpoch(hash)
+func (hp *historyProcessor) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, blockHeader block.ShardData, miniblockHeader block.MiniBlockHeader) {
+	miniblockHash := miniblockHeader.Hash
+	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
+	notarizedAtSource := miniblockHeader.SenderShardID == blockHeader.ShardID
+
+	iDontCare := miniblockHeader.SenderShardID != hp.selfShardID && miniblockHeader.ReceiverShardID != hp.selfShardID
+	if iDontCare {
+		return
+	}
+
+	metadata, err := hp.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	if err != nil {
+		if notarizedAtSource {
+			// At destination, we receive the notification about "notarizedAtSource" before committing the block (at destination):
+			// a) @source: source block is committed
+			// b) @metachain: source block is notarized
+			// c) @source & @destination: notified about b) 	<< we are here, under this condition
+			// d) @destination: destination block is committed
+			// e) @metachain: destination block is notarized
+			// f) @source & @destination: notified about e)
+
+			// Therefore, we should hold on to the notification at b) and use it at d)
+			hp.notarizedAtSourceNotifications.Set(string(miniblockHash), &notarizedAtSourceNotification{
+				metaNonce: metaBlockNonce,
+				metaHash:  metaBlockHash,
+			})
+		} else {
+			log.Warn("onNotarizedMiniblock() unexpected: cannot get miniblock metadata", "miniblock", miniblockHash, "err", err)
+		}
+
+		return
+	}
+
+	if isIntra {
+		metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
+		metadata.NotarizedAtSourceInMetaHash = metaBlockHash
+		metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
+		metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
+
+		log.Trace("onNotarizedMiniblock() intra",
+			"miniblock", miniblockHash,
+			"direction", fmt.Sprintf("[%d -> %d]", metadata.SourceShardID, metadata.DestinationShardID),
+			"meta nonce", metaBlockNonce,
+		)
+	} else {
+		// Is cross-shard miniblock
+		if notarizedAtSource {
+			metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
+			metadata.NotarizedAtSourceInMetaHash = metaBlockHash
+
+			log.Trace("onNotarizedMiniblock() cross at source",
+				"miniblock", miniblockHash,
+				"direction", fmt.Sprintf("[%d -> %d]", metadata.SourceShardID, metadata.DestinationShardID),
+				"meta nonce", metaBlockNonce,
+			)
+		} else {
+			// Cross-shard, notarized at destination
+			metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
+			metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
+
+			log.Trace("onNotarizedMiniblock() cross at destination",
+				"miniblock", miniblockHash,
+				"direction", fmt.Sprintf("[%d -> %d]", metadata.SourceShardID, metadata.DestinationShardID),
+				"meta nonce", metaBlockNonce,
+			)
+		}
+	}
+
+	err = hp.putMiniblockMetadata(miniblockHash, metadata)
+	if err != nil {
+		log.Warn("onNotarizedMiniblock(): cannot update miniblock metadata", "miniblockHash", miniblockHash, "err", err)
+		return
+	}
 }
 
 // IsEnabled will always returns true

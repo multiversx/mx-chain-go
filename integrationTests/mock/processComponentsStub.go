@@ -32,6 +32,7 @@ type ProcessComponentsStub struct {
 	TxLogsProcess            process.TransactionLogProcessorDatabase
 	HeaderConstructValidator process.HeaderConstructionValidator
 	PeerMapper               process.NetworkShardingCollector
+	TxSimulatorProcessor     factory.TransactionSimulatorProcessor
 }
 
 // Create -
@@ -152,6 +153,11 @@ func (pcs *ProcessComponentsStub) HeaderConstructionValidator() process.HeaderCo
 // PeerShardMapper -
 func (pcs *ProcessComponentsStub) PeerShardMapper() process.NetworkShardingCollector {
 	return pcs.PeerMapper
+}
+
+// TransactionSimulatorProcessor -
+func (pcs *ProcessComponentsStub) TransactionSimulatorProcessor() factory.TransactionSimulatorProcessor {
+	return pcs.TxSimulatorProcessor
 }
 
 // IsInterfaceNil -

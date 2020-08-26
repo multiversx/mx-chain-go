@@ -41,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
+	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -80,7 +81,8 @@ type processComponents struct {
 	txLogsProcessor             process.TransactionLogProcessorDatabase
 	headerConstructionValidator process.HeaderConstructionValidator
 	// TODO: maybe move PeerShardMapper to network components
-	peerShardMapper process.NetworkShardingCollector
+	peerShardMapper      process.NetworkShardingCollector
+	txSimulatorProcessor TransactionSimulatorProcessor
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -122,6 +124,8 @@ type ProcessComponentsFactoryArgs struct {
 	Indexer                   indexer.Indexer
 	TpsBenchmark              statistics.TPSBenchmark
 	HistoryRepo               fullHistory.HistoryRepository
+	EpochNotifier             process.EpochNotifier
+	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
 }
 
 type processComponentsFactory struct {
@@ -162,6 +166,8 @@ type processComponentsFactory struct {
 	indexer                   indexer.Indexer
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               fullHistory.HistoryRepository
+	epochNotifier             process.EpochNotifier
+	headerIntegrityVerifier   HeaderIntegrityVerifierHandler
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -208,6 +214,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		indexer:                   args.Indexer,
 		tpsBenchmark:              args.TpsBenchmark,
 		historyRepo:               args.HistoryRepo,
+		headerIntegrityVerifier:   args.HeaderIntegrityVerifier,
 	}, nil
 }
 
@@ -222,11 +229,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		KeyGen:            pcf.crypto.BlockSignKeyGen(),
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
-	if err != nil {
-		return nil, err
-	}
-
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier([]byte(pcf.coreData.ChainID()))
 	if err != nil {
 		return nil, err
 	}
@@ -384,7 +386,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	interceptorContainerFactory, blackListHandler, err := pcf.newInterceptorContainerFactory(
 		headerSigVerifier,
-		headerIntegrityVerifier,
+		pcf.headerIntegrityVerifier,
 		blockTracker,
 		epochStartTrigger,
 	)
@@ -415,6 +417,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	txSimulatorProcessorArgs := &txsimulator.ArgsTxSimulator{
+		AddressPubKeyConverter: pcf.coreData.AddressPubKeyConverter(),
+		ShardCoordinator:       pcf.shardCoordinator,
+	}
+
 	blockProcessor, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -424,6 +431,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		headerValidator,
 		blockTracker,
 		pendingMiniBlocksHandler,
+		txSimulatorProcessorArgs,
 	)
 	if err != nil {
 		return nil, err
@@ -455,6 +463,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	txSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
+
 	return &processComponents{
 		nodesCoordinator:            pcf.nodesCoordinator,
 		shardCoordinator:            pcf.shardCoordinator,
@@ -475,8 +485,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		requestHandler:              requestHandler,
 		txLogsProcessor:             txLogsProcessor,
 		headerConstructionValidator: headerValidator,
-		headerIntegrityVerifier:     headerIntegrityVerifier,
+		headerIntegrityVerifier:     pcf.headerIntegrityVerifier,
 		peerShardMapper:             peerShardMapper,
+		txSimulatorProcessor:        txSimulator,
 	}, nil
 }
 
@@ -624,6 +635,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
 		GenesisString:        pcf.coreFactoryArgs.Config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
+		GeneralConfig:        &pcf.coreFactoryArgs.Config.GeneralSettings,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
@@ -1003,7 +1015,6 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 	if args.EconomicsData == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEconomicsData)
 	}
-
 	if args.NodesConfig == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilNodesConfig)
 	}
@@ -1063,6 +1074,9 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if args.SystemSCConfig == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilSystemSCConfig)
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochNotifier)
 	}
 
 	return nil

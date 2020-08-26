@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorsFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -32,15 +31,16 @@ type epochStartMetaSyncer struct {
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	CoreComponentsHolder   process.CoreComponentsHolder
-	CryptoComponentsHolder process.CryptoComponentsHolder
-	RequestHandler         RequestHandler
-	Messenger              Messenger
-	ShardCoordinator       sharding.Coordinator
-	EconomicsData          process.EconomicsHandler
-	WhitelistHandler       process.WhiteListHandler
-	StartInEpochConfig     config.EpochStartConfig
-	ArgsParser             process.ArgumentsParser
+	CoreComponentsHolder    process.CoreComponentsHolder
+	CryptoComponentsHolder  process.CryptoComponentsHolder
+	RequestHandler          RequestHandler
+	Messenger               Messenger
+	ShardCoordinator        sharding.Coordinator
+	EconomicsData           process.EconomicsHandler
+	WhitelistHandler        process.WhiteListHandler
+	StartInEpochConfig      config.EpochStartConfig
+	ArgsParser              process.ArgumentsParser
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -57,6 +57,9 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}
 	if check.IfNil(args.CoreComponentsHolder.AddressPubKeyConverter()) {
 		return nil, epochStart.ErrNilPubkeyConverter
+	}
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return nil, epochStart.ErrNilHeaderIntegrityVerifier
 	}
 
 	e := &epochStartMetaSyncer{
@@ -79,15 +82,12 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		return nil, err
 	}
 	e.metaBlockProcessor = processor
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier([]byte(args.CoreComponentsHolder.ChainID()))
-	if err != nil {
-		return nil, err
-	}
 
 	err = args.CryptoComponentsHolder.SetMultiSigner(disabled.NewMultiSigner())
 	if err != nil {
 		return nil, err
 	}
+
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
 		CoreComponents:          args.CoreComponentsHolder,
 		CryptoComponents:        args.CryptoComponentsHolder,
@@ -95,7 +95,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		NodesCoordinator:        disabled.NewNodesCoordinator(),
 		FeeHandler:              args.EconomicsData,
 		HeaderSigVerifier:       disabled.NewHeaderSigVerifier(),
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
 		ValidityAttester:        disabled.NewValidityAttester(),
 		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
 		ArgsParser:              args.ArgsParser,

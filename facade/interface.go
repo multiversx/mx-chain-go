@@ -16,8 +16,11 @@ import (
 
 //NodeHandler contains all functions that a node should contain.
 type NodeHandler interface {
-	//GetBalance returns the balance for a specific address
+	// GetBalance returns the balance for a specific address
 	GetBalance(address string) (*big.Int, error)
+
+	// GetUsername returns the username for a specific address
+	GetUsername(address string) (string, error)
 
 	// GetValueForKey returns the value of a key from a given account
 	GetValueForKey(address string, key string) (string, error)
@@ -58,6 +61,12 @@ type NodeHandler interface {
 
 	GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error)
 	GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error)
+}
+
+// TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
+type TransactionSimulatorProcessor interface {
+	ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	IsInterfaceNil() bool
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests

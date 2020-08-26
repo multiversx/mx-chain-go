@@ -110,6 +110,7 @@ type Config struct {
 	ShardHdrNonceHashStorage   StorageConfig
 	MetaHdrNonceHashStorage    StorageConfig
 	StatusMetricsStorage       StorageConfig
+	ReceiptsStorage            StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -165,9 +166,16 @@ type Config struct {
 
 	SoftwareVersionConfig SoftwareVersionConfig
 	FullHistory           FullHistoryConfig
+	Versions              VersionsConfig
+	Logs                  LogsConfig
 }
 
-// StoragePruningConfig will hold settings relates to storage pruning
+// LogsConfig will hold settings related to the logging sub-system
+type LogsConfig struct {
+	LogFileLifeSpanInSec int
+}
+
+// StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
 	Enabled             bool
 	CleanOldEpochsData  bool
@@ -198,15 +206,16 @@ type ValidatorStatisticsConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec int
-	MaxComputableRounds      uint64
-	StartInEpochEnabled      bool
-	ChainID                  string
-	MinTransactionVersion    uint32
-	DisableDeploy            bool
-	DisableBuiltInFunctions  bool
-	DisableRelayedTx         bool
-	GenesisString            string
+	StatusPollingIntervalSec       int
+	MaxComputableRounds            uint64
+	StartInEpochEnabled            bool
+	ChainID                        string
+	MinTransactionVersion          uint32
+	SCDeployEnableEpoch            uint32
+	BuiltInFunctionsEnableEpoch    uint32
+	RelayedTransactionsEnableEpoch uint32
+	PenalizedTooMuchGasEnableEpoch uint32
+	GenesisString                  string
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -343,9 +352,10 @@ type HardforkConfig struct {
 
 // FullHistoryConfig holds the configuration for the full history node
 type FullHistoryConfig struct {
-	Enabled                         bool
-	HistoryTransactionStorageConfig StorageConfig
-	HashEpochStorageConfig          StorageConfig
+	Enabled                            bool
+	MiniblocksMetadataStorageConfig    StorageConfig
+	MiniblockHashByTxHashStorageConfig StorageConfig
+	EpochByHashStorageConfig           StorageConfig
 }
 
 // DebugConfig will hold debugging configuration
@@ -396,4 +406,17 @@ type APIPackageConfig struct {
 type RouteConfig struct {
 	Name string
 	Open bool
+}
+
+// VersionByEpochs represents a version entry that will be applied between the provided epochs
+type VersionByEpochs struct {
+	StartEpoch uint32
+	Version    string
+}
+
+// VersionsConfig represents the versioning config area
+type VersionsConfig struct {
+	DefaultVersion   string
+	VersionsByEpochs []VersionByEpochs
+	Cache            CacheConfig
 }

@@ -80,7 +80,7 @@ func getMetricsFromHeader(
 	appStatusHandler.SetUInt64Value(core.MetricTxPoolLoad, numTxWithDst)
 }
 
-func saveMetricsForACommittedBlock(
+func saveMetricsForCommittedShardBlock(
 	nodesCoordinator sharding.NodesCoordinator,
 	appStatusHandler core.AppStatusHandler,
 	currentBlockHash string,
@@ -91,7 +91,7 @@ func saveMetricsForACommittedBlock(
 	incrementCountAcceptedBlocks(nodesCoordinator, appStatusHandler, shardHeader)
 	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(shardHeader.GetEpoch()))
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, currentBlockHash)
-	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, highestFinalBlockNonce)
+	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlock, highestFinalBlockNonce)
 	appStatusHandler.SetStringValue(core.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))
 }
 
@@ -141,15 +141,16 @@ func incrementCountAcceptedBlocks(
 	}
 }
 
-func saveMetachainCommitBlockMetrics(
+func saveMetricsForCommitMetachainBlock(
 	appStatusHandler core.AppStatusHandler,
 	header *block.MetaBlock,
 	headerHash []byte,
 	nodesCoordinator sharding.NodesCoordinator,
-
+	highestFinalBlockNonce uint64,
 ) {
 	appStatusHandler.SetStringValue(core.MetricCurrentBlockHash, logger.DisplayByteSlice(headerHash))
 	appStatusHandler.SetUInt64Value(core.MetricEpochNumber, uint64(header.Epoch))
+	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlock, highestFinalBlockNonce)
 
 	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
 	epoch := header.GetEpoch()

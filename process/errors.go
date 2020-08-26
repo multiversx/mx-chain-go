@@ -437,8 +437,11 @@ var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 // ErrNilEpochHandler signals that a nil epoch handler was provided
 var ErrNilEpochHandler = errors.New("nil epoch handler")
 
-// ErrNilEpochStartNotifier signals that the ErrNilEpochStartNotifier is nil
+// ErrNilEpochStartNotifier signals that the provided epochStartNotifier is nil
 var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
+
+// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
+var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
 // ErrInvalidCacheRefreshIntervalInSec signals that the cacheRefreshIntervalInSec is invalid - zero or less
 var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshIntervalInSec")
@@ -779,9 +782,6 @@ var ErrNilDebugger = errors.New("nil debug handler")
 // ErrBuiltInFunctionCalledWithValue signals that builtin function was called with value that is not allowed
 var ErrBuiltInFunctionCalledWithValue = errors.New("built in function called with tx value is not allowed")
 
-// ErrEmptySoftwareVersion signals that empty software version was called
-var ErrEmptySoftwareVersion = errors.New("empty software version")
-
 // ErrEmptyFloodPreventerList signals that an empty flood preventer list has been provided
 var ErrEmptyFloodPreventerList = errors.New("empty flood preventer provided")
 
@@ -874,3 +874,21 @@ var ErrBuiltInFunctionsAreDisabled = errors.New("built in functions are disabled
 
 // ErrRelayedTxDisabled signals that relayed tx are disabled
 var ErrRelayedTxDisabled = errors.New("relayed tx is disabled")
+
+// ErrEmptyConsensusGroup is raised when an operation is attempted with an empty consensus group
+var ErrEmptyConsensusGroup = errors.New("consensusGroup is empty")
+
+// ErrRelayedTxGasLimitMissmatch signals that relayed tx gas limit is higher then user tx gas limit
+var ErrRelayedTxGasLimitMissmatch = errors.New("relayed tx gas limit higher then user tx gas limit")
+
+// ErrRelayedGasPriceMissmatch signals that relayed gas price is not equal with user tx
+var ErrRelayedGasPriceMissmatch = errors.New("relayed gas price missmatch")
+
+// ErrNilUserAccount signals that nil user account was provided
+var ErrNilUserAccount = errors.New("nil user account")
+
+// ErrNilEpochStartSystemSCProcessor signals that nil epoch start system sc processor was provided
+var ErrNilEpochStartSystemSCProcessor = errors.New("nil epoch start system sc processor")
+
+// ErrTooMuchGasProvided signals that too much gas has been provided
+var ErrTooMuchGasProvided = errors.New("too much gas has been provided")

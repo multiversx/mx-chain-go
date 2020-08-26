@@ -66,6 +66,7 @@ type HeaderHandler interface {
 
 	IsStartOfEpochBlock() bool
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
+	GetMiniBlockHeadersHashes() [][]byte
 
 	IsInterfaceNil() bool
 	Clone() HeaderHandler

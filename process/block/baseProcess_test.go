@@ -201,6 +201,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
 	return store
 }
 
@@ -324,12 +325,14 @@ func CreateMockArguments(
 					return nil
 				},
 			},
-			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
-			Indexer:            &mock.IndexerMock{},
-			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
-			Version:            "softwareVersion",
-			HistoryRepository:  &mock.HistoryRepositoryStub{},
+			BlockTracker:            mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
+			BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
+			Indexer:                 &mock.IndexerMock{},
+			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
+			Version:                 "softwareVersion",
+			HistoryRepository:       &mock.HistoryRepositoryStub{},
+			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+			EpochNotifier:           &mock.EpochNotifierStub{},
 		},
 	}
 

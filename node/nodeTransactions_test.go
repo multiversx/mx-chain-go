@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
@@ -45,7 +46,7 @@ func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -73,7 +74,7 @@ func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -102,7 +103,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) 
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -137,7 +138,7 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -181,21 +182,20 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return true
 			},
-			GetTransactionCalled: func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
-				return &fullHistory.HistoryTransactionWithEpoch{
-					Epoch: epoch,
-					TransactionsGroupMetadata: &fullHistory.TransactionsGroupMetadata{
-						MbHash:      mbHash,
-						HeaderHash:  blockHash,
-						HeaderNonce: blockNonce,
-						SndShardID:  sndShard,
-						RcvShardID:  rcvShard,
-						Round:       round,
-					},
+			GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
+				return &fullHistory.MiniblockMetadata{
+					Epoch:              epoch,
+					MiniblockHash:      mbHash,
+					HeaderHash:         blockHash,
+					HeaderNonce:        blockNonce,
+					SourceShardID:      sndShard,
+					DestinationShardID: rcvShard,
+					Round:              round,
+					Status:             []byte(core.TxStatusExecuted),
 				}, nil
 			},
 		}),
@@ -203,24 +203,24 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 
 	dummyTx, _ := getDummyNormalTx()
 	expectedTx := &transaction.ApiTransactionResult{
-		Type:       "normal",
-		Nonce:      dummyTx.Nonce,
-		Round:      round,
-		Epoch:      epoch,
-		Value:      dummyTx.Value.String(),
-		Receiver:   hex.EncodeToString(dummyTx.RcvAddr),
-		Sender:     hex.EncodeToString(dummyTx.SndAddr),
-		GasPrice:   dummyTx.GasPrice,
-		GasLimit:   dummyTx.GasLimit,
-		Data:       dummyTx.Data,
-		Code:       "",
-		Signature:  hex.EncodeToString(dummyTx.Signature),
-		SndShard:   sndShard,
-		RcvShard:   rcvShard,
-		BlockNonce: blockNonce,
-		MBHash:     hex.EncodeToString(mbHash),
-		BlockHash:  hex.EncodeToString(blockHash),
-		Status:     core.TxStatusExecuted,
+		Type:             "normal",
+		Nonce:            dummyTx.Nonce,
+		Round:            round,
+		Epoch:            epoch,
+		Value:            dummyTx.Value.String(),
+		Receiver:         hex.EncodeToString(dummyTx.RcvAddr),
+		Sender:           hex.EncodeToString(dummyTx.SndAddr),
+		GasPrice:         dummyTx.GasPrice,
+		GasLimit:         dummyTx.GasLimit,
+		Data:             dummyTx.Data,
+		Code:             "",
+		Signature:        hex.EncodeToString(dummyTx.Signature),
+		SourceShard:      sndShard,
+		DestinationShard: rcvShard,
+		BlockNonce:       blockNonce,
+		MiniBlockHash:    hex.EncodeToString(mbHash),
+		BlockHash:        hex.EncodeToString(blockHash),
+		Status:           core.TxStatusExecuted,
 	}
 
 	// transaction that is returned shoud be the same with expectedTx because
@@ -253,7 +253,7 @@ func TestNode_GetFullHistoryTransaction_TxInPoolShouldReturnItDirectly(t *testin
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return true
 			},
@@ -295,11 +295,11 @@ func TestNode_GetFullHistoryTransaction_TxNotInHistoryStorerShouldErr(t *testing
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return true
 			},
-			GetTransactionCalled: func(hash []byte) (*fullHistory.HistoryTransactionWithEpoch, error) {
+			GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
 				return nil, expectedErr
 			},
 		}),
@@ -337,7 +337,7 @@ func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -377,7 +377,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -425,7 +425,7 @@ func TestNode_GetTransaction_ShouldFindInStorageButErrorUnmarshaling(t *testing.
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -455,7 +455,7 @@ func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithDataComponents(dataComponents),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -485,12 +485,15 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 			return 1
 		},
 	}
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
 	dataComponents := getDefaultDataComponents()
 	dataComponents.Store = storer
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = shardCoordinator
 
 	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
 	)
@@ -500,6 +503,8 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 	normalTxCrossShard := &transaction.Transaction{RcvAddr: shardOneAddr, SndAddr: shardZeroAddr}
 	unsignedTxIntraShard := &smartContractResult.SmartContractResult{RcvAddr: shardZeroAddr, SndAddr: shardZeroAddr}
 	unsignedTxCrossShard := &smartContractResult.SmartContractResult{RcvAddr: shardOneAddr, SndAddr: shardZeroAddr}
+	emptyDestAddress := make([]byte, coreComponents.AddrPubKeyConv.Len())
+	deployScTx := &transaction.Transaction{SndAddr: shardZeroAddr, RcvAddr: emptyDestAddress, Data: []byte("scscscscscscs")}
 
 	// cross shard reward tx in storage source shard
 	shardCoordinator.SelfShardId = core.MetachainShardId
@@ -560,6 +565,47 @@ func TestNode_ComputeTransactionStatus(t *testing.T) {
 	shardCoordinator.SelfShardId = 0
 	txStatus = n.ComputeTransactionStatus(unsignedTxCrossShard, true)
 	assert.Equal(t, core.TxStatusReceived, txStatus)
+
+	// deploy  SC in pool
+	txStatus = n.ComputeTransactionStatus(deployScTx, true)
+	assert.Equal(t, core.TxStatusReceived, txStatus)
+
+	// deploy  SC in storage
+	txStatus = n.ComputeTransactionStatus(deployScTx, false)
+	assert.Equal(t, core.TxStatusExecuted, txStatus)
+}
+
+func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
+	tx := &transaction.ApiTransactionResult{}
+	metadata := &fullHistory.MiniblockMetadata{
+		Epoch:                             42,
+		Round:                             4321,
+		MiniblockHash:                     []byte{15},
+		DestinationShardID:                12,
+		SourceShardID:                     11,
+		HeaderNonce:                       4300,
+		HeaderHash:                        []byte{14},
+		NotarizedAtSourceInMetaNonce:      4250,
+		NotarizedAtSourceInMetaHash:       []byte{13},
+		NotarizedAtDestinationInMetaNonce: 4253,
+		NotarizedAtDestinationInMetaHash:  []byte{12},
+		Status:                            []byte("fooStatus"),
+	}
+
+	node.PutHistoryFieldsInTransaction(tx, metadata)
+
+	require.Equal(t, 42, int(tx.Epoch))
+	require.Equal(t, 4321, int(tx.Round))
+	require.Equal(t, "0f", tx.MiniBlockHash)
+	require.Equal(t, 12, int(tx.DestinationShard))
+	require.Equal(t, 11, int(tx.SourceShard))
+	require.Equal(t, 4300, int(tx.BlockNonce))
+	require.Equal(t, "0e", tx.BlockHash)
+	require.Equal(t, 4250, int(tx.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, "0d", tx.NotarizedAtSourceInMetaHash)
+	require.Equal(t, 4253, int(tx.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
+	require.Equal(t, "fooStatus", string(tx.Status))
 }
 
 func getCacherHandler(find bool, cacherType string) func() dataRetriever.ShardedDataCacherNotifier {

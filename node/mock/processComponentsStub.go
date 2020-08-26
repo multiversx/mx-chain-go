@@ -32,6 +32,7 @@ type ProcessComponentsMock struct {
 	TxLogsProcess            process.TransactionLogProcessorDatabase
 	HeaderConstructValidator process.HeaderConstructionValidator
 	PeerMapper               process.NetworkShardingCollector
+	TxSimulatorProcessor     factory.TransactionSimulatorProcessor
 }
 
 // Create -
@@ -152,6 +153,11 @@ func (pcm *ProcessComponentsMock) HeaderConstructionValidator() process.HeaderCo
 // PeerShardMapper -
 func (pcm *ProcessComponentsMock) PeerShardMapper() process.NetworkShardingCollector {
 	return pcm.PeerMapper
+}
+
+// TransactionSimulatorProcessor -
+func (pcm *ProcessComponentsMock) TransactionSimulatorProcessor() factory.TransactionSimulatorProcessor {
+	return pcm.TxSimulatorProcessor
 }
 
 // IsInterfaceNil -

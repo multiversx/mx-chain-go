@@ -6,8 +6,8 @@ import (
 
 // PendingMiniBlocksHandlerStub -
 type PendingMiniBlocksHandlerStub struct {
-	AddProcessedHeaderCalled      func(handler data.HeaderHandler) error
-	RevertHeaderCalled            func(handler data.HeaderHandler) error
+	AddProcessedHeaderCalled   func(handler data.HeaderHandler) error
+	RevertHeaderCalled         func(handler data.HeaderHandler) error
 	GetPendingMiniBlocksCalled func(shardID uint32) [][]byte
 	SetPendingMiniBlocksCalled func(shardID uint32, mbHashes [][]byte)
 }

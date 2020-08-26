@@ -3,6 +3,8 @@ package factory
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -277,19 +279,32 @@ func computeConnectedPeers(
 
 func setP2pConnectedPeersMetrics(appStatusHandler core.AppStatusHandler, info *p2p.ConnectedPeersInfo) {
 	appStatusHandler.SetStringValue(core.MetricP2PUnknownPeers, sliceToString(info.UnknownPeers))
-	appStatusHandler.SetStringValue(core.MetricP2PIntraShardValidators, sliceToString(info.IntraShardValidators))
-	appStatusHandler.SetStringValue(core.MetricP2PIntraShardObservers, sliceToString(info.IntraShardObservers))
-	appStatusHandler.SetStringValue(core.MetricP2PCrossShardValidators, sliceToString(info.CrossShardValidators))
-	appStatusHandler.SetStringValue(core.MetricP2PCrossShardObservers, sliceToString(info.CrossShardObservers))
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardValidators, mapToString(info.IntraShardValidators))
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardObservers, mapToString(info.IntraShardObservers))
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardValidators, mapToString(info.CrossShardValidators))
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardObservers, mapToString(info.CrossShardObservers))
 }
 
 func sliceToString(input []string) string {
-	output := ""
-	for _, str := range input {
-		output += str + ","
+	return strings.Join(input, ",")
+}
+
+func mapToString(input map[uint32][]string) string {
+	strs := make([]string, 0, len(input))
+	keys := make([]uint32, 0, len(input))
+	for shard := range input {
+		keys = append(keys, shard)
 	}
 
-	return output
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+
+	for _, key := range keys {
+		strs = append(strs, sliceToString(input[key]))
+	}
+
+	return strings.Join(strs, ",")
 }
 
 func setCurrentP2pNodeAddresses(

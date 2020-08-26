@@ -8,8 +8,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -28,42 +30,47 @@ import (
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // CreateMetaGenesisBlock will create a metachain genesis block
-func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, _ uint32) (data.HeaderHandler, error) {
+func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, _ uint32) (data.HeaderHandler, [][]byte, error) {
 	if mustDoHardForkImportProcess(arg) {
 		return createMetaGenesisAfterHardFork(arg)
 	}
 
-	processors, err := createProcessorsForMetaGenesisBlock(arg)
+	genesisOverrideConfig := config.GeneralSettingsConfig{
+		BuiltInFunctionsEnableEpoch:    0,
+		SCDeployEnableEpoch:            0,
+		RelayedTransactionsEnableEpoch: 0,
+		PenalizedTooMuchGasEnableEpoch: 0,
+	}
+	processors, err := createProcessorsForMetaGenesisBlock(arg, genesisOverrideConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = deploySystemSmartContracts(arg, processors.txProcessor, processors.systemSCs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = setStakedData(arg, processors, nodesListSplitter)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
 
 	magicDecoded, err := hex.DecodeString(arg.GenesisString)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	prevHash := arg.Core.Hasher().Compute(arg.GenesisString)
 
@@ -96,26 +103,26 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 
 	validatorRootHash, err := arg.ValidatorAccounts.RootHash()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	header.SetValidatorStatsRootHash(validatorRootHash)
 
 	err = saveGenesisMetaToStorage(arg.Data.StorageService(), arg.Core.InternalMarshalizer(), header)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = processors.vmContainer.Close()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return header, nil
+	return header, make([][]byte, 0), nil
 }
 
 func createMetaGenesisAfterHardFork(
 	arg ArgsGenesisBlockCreator,
-) (data.HeaderHandler, error) {
+) (data.HeaderHandler, [][]byte, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
 
@@ -128,7 +135,7 @@ func createMetaGenesisAfterHardFork(
 	}
 	metaBlockCreator, err := hardForkProcess.NewMetaBlockCreatorAfterHardfork(argsNewMetaBlockCreatorAfterHardFork)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hdrHandler, _, err := metaBlockCreator.CreateNewBlock(
@@ -138,26 +145,26 @@ func createMetaGenesisAfterHardFork(
 		arg.HardForkConfig.StartEpoch,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	metaHdr, ok := hdrHandler.(*block.MetaBlock)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = saveGenesisMetaToStorage(arg.Data.StorageService(), arg.Core.InternalMarshalizer(), metaHdr)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return metaHdr, nil
+	return metaHdr, make([][]byte, 0), nil
 }
 
 func saveGenesisMetaToStorage(
@@ -185,7 +192,7 @@ func saveGenesisMetaToStorage(
 	return nil
 }
 
-func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisProcessors, error) {
+func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         arg.Accounts,
@@ -265,25 +272,32 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		return nil, err
 	}
 
+	epochNotifier := forking.NewGenericEpochNotifier()
+	epochNotifier.CheckEpoch(0)
+
 	argsParser := smartContract.NewArgumentParser()
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:      vmContainer,
-		ArgsParser:       argsParser,
-		Hasher:           arg.Core.Hasher(),
-		Marshalizer:      arg.Core.InternalMarshalizer(),
-		AccountsDB:       arg.Accounts,
-		BlockChainHook:   virtualMachineFactory.BlockChainHookImpl(),
-		PubkeyConv:       arg.Core.AddressPubKeyConverter(),
-		Coordinator:      arg.ShardCoordinator,
-		ScrForwarder:     scForwarder,
-		TxFeeHandler:     genesisFeeHandler,
-		EconomicsFee:     genesisFeeHandler,
-		TxTypeHandler:    txTypeHandler,
-		GasHandler:       gasHandler,
-		BuiltInFunctions: virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:  arg.TxLogsProcessor,
-		BadTxForwarder:   badTxForwarder,
+		VmContainer:                    vmContainer,
+		ArgsParser:                     argsParser,
+		Hasher:                         arg.Core.Hasher(),
+		Marshalizer:                    arg.Core.InternalMarshalizer(),
+		AccountsDB:                     arg.Accounts,
+		BlockChainHook:                 virtualMachineFactory.BlockChainHookImpl(),
+		PubkeyConv:                     arg.Core.AddressPubKeyConverter(),
+		Coordinator:                    arg.ShardCoordinator,
+		ScrForwarder:                   scForwarder,
+		TxFeeHandler:                   genesisFeeHandler,
+		EconomicsFee:                   genesisFeeHandler,
+		TxTypeHandler:                  txTypeHandler,
+		GasHandler:                     gasHandler,
+		BuiltInFunctions:               virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:                arg.TxLogsProcessor,
+		BadTxForwarder:                 badTxForwarder,
+		EpochNotifier:                  epochNotifier,
+		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
@@ -421,7 +435,7 @@ func setStakedData(
 ) error {
 
 	scQueryBlsKeys := &process.SCQuery{
-		ScAddress: vmFactory.StakingSCAddress,
+		ScAddress: vm.StakingSCAddress,
 		FuncName:  "isStaked",
 	}
 
@@ -434,7 +448,7 @@ func setStakedData(
 		tx := &transaction.Transaction{
 			Nonce:     0,
 			Value:     new(big.Int).Set(stakeValue),
-			RcvAddr:   vmFactory.AuctionSCAddress,
+			RcvAddr:   vm.AuctionSCAddress,
 			SndAddr:   nodeInfo.AddressBytes(),
 			GasPrice:  0,
 			GasLimit:  math.MaxUint64,

@@ -122,6 +122,15 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	return hashDst
 }
 
+// GetMiniBlockHeadersHashes gets the miniblock hashes
+func (h *Header) GetMiniBlockHeadersHashes() [][]byte {
+	result := make([][]byte, 0, len(h.MiniBlockHeaders))
+	for _, miniblock := range h.MiniBlockHeaders {
+		result = append(result, miniblock.Hash)
+	}
+	return result
+}
+
 // MapMiniBlockHashesToShards is a map of mini block hashes and sender IDs
 func (h *Header) MapMiniBlockHashesToShards() map[string]uint32 {
 	hashDst := make(map[string]uint32)

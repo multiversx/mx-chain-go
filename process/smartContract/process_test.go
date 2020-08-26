@@ -3,6 +3,7 @@ package smartContract
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"math/big"
 	"testing"
 
@@ -17,8 +18,11 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const maxEpoch = math.MaxUint32
 
 func generateEmptyByteSlice(size int) []byte {
 	buff := make([]byte, size)
@@ -70,6 +74,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
 }
 
@@ -183,7 +188,7 @@ func TestNewSmartContractProcessor_ErrNilUnsignedTxHandlerMock(t *testing.T) {
 	require.Equal(t, process.ErrNilUnsignedTxHandler, err)
 }
 
-func TestNewSmartContractProcessor_ErrErrNilGasHandlerMock(t *testing.T) {
+func TestNewSmartContractProcessor_ErrNilGasHandlerMock(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
@@ -192,6 +197,17 @@ func TestNewSmartContractProcessor_ErrErrNilGasHandlerMock(t *testing.T) {
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilGasHandler, err)
+}
+
+func TestNewSmartContractProcessor_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.EpochNotifier = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilEpochNotifier, err)
 }
 
 func TestNewSmartContractProcessor(t *testing.T) {
@@ -295,7 +311,7 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.DisableDeploy = true
+	arguments.DeployEnableEpoch = maxEpoch
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -328,7 +344,7 @@ func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.DisableBuiltIn = true
+	arguments.BuiltinEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	_ = arguments.BuiltInFunctions.Add(funcName, &mock.BuiltInFunctionStub{})
 	sc, err := NewSmartContractProcessor(arguments)
@@ -363,7 +379,7 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	}}
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
-	arguments.DisableBuiltIn = true
+	arguments.BuiltinEnableEpoch = maxEpoch
 	funcName := "builtIn"
 	localError := errors.New("failed built in call")
 	_ = arguments.BuiltInFunctions.Add(funcName, &mock.BuiltInFunctionStub{
@@ -918,7 +934,7 @@ func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 	acntSrc, _, tx := createAccountsAndTransaction()
 
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
 	require.Equal(t, process.ErrNilVMOutput, err)
 }
 
@@ -937,7 +953,7 @@ func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 	acntSrc, _, _ := createAccountsAndTransaction()
 
 	vmOutput := &vmcommon.VMOutput{}
-	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall, 0)
 	require.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -960,7 +976,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		GasRemaining: 0,
 	}
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, nil, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, nil, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
@@ -991,7 +1007,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
@@ -1334,11 +1350,7 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
 	_, _ = sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		"",
+		vmOutput,
 		tx,
 		txHash,
 		acntSrc,
@@ -1368,11 +1380,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	txHash := []byte("txHash")
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
 	sctx, consumed := sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		"",
+		vmOutput,
 		tx,
 		txHash,
 		nil,
@@ -1384,11 +1392,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
 	sctx, consumed = sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		"",
+		vmOutput,
 		tx,
 		txHash,
 		nil,
@@ -1426,11 +1430,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
 	scr, _ := sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		"",
+		vmOutput,
 		tx,
 		txHash,
 		acntSrc,
@@ -1469,11 +1469,7 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 10, GasRefund: refundGas}
 	scr, _ := sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		"",
+		vmOutput,
 		tx,
 		txHash,
 		acntSrc,
@@ -1497,7 +1493,7 @@ func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
 
 	require.Equal(t, process.ErrNilVMOutput, err)
 }
@@ -1513,7 +1509,7 @@ func TestScProcessor_processVMOutputNilTransaction(t *testing.T) {
 	require.Nil(t, err)
 
 	vmOutput := &vmcommon.VMOutput{}
-	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall, 0)
 
 	require.Equal(t, process.ErrNilTransaction, err)
 }
@@ -1541,7 +1537,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSrc, vmcommon.DirectCall)
+	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
@@ -2143,4 +2139,77 @@ func TestScProcessor_checkUpgradePermission(t *testing.T) {
 	// Upgrade as nobody, not allowed
 	err = sc.checkUpgradePermission(contract, &vmcommon.ContractCallInput{Function: "upgradeContract", VMInput: vmcommon.VMInput{CallerAddr: nil}})
 	require.Equal(t, process.ErrUpgradeNotAllowed, err)
+}
+
+func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	gasProvided := uint64(1000)
+	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
+
+	callType := vmcommon.DirectCall
+	vmOutput := &vmcommon.VMOutput{
+		GasRemaining: maxGasToRemain,
+	}
+	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	assert.Equal(t, uint64(maxGasToRemain), vmOutput.GasRemaining)
+
+	callType = vmcommon.AsynchronousCall
+	vmOutput = &vmcommon.VMOutput{
+		GasRemaining: maxGasToRemain + 1,
+	}
+	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	assert.Equal(t, uint64(maxGasToRemain+1), vmOutput.GasRemaining)
+
+	callType = vmcommon.DirectCall
+	vmOutput = &vmcommon.VMOutput{
+		GasRemaining: maxGasToRemain + 1,
+	}
+	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
+}
+
+func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	gasProvided := uint64(100)
+	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
+
+	isTooMuchGas := isTooMuchGasProvided(gasProvided, gasProvided)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1)
+	assert.True(t, isTooMuchGas)
+}
+
+func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T) {
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	gasProvided := uint64(1000)
+	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
+
+	callType := vmcommon.DirectCall
+	vmOutput := &vmcommon.VMOutput{
+		GasRemaining: maxGasToRemain + 1,
+	}
+
+	sc.penalizedTooMuchGasEnableEpoch = 1
+
+	sc.EpochConfirmed(0)
+	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	assert.Equal(t, uint64(maxGasToRemain+1), vmOutput.GasRemaining)
+
+	sc.EpochConfirmed(1)
+	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
+	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
 }
