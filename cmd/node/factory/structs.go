@@ -348,7 +348,12 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlocks[core.MetachainShardId], nil, nil, nil)
+	if args.startEpochNum == 0 {
+		err = indexGenesisBlock(args, genesisBlocks)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	err = setGenesisHeader(args, genesisBlocks)
 	if err != nil {
@@ -618,6 +623,25 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 		if errNotCritical != nil {
 			log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
 		}
+	}
+
+	return nil
+}
+
+func indexGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
+	genesisBlockHeader := genesisBlocks[core.MetachainShardId]
+	genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
+	if err != nil {
+		return err
+	}
+
+	log.Info("indexGenesisBlock", "hash", genesisBlockHash)
+
+	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
+
+	err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
+	if err != nil {
+		return err
 	}
 
 	return nil
