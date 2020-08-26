@@ -250,7 +250,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	snapshot := sc.accounts.JournalLen()
 
 	var vmInput *vmcommon.ContractCallInput
-	vmInput, err = sc.createVMCallInput(tx)
+	vmInput, err = sc.createVMCallInput(tx, txHash)
 	if err != nil {
 		returnMessage = "cannot create VMInput, check the transaction data field"
 		log.Debug("create vm call input error", "error", err.Error())

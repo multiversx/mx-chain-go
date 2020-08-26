@@ -686,17 +686,15 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 	fmt.Println("nodes[1]", hex.EncodeToString(receiver.OwnAccount.Address))
 	fmt.Println("scAddress", hex.EncodeToString(scAddress))
 
-	putNormalTxToDataPool(
+	integrationTests.CreateAndSendTransaction(
 		sender,
+		big.NewInt(0),
 		scAddress,
 		"callBuiltin@"+hex.EncodeToString(receiver.OwnAccount.Address),
-		big.NewInt(0),
-		integrationTests.MinTxGasLimit+150000,
-		integrationTests.MinTxGasPrice,
-		[]*integrationTests.TestProcessorNode{nodes[0]},
+		150000,
 	)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 9, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)
 	require.NotNil(t, testValue1)
@@ -1165,35 +1163,6 @@ func putDeploySCToDataPool(
 	}
 
 	return scAddressBytes
-}
-
-func putNormalTxToDataPool(
-	senderNode *integrationTests.TestProcessorNode,
-	receiver []byte,
-	data string,
-	value *big.Int,
-	gasLimit uint64,
-	gasPrice uint64,
-	nodes []*integrationTests.TestProcessorNode,
-) {
-	sender := senderNode.OwnAccount
-	tx := &transaction.Transaction{
-		Nonce:    sender.Nonce,
-		Value:    new(big.Int).Set(value),
-		RcvAddr:  receiver,
-		SndAddr:  sender.Address,
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		Data:     []byte(data),
-		ChainID:  integrationTests.ChainID,
-	}
-	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
-
-	shID := nodes[0].ShardCoordinator.ComputeId(sender.Address)
-	for _, node := range nodes {
-		strCache := process.ShardCacherIdentifier(shID, shID)
-		node.DataPool.Transactions().AddData(txHash, tx, tx.Size(), strCache)
-	}
 }
 
 func mintPubKey(
