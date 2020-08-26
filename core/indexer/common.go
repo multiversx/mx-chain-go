@@ -29,10 +29,10 @@ type commonProcessor struct {
 
 func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return fmt.Errorf("%w when setting addressPubkeyConverter in indexer", ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", ErrNilPubkeyConverter)
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return fmt.Errorf("%w when setting validatorPubkeyConverter in indexer", ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", ErrNilPubkeyConverter)
 	}
 	if arguments.Url == "" {
 		return core.ErrNilUrl

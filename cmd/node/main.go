@@ -90,10 +90,6 @@ import (
 const (
 	defaultStatsPath             = "stats"
 	defaultLogsPath              = "logs"
-	defaultDBPath                = "db"
-	defaultEpochString           = "Epoch"
-	defaultStaticDbString        = "Static"
-	defaultShardString           = "Shard"
 	notSetDestinationShardID     = "disabled"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
@@ -374,6 +370,14 @@ VERSION:
 		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network." +
 			"Should be enabled if data is not available in local disk.",
 	}
+
+	// importDbDirectory defines a flag for the optional import DB directory on which the node will re-check the blockchain against
+	importDbDirectory = cli.StringFlag{
+		Name: "import-db",
+		Usage: "This flag, if set, will make the node start the import process using the provided data path. Will re-check" +
+			"and re-process everything",
+		Value: "",
+	}
 )
 
 // appVersion should be populated at build time using ldflags
@@ -441,6 +445,7 @@ func main() {
 		numEpochsToSave,
 		numActivePersisters,
 		startInEpoch,
+		importDbDirectory,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -521,6 +526,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	log.Debug("config", "file", configurationFileName)
+
+	applyCompatibleConfigs(log, generalConfig, ctx)
 
 	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
 	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
@@ -699,18 +706,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
-		defaultDBPath,
+		factory.DefaultDBPath,
 		genesisNodesConfig.ChainID,
-		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
-		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		fmt.Sprintf("%s_%s", factory.DefaultEpochString, core.PathEpochPlaceholder),
+		fmt.Sprintf("%s_%s", factory.DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
 	pathTemplateForStaticStorer := filepath.Join(
 		workingDir,
-		defaultDBPath,
+		factory.DefaultDBPath,
 		genesisNodesConfig.ChainID,
-		defaultStaticDbString,
-		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
+		factory.DefaultStaticDbString,
+		fmt.Sprintf("%s_%s", factory.DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
 	var pathManager *pathmanager.PathManager
@@ -878,7 +885,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, defaultDBPath), appVersion)
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, factory.DefaultDBPath), appVersion)
 	if err != nil {
 		return err
 	}
@@ -895,9 +902,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		*generalConfig,
 		genesisNodesConfig.ChainID,
 		workingDir,
-		defaultDBPath,
-		defaultEpochString,
-		defaultShardString,
+		factory.DefaultDBPath,
+		factory.DefaultEpochString,
+		factory.DefaultShardString,
 	)
 	if err != nil {
 		return err
@@ -910,9 +917,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		*generalConfig,
 		genesisNodesConfig.ChainID,
 		workingDir,
-		defaultDBPath,
-		defaultEpochString,
-		defaultShardString,
+		factory.DefaultDBPath,
+		factory.DefaultEpochString,
+		factory.DefaultShardString,
 	)
 	if err != nil {
 		return err
@@ -950,9 +957,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		PathManager:                pathManager,
 		StorageUnitOpener:          unitOpener,
 		WorkingDir:                 workingDir,
-		DefaultDBPath:              defaultDBPath,
-		DefaultEpochString:         defaultEpochString,
-		DefaultShardString:         defaultShardString,
+		DefaultDBPath:              factory.DefaultDBPath,
+		DefaultEpochString:         factory.DefaultEpochString,
+		DefaultShardString:         factory.DefaultShardString,
 		Rater:                      rater,
 		DestinationShardAsObserver: destShardIdAsObserver,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
@@ -1273,6 +1280,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		historyRepository,
 		epochNotifier,
 		txSimulatorProcessorArgs,
+		ctx.GlobalString(importDbDirectory.Name),
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1476,6 +1484,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	return nil
 }
 
+func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.Context) {
+	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
+	if len(importDbDirectoryValue) > 0 {
+		log.Info("import DB directory is set, turning off start in epoch", "value", importDbDirectoryValue)
+		config.GeneralSettings.StartInEpochEnabled = false
+	}
+}
+
 func closeAllComponents(
 	log logger.Logger,
 	healthService io.Closer,
@@ -1536,7 +1552,7 @@ func cleanupStorageIfNecessary(workingDir string, ctx *cli.Context, log logger.L
 	if storageCleanupFlagValue {
 		dbPath := filepath.Join(
 			workingDir,
-			defaultDBPath)
+			factory.DefaultDBPath)
 		log.Trace("cleaning storage", "path", dbPath)
 		err := os.RemoveAll(dbPath)
 		if err != nil {
