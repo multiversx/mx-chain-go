@@ -212,6 +212,10 @@ func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
 }
 
 func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
+	if s.blockNumber == header.Nonce {
+		return nil
+	}
+
 	s.blockNumber = header.Nonce
 	s.roundNumber = header.Round
 

@@ -581,7 +581,7 @@ func testTpsBenchmarkConcurrent(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(nrGoroutines)
 
-	for i := 0; i < nrGoroutines; i++ {
+	for i := 1; i <= nrGoroutines; i++ {
 		go func(nonce int) {
 			time.Sleep(time.Millisecond)
 			updateTpsBenchmark(tpsBenchmark, txCount, uint64(nonce))
