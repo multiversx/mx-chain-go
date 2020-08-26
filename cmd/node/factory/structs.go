@@ -636,7 +636,7 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 		return err
 	}
 
-	log.Info("indexGenesisBlock(): indexer.SaveBlock", "hash", genesisBlockHash)
+	log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
 	// In "fullHistory" index, record both the metachain and the shard blocks
@@ -650,20 +650,14 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 			return err
 		}
 
-		log.Info("indexGenesisBlock(): historyRepo.RecordBlock", "shard", shard, "hash", genesisBlockHash)
+		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shard, "hash", genesisBlockHash)
 		err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
 		if err != nil {
 			return err
 		}
 
-		var nonceByHashDataUnit dataRetriever.UnitType
-		if shard == core.MetachainShardId {
-			nonceByHashDataUnit = dataRetriever.MetaHdrNonceHashDataUnit
-		} else {
-			nonceByHashDataUnit = dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(genesisBlockHeader.GetShardID())
-		}
-
-		nonceAsBytes := args.coreData.Uint64ByteSliceConverter.ToByteSlice(0)
+		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shard)
+		nonceAsBytes := args.coreData.Uint64ByteSliceConverter.ToByteSlice(genesisBlockHeader.GetNonce())
 		err = args.data.Store.Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
 		if err != nil {
 			return err

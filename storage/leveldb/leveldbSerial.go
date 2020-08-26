@@ -115,7 +115,6 @@ func (s *SerialDB) updateBatchWithIncrement() error {
 // Put adds the value to the (key, val) storage medium
 func (s *SerialDB) Put(key, val []byte) error {
 	if s.isClosed() {
-		log.Debug("SerialDB.Put() is closed", "path", s.path, "key", key)
 		return storage.ErrSerialDBIsClosed
 	}
 
@@ -132,7 +131,6 @@ func (s *SerialDB) Put(key, val []byte) error {
 // Get returns the value associated to the key
 func (s *SerialDB) Get(key []byte) ([]byte, error) {
 	if s.isClosed() {
-		log.Debug("SerialDB.Get() is closed", "path", s.path, "key", key)
 		return nil, storage.ErrSerialDBIsClosed
 	}
 
@@ -170,7 +168,6 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 // Has returns nil if the given key is present in the persistence medium
 func (s *SerialDB) Has(key []byte) error {
 	if s.isClosed() {
-		log.Debug("SerialDB.Has() is closed", "path", s.path, "key", key)
 		return storage.ErrSerialDBIsClosed
 	}
 
@@ -257,7 +254,6 @@ func (s *SerialDB) Close() error {
 // Remove removes the data associated to the given key
 func (s *SerialDB) Remove(key []byte) error {
 	if s.isClosed() {
-		log.Debug("SerialDB.Remove() is closed", "path", s.path, "key", key)
 		return storage.ErrSerialDBIsClosed
 	}
 
