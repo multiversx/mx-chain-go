@@ -201,7 +201,7 @@ func (hr *historyRepository) getMiniblockMetadataByMiniblockHash(hash []byte) (*
 }
 
 // GetEpochByHash will return epoch for a given hash
-// This works for Blocks, Miniblocks and Transactions
+// This works for Blocks, Miniblocks
 // It doesn't work for transactions (not needed, there we have a static storer for "miniblockHashByTxHashIndex" as well)!
 func (hr *historyRepository) GetEpochByHash(hash []byte) (uint32, error) {
 	return hr.epochByHashIndex.getEpochByHash(hash)
