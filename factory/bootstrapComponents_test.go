@@ -165,8 +165,8 @@ func TestBootstrapComponentsFactory_Create_EpochStartBootstrapCreationFail(t *te
 	require.True(t, errors.Is(err, errorsErd.ErrNewEpochStartBootstrap))
 }
 
-// ------------ Test BootstrapComponentsFactory --------------------
-func TestNewBootstrapComponentsFactory(t *testing.T) {
+// ------------ Test ManagedBootstrapComponents --------------------
+func TestNewManagedBootstrapComponents(t *testing.T) {
 	t.Parallel()
 
 	args := getBootStrapArgs()
@@ -225,6 +225,23 @@ func TestManagedBootstrapComponents_Create_NilInternalMarshalizer(t *testing.T) 
 	err := mbc.Create()
 
 	require.True(t, errors.Is(err, errorsErd.ErrBootstrapDataComponentsFactoryCreate))
+}
+
+func TestManagedBootstrapComponents_Close(t *testing.T) {
+	t.Parallel()
+	args := getBootStrapArgs()
+
+	bcf, _ := factory.NewBootstrapComponentsFactory(args)
+	mbc, _ := factory.NewManagedBootstrapComponents(bcf)
+
+	_ = mbc.Create()
+
+	require.NotNil(t, mbc.EpochBootstrapParams())
+
+	_ = mbc.Close()
+	require.Nil(t, mbc.EpochBootstrapParams())
+
+	//require.True(t, errors.Is(err, errorsErd.ErrBootstrapDataComponentsFactoryCreate))
 }
 
 func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {

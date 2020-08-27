@@ -22,7 +22,7 @@ func TestNewCoreComponentsFactory_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getCoreArgs()
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	require.NotNil(t, ccf)
 }
@@ -37,7 +37,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoHasherConfigShouldErr(t *t
 			SizeCheckDelta: 0,
 		},
 	}
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -57,7 +57,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidHasherConfigShouldErr
 			Type: "invalid_type",
 		},
 	}
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -73,7 +73,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoInternalMarshalizerConfigS
 			Type: testHasher,
 		},
 	}
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -93,7 +93,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidInternalMarshalizerCo
 			Type: testHasher,
 		},
 	}
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -113,7 +113,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoVmMarshalizerConfigShouldE
 			SizeCheckDelta: 0,
 		},
 	}
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -136,7 +136,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidVmMarshalizerConfigSh
 			Type: "invalid",
 		},
 	}
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -159,7 +159,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoTxSignMarshalizerConfigSho
 			Type: testMarshalizer,
 		},
 	}
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -185,7 +185,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidTxSignMarshalizerConf
 			Type: "invalid",
 		},
 	}
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -197,7 +197,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidValPubKeyConverterShou
 
 	args := getCoreArgs()
 	args.Config.ValidatorPubkeyConverter.Type = "invalid"
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -209,7 +209,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidAddrPubKeyConverterSho
 
 	args := getCoreArgs()
 	args.Config.AddressPubkeyConverter.Type = "invalid"
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -220,7 +220,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getCoreArgs()
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.NoError(t, err)
@@ -231,7 +231,7 @@ func TestCoreComponentsFactory_CreateStorerTemplatePaths(t *testing.T) {
 	t.Parallel()
 
 	args := getCoreArgs()
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 
 	pathPruning, pathStatic := ccf.CreateStorerTemplatePaths()
 	require.Equal(t, "home/db/undefined/Epoch_[E]/Shard_[S]/[I]", pathPruning)
@@ -245,7 +245,8 @@ func TestManagedCoreComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 		Type:           "invalid_marshalizer_type",
 		SizeCheckDelta: 0,
 	}
-	managedCoreComponents, err := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
+	coreComponentsFactory, _ := factory.NewCoreComponentsFactory(coreArgs)
+	managedCoreComponents, err := factory.NewManagedCoreComponents(coreComponentsFactory)
 	require.NoError(t, err)
 	err = managedCoreComponents.Create()
 	require.Error(t, err)
@@ -254,7 +255,8 @@ func TestManagedCoreComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 
 func TestManagedCoreComponents_Create_ShouldWork(t *testing.T) {
 	coreArgs := getCoreArgs()
-	managedCoreComponents, err := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
+	coreComponentsFactory, _ := factory.NewCoreComponentsFactory(coreArgs)
+	managedCoreComponents, err := factory.NewManagedCoreComponents(coreComponentsFactory)
 	require.NoError(t, err)
 	require.Nil(t, managedCoreComponents.Hasher())
 	require.Nil(t, managedCoreComponents.InternalMarshalizer())
@@ -285,7 +287,8 @@ func TestManagedCoreComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedCoreComponents_Close(t *testing.T) {
 	coreArgs := getCoreArgs()
-	managedCoreComponents, _ := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
+	coreComponentsFactory, _ := factory.NewCoreComponentsFactory(coreArgs)
+	managedCoreComponents, _ := factory.NewManagedCoreComponents(coreComponentsFactory)
 	err := managedCoreComponents.Create()
 	require.NoError(t, err)
 
@@ -307,7 +310,7 @@ func TestCoreComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getCoreArgs()
-	ccf := factory.NewCoreComponentsFactory(args)
+	ccf, _ := factory.NewCoreComponentsFactory(args)
 	cc, _ := ccf.Create()
 
 	closeCalled := false

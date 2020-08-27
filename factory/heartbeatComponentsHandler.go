@@ -19,10 +19,9 @@ type managedHeartbeatComponents struct {
 }
 
 // NewManagedHeartbeatComponents creates a new heartbeat components handler
-func NewManagedHeartbeatComponents(args HeartbeatComponentsFactoryArgs) (*managedHeartbeatComponents, error) {
-	hcf, err := NewHeartbeatComponentsFactory(args)
-	if err != nil {
-		return nil, err
+func NewManagedHeartbeatComponents(hcf *heartbeatComponentsFactory) (*managedHeartbeatComponents, error) {
+	if hcf == nil {
+		return nil, errors.ErrNilHeartbeatComponentsFactory
 	}
 
 	return &managedHeartbeatComponents{

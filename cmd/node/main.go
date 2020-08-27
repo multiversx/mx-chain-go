@@ -218,7 +218,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", nodesFileName)
 
-	coreArgs := mainFactory.CoreComponentsHandlerArgs{
+	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:              *cfgs.generalConfig,
 		RatingsConfig:       *cfgs.ratingsConfig,
 		EconomicsConfig:     *cfgs.economicsConfig,
@@ -226,7 +226,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		WorkingDirectory:    workingDir,
 		ChanStopNodeProcess: chanStopNodeProcess,
 	}
-	managedCoreComponents, err := mainFactory.NewManagedCoreComponents(coreArgs)
+
+	coreComponentsFactory, err := mainFactory.NewCoreComponentsFactory(coreArgs)
+	if err != nil {
+		return fmt.Errorf("NewCoreComponentsFactory failed: %w", err)
+	}
+
+	managedCoreComponents, err := mainFactory.NewManagedCoreComponents(coreComponentsFactory)
 	if err != nil {
 		return err
 	}
@@ -258,7 +264,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		KeyLoader:                            &core.KeyLoader{},
 	}
 
-	managedCryptoComponents, err := mainFactory.NewManagedCryptoComponents(cryptoComponentsHandlerArgs)
+	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(mainFactory.CryptoComponentsFactoryArgs(cryptoComponentsHandlerArgs))
+	if err != nil {
+		return fmt.Errorf("NewCryptoComponentsFactory failed: %w", err)
+	}
+
+	managedCryptoComponents, err := mainFactory.NewManagedCryptoComponents(cryptoComponentsFactory)
 	if err != nil {
 		return err
 	}
@@ -347,7 +358,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating network components")
-	args := mainFactory.NetworkComponentsFactoryArgs{
+	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
 		P2pConfig:     *cfgs.p2pConfig,
 		MainConfig:    *cfgs.generalConfig,
 		RatingsConfig: *cfgs.ratingsConfig,
@@ -356,7 +367,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Syncer:        managedCoreComponents.SyncTimer(),
 	}
 
-	managedNetworkComponents, err := mainFactory.NewManagedNetworkComponents(args)
+	networkComponentsFactory, err := mainFactory.NewNetworkComponentsFactory(networkComponentsFactoryArgs)
+	if err != nil {
+		return fmt.Errorf("NewNetworkComponentsFactory failed: %w", err)
+	}
+
+	managedNetworkComponents, err := mainFactory.NewManagedNetworkComponents(networkComponentsFactory)
 	if err != nil {
 		return err
 	}
@@ -447,7 +463,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	bootstrapComponentsFactory, err := mainFactory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
 	if err != nil {
-		return err
+		return fmt.Errorf("NewBootstrapComponentsFactory failed: %w", err)
 	}
 
 	managedBootstrapComponents, err := mainFactory.NewManagedBootstrapComponents(bootstrapComponentsFactory)
@@ -502,7 +518,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		TriesContainer:      triesComponents,
 		TrieStorageManagers: trieStorageManagers,
 	}
-	managedStateComponents, err := mainFactory.NewManagedStateComponents(stateArgs)
+
+	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
+	if err != nil {
+		return fmt.Errorf("NewStateComponentsFactory failed: %w", err)
+	}
+
+	managedStateComponents, err := mainFactory.NewManagedStateComponents(stateComponentsFactory)
 	if err != nil {
 		return err
 	}
@@ -525,7 +547,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating data components")
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 
-	dataArgs := mainFactory.DataComponentsHandlerArgs{
+	dataArgs := mainFactory.DataComponentsFactoryArgs{
 		Config:             *cfgs.generalConfig,
 		EconomicsData:      economicsData,
 		ShardCoordinator:   shardCoordinator,
@@ -534,7 +556,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		CurrentEpoch:       storerEpoch,
 	}
 
-	managedDataComponents, err := mainFactory.NewManagedDataComponents(dataArgs)
+	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
+	if err != nil {
+		return fmt.Errorf("NewDataComponentsFactory failed: %w", err)
+	}
+	managedDataComponents, err := mainFactory.NewManagedDataComponents(dataComponentsFactory)
 	if err != nil {
 		return err
 	}
@@ -706,7 +732,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		DataComponents:     managedDataComponents,
 		NetworkComponents:  managedNetworkComponents,
 	}
-	managedStatusComponents, err := mainFactory.NewManagedStatusComponents(statArgs)
+
+	statusComponentsFactory, err := mainFactory.NewStatusComponentsFactory(statArgs)
+	if err != nil {
+		return fmt.Errorf("NewStatusComponentsFactory failed: %w", err)
+	}
+
+	managedStatusComponents, err := mainFactory.NewManagedStatusComponents(statusComponentsFactory)
 	if err != nil {
 		return err
 	}
@@ -759,8 +791,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		EpochNotifier:             epochNotifier,
 		HeaderIntegrityVerifier:   headerIntegrityVerifier,
 	}
+	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
+	if err != nil {
+		return fmt.Errorf("NewDataComponentsFactory failed: %w", err)
+	}
 
-	managedProcessComponents, err := mainFactory.NewManagedProcessComponents(processArgs)
+	managedProcessComponents, err := mainFactory.NewManagedProcessComponents(processComponentsFactory)
 	if err != nil {
 		return err
 	}
@@ -921,7 +957,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		StatusComponents:    managedStatusComponents,
 	}
 
-	managedConsensusComponents, err := mainFactory.NewManagedConsensusComponents(consensusArgs)
+	consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)
+	if err != nil {
+		return fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
+	}
+
+	managedConsensusComponents, err := mainFactory.NewManagedConsensusComponents(consensusFactory)
 	if err != nil {
 		return err
 	}
@@ -1575,7 +1616,12 @@ func createNode(
 		ProcessComponents: processComponents,
 	}
 
-	managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents(heartbeatArgs)
+	heartbeatComponentsFactory, err := mainFactory.NewHeartbeatComponentsFactory(heartbeatArgs)
+	if err != nil {
+		return nil, fmt.Errorf("NewHeartbeatComponentsFactory failed: %w", err)
+	}
+
+	managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
 	if err != nil {
 		return nil, err
 	}

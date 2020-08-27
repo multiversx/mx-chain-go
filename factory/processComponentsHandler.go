@@ -25,10 +25,9 @@ type managedProcessComponents struct {
 }
 
 // NewManagedProcessComponents returns a news instance of managedProcessComponents
-func NewManagedProcessComponents(args ProcessComponentsFactoryArgs) (*managedProcessComponents, error) {
-	pcf, err := NewProcessComponentsFactory(args)
-	if err != nil {
-		return nil, err
+func NewManagedProcessComponents(pcf *processComponentsFactory) (*managedProcessComponents, error) {
+	if pcf == nil {
+		return nil, errors.ErrNilProcessComponentsFactory
 	}
 
 	return &managedProcessComponents{

@@ -79,7 +79,8 @@ func TestStateComponentsFactory_CreateTriesShouldWork(t *testing.T) {
 func TestManagedStateComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	coreComponents := getCoreComponents()
 	args := getStateArgs(coreComponents)
-	managedStateComponents, err := factory.NewManagedStateComponents(args)
+	stateComponentsFactory, _ := factory.NewStateComponentsFactory(args)
+	managedStateComponents, err := factory.NewManagedStateComponents(stateComponentsFactory)
 	require.NoError(t, err)
 	_ = args.Core.SetInternalMarshalizer(nil)
 	err = managedStateComponents.Create()
@@ -90,7 +91,8 @@ func TestManagedStateComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 func TestManagedStateComponents_Create_ShouldWork(t *testing.T) {
 	coreComponents := getCoreComponents()
 	args := getStateArgs(coreComponents)
-	managedStateComponents, err := factory.NewManagedStateComponents(args)
+	stateComponentsFactory, _ := factory.NewStateComponentsFactory(args)
+	managedStateComponents, err := factory.NewManagedStateComponents(stateComponentsFactory)
 	require.NoError(t, err)
 	require.Nil(t, managedStateComponents.AccountsAdapter())
 	require.Nil(t, managedStateComponents.PeerAccounts())
@@ -108,7 +110,8 @@ func TestManagedStateComponents_Create_ShouldWork(t *testing.T) {
 func TestManagedStateComponents_Close(t *testing.T) {
 	coreComponents := getCoreComponents()
 	args := getStateArgs(coreComponents)
-	managedStateComponents, _ := factory.NewManagedStateComponents(args)
+	stateComponentsFactory, _ := factory.NewStateComponentsFactory(args)
+	managedStateComponents, _ := factory.NewManagedStateComponents(stateComponentsFactory)
 	err := managedStateComponents.Create()
 	require.NoError(t, err)
 
@@ -221,7 +224,8 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder) factory.StateComp
 
 func getCoreComponents() factory.CoreComponentsHolder {
 	coreArgs := getCoreArgs()
-	coreComponents, err := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
+	coreComponentsFactory, _ := factory.NewCoreComponentsFactory(coreArgs)
+	coreComponents, err := factory.NewManagedCoreComponents(coreComponentsFactory)
 	if err != nil {
 		fmt.Println("getCoreComponents NewManagedCoreComponents", "error", err.Error())
 		return nil

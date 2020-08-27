@@ -117,7 +117,8 @@ func TestManagedDataComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	coreComponents := getCoreComponents()
 	args := getDataArgs(coreComponents)
 	args.Config.ShardHdrNonceHashStorage = config.StorageConfig{}
-	managedDataComponents, err := factory.NewManagedDataComponents(factory.DataComponentsHandlerArgs(args))
+	dataComponentsFactory, _ := factory.NewDataComponentsFactory(args)
+	managedDataComponents, err := factory.NewManagedDataComponents(dataComponentsFactory)
 	require.NoError(t, err)
 	err = managedDataComponents.Create()
 	require.Error(t, err)
@@ -127,7 +128,8 @@ func TestManagedDataComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 func TestManagedDataComponents_Create_ShouldWork(t *testing.T) {
 	coreComponents := getCoreComponents()
 	args := getDataArgs(coreComponents)
-	managedDataComponents, err := factory.NewManagedDataComponents(factory.DataComponentsHandlerArgs(args))
+	dataComponentsFactory, _ := factory.NewDataComponentsFactory(args)
+	managedDataComponents, err := factory.NewManagedDataComponents(dataComponentsFactory)
 	require.NoError(t, err)
 	require.Nil(t, managedDataComponents.Blockchain())
 	require.Nil(t, managedDataComponents.StorageService())
@@ -143,7 +145,8 @@ func TestManagedDataComponents_Create_ShouldWork(t *testing.T) {
 func TestManagedDataComponents_Close(t *testing.T) {
 	coreComponents := getCoreComponents()
 	args := getDataArgs(coreComponents)
-	managedDataComponents, _ := factory.NewManagedDataComponents(factory.DataComponentsHandlerArgs(args))
+	dataComponentsFactory, _ := factory.NewDataComponentsFactory(args)
+	managedDataComponents, _ := factory.NewManagedDataComponents(dataComponentsFactory)
 	err := managedDataComponents.Create()
 	require.NoError(t, err)
 

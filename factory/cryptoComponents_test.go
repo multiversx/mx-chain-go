@@ -364,7 +364,8 @@ func TestManagedCryptoComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
 	args.Config.Consensus.Type = "invalid"
-	managedCryptoComponents, err := factory.NewManagedCryptoComponents(factory.CryptoComponentsHandlerArgs(args))
+	cryptoComponentsFactory, _ := factory.NewCryptoComponentsFactory(args)
+	managedCryptoComponents, err := factory.NewManagedCryptoComponents(cryptoComponentsFactory)
 	require.NoError(t, err)
 	err = managedCryptoComponents.Create()
 	require.Error(t, err)
@@ -374,7 +375,8 @@ func TestManagedCryptoComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 func TestManagedCryptoComponents_Create_ShouldWork(t *testing.T) {
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
-	managedCryptoComponents, err := factory.NewManagedCryptoComponents(factory.CryptoComponentsHandlerArgs(args))
+	cryptoComponentsFactory, _ := factory.NewCryptoComponentsFactory(args)
+	managedCryptoComponents, err := factory.NewManagedCryptoComponents(cryptoComponentsFactory)
 	require.NoError(t, err)
 	require.Nil(t, managedCryptoComponents.TxSingleSigner())
 	require.Nil(t, managedCryptoComponents.BlockSigner())
@@ -396,7 +398,8 @@ func TestManagedCryptoComponents_Create_ShouldWork(t *testing.T) {
 func TestManagedCryptoComponents_Close(t *testing.T) {
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
-	managedCryptoComponents, _ := factory.NewManagedCryptoComponents(factory.CryptoComponentsHandlerArgs(args))
+	cryptoComponentsFactory, _ := factory.NewCryptoComponentsFactory(args)
+	managedCryptoComponents, _ := factory.NewManagedCryptoComponents(cryptoComponentsFactory)
 	err := managedCryptoComponents.Create()
 	require.NoError(t, err)
 

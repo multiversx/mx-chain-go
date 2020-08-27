@@ -19,10 +19,9 @@ type managedConsensusComponents struct {
 }
 
 // NewManagedConsensusComponents creates a managed consensus components handler
-func NewManagedConsensusComponents(args ConsensusComponentsFactoryArgs) (*managedConsensusComponents, error) {
-	ccf, err := NewConsensusComponentsFactory(args)
-	if err != nil {
-		return nil, err
+func NewManagedConsensusComponents(ccf *consensusComponentsFactory) (*managedConsensusComponents, error) {
+	if ccf == nil {
+		return nil, errors.ErrNilConsensusComponentsFactory
 	}
 
 	return &managedConsensusComponents{

@@ -109,7 +109,8 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 func TestManagedStatusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	t.Skip("Should be fixed")
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
-	managedStatusComponents, err := factory.NewManagedStatusComponents(statusArgs)
+	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
+	managedStatusComponents, err := factory.NewManagedStatusComponents(statusComponentsFactory)
 	require.NoError(t, err)
 	err = managedStatusComponents.Create()
 	require.Error(t, err)
@@ -118,7 +119,8 @@ func TestManagedStatusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 
 func TestManagedStatusComponents_Create_ShouldWork(t *testing.T) {
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
-	managedStatusComponents, err := factory.NewManagedStatusComponents(statusArgs)
+	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
+	managedStatusComponents, err := factory.NewManagedStatusComponents(statusComponentsFactory)
 	require.NoError(t, err)
 	require.Nil(t, managedStatusComponents.StatusHandler())
 	require.Nil(t, managedStatusComponents.ElasticIndexer())
@@ -135,7 +137,8 @@ func TestManagedStatusComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedStatusComponents_Close(t *testing.T) {
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
-	managedStatusComponents, _ := factory.NewManagedStatusComponents(statusArgs)
+	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
+	managedStatusComponents, _ := factory.NewManagedStatusComponents(statusComponentsFactory)
 	err := managedStatusComponents.Create()
 	require.NoError(t, err)
 
@@ -187,7 +190,8 @@ func getStatusComponentsFactoryArgsAndProcessComponents() (factory.StatusCompone
 
 func getNetworkComponents() factory.NetworkComponentsHolder {
 	networkArgs := getNetworkArgs()
-	networkComponents, _ := factory.NewManagedNetworkComponents(networkArgs)
+	networkComponentsFactory, _ := factory.NewNetworkComponentsFactory(networkArgs)
+	networkComponents, _ := factory.NewManagedNetworkComponents(networkComponentsFactory)
 
 	_ = networkComponents.Create()
 
@@ -196,14 +200,16 @@ func getNetworkComponents() factory.NetworkComponentsHolder {
 
 func getDataComponents(coreComponents factory.CoreComponentsHolder) factory.DataComponentsHolder {
 	dataArgs := getDataArgs(coreComponents)
-	dataComponents, _ := factory.NewManagedDataComponents(factory.DataComponentsHandlerArgs(dataArgs))
+	dataComponentsFactory, _ := factory.NewDataComponentsFactory(dataArgs)
+	dataComponents, _ := factory.NewManagedDataComponents(dataComponentsFactory)
 	_ = dataComponents.Create()
 	return dataComponents
 }
 
 func getCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.CryptoComponentsHolder {
 	cryptoArgs := getCryptoArgs(coreComponents)
-	cryptoComponents, err := factory.NewManagedCryptoComponents(factory.CryptoComponentsHandlerArgs(cryptoArgs))
+	cryptoComponentsFactory, _ := factory.NewCryptoComponentsFactory(cryptoArgs)
+	cryptoComponents, err := factory.NewManagedCryptoComponents(cryptoComponentsFactory)
 	if err != nil {
 		fmt.Println("getCryptoComponents NewManagedCryptoComponents", "error", err.Error())
 		return nil
@@ -219,7 +225,8 @@ func getCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.Cr
 
 func getStateComponents(coreComponents factory.CoreComponentsHolder) factory.StateComponentsHolder {
 	stateArgs := getStateArgs(coreComponents)
-	stateComponents, err := factory.NewManagedStateComponents(stateArgs)
+	stateComponentsFactory, _ := factory.NewStateComponentsFactory(stateArgs)
+	stateComponents, err := factory.NewManagedStateComponents(stateComponentsFactory)
 	if err != nil {
 		fmt.Println("getStateComponents NewManagedStateComponents", "error", err.Error())
 		return nil
@@ -246,14 +253,15 @@ func getProcessComponents(
 		stateComponents,
 		networkComponents,
 	)
-	processComponents, err := factory.NewManagedProcessComponents(processArgs)
+	processComponentsFactory, _ := factory.NewProcessComponentsFactory(processArgs)
+	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)
 	if err != nil {
 		fmt.Println("getProcessComponents NewManagedProcessComponents", "error", err.Error())
 		return nil
 	}
-	err = processComponents.Create()
+	err = managedProcessComponents.Create()
 	if err != nil {
 		fmt.Println("getProcessComponents Create", "error", err.Error())
 	}
-	return processComponents
+	return managedProcessComponents
 }

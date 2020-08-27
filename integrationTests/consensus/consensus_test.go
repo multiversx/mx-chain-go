@@ -128,7 +128,12 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 			StatusComponents:    statusComponents,
 		}
 
-		managedConsensusComponents, err := factory.NewManagedConsensusComponents(consensusArgs)
+		consensusFactory, err := factory.NewConsensusComponentsFactory(consensusArgs)
+		if err != nil {
+			return fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
+		}
+
+		managedConsensusComponents, err := factory.NewManagedConsensusComponents(consensusFactory)
 		if err != nil {
 			return err
 		}

@@ -21,9 +21,6 @@ var _ ComponentHandler = (*managedCoreComponents)(nil)
 var _ CoreComponentsHolder = (*managedCoreComponents)(nil)
 var _ CoreComponentsHandler = (*managedCoreComponents)(nil)
 
-// CoreComponentsHandlerArgs holds the arguments required to create a core components handler
-type CoreComponentsHandlerArgs CoreComponentsFactoryArgs
-
 // managedCoreComponents is an implementation of core components handler that can create, close and access the core components
 type managedCoreComponents struct {
 	coreComponentsFactory *coreComponentsFactory
@@ -32,8 +29,11 @@ type managedCoreComponents struct {
 }
 
 // NewManagedCoreComponents creates a new core components handler implementation
-func NewManagedCoreComponents(args CoreComponentsHandlerArgs) (*managedCoreComponents, error) {
-	ccf := NewCoreComponentsFactory(CoreComponentsFactoryArgs(args))
+func NewManagedCoreComponents(ccf *coreComponentsFactory) (*managedCoreComponents, error) {
+	if ccf == nil {
+		return nil, errors.ErrNilCoreComponentsFactory
+	}
+
 	mcc := &managedCoreComponents{
 		coreComponents:        nil,
 		coreComponentsFactory: ccf,

@@ -22,15 +22,14 @@ type managedStateComponents struct {
 }
 
 // NewManagedStateComponents returns a news instance of managedStateComponents
-func NewManagedStateComponents(args StateComponentsFactoryArgs) (*managedStateComponents, error) {
-	pcf, err := NewStateComponentsFactory(args)
-	if err != nil {
-		return nil, err
+func NewManagedStateComponents(scf *stateComponentsFactory) (*managedStateComponents, error) {
+	if scf == nil {
+		return nil, errors.ErrNilStateComponentsFactory
 	}
 
 	return &managedStateComponents{
 		stateComponents: nil,
-		factory:         pcf,
+		factory:         scf,
 	}, nil
 }
 
