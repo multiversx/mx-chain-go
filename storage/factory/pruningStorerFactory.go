@@ -467,21 +467,21 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
 	dbPath := filepath.Join(psf.pathManager.PathForEpoch(shardId, psf.currentEpoch, storageConfig.DB.FilePath))
 	args := &pruning.StorerArgs{
-		Identifier:            storageConfig.DB.FilePath,
-		PruningEnabled:        pruningEnabled,
-		StartingEpoch:         psf.currentEpoch,
-		CleanOldEpochsData:    cleanOldEpochsData,
-		ShardCoordinator:      psf.shardCoordinator,
-		CacheConf:             GetCacherFromConfig(storageConfig.Cache),
-		PathManager:           psf.pathManager,
-		DbPath:                dbPath,
-		PersisterFactory:      NewPersisterFactory(storageConfig.DB),
-		BloomFilterConf:       GetBloomFromConfig(storageConfig.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-		MaxBatchSize:          storageConfig.DB.MaxBatchSize,
-		DbLookupExtensions:    psf.generalConfig.DbLookupExtensions.Enabled,
+		Identifier:                storageConfig.DB.FilePath,
+		PruningEnabled:            pruningEnabled,
+		StartingEpoch:             psf.currentEpoch,
+		CleanOldEpochsData:        cleanOldEpochsData,
+		ShardCoordinator:          psf.shardCoordinator,
+		CacheConf:                 GetCacherFromConfig(storageConfig.Cache),
+		PathManager:               psf.pathManager,
+		DbPath:                    dbPath,
+		PersisterFactory:          NewPersisterFactory(storageConfig.DB),
+		BloomFilterConf:           GetBloomFromConfig(storageConfig.Bloom),
+		NumOfEpochsToKeep:         numOfEpochsToKeep,
+		NumOfActivePersisters:     numOfActivePersisters,
+		Notifier:                  psf.epochStartNotifier,
+		MaxBatchSize:              storageConfig.DB.MaxBatchSize,
+		EnabledDbLookupExtensions: psf.generalConfig.DbLookupExtensions.Enabled,
 	}
 
 	return args

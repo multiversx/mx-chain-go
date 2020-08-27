@@ -316,7 +316,9 @@ func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*Node, *gener
 	marshalizer := &mock.MarshalizerFake{}
 
 	historyRepo := &testscommon.HistoryRepositoryStub{
-		IsEnabledCalled: func() bool { return withDbLookupExt },
+		IsEnabledCalled: func() bool {
+			return withDbLookupExt
+		},
 	}
 
 	n, err := NewNode(

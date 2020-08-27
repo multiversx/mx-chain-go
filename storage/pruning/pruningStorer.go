@@ -199,7 +199,7 @@ func initPersistersInEpoch(
 	}
 
 	// If "database lookup extensions" is enabled, we'll create shallow (not initialized) persisters for all epochs
-	if args.DbLookupExtensions {
+	if args.EnabledDbLookupExtensions {
 		for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
 			log.Debug("initPersistersInEpoch(): createShallowPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
 			persistersMapByEpoch[uint32(epoch)] = createShallowPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
@@ -245,8 +245,6 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 			log.Debug("active persister not found",
 				"epoch", ps.epochForPutOperation,
 				"used", persisterToUse.epoch)
-
-			// Question for review: isn't this a critical error?
 		}
 	}
 	ps.lock.RUnlock()
