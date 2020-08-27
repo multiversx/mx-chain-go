@@ -15,9 +15,9 @@ type ChainStorerMock struct {
 // NewChainStorerMock -
 func NewChainStorerMock() *ChainStorerMock {
 	return &ChainStorerMock{
-		Transactions: NewStorerMock(),
-		Rewards:      NewStorerMock(),
-		Unsigned:     NewStorerMock(),
+		Transactions: NewStorerMock("Transactions", 0),
+		Rewards:      NewStorerMock("Rewards", 0),
+		Unsigned:     NewStorerMock("Unsigned", 0),
 	}
 }
 
