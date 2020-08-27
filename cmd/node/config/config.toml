@@ -657,11 +657,11 @@
         MaxBatchSize = 20000
         MaxOpenFiles = 10
     [FullHistory.MiniblockHashByTxHashStorageConfig.Cache]
-        Name = "FullHistory.MiniblockHashByTxHashStorage"
+        Name = "MiniblockHashByTxHashStorage"
         Capacity = 20000
         Type = "LRU"
     [FullHistory.MiniblockHashByTxHashStorageConfig.DB]
-        FilePath = "FullHistory/MiniblockHashByTxHash"
+        FilePath = "MiniblockHashByTxHash"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
