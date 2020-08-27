@@ -85,15 +85,11 @@ func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 	buff, err := hdrRes.hdrStorage.SearchFirst(hash)
 	if err != nil {
 		crtEpoch := hdrRes.manualEpochStartNotifier.CurrentEpoch()
-		strEpochNotFound := fmt.Sprintf("%d", crtEpoch)
-		if crtEpoch > 1 {
-			strEpochNotFound = strEpochNotFound + fmt.Sprintf(" or %d", crtEpoch-1)
-		}
 
 		argEndProcess := endProcess.ArgEndProcess{
 			Reason: core.ImportComplete,
-			Description: fmt.Sprintf("import ended because data from epoch %s does not exist",
-				strEpochNotFound),
+			Description: fmt.Sprintf("import ended because data from epochs %d or %d does not exist",
+				crtEpoch-1, crtEpoch),
 		}
 
 		select {
