@@ -788,7 +788,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	sp.saveBody(body)
+	sp.saveBody(body, header)
 
 	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
@@ -856,7 +856,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
-	sp.saveHistoryData(headerHash, headerHandler, bodyHandler)
+	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
@@ -1663,6 +1663,12 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 
 	if sp.blockTracker.IsShardStuck(core.MetachainShardId) {
 		log.Warn("shardProcessor.createMiniBlocks", "error", process.ErrShardIsStuck, "shard", core.MetachainShardId)
+
+		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
+		if len(interMBs) > 0 {
+			miniBlocks = append(miniBlocks, interMBs...)
+		}
+
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 

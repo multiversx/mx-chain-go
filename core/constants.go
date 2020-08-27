@@ -357,6 +357,8 @@ const (
 	TxStatusExecuted TransactionStatus = "executed"
 	// TxStatusNotExecuted represents the status of a transaction which was received and not executed
 	TxStatusNotExecuted TransactionStatus = "not-executed"
+	// TxStatusInvalid represents the status of a transaction which was considered invalid
+	TxStatusInvalid TransactionStatus = "invalid"
 )
 
 const (
@@ -491,3 +493,7 @@ const WrongP2PMessageBlacklistDuration = time.Second * 7200
 
 // MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
 const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
+
+// DefaultLogProfileIdentifier represents the default log profile used when the logviewer/termui applications do not
+// need to change the current logging profile
+const DefaultLogProfileIdentifier = "[default log profile]"

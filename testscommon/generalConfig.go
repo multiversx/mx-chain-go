@@ -229,6 +229,16 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		ReceiptsStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("Receipts"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
 		Versions: config.VersionsConfig{
 			DefaultVersion: "default",
 			VersionsByEpochs: []config.VersionByEpochs{

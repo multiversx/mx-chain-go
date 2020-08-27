@@ -106,6 +106,7 @@ type Config struct {
 	ShardHdrNonceHashStorage   StorageConfig
 	MetaHdrNonceHashStorage    StorageConfig
 	StatusMetricsStorage       StorageConfig
+	ReceiptsStorage            StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -207,6 +208,7 @@ type GeneralSettingsConfig struct {
 	SCDeployEnableEpoch            uint32
 	BuiltInFunctionsEnableEpoch    uint32
 	RelayedTransactionsEnableEpoch uint32
+	PenalizedTooMuchGasEnableEpoch uint32
 	GenesisString                  string
 }
 
@@ -344,9 +346,10 @@ type HardforkConfig struct {
 
 // FullHistoryConfig holds the configuration for the full history node
 type FullHistoryConfig struct {
-	Enabled                         bool
-	HistoryTransactionStorageConfig StorageConfig
-	HashEpochStorageConfig          StorageConfig
+	Enabled                            bool
+	MiniblocksMetadataStorageConfig    StorageConfig
+	MiniblockHashByTxHashStorageConfig StorageConfig
+	EpochByHashStorageConfig           StorageConfig
 }
 
 // DebugConfig will hold debugging configuration

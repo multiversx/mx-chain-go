@@ -102,7 +102,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		nonce++
 
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "")
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
 		}
 
 		time.Sleep(time.Second)
@@ -297,6 +297,7 @@ func getGeneralConfig() config.Config {
 	generalConfig.MetaHdrNonceHashStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.BlockHeaderStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.BootstrapStorage.DB.Type = string(storageUnit.LvlDBSerial)
+	generalConfig.ReceiptsStorage.DB.Type = string(storageUnit.LvlDBSerial)
 
 	return generalConfig
 }

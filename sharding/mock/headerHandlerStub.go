@@ -214,6 +214,11 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(_ uint32) map[string]ui
 	panic("implement me")
 }
 
+// GetMiniBlockHeadersHashes -
+func (hhs *HeaderHandlerStub) GetMiniBlockHeadersHashes() [][]byte {
+	panic("implement me")
+}
+
 // GetValidatorStatsRootHash -
 func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
 	panic("implement me")

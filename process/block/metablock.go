@@ -1037,7 +1037,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.commitEpochStart(header, body)
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
-	mp.saveBody(body)
+	mp.saveBody(body, header)
 
 	err = mp.commitAll()
 	if err != nil {
@@ -1100,7 +1100,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.tpsBenchmark.Update(header)
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
-	mp.saveHistoryData(headerHash, headerHandler, bodyHandler)
+	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce)
