@@ -201,6 +201,9 @@ const MetricCrossCheckBlockHeight = "erd_cross_check_block_height"
 // MetricNumProcessedTxs is the metric that stores the number of transactions processed
 const MetricNumProcessedTxs = "erd_num_transactions_processed"
 
+// MetricNumProcessedTxsTPSBenchmark is the metric that stores the number of transactions processed for tps benchmark
+const MetricNumProcessedTxsTPSBenchmark = "erd_num_transactions_processed_tps_benchmark"
+
 // MetricCurrentBlockHash is the metric that stores the current block hash
 const MetricCurrentBlockHash = "erd_current_block_hash"
 
