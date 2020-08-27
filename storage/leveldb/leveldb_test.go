@@ -28,7 +28,7 @@ func TestDB_InitNoError(t *testing.T) {
 
 	err := ldb.Init()
 
-	assert.Nil(t, err, "error initializing db")
+	assert.Nil(t, err, "error initializing DB")
 }
 
 func TestDB_CorruptdeDBShouldRecover(t *testing.T) {
@@ -103,7 +103,7 @@ func TestDB_PutNoError(t *testing.T) {
 
 	err := ldb.Put(key, val)
 
-	assert.Nil(t, err, "error saving in db")
+	assert.Nil(t, err, "error saving in DB")
 }
 
 func TestDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {
@@ -179,7 +179,7 @@ func TestDB_GetPresent(t *testing.T) {
 
 	err := ldb.Put(key, val)
 
-	assert.Nil(t, err, "error saving in db")
+	assert.Nil(t, err, "error saving in DB")
 
 	v, err := ldb.Get(key)
 
@@ -202,7 +202,7 @@ func TestDB_HasPresent(t *testing.T) {
 
 	err := ldb.Put(key, val)
 
-	assert.Nil(t, err, "error saving in db")
+	assert.Nil(t, err, "error saving in DB")
 
 	err = ldb.Has(key)
 
@@ -225,7 +225,7 @@ func TestDB_RemovePresent(t *testing.T) {
 
 	err := ldb.Put(key, val)
 
-	assert.Nil(t, err, "error saving in db")
+	assert.Nil(t, err, "error saving in DB")
 
 	err = ldb.Remove(key)
 

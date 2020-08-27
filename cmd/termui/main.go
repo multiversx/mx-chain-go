@@ -69,11 +69,11 @@ VERSION:
 		Destination: &argsConfig.logWithLoggerName,
 	}
 
-	// fetchInterval configures polling period
-	fetchInterval = cli.IntFlag{
+	// fetchIntervalInMilliseconds configures polling period
+	fetchIntervalInMilliseconds = cli.IntFlag{
 		Name:        "interval",
-		Usage:       "This flag specifies the duration in seconds until new data is fetched from the node",
-		Value:       2,
+		Usage:       "This flag specifies the duration in milliseconds until new data is fetched from the node",
+		Value:       1000,
 		Destination: &argsConfig.interval,
 	}
 
@@ -158,7 +158,7 @@ func initCliFlags() {
 		logLevel,
 		logWithCorrelation,
 		logWithLoggerName,
-		fetchInterval,
+		fetchIntervalInMilliseconds,
 		useWss,
 	}
 	cliApp.Authors = []cli.Author{

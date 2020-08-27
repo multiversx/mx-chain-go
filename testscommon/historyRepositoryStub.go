@@ -1,6 +1,8 @@
 package testscommon
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -34,7 +36,7 @@ func (hp *HistoryRepositoryStub) GetMiniblockMetadataByTxHash(hash []byte) (*ful
 	if hp.GetMiniblockMetadataByTxHashCalled != nil {
 		return hp.GetMiniblockMetadataByTxHashCalled(hash)
 	}
-	return nil, nil
+	return nil, fmt.Errorf("miniblock metadata not found")
 }
 
 // GetEpochByHash -
