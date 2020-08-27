@@ -198,6 +198,14 @@ func initPersistersInEpoch(
 		oldestEpochActive = 0
 	}
 
+	log.Debug("initPersistersInEpoch",
+		"StartingEpoch", args.StartingEpoch,
+		"NumOfEpochsToKeep", args.NumOfEpochsToKeep,
+		"oldestEpochKeep", oldestEpochKeep,
+		"NumOfActivePersisters", args.NumOfActivePersisters,
+		"oldestEpochActive", oldestEpochActive,
+	)
+
 	// If "database lookup extensions" is enabled, we'll create shallow (not initialized) persisters for all epochs
 	if args.EnabledDbLookupExtensions {
 		for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
