@@ -1,4 +1,4 @@
-package fullHistory
+package dblookupext
 
 import (
 	"encoding/hex"

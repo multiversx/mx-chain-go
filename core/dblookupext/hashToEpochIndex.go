@@ -1,6 +1,6 @@
 //go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. epochByHash.proto
 
-package fullHistory
+package dblookupext
 
 import (
 	"github.com/ElrondNetwork/elrond-go/marshal"

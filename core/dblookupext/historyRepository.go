@@ -1,6 +1,6 @@
 //go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. miniblockMetadata.proto
 
-package fullHistory
+package dblookupext
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.GetOrCreate("core/fullHistory")
+var log = logger.GetOrCreate("core/dblookupext")
 
 // HistoryRepositoryArguments is a structure that stores all components that are needed to a history processor
 type HistoryRepositoryArguments struct {
