@@ -103,7 +103,9 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 			RecipientAddr: s.stakingSCAddress,
 			Function:      "switchJailedWithWaiting",
 		}
+
 		vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+		log.Warn("swtichJailedWithWaiting", "key", jailedValidator.PublicKey, "message", vmOutput.ReturnMessage, "err", err)
 		if err != nil {
 			return err
 		}
@@ -147,7 +149,6 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 			break
 		}
 	}
-
 	if activeStorageUpdate == nil {
 		return nil
 	}
@@ -159,6 +160,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	blsPubKey := activeStorageUpdate.Offset
+	log.Warn("staking validator key ", "blsKey", blsPubKey)
 	account, err := s.getPeerAccount(blsPubKey)
 	if err != nil {
 		return err
