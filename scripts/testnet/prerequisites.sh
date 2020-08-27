@@ -26,7 +26,15 @@ elif [[ "$DISTRIBUTION" =~ ^(arch)$ ]]; then
   echo "Using PACMAN to install required packages: $REQUIRED_PACKAGES"
 fi
 
-$INSTALL_PACKAGES_COMMAND
+if [ -z "$INSTALL_PACKAGES_COMMAND" ]; then
+  echo "Your operating system was not identified. The required packages were not installed, however they could still be part of your system."
+  read -r -p "Would you like to try to continue anyway? [Y/n] " response
+  if [[ "$response" =~ ^[Nn][Oo]?$ ]]; then
+    exit
+  fi
+else
+  $INSTALL_PACKAGES_COMMAND
+fi
 
 if [[ "$DISTRIBUTION" =~ ^(ubuntu|debian)$ ]]; then
 
