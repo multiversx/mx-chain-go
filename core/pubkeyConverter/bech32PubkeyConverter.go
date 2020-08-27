@@ -84,7 +84,6 @@ func (bpc *bech32PubkeyConverter) Encode(pkBytes []byte) string {
 			"error", state.ErrWrongSize,
 		)
 
-		//TODO remove this
 		debug.PrintStack()
 
 		return ""
@@ -98,7 +97,6 @@ func (bpc *bech32PubkeyConverter) Encode(pkBytes []byte) string {
 			"error", err,
 		)
 
-		//TODO remove this
 		debug.PrintStack()
 
 		return ""
@@ -112,7 +110,6 @@ func (bpc *bech32PubkeyConverter) Encode(pkBytes []byte) string {
 			"error", err,
 		)
 
-		//TODO remove this
 		debug.PrintStack()
 
 		return ""
