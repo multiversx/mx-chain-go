@@ -438,10 +438,9 @@ func (psf *StorageServiceFactory) setupFullHistory(chainStorer *dataRetriever.Ch
 	chainStorer.AddStorer(dataRetriever.MiniblockHashByTxHashUnit, miniblockHashByTxHashPruningStorer)
 
 	// Create the epochByHash (STATIC) storer
-	shardID := core.GetShardIDString(psf.shardCoordinator.SelfId())
 	epochByHashConfig := psf.generalConfig.FullHistory.EpochByHashStorageConfig
 	epochByHashDbConfig := GetDBFromConfig(epochByHashConfig.DB)
-	epochByHashDbConfig.FilePath = psf.pathManager.PathForStatic(shardID, epochByHashDbConfig.FilePath)
+	epochByHashDbConfig.FilePath = psf.pathManager.PathForStatic(shardID, epochByHashConfig.DB.FilePath)
 	epochByHashCacherConfig := GetCacherFromConfig(epochByHashConfig.Cache)
 	epochByHashBloomFilter := GetBloomFromConfig(epochByHashConfig.Bloom)
 	epochByHashUnit, err := storageUnit.NewStorageUnitFromConf(epochByHashCacherConfig, epochByHashDbConfig, epochByHashBloomFilter)

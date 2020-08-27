@@ -671,7 +671,7 @@
         Capacity = 20000
         Type = "LRU"
     [FullHistory.EpochByHashStorageConfig.DB]
-        FilePath = "HashEpochDB"
+        FilePath = "EpochByHash"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
