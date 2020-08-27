@@ -595,6 +595,10 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 }
 
 func TestSCCallingBuiltinAndFails(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
