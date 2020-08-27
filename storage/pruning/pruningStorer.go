@@ -198,8 +198,8 @@ func initPersistersInEpoch(
 		oldestEpochActive = 0
 	}
 
-	// If "full history" is enabled, we'll create shallow (not initialized) persisters for all epochs
-	if !args.CleanOldEpochsData {
+	// If "database lookup extensions" is enabled, we'll create shallow (not initialized) persisters for all epochs
+	if args.DbLookupExtensions {
 		for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
 			log.Debug("initPersistersInEpoch(): createShallowPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
 			persistersMapByEpoch[uint32(epoch)] = createShallowPersisterDataForEpoch(args, uint32(epoch), shardIDStr)

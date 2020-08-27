@@ -21,4 +21,5 @@ type StorerArgs struct {
 	MaxBatchSize          int
 	PruningEnabled        bool
 	CleanOldEpochsData    bool
+	DbLookupExtensions    bool
 }
