@@ -92,6 +92,8 @@ func (s *systemSCProcessor) auctionSelection() error {
 
 func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*state.ValidatorInfo) error {
 	jailedValidators := s.getSortedJailedNodes(validatorInfos)
+
+	log.Warn("number of jailed validators", "num", len(jailedValidators))
 	for _, jailedValidator := range jailedValidators {
 
 		vmInput := &vmcommon.ContractCallInput{
@@ -105,15 +107,13 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 		}
 
 		vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
-		log.Warn("swtichJailedWithWaiting", "key", jailedValidator.PublicKey, "message", vmOutput.ReturnMessage, "err", err)
 		if err != nil {
 			return err
 		}
-		if vmOutput.ReturnMessage == vm.ErrBLSPublicKeyAlreadyJailed.Error() {
+
+		log.Warn("swtichJailedWithWaiting", "key", jailedValidator.PublicKey, "code", vmOutput.ReturnCode.String(), "err", err)
+		if vmOutput.ReturnCode != vmcommon.Ok || vmOutput.ReturnMessage == vm.ErrBLSPublicKeyAlreadyJailed.Error() {
 			continue
-		}
-		if vmOutput.ReturnCode != vmcommon.Ok {
-			break
 		}
 
 		err = s.processSCOutputAccounts(vmOutput)
@@ -149,6 +149,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 			break
 		}
 	}
+	log.Warn("noone in waiting suitable for switch")
 	if activeStorageUpdate == nil {
 		return nil
 	}
@@ -189,10 +190,28 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		return err
 	}
 
+	err = s.peerAccountsDB.RemoveAccount(jailedValidator.PublicKey)
+	if err != nil {
+		return err
+	}
+
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
-	validatorInfos[jailedValidator.ShardId] = append(validatorInfos[jailedValidator.ShardId], newValidatorInfo)
+	switchJailedWithNewValidatorInMap(validatorInfos, jailedValidator, newValidatorInfo)
 
 	return nil
+}
+
+func switchJailedWithNewValidatorInMap(
+	validatorInfos map[uint32][]*state.ValidatorInfo,
+	jailedValidator *state.ValidatorInfo,
+	newValidator *state.ValidatorInfo,
+) {
+	for index, validatorInfo := range validatorInfos[jailedValidator.ShardId] {
+		if bytes.Equal(validatorInfo.PublicKey, jailedValidator.PublicKey) {
+			validatorInfos[jailedValidator.ShardId][index] = newValidator
+			break
+		}
+	}
 }
 
 func (s *systemSCProcessor) getExistingAccount(address []byte) (state.UserAccountHandler, error) {

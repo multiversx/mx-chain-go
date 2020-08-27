@@ -37,6 +37,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(args.UserAccountsDB, []byte("jailedPubKey0"), []byte("waitingPubKey"), args.Marshalizer)
+	jailedAcc, _ := args.PeerAccountsDB.LoadAccount([]byte("jailedPubKey0"))
+	_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
 
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	vInfo := &state.ValidatorInfo{
@@ -50,8 +52,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	err := s.ProcessSystemSmartContract(validatorInfos)
 	assert.Nil(t, err)
 
-	assert.Equal(t, len(validatorInfos[0]), 2)
-	newValidatorInfo := validatorInfos[0][1]
+	assert.Equal(t, len(validatorInfos[0]), 1)
+	newValidatorInfo := validatorInfos[0][0]
 	assert.Equal(t, newValidatorInfo.List, string(core.NewList))
 }
 
