@@ -107,6 +107,10 @@ var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
+// TestBuiltinFunctions is an additional map of builtin functions to be added
+// to the scProcessor
+var TestBuiltinFunctions = make(map[string]process.BuiltinFunction)
+
 // TestBlockSizeThrottler represents a block size throttler used in adaptive block size computation
 var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
 
@@ -1004,6 +1008,10 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
+	for name, function := range TestBuiltinFunctions {
+		builtInFuncs.Add(name, function)
+	}
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         tpn.AccntState,
 		PubkeyConv:       TestAddressPubkeyConverter,
@@ -1063,6 +1071,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		EconomicsFee:                   tpn.EconomicsData,
 		TxTypeHandler:                  txTypeHandler,
 		GasHandler:                     tpn.GasHandler,
+		GasSchedule:                    gasSchedule,
 		BuiltInFunctions:               tpn.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
 		BadTxForwarder:                 badBlocksHandler,
@@ -1228,6 +1237,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		EconomicsFee:                   tpn.EconomicsData,
 		TxTypeHandler:                  txTypeHandler,
 		GasHandler:                     tpn.GasHandler,
+		GasSchedule:                    gasSchedule,
 		BuiltInFunctions:               tpn.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
 		BadTxForwarder:                 badBlocksHandler,
