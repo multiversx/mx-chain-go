@@ -201,8 +201,13 @@ func initPersistersInEpoch(
 	if oldestEpochActive < 0 {
 		oldestEpochActive = 0
 	}
+
+	// If "full history" is enabled, we'll create shallow (not initialized) persisters for all epochs
 	if !args.CleanOldEpochsData {
-		oldestEpochKeep = 0
+		for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
+			log.Debug("initPersistersInEpoch(): createShallowPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
+			persistersMapByEpoch[uint32(epoch)] = createShallowPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
+		}
 	}
 
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
@@ -310,6 +315,8 @@ func (ps *PruningStorer) Close() error {
 			log.Error("cannot close persister", err)
 			closedSuccessfully = false
 		}
+		// Question for review - all good here?
+		persister.setIsClosed(true)
 	}
 
 	if closedSuccessfully {
@@ -340,6 +347,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 	}
 
 	persister, err := ps.persisterFactory.Create(pd.path)
+	// Question for review: save reference on persister data?
 	if err != nil {
 		log.Debug("open old persister", "error", err.Error())
 		return nil, err
@@ -350,6 +358,8 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 		if err != nil {
 			log.Debug("persister.Close()", "error", err.Error())
 		}
+		// Question for review: all good here?
+		pd.setIsClosed(true)
 	}()
 
 	err = persister.Init()
@@ -391,6 +401,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 	if pd.getIsClosed() {
 		// TODO add a mutex when a persisterToRead is created
 		persisterToRead, err = ps.persisterFactory.Create(pd.path)
+		// Question for review: save reference on persister data?
 		if err != nil {
 			log.Debug("open old persister", "error", err.Error())
 			return nil, err
@@ -400,6 +411,8 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 			if err != nil {
 				log.Debug("persister.Close()", "error", err.Error())
 			}
+			// Question for review - all good here?
+			pd.setIsClosed(true)
 		}()
 		err = persisterToRead.Init()
 		if err != nil {
@@ -507,6 +520,7 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 		}
 
 		persister, err := ps.persisterFactory.Create(pd.path)
+		// Question for review: save reference on persister data?
 		if err != nil {
 			log.Debug("open old persister", "error", err.Error())
 			return err
@@ -517,6 +531,8 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 			if err != nil {
 				log.Debug("persister.Close()", "error", err.Error())
 			}
+			// Question for review - all good here?
+			pd.setIsClosed(true)
 		}()
 
 		err = persister.Init()
@@ -882,13 +898,32 @@ func (ps *PruningStorer) IsInterfaceNil() bool {
 	return ps == nil
 }
 
-func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shardIdStr string) (*persisterData, error) {
-	// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
-	// e.g. determined from directories in persister path or taken from boot storer
+func createShallowPersisterDataForEpoch(args *StorerArgs, epoch uint32, shardIdStr string) *persisterData {
+	filePath := createPersisterPathForEpoch(args, epoch, shardIdStr)
+
+	p := &persisterData{
+		persister: args.PersisterFactory.CreateDisabled(),
+		epoch:     epoch,
+		path:      filePath,
+		isClosed:  true,
+	}
+
+	return p
+}
+
+func createPersisterPathForEpoch(args *StorerArgs, epoch uint32, shardIdStr string) string {
 	filePath := args.PathManager.PathForEpoch(core.GetShardIDString(args.ShardCoordinator.SelfId()), epoch, args.Identifier)
 	if len(shardIdStr) > 0 {
 		filePath += shardIdStr
 	}
+
+	return filePath
+}
+
+func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shardIdStr string) (*persisterData, error) {
+	// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
+	// e.g. determined from directories in persister path or taken from boot storer
+	filePath := createPersisterPathForEpoch(args, epoch, shardIdStr)
 
 	db, err := args.PersisterFactory.Create(filePath)
 	if err != nil {
