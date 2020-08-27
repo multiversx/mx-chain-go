@@ -312,7 +312,6 @@ func (ps *PruningStorer) Close() error {
 			log.Error("cannot close persister", err)
 			closedSuccessfully = false
 		}
-		// Question for review - all good here?
 		persister.setIsClosed(true)
 	}
 
@@ -344,7 +343,6 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 	}
 
 	persister, err := ps.persisterFactory.Create(pd.path)
-	// Question for review: save reference on persister data?
 	if err != nil {
 		log.Debug("open old persister", "error", err.Error())
 		return nil, err
@@ -355,7 +353,6 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 		if err != nil {
 			log.Debug("persister.Close()", "error", err.Error())
 		}
-		// Question for review: all good here?
 		pd.setIsClosed(true)
 	}()
 
@@ -398,7 +395,6 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 	if pd.getIsClosed() {
 		// TODO add a mutex when a persisterToRead is created
 		persisterToRead, err = ps.persisterFactory.Create(pd.path)
-		// Question for review: save reference on persister data?
 		if err != nil {
 			log.Debug("open old persister", "error", err.Error())
 			return nil, err
@@ -408,7 +404,6 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 			if err != nil {
 				log.Debug("persister.Close()", "error", err.Error())
 			}
-			// Question for review - all good here?
 			pd.setIsClosed(true)
 		}()
 		err = persisterToRead.Init()
@@ -517,7 +512,6 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 		}
 
 		persister, err := ps.persisterFactory.Create(pd.path)
-		// Question for review: save reference on persister data?
 		if err != nil {
 			log.Debug("open old persister", "error", err.Error())
 			return err
@@ -528,7 +522,6 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 			if err != nil {
 				log.Debug("persister.Close()", "error", err.Error())
 			}
-			// Question for review - all good here?
 			pd.setIsClosed(true)
 		}()
 
@@ -898,14 +891,12 @@ func (ps *PruningStorer) IsInterfaceNil() bool {
 func createShallowPersisterDataForEpoch(args *StorerArgs, epoch uint32, shardIdStr string) *persisterData {
 	filePath := createPersisterPathForEpoch(args, epoch, shardIdStr)
 
-	p := &persisterData{
+	return &persisterData{
 		persister: args.PersisterFactory.CreateDisabled(),
 		epoch:     epoch,
 		path:      filePath,
 		isClosed:  true,
 	}
-
-	return p
 }
 
 func createPersisterPathForEpoch(args *StorerArgs, epoch uint32, shardIdStr string) string {
