@@ -459,7 +459,8 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		tx,
 		txHash,
 		acntSnd,
-		vmInput.CallType,
+		//vmInput.CallType,
+		vmcommon.DirectCall, //TODO: Remove this line and uncomment the one above
 	)
 	if !check.IfNil(acntSnd) {
 		err = acntSnd.AddToBalance(scrForSender.Value)
@@ -1365,6 +1366,8 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32) {
 }
 
 func (sc *scProcessor) handleAsyncStepGas(input *vmcommon.ContractCallInput) (uint64, error) {
+	return 0, nil //TODO: Remove this line
+
 	if input.CallType != vmcommon.AsynchronousCall {
 		return 0, nil
 	}

@@ -71,14 +71,15 @@ func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler, txHash []by
 	vmCallInput.CallType = callType
 	vmCallInput.RecipientAddr = tx.GetRcvAddr()
 	vmCallInput.Function = function
-	vmCallInput.CurrentTxHash = txHash
-
-	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
-	if isSCR {
-		vmCallInput.OriginalTxHash = scr.GetOriginalTxHash()
-	} else {
-		vmCallInput.OriginalTxHash = txHash
-	}
+	//TODO: Uncomment these lines
+	//vmCallInput.CurrentTxHash = txHash
+	//
+	//scr, isSCR := tx.(*smartContractResult.SmartContractResult)
+	//if isSCR {
+	//	vmCallInput.OriginalTxHash = scr.GetOriginalTxHash()
+	//} else {
+	//	vmCallInput.OriginalTxHash = txHash
+	//}
 
 	err = sc.initializeVMInputFromTx(&vmCallInput.VMInput, tx)
 	if err != nil {
