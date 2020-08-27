@@ -427,6 +427,9 @@ const SCDeployInitFunctionName = "_init"
 // ShuffledOut signals that a restart is pending because the node was shuffled out
 const ShuffledOut = "shuffledOut"
 
+// ImportComplete signals that a node restart will be done because the import did complete
+const ImportComplete = "importComplete"
+
 // MaxRetriesToCreateDB represents the maximum number of times to try to create DB if it failed
 const MaxRetriesToCreateDB = 10
 

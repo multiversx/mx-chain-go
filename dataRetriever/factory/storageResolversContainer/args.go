@@ -1,6 +1,7 @@
 package storageResolversContainers
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -16,4 +17,5 @@ type FactoryArgs struct {
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	DataPacker               dataRetriever.DataPacker
 	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	ChanGracefullyClose      chan endProcess.ArgEndProcess
 }

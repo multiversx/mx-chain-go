@@ -1,10 +1,13 @@
 package storageResolvers
 
 import (
+	"fmt"
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
@@ -21,6 +24,7 @@ type ArgHeaderResolver struct {
 	HdrStorage               storage.Storer
 	HeadersNoncesStorage     storage.Storer
 	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	ChanGracefullyClose      chan endProcess.ArgEndProcess
 }
 
 type headerResolver struct {
@@ -31,6 +35,7 @@ type headerResolver struct {
 	hdrStorage               storage.Storer
 	hdrNoncesStorage         storage.Storer
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	chanGracefullyClose      chan endProcess.ArgEndProcess
 }
 
 // NewHeaderResolver creates a new storage header resolver
@@ -50,6 +55,9 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*headerResolver, error) {
 	if check.IfNil(arg.ManualEpochStartNotifier) {
 		return nil, dataRetriever.ErrNilManualEpochStartNotifier
 	}
+	if arg.ChanGracefullyClose == nil {
+		return nil, dataRetriever.ErrNilGracefullyCloseChannel
+	}
 
 	epochHandler := epochproviders.NewNilEpochHandler()
 	return &headerResolver{
@@ -62,6 +70,7 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*headerResolver, error) {
 		nonceConverter:           arg.NonceConverter,
 		epochHandler:             epochHandler,
 		manualEpochStartNotifier: arg.ManualEpochStartNotifier,
+		chanGracefullyClose:      arg.ChanGracefullyClose,
 	}, nil
 }
 
@@ -75,6 +84,24 @@ func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 
 	buff, err := hdrRes.hdrStorage.SearchFirst(hash)
 	if err != nil {
+		crtEpoch := hdrRes.manualEpochStartNotifier.CurrentEpoch()
+		strEpochNotFound := fmt.Sprintf("%d", crtEpoch)
+		if crtEpoch > 1 {
+			strEpochNotFound = strEpochNotFound + fmt.Sprintf(" or %d", crtEpoch-1)
+		}
+
+		argEndProcess := endProcess.ArgEndProcess{
+			Reason: core.ImportComplete,
+			Description: fmt.Sprintf("import ended because data from epoch %s does not exist",
+				strEpochNotFound),
+		}
+
+		select {
+		case hdrRes.chanGracefullyClose <- argEndProcess:
+		default:
+			log.Debug("headerResolver.RequestDataFromHash: could not wrote on the end chan")
+		}
+
 		return err
 	}
 
