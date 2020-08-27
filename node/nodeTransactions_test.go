@@ -30,7 +30,7 @@ func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
 func TestNode_GetTransaction_FromPool(t *testing.T) {
 	t.Parallel()
 
-	n, _, dataPool, _ := createNode(t, false)
+	n, _, dataPool, _ := createNode(t, 42, false)
 
 	// Normal transactions
 
@@ -98,7 +98,7 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	t.Parallel()
 
-	n, chainStorer, _, _ := createNode(t, false)
+	n, chainStorer, _, _ := createNode(t, 0, false)
 
 	// Normal transactions
 
@@ -177,7 +177,7 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 func TestNode_GetFullHistoryTransaction(t *testing.T) {
 	t.Parallel()
 
-	n, chainStorer, _, historyRepo := createNode(t, true)
+	n, chainStorer, _, historyRepo := createNode(t, 42, true)
 
 	// Normal transactions
 
@@ -310,8 +310,8 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
 }
 
-func createNode(t *testing.T, withFullHistory bool) (*Node, *genericmocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
-	chainStorer := genericmocks.NewChainStorerMock()
+func createNode(t *testing.T, epoch uint32, withFullHistory bool) (*Node, *genericmocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
+	chainStorer := genericmocks.NewChainStorerMock(epoch)
 	dataPool := testscommon.NewPoolsHolderMock()
 	marshalizer := &mock.MarshalizerFake{}
 

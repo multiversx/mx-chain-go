@@ -172,7 +172,7 @@ func (hr *historyRepository) putMiniblockMetadata(hash []byte, metadata *Miniblo
 		return err
 	}
 
-	err = hr.miniblocksMetadataStorer.Put(hash, metadataBytes)
+	err = hr.miniblocksMetadataStorer.PutInEpoch(hash, metadataBytes, metadata.Epoch)
 	if err != nil {
 		return newErrCannotSaveMiniblockMetadata(hash, err)
 	}

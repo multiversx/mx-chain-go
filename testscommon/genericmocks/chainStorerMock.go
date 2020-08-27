@@ -13,11 +13,11 @@ type ChainStorerMock struct {
 }
 
 // NewChainStorerMock -
-func NewChainStorerMock() *ChainStorerMock {
+func NewChainStorerMock(epoch uint32) *ChainStorerMock {
 	return &ChainStorerMock{
-		Transactions: NewStorerMock("Transactions", 0),
-		Rewards:      NewStorerMock("Rewards", 0),
-		Unsigned:     NewStorerMock("Unsigned", 0),
+		Transactions: NewStorerMock("Transactions", epoch),
+		Rewards:      NewStorerMock("Rewards", epoch),
+		Unsigned:     NewStorerMock("Unsigned", epoch),
 	}
 }
 

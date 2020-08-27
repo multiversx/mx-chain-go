@@ -443,3 +443,60 @@ func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestinatio
 	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
 	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
 }
+
+func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHistoryRepoArgs(42)
+	args.SelfShardID = 14
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
+
+	// Assumming one miniblock of transactions,
+	miniblockA := &block.MiniBlock{
+		SenderShardID:   14,
+		ReceiverShardID: 14,
+		TxHashes:        [][]byte{[]byte("txA")},
+	}
+	miniblockHashA, _ := repo.computeMiniblockHash(miniblockA)
+
+	// Let's commit the intrashard block in epoch 42
+	repo.RecordBlock([]byte("fooBlock"),
+		&block.Header{Epoch: 42, Round: 4321},
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				miniblockA,
+			},
+		},
+	)
+
+	// Now let's receive a metablock and the "notarized" notification, in the next epoch
+	args.MiniblocksMetadataStorer.(*genericmocks.StorerMock).SetCurrentEpoch(43)
+	metablock := &block.MetaBlock{
+		Epoch: 43,
+		Nonce: 4001,
+		ShardInfo: []block.ShardData{
+			{
+				ShardID: 14,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						SenderShardID:   14,
+						ReceiverShardID: 14,
+						Hash:            miniblockHashA,
+					},
+				},
+			},
+		},
+	}
+
+	repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
+
+	// Check "notarization coordinates"
+	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
+	require.Nil(t, err)
+	require.Equal(t, 42, int(metadata.Epoch))
+	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
+	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
+}
