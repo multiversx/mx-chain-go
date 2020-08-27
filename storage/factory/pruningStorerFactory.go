@@ -231,7 +231,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 
-	err = psf.setupFullHistory(store, &successfullyCreatedStorers)
+	err = psf.setupDbLookupExtensions(store, &successfullyCreatedStorers)
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +402,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
 
-	err = psf.setupFullHistory(store, &successfullyCreatedStorers)
+	err = psf.setupDbLookupExtensions(store, &successfullyCreatedStorers)
 	if err != nil {
 		return nil, err
 	}
@@ -410,15 +410,15 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	return store, err
 }
 
-func (psf *StorageServiceFactory) setupFullHistory(chainStorer *dataRetriever.ChainStorer, createdStorers *[]storage.Storer) error {
-	if !psf.generalConfig.FullHistory.Enabled {
+func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetriever.ChainStorer, createdStorers *[]storage.Storer) error {
+	if !psf.generalConfig.DbLookupExtensions.Enabled {
 		return nil
 	}
 
 	shardID := core.GetShardIDString(psf.shardCoordinator.SelfId())
 
 	// Create the miniblocksMetadata (PRUNING) storer
-	miniblocksMetadataConfig := psf.generalConfig.FullHistory.MiniblocksMetadataStorageConfig
+	miniblocksMetadataConfig := psf.generalConfig.DbLookupExtensions.MiniblocksMetadataStorageConfig
 	miniblocksMetadataPruningStorerArgs := psf.createPruningStorerArgs(miniblocksMetadataConfig)
 	miniblocksMetadataPruningStorer, err := pruning.NewPruningStorer(miniblocksMetadataPruningStorerArgs)
 	if err != nil {
@@ -429,7 +429,7 @@ func (psf *StorageServiceFactory) setupFullHistory(chainStorer *dataRetriever.Ch
 	chainStorer.AddStorer(dataRetriever.MiniblocksMetadataUnit, miniblocksMetadataPruningStorer)
 
 	// Create the miniblocksHashByTxHash (STATIC) storer
-	miniblockHashByTxHashConfig := psf.generalConfig.FullHistory.MiniblockHashByTxHashStorageConfig
+	miniblockHashByTxHashConfig := psf.generalConfig.DbLookupExtensions.MiniblockHashByTxHashStorageConfig
 	miniblockHashByTxHashDbConfig := GetDBFromConfig(miniblockHashByTxHashConfig.DB)
 	miniblockHashByTxHashDbConfig.FilePath = psf.pathManager.PathForStatic(shardID, miniblockHashByTxHashConfig.DB.FilePath)
 	miniblockHashByTxHashCacherConfig := GetCacherFromConfig(miniblockHashByTxHashConfig.Cache)
@@ -443,7 +443,7 @@ func (psf *StorageServiceFactory) setupFullHistory(chainStorer *dataRetriever.Ch
 	chainStorer.AddStorer(dataRetriever.MiniblockHashByTxHashUnit, miniblockHashByTxHashUnit)
 
 	// Create the epochByHash (STATIC) storer
-	epochByHashConfig := psf.generalConfig.FullHistory.EpochByHashStorageConfig
+	epochByHashConfig := psf.generalConfig.DbLookupExtensions.EpochByHashStorageConfig
 	epochByHashDbConfig := GetDBFromConfig(epochByHashConfig.DB)
 	epochByHashDbConfig.FilePath = psf.pathManager.PathForStatic(shardID, epochByHashConfig.DB.FilePath)
 	epochByHashCacherConfig := GetCacherFromConfig(epochByHashConfig.Cache)
@@ -467,21 +467,21 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
 	dbPath := filepath.Join(psf.pathManager.PathForEpoch(shardId, psf.currentEpoch, storageConfig.DB.FilePath))
 	args := &pruning.StorerArgs{
-		Identifier:            storageConfig.DB.FilePath,
-		PruningEnabled:        pruningEnabled,
-		StartingEpoch:         psf.currentEpoch,
-		CleanOldEpochsData:    cleanOldEpochsData,
-		ShardCoordinator:      psf.shardCoordinator,
-		CacheConf:             GetCacherFromConfig(storageConfig.Cache),
-		PathManager:           psf.pathManager,
-		DbPath:                dbPath,
-		PersisterFactory:      NewPersisterFactory(storageConfig.DB),
-		BloomFilterConf:       GetBloomFromConfig(storageConfig.Bloom),
-		NumOfEpochsToKeep:     numOfEpochsToKeep,
-		NumOfActivePersisters: numOfActivePersisters,
-		Notifier:              psf.epochStartNotifier,
-		MaxBatchSize:          storageConfig.DB.MaxBatchSize,
-		DbLookupExtensions:    psf.generalConfig.FullHistory.Enabled,
+		Identifier:                storageConfig.DB.FilePath,
+		PruningEnabled:            pruningEnabled,
+		StartingEpoch:             psf.currentEpoch,
+		CleanOldEpochsData:        cleanOldEpochsData,
+		ShardCoordinator:          psf.shardCoordinator,
+		CacheConf:                 GetCacherFromConfig(storageConfig.Cache),
+		PathManager:               psf.pathManager,
+		DbPath:                    dbPath,
+		PersisterFactory:          NewPersisterFactory(storageConfig.DB),
+		BloomFilterConf:           GetBloomFromConfig(storageConfig.Bloom),
+		NumOfEpochsToKeep:         numOfEpochsToKeep,
+		NumOfActivePersisters:     numOfActivePersisters,
+		Notifier:                  psf.epochStartNotifier,
+		MaxBatchSize:              storageConfig.DB.MaxBatchSize,
+		EnabledDbLookupExtensions: psf.generalConfig.DbLookupExtensions.Enabled,
 	}
 
 	return args

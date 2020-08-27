@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	rewardTxData "github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -30,7 +30,7 @@ func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult,
 	}
 
 	if n.historyRepository.IsEnabled() {
-		return n.getFullHistoryTransaction(hash)
+		return n.lookupHistoricalTransaction(hash)
 	}
 
 	return n.getTransactionFromStorage(hash)
@@ -58,7 +58,7 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 	return tx, nil
 }
 
-func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransactionResult, error) {
+func (n *Node) lookupHistoricalTransaction(hash []byte) (*transaction.ApiTransactionResult, error) {
 	miniblockMetadata, err := n.historyRepository.GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
@@ -66,17 +66,17 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 
 	txBytes, txType, found := n.getTxBytesFromStorageByEpoch(hash, miniblockMetadata.Epoch)
 	if !found {
-		log.Warn("getFullHistoryTransaction(): unexpected condition, cannot find transaction in storage")
+		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot find transaction in storage")
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
 	}
 
 	tx, err := n.unmarshalTransaction(txBytes, txType)
 	if err != nil {
-		log.Warn("getFullHistoryTransaction(): unexpected condition, cannot unmarshal transaction")
+		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot unmarshal transaction")
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
 	}
 
-	putHistoryFieldsInTransaction(tx, miniblockMetadata)
+	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
 
 	tx.Status = (&transaction.StatusComputer{
 		MiniblockType:    block.Type(miniblockMetadata.Type),
@@ -89,7 +89,7 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 	return tx, nil
 }
 
-func putHistoryFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblockMetadata *fullHistory.MiniblockMetadata) *transaction.ApiTransactionResult {
+func putMiniblockFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblockMetadata *dblookupext.MiniblockMetadata) *transaction.ApiTransactionResult {
 	tx.Epoch = miniblockMetadata.Epoch
 	tx.Round = miniblockMetadata.Round
 

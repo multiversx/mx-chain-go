@@ -1,4 +1,4 @@
-package fullHistory
+package dblookupext
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
