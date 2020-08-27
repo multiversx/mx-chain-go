@@ -83,11 +83,6 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}
 	e.metaBlockProcessor = processor
 
-	err = args.CryptoComponentsHolder.SetMultiSigner(disabled.NewMultiSigner())
-	if err != nil {
-		return nil, err
-	}
-
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
 		CoreComponents:          args.CoreComponentsHolder,
 		CryptoComponents:        args.CryptoComponentsHolder,
