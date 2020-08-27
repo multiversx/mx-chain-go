@@ -1,0 +1,9 @@
+[general]
+    dbPathWithChainID = "db/chainID"
+    nodeConfigPath = "../node/config/config.toml"
+    numShards = 2
+
+[elasticSearch]
+    url        = "http://localhost:9200"
+    username   = "basic_auth_username"
+    password   = "basic_auth_password"

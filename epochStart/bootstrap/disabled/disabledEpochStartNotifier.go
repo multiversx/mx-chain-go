@@ -9,6 +9,11 @@ import (
 type EpochStartNotifier struct {
 }
 
+// NewEpochStartNotifier returns the disabled epoch start notifier
+func NewEpochStartNotifier() *EpochStartNotifier {
+	return &EpochStartNotifier{}
+}
+
 // RegisterHandler -
 func (desn *EpochStartNotifier) RegisterHandler(_ epochStart.ActionHandler) {
 }

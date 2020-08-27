@@ -24,8 +24,8 @@ type Indexer interface {
 	IsNilIndexer() bool
 }
 
-// databaseHandler is an interface used by elasticsearch component to prepare data to be saved on elasticseach server
-type databaseHandler interface {
+// DatabaseHandler is an interface used by elasticsearch component to prepare data to be saved on elasticsearch server
+type DatabaseHandler interface {
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int)
 	SaveMiniblocks(header data.HeaderHandler, body *block.Body) map[string]bool

@@ -1,21 +1,20 @@
-package node_test
+package node
 
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,504 +22,261 @@ import (
 func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	n, _ := node.NewNode()
+	n, _ := NewNode()
 	_, err := n.GetTransaction("zzz")
 	assert.Error(t, err)
 }
 
-func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
+func TestNode_GetTransaction_FromPool(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &testscommon.PoolsHolderStub{
-		TransactionsCalled: getCacherHandler(true, ""),
-	}
-	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
-			},
-		}),
-	)
-	expectedTx, _ := getDummyNormalTx()
-	tx, err := n.GetTransaction("aaaa")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
+	n, _, dataPool, _ := createNode(t, false)
+
+	// Normal transactions
+
+	// Cross-shard, we are source
+	txA := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+	dataPool.Transactions().AddData([]byte("a"), txA, 42, "1")
+	// Cross-shard, we are destination
+	txB := &transaction.Transaction{Nonce: 7, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
+	dataPool.Transactions().AddData([]byte("b"), txB, 42, "1")
+	// Intra-shard
+	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
+	dataPool.Transactions().AddData([]byte("c"), txC, 42, "1")
+
+	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
+	require.Nil(t, err)
+	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")))
+	require.Nil(t, err)
+	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")))
+	require.Nil(t, err)
+
+	require.Equal(t, txA.Nonce, actualA.Nonce)
+	require.Equal(t, txB.Nonce, actualB.Nonce)
+	require.Equal(t, txC.Nonce, actualC.Nonce)
+	require.Equal(t, transaction.TxStatusReceived, actualA.Status)
+	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualB.Status)
+	require.Equal(t, transaction.TxStatusReceived, actualC.Status)
+
+	// Reward transactions
+
+	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
+	dataPool.RewardTransactions().AddData([]byte("d"), txD, 42, "foo")
+
+	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
+	require.Nil(t, err)
+	require.Equal(t, txD.Round, actualD.Round)
+	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualD.Status)
+
+	// Unsigned transactions
+
+	// Cross-shard, we are source
+	txE := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+	dataPool.UnsignedTransactions().AddData([]byte("e"), txE, 42, "foo")
+	// Cross-shard, we are destination
+	txF := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
+	dataPool.UnsignedTransactions().AddData([]byte("f"), txF, 42, "foo")
+	// Intra-shard
+	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
+	dataPool.UnsignedTransactions().AddData([]byte("g"), txG, 42, "foo")
+
+	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
+	require.Nil(t, err)
+	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")))
+	require.Nil(t, err)
+	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	require.Nil(t, err)
+
+	require.Equal(t, txE.GasLimit, actualE.GasLimit)
+	require.Equal(t, txF.GasLimit, actualF.GasLimit)
+	require.Equal(t, txG.GasLimit, actualG.GasLimit)
+	require.Equal(t, transaction.TxStatusReceived, actualE.Status)
+	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualF.Status)
+	require.Equal(t, transaction.TxStatusReceived, actualG.Status)
 }
 
-func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
+func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &testscommon.PoolsHolderStub{
-		TransactionsCalled:       getCacherHandler(false, ""),
-		RewardTransactionsCalled: getCacherHandler(true, "reward"),
-	}
-	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
-			},
-		}),
-	)
-	expectedTx, _ := getDummyRewardTx()
-	tx, err := n.GetTransaction("aaaa")
-	assert.NoError(t, err)
-	assert.Equal(t, hex.EncodeToString(expectedTx.RcvAddr), tx.Receiver)
-}
+	n, chainStorer, _, _ := createNode(t, false)
 
-func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) {
-	t.Parallel()
+	// Normal transactions
 
-	dataPool := &testscommon.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false, ""),
-		RewardTransactionsCalled:   getCacherHandler(false, ""),
-		UnsignedTransactionsCalled: getCacherHandler(true, "unsigned"),
-	}
-	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
-			},
-		}),
-	)
-	expectedTx, _ := getUnsignedTx()
-	tx, err := n.GetTransaction("aaaa")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
-}
+	// Cross-shard, we are source
+	txA := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+	chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, n.internalMarshalizer)
+	// Cross-shard, we are destination
+	txB := &transaction.Transaction{Nonce: 7, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
+	chainStorer.Transactions.PutWithMarshalizer([]byte("b"), txB, n.internalMarshalizer)
+	// Intra-shard
+	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
+	chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, n.internalMarshalizer)
 
-func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
-	t.Parallel()
+	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
+	require.Nil(t, err)
+	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")))
+	require.Nil(t, err)
+	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")))
+	require.Nil(t, err)
 
-	dataPool := &testscommon.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false, ""),
-		RewardTransactionsCalled:   getCacherHandler(false, ""),
-		UnsignedTransactionsCalled: getCacherHandler(false, ""),
-	}
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return getStorerStub(true)
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
-			},
-		}),
-	)
-	expectedTx, _ := getDummyNormalTx()
-	tx, err := n.GetTransaction("aaaa")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
+	require.Equal(t, txA.Nonce, actualA.Nonce)
+	require.Equal(t, txB.Nonce, actualB.Nonce)
+	require.Equal(t, txC.Nonce, actualC.Nonce)
+	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualA.Status)
+	require.Equal(t, transaction.TxStatusExecuted, actualB.Status)
+	require.Equal(t, transaction.TxStatusExecuted, actualC.Status)
+
+	// Reward transactions
+
+	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
+	chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, n.internalMarshalizer)
+
+	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
+	require.Nil(t, err)
+	require.Equal(t, txD.Round, actualD.Round)
+	require.Equal(t, transaction.TxStatusExecuted, actualD.Status)
+
+	// Unsigned transactions
+
+	// Cross-shard, we are source
+	txE := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("e"), txE, n.internalMarshalizer)
+	// Cross-shard, we are destination
+	txF := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("f"), txF, n.internalMarshalizer)
+	// Intra-shard
+	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, n.internalMarshalizer)
+
+	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
+	require.Nil(t, err)
+	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")))
+	require.Nil(t, err)
+	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	require.Nil(t, err)
+
+	require.Equal(t, txE.GasLimit, actualE.GasLimit)
+	require.Equal(t, txF.GasLimit, actualF.GasLimit)
+	require.Equal(t, txG.GasLimit, actualG.GasLimit)
+	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualE.Status)
+	require.Equal(t, transaction.TxStatusExecuted, actualF.Status)
+	require.Equal(t, transaction.TxStatusExecuted, actualG.Status)
+
+	// Missing transaction
+	tx, err := n.GetTransaction(hex.EncodeToString([]byte("missing")))
+	require.Contains(t, err.Error(), "transaction not found")
+	require.Nil(t, tx)
+
+	// Badly serialized transaction
+	chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
+	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")))
+	require.NotNil(t, err)
+	require.Nil(t, tx)
 }
 
 func TestNode_GetFullHistoryTransaction(t *testing.T) {
 	t.Parallel()
 
-	dataPool := &testscommon.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false, ""),
-		RewardTransactionsCalled:   getCacherHandler(false, ""),
-		UnsignedTransactionsCalled: getCacherHandler(false, ""),
+	n, chainStorer, _, historyRepo := createNode(t, true)
+
+	// Normal transactions
+
+	// Cross-shard, we are source
+	txA := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+	chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, n.internalMarshalizer)
+	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 1, 2, 42)
+
+	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
+	require.Nil(t, err)
+	require.Equal(t, txA.Nonce, actualA.Nonce)
+	require.Equal(t, 42, int(actualA.Epoch))
+	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualA.Status)
+
+	// Cross-shard, we are destination
+	txB := &transaction.Transaction{Nonce: 7, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
+	chainStorer.Transactions.PutWithMarshalizer([]byte("b"), txB, n.internalMarshalizer)
+	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 2, 1, 42)
+
+	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")))
+	require.Nil(t, err)
+	require.Equal(t, txB.Nonce, actualB.Nonce)
+	require.Equal(t, 42, int(actualB.Epoch))
+	require.Equal(t, transaction.TxStatusExecuted, actualB.Status)
+
+	// Intra-shard
+	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
+	chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, n.internalMarshalizer)
+	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 1, 1, 42)
+
+	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")))
+	require.Nil(t, err)
+	require.Equal(t, txC.Nonce, actualC.Nonce)
+	require.Equal(t, 42, int(actualC.Epoch))
+	require.Equal(t, transaction.TxStatusExecuted, actualC.Status)
+
+	// Reward transactions
+
+	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
+	chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, n.internalMarshalizer)
+	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42)
+
+	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
+	require.Nil(t, err)
+	require.Equal(t, 42, int(actualD.Epoch))
+	require.Equal(t, transaction.TxStatusExecuted, actualD.Status)
+
+	// Unsigned transactions
+
+	// Cross-shard, we are source
+	txE := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("e"), txE, n.internalMarshalizer)
+	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 1, 2, 42)
+
+	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
+	require.Nil(t, err)
+	require.Equal(t, 42, int(actualE.Epoch))
+	require.Equal(t, txE.GasLimit, actualE.GasLimit)
+	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualE.Status)
+
+	// Cross-shard, we are destination
+	txF := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("f"), txF, n.internalMarshalizer)
+	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 2, 1, 42)
+
+	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")))
+	require.Nil(t, err)
+	require.Equal(t, 42, int(actualF.Epoch))
+	require.Equal(t, txF.GasLimit, actualF.GasLimit)
+	require.Equal(t, transaction.TxStatusExecuted, actualF.Status)
+
+	// Intra-shard
+	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
+	chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, n.internalMarshalizer)
+	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 1, 1, 42)
+
+	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	require.Nil(t, err)
+	require.Equal(t, 42, int(actualG.Epoch))
+	require.Equal(t, txG.GasLimit, actualG.GasLimit)
+	require.Equal(t, transaction.TxStatusExecuted, actualG.Status)
+
+	// Missing transaction
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
+		return nil, fmt.Errorf("fooError")
 	}
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			// getStorerStub contains a transaction that is created with getDummyNormalTx method
-			return getStorerStub(true)
-		},
+	tx, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	require.Contains(t, err.Error(), "transaction not found")
+	require.Contains(t, err.Error(), "fooError")
+	require.Nil(t, tx)
+
+	// Badly serialized transaction
+	chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
+		return &fullHistory.MiniblockMetadata{}, nil
 	}
-
-	blockHash := []byte("hash")
-	mbHash := []byte("mbHash")
-	epoch := uint32(10)
-	sndShard := uint32(1)
-	rcvShard := uint32(2)
-	round := uint64(123)
-	blockNonce := uint64(1001)
-	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return true
-			},
-			GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
-				return &fullHistory.MiniblockMetadata{
-					Epoch:              epoch,
-					MiniblockHash:      mbHash,
-					HeaderHash:         blockHash,
-					HeaderNonce:        blockNonce,
-					SourceShardID:      sndShard,
-					DestinationShardID: rcvShard,
-					Round:              round,
-					Status:             []byte(core.TxStatusExecuted),
-				}, nil
-			},
-		}),
-	)
-
-	dummyTx, _ := getDummyNormalTx()
-	expectedTx := &transaction.ApiTransactionResult{
-		Type:             "normal",
-		Nonce:            dummyTx.Nonce,
-		Round:            round,
-		Epoch:            epoch,
-		Value:            dummyTx.Value.String(),
-		Receiver:         hex.EncodeToString(dummyTx.RcvAddr),
-		Sender:           hex.EncodeToString(dummyTx.SndAddr),
-		GasPrice:         dummyTx.GasPrice,
-		GasLimit:         dummyTx.GasLimit,
-		Data:             dummyTx.Data,
-		Code:             "",
-		Signature:        hex.EncodeToString(dummyTx.Signature),
-		SourceShard:      sndShard,
-		DestinationShard: rcvShard,
-		BlockNonce:       blockNonce,
-		MiniBlockHash:    hex.EncodeToString(mbHash),
-		BlockHash:        hex.EncodeToString(blockHash),
-		Status:           core.TxStatusExecuted,
-	}
-
-	// transaction that is returned shoud be the same with expectedTx because
-	// expectedTx is formated for a dummyTx( returned by method getDummyNormalTx
-	tx, err := n.GetTransaction("aaaa")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedTx, tx)
-}
-
-func TestNode_GetFullHistoryTransaction_TxInPoolShouldReturnItDirectly(t *testing.T) {
-	t.Parallel()
-
-	dataPool := &testscommon.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(true, ""),
-		RewardTransactionsCalled:   getCacherHandler(false, ""),
-		UnsignedTransactionsCalled: getCacherHandler(false, ""),
-	}
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return getStorerStub(true)
-		},
-	}
-
-	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return true
-			},
-		}),
-	)
-
-	dummyTx, _ := getDummyNormalTx()
-	expectedTx := &transaction.ApiTransactionResult{
-		Type:      "normal",
-		Nonce:     dummyTx.Nonce,
-		Value:     dummyTx.Value.String(),
-		Receiver:  hex.EncodeToString(dummyTx.RcvAddr),
-		Sender:    hex.EncodeToString(dummyTx.SndAddr),
-		GasPrice:  dummyTx.GasPrice,
-		GasLimit:  dummyTx.GasLimit,
-		Data:      dummyTx.Data,
-		Signature: hex.EncodeToString(dummyTx.Signature),
-		Status:    core.TxStatusPartiallyExecuted,
-	}
-
-	tx, err := n.GetTransaction("aaaa")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedTx, tx)
-}
-
-func TestNode_GetFullHistoryTransaction_TxNotInHistoryStorerShouldErr(t *testing.T) {
-	dataPool := &testscommon.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false, ""),
-		RewardTransactionsCalled:   getCacherHandler(false, ""),
-		UnsignedTransactionsCalled: getCacherHandler(false, ""),
-	}
-	expectedErr := errors.New("test err")
-	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return true
-			},
-			GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
-				return nil, expectedErr
-			},
-		}),
-	)
-
-	tx, err := n.GetTransaction("aaaa")
-	assert.Equal(t, expectedErr, err)
-	assert.Nil(t, tx)
-
-}
-
-func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
-	t.Parallel()
-
-	dataPool := &testscommon.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false, ""),
-		RewardTransactionsCalled:   getCacherHandler(false, ""),
-		UnsignedTransactionsCalled: getCacherHandler(false, ""),
-	}
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			if unitType == dataRetriever.TransactionUnit {
-				return getStorerStub(false)
-			}
-
-			return getStorerStub(true)
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
-			},
-		}),
-	)
-	expectedTx, _ := getDummyNormalTx()
-	tx, err := n.GetTransaction("aaaa")
-	assert.NoError(t, err)
-	assert.Equal(t, hex.EncodeToString(expectedTx.RcvAddr), tx.Receiver)
-}
-
-func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T) {
-	t.Parallel()
-
-	dataPool := &testscommon.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false, ""),
-		RewardTransactionsCalled:   getCacherHandler(false, ""),
-		UnsignedTransactionsCalled: getCacherHandler(false, ""),
-	}
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			switch unitType {
-			case dataRetriever.UnsignedTransactionUnit:
-				return getStorerStub(true)
-			default:
-				return getStorerStub(false)
-			}
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
-		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
-			},
-		}),
-	)
-	expectedTx, _ := getDummyNormalTx()
-	tx, err := n.GetTransaction("aaaa")
-	assert.NoError(t, err)
-	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
-}
-
-func TestNode_GetTransaction_ShouldFindInStorageButErrorUnmarshaling(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("error unmarshalling")
-
-	dataPool := &testscommon.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false, ""),
-		RewardTransactionsCalled:   getCacherHandler(false, ""),
-		UnsignedTransactionsCalled: getCacherHandler(false, ""),
-	}
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			switch unitType {
-			case dataRetriever.UnsignedTransactionUnit:
-				return getStorerStub(true)
-			default:
-				return getStorerStub(false)
-			}
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{
-			UnmarshalHandler: func(_ interface{}, _ []byte) error {
-				return expectedErr
-			},
-		}, 0),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
-			},
-		}),
-	)
-	tx, err := n.GetTransaction("aaaa")
-	assert.Nil(t, tx)
-	assert.Equal(t, expectedErr, err)
-}
-
-func TestNode_GetTransaction_ShouldNotFindAndReturnUnknown(t *testing.T) {
-	t.Parallel()
-
-	dataPool := &testscommon.PoolsHolderStub{
-		TransactionsCalled:         getCacherHandler(false, ""),
-		RewardTransactionsCalled:   getCacherHandler(false, ""),
-		UnsignedTransactionsCalled: getCacherHandler(false, ""),
-	}
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return getStorerStub(false)
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithDataPool(dataPool),
-		node.WithDataStore(storer),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
-			},
-		}),
-	)
-	tx, err := n.GetTransaction("aaaa")
-	assert.Nil(t, tx)
-	assert.Error(t, err)
-}
-
-func TestNode_ComputeTransactionStatus(t *testing.T) {
-	t.Parallel()
-
-	storer := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return getStorerStub(false)
-		},
-	}
-
-	shardZeroAddr := []byte("addrShard0")
-	shardOneAddr := []byte("addrShard1")
-	shardCoordinator := &mock.ShardCoordinatorMock{
-		ComputeIdCalled: func(addr []byte) uint32 {
-			if bytes.Equal(shardZeroAddr, addr) {
-				return 0
-			}
-			return 1
-		},
-	}
-
-	pukKeyConverter := &mock.PubkeyConverterMock{}
-	n, _ := node.NewNode(
-		node.WithDataStore(storer),
-		node.WithShardCoordinator(shardCoordinator),
-		node.WithAddressPubkeyConverter(pukKeyConverter),
-	)
-
-	rwdTxCrossShard := &rewardTx.RewardTx{RcvAddr: shardZeroAddr}
-	normalTxIntraShard := &transaction.Transaction{RcvAddr: shardZeroAddr, SndAddr: shardZeroAddr}
-	normalTxCrossShard := &transaction.Transaction{RcvAddr: shardOneAddr, SndAddr: shardZeroAddr}
-	unsignedTxIntraShard := &smartContractResult.SmartContractResult{RcvAddr: shardZeroAddr, SndAddr: shardZeroAddr}
-	unsignedTxCrossShard := &smartContractResult.SmartContractResult{RcvAddr: shardOneAddr, SndAddr: shardZeroAddr}
-	emptyDestAddress := make([]byte, pukKeyConverter.Len())
-	deployScTx := &transaction.Transaction{SndAddr: shardZeroAddr, RcvAddr: emptyDestAddress, Data: []byte("scscscscscscs")}
-
-	// cross shard reward tx in storage source shard
-	shardCoordinator.SelfShardId = core.MetachainShardId
-	txStatus := n.ComputeTransactionStatus(rwdTxCrossShard, false)
-	assert.Equal(t, core.TxStatusPartiallyExecuted, txStatus)
-
-	// cross shard reward tx in pool source shard
-	shardCoordinator.SelfShardId = core.MetachainShardId
-	txStatus = n.ComputeTransactionStatus(rwdTxCrossShard, true)
-	assert.Equal(t, core.TxStatusReceived, txStatus)
-
-	// intra shard transaction in storage
-	shardCoordinator.SelfShardId = 0
-	txStatus = n.ComputeTransactionStatus(normalTxIntraShard, false)
-	assert.Equal(t, core.TxStatusExecuted, txStatus)
-
-	// intra shard transaction in pool
-	shardCoordinator.SelfShardId = 0
-	txStatus = n.ComputeTransactionStatus(normalTxIntraShard, true)
-	assert.Equal(t, core.TxStatusReceived, txStatus)
-
-	// cross shard transaction in storage source shard
-	shardCoordinator.SelfShardId = 0
-	txStatus = n.ComputeTransactionStatus(normalTxCrossShard, false)
-	assert.Equal(t, core.TxStatusPartiallyExecuted, txStatus)
-
-	// cross shard transaction in pool source shard
-	shardCoordinator.SelfShardId = 0
-	txStatus = n.ComputeTransactionStatus(normalTxCrossShard, true)
-	assert.Equal(t, core.TxStatusReceived, txStatus)
-
-	// cross shard transaction in storage destination shard
-	shardCoordinator.SelfShardId = 1
-	txStatus = n.ComputeTransactionStatus(normalTxCrossShard, false)
-	assert.Equal(t, core.TxStatusExecuted, txStatus)
-
-	// cross shard transaction in pool destination shard
-	shardCoordinator.SelfShardId = 1
-	txStatus = n.ComputeTransactionStatus(normalTxCrossShard, true)
-	assert.Equal(t, core.TxStatusPartiallyExecuted, txStatus)
-
-	// intra shard scr in storage source shard
-	shardCoordinator.SelfShardId = 0
-	txStatus = n.ComputeTransactionStatus(unsignedTxIntraShard, false)
-	assert.Equal(t, core.TxStatusExecuted, txStatus)
-
-	// intra shard scr in pool source shard
-	shardCoordinator.SelfShardId = 0
-	txStatus = n.ComputeTransactionStatus(unsignedTxIntraShard, true)
-	assert.Equal(t, core.TxStatusReceived, txStatus)
-
-	// cross shard scr in storage source shard
-	shardCoordinator.SelfShardId = 0
-	txStatus = n.ComputeTransactionStatus(unsignedTxCrossShard, false)
-	assert.Equal(t, core.TxStatusPartiallyExecuted, txStatus)
-
-	// cross shard scr in pool source shard
-	shardCoordinator.SelfShardId = 0
-	txStatus = n.ComputeTransactionStatus(unsignedTxCrossShard, true)
-	assert.Equal(t, core.TxStatusReceived, txStatus)
-
-	// deploy  SC in pool
-	txStatus = n.ComputeTransactionStatus(deployScTx, true)
-	assert.Equal(t, core.TxStatusReceived, txStatus)
-
-	// deploy  SC in storage
-	txStatus = n.ComputeTransactionStatus(deployScTx, false)
-	assert.Equal(t, core.TxStatusExecuted, txStatus)
+	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")))
+	require.NotNil(t, err)
+	require.Nil(t, tx)
 }
 
 func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
@@ -537,10 +293,9 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 		NotarizedAtSourceInMetaHash:       []byte{13},
 		NotarizedAtDestinationInMetaNonce: 4253,
 		NotarizedAtDestinationInMetaHash:  []byte{12},
-		Status:                            []byte("fooStatus"),
 	}
 
-	node.PutHistoryFieldsInTransaction(tx, metadata)
+	PutHistoryFieldsInTransaction(tx, metadata)
 
 	require.Equal(t, 42, int(tx.Epoch))
 	require.Equal(t, 4321, int(tx.Round))
@@ -553,91 +308,57 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0d", tx.NotarizedAtSourceInMetaHash)
 	require.Equal(t, 4253, int(tx.NotarizedAtDestinationInMetaNonce))
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
-	require.Equal(t, "fooStatus", string(tx.Status))
 }
 
-func getCacherHandler(find bool, cacherType string) func() dataRetriever.ShardedDataCacherNotifier {
-	return func() dataRetriever.ShardedDataCacherNotifier {
-		switch cacherType {
-		case "reward":
-			return &testscommon.ShardedDataStub{
-				SearchFirstDataCalled: func(_ []byte) (interface{}, bool) {
-					if find {
-						tx, _ := getDummyRewardTx()
-						return tx, true
-					}
+func createNode(t *testing.T, withFullHistory bool) (*Node, *genericmocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
+	chainStorer := genericmocks.NewChainStorerMock()
+	dataPool := testscommon.NewPoolsHolderMock()
+	marshalizer := &mock.MarshalizerFake{}
 
-					return nil, false
-				},
-			}
-		case "unsigned":
-			return &testscommon.ShardedDataStub{
-				SearchFirstDataCalled: func(_ []byte) (interface{}, bool) {
-					if find {
-						tx, _ := getUnsignedTx()
-						return tx, true
-					}
-
-					return nil, false
-				},
-			}
-		default:
-			return &testscommon.ShardedDataStub{
-				SearchFirstDataCalled: func(_ []byte) (interface{}, bool) {
-					if find {
-						tx, _ := getDummyNormalTx()
-						return tx, true
-					}
-
-					return nil, false
-				},
-			}
-		}
+	historyRepo := &testscommon.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool { return withFullHistory },
 	}
+
+	n, err := NewNode(
+		WithDataPool(dataPool),
+		WithDataStore(chainStorer),
+		WithInternalMarshalizer(marshalizer, 0),
+		WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		WithShardCoordinator(createShardCoordinator()),
+		WithHistoryRepository(historyRepo),
+	)
+
+	require.Nil(t, err)
+	return n, chainStorer, dataPool, historyRepo
 }
 
-func getStorerStub(find bool) storage.Storer {
-	return &mock.StorerStub{
-		HasCalled: func(_ []byte) error {
-			if !find {
-				return errors.New("key not found")
+func createShardCoordinator() *mock.ShardCoordinatorMock {
+	shardCoordinator := &mock.ShardCoordinatorMock{
+		SelfShardId: 1,
+		ComputeIdCalled: func(address []byte) uint32 {
+			if address == nil {
+				return core.MetachainShardId
 			}
-			return nil
-		},
-		SearchFirstCalled: func(_ []byte) ([]byte, error) {
-			if !find {
-				return nil, errors.New("key not found")
+			if bytes.Equal(address, []byte("alice")) {
+				return 1
 			}
-			_, txBytes := getDummyNormalTx()
-			return txBytes, nil
-		},
-		GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-			if !find {
-				return nil, errors.New("key not found")
+			if bytes.Equal(address, []byte("bob")) {
+				return 2
 			}
-			_, txBytes := getDummyNormalTx()
-			return txBytes, nil
+			panic("bad test")
 		},
 	}
+
+	return shardCoordinator
 }
 
-func getDummyNormalTx() (*transaction.Transaction, []byte) {
-	tx := transaction.Transaction{Nonce: 37, RcvAddr: []byte("rcvr")}
-	marshalizer := &mock.MarshalizerFake{}
-	txBytes, _ := marshalizer.Marshal(&tx)
-	return &tx, txBytes
-}
-
-func getDummyRewardTx() (*rewardTx.RewardTx, []byte) {
-	tx := rewardTx.RewardTx{RcvAddr: []byte("rcvr")}
-	marshalizer := &mock.MarshalizerFake{}
-	txBytes, _ := marshalizer.Marshal(&tx)
-	return &tx, txBytes
-}
-
-func getUnsignedTx() (*smartContractResult.SmartContractResult, []byte) {
-	tx := smartContractResult.SmartContractResult{RcvAddr: []byte("rcvr")}
-	marshalizer := &mock.MarshalizerFake{}
-	txBytes, _ := marshalizer.Marshal(&tx)
-	return &tx, txBytes
+func setupGetMiniblockMetadataByTxHash(historyRepo *testscommon.HistoryRepositoryStub, blockType block.Type, sourceShard uint32, destinationShard uint32, epoch uint32) {
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
+		return &fullHistory.MiniblockMetadata{
+			Type:               int32(blockType),
+			SourceShardID:      sourceShard,
+			DestinationShardID: destinationShard,
+			Epoch:              epoch,
+		}, nil
+	}
 }

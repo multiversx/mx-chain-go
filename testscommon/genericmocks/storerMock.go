@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // StorerMock -
@@ -64,6 +66,16 @@ func (sm *StorerMock) Put(key, data []byte) error {
 	return nil
 }
 
+// PutWithMarshalizer -
+func (sm *StorerMock) PutWithMarshalizer(key []byte, obj interface{}, marshalizer marshal.Marshalizer) error {
+	data, err := marshalizer.Marshal(obj)
+	if err != nil {
+		return err
+	}
+
+	return sm.Put(key, data)
+}
+
 // Get -
 func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 	sm.mutex.RLock()
@@ -78,8 +90,8 @@ func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 }
 
 // SearchFirst -
-func (sm *StorerMock) SearchFirst(_ []byte) ([]byte, error) {
-	return nil, errors.New("not implemented")
+func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
+	return sm.Get(key)
 }
 
 // Close -
