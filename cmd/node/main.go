@@ -444,7 +444,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		NetworkComponents:       managedNetworkComponents,
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
 	}
-	managedBootstrapComponents, err := mainFactory.NewManagedBootstrapComponents(bootstrapComponentsFactoryArgs)
+
+	bootstrapComponentsFactory, err := mainFactory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+	if err != nil {
+		return err
+	}
+
+	managedBootstrapComponents, err := mainFactory.NewManagedBootstrapComponents(bootstrapComponentsFactory)
 	if err != nil {
 		return err
 	}

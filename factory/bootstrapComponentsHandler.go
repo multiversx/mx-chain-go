@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -18,15 +19,14 @@ type managedBootstrapComponents struct {
 }
 
 // NewManagedBootstrapComponents creates a managed bootstrap components handler
-func NewManagedBootstrapComponents(args BootstrapComponentsFactoryArgs) (*managedBootstrapComponents, error) {
-	bcf, err := NewBootstrapComponentsFactory(args)
-	if err != nil {
-		return nil, err
+func NewManagedBootstrapComponents(bootstrapComponentsFactory *bootstrapComponentsFactory) (*managedBootstrapComponents, error) {
+	if bootstrapComponentsFactory == nil {
+		return nil, errors.ErrNilBootstrapComponentsFactory
 	}
 
 	return &managedBootstrapComponents{
 		bootstrapComponents:        nil,
-		bootstrapComponentsFactory: bcf,
+		bootstrapComponentsFactory: bootstrapComponentsFactory,
 	}, nil
 }
 
@@ -34,7 +34,7 @@ func NewManagedBootstrapComponents(args BootstrapComponentsFactoryArgs) (*manage
 func (mbf *managedBootstrapComponents) Create() error {
 	bc, err := mbf.bootstrapComponentsFactory.Create()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errors.ErrBootstrapDataComponentsFactoryCreate, err)
 	}
 
 	mbf.mutBootstrapComponents.Lock()

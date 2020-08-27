@@ -108,6 +108,18 @@ func TestNewBootstrapComponentsFactory_NilWorkingDir(t *testing.T) {
 	require.Equal(t, errorsErd.ErrInvalidWorkingDir, err)
 }
 
+func TestNewBootstrapComponentsFactory_NilHeaderIntegrityVerifier(t *testing.T) {
+	t.Parallel()
+
+	args := getBootStrapArgs()
+	args.HeaderIntegrityVerifier = nil
+
+	bcf, err := factory.NewBootstrapComponentsFactory(args)
+
+	require.Nil(t, bcf)
+	require.Equal(t, errorsErd.ErrNilHeaderIntegrityVerifier, err)
+}
+
 func TestBootstrapComponentsFactory_Create_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -134,20 +146,85 @@ func TestBootstrapComponentsFactory_Create_BootstrapDataProviderCreationFail(t *
 	bc, err := bcf.Create()
 
 	require.Nil(t, bc)
-	require.True(t, errors.Is(err, errorsErd.ErrBootstrapDataProviderCreationFailed))
+	require.True(t, errors.Is(err, errorsErd.ErrNewBootstrapDataProvider))
 }
 
-func TestBootstrapComponentsFactory_Create_NilHasher(t *testing.T) {
+func TestBootstrapComponentsFactory_Create_EpochStartBootstrapCreationFail(t *testing.T) {
 	t.Parallel()
 
 	args := getBootStrapArgs()
+	coreComponents := getDefaultCoreComponents()
+	args.CoreComponents = coreComponents
 
 	bcf, _ := factory.NewBootstrapComponentsFactory(args)
 
+	coreComponents.RatingHandler = nil
 	bc, err := bcf.Create()
 
 	require.Nil(t, bc)
-	require.Equal(t, errorsErd.ErrNilMarshalizer, err)
+	require.True(t, errors.Is(err, errorsErd.ErrNewEpochStartBootstrap))
+}
+
+// ------------ Test BootstrapComponentsFactory --------------------
+func TestNewBootstrapComponentsFactory(t *testing.T) {
+	t.Parallel()
+
+	args := getBootStrapArgs()
+	bcf, _ := factory.NewBootstrapComponentsFactory(args)
+
+	mbc, err := factory.NewManagedBootstrapComponents(bcf)
+
+	require.NotNil(t, mbc)
+	require.Nil(t, err)
+}
+
+func TestNewBootstrapComponentsFactory_NilFactory(t *testing.T) {
+	t.Parallel()
+
+	mbc, err := factory.NewManagedBootstrapComponents(nil)
+
+	require.Nil(t, mbc)
+	require.Equal(t, errorsErd.ErrNilBootstrapComponentsFactory, err)
+}
+
+func TestManagedBootstrapComponents_CheckSubcomponents_NoCreate(t *testing.T) {
+	t.Parallel()
+	args := getBootStrapArgs()
+	bcf, _ := factory.NewBootstrapComponentsFactory(args)
+
+	mbc, _ := factory.NewManagedBootstrapComponents(bcf)
+	err := mbc.CheckSubcomponents()
+
+	require.Equal(t, errorsErd.ErrNilBootstrapComponentsHolder, err)
+}
+
+func TestManagedBootstrapComponents_Create(t *testing.T) {
+	t.Parallel()
+	args := getBootStrapArgs()
+	bcf, _ := factory.NewBootstrapComponentsFactory(args)
+
+	mbc, _ := factory.NewManagedBootstrapComponents(bcf)
+	err := mbc.Create()
+
+	require.Nil(t, err)
+
+	err = mbc.CheckSubcomponents()
+	require.Nil(t, err)
+}
+
+func TestManagedBootstrapComponents_Create_NilInternalMarshalizer(t *testing.T) {
+	t.Parallel()
+	args := getBootStrapArgs()
+	coreComponents := getDefaultCoreComponents()
+	args.CoreComponents = coreComponents
+
+	bcf, _ := factory.NewBootstrapComponentsFactory(args)
+	mbc, _ := factory.NewManagedBootstrapComponents(bcf)
+
+	coreComponents.IntMarsh = nil
+	err := mbc.Create()
+
+	require.True(t, errors.Is(err, errorsErd.ErrBootstrapDataComponentsFactoryCreate))
 }
 
 func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
@@ -155,15 +232,16 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 	networkComponents := getNetworkComponents()
 	cryptoComponents := getCryptoComponents(coreComponents)
 	return factory.BootstrapComponentsFactoryArgs{
-		Config:                testscommon.GetGeneralConfig(),
-		WorkingDir:            "home",
-		DestinationAsObserver: 0,
-		GenesisNodesSetup:     &mock.NodesSetupStub{},
-		NodeShuffler:          &mock.NodeShufflerMock{},
-		ShardCoordinator:      mock.NewMultiShardsCoordinatorMock(2),
-		CoreComponents:        coreComponents,
-		CryptoComponents:      cryptoComponents,
-		NetworkComponents:     networkComponents,
+		Config:                  testscommon.GetGeneralConfig(),
+		WorkingDir:              "home",
+		DestinationAsObserver:   0,
+		GenesisNodesSetup:       &mock.NodesSetupStub{},
+		NodeShuffler:            &mock.NodeShufflerMock{},
+		ShardCoordinator:        mock.NewMultiShardsCoordinatorMock(2),
+		CoreComponents:          coreComponents,
+		CryptoComponents:        cryptoComponents,
+		NetworkComponents:       networkComponents,
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 }
 
@@ -183,15 +261,16 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		StatusHdl:        &testscommon.AppStatusHandlerStub{},
-		WatchdogTimer:    &testscommon.WatchdogMock{},
-		AlarmSch:         &testscommon.AlarmSchedulerStub{},
-		NtpSyncTimer:     &testscommon.SyncTimerStub{},
-		RoundHandler:     &testscommon.RounderMock{},
-		EconomicsHandler: &testscommon.EconomicsHandlerMock{},
-		RatingsConfig:    &testscommon.RatingsInfoMock{},
-		RatingHandler:    &testscommon.RaterMock{},
-		NodesConfig:      &testscommon.NodesSetupStub{},
-		StartTime:        time.Time{},
+		StatusHdl:     &testscommon.AppStatusHandlerStub{},
+		WatchdogTimer: &testscommon.WatchdogMock{},
+		AlarmSch:      &testscommon.AlarmSchedulerStub{},
+		NtpSyncTimer:  &testscommon.SyncTimerStub{},
+		RoundHandler:  &testscommon.RounderMock{},
+		//TODO: uncomment this
+		//EconomicsHandler: &testscommon.EconomicsHandlerMock{},
+		RatingsConfig: &testscommon.RatingsInfoMock{},
+		RatingHandler: &testscommon.RaterMock{},
+		NodesConfig:   &testscommon.NodesSetupStub{},
+		StartTime:     time.Time{},
 	}
 }
