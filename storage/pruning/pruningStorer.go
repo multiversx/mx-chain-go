@@ -202,6 +202,14 @@ func initPersistersInEpoch(
 		oldestEpochActive = 0
 	}
 
+	log.Debug("initPersistersInEpoch",
+		"StartingEpoch", args.StartingEpoch,
+		"NumOfEpochsToKeep", args.NumOfEpochsToKeep,
+		"oldestEpochKeep", oldestEpochKeep,
+		"NumOfActivePersisters", args.NumOfActivePersisters,
+		"oldestEpochActive", "oldestEpochActive",
+	)
+
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
 		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
 		if err != nil {
