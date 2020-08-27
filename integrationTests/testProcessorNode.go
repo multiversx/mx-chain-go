@@ -15,8 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
@@ -255,7 +255,7 @@ type TestProcessorNode struct {
 
 	ExportHandler                  update.ExportHandler
 	WaitTime                       time.Duration
-	HistoryRepository              fullHistory.HistoryRepository
+	HistoryRepository              dblookupext.HistoryRepository
 	EpochNotifier                  process.EpochNotifier
 	BuiltinEnableEpoch             uint32
 	DeployEnableEpoch              uint32

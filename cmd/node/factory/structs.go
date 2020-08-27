@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -168,7 +168,7 @@ type processComponentsFactoryArgs struct {
 	indexer                   indexer.Indexer
 	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
-	historyRepo               fullHistory.HistoryRepository
+	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
 	txSimulatorProcessorArgs  *txsimulator.ArgsTxSimulator
 	storageReolverImportPath  string
@@ -214,7 +214,7 @@ func NewProcessComponentsFactoryArgs(
 	workingDir string,
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
-	historyRepo fullHistory.HistoryRepository,
+	historyRepo dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	storageReolverImportPath string,
@@ -639,7 +639,7 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 	log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
-	// In "fullHistory" index, record both the metachain and the shard blocks
+	// In "dblookupext" index, record both the metachain and the shard blocks
 	for shard, genesisBlockHeader := range genesisBlocks {
 		if args.shardCoordinator.SelfId() != shard {
 			continue
@@ -1412,7 +1412,7 @@ func newShardBlockProcessor(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
-	historyRepository fullHistory.HistoryRepository,
+	historyRepository dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) (process.BlockProcessor, error) {
@@ -1712,7 +1712,7 @@ func newMetaBlockProcessor(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
-	historyRepository fullHistory.HistoryRepository,
+	historyRepository dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) (process.BlockProcessor, error) {
