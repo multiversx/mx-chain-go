@@ -212,14 +212,17 @@ func (s *TpsBenchmark) Update(mblock data.HeaderHandler) {
 }
 
 func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
+	totalTxsForTPS, totalTxsForCount := getNumOfTxsWithoutPeerTxsAndSCRs(header)
+
 	if s.blockNumber == header.Nonce {
+		// was a rollback total txs must be added again
+		s.statusHandler.AddUint64(core.MetricNumProcessedTxs, totalTxsForCount)
+
 		return nil
 	}
 
 	s.blockNumber = header.Nonce
 	s.roundNumber = header.Round
-
-	totalTxsForTPS, totalTxsForCount := getNumOfTxsWithoutPeerTxsAndSCRs(header)
 
 	s.lastBlockTxCount = uint32(totalTxsForTPS)
 	shouldUpdateTotalNumAndPeak := s.shouldUpdateFields(header)
