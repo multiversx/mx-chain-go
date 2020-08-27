@@ -142,12 +142,7 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 	}
 
 	for _, txHash := range miniblock.TxHashes {
-		err := hr.epochByHashIndex.saveEpochByHash(txHash, epoch)
-		if err != nil {
-			return newErrCannotSaveEpochByHash("transaction", txHash, err)
-		}
-
-		err = hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
+		err := hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
 		if err != nil {
 			log.Warn("miniblockHashByTxHashIndex.putMiniblockByTx()", "txHash", txHash, "err", err)
 			continue
@@ -163,12 +158,7 @@ func (hr *historyRepository) computeMiniblockHash(miniblock *block.MiniBlock) ([
 
 // GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage
 func (hr *historyRepository) GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error) {
-	epoch, err := hr.GetEpochByHash(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	miniblockHash, err := hr.miniblockHashByTxHashIndex.GetFromEpoch(hash, epoch)
+	miniblockHash, err := hr.miniblockHashByTxHashIndex.Get(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -212,6 +202,7 @@ func (hr *historyRepository) getMiniblockMetadataByMiniblockHash(hash []byte) (*
 
 // GetEpochByHash will return epoch for a given hash
 // This works for Blocks, Miniblocks and Transactions
+// It doesn't work for transactions (not needed, there we have a static storer for "miniblockHashByTxHashIndex" as well)!
 func (hr *historyRepository) GetEpochByHash(hash []byte) (uint32, error) {
 	return hr.epochByHashIndex.getEpochByHash(hash)
 }

@@ -415,6 +415,8 @@ func (psf *StorageServiceFactory) setupFullHistory(chainStorer *dataRetriever.Ch
 		return nil
 	}
 
+	shardID := core.GetShardIDString(psf.shardCoordinator.SelfId())
+
 	// Create the miniblocksMetadata (PRUNING) storer
 	miniblocksMetadataConfig := psf.generalConfig.FullHistory.MiniblocksMetadataStorageConfig
 	miniblocksMetadataPruningStorerArgs := psf.createPruningStorerArgs(miniblocksMetadataConfig)
@@ -426,16 +428,19 @@ func (psf *StorageServiceFactory) setupFullHistory(chainStorer *dataRetriever.Ch
 	*createdStorers = append(*createdStorers, miniblocksMetadataPruningStorer)
 	chainStorer.AddStorer(dataRetriever.MiniblocksMetadataUnit, miniblocksMetadataPruningStorer)
 
-	// Create the miniblocksHashByTxHash (PRUNING) storer
+	// Create the miniblocksHashByTxHash (STATIC) storer
 	miniblockHashByTxHashConfig := psf.generalConfig.FullHistory.MiniblockHashByTxHashStorageConfig
-	miniblockHashByTxHashPruningStorerArgs := psf.createPruningStorerArgs(miniblockHashByTxHashConfig)
-	miniblockHashByTxHashPruningStorer, err := pruning.NewPruningStorer(miniblockHashByTxHashPruningStorerArgs)
+	miniblockHashByTxHashDbConfig := GetDBFromConfig(miniblockHashByTxHashConfig.DB)
+	miniblockHashByTxHashDbConfig.FilePath = psf.pathManager.PathForStatic(shardID, miniblockHashByTxHashConfig.DB.FilePath)
+	miniblockHashByTxHashCacherConfig := GetCacherFromConfig(miniblockHashByTxHashConfig.Cache)
+	miniblockHashByTxHashBloomFilter := GetBloomFromConfig(miniblockHashByTxHashConfig.Bloom)
+	miniblockHashByTxHashUnit, err := storageUnit.NewStorageUnitFromConf(miniblockHashByTxHashCacherConfig, miniblockHashByTxHashDbConfig, miniblockHashByTxHashBloomFilter)
 	if err != nil {
 		return err
 	}
 
-	*createdStorers = append(*createdStorers, miniblockHashByTxHashPruningStorer)
-	chainStorer.AddStorer(dataRetriever.MiniblockHashByTxHashUnit, miniblockHashByTxHashPruningStorer)
+	*createdStorers = append(*createdStorers, miniblockHashByTxHashUnit)
+	chainStorer.AddStorer(dataRetriever.MiniblockHashByTxHashUnit, miniblockHashByTxHashUnit)
 
 	// Create the epochByHash (STATIC) storer
 	epochByHashConfig := psf.generalConfig.FullHistory.EpochByHashStorageConfig
