@@ -210,6 +210,7 @@ func initPersistersInEpoch(
 		}
 	}
 
+	// Shallow persister data will be overwritten in case of active persisters
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
 		log.Debug("initPersistersInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
 		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
