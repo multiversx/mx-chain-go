@@ -480,8 +480,8 @@
    Type = "json"
 
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 20 # TODO UNDO AFTER TESTS
-    RoundsPerEpoch         = 20 # TODO UNDO AFTER TESTS
+    MinRoundsBetweenEpochs = 100 # TODO UNDO AFTER TESTS
+    RoundsPerEpoch         = 100 # TODO UNDO AFTER TESTS
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     MinShuffledOutRestartThreshold = 0.05
