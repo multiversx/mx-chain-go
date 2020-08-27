@@ -207,7 +207,7 @@ func initPersistersInEpoch(
 		"NumOfEpochsToKeep", args.NumOfEpochsToKeep,
 		"oldestEpochKeep", oldestEpochKeep,
 		"NumOfActivePersisters", args.NumOfActivePersisters,
-		"oldestEpochActive", "oldestEpochActive",
+		"oldestEpochActive", oldestEpochActive,
 	)
 
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {

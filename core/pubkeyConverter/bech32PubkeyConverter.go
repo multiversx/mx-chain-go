@@ -3,6 +3,7 @@ package pubkeyConverter
 import (
 	"encoding/hex"
 	"fmt"
+	"runtime/debug"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -82,6 +83,10 @@ func (bpc *bech32PubkeyConverter) Encode(pkBytes []byte) string {
 			"hex buff", hex.EncodeToString(pkBytes),
 			"error", state.ErrWrongSize,
 		)
+
+		//TODO remove this
+		debug.PrintStack()
+
 		return ""
 	}
 
@@ -92,6 +97,10 @@ func (bpc *bech32PubkeyConverter) Encode(pkBytes []byte) string {
 			"hex buff", hex.EncodeToString(pkBytes),
 			"error", err,
 		)
+
+		//TODO remove this
+		debug.PrintStack()
+
 		return ""
 	}
 
@@ -102,6 +111,10 @@ func (bpc *bech32PubkeyConverter) Encode(pkBytes []byte) string {
 			"conv", hex.EncodeToString(conv),
 			"error", err,
 		)
+
+		//TODO remove this
+		debug.PrintStack()
+
 		return ""
 	}
 
