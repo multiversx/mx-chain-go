@@ -9,6 +9,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
 	dataProcessorDisabled "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor/disabled"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -17,8 +18,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 var log = logger.GetOrCreate("dataprocessor")
@@ -27,24 +30,28 @@ var log = logger.GetOrCreate("dataprocessor")
 type ArgsDataProcessor struct {
 	ElasticIndexer      indexer.Indexer
 	DataReplayer        DataReplayerHandler
-	GenesisNodesSetup   sharding.GenesisNodesSetupHandler
+	GenesisNodesSetup   update.GenesisNodesSetupHandler
 	ShardCoordinator    sharding.Coordinator
 	Marshalizer         marshal.Marshalizer
 	Hasher              hashing.Hasher
 	TPSBenchmarkUpdater TPSBenchmarkUpdaterHandler
 	RatingsProcessor    *ratingsProcessor
+	RatingConfig        config.RatingsConfig
+	StartingEpoch       uint32
 }
 
 type dataProcessor struct {
 	elasticIndexer      indexer.Indexer
 	dataReplayer        DataReplayerHandler
-	genesisNodesSetup   sharding.GenesisNodesSetupHandler
+	genesisNodesSetup   update.GenesisNodesSetupHandler
+	ratingConfig        config.RatingsConfig
 	shardCoordinator    sharding.Coordinator
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
 	nodesCoordinators   map[uint32]NodesCoordinator
 	tpsBenchmarkUpdater TPSBenchmarkUpdaterHandler
 	ratingsProcessor    *ratingsProcessor
+	startingEpoch       uint32
 }
 
 // NewDataProcessor returns a new instance of dataProcessor
@@ -80,6 +87,8 @@ func NewDataProcessor(args ArgsDataProcessor) (*dataProcessor, error) {
 		hasher:              args.Hasher,
 		ratingsProcessor:    args.RatingsProcessor,
 		tpsBenchmarkUpdater: args.TPSBenchmarkUpdater,
+		ratingConfig:        args.RatingConfig,
+		startingEpoch:       args.StartingEpoch,
 	}
 
 	nodesCoordinators, err := dp.createNodesCoordinators(args.GenesisNodesSetup)
@@ -115,10 +124,15 @@ func (dp *dataProcessor) processData(persistedData storer2ElasticData.RoundPersi
 	metaBlock, _ := metaPersistedData.Header.(*block.MetaBlock)
 	dp.tpsBenchmarkUpdater.IndexTPSForMetaBlock(metaBlock)
 
-	for _, shardData := range persistedData.ShardHeaders {
-		err = dp.indexData(shardData)
-		if err != nil {
-			log.Warn("error indexing shard header", "error", err)
+	for _, shardDataForShard := range persistedData.ShardHeaders {
+		for _, shardData := range shardDataForShard {
+			err = dp.indexData(shardData)
+			if err != nil {
+				log.Warn("error indexing shard header",
+					"shard ID", shardData.Header.GetShardID(),
+					"nonce", shardData.Header.GetNonce(),
+					"error", err)
+			}
 		}
 	}
 
@@ -174,7 +188,7 @@ func (dp *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint64
 	return nodesCoordinator.GetValidatorsIndexes(publicKeys, hdr.GetEpoch())
 }
 
-func (dp *dataProcessor) createNodesCoordinators(nodesConfig sharding.GenesisNodesSetupHandler) (map[uint32]NodesCoordinator, error) {
+func (dp *dataProcessor) createNodesCoordinators(nodesConfig update.GenesisNodesSetupHandler) (map[uint32]NodesCoordinator, error) {
 	nodesCoordinatorsMap := make(map[uint32]NodesCoordinator)
 	shardIDs := dp.getShardIDs()
 	for _, shardID := range shardIDs {
@@ -183,12 +197,21 @@ func (dp *dataProcessor) createNodesCoordinators(nodesConfig sharding.GenesisNod
 			return nil, err
 		}
 		nodesCoordinatorsMap[shardID] = nodeCoordForShard
+
+		if dp.startingEpoch == 0 {
+			validatorsPubKeys, err := nodeCoordForShard.GetAllEligibleValidatorsPublicKeys(0)
+			if err != nil || len(validatorsPubKeys) == 0 {
+				log.Warn("cannot get all eligible validatorsPubKeys", "epoch", 0)
+			}
+
+			dp.elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, 0)
+		}
 	}
 
 	return nodesCoordinatorsMap, nil
 }
 
-func (dp *dataProcessor) createNodesCoordinatorForShard(nodesConfig sharding.GenesisNodesSetupHandler, shardID uint32) (NodesCoordinator, error) {
+func (dp *dataProcessor) createNodesCoordinatorForShard(nodesConfig update.GenesisNodesSetupHandler, shardID uint32) (NodesCoordinator, error) {
 	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
 
 	eligibleValidators, err := sharding.NodesInfoToValidators(eligibleNodesInfo)
@@ -201,7 +224,7 @@ func (dp *dataProcessor) createNodesCoordinatorForShard(nodesConfig sharding.Gen
 		return nil, err
 	}
 
-	consensusGroupCache, err := lrucache.NewCache(int(nodesConfig.GetShardConsensusGroupSize()))
+	consensusGroupCache, err := lrucache.NewCache(1000)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +252,25 @@ func (dp *dataProcessor) createNodesCoordinatorForShard(nodesConfig sharding.Gen
 		return nil, fmt.Errorf("%w while creating nodes coordinator", err)
 	}
 
-	return baseNodesCoordinator, nil
+	ratingDataArgs := rating.RatingsDataArg{
+		Config:                   dp.ratingConfig,
+		ShardConsensusSize:       nodesConfig.GetShardConsensusGroupSize(),
+		MetaConsensusSize:        nodesConfig.GetMetaConsensusGroupSize(),
+		ShardMinNodes:            nodesConfig.MinNumberOfShardNodes(),
+		MetaMinNodes:             nodesConfig.MinNumberOfMetaNodes(),
+		RoundDurationMiliseconds: nodesConfig.GetRoundDuration(),
+	}
+	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	rater, err := rating.NewBlockSigningRater(ratingsData)
+	if err != nil {
+		return nil, err
+	}
+
+	return sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, rater)
 }
 
 func (dp *dataProcessor) getShardIDs() []uint32 {
@@ -318,7 +359,11 @@ func (dp *dataProcessor) computeNotarizedHeaders(hdr data.HeaderHandler) []strin
 		notarizedHdrs = append(notarizedHdrs, hex.EncodeToString(shardInfo.HeaderHash))
 	}
 
-	return notarizedHdrs
+	if len(notarizedHdrs) > 0 {
+		return notarizedHdrs
+	}
+
+	return nil
 }
 
 func (dp *dataProcessor) logHeaderInfo(hdr data.HeaderHandler) {

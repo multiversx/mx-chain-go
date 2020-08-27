@@ -26,13 +26,14 @@ import (
 )
 
 type flags struct {
-	dbPathWithChainID  string
-	configFilePath     string
-	nodeConfigFilePath string
-	nodesSetupFilePath string
-	startingEpoch      int
-	numShards          int
-	timeout            int
+	dbPathWithChainID    string
+	configFilePath       string
+	nodeConfigFilePath   string
+	ratingConfigFilePath string
+	nodesSetupFilePath   string
+	startingEpoch        int
+	numShards            int
+	timeout              int
 }
 
 var (
@@ -70,9 +71,17 @@ VERSION:
 	// nodeConfigFilePathFlag defines a flag which holds the configuration file path
 	nodeConfigFilePathFlag = cli.StringFlag{
 		Name:        "node-config",
-		Usage:       "This string file specifies the `filepath` for the node's toml configuration file",
+		Usage:       "This string flag specifies the `filepath` for the node's toml configuration file",
 		Value:       "../node/config/config.toml",
 		Destination: &flagsValues.nodeConfigFilePath,
+	}
+
+	// nodeConfigFilePathFlag defines a flag which holds the configuration file path
+	ratingsConfigFilePathFlag = cli.StringFlag{
+		Name:        "rating-config",
+		Usage:       "This string flag specifies the `filepath` for the node's toml ratings configuration file",
+		Value:       "../node/config/ratings.toml",
+		Destination: &flagsValues.ratingConfigFilePath,
 	}
 
 	// nodesSetupFilePathFlag defines a flag which holds the nodes setup json file path
@@ -135,6 +144,7 @@ func initCliFlags() {
 		dbPathWithChainIDFlag,
 		configFilePathFlag,
 		nodeConfigFilePathFlag,
+		ratingsConfigFilePathFlag,
 		nodesSetupFilePathFlag,
 		numOfShardsFlag,
 		startingEpochFlag,
@@ -234,6 +244,15 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
+	genesisNodesConfig, err := sharding.NewNodesSetup(
+		flagsValues.nodesSetupFilePath,
+		addressPubKeyConverter,
+		validatorPubKeyConverter,
+	)
+	if err != nil {
+		return err
+	}
+
 	ratingsProcessor, err := dataprocessor.NewRatingsProcessor(
 		dataprocessor.RatingProcessorArgs{
 			ShardCoordinator:         shardCoordinator,
@@ -243,16 +262,8 @@ func startStorer2Elastic(ctx *cli.Context) error {
 			Marshalizer:              marshalizer,
 			Hasher:                   hasher,
 			ElasticIndexer:           elasticIndexer,
+			GenesisNodesConfig:       genesisNodesConfig,
 		},
-	)
-	if err != nil {
-		return err
-	}
-
-	genesisNodesConfig, err := sharding.NewNodesSetup(
-		flagsValues.nodesSetupFilePath,
-		addressPubKeyConverter,
-		validatorPubKeyConverter,
 	)
 	if err != nil {
 		return err
@@ -285,6 +296,12 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
+	ratingsConfig := nodeConfigPackage.RatingsConfig{}
+	err = core.LoadTomlFile(&ratingsConfig, flagsValues.ratingConfigFilePath)
+	if err != nil {
+		return err
+	}
+
 	dataProcessor, err := dataprocessor.NewDataProcessor(
 		dataprocessor.ArgsDataProcessor{
 			ElasticIndexer:      elasticIndexer,
@@ -295,6 +312,8 @@ func startStorer2Elastic(ctx *cli.Context) error {
 			ShardCoordinator:    shardCoordinator,
 			TPSBenchmarkUpdater: tpsBenchmarkUpdater,
 			RatingsProcessor:    ratingsProcessor,
+			RatingConfig:        ratingsConfig,
+			StartingEpoch:       uint32(flagsValues.startingEpoch),
 		})
 	if err != nil {
 		return err

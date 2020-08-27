@@ -25,7 +25,10 @@ func NewTPSBenchmarkUpdater(
 		return nil, ErrNilElasticIndexer
 	}
 
-	tpsBenchmark, err := statistics.NewTPSBenchmark(genesisNodesConfig.NumberOfShards(), genesisNodesConfig.GetRoundDuration())
+	tpsBenchmark, err := statistics.NewTPSBenchmark(
+		genesisNodesConfig.NumberOfShards(),
+		genesisNodesConfig.GetRoundDuration()/1000,
+	)
 	if err != nil {
 		return nil, err
 	}
