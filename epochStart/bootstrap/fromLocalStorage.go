@@ -70,13 +70,18 @@ func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
 	if err != nil {
 		return 0, false, err
 	}
+
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.EpochStart.LastFinalizedHeaders))
+	if e.baseData.numberOfShards == 0 {
+		e.baseData.numberOfShards = e.genesisShardCoordinator.NumberOfShards()
+	}
 
 	newShardId, isShuffledOut := e.checkIfShuffledOut(pubKey, e.nodesConfig)
 	modifiedShardId := e.applyShardIDAsObserverIfNeeded(newShardId)
 	if newShardId != modifiedShardId {
 		isShuffledOut = true
 	}
+
 	return modifiedShardId, isShuffledOut, nil
 }
 

@@ -10,6 +10,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -346,7 +347,7 @@ func TestWASMMetering(t *testing.T) {
 
 	testingValue := uint64(15)
 
-	gasLimit = uint64(2000)
+	gasLimit = uint64(500)
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
@@ -581,7 +582,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &mock.FeeHandlerStub{
-		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(10)
 		},
 	}
@@ -593,21 +594,21 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 
 	_, _ = vm.CreateAccount(accnts, ownerAddressBytes, ownerNonce, ownerBalance)
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
-		Accounts:          accnts,
-		Hasher:            testHasher,
-		PubkeyConv:        pubkeyConv,
-		Marshalizer:       testMarshalizer,
-		SignMarshalizer:   testMarshalizer,
-		ShardCoordinator:  shardCoordinator,
-		ScProcessor:       &mock.SCProcessorMock{},
-		TxFeeHandler:      &mock.UnsignedTxHandlerMock{},
-		TxTypeHandler:     txTypeHandler,
-		EconomicsFee:      &mock.FeeHandlerStub{},
-		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:        smartContract.NewArgumentParser(),
-		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		DisabledRelayedTx: false,
+		Accounts:         accnts,
+		Hasher:           testHasher,
+		PubkeyConv:       pubkeyConv,
+		Marshalizer:      testMarshalizer,
+		SignMarshalizer:  testMarshalizer,
+		ShardCoordinator: shardCoordinator,
+		ScProcessor:      &mock.SCProcessorMock{},
+		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     &mock.FeeHandlerStub{},
+		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:       smartContract.NewArgumentParser(),
+		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 	txProc, _ := processTransaction.NewTxProcessor(argsNewTxProcessor)
 
@@ -621,7 +622,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	testAddresses := createTestAddresses(uint64(numRun))
 	fmt.Println("done")
 
-	gasLimit := feeHandler.ComputeFeeCalled(&transaction.Transaction{}).Uint64()
+	gasLimit := feeHandler.ComputeMoveBalanceFeeCalled(&transaction.Transaction{}).Uint64()
 	initAlice := big.NewInt(100000)
 	tx := vm.CreateMoveBalanceTx(ownerNonce, initAlice, ownerAddressBytes, alice, gasLimit)
 

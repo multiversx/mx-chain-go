@@ -3,7 +3,6 @@ package storage
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
@@ -117,8 +116,6 @@ type StorerWithPutInEpoch interface {
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)
-	UnregisterHandler(handler epochStart.ActionHandler)
-	NotifyAll(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 

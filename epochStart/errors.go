@@ -220,3 +220,24 @@ var ErrProtocolSustainabilityAddressInMetachain = errors.New("protocol sustainab
 
 // ErrNilGenesisTotalSupply signals that nil genesis total supply has been provided
 var ErrNilGenesisTotalSupply = errors.New("nil genesis total supply")
+
+// ErrNilAccountsDB signals that nil accounts DB has been provided
+var ErrNilAccountsDB = errors.New("nil accounts DB")
+
+// ErrNilSystemVM signals that nil system VM has been provided
+var ErrNilSystemVM = errors.New("nil system VM")
+
+// ErrStakingSCOutputAccountNotFound signals that staking sc output account was not found
+var ErrStakingSCOutputAccountNotFound = errors.New("staking sc output was not found")
+
+// ErrNilRatingsInfoHandler signals that nil ratings info handler has been provided
+var ErrNilRatingsInfoHandler = errors.New("nil ratings info handler")
+
+// ErrNilEndOfEpochCallerAddress signals that nil end of epoch caller address was provided
+var ErrNilEndOfEpochCallerAddress = errors.New("nil end of epoch caller address")
+
+// ErrNilStakingSCAddress signals that nil staking system smart contract address was provided
+var ErrNilStakingSCAddress = errors.New("nil staking system smart contract address")
+
+// ErrNilHeaderIntegrityVerifier signals that a nil header integrity verifier was provided
+var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier handler")

@@ -23,7 +23,7 @@ func TestSerialDB_InitNoError(t *testing.T) {
 
 	err := ldb.Init()
 
-	assert.Nil(t, err, "error initializing db")
+	assert.Nil(t, err, "error initializing DB")
 }
 
 func TestSerialDB_PutNoError(t *testing.T) {
@@ -32,7 +32,7 @@ func TestSerialDB_PutNoError(t *testing.T) {
 
 	err := ldb.Put(key, val)
 
-	assert.Nil(t, err, "error saving in db")
+	assert.Nil(t, err, "error saving in DB")
 }
 
 func TestSerialDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {

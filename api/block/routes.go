@@ -29,23 +29,31 @@ type BlockService interface {
 
 // APIBlock represents the structure for block that is returned by api routes
 type APIBlock struct {
-	Nonce                uint64          `form:"nonce" json:"nonce"`
-	Round                uint64          `form:"round" json:"round"`
-	Hash                 string          `form:"hash" json:"hash"`
-	Epoch                uint32          `form:"epoch" json:"epoch"`
-	ShardID              uint32          `form:"shardID" json:"shardID"`
-	NumTxs               uint32          `form:"numTxs" json:"numTxs"`
-	NotarizedBlockHashes []string        `form:"notarizedBlockHashes" json:"notarizedBlockHashes,omitempty"`
-	MiniBlocks           []*APIMiniBlock `form:"miniBlocks" json:"miniBlocks,omitempty"`
+	Nonce           uint64               `json:"nonce"`
+	Round           uint64               `json:"round"`
+	Hash            string               `json:"hash"`
+	PrevBlockHash   string               `json:"prevBlockHash"`
+	Epoch           uint32               `json:"epoch"`
+	Shard           uint32               `json:"shard"`
+	NumTxs          uint32               `json:"numTxs"`
+	NotarizedBlocks []*APINotarizedBlock `json:"notarizedBlocks,omitempty"`
+	MiniBlocks      []*APIMiniBlock      `json:"miniBlocks,omitempty"`
+}
+
+// APINotarizedBlock represents a notarized block
+type APINotarizedBlock struct {
+	Hash  string `json:"hash"`
+	Nonce uint64 `json:"nonce"`
+	Shard uint32 `json:"shard"`
 }
 
 // APIMiniBlock represents the structure for a miniblock
 type APIMiniBlock struct {
-	Hash               string                              `form:"hash" json:"hash"`
-	Type               string                              `form:"type" json:"type"`
-	SourceShardID      uint32                              `form:"sourceShardID" json:"sourceShardID"`
-	DestinationShardID uint32                              `form:"destinationShardID" json:"destinationShardID"`
-	Transactions       []*transaction.ApiTransactionResult `form:"transactions" json:"transactions,omitempty"`
+	Hash             string                              `json:"hash"`
+	Type             string                              `json:"type"`
+	SourceShard      uint32                              `json:"sourceShard"`
+	DestinationShard uint32                              `json:"destinationShard"`
+	Transactions     []*transaction.ApiTransactionResult `json:"transactions,omitempty"`
 }
 
 // Routes defines block related routes
@@ -85,7 +93,7 @@ func getBlockByNonce(c *gin.Context) {
 			c,
 			http.StatusInternalServerError,
 			nil,
-			errors.ErrGetBlock.Error(),
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
 			shared.ReturnCodeInternalError,
 		)
 		return
@@ -126,7 +134,7 @@ func getBlockByHash(c *gin.Context) {
 			c,
 			http.StatusInternalServerError,
 			nil,
-			errors.ErrGetBlock.Error(),
+			fmt.Sprintf("%s: %s", errors.ErrGetBlock.Error(), err.Error()),
 			shared.ReturnCodeInternalError,
 		)
 		return

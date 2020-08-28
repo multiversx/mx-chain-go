@@ -1,6 +1,6 @@
 package config
 
-// CacheConfig will map the json cache configuration
+// CacheConfig will map the cache configuration
 type CacheConfig struct {
 	Name                 string
 	Type                 string
@@ -17,7 +17,7 @@ type HeadersPoolConfig struct {
 	NumElementsToRemoveOnEviction int
 }
 
-// DBConfig will map the json db configuration
+// DBConfig will map the database configuration
 type DBConfig struct {
 	FilePath          string
 	Type              string
@@ -26,27 +26,27 @@ type DBConfig struct {
 	MaxOpenFiles      int
 }
 
-// BloomFilterConfig will map the json bloom filter configuration
+// BloomFilterConfig will map the bloom filter configuration
 type BloomFilterConfig struct {
 	Size     uint
 	HashFunc []string
 }
 
-// StorageConfig will map the json storage unit configuration
+// StorageConfig will map the storage unit configuration
 type StorageConfig struct {
 	Cache CacheConfig
 	DB    DBConfig
 	Bloom BloomFilterConfig
 }
 
-// PubkeyConfig will map the json public key configuration
+// PubkeyConfig will map the public key configuration
 type PubkeyConfig struct {
 	Length          int
 	Type            string
 	SignatureLength int
 }
 
-// TypeConfig will map the json string type configuration
+// TypeConfig will map the string type configuration
 type TypeConfig struct {
 	Type string
 }
@@ -106,6 +106,7 @@ type Config struct {
 	ShardHdrNonceHashStorage   StorageConfig
 	MetaHdrNonceHashStorage    StorageConfig
 	StatusMetricsStorage       StorageConfig
+	ReceiptsStorage            StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -161,9 +162,16 @@ type Config struct {
 
 	SoftwareVersionConfig SoftwareVersionConfig
 	FullHistory           FullHistoryConfig
+	Versions              VersionsConfig
+	Logs                  LogsConfig
 }
 
-// StoragePruningConfig will hold settings relates to storage pruning
+// LogsConfig will hold settings related to the logging sub-system
+type LogsConfig struct {
+	LogFileLifeSpanInSec int
+}
+
+// StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
 	Enabled             bool
 	CleanOldEpochsData  bool
@@ -194,13 +202,14 @@ type ValidatorStatisticsConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec int
-	MaxComputableRounds      uint64
-	StartInEpochEnabled      bool
-	DisableDeploy            bool
-	DisableBuiltInFunctions  bool
-	DisableRelayedTx         bool
-	GenesisString            string
+	StatusPollingIntervalSec       int
+	MaxComputableRounds            uint64
+	StartInEpochEnabled            bool
+	SCDeployEnableEpoch            uint32
+	BuiltInFunctionsEnableEpoch    uint32
+	RelayedTransactionsEnableEpoch uint32
+	PenalizedTooMuchGasEnableEpoch uint32
+	GenesisString                  string
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -337,9 +346,10 @@ type HardforkConfig struct {
 
 // FullHistoryConfig holds the configuration for the full history node
 type FullHistoryConfig struct {
-	Enabled                         bool
-	HistoryTransactionStorageConfig StorageConfig
-	HashEpochStorageConfig          StorageConfig
+	Enabled                            bool
+	MiniblocksMetadataStorageConfig    StorageConfig
+	MiniblockHashByTxHashStorageConfig StorageConfig
+	EpochByHashStorageConfig           StorageConfig
 }
 
 // DebugConfig will hold debugging configuration
@@ -390,4 +400,17 @@ type APIPackageConfig struct {
 type RouteConfig struct {
 	Name string
 	Open bool
+}
+
+// VersionByEpochs represents a version entry that will be applied between the provided epochs
+type VersionByEpochs struct {
+	StartEpoch uint32
+	Version    string
+}
+
+// VersionsConfig represents the versioning config area
+type VersionsConfig struct {
+	DefaultVersion   string
+	VersionsByEpochs []VersionByEpochs
+	Cache            CacheConfig
 }

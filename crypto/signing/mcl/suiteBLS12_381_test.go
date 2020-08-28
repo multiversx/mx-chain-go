@@ -125,7 +125,7 @@ func TestSuiteBLS12_CheckPointValidOK(t *testing.T) {
 
 	suite := NewSuiteBLS12()
 
-	validPointBytes, err:= hex.DecodeString(validPointHexStr)
+	validPointBytes, err := hex.DecodeString(validPointHexStr)
 	require.Nil(t, err)
 	err = suite.CheckPointValid(validPointBytes)
 	require.Nil(t, err)
@@ -144,8 +144,8 @@ func TestSuiteBLS12_CheckPointValidShortHexStringShouldErr(t *testing.T) {
 }
 
 func TestSuiteBLS12_CheckPointValidLongHexStrShouldErr(t *testing.T) {
-	longPointHexStr := "368723d835fca6bc0c17a270e51b731f69f9fe482ed88e8c3d879f228291d48057aa12d0de8476b4a111e945399253"+
-		"15d2d3fd1b85e29e465b8814b713cbf833115f4562e28dcf58e960751f0581578ca1819c8790aa5a5300c5c317b74d"+
+	longPointHexStr := "368723d835fca6bc0c17a270e51b731f69f9fe482ed88e8c3d879f228291d48057aa12d0de8476b4a111e945399253" +
+		"15d2d3fd1b85e29e465b8814b713cbf833115f4562e28dcf58e960751f0581578ca1819c8790aa5a5300c5c317b74d" +
 		"15d2d3fd1b85e29e465b8814b713cbf833115f4562e28dcf58e960751f0581578ca1819c8790aa5a5300c5c317b74d"
 
 	suite := NewSuiteBLS12()
@@ -159,7 +159,7 @@ func TestSuiteBLS12_CheckPointValidLongHexStrShouldErr(t *testing.T) {
 func TestSuiteBLS12_CheckPointValidInvalidPointHexStrShouldErr(t *testing.T) {
 	invalidPointHexStr := "368723d835fca6bc0c17a270e51b731f69f9fe482ed88e8c3d879f228291d48057aa12d0de8476b4a111e945399253" +
 		"15d2d3fd1b85e29e465b8814b713cbf833115f4562e28dcf58e960751f0581578ca1819c8790aa5a5300c5caaaaaaaaaaa"
-	oneHexCharCorruptedPointHexStr :="368723d835fca6bc0c17a270e51b731f69f9fe482ed88e8c3d879f228291d48057aa12d0de8476b4a111e945399253" +
+	oneHexCharCorruptedPointHexStr := "368723d835fca6bc0c17a270e51b731f69f9fe482ed88e8c3d879f228291d48057aa12d0de8476b4a111e945399253" +
 		"15d2d3fd1b85e29e465b8814b713cbf833115f4562e28dcf58e960751f0581578ca1819c8790aa5a5300c5c317b74dca0a"
 	suite := NewSuiteBLS12()
 

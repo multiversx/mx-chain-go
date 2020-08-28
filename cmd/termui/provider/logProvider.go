@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gorilla/websocket"
 )
@@ -22,7 +23,7 @@ const (
 )
 
 // InitLogHandler will open the websocket and set the log level
-func InitLogHandler(presenter PresenterHandler, nodeURL string, profile logger.Profile, useWss bool) error {
+func InitLogHandler(presenter PresenterHandler, nodeURL string, profile *logger.Profile, useWss bool, customLogProfile bool) error {
 	var err error
 	scheme := ws
 	if useWss {
@@ -30,12 +31,19 @@ func InitLogHandler(presenter PresenterHandler, nodeURL string, profile logger.P
 	}
 	go func() {
 		for {
-			webSocket, err = openWebSocket(scheme, nodeURL, profile)
+			webSocket, err = openWebSocket(scheme, nodeURL)
 			if err != nil {
 				_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket error, retrying in %v...", retryDuration)))
 				time.Sleep(retryDuration)
 				continue
 			}
+
+			if customLogProfile {
+				err = sendProfile(webSocket, profile)
+			} else {
+				err = sendDefaultProfileIdentifier(webSocket)
+			}
+			log.LogIfError(err)
 
 			startListeningOnWebSocket(presenter)
 			time.Sleep(retryDuration)
@@ -45,7 +53,7 @@ func InitLogHandler(presenter PresenterHandler, nodeURL string, profile logger.P
 	return nil
 }
 
-func openWebSocket(scheme string, address string, profile logger.Profile) (*websocket.Conn, error) {
+func openWebSocket(scheme string, address string) (*websocket.Conn, error) {
 	u := url.URL{
 		Scheme: scheme,
 		Host:   address,
@@ -56,17 +64,20 @@ func openWebSocket(scheme string, address string, profile logger.Profile) (*webs
 		return nil, err
 	}
 
+	return conn, nil
+}
+
+func sendProfile(conn *websocket.Conn, profile *logger.Profile) error {
 	profileMessage, err := profile.Marshal()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = conn.WriteMessage(websocket.TextMessage, profileMessage)
-	if err != nil {
-		return nil, err
-	}
+	return conn.WriteMessage(websocket.TextMessage, profileMessage)
+}
 
-	return conn, nil
+func sendDefaultProfileIdentifier(conn *websocket.Conn) error {
+	return conn.WriteMessage(websocket.TextMessage, []byte(core.DefaultLogProfileIdentifier))
 }
 
 // startListeningOnWebSocket will listen if a new log message is received and will display it

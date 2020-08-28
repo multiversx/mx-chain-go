@@ -8,6 +8,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
@@ -100,7 +102,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		nonce++
 
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "")
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
 		}
 
 		time.Sleep(time.Second)
@@ -206,6 +208,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &mock.AppStatusHandlerStub{},
+		HeaderIntegrityVerifier:    integrationTests.CreateHeaderIntegrityVerifier(),
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
@@ -236,10 +239,18 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	assert.NotNil(t, bootstrapStorer)
 
 	argsBaseBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		BootStorer:          bootstrapStorer,
-		ForkDetector:        &mock.ForkDetectorStub{},
-		BlockProcessor:      &mock.BlockProcessorMock{},
-		ChainHandler:        &mock.BlockChainMock{},
+		BootStorer:     bootstrapStorer,
+		ForkDetector:   &mock.ForkDetectorStub{},
+		BlockProcessor: &mock.BlockProcessorMock{},
+		ChainHandler: &mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				if shardID != core.MetachainShardId {
+					return &block.Header{}
+				} else {
+					return &block.MetaBlock{}
+				}
+			},
+		},
 		Marshalizer:         integrationTests.TestMarshalizer,
 		Store:               storageServiceShard,
 		Uint64Converter:     uint64Converter,
@@ -286,6 +297,7 @@ func getGeneralConfig() config.Config {
 	generalConfig.MetaHdrNonceHashStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.BlockHeaderStorage.DB.Type = string(storageUnit.LvlDBSerial)
 	generalConfig.BootstrapStorage.DB.Type = string(storageUnit.LvlDBSerial)
+	generalConfig.ReceiptsStorage.DB.Type = string(storageUnit.LvlDBSerial)
 
 	return generalConfig
 }

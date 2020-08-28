@@ -193,10 +193,22 @@ func initPersistersInEpoch(
 	if oldestEpochKeep < 0 {
 		oldestEpochKeep = 0
 	}
+	if !args.CleanOldEpochsData {
+		oldestEpochKeep = 0
+	}
+
 	oldestEpochActive := int64(args.StartingEpoch) - int64(args.NumOfActivePersisters) + 1
 	if oldestEpochActive < 0 {
 		oldestEpochActive = 0
 	}
+
+	log.Debug("initPersistersInEpoch",
+		"StartingEpoch", args.StartingEpoch,
+		"NumOfEpochsToKeep", args.NumOfEpochsToKeep,
+		"oldestEpochKeep", oldestEpochKeep,
+		"NumOfActivePersisters", args.NumOfActivePersisters,
+		"oldestEpochActive", oldestEpochActive,
+	)
 
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
 		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
@@ -678,6 +690,15 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 
 	wasExtended := ps.extendSavedEpochsIfNeeded(header)
 	if wasExtended {
+		ps.lock.RLock()
+		if len(ps.activePersisters) > int(ps.numOfActivePersisters) {
+			log.Debug("PruningStorer - skip closing and destroying persisters due to a stuck shard -",
+				"current epoch", epoch,
+				"num active persisters", len(ps.activePersisters),
+				"default maximum num active persisters", ps.numOfActivePersisters,
+				"oldest epoch in storage", ps.activePersisters[len(ps.activePersisters)-1].epoch)
+		}
+		ps.lock.RUnlock()
 		return nil
 	}
 
@@ -768,11 +789,9 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 }
 
 func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
-	count := 0
 	persisters := make([]*persisterData, 0)
 	ps.lock.RLock()
 	for e := int(to); e >= int(from); e-- {
-		count++
 		p, ok := ps.persistersMapByEpoch[uint32(e)]
 		if !ok {
 			ps.lock.RUnlock()
@@ -797,12 +816,6 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 	ps.lock.Lock()
 	ps.activePersisters = append(ps.activePersisters, reOpenedPersisters...)
 	ps.lock.Unlock()
-
-	if count > 0 {
-		log.Info("PruningStorer - extend stored epochs due to a stuck shard",
-			"from epoch", from,
-			"to epoch", to)
-	}
 
 	return nil
 }

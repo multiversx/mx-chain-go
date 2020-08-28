@@ -32,7 +32,7 @@ func TestLog_GetEvents(t *testing.T) {
 
 	log := &transaction.Log{
 		Address: address,
-		Events: events,
+		Events:  events,
 	}
 
 	logEvents := log.GetLogEvents()

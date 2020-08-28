@@ -11,17 +11,30 @@
    # available in local disk
    StartInEpochEnabled = true
 
-   # DisableDeploy represents the flag to enable/disable deployment of smart contracts
-   DisableDeploy = false
+   # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
+   SCDeployEnableEpoch = 0
 
-   # DisableBuiltInFunctions represents the flag to enable/disable built in functions calls
-   DisableBuiltInFunctions = false
+   # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
+   BuiltInFunctionsEnableEpoch = 0
 
-   # DisableRelayedTx represents the flag to enable/disable relayed transaction standard
-   DisableRelayedTx = false
+   # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
+   RelayedTransactionsEnableEpoch = 0
+
+   # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
+   PenalizedTooMuchGasEnableEpoch = 0
 
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
+
+[Versions]
+   DefaultVersion = "default"
+   VersionsByEpochs = [
+       { StartEpoch = 0, Version = "*" },
+   ]
+   [Versions.Cache]
+        Name = "VersionsCache"
+        Capacity = 100
+        Type = "LRU"
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
@@ -52,6 +65,19 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
+[ReceiptsStorage]
+    [ReceiptsStorage.Cache]
+        Name = "ReceiptsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 10485760 #10MB
+    [ReceiptsStorage.DB]
+        FilePath = "Receipts"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
         Name = "PeerBlockBodyStorage"
@@ -75,7 +101,7 @@
         FilePath = "BlockHeaders"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 1
+        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [BootstrapStorage]
@@ -88,7 +114,7 @@
         FilePath = "BootstrapData"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 1
+        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [MetaBlockStorage]
@@ -101,7 +127,7 @@
         FilePath = "MetaBlock"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 1
+        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [TxStorage]
@@ -178,7 +204,7 @@
         FilePath = "ShardHdrHashNonce"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 1
+        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [MetaHdrNonceHashStorage]
@@ -191,7 +217,7 @@
         FilePath = "MetaHdrHashNonce"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 1
+        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [AccountsTrieStorage]
@@ -405,6 +431,7 @@
         # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
         EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
                                { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
+                               { Endpoint = "/transaction/simulate", MaxNumGoRoutines = 1 },
                                { Endpoint = "/transaction/send-multiple", MaxNumGoRoutines = 2 }]
     [Antiflood.TxAccumulator]
         # MaxAllowedTimeInMilliseconds is used as a time frame in which the node gathers transactions.
@@ -452,7 +479,6 @@
 [TxSignMarshalizer]
    Type = "json"
 
-# TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
     MinRoundsBetweenEpochs = 200
     RoundsPerEpoch         = 200
@@ -620,23 +646,36 @@
 
 [FullHistory]
     Enabled = false
-    [FullHistory.HistoryTransactionStorageConfig.Cache]
-        Name = "FullHistory.HistoryTransactionsConfig"
+    [FullHistory.MiniblocksMetadataStorageConfig.Cache]
+        Name = "FullHistory.MiniblocksMetadataStorage"
         Capacity = 20000
         Type = "LRU"
-    [FullHistory.HistoryTransactionStorageConfig.DB]
-        FilePath = "FullHistory.HistoryTransactions/MainDB"
+    [FullHistory.MiniblocksMetadataStorageConfig.DB]
+        FilePath = "FullHistory/MiniblocksMetadata"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
-    [FullHistory.HashEpochStorageConfig.Cache]
-        Name = "HashEpochStorage"
+    [FullHistory.MiniblockHashByTxHashStorageConfig.Cache]
+        Name = "FullHistory.MiniblockHashByTxHashStorage"
         Capacity = 20000
         Type = "LRU"
-    [FullHistory.HashEpochStorageConfig.DB]
+    [FullHistory.MiniblockHashByTxHashStorageConfig.DB]
+        FilePath = "FullHistory/MiniblockHashByTxHash"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+    [FullHistory.EpochByHashStorageConfig.Cache]
+        Name = "EpochByHashStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [FullHistory.EpochByHashStorageConfig.DB]
         FilePath = "HashEpochDB"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+
+[Logs]
+    LogFileLifeSpanInSec = 86400

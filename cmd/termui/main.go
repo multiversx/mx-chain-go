@@ -46,34 +46,34 @@ VERSION:
 		Value:       "127.0.0.1:8080",
 		Destination: &argsConfig.address,
 	}
-
-	// logLevel defines the logger levels and patterns
+	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
-		Name:        "log-level",
-		Usage:       "This flag specifies the logger level",
+		Name: "log-level",
+		Usage: "This flag specifies the logger `level(s)`. It can contain multiple comma-separated value. For example" +
+			", if set to *:INFO the logs for all packages will have the INFO level. However, if set to *:INFO,api:DEBUG" +
+			" the logs for all packages will have the INFO level, excepting the api package which will receive a DEBUG" +
+			" log level.",
 		Value:       "*:" + logger.LogInfo.String(),
 		Destination: &argsConfig.logLevel,
 	}
-
-	// logWithCorrelation is used when the user wants to include the log correlation elements in logs
+	//logWithCorrelation is used to enable log correlation elements
 	logWithCorrelation = cli.BoolFlag{
 		Name:        "log-correlation",
-		Usage:       "Will include log correlation elements",
+		Usage:       "Boolean option for enabling log correlation elements.",
 		Destination: &argsConfig.logWithCorrelation,
 	}
-
-	// logWithLoggerName is used when the user wants to include the logger name in logs
+	//logWithLoggerName is used to enable log correlation elements
 	logWithLoggerName = cli.BoolFlag{
 		Name:        "log-logger-name",
-		Usage:       "Will include logger name",
+		Usage:       "Boolean option for logger name in the logs.",
 		Destination: &argsConfig.logWithLoggerName,
 	}
 
-	// fetchInterval configures polling period
-	fetchInterval = cli.IntFlag{
+	// fetchIntervalInMilliseconds configures polling period
+	fetchIntervalInMilliseconds = cli.IntFlag{
 		Name:        "interval",
-		Usage:       "This flag specifies the duration in seconds until new data is fetched from the node",
-		Value:       2,
+		Usage:       "This flag specifies the duration in milliseconds until new data is fetched from the node",
+		Value:       1000,
 		Destination: &argsConfig.interval,
 	}
 
@@ -93,7 +93,7 @@ func main() {
 	initCliFlags()
 
 	cliApp.Action = func(c *cli.Context) error {
-		return startTermuiViewer()
+		return startTermuiViewer(c)
 	}
 
 	err := cliApp.Run(os.Args)
@@ -103,7 +103,7 @@ func main() {
 	}
 }
 
-func startTermuiViewer() error {
+func startTermuiViewer(ctx *cli.Context) error {
 	nodeAddress := argsConfig.address
 	fetchIntervalFlagValue := argsConfig.interval
 
@@ -120,13 +120,17 @@ func startTermuiViewer() error {
 
 	statusMetricsProvider.StartUpdatingData()
 
-	loggerProfile := logger.Profile{
+	loggerProfile := &logger.Profile{
 		LogLevelPatterns: argsConfig.logLevel,
 		WithCorrelation:  argsConfig.logWithCorrelation,
 		WithLoggerName:   argsConfig.logWithLoggerName,
 	}
+	customLogProfile := ctx.IsSet(logLevel.Name) || ctx.IsSet(logWithCorrelation.Name) || ctx.IsSet(logWithLoggerName.Name)
+	if customLogProfile {
+		log.LogIfError(err)
+	}
 
-	err = provider.InitLogHandler(presenterStatusHandler, nodeAddress, loggerProfile, argsConfig.useWss)
+	err = provider.InitLogHandler(presenterStatusHandler, nodeAddress, loggerProfile, argsConfig.useWss, customLogProfile)
 	if err != nil {
 		return err
 	}
@@ -154,7 +158,7 @@ func initCliFlags() {
 		logLevel,
 		logWithCorrelation,
 		logWithLoggerName,
-		fetchInterval,
+		fetchIntervalInMilliseconds,
 		useWss,
 	}
 	cliApp.Authors = []cli.Author{

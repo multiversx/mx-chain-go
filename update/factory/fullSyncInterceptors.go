@@ -71,7 +71,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	TxFeeHandler            process.FeeHandler
 	BlockBlackList          process.TimeCacher
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	SizeCheckDelta          uint32
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
@@ -350,12 +350,15 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 	}
 
 	interceptor, err := interceptors.NewSingleDataInterceptor(
-		topic,
-		hdrFactory,
-		hdrProcessor,
-		ficf.globalThrottler,
-		ficf.antifloodHandler,
-		ficf.whiteListHandler,
+		interceptors.ArgSingleDataInterceptor{
+			Topic:            topic,
+			DataFactory:      hdrFactory,
+			Processor:        hdrProcessor,
+			Throttler:        ficf.globalThrottler,
+			AntifloodHandler: ficf.antifloodHandler,
+			WhiteListRequest: ficf.whiteListHandler,
+			CurrentPeerId:    ficf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -526,13 +529,16 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		topic,
-		ficf.marshalizer,
-		txFactory,
-		txProcessor,
-		ficf.globalThrottler,
-		ficf.antifloodHandler,
-		ficf.whiteListHandler,
+		interceptors.ArgMultiDataInterceptor{
+			Topic:            topic,
+			Marshalizer:      ficf.marshalizer,
+			DataFactory:      txFactory,
+			Processor:        txProcessor,
+			Throttler:        ficf.globalThrottler,
+			AntifloodHandler: ficf.antifloodHandler,
+			WhiteListRequest: ficf.whiteListHandler,
+			CurrentPeerId:    ficf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -562,13 +568,16 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		topic,
-		ficf.marshalizer,
-		txFactory,
-		txProcessor,
-		ficf.globalThrottler,
-		ficf.antifloodHandler,
-		ficf.whiteListHandler,
+		interceptors.ArgMultiDataInterceptor{
+			Topic:            topic,
+			Marshalizer:      ficf.marshalizer,
+			DataFactory:      txFactory,
+			Processor:        txProcessor,
+			Throttler:        ficf.globalThrottler,
+			AntifloodHandler: ficf.antifloodHandler,
+			WhiteListRequest: ficf.whiteListHandler,
+			CurrentPeerId:    ficf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -598,13 +607,16 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		topic,
-		ficf.marshalizer,
-		txFactory,
-		txProcessor,
-		ficf.globalThrottler,
-		ficf.antifloodHandler,
-		ficf.whiteListHandler,
+		interceptors.ArgMultiDataInterceptor{
+			Topic:            topic,
+			Marshalizer:      ficf.marshalizer,
+			DataFactory:      txFactory,
+			Processor:        txProcessor,
+			Throttler:        ficf.globalThrottler,
+			AntifloodHandler: ficf.antifloodHandler,
+			WhiteListRequest: ficf.whiteListHandler,
+			CurrentPeerId:    ficf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -667,12 +679,15 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 	}
 
 	interceptor, err := interceptors.NewSingleDataInterceptor(
-		topic,
-		txFactory,
-		txBlockBodyProcessor,
-		ficf.globalThrottler,
-		ficf.antifloodHandler,
-		ficf.whiteListHandler,
+		interceptors.ArgSingleDataInterceptor{
+			Topic:            topic,
+			DataFactory:      txFactory,
+			Processor:        txBlockBodyProcessor,
+			Throttler:        ficf.globalThrottler,
+			AntifloodHandler: ficf.antifloodHandler,
+			WhiteListRequest: ficf.whiteListHandler,
+			CurrentPeerId:    ficf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -709,12 +724,15 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 
 	//only one metachain header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
-		identifierHdr,
-		hdrFactory,
-		hdrProcessor,
-		ficf.globalThrottler,
-		ficf.antifloodHandler,
-		ficf.whiteListHandler,
+		interceptors.ArgSingleDataInterceptor{
+			Topic:            identifierHdr,
+			DataFactory:      hdrFactory,
+			Processor:        hdrProcessor,
+			Throttler:        ficf.globalThrottler,
+			AntifloodHandler: ficf.antifloodHandler,
+			WhiteListRequest: ficf.whiteListHandler,
+			CurrentPeerId:    ficf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return err
@@ -740,13 +758,16 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		topic,
-		ficf.marshalizer,
-		trieNodesFactory,
-		trieNodesProcessor,
-		ficf.globalThrottler,
-		ficf.antifloodHandler,
-		ficf.whiteListHandler,
+		interceptors.ArgMultiDataInterceptor{
+			Topic:            topic,
+			Marshalizer:      ficf.marshalizer,
+			DataFactory:      trieNodesFactory,
+			Processor:        trieNodesProcessor,
+			Throttler:        ficf.globalThrottler,
+			AntifloodHandler: ficf.antifloodHandler,
+			WhiteListRequest: ficf.whiteListHandler,
+			CurrentPeerId:    ficf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err

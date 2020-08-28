@@ -104,6 +104,6 @@ type NodesListSplitter interface {
 
 // DeployProcessor is able to deploy a smart contract
 type DeployProcessor interface {
-	Deploy(sc InitialSmartContractHandler) error
+	Deploy(sc InitialSmartContractHandler) ([][]byte, error)
 	IsInterfaceNil() bool
 }

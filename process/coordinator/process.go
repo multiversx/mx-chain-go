@@ -952,6 +952,35 @@ func (tc *transactionCoordinator) CreateReceiptsHash() ([]byte, error) {
 	return finalReceiptHash, err
 }
 
+// CreateMarshalizedReceipts will return all the receipts list in one marshalized object
+func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
+	receiptsBatch := &batch.Batch{}
+	for _, blockType := range tc.keysInterimProcs {
+		interProc, ok := tc.interimProcessors[blockType]
+		if !ok {
+			continue
+		}
+
+		miniBlock := interProc.GetCreatedInShardMiniBlock()
+		if miniBlock == nil {
+			continue
+		}
+
+		marshalizedMiniBlock, err := tc.marshalizer.Marshal(miniBlock)
+		if err != nil {
+			return nil, err
+		}
+
+		receiptsBatch.Data = append(receiptsBatch.Data, marshalizedMiniBlock)
+	}
+
+	if len(receiptsBatch.Data) == 0 {
+		return nil, nil
+	}
+
+	return tc.marshalizer.Marshal(receiptsBatch)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tc *transactionCoordinator) IsInterfaceNil() bool {
 	return tc == nil

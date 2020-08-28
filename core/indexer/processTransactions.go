@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
@@ -77,15 +78,22 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	}
 
 	countScResults := make(map[string]int)
-	for _, scResult := range scResults {
+	for scHash, scResult := range scResults {
 		tx, ok := transactions[string(scResult.OriginalTxHash)]
 		if !ok {
 			continue
 		}
 
-		tx = tdp.addScResultInfoInTx(scResult, tx)
-
+		tx = tdp.addScResultInfoInTx(scHash, scResult, tx)
 		countScResults[string(scResult.OriginalTxHash)]++
+		delete(scResults, scHash)
+
+		// append child smart contract results
+		scrs := findAllChildScrResults(scHash, scResults)
+		for scHash, sc := range scrs {
+			tx = tdp.addScResultInfoInTx(scHash, sc, tx)
+			countScResults[string(scResult.OriginalTxHash)]++
+		}
 	}
 
 	for hash, nrScResult := range countScResults {
@@ -96,6 +104,10 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 					// ESDT contract calls generate just one smart contract result
 					continue
 				}
+			}
+
+			if strings.Contains(string(transactions[hash].Data), "relayedTx") {
+				continue
 			}
 
 			transactions[hash].Status = txStatusNotExecuted
@@ -118,8 +130,20 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	return append(convertMapTxsToSlice(transactions), rewardsTxs...)
 }
 
-func (tdp *txDatabaseProcessor) addScResultInfoInTx(scr *smartContractResult.SmartContractResult, tx *Transaction) *Transaction {
-	dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scr)
+func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {
+	scrResults := make(map[string]*smartContractResult.SmartContractResult, 0)
+	for scrHash, scr := range scrs {
+		if string(scr.OriginalTxHash) == hash {
+			scrResults[scrHash] = scr
+			delete(scrs, scrHash)
+		}
+	}
+
+	return scrResults
+}
+
+func (tdp *txDatabaseProcessor) addScResultInfoInTx(scHash string, scr *smartContractResult.SmartContractResult, tx *Transaction) *Transaction {
+	dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scHash, scr)
 	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 
 	if isSCRForSenderWithGasUsed(dbScResult, tx) {
@@ -224,15 +248,14 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 	return transactions, rewardsTxs
 }
 
-func groupSmartContractResults(txPool map[string]data.TransactionHandler) []*smartContractResult.SmartContractResult {
-	scResults := make([]*smartContractResult.SmartContractResult, 0)
-	for _, tx := range txPool {
+func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {
+	scResults := make(map[string]*smartContractResult.SmartContractResult, 0)
+	for hash, tx := range txPool {
 		scResult, ok := tx.(*smartContractResult.SmartContractResult)
 		if !ok {
 			continue
 		}
-
-		scResults = append(scResults, scResult)
+		scResults[hash] = scResult
 	}
 
 	return scResults
