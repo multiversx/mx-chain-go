@@ -197,7 +197,13 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		return err
 	}
 
-	err = s.peerAccountsDB.RemoveAccount(jailedValidator.PublicKey)
+	jailedAccount, err := s.getPeerAccount(jailedValidator.PublicKey)
+	if err != nil {
+		return err
+	}
+
+	jailedAccount.SetListAndIndex(jailedValidator.ShardId, string(core.JailedList), jailedValidator.Index)
+	err = s.peerAccountsDB.SaveAccount(jailedAccount)
 	if err != nil {
 		return err
 	}
