@@ -57,7 +57,7 @@ func (params *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxSta
 
 // ComputeStatusWhenInStorageNotKnowingMiniblock computes the transaction status when transaction is in current epoch's storage
 // Limitation: in this case, since we do not know the miniblock type, we cannot know if a transaction is actually, "invalid".
-// However, when "fullHistory" indexing is enabled, this function is not used.
+// However, when "dblookupext" indexing is enabled, this function is not used.
 func (params *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock() TxStatus {
 	if params.isDestinationMe() || params.isContractDeploy() {
 		return TxStatusExecuted
