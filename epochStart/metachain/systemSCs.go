@@ -197,13 +197,19 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		return err
 	}
 
-	err = s.peerAccountsDB.RemoveAccount(jailedValidator.PublicKey)
+	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
+	switchJailedWithNewValidatorInMap(validatorInfos, jailedValidator, newValidatorInfo)
+
+	jailedAccount, err := s.getPeerAccount(jailedValidator.PublicKey)
 	if err != nil {
 		return err
 	}
 
-	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
-	switchJailedWithNewValidatorInMap(validatorInfos, jailedValidator, newValidatorInfo)
+	jailedAccount.SetListAndIndex(jailedValidator.ShardId, string(core.JailedList), jailedValidator.Index)
+	err = s.peerAccountsDB.SaveAccount(jailedAccount)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
