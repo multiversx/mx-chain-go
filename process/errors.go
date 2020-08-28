@@ -890,5 +890,5 @@ var ErrNilUserAccount = errors.New("nil user account")
 // ErrNilEpochStartSystemSCProcessor signals that nil epoch start system sc processor was provided
 var ErrNilEpochStartSystemSCProcessor = errors.New("nil epoch start system sc processor")
 
-// ErrTooMuchGasProvided signals that too much gas has been provided
-var ErrTooMuchGasProvided = errors.New("too much gas has been provided")
+// ErrEmptyPeerID signals that an empty peer ID has been provided
+var ErrEmptyPeerID = errors.New("empty peer ID")

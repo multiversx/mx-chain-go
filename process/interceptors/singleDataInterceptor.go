@@ -10,53 +10,62 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// ArgSingleDataInterceptor is the argument for the single-data interceptor
+type ArgSingleDataInterceptor struct {
+	Topic            string
+	DataFactory      process.InterceptedDataFactory
+	Processor        process.InterceptorProcessor
+	Throttler        process.InterceptorThrottler
+	AntifloodHandler process.P2PAntifloodHandler
+	WhiteListRequest process.WhiteListHandler
+	CurrentPeerId    core.PeerID
+}
+
 // SingleDataInterceptor is used for intercepting packed multi data
 type SingleDataInterceptor struct {
 	topic                      string
 	factory                    process.InterceptedDataFactory
 	processor                  process.InterceptorProcessor
 	throttler                  process.InterceptorThrottler
-	whiteListRequested         process.WhiteListHandler
+	whiteListRequest           process.WhiteListHandler
 	antifloodHandler           process.P2PAntifloodHandler
 	mutInterceptedDebugHandler sync.RWMutex
 	interceptedDebugHandler    process.InterceptedDebugger
+	currentPeerId              core.PeerID
 }
 
 // NewSingleDataInterceptor hooks a new interceptor for single data
-func NewSingleDataInterceptor(
-	topic string,
-	factory process.InterceptedDataFactory,
-	processor process.InterceptorProcessor,
-	throttler process.InterceptorThrottler,
-	antifloodHandler process.P2PAntifloodHandler,
-	whiteListRequested process.WhiteListHandler,
-) (*SingleDataInterceptor, error) {
-	if len(topic) == 0 {
+func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataInterceptor, error) {
+	if len(arg.Topic) == 0 {
 		return nil, process.ErrEmptyTopic
 	}
-	if check.IfNil(factory) {
+	if check.IfNil(arg.DataFactory) {
 		return nil, process.ErrNilInterceptedDataFactory
 	}
-	if check.IfNil(processor) {
+	if check.IfNil(arg.Processor) {
 		return nil, process.ErrNilInterceptedDataProcessor
 	}
-	if check.IfNil(throttler) {
+	if check.IfNil(arg.Throttler) {
 		return nil, process.ErrNilInterceptorThrottler
 	}
-	if check.IfNil(antifloodHandler) {
+	if check.IfNil(arg.AntifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
-	if check.IfNil(whiteListRequested) {
+	if check.IfNil(arg.WhiteListRequest) {
 		return nil, process.ErrNilWhiteListHandler
+	}
+	if len(arg.CurrentPeerId) == 0 {
+		return nil, process.ErrEmptyPeerID
 	}
 
 	singleDataIntercept := &SingleDataInterceptor{
-		topic:              topic,
-		factory:            factory,
-		processor:          processor,
-		throttler:          throttler,
-		antifloodHandler:   antifloodHandler,
-		whiteListRequested: whiteListRequested,
+		topic:            arg.Topic,
+		factory:          arg.DataFactory,
+		processor:        arg.Processor,
+		throttler:        arg.Throttler,
+		antifloodHandler: arg.AntifloodHandler,
+		whiteListRequest: arg.WhiteListRequest,
+		currentPeerId:    arg.CurrentPeerId,
 	}
 	singleDataIntercept.interceptedDebugHandler = resolver.NewDisabledInterceptorResolver()
 
@@ -69,7 +78,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	sdi.mutInterceptedDebugHandler.RLock()
 	defer sdi.mutInterceptedDebugHandler.RUnlock()
 
-	err := preProcessMesage(sdi.throttler, sdi.antifloodHandler, message, fromConnectedPeer, sdi.topic)
+	err := preProcessMesage(sdi.throttler, sdi.antifloodHandler, message, fromConnectedPeer, sdi.topic, sdi.currentPeerId)
 	if err != nil {
 		return err
 	}
@@ -105,7 +114,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	}
 
 	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
-	isWhiteListed := sdi.whiteListRequested.IsWhiteListed(interceptedData)
+	isWhiteListed := sdi.whiteListRequest.IsWhiteListed(interceptedData)
 	if !isWhiteListed && errOriginator != nil {
 		log.Trace("got message from peer on topic only for validators",
 			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",

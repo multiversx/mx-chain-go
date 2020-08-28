@@ -1,6 +1,6 @@
 package config
 
-// CacheConfig will map the json cache configuration
+// CacheConfig will map the cache configuration
 type CacheConfig struct {
 	Name                 string
 	Type                 string
@@ -17,7 +17,7 @@ type HeadersPoolConfig struct {
 	NumElementsToRemoveOnEviction int
 }
 
-// DBConfig will map the json db configuration
+// DBConfig will map the database configuration
 type DBConfig struct {
 	FilePath          string
 	Type              string
@@ -26,27 +26,27 @@ type DBConfig struct {
 	MaxOpenFiles      int
 }
 
-// BloomFilterConfig will map the json bloom filter configuration
+// BloomFilterConfig will map the bloom filter configuration
 type BloomFilterConfig struct {
 	Size     uint
 	HashFunc []string
 }
 
-// StorageConfig will map the json storage unit configuration
+// StorageConfig will map the storage unit configuration
 type StorageConfig struct {
 	Cache CacheConfig
 	DB    DBConfig
 	Bloom BloomFilterConfig
 }
 
-// PubkeyConfig will map the json public key configuration
+// PubkeyConfig will map the public key configuration
 type PubkeyConfig struct {
 	Length          int
 	Type            string
 	SignatureLength int
 }
 
-// TypeConfig will map the json string type configuration
+// TypeConfig will map the string type configuration
 type TypeConfig struct {
 	Type string
 }

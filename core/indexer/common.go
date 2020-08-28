@@ -29,10 +29,10 @@ type commonProcessor struct {
 
 func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return fmt.Errorf("%w when setting addressPubkeyConverter in indexer", ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", ErrNilPubkeyConverter)
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return fmt.Errorf("%w when setting validatorPubkeyConverter in indexer", ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", ErrNilPubkeyConverter)
 	}
 	if arguments.Url == "" {
 		return core.ErrNilUrl
@@ -188,6 +188,11 @@ func (cm *commonProcessor) buildRewardTransaction(
 }
 
 func (cm *commonProcessor) convertScResultInDatabaseScr(scHash string, sc *smartContractResult.SmartContractResult) ScResult {
+	relayerAddr := ""
+	if len(sc.RelayerAddr) > 0 {
+		relayerAddr = cm.addressPubkeyConverter.Encode(sc.RelayerAddr)
+	}
+
 	return ScResult{
 		Hash:           hex.EncodeToString([]byte(scHash)),
 		Nonce:          sc.Nonce,
@@ -196,7 +201,7 @@ func (cm *commonProcessor) convertScResultInDatabaseScr(scHash string, sc *smart
 		Value:          sc.Value.String(),
 		Sender:         cm.addressPubkeyConverter.Encode(sc.SndAddr),
 		Receiver:       cm.addressPubkeyConverter.Encode(sc.RcvAddr),
-		RelayerAddr:    cm.addressPubkeyConverter.Encode(sc.RelayerAddr),
+		RelayerAddr:    relayerAddr,
 		RelayedValue:   sc.RelayedValue.String(),
 		Code:           string(sc.Code),
 		Data:           sc.Data,

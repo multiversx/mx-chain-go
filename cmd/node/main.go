@@ -958,6 +958,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	return nil
 }
 
+func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.Context) {
+	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
+	if len(importDbDirectoryValue) > 0 {
+		log.Info("import DB directory is set, turning off start in epoch", "value", importDbDirectoryValue)
+		config.GeneralSettings.StartInEpochEnabled = false
+	}
+}
+
 func closeAllComponents(
 	log logger.Logger,
 	healthService io.Closer,
@@ -1824,6 +1832,8 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationFileName)
+
+	applyCompatibleConfigs(log, generalConfig, ctx)
 
 	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
 	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)

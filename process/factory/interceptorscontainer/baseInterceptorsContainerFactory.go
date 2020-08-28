@@ -206,13 +206,16 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 
 	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		topic,
-		internalMarshalizer,
-		txFactory,
-		txProcessor,
-		bicf.globalThrottler,
-		bicf.antifloodHandler,
-		bicf.whiteListHandler,
+		interceptors.ArgMultiDataInterceptor{
+			Topic:            topic,
+			Marshalizer:      internalMarshalizer,
+			DataFactory:      txFactory,
+			Processor:        txProcessor,
+			Throttler:        bicf.globalThrottler,
+			AntifloodHandler: bicf.antifloodHandler,
+			WhiteListRequest: bicf.whiteListHandler,
+			CurrentPeerId:    bicf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -250,13 +253,16 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 
 	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		topic,
-		internalMarshalizer,
-		txFactory,
-		txProcessor,
-		bicf.globalThrottler,
-		bicf.antifloodHandler,
-		bicf.whiteListHandler,
+		interceptors.ArgMultiDataInterceptor{
+			Topic:            topic,
+			Marshalizer:      internalMarshalizer,
+			DataFactory:      txFactory,
+			Processor:        txProcessor,
+			Throttler:        bicf.globalThrottler,
+			AntifloodHandler: bicf.antifloodHandler,
+			WhiteListRequest: bicf.whiteListHandler,
+			CurrentPeerId:    bicf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -294,13 +300,16 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 
 	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		topic,
-		internalMarshalizer,
-		txFactory,
-		txProcessor,
-		bicf.globalThrottler,
-		bicf.antifloodHandler,
-		bicf.whiteListHandler,
+		interceptors.ArgMultiDataInterceptor{
+			Topic:            topic,
+			Marshalizer:      internalMarshalizer,
+			DataFactory:      txFactory,
+			Processor:        txProcessor,
+			Throttler:        bicf.globalThrottler,
+			AntifloodHandler: bicf.antifloodHandler,
+			WhiteListRequest: bicf.whiteListHandler,
+			CurrentPeerId:    bicf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -340,12 +349,15 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 
 	//only one intrashard header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
-		identifierHdr,
-		hdrFactory,
-		hdrProcessor,
-		bicf.globalThrottler,
-		bicf.antifloodHandler,
-		bicf.whiteListHandler,
+		interceptors.ArgSingleDataInterceptor{
+			Topic:            identifierHdr,
+			DataFactory:      hdrFactory,
+			Processor:        hdrProcessor,
+			Throttler:        bicf.globalThrottler,
+			AntifloodHandler: bicf.antifloodHandler,
+			WhiteListRequest: bicf.whiteListHandler,
+			CurrentPeerId:    bicf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return err
@@ -423,13 +435,16 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 	}
 
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		topic,
-		internalMarshalizer,
-		miniblockFactory,
-		miniblockProcessor,
-		bicf.globalThrottler,
-		bicf.antifloodHandler,
-		bicf.whiteListHandler,
+		interceptors.ArgMultiDataInterceptor{
+			Topic:            topic,
+			Marshalizer:      internalMarshalizer,
+			DataFactory:      miniblockFactory,
+			Processor:        miniblockProcessor,
+			Throttler:        bicf.globalThrottler,
+			AntifloodHandler: bicf.antifloodHandler,
+			WhiteListRequest: bicf.whiteListHandler,
+			CurrentPeerId:    bicf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -466,12 +481,15 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 
 	//only one metachain header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
-		identifierHdr,
-		hdrFactory,
-		hdrProcessor,
-		bicf.globalThrottler,
-		bicf.antifloodHandler,
-		bicf.whiteListHandler,
+		interceptors.ArgSingleDataInterceptor{
+			Topic:            identifierHdr,
+			DataFactory:      hdrFactory,
+			Processor:        hdrProcessor,
+			Throttler:        bicf.globalThrottler,
+			AntifloodHandler: bicf.antifloodHandler,
+			WhiteListRequest: bicf.whiteListHandler,
+			CurrentPeerId:    bicf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return err
@@ -498,13 +516,16 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 
 	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
-		topic,
-		internalMarshalizer,
-		trieNodesFactory,
-		trieNodesProcessor,
-		bicf.globalThrottler,
-		bicf.antifloodHandler,
-		bicf.whiteListHandler,
+		interceptors.ArgMultiDataInterceptor{
+			Topic:            topic,
+			Marshalizer:      internalMarshalizer,
+			DataFactory:      trieNodesFactory,
+			Processor:        trieNodesProcessor,
+			Throttler:        bicf.globalThrottler,
+			AntifloodHandler: bicf.antifloodHandler,
+			WhiteListRequest: bicf.whiteListHandler,
+			CurrentPeerId:    bicf.messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err

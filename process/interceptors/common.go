@@ -1,6 +1,8 @@
 package interceptors
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -12,6 +14,7 @@ func preProcessMesage(
 	message p2p.MessageP2P,
 	fromConnectedPeer core.PeerID,
 	topic string,
+	id core.PeerID,
 ) error {
 
 	if message == nil {
@@ -20,21 +23,28 @@ func preProcessMesage(
 	if message.Data() == nil {
 		return process.ErrNilDataToProcess
 	}
-	err := antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
-	if err != nil {
-		return err
-	}
-	err = antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, topic, 1, uint64(len(message.Data())), message.SeqNo())
-	if err != nil {
-		return err
-	}
 
-	if !throttler.CanProcess() {
-		return process.ErrSystemBusy
+	if !isMessageFromSelfToSelf(fromConnectedPeer, message, id) {
+		err := antifloodHandler.CanProcessMessage(message, fromConnectedPeer)
+		if err != nil {
+			return err
+		}
+		err = antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, topic, 1, uint64(len(message.Data())), message.SeqNo())
+		if err != nil {
+			return err
+		}
+
+		if !throttler.CanProcess() {
+			return process.ErrSystemBusy
+		}
 	}
 
 	throttler.StartProcessing()
 	return nil
+}
+
+func isMessageFromSelfToSelf(fromConnectedPeer core.PeerID, message p2p.MessageP2P, id core.PeerID) bool {
+	return bytes.Equal(message.Signature(), message.From()) && bytes.Equal(message.From(), id.Bytes()) && fromConnectedPeer == id
 }
 
 func processInterceptedData(

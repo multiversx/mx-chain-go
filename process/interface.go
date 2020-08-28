@@ -456,6 +456,7 @@ type TopicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+	ID() core.PeerID
 	IsInterfaceNil() bool
 }
 

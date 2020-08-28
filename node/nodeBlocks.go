@@ -5,7 +5,6 @@ import (
 
 	apiBlock "github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/node/blockAPI"
 )
 
@@ -36,7 +35,7 @@ func (n *Node) createAPIBlockProcessor() blockAPI.APIBlockHandler {
 				Marshalizer:              n.coreComponents.InternalMarshalizer(),
 				Uint64ByteSliceConverter: n.coreComponents.Uint64ByteSliceConverter(),
 				HistoryRepo:              n.historyRepository,
-				UnmarshalTx:              n.unmarshalTxWrapper,
+				UnmarshalTx:              n.unmarshalTransaction,
 			},
 		)
 	}
@@ -48,11 +47,7 @@ func (n *Node) createAPIBlockProcessor() blockAPI.APIBlockHandler {
 			Marshalizer:              n.coreComponents.InternalMarshalizer(),
 			Uint64ByteSliceConverter: n.coreComponents.Uint64ByteSliceConverter(),
 			HistoryRepo:              n.historyRepository,
-			UnmarshalTx:              n.unmarshalTxWrapper,
+			UnmarshalTx:              n.unmarshalTransaction,
 		},
 	)
-}
-
-func (n *Node) unmarshalTxWrapper(txBytes []byte, txType string) (*transaction.ApiTransactionResult, error) {
-	return n.unmarshalTransaction(txBytes, transactionType(txType))
 }
