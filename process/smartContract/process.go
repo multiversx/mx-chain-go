@@ -863,7 +863,7 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 	}
 
 	gasUsed := gasProvided - vmOutput.GasRemaining
-	log.Trace("scProcessor.penalizeUserIfNeeded: too much gas provided",
+	log.Warn("scProcessor.penalizeUserIfNeeded: too much gas provided",
 		"hash", txHash,
 		"nonce", tx.GetNonce(),
 		"value", tx.GetValue(),
