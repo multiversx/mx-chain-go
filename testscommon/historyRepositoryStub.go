@@ -3,21 +3,21 @@ package testscommon
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
-	RegisterToBlockTrackerCalled       func(blockTracker fullHistory.BlockTracker)
+	RegisterToBlockTrackerCalled       func(blockTracker dblookupext.BlockTracker)
 	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
-	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*fullHistory.MiniblockMetadata, error)
+	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
 	IsEnabledCalled                    func() bool
 }
 
 // RegisterToBlockTracker -
-func (hp *HistoryRepositoryStub) RegisterToBlockTracker(blockTracker fullHistory.BlockTracker) {
+func (hp *HistoryRepositoryStub) RegisterToBlockTracker(blockTracker dblookupext.BlockTracker) {
 	if hp.RegisterToBlockTrackerCalled != nil {
 		hp.RegisterToBlockTrackerCalled(blockTracker)
 	}
@@ -32,7 +32,7 @@ func (hp *HistoryRepositoryStub) RecordBlock(blockHeaderHash []byte, blockHeader
 }
 
 // GetMiniblockMetadataByTxHash -
-func (hp *HistoryRepositoryStub) GetMiniblockMetadataByTxHash(hash []byte) (*fullHistory.MiniblockMetadata, error) {
+func (hp *HistoryRepositoryStub) GetMiniblockMetadataByTxHash(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 	if hp.GetMiniblockMetadataByTxHashCalled != nil {
 		return hp.GetMiniblockMetadataByTxHashCalled(hash)
 	}

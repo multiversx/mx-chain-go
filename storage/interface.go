@@ -93,6 +93,7 @@ type BloomFilter interface {
 // represented by a cache and second layer by a persitent storage (DB-like)
 type Storer interface {
 	Put(key, data []byte) error
+	PutInEpoch(key, data []byte, epoch uint32) error
 	Get(key []byte) ([]byte, error)
 	Has(key []byte) error
 	SearchFirst(key []byte) ([]byte, error)

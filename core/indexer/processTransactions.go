@@ -3,7 +3,9 @@ package indexer
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -63,6 +65,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	receipts := groupReceipts(txPool)
 	scResults := groupSmartContractResults(txPool)
 
+	transactions = tdp.setTransactionSearchOrder(transactions, selfShardID)
 	for _, rec := range receipts {
 		tx, ok := transactions[string(rec.TxHash)]
 		if !ok {
@@ -246,6 +249,33 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 	}
 
 	return transactions, rewardsTxs
+}
+
+func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[string]*Transaction, shardId uint32) map[string]*Transaction {
+	currentOrder := 0
+	shardIdentifier := tdp.createShardIdentifier(shardId)
+
+	for _, tx := range transactions {
+		stringOrder := fmt.Sprintf("%d%d", shardIdentifier, currentOrder)
+		order, err := strconv.ParseUint(stringOrder, 10, 32)
+		if err != nil {
+			order = 0
+			log.Debug("processTransactions.setTransactionSearchOrder", "could not set uint32 search order", err.Error())
+		}
+		tx.SearchOrder = uint32(order)
+		currentOrder++
+	}
+
+	return transactions
+}
+
+func (tdp *txDatabaseProcessor) createShardIdentifier(shardId uint32) uint32 {
+	shardIdentifier := shardId+2
+	if shardId == core.MetachainShardId {
+		shardIdentifier = 1
+	}
+
+	return shardIdentifier
 }
 
 func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {
