@@ -14,10 +14,10 @@ type shardAPIBlockProcessor struct {
 
 // NewShardApiBlockProcessor will create a new instance of shard api block processor
 func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcessor {
-	isFullHistoryNode := arg.HistoryRepo.IsEnabled()
+	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
 	return &shardAPIBlockProcessor{
 		baseAPIBockProcessor: &baseAPIBockProcessor{
-			isFullHistoryNode:        isFullHistoryNode,
+			hasDbLookupExtensions:    hasDbLookupExtensions,
 			selfShardID:              arg.SelfShardID,
 			store:                    arg.Store,
 			marshalizer:              arg.Marshalizer,
