@@ -329,6 +329,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		EconomicsFee:                   genesisFeeHandler,
 		TxTypeHandler:                  txTypeHandler,
 		GasHandler:                     gasHandler,
+		GasSchedule:                    arg.GasMap,
 		BuiltInFunctions:               vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                arg.TxLogsProcessor,
 		BadTxForwarder:                 badTxInterim,
