@@ -1,6 +1,6 @@
 //go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. miniblockMetadata.proto
 
-package fullHistory
+package dblookupext
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.GetOrCreate("core/fullHistory")
+var log = logger.GetOrCreate("core/dblookupext")
 
 // HistoryRepositoryArguments is a structure that stores all components that are needed to a history processor
 type HistoryRepositoryArguments struct {
@@ -172,7 +172,7 @@ func (hr *historyRepository) putMiniblockMetadata(hash []byte, metadata *Miniblo
 		return err
 	}
 
-	err = hr.miniblocksMetadataStorer.Put(hash, metadataBytes)
+	err = hr.miniblocksMetadataStorer.PutInEpoch(hash, metadataBytes, metadata.Epoch)
 	if err != nil {
 		return newErrCannotSaveMiniblockMetadata(hash, err)
 	}
@@ -201,8 +201,8 @@ func (hr *historyRepository) getMiniblockMetadataByMiniblockHash(hash []byte) (*
 }
 
 // GetEpochByHash will return epoch for a given hash
-// This works for Blocks, Miniblocks.
-// It doesn't work for transactions (not needed)!
+// This works for Blocks, Miniblocks
+// It doesn't work for transactions (not needed, there we have a static storer for "miniblockHashByTxHashIndex" as well)!
 func (hr *historyRepository) GetEpochByHash(hash []byte) (uint32, error) {
 	return hr.epochByHashIndex.getEpochByHash(hash)
 }

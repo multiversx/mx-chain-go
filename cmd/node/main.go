@@ -27,9 +27,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
+	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
-	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -1215,14 +1215,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	historyRepoFactoryArgs := &historyFactory.ArgsHistoryRepositoryFactory{
-		SelfShardID:       shardCoordinator.SelfId(),
-		FullHistoryConfig: generalConfig.FullHistory,
-		Hasher:            coreComponents.Hasher,
-		Marshalizer:       coreComponents.InternalMarshalizer,
-		Store:             dataComponents.Store,
+	historyRepoFactoryArgs := &dbLookupFactory.ArgsHistoryRepositoryFactory{
+		SelfShardID: shardCoordinator.SelfId(),
+		Config:      generalConfig.DbLookupExtensions,
+		Hasher:      coreComponents.Hasher,
+		Marshalizer: coreComponents.InternalMarshalizer,
+		Store:       dataComponents.Store,
 	}
-	historyRepositoryFactory, err := historyFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
+	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {
 		return err
 	}
@@ -2115,7 +2115,7 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
-	historyRepository fullHistory.HistoryRepository,
+	historyRepository dblookupext.HistoryRepository,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
