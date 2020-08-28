@@ -14,10 +14,10 @@ type shardAPIBlockProcessor struct {
 
 // NewShardApiBlockProcessor will create a new instance of shard api block processor
 func NewShardApiBlockProcessor(arg *APIBlockProcessorArg) *shardAPIBlockProcessor {
-	isFullHistoryNode := arg.HistoryRepo.IsEnabled()
+	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
 	return &shardAPIBlockProcessor{
 		baseAPIBockProcessor: &baseAPIBockProcessor{
-			isFullHistoryNode:        isFullHistoryNode,
+			hasDbLookupExtensions:    hasDbLookupExtensions,
 			selfShardID:              arg.SelfShardID,
 			store:                    arg.Store,
 			marshalizer:              arg.Marshalizer,
@@ -75,10 +75,10 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		numOfTxs += mb.TxCount
 
 		miniblockAPI := &apiBlock.APIMiniBlock{
-			Hash:               hex.EncodeToString(mb.Hash),
-			Type:               mb.Type.String(),
-			SourceShardID:      mb.SenderShardID,
-			DestinationShardID: mb.ReceiverShardID,
+			Hash:             hex.EncodeToString(mb.Hash),
+			Type:             mb.Type.String(),
+			SourceShard:      mb.SenderShardID,
+			DestinationShard: mb.ReceiverShardID,
 		}
 		if withTxs {
 			miniblockAPI.Transactions = sbp.getTxsByMb(&mb, headerEpoch)
@@ -88,12 +88,13 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	}
 
 	return &apiBlock.APIBlock{
-		Nonce:      blockHeader.Nonce,
-		Round:      blockHeader.Round,
-		Epoch:      blockHeader.Epoch,
-		ShardID:    blockHeader.ShardID,
-		Hash:       hex.EncodeToString(hash),
-		NumTxs:     numOfTxs,
-		MiniBlocks: miniblocks,
+		Nonce:         blockHeader.Nonce,
+		Round:         blockHeader.Round,
+		Epoch:         blockHeader.Epoch,
+		Shard:         blockHeader.ShardID,
+		Hash:          hex.EncodeToString(hash),
+		PrevBlockHash: hex.EncodeToString(blockHeader.PrevHash),
+		NumTxs:        numOfTxs,
+		MiniBlocks:    miniblocks,
 	}, nil
 }

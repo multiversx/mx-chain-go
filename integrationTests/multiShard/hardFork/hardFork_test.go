@@ -191,8 +191,8 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "")
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "")
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "", integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "", integrationTests.AdditionalGasLimit)
 		}
 
 		for _, player := range players {
@@ -339,6 +339,12 @@ func hardForkImport(
 				ShouldStartImportCalled: func() bool {
 					return true
 				},
+			},
+			GeneralConfig: &config.GeneralSettingsConfig{
+				BuiltInFunctionsEnableEpoch:    0,
+				SCDeployEnableEpoch:            0,
+				RelayedTransactionsEnableEpoch: 0,
+				PenalizedTooMuchGasEnableEpoch: 0,
 			},
 		}
 

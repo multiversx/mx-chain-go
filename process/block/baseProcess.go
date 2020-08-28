@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -68,16 +68,17 @@ type baseProcessor struct {
 	blockChain              data.ChainHandler
 	hdrsForCurrBlock        *hdrForBlock
 	genesisNonce            uint64
-	version                 string
+	headerIntegrityVerifier process.HeaderIntegrityVerifier
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer      indexer.Indexer
-	tpsBenchmark statistics.TPSBenchmark
-	historyRepo  fullHistory.HistoryRepository
+	indexer       indexer.Indexer
+	tpsBenchmark  statistics.TPSBenchmark
+	historyRepo   dblookupext.HistoryRepository
+	epochNotifier process.EpochNotifier
 }
 
 type bootStorerDataArgs struct {
@@ -418,8 +419,11 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.HistoryRepository) {
 		return process.ErrNilHistoryRepository
 	}
-	if len(arguments.Version) == 0 {
-		return process.ErrEmptySoftwareVersion
+	if check.IfNil(arguments.HeaderIntegrityVerifier) {
+		return process.ErrNilHeaderIntegrityVerifier
+	}
+	if check.IfNil(arguments.EpochNotifier) {
+		return process.ErrNilEpochNotifier
 	}
 
 	return nil
@@ -959,7 +963,7 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return header
 }
 
-func (bp *baseProcessor) saveBody(body *block.Body) {
+func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
 	startTime := time.Now()
 
 	errNotCritical := bp.txCoordinator.SaveBlockDataToStorage(body)
@@ -982,6 +986,18 @@ func (bp *baseProcessor) saveBody(body *block.Body) {
 			log.Warn("saveBody.Put -> MiniBlockUnit", "error", errNotCritical.Error())
 		}
 		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime))
+	}
+
+	marshalizedReceipts, errNotCritical := bp.txCoordinator.CreateMarshalizedReceipts()
+	if errNotCritical != nil {
+		log.Warn("saveBody.CreateMarshalizedReceipts", "error", errNotCritical.Error())
+	} else {
+		if len(marshalizedReceipts) > 0 {
+			errNotCritical = bp.store.Put(dataRetriever.ReceiptsUnit, header.GetReceiptsHash(), marshalizedReceipts)
+			if errNotCritical != nil {
+				log.Warn("saveBody.Put -> ReceiptsUnit", "error", errNotCritical.Error())
+			}
+		}
 	}
 
 	elapsedTime := time.Since(startTime)
@@ -1203,16 +1219,9 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	bp.txCoordinator.RequestMiniBlocks(headerHandler)
 }
 
-func (bp *baseProcessor) saveHistoryData(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) {
-	historyTransactionData := &fullHistory.HistoryTransactionsData{
-		HeaderHash:    headerHash,
-		HeaderHandler: header,
-		BodyHandler:   body,
-	}
-
-	err := bp.historyRepo.PutTransactionsData(historyTransactionData)
+func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {
+	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody)
 	if err != nil {
-		log.Warn("history processor: cannot save transaction data",
-			"error", err.Error())
+		log.Warn("historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
 	}
 }

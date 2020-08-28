@@ -71,14 +71,15 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 					return nil
 				},
 			},
-			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			DataPool:           mdp,
-			BlockChain:         createTestBlockchain(),
-			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
-			Indexer:            &mock.IndexerMock{},
-			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
-			Version:            "softwareVersion",
-			HistoryRepository:  &mock.HistoryRepositoryStub{},
+			BlockTracker:            mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
+			DataPool:                mdp,
+			BlockChain:              createTestBlockchain(),
+			BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
+			Indexer:                 &mock.IndexerMock{},
+			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
+			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
+			EpochNotifier:           &mock.EpochNotifierStub{},
 		},
 		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
@@ -88,6 +89,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 		EpochRewardsCreator:          &mock.EpochRewardsCreatorStub{},
 		EpochValidatorInfoCreator:    &mock.EpochValidatorInfoCreatorStub{},
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+		EpochSystemSCProcessor:       &mock.EpochStartSystemSCStub{},
 	}
 	return arguments
 }

@@ -17,17 +17,14 @@ var ErrNilMarshalizer = errors.New("nil marshalizer")
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
 
+// ErrNilTPSBenchmarkUpdater signals that a nil tps benchmark updater has been provided
+var ErrNilTPSBenchmarkUpdater = errors.New("nil tps benchmark updater")
+
 // ErrNilUint64ByteSliceConverter signals that a nil uint64 byte slice converter has been provided
 var ErrNilUint64ByteSliceConverter = errors.New("nil uint64 byte slice converter")
 
 // ErrNilGenesisNodesSetup signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetup = errors.New("nil genesis nodes setup")
-
-// ErrWrongTypeAssertion signals that an interface is not of a desired type
-var ErrWrongTypeAssertion = errors.New("wrong type assertion")
-
-// ErrTimeIsOut signals that time is out when indexing data to elastic
-var ErrTimeIsOut = errors.New("time is out when indexing")
 
 // ErrNoMetachainDatabase signals that no metachain database hasn't been found
 var ErrNoMetachainDatabase = errors.New("no metachain database - cannot index")

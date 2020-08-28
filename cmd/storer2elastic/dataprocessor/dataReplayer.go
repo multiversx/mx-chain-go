@@ -1,17 +1,23 @@
 package dataprocessor
 
 import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
 	"os"
 	"os/signal"
+	"sort"
 	"syscall"
-	"time"
 
 	storer2ElasticData "github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/data"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -23,13 +29,14 @@ import (
 )
 
 type dataReplayer struct {
-	databaseReader   DatabaseReaderHandler
-	shardCoordinator sharding.Coordinator
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	//nodesCoordinators map[uint32]NodesCoordinator
+	databaseReader    DatabaseReaderHandler
+	generalConfig     config.Config
+	shardCoordinator  sharding.Coordinator
+	marshalizer       marshal.Marshalizer
 	uint64Converter   typeConverters.Uint64ByteSliceConverter
 	headerMarshalizer HeaderMarshalizerHandler
+	emptyReceiptHash  []byte
+	startingEpoch     uint32
 }
 
 type persistersHolder struct {
@@ -38,6 +45,7 @@ type persistersHolder struct {
 	unsignedTransactionsPersister storage.Persister
 	rewardTransactionsPersister   storage.Persister
 	shardHeadersPersister         storage.Persister
+	receiptsPersister             storage.Persister
 }
 
 type metaBlocksPersistersHolder struct {
@@ -48,11 +56,13 @@ type metaBlocksPersistersHolder struct {
 // DataReplayerArgs holds the arguments needed for creating a new dataReplayer
 type DataReplayerArgs struct {
 	DatabaseReader           DatabaseReaderHandler
+	GeneralConfig            config.Config
 	ShardCoordinator         sharding.Coordinator
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	HeaderMarshalizer        HeaderMarshalizerHandler
+	StartingEpoch            uint32
 }
 
 // NewDataReplayer returns a new instance of dataReplayer
@@ -76,13 +86,20 @@ func NewDataReplayer(args DataReplayerArgs) (*dataReplayer, error) {
 		return nil, ErrNilHeaderMarshalizer
 	}
 
+	emptyReceiptHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, &batch.Batch{Data: [][]byte{}})
+	if err != nil {
+		return nil, err
+	}
+
 	return &dataReplayer{
 		databaseReader:    args.DatabaseReader,
+		generalConfig:     args.GeneralConfig,
 		shardCoordinator:  args.ShardCoordinator,
 		marshalizer:       args.Marshalizer,
-		hasher:            args.Hasher,
 		uint64Converter:   args.Uint64ByteSliceConverter,
 		headerMarshalizer: args.HeaderMarshalizer,
+		emptyReceiptHash:  emptyReceiptHash,
+		startingEpoch:     args.StartingEpoch,
 	}, nil
 }
 
@@ -103,8 +120,6 @@ func (dr *dataReplayer) Range(handler func(persistedData storer2ElasticData.Roun
 	select {
 	case err := <-errChan:
 		return err
-	case <-time.After(time.Hour):
-		return ErrTimeIsOut
 	case <-signalChannel:
 		log.Info("the application will stop after an OS signal")
 		return ErrOsSignalIntercepted
@@ -118,6 +133,12 @@ func (dr *dataReplayer) startIndexing(errChan chan error, persistedDataHandler f
 		return
 	}
 
+	err = checkDatabaseInfo(records)
+	if err != nil {
+		errChan <- err
+		return
+	}
+
 	metachainRecords, err := getMetaChainDatabasesInfo(records)
 	if err != nil {
 		errChan <- err
@@ -125,6 +146,10 @@ func (dr *dataReplayer) startIndexing(errChan chan error, persistedDataHandler f
 	}
 
 	for _, metaDB := range metachainRecords {
+		if metaDB.Epoch < dr.startingEpoch {
+			continue
+		}
+
 		err = dr.processMetaChainDatabase(metaDB, records, persistedDataHandler)
 		if err != nil {
 			errChan <- err
@@ -151,9 +176,9 @@ func (dr *dataReplayer) processMetaChainDatabase(
 
 	shardPersistersHolder := make(map[uint32]*persistersHolder)
 	for shardID := uint32(0); shardID < dr.shardCoordinator.NumberOfShards(); shardID++ {
-		shardDBInfo, err := getShardDatabaseForEpoch(dbsInfo, record.Epoch, shardID)
-		if err != nil {
-			return err
+		shardDBInfo, errGetShardHDr := getShardDatabaseForEpoch(dbsInfo, record.Epoch, shardID)
+		if errGetShardHDr != nil {
+			return errGetShardHDr
 		}
 		shardPersistersHolder[shardID], err = dr.preparePersistersHolder(shardDBInfo)
 		if err != nil {
@@ -185,8 +210,6 @@ func (dr *dataReplayer) processMetaChainDatabase(
 	roundData, err := dr.processMetaBlock(
 		epochStartMetaBlock,
 		dbsInfo,
-		record,
-		metaHeadersPersisters,
 		metachainPersisters,
 		shardPersistersHolder,
 	)
@@ -199,26 +222,24 @@ func (dr *dataReplayer) processMetaChainDatabase(
 
 	for {
 		startingNonce++
-		metaBlock, err := dr.getMetaBlockForNonce(startingNonce, record, metaHeadersPersisters)
-		if err == nil {
-			roundData, err = dr.processMetaBlock(
-				metaBlock,
-				dbsInfo,
-				record,
-				metaHeadersPersisters,
-				metachainPersisters,
-				shardPersistersHolder,
-			)
-			if err != nil {
-				log.Warn(err.Error())
-				break
-			}
-			if !persistedDataHandler(*roundData) {
-				return ErrRangeIsOver
-			}
-		} else {
-			log.Error(err.Error())
+		metaBlock, errGetMb := dr.getMetaBlockForNonce(startingNonce, metaHeadersPersisters)
+		if errGetMb != nil {
+			log.Error(errGetMb.Error())
 			break
+		}
+
+		roundData, err = dr.processMetaBlock(
+			metaBlock,
+			dbsInfo,
+			metachainPersisters,
+			shardPersistersHolder,
+		)
+		if err != nil {
+			log.Warn(err.Error())
+			break
+		}
+		if !persistedDataHandler(*roundData) {
+			return ErrRangeIsOver
 		}
 	}
 
@@ -229,13 +250,13 @@ func (dr *dataReplayer) processMetaChainDatabase(
 func (dr *dataReplayer) prepareMetaPersistersHolder(record *databasereader.DatabaseInfo) (*metaBlocksPersistersHolder, error) {
 	metaPersHolder := &metaBlocksPersistersHolder{}
 
-	metaBlocksUnit, err := dr.databaseReader.LoadPersister(record, "MetaBlock")
+	metaBlocksUnit, err := dr.databaseReader.LoadPersister(record, dr.generalConfig.MetaBlockStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
 	metaPersHolder.metaBlocksPersister = metaBlocksUnit
 
-	headerHashNonceUnit, err := dr.databaseReader.LoadStaticPersister(record, "MetaHdrHashNonce")
+	headerHashNonceUnit, err := dr.databaseReader.LoadStaticPersister(record, dr.generalConfig.MetaHdrNonceHashStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -258,13 +279,15 @@ func (dr *dataReplayer) getEpochStartMetaBlock(record *databasereader.DatabaseIn
 	if err == nil && len(metaBlockBytes) > 0 {
 		return dr.headerMarshalizer.UnmarshalMetaBlock(metaBlockBytes)
 	}
-	log.Warn("epoch start meta block not found", "epoch", record.Epoch)
 
-	// header should be found by the epoch start identifier. if not, try getting the nonce 0 (the genesis block)
-	return dr.getMetaBlockForNonce(0, record, metaPersisters)
+	if record.Epoch == 0 {
+		return dr.getMetaBlockForNonce(0, metaPersisters)
+	}
+
+	return nil, fmt.Errorf("epoch start meta not found for epoch %d", record.Epoch)
 }
 
-func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, record *databasereader.DatabaseInfo, metaPersisters *metaBlocksPersistersHolder) (*block.MetaBlock, error) {
+func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, metaPersisters *metaBlocksPersistersHolder) (*block.MetaBlock, error) {
 	nonceBytes := dr.uint64Converter.ToByteSlice(nonce)
 	metaBlockHash, err := metaPersisters.hdrHashNoncePersister.Get(nonceBytes)
 	if err != nil {
@@ -282,21 +305,20 @@ func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, record *databasereade
 func (dr *dataReplayer) processMetaBlock(
 	metaBlock *block.MetaBlock,
 	dbsInfo []*databasereader.DatabaseInfo,
-	record *databasereader.DatabaseInfo,
-	metaBlocksPersisters *metaBlocksPersistersHolder,
 	persisters *persistersHolder,
 	shardPersisters map[uint32]*persistersHolder,
 ) (*storer2ElasticData.RoundPersistedData, error) {
-	metaHdrData, err := dr.processHeader(persisters, record, metaBlock, record.Epoch)
+	metaHdrData, err := dr.processHeader(persisters, metaBlock)
 	if err != nil {
 		return nil, err
 	}
 
 	shardsHeaderData := make(map[uint32]*storer2ElasticData.HeaderData)
 	for _, shardInfo := range metaBlock.ShardInfo {
-		shardHdrData, err := dr.processShardInfo(dbsInfo, &shardInfo, metaBlock.Epoch, shardPersisters[shardInfo.ShardID])
-		if err != nil {
-			continue
+		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, &shardInfo, metaBlock.Epoch, shardPersisters[shardInfo.ShardID])
+		if errProcessShardInfo != nil {
+			log.Warn("cannot process shard info", "error", errProcessShardInfo)
+			return nil, errProcessShardInfo
 		}
 
 		shardsHeaderData[shardInfo.ShardID] = shardHdrData
@@ -314,11 +336,6 @@ func (dr *dataReplayer) processShardInfo(
 	epoch uint32,
 	shardPersisters *persistersHolder,
 ) (*storer2ElasticData.HeaderData, error) {
-	shardDBInfo, err := getShardDatabaseForEpoch(dbsInfos, epoch, shardInfo.ShardID)
-	if err != nil {
-		return nil, err
-	}
-
 	shardHeader, err := dr.getShardHeader(shardPersisters, shardInfo.HeaderHash)
 	if err != nil {
 		// if new epoch, shard headers can be found in the previous epoch's storage
@@ -329,7 +346,7 @@ func (dr *dataReplayer) processShardInfo(
 		}
 	}
 
-	return dr.processHeader(shardPersisters, shardDBInfo, shardHeader, epoch)
+	return dr.processHeader(shardPersisters, shardHeader)
 }
 
 func (dr *dataReplayer) getFromShardStorer(dbsInfos []*databasereader.DatabaseInfo, shardInfo *block.ShardData, epoch uint32) (*block.Header, error) {
@@ -362,7 +379,7 @@ func (dr *dataReplayer) getShardHeader(
 	return dr.headerMarshalizer.UnmarshalShardHeader(shardHeaderBytes)
 }
 
-func (dr *dataReplayer) processHeader(persisters *persistersHolder, dbInfo *databasereader.DatabaseInfo, hdr data.HeaderHandler, epoch uint32) (*storer2ElasticData.HeaderData, error) {
+func (dr *dataReplayer) processHeader(persisters *persistersHolder, hdr data.HeaderHandler) (*storer2ElasticData.HeaderData, error) {
 	miniBlocksHashes := make([]string, 0)
 	shardIDs := dr.getShardIDs()
 	for _, shard := range shardIDs {
@@ -372,7 +389,7 @@ func (dr *dataReplayer) processHeader(persisters *persistersHolder, dbInfo *data
 		}
 	}
 
-	body, txPool, err := dr.processBodyAndTransactionsPoolForHeader(persisters, miniBlocksHashes)
+	body, txPool, err := dr.processBodyAndTransactionsPoolForHeader(hdr, persisters, miniBlocksHashes)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +397,7 @@ func (dr *dataReplayer) processHeader(persisters *persistersHolder, dbInfo *data
 	return &storer2ElasticData.HeaderData{
 		Header:           hdr,
 		Body:             body,
-		TransactionsPool: txPool,
+		BodyTransactions: txPool,
 	}, nil
 }
 
@@ -395,6 +412,7 @@ func (dr *dataReplayer) getShardIDs() []uint32 {
 }
 
 func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
+	header data.HeaderHandler,
 	persisters *persistersHolder,
 	mbHashes []string,
 ) (*block.Body, map[string]data.TransactionHandler, error) {
@@ -403,24 +421,89 @@ func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
 
 	blockBody := &block.Body{}
 	for _, mbHash := range mbHashes {
-		mbBytes, err := mbUnit.Get([]byte(mbHash))
+		recoveredMiniBlock, err := dr.getMiniBlockFromStorage(mbUnit, []byte(mbHash))
 		if err != nil {
-			log.Warn("miniblock not found in storage", "hash", []byte(mbHash))
-			continue
+			if header.GetShardID() == core.MetachainShardId {
+				// could be miniblocks headers for shard, so we can continue
+				continue
+			}
+
+			return nil, nil, err
 		}
 
-		recoveredMiniBlock := &block.MiniBlock{}
-		err = dr.marshalizer.Unmarshal(recoveredMiniBlock, mbBytes)
+		err = dr.processTransactionsForMiniBlock(persisters, recoveredMiniBlock.TxHashes, txPool, recoveredMiniBlock.Type)
 		if err != nil {
-			log.Warn("cannot unmarshal miniblock", "hash", mbHash, "error", err)
-			continue
+			return nil, nil, err
 		}
 
-		dr.processTransactionsForMiniBlock(persisters, recoveredMiniBlock.TxHashes, txPool, recoveredMiniBlock.Type)
 		blockBody.MiniBlocks = append(blockBody.MiniBlocks, recoveredMiniBlock)
 	}
 
+	receiptsMiniBlocks, err := dr.getReceiptsIfNeeded(persisters, header)
+	if err != nil {
+		return nil, nil, err
+	}
+	if receiptsMiniBlocks != nil {
+		blockBody.MiniBlocks = append(blockBody.MiniBlocks, receiptsMiniBlocks...)
+		for _, miniBlock := range receiptsMiniBlocks {
+			err = dr.processTransactionsForMiniBlock(persisters, miniBlock.TxHashes, txPool, miniBlock.Type)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+
 	return blockBody, txPool, nil
+}
+
+func (dr *dataReplayer) getReceiptsIfNeeded(holder *persistersHolder, hdr data.HeaderHandler) ([]*block.MiniBlock, error) {
+	if len(hdr.GetReceiptsHash()) == 0 {
+		return nil, nil
+	}
+	if bytes.Equal(hdr.GetReceiptsHash(), dr.emptyReceiptHash) {
+		return nil, nil
+	}
+
+	batchBytes, err := holder.receiptsPersister.Get(hdr.GetReceiptsHash())
+	if err != nil {
+		log.Warn("receipts hash not found", "hash", hdr.GetReceiptsHash())
+		return nil, nil
+	}
+
+	var batchObj batch.Batch
+	err = dr.marshalizer.Unmarshal(&batchObj, batchBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlocksToReturn := make([]*block.MiniBlock, 0)
+	for _, mbBytes := range batchObj.Data {
+		recoveredMiniBlock := &block.MiniBlock{}
+		errUnmarshalMb := dr.marshalizer.Unmarshal(recoveredMiniBlock, mbBytes)
+		if errUnmarshalMb != nil {
+			log.Warn("cannot unmarshal receipts miniblock")
+			return nil, errUnmarshalMb
+		}
+
+		miniBlocksToReturn = append(miniBlocksToReturn, recoveredMiniBlock)
+	}
+
+	return miniBlocksToReturn, nil
+}
+
+func (dr *dataReplayer) getMiniBlockFromStorage(mbUnit storage.Persister, mbHash []byte) (*block.MiniBlock, error) {
+	mbBytes, err := mbUnit.Get(mbHash)
+	if err != nil {
+		return nil, fmt.Errorf("miniblock with hash %s not found in storage", hex.EncodeToString(mbHash))
+	}
+
+	recoveredMiniBlock := &block.MiniBlock{}
+	err = dr.marshalizer.Unmarshal(recoveredMiniBlock, mbBytes)
+	if err != nil {
+		return nil, fmt.Errorf("%w when unmarshaling miniblock with hash %s", err, mbHash)
+	}
+
+	return recoveredMiniBlock, nil
 }
 
 func (dr *dataReplayer) processTransactionsForMiniBlock(
@@ -428,7 +511,7 @@ func (dr *dataReplayer) processTransactionsForMiniBlock(
 	txHashes [][]byte,
 	txPool map[string]data.TransactionHandler,
 	mbType block.Type,
-) {
+) error {
 	for _, txHash := range txHashes {
 		var tx data.TransactionHandler
 		var getTxErr error
@@ -439,13 +522,24 @@ func (dr *dataReplayer) processTransactionsForMiniBlock(
 			tx, getTxErr = dr.getRewardTx(persisters, txHash)
 		case block.SmartContractResultBlock:
 			tx, getTxErr = dr.getUnsignedTx(persisters, txHash)
-		}
-		if getTxErr != nil || tx == nil {
+		case block.ReceiptBlock:
+			tx, getTxErr = dr.getReceipt(persisters, txHash)
+		case block.PeerBlock:
+			// hashes stored inside peer blocks do not stand for a specific transaction, so skip
 			continue
+		}
+		if getTxErr != nil {
+			return getTxErr
+		}
+
+		if tx == nil {
+			return fmt.Errorf("transaction recovered from storage with hash %s is nil", hex.EncodeToString(txHash))
 		}
 
 		txPool[string(txHash)] = tx
 	}
+
+	return nil
 }
 
 func (dr *dataReplayer) getRegularTx(holder *persistersHolder, txHash []byte) (data.TransactionHandler, error) {
@@ -499,38 +593,61 @@ func (dr *dataReplayer) getUnsignedTx(holder *persistersHolder, txHash []byte) (
 	return recoveredTx, nil
 }
 
+func (dr *dataReplayer) getReceipt(holder *persistersHolder, txHash []byte) (data.TransactionHandler, error) {
+	txBytes, err := holder.unsignedTransactionsPersister.Get(txHash)
+	if err != nil {
+		log.Warn("cannot get unsigned tx from storer", "txHash", txHash)
+		return nil, err
+	}
+
+	recoveredReceipt := &receipt.Receipt{}
+	err = dr.marshalizer.Unmarshal(recoveredReceipt, txBytes)
+	if err != nil {
+		log.Warn("cannot unmarshal receipt", "hash", txHash, "error", err)
+		return nil, err
+	}
+
+	return recoveredReceipt, nil
+}
+
 func (dr *dataReplayer) preparePersistersHolder(dbInfo *databasereader.DatabaseInfo) (*persistersHolder, error) {
 	persHold := &persistersHolder{}
 
-	shardHeadersPersister, err := dr.databaseReader.LoadPersister(dbInfo, "BlockHeaders")
+	shardHeadersPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.BlockHeaderStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
 	persHold.shardHeadersPersister = shardHeadersPersister
 
-	miniBlocksPersister, err := dr.databaseReader.LoadPersister(dbInfo, "MiniBlocks")
+	miniBlocksPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.MiniBlocksStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
 	persHold.miniBlocksPersister = miniBlocksPersister
 
-	txsPersister, err := dr.databaseReader.LoadPersister(dbInfo, "Transactions")
+	txsPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.TxStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
 	persHold.transactionPersister = txsPersister
 
-	uTxsPersister, err := dr.databaseReader.LoadPersister(dbInfo, "UnsignedTransactions")
+	uTxsPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.UnsignedTransactionStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
 	persHold.unsignedTransactionsPersister = uTxsPersister
 
-	rTxsPersister, err := dr.databaseReader.LoadPersister(dbInfo, "RewardTransactions")
+	rTxsPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.RewardTxStorage.DB.FilePath)
 	if err != nil {
 		return nil, err
 	}
 	persHold.rewardTransactionsPersister = rTxsPersister
+
+	receiptsPersister, err := dr.databaseReader.LoadPersister(dbInfo, dr.generalConfig.ReceiptsStorage.DB.FilePath)
+	if err != nil {
+		return nil, err
+	}
+	persHold.receiptsPersister = receiptsPersister
 
 	return persHold, nil
 }
@@ -549,6 +666,9 @@ func (dr *dataReplayer) closePersisters(persisters *persistersHolder) {
 	log.LogIfError(err)
 
 	err = persisters.rewardTransactionsPersister.Close()
+	log.LogIfError(err)
+
+	err = persisters.receiptsPersister.Close()
 	log.LogIfError(err)
 }
 
@@ -580,4 +700,26 @@ func getShardDatabaseForEpoch(records []*databasereader.DatabaseInfo, epoch uint
 	}
 
 	return nil, ErrDatabaseInfoNotFound
+}
+
+func checkDatabaseInfo(dbsInfo []*databasereader.DatabaseInfo) error {
+	sliceCopy := make([]databasereader.DatabaseInfo, len(dbsInfo))
+	for i := 0; i < len(dbsInfo); i++ {
+		sliceCopy[i] = *dbsInfo[i]
+	}
+
+	sort.Slice(sliceCopy, func(i int, j int) bool {
+		return sliceCopy[i].Epoch < sliceCopy[j].Epoch
+	})
+
+	previousEpoch := uint32(0)
+	for _, dbInfo := range sliceCopy {
+		if dbInfo.Epoch != previousEpoch && dbInfo.Epoch-1 != previousEpoch {
+			return fmt.Errorf("configuration for epoch %d is missing", dbInfo.Epoch-1)
+		}
+
+		previousEpoch = dbInfo.Epoch
+	}
+
+	return nil
 }

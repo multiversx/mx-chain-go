@@ -30,6 +30,7 @@ type flags struct {
 	configFilePath     string
 	nodeConfigFilePath string
 	nodesSetupFilePath string
+	startingEpoch      int
 	numShards          int
 	timeout            int
 }
@@ -90,6 +91,13 @@ VERSION:
 		Destination: &flagsValues.numShards,
 	}
 
+	startingEpochFlag = cli.IntFlag{
+		Name:        "starting-epoch",
+		Usage:       "This uint flag specifies the epoch to start when indexing",
+		Value:       0,
+		Destination: &flagsValues.startingEpoch,
+	}
+
 	flagsValues = &flags{}
 
 	log                      = logger.GetOrCreate("storer2elastic")
@@ -129,6 +137,7 @@ func initCliFlags() {
 		nodeConfigFilePathFlag,
 		nodesSetupFilePathFlag,
 		numOfShardsFlag,
+		startingEpochFlag,
 	}
 	cliApp.Authors = []cli.Author{
 		{
@@ -143,21 +152,25 @@ func startStorer2Elastic(ctx *cli.Context) error {
 
 	uint64ByteSliceConverter = uint64ByteSlice.NewBigEndianConverter()
 	var err error
-	shardCoordinator, err = sharding.NewMultiShardCoordinator(uint32(flagsValues.numShards), 0)
-	if err != nil {
-		return err
-	}
 
 	configuration := &config.Config{}
 	err = core.LoadTomlFile(configuration, flagsValues.configFilePath)
 	if err != nil {
 		return err
 	}
+	if ctx.IsSet(numOfShardsFlag.Name) {
+		configuration.General.NumShards = int(ctx.GlobalUint64(numOfShardsFlag.Name))
+	}
 	if ctx.IsSet(dbPathWithChainIDFlag.Name) {
 		configuration.General.DBPathWithChainID = ctx.GlobalString(dbPathWithChainIDFlag.Name)
 	}
 	if ctx.IsSet(nodeConfigFilePathFlag.Name) {
 		configuration.General.NodeConfigFilePath = ctx.GlobalString(nodeConfigFilePathFlag.Name)
+	}
+
+	shardCoordinator, err = sharding.NewMultiShardCoordinator(uint32(configuration.General.NumShards), 0)
+	if err != nil {
+		return err
 	}
 
 	err = core.LoadTomlFile(&nodeConfig, configuration.General.NodeConfigFilePath)
@@ -211,6 +224,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 	persisterFactory := factory.NewPersisterFactory(nodeConfigPackage.DBConfig(generalDBConfig))
 	dbReaderArgs := databasereader.Args{
 		DirectoryReader:   factory.NewDirectoryReader(),
+		GeneralConfig:     nodeConfig,
 		Marshalizer:       marshalizer,
 		PersisterFactory:  persisterFactory,
 		DbPathWithChainID: configuration.General.DBPathWithChainID,
@@ -250,12 +264,15 @@ func startStorer2Elastic(ctx *cli.Context) error {
 	}
 
 	dataReplayerArgs := dataprocessor.DataReplayerArgs{
+		ElasticIndexer:           elasticIndexer,
+		GeneralConfig:            nodeConfig,
 		DatabaseReader:           dbReader,
 		ShardCoordinator:         shardCoordinator,
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		HeaderMarshalizer:        headerMarshalizer,
+		StartingEpoch:            uint32(flagsValues.startingEpoch),
 	}
 
 	dataReplayer, err := dataprocessor.NewDataReplayer(dataReplayerArgs)
@@ -263,20 +280,26 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
-	dataProcessor2, err := dataprocessor.NewDataProcessor(
+	tpsBenchmarkUpdater, err := dataprocessor.NewTPSBenchmarkUpdater(genesisNodesConfig, elasticIndexer)
+	if err != nil {
+		return err
+	}
+
+	dataProcessor, err := dataprocessor.NewDataProcessor(
 		dataprocessor.ArgsDataProcessor{
-			ElasticIndexer:    elasticIndexer,
-			DataReplayer:      dataReplayer,
-			GenesisNodesSetup: genesisNodesConfig,
-			Marshalizer:       marshalizer,
-			Hasher:            hasher,
-			ShardCoordinator:  shardCoordinator,
-			RatingsProcessor:  ratingsProcessor,
+			ElasticIndexer:      elasticIndexer,
+			DataReplayer:        dataReplayer,
+			GenesisNodesSetup:   genesisNodesConfig,
+			Marshalizer:         marshalizer,
+			Hasher:              hasher,
+			ShardCoordinator:    shardCoordinator,
+			TPSBenchmarkUpdater: tpsBenchmarkUpdater,
+			RatingsProcessor:    ratingsProcessor,
 		})
 	if err != nil {
 		return err
 	}
-	err = dataProcessor2.Index()
+	err = dataProcessor.Index()
 	if err != nil {
 		return err
 	}

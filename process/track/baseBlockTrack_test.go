@@ -74,6 +74,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateStorageUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateStorageUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateStorageUnit())
+	store.AddStorer(dataRetriever.ReceiptsUnit, generateStorageUnit())
 	return store
 }
 
@@ -2574,4 +2575,64 @@ func TestBaseBlockTrack_IsHeaderOutOfRangeShouldWork(t *testing.T) {
 		Nonce: nonce + process.MaxHeadersToWhitelistInAdvance,
 	}
 	assert.False(t, sbt.IsHeaderOutOfRange(metaHdr))
+}
+
+func TestMetaBlockTrack_GetTrackedMetaBlockWithHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	metaArguments := CreateMetaTrackerMockArguments()
+	mbt, _ := track.NewMetaBlockTrack(metaArguments)
+
+	hash := []byte("hash")
+	nonce := uint64(1)
+
+	metaBlock, err := mbt.GetTrackedMetaBlockWithHash(hash)
+	assert.Nil(t, metaBlock)
+	assert.Equal(t, process.ErrMissingHeader, err)
+
+	mbt.AddTrackedHeader(&block.MetaBlock{Nonce: nonce}, []byte("hash1"))
+
+	metaBlock, err = mbt.GetTrackedMetaBlockWithHash(hash)
+	assert.Nil(t, metaBlock)
+	assert.Equal(t, process.ErrMissingHeader, err)
+
+	mbt.AddTrackedHeader(&block.Header{ShardID: core.MetachainShardId, Nonce: nonce + 2}, []byte("hash"))
+
+	metaBlock, err = mbt.GetTrackedMetaBlockWithHash(hash)
+	assert.Nil(t, metaBlock)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+
+	mbt.AddTrackedHeader(&block.MetaBlock{Nonce: nonce + 1}, []byte("hash"))
+
+	metaBlock, err = mbt.GetTrackedMetaBlockWithHash(hash)
+	assert.Nil(t, err)
+	assert.Equal(t, nonce+1, metaBlock.Nonce)
+}
+
+func TestShardBlockTrack_GetTrackedShardHeaderWithNonceAndHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	shardID := uint32(1)
+	nonce := uint64(1)
+	hash := []byte("hash")
+
+	header, err := sbt.GetTrackedShardHeaderWithNonceAndHash(shardID, nonce, hash)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrMissingHeader, err)
+
+	sbt.AddTrackedHeader(&block.Header{ShardID: shardID, Nonce: nonce}, []byte("hash1"))
+
+	header, err = sbt.GetTrackedShardHeaderWithNonceAndHash(shardID, nonce, hash)
+	assert.Nil(t, header)
+	assert.Equal(t, process.ErrMissingHeader, err)
+
+	sbt.AddTrackedHeader(&block.Header{ShardID: shardID, Nonce: nonce}, []byte("hash"))
+
+	header, err = sbt.GetTrackedShardHeaderWithNonceAndHash(shardID, nonce, hash)
+	assert.Nil(t, err)
+	assert.Equal(t, nonce, header.Nonce)
+	assert.Equal(t, shardID, header.ShardID)
 }

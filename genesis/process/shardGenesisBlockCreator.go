@@ -7,7 +7,9 @@ import (
 	"math/big"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -38,50 +40,57 @@ type deployedScMetrics struct {
 }
 
 // CreateShardGenesisBlock will create a shard genesis block
-func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, selfShardID uint32) (data.HeaderHandler, error) {
+func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, selfShardID uint32) (data.HeaderHandler, [][]byte, error) {
 	if mustDoHardForkImportProcess(arg) {
 		return createShardGenesisAfterHardFork(arg, selfShardID)
 	}
 
-	processors, err := createProcessorsForShard(arg)
+	genesisOverrideConfig := config.GeneralSettingsConfig{
+		BuiltInFunctionsEnableEpoch:    0,
+		SCDeployEnableEpoch:            0,
+		RelayedTransactionsEnableEpoch: 0,
+		PenalizedTooMuchGasEnableEpoch: 0,
+	}
+
+	processors, err := createProcessorsForShard(arg, genesisOverrideConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	deployMetrics := &deployedScMetrics{}
 
-	err = deployInitialSmartContracts(processors, arg, deployMetrics)
+	scAddresses, err := deployInitialSmartContracts(processors, arg, deployMetrics)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	numSetBalances, err := setBalancesToTrie(arg)
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while setting the balances to trie",
+		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while setting the balances to trie",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
 	numStaked, err := increaseStakersNonces(processors, arg)
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing nonces",
+		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing nonces",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
 	delegationResult, err := executeDelegation(processors, arg, nodesListSplitter)
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while execution delegation",
+		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while execution delegation",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
 	numCrossShardDelegations, err := incrementNoncesForCrossShardDelegations(processors, arg)
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing crossshard nonce",
+		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing crossshard nonce",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while commiting",
+		return nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while commiting",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
@@ -117,18 +126,18 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 
 	err = processors.vmContainer.Close()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return header, nil
+	return header, scAddresses, nil
 }
 
-func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId uint32) (data.HeaderHandler, error) {
+func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId uint32) (data.HeaderHandler, [][]byte, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
-	processors, err := createProcessorsForShard(tmpArg)
+	processors, err := createProcessorsForShard(tmpArg, *arg.GeneralConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argsPendingTxProcessor := hardForkProcess.ArgsPendingTransactionProcessor{
@@ -141,7 +150,7 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId ui
 	}
 	pendingTxProcessor, err := hardForkProcess.NewPendingTransactionProcessor(argsPendingTxProcessor)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argsShardBlockAfterHardFork := hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{
@@ -157,7 +166,7 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId ui
 	}
 	shardBlockCreator, err := hardForkProcess.NewShardBlockCreatorAfterHardFork(argsShardBlockAfterHardFork)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hdrHandler, _, err := shardBlockCreator.CreateNewBlock(
@@ -167,16 +176,16 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId ui
 		arg.HardForkConfig.StartEpoch,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return hdrHandler, nil
+	return hdrHandler, make([][]byte, 0), nil
 }
 
 // setBalancesToTrie adds balances to trie
@@ -217,7 +226,7 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 	return arg.Accounts.SaveAccount(account)
 }
 
-func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, error) {
+func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:               arg.GasMap,
 		MapDNSAddresses:      make(map[string]struct{}),
@@ -302,24 +311,32 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		return nil, err
 	}
 
+	epochNotifier := forking.NewGenericEpochNotifier()
+	epochNotifier.CheckEpoch(arg.StartEpochNum)
+
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:      vmContainer,
-		ArgsParser:       smartContract.NewArgumentParser(),
-		Hasher:           arg.Hasher,
-		Marshalizer:      arg.Marshalizer,
-		AccountsDB:       arg.Accounts,
-		BlockChainHook:   vmFactoryImpl.BlockChainHookImpl(),
-		PubkeyConv:       arg.PubkeyConv,
-		Coordinator:      arg.ShardCoordinator,
-		ScrForwarder:     scForwarder,
-		TxFeeHandler:     genesisFeeHandler,
-		EconomicsFee:     genesisFeeHandler,
-		TxTypeHandler:    txTypeHandler,
-		GasHandler:       gasHandler,
-		BuiltInFunctions: vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:  arg.TxLogsProcessor,
-		BadTxForwarder:   badTxInterim,
+		VmContainer:                    vmContainer,
+		ArgsParser:                     smartContract.NewArgumentParser(),
+		Hasher:                         arg.Hasher,
+		Marshalizer:                    arg.Marshalizer,
+		AccountsDB:                     arg.Accounts,
+		BlockChainHook:                 vmFactoryImpl.BlockChainHookImpl(),
+		PubkeyConv:                     arg.PubkeyConv,
+		Coordinator:                    arg.ShardCoordinator,
+		ScrForwarder:                   scForwarder,
+		TxFeeHandler:                   genesisFeeHandler,
+		EconomicsFee:                   genesisFeeHandler,
+		TxTypeHandler:                  txTypeHandler,
+		GasHandler:                     gasHandler,
+		GasSchedule:                    arg.GasMap,
+		BuiltInFunctions:               vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:                arg.TxLogsProcessor,
+		BadTxForwarder:                 badTxInterim,
+		EpochNotifier:                  epochNotifier,
+		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
+		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -336,21 +353,23 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:          arg.Accounts,
-		Hasher:            arg.Hasher,
-		PubkeyConv:        arg.PubkeyConv,
-		Marshalizer:       arg.Marshalizer,
-		SignMarshalizer:   arg.SignMarshalizer,
-		ShardCoordinator:  arg.ShardCoordinator,
-		ScProcessor:       scProcessor,
-		TxFeeHandler:      genesisFeeHandler,
-		TxTypeHandler:     txTypeHandler,
-		EconomicsFee:      genesisFeeHandler,
-		ReceiptForwarder:  receiptTxInterim,
-		BadTxForwarder:    badTxInterim,
-		ArgsParser:        smartContract.NewArgumentParser(),
-		ScrForwarder:      scForwarder,
-		DisabledRelayedTx: false,
+		Accounts:                       arg.Accounts,
+		Hasher:                         arg.Hasher,
+		PubkeyConv:                     arg.PubkeyConv,
+		Marshalizer:                    arg.Marshalizer,
+		SignMarshalizer:                arg.SignMarshalizer,
+		ShardCoordinator:               arg.ShardCoordinator,
+		ScProcessor:                    scProcessor,
+		TxFeeHandler:                   genesisFeeHandler,
+		TxTypeHandler:                  txTypeHandler,
+		EconomicsFee:                   genesisFeeHandler,
+		ReceiptForwarder:               receiptTxInterim,
+		BadTxForwarder:                 badTxInterim,
+		ArgsParser:                     smartContract.NewArgumentParser(),
+		ScrForwarder:                   scForwarder,
+		EpochNotifier:                  epochNotifier,
+		RelayedTxEnableEpoch:           generalConfig.RelayedTransactionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -430,22 +449,26 @@ func deployInitialSmartContracts(
 	processors *genesisProcessors,
 	arg ArgsGenesisBlockCreator,
 	deployMetrics *deployedScMetrics,
-) error {
+) ([][]byte, error) {
 	smartContracts, err := arg.SmartContractParser.InitialSmartContractsSplitOnOwnersShards(arg.ShardCoordinator)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	var scAddresses = make([][]byte, 0)
 	currentShardSmartContracts := smartContracts[arg.ShardCoordinator.SelfId()]
 	for _, sc := range currentShardSmartContracts {
-		err = deployInitialSmartContract(processors, sc, arg, deployMetrics)
+		var scResulted [][]byte
+		scResulted, err = deployInitialSmartContract(processors, sc, arg, deployMetrics)
 		if err != nil {
-			return fmt.Errorf("%w for owner %s and filename %s",
+			return nil, fmt.Errorf("%w for owner %s and filename %s",
 				err, sc.GetOwner(), sc.GetFilename())
 		}
+
+		scAddresses = append(scAddresses, scResulted...)
 	}
 
-	return nil
+	return scAddresses, nil
 }
 
 func deployInitialSmartContract(
@@ -453,11 +476,11 @@ func deployInitialSmartContract(
 	sc genesis.InitialSmartContractHandler,
 	arg ArgsGenesisBlockCreator,
 	deployMetrics *deployedScMetrics,
-) error {
+) ([][]byte, error) {
 
 	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var deployProc genesis.DeployProcessor
@@ -473,7 +496,7 @@ func deployInitialSmartContract(
 		}
 		deployProc, err = intermediate.NewDeployLibrarySC(argDeployLibrary)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	case genesis.DelegationType:
 		deployMetrics.numDelegation++
@@ -487,7 +510,7 @@ func deployInitialSmartContract(
 		}
 		deployProc, err = intermediate.NewDeployProcessor(argDeploy)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 

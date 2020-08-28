@@ -12,15 +12,13 @@ import (
 
 // GetHeaders returns all the headers found in meta block or shard header units
 func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler, error) {
-	hdrStorer := shardBlocksStorer
-	if dbInfo.Shard == core.MetachainShardId {
-		hdrStorer = metaHeadersStorer
-	}
-
+	hdrStorer := dr.generalConfig.BlockHeaderStorage.DB.FilePath
 	shardIDStr := fmt.Sprintf("%d", dbInfo.Shard)
-	if shardIDStr == fmt.Sprintf("%d", core.MetachainShardId) {
+	if dbInfo.Shard == core.MetachainShardId {
+		hdrStorer = dr.generalConfig.MetaBlockStorage.DB.FilePath
 		shardIDStr = "metachain"
 	}
+
 	persisterPath := filepath.Join(
 		dr.dbPathWithChainID, fmt.Sprintf("%s%d", epochDirectoryPrefix, dbInfo.Epoch),
 		fmt.Sprintf("%s%s", shardDirectoryPrefix, shardIDStr),
@@ -37,9 +35,9 @@ func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler
 
 	hdrs := make([]data.HeaderHandler, 0)
 	recordsRangeHandler := func(key []byte, value []byte) bool {
-		hdr, err := dr.getHeader(hdrStorer, value)
-		if err != nil {
-			log.Warn("error fetching a header", "key", key, "error", err)
+		hdr, errGetHdr := dr.getHeader(hdrStorer, value)
+		if errGetHdr != nil {
+			log.Warn("error fetching a header", "key", key, "error", errGetHdr)
 		} else {
 			hdrs = append(hdrs, hdr)
 		}
@@ -58,7 +56,7 @@ func (dr *databaseReader) GetHeaders(dbInfo *DatabaseInfo) ([]data.HeaderHandler
 func (dr *databaseReader) getHeader(hdrStorer string, value []byte) (data.HeaderHandler, error) {
 	var hdr data.HeaderHandler
 	var errUmarshal error
-	if hdrStorer == shardBlocksStorer {
+	if hdrStorer == dr.generalConfig.BlockHeaderStorage.DB.FilePath {
 		hdr, errUmarshal = dr.unmarshalShardHeader(value)
 	} else {
 		hdr, errUmarshal = dr.unmarshalMetaBlock(value)

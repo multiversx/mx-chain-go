@@ -46,6 +46,11 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 	}
 }
 
+// CreateDisabled will return a new disabled persister
+func (pf *PersisterFactory) CreateDisabled() storage.Persister {
+	return &disabledPersister{}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (pf *PersisterFactory) IsInterfaceNil() bool {
 	return pf == nil

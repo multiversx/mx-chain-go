@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -27,6 +27,7 @@ type ArgHeartbeatSender struct {
 	NodeDisplayName      string
 	KeyBaseIdentity      string
 	HardforkTrigger      heartbeat.HardforkTrigger
+	CurrentBlockProvider heartbeat.CurrentBlockProvider
 }
 
 // Sender periodically sends heartbeat messages on a pubsub topic
@@ -43,6 +44,7 @@ type Sender struct {
 	nodeDisplayName      string
 	keyBaseIdentity      string
 	hardforkTrigger      heartbeat.HardforkTrigger
+	currentBlockProvider heartbeat.CurrentBlockProvider
 }
 
 // NewSender will create a new sender instance
@@ -71,6 +73,9 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 	if check.IfNil(arg.HardforkTrigger) {
 		return nil, heartbeat.ErrNilHardforkTrigger
 	}
+	if check.IfNil(arg.CurrentBlockProvider) {
+		return nil, heartbeat.ErrNilCurrentBlockProvider
+	}
 	err := VerifyHeartbeatProperyLen("application version string", []byte(arg.VersionNumber))
 	if err != nil {
 		return nil, err
@@ -89,6 +94,7 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		nodeDisplayName:      arg.NodeDisplayName,
 		keyBaseIdentity:      arg.KeyBaseIdentity,
 		hardforkTrigger:      arg.HardforkTrigger,
+		currentBlockProvider: arg.CurrentBlockProvider,
 	}
 
 	return sender, nil
@@ -96,13 +102,20 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 
 // SendHeartbeat broadcasts a new heartbeat message
 func (s *Sender) SendHeartbeat() error {
-	hb := &data.Heartbeat{
+	nonce := uint64(0)
+	crtBlock := s.currentBlockProvider.GetCurrentBlockHeader()
+	if !check.IfNil(crtBlock) {
+		nonce = crtBlock.GetNonce()
+	}
+
+	hb := &heartbeatData.Heartbeat{
 		Payload:         []byte(fmt.Sprintf("%v", time.Now())),
 		ShardID:         s.shardCoordinator.SelfId(),
 		VersionNumber:   s.versionNumber,
 		NodeDisplayName: s.nodeDisplayName,
 		Identity:        s.keyBaseIdentity,
 		Pid:             s.peerMessenger.ID().Bytes(),
+		Nonce:           nonce,
 	}
 
 	triggerMessage, isHardforkTriggered := s.hardforkTrigger.RecordedTriggerMessage()
@@ -146,7 +159,7 @@ func (s *Sender) SendHeartbeat() error {
 	return nil
 }
 
-func (s *Sender) updateMetrics(hb *data.Heartbeat) {
+func (s *Sender) updateMetrics(hb *heartbeatData.Heartbeat) {
 	result := s.computePeerList(hb.Pubkey)
 
 	nodeType := ""

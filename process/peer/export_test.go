@@ -30,11 +30,6 @@ func (vs *validatorStatistics) GetLeaderDecreaseCount(key []byte) uint32 {
 	return vs.missedBlocksCounters.get(key).leaderDecreaseCount
 }
 
-// PeerAccountToValidatorInfo -
-func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
-	return vs.peerAccountToValidatorInfo(peerAccount)
-}
-
 // UpdateMissedBlocksCounters -
 func (vs *validatorStatistics) UpdateMissedBlocksCounters() error {
 	return vs.updateMissedBlocksCounters()

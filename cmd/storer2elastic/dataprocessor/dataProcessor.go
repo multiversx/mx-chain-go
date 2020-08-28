@@ -25,24 +25,26 @@ var log = logger.GetOrCreate("dataprocessor")
 
 // ArgsDataProcessor holds the arguments needed for creating a new dataProcessor
 type ArgsDataProcessor struct {
-	ElasticIndexer    indexer.Indexer
-	DataReplayer      DataReplayerHandler
-	GenesisNodesSetup sharding.GenesisNodesSetupHandler
-	ShardCoordinator  sharding.Coordinator
-	Marshalizer       marshal.Marshalizer
-	Hasher            hashing.Hasher
-	RatingsProcessor  *ratingsProcessor
+	ElasticIndexer      indexer.Indexer
+	DataReplayer        DataReplayerHandler
+	GenesisNodesSetup   sharding.GenesisNodesSetupHandler
+	ShardCoordinator    sharding.Coordinator
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	TPSBenchmarkUpdater TPSBenchmarkUpdaterHandler
+	RatingsProcessor    *ratingsProcessor
 }
 
 type dataProcessor struct {
-	elasticIndexer    indexer.Indexer
-	dataReplayer      DataReplayerHandler
-	genesisNodesSetup sharding.GenesisNodesSetupHandler
-	shardCoordinator  sharding.Coordinator
-	marshalizer       marshal.Marshalizer
-	hasher            hashing.Hasher
-	nodesCoordinators map[uint32]NodesCoordinator
-	ratingsProcessor  *ratingsProcessor
+	elasticIndexer      indexer.Indexer
+	dataReplayer        DataReplayerHandler
+	genesisNodesSetup   sharding.GenesisNodesSetupHandler
+	shardCoordinator    sharding.Coordinator
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	nodesCoordinators   map[uint32]NodesCoordinator
+	tpsBenchmarkUpdater TPSBenchmarkUpdaterHandler
+	ratingsProcessor    *ratingsProcessor
 }
 
 // NewDataProcessor returns a new instance of dataProcessor
@@ -65,23 +67,27 @@ func NewDataProcessor(args ArgsDataProcessor) (*dataProcessor, error) {
 	if check.IfNil(args.Hasher) {
 		return nil, ErrNilHasher
 	}
-
-	dp := &dataProcessor{
-		elasticIndexer:    args.ElasticIndexer,
-		dataReplayer:      args.DataReplayer,
-		genesisNodesSetup: args.GenesisNodesSetup,
-		shardCoordinator:  args.ShardCoordinator,
-		marshalizer:       args.Marshalizer,
-		hasher:            args.Hasher,
-		ratingsProcessor:  args.RatingsProcessor,
+	if check.IfNil(args.TPSBenchmarkUpdater) {
+		return nil, ErrNilTPSBenchmarkUpdater
 	}
 
-	nodesCoordinator, err := dp.createNodesCoordinators(args.GenesisNodesSetup)
+	dp := &dataProcessor{
+		elasticIndexer:      args.ElasticIndexer,
+		dataReplayer:        args.DataReplayer,
+		genesisNodesSetup:   args.GenesisNodesSetup,
+		shardCoordinator:    args.ShardCoordinator,
+		marshalizer:         args.Marshalizer,
+		hasher:              args.Hasher,
+		ratingsProcessor:    args.RatingsProcessor,
+		tpsBenchmarkUpdater: args.TPSBenchmarkUpdater,
+	}
+
+	nodesCoordinators, err := dp.createNodesCoordinators(args.GenesisNodesSetup)
 	if err != nil {
 		return nil, err
 	}
 
-	dp.nodesCoordinators = nodesCoordinator
+	dp.nodesCoordinators = nodesCoordinators
 
 	return dp, nil
 }
@@ -99,7 +105,6 @@ func (dp *dataProcessor) processData(persistedData storer2ElasticData.RoundPersi
 		err := dp.ratingsProcessor.IndexRatingsForEpochStartMetaBlock(metaBlock)
 		if err != nil {
 			log.Error("cannot process ratings", "error", err)
-			//return false
 		}
 	}
 
@@ -107,6 +112,8 @@ func (dp *dataProcessor) processData(persistedData storer2ElasticData.RoundPersi
 	if err != nil {
 		log.Warn("error indexing header", "error", err)
 	}
+	metaBlock, _ := metaPersistedData.Header.(*block.MetaBlock)
+	dp.tpsBenchmarkUpdater.IndexTPSForMetaBlock(metaBlock)
 
 	for _, shardData := range persistedData.ShardHeaders {
 		err = dp.indexData(shardData)
@@ -125,7 +132,15 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 	}
 
 	notarizedHeaders := dp.computeNotarizedHeaders(data.Header)
-	dp.elasticIndexer.SaveBlock(data.Body, data.Header, data.TransactionsPool, signersIndexes, notarizedHeaders)
+	newBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
+	for _, mb := range data.Body.MiniBlocks {
+		if mb.Type == block.ReceiptBlock { // don't index receipt miniblocks
+			continue
+		}
+
+		newBody.MiniBlocks = append(newBody.MiniBlocks, mb)
+	}
+	dp.elasticIndexer.SaveBlock(newBody, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders)
 	dp.indexRoundInfo(signersIndexes, data.Header)
 	dp.logHeaderInfo(data.Header)
 	return nil
@@ -199,7 +214,7 @@ func (dp *dataProcessor) createNodesCoordinatorForShard(nodesConfig sharding.Gen
 		Marshalizer:             dp.marshalizer,
 		Hasher:                  dp.hasher,
 		Shuffler:                dataProcessorDisabled.NewNodesShuffler(),
-		EpochStartNotifier:      &disabled.EpochStartNotifier{},
+		EpochStartNotifier:      disabled.NewEpochStartNotifier(),
 		BootStorer:              memDB,
 		ShardIDAsObserver:       shardID,
 		NbShards:                nodesConfig.NumberOfShards(),
@@ -228,6 +243,10 @@ func (dp *dataProcessor) getShardIDs() []uint32 {
 }
 
 func (dp *dataProcessor) processValidatorsForEpoch(metaBlock *block.MetaBlock, body *block.Body) {
+	if metaBlock.Epoch == 0 {
+		return
+	}
+
 	peerMiniBlocks := make([]*block.MiniBlock, 0)
 
 	for _, mb := range body.MiniBlocks {
@@ -243,6 +262,7 @@ func (dp *dataProcessor) processValidatorsForEpoch(metaBlock *block.MetaBlock, b
 		for _, hash := range metaBlock.MiniBlockHeaders {
 			if bytes.Equal(hash.Hash, mbHash) {
 				peerMiniBlocks = append(peerMiniBlocks, mb)
+				break
 			}
 		}
 
@@ -274,10 +294,11 @@ func (dp *dataProcessor) uniqueMiniBlocksSlice(mbs []*block.MiniBlock) []*block.
 	for _, entry := range mbs {
 		hash, err := core.CalculateHash(dp.marshalizer, dp.hasher, entry)
 		if err != nil {
-			return mbs
+			continue
 		}
 
-		if _, value := keys[string(hash)]; !value {
+		_, valueOk := keys[string(hash)]
+		if !valueOk {
 			keys[string(hash)] = true
 			list = append(list, entry)
 		}

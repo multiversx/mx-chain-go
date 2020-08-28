@@ -29,11 +29,11 @@ func TestGetBlockByHash_InvalidShardShouldErr(t *testing.T) {
 func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryProcessorStub{
+	historyProc := &testscommon.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
-		GetEpochForHashCalled: func(hash []byte) (uint32, error) {
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
 			return 1, nil
 		},
 	}
@@ -69,11 +69,11 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	_ = storerMock.Put(headerHash, blockBytes)
 
 	expectedBlock := &apiBlock.APIBlock{
-		Nonce:   nonce,
-		Round:   round,
-		ShardID: shardID,
-		Epoch:   epoch,
-		Hash:    hex.EncodeToString(headerHash),
+		Nonce: nonce,
+		Round: round,
+		Shard: shardID,
+		Epoch: epoch,
+		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*apiBlock.APIMiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
@@ -98,7 +98,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	storerMock := mock.NewStorerMock()
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -123,18 +123,18 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	_ = storerMock.Put(headerHash, headerBytes)
 
 	expectedBlock := &apiBlock.APIBlock{
-		Nonce:   nonce,
-		Round:   round,
-		ShardID: core.MetachainShardId,
-		Epoch:   epoch,
-		Hash:    hex.EncodeToString(headerHash),
+		Nonce: nonce,
+		Round: round,
+		Shard: core.MetachainShardId,
+		Epoch: epoch,
+		Hash:  hex.EncodeToString(headerHash),
 		MiniBlocks: []*apiBlock.APIMiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
 				Type: block.TxBlock.String(),
 			},
 		},
-		NotarizedBlockHashes: []string{},
+		NotarizedBlocks: []*apiBlock.APINotarizedBlock{},
 	}
 
 	blk, err := n.GetBlockByHash(hex.EncodeToString(headerHash), false)
@@ -145,11 +145,11 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	t.Parallel()
 
-	historyProc := &testscommon.HistoryProcessorStub{
+	historyProc := &testscommon.HistoryRepositoryStub{
 		IsEnabledCalled: func() bool {
 			return true
 		},
-		GetEpochForHashCalled: func(hash []byte) (uint32, error) {
+		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
 			return 1, nil
 		},
 	}
@@ -189,11 +189,11 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	_ = storerMock.Put(func() []byte { hashBytes, _ := hex.DecodeString(headerHash); return hashBytes }(), headerBytes)
 
 	expectedBlock := &apiBlock.APIBlock{
-		Nonce:   nonce,
-		Round:   round,
-		ShardID: shardID,
-		Epoch:   epoch,
-		Hash:    headerHash,
+		Nonce: nonce,
+		Round: round,
+		Shard: shardID,
+		Epoch: epoch,
+		Hash:  headerHash,
 		MiniBlocks: []*apiBlock.APIMiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
@@ -219,7 +219,7 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 90),
-		node.WithHistoryRepository(&testscommon.HistoryProcessorStub{
+		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
 			IsEnabledCalled: func() bool {
 				return false
 			},
@@ -246,11 +246,11 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 	)
 
 	expectedBlock := &apiBlock.APIBlock{
-		Nonce:   nonce,
-		Round:   round,
-		ShardID: shardID,
-		Epoch:   epoch,
-		Hash:    headerHash,
+		Nonce: nonce,
+		Round: round,
+		Shard: shardID,
+		Epoch: epoch,
+		Hash:  headerHash,
 		MiniBlocks: []*apiBlock.APIMiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),

@@ -165,6 +165,12 @@ const MetricNetworkRecvBps = "erd_network_recv_bps"
 // MetricNetworkRecvBpsPeak is the metric for monitoring network received peak bytes per second
 const MetricNetworkRecvBpsPeak = "erd_network_recv_bps_peak"
 
+// MetricNetworkRecvBytesInCurrentEpochPerHost is the metric for monitoring network received bytes in current epoch per host
+const MetricNetworkRecvBytesInCurrentEpochPerHost = "erd_network_recv_bytes_in_epoch_per_host"
+
+// MetricNetworkSendBytesInCurrentEpochPerHost is the metric for monitoring network send bytes in current epoch per host
+const MetricNetworkSendBytesInCurrentEpochPerHost = "erd_network_sent_bytes_in_epoch_per_host"
+
 // MetricNetworkSentPercent is the metric for monitoring network sent load [%]
 const MetricNetworkSentPercent = "erd_network_sent_percent"
 
@@ -201,6 +207,9 @@ const MetricCrossCheckBlockHeight = "erd_cross_check_block_height"
 // MetricNumProcessedTxs is the metric that stores the number of transactions processed
 const MetricNumProcessedTxs = "erd_num_transactions_processed"
 
+// MetricNumProcessedTxsTPSBenchmark is the metric that stores the number of transactions processed for tps benchmark
+const MetricNumProcessedTxsTPSBenchmark = "erd_num_transactions_processed_tps_benchmark"
+
 // MetricCurrentBlockHash is the metric that stores the current block hash
 const MetricCurrentBlockHash = "erd_current_block_hash"
 
@@ -222,8 +231,8 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 // MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
-// MetricHighestFinalBlockInShard is the metric that stores the highest nonce block notarized by metachain for current shard
-const MetricHighestFinalBlockInShard = "erd_highest_notarized_block_by_metachain_for_current_shard"
+// MetricHighestFinalBlock is the metric for the nonce of the highest final block
+const MetricHighestFinalBlock = "erd_highest_final_nonce"
 
 // MetricLatestTagSoftwareVersion is the metric that stores the latest tag software version
 const MetricLatestTagSoftwareVersion = "erd_latest_tag_software_version"
@@ -345,17 +354,15 @@ const BuiltInCost = "BuiltInCost"
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
 const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 
-// TransactionStatus is the type used to represent the status of a transaction
-type TransactionStatus string
+// ElrondAPICost represents the field name of the Elrond SC API (EEI) gas costs
+const ElrondAPICost = "ElrondAPICost"
 
-const (
-	// TxStatusReceived represents the status of a transaction which was received but not yet executed
-	TxStatusReceived TransactionStatus = "received"
-	// TxStatusPartiallyExecuted represent the status of a transaction which was received and executed on source shard
-	TxStatusPartiallyExecuted TransactionStatus = "partially-executed"
-	// TxStatusExecuted represents the status of a transaction which was received and executed
-	TxStatusExecuted TransactionStatus = "executed"
-)
+// AsyncCallStepField is the field name for the gas cost for any of the two steps required to execute an async call
+const AsyncCallStepField = "AsyncCallStep"
+
+// AsyncCallbackGasLockField is the field name for the gas amount to be locked
+// before executing the destination async call, to be put aside for the async callback
+const AsyncCallbackGasLockField = "AsyncCallbackGasLock"
 
 const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
@@ -368,6 +375,8 @@ const (
 	NetworkShardingOrder
 	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
 	IndexerOrder
+	// NetStatisticsOrder defines the order in which netStatistic component is notified of a start of epoch event
+	NetStatisticsOrder
 )
 
 // NodeState specifies what type of state a node could have
@@ -489,3 +498,7 @@ const WrongP2PMessageBlacklistDuration = time.Second * 7200
 
 // MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
 const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
+
+// DefaultLogProfileIdentifier represents the default log profile used when the logviewer/termui applications do not
+// need to change the current logging profile
+const DefaultLogProfileIdentifier = "[default log profile]"

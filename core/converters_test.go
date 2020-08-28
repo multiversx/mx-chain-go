@@ -125,28 +125,29 @@ func TestSecondsToHourMinSec_ShouldWork(t *testing.T) {
 
 	second := 1
 	secondsInAMinute := 60
-	secondsInAHour := 3600
+	secondsInAnHour := 3600
 
 	testInputOutput := map[int]string{
-		0:                                                   "",
-		second:                                              "1 second ",
-		2 * second:                                          "2 seconds ",
-		1 * secondsInAMinute:                                "1 minute ",
-		1*secondsInAMinute + second:                         "1 minute 1 second ",
-		1*secondsInAMinute + 2*second:                       "1 minute 2 seconds ",
-		2*secondsInAMinute + second:                         "2 minutes 1 second ",
-		2*secondsInAMinute + 10*second:                      "2 minutes 10 seconds ",
-		59*secondsInAMinute + 59*second:                     "59 minutes 59 seconds ",
-		secondsInAHour:                                      "1 hour ",
-		secondsInAHour + second:                             "1 hour 1 second ",
-		secondsInAHour + 2*second:                           "1 hour 2 seconds ",
-		secondsInAHour + secondsInAMinute:                   "1 hour 1 minute ",
-		secondsInAHour + 2*secondsInAMinute:                 "1 hour 2 minutes ",
-		secondsInAHour + secondsInAMinute + second:          "1 hour 1 minute 1 second ",
-		secondsInAHour + 2*secondsInAMinute + second:        "1 hour 2 minutes 1 second ",
-		secondsInAHour + 2*secondsInAMinute + 10*second:     "1 hour 2 minutes 10 seconds ",
-		2*secondsInAHour + 2*secondsInAMinute + 10*second:   "2 hours 2 minutes 10 seconds ",
-		60*secondsInAHour + 15*secondsInAMinute + 20*second: "60 hours 15 minutes 20 seconds ",
+		-1:                                   "",
+		0:                                    "",
+		second:                               "1 second ",
+		2 * second:                           "2 seconds ",
+		1 * secondsInAMinute:                 "1 minute ",
+		1*secondsInAMinute + second:          "1 minute 1 second ",
+		1*secondsInAMinute + 2*second:        "1 minute 2 seconds ",
+		2*secondsInAMinute + second:          "2 minutes 1 second ",
+		2*secondsInAMinute + 10*second:       "2 minutes 10 seconds ",
+		59*secondsInAMinute + 59*second:      "59 minutes 59 seconds ",
+		secondsInAnHour:                      "1 hour ",
+		secondsInAnHour + second:             "1 hour 1 second ",
+		secondsInAnHour + 2*second:           "1 hour 2 seconds ",
+		secondsInAnHour + secondsInAMinute:   "1 hour 1 minute ",
+		secondsInAnHour + 2*secondsInAMinute: "1 hour 2 minutes ",
+		secondsInAnHour + secondsInAMinute + second:          "1 hour 1 minute 1 second ",
+		secondsInAnHour + 2*secondsInAMinute + second:        "1 hour 2 minutes 1 second ",
+		secondsInAnHour + 2*secondsInAMinute + 10*second:     "1 hour 2 minutes 10 seconds ",
+		2*secondsInAnHour + 2*secondsInAMinute + 10*second:   "2 hours 2 minutes 10 seconds ",
+		60*secondsInAnHour + 15*secondsInAMinute + 20*second: "60 hours 15 minutes 20 seconds ",
 	}
 
 	for input, expectedOutput := range testInputOutput {
