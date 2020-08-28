@@ -26,6 +26,9 @@ import (
 
 var log = logger.GetOrCreate("dataprocessor")
 
+// indexLogStep defines the step between logging an indexed header in order to avoid over-printing
+const indexLogStep = 100
+
 // ArgsDataProcessor holds the arguments needed for creating a new dataProcessor
 type ArgsDataProcessor struct {
 	ElasticIndexer      indexer.Indexer
@@ -41,6 +44,7 @@ type ArgsDataProcessor struct {
 }
 
 type dataProcessor struct {
+	startTime           time.Time
 	elasticIndexer      indexer.Indexer
 	dataReplayer        DataReplayerHandler
 	genesisNodesSetup   update.GenesisNodesSetupHandler
@@ -89,6 +93,7 @@ func NewDataProcessor(args ArgsDataProcessor) (*dataProcessor, error) {
 		tpsBenchmarkUpdater: args.TPSBenchmarkUpdater,
 		ratingConfig:        args.RatingConfig,
 		startingEpoch:       args.StartingEpoch,
+		startTime:           time.Now(),
 	}
 
 	nodesCoordinators, err := dp.createNodesCoordinators(args.GenesisNodesSetup)
@@ -114,12 +119,14 @@ func (dp *dataProcessor) processData(persistedData storer2ElasticData.RoundPersi
 		err := dp.ratingsProcessor.IndexRatingsForEpochStartMetaBlock(metaBlock)
 		if err != nil {
 			log.Error("cannot process ratings", "error", err)
+			return false
 		}
 	}
 
 	err := dp.indexData(metaPersistedData)
 	if err != nil {
 		log.Warn("error indexing header", "error", err)
+		return false
 	}
 	metaBlock, _ := metaPersistedData.Header.(*block.MetaBlock)
 	dp.tpsBenchmarkUpdater.IndexTPSForMetaBlock(metaBlock)
@@ -132,6 +139,7 @@ func (dp *dataProcessor) processData(persistedData storer2ElasticData.RoundPersi
 					"shard ID", shardData.Header.GetShardID(),
 					"nonce", shardData.Header.GetNonce(),
 					"error", err)
+				return false
 			}
 		}
 	}
@@ -154,8 +162,10 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 
 		newBody.MiniBlocks = append(newBody.MiniBlocks, mb)
 	}
-	dp.elasticIndexer.SaveBlock(newBody, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders)
-	dp.indexRoundInfo(signersIndexes, data.Header)
+	// TODO: analyze if saving to elastic search on go routines is the right way to go. Important performance improvement
+	// was noticed this way
+	go dp.elasticIndexer.SaveBlock(newBody, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders)
+	go dp.indexRoundInfo(signersIndexes, data.Header)
 	dp.logHeaderInfo(data.Header)
 	return nil
 }
@@ -199,9 +209,10 @@ func (dp *dataProcessor) createNodesCoordinators(nodesConfig update.GenesisNodes
 		nodesCoordinatorsMap[shardID] = nodeCoordForShard
 
 		if dp.startingEpoch == 0 {
-			validatorsPubKeys, err := nodeCoordForShard.GetAllEligibleValidatorsPublicKeys(0)
-			if err != nil || len(validatorsPubKeys) == 0 {
+			validatorsPubKeys, errGetEligible := nodeCoordForShard.GetAllEligibleValidatorsPublicKeys(0)
+			if errGetEligible != nil || len(validatorsPubKeys) == 0 {
 				log.Warn("cannot get all eligible validatorsPubKeys", "epoch", 0)
+				return nil, err
 			}
 
 			dp.elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, 0)
@@ -367,6 +378,15 @@ func (dp *dataProcessor) computeNotarizedHeaders(hdr data.HeaderHandler) []strin
 }
 
 func (dp *dataProcessor) logHeaderInfo(hdr data.HeaderHandler) {
+	if hdr.GetNonce()%indexLogStep != 0 {
+		return
+	}
+	if hdr.GetShardID() != core.MetachainShardId {
+		return
+	}
+
+	elapsedTime := time.Since(dp.startTime)
+	log.Info("elapsed time from start", "time", elapsedTime, "meta nonce", hdr.GetNonce())
 	headerHash, err := core.CalculateHash(dp.marshalizer, dp.hasher, hdr)
 	if err != nil {
 		log.Warn("error while calculating the hash of a header for logging", "error", err)

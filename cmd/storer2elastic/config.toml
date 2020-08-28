@@ -1,7 +1,6 @@
 [general]
     dbPathWithChainID = "db/chainID"
     nodeConfigPath = "../node/config/config.toml"
-    numShards = 2
 
 [elasticSearch]
     url        = "http://localhost:9200"
