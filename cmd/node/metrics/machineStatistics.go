@@ -8,10 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// StartMachineStatisticsPolling will start read information about current  running machini
-func StartMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval time.Duration) error {
+// StartMachineStatisticsPolling will start read information about current running machine
+func StartMachineStatisticsPolling(ash core.AppStatusHandler, notifier sharding.EpochStartEventNotifier, pollingInterval time.Duration) error {
 	if check.IfNil(ash) {
 		return errors.New("nil AppStatusHandler")
 	}
@@ -31,7 +32,7 @@ func StartMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval ti
 		return err
 	}
 
-	err = registerNetStatistics(appStatusPollingHandler)
+	err = registerNetStatistics(appStatusPollingHandler, notifier)
 	if err != nil {
 		return err
 	}
@@ -54,8 +55,9 @@ func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 	})
 }
 
-func registerNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
+func registerNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling, notifier sharding.EpochStartEventNotifier) error {
 	netStats := &machine.NetStatistics{}
+	notifier.RegisterHandler(netStats.EpochStartEventHandler())
 	go func() {
 		for {
 			netStats.ComputeStatistics()
@@ -70,6 +72,9 @@ func registerNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBps, netStats.BpsSent())
 		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBpsPeak, netStats.BpsSentPeak())
 		appStatusHandler.SetUInt64Value(core.MetricNetworkSentPercent, netStats.PercentSent())
+
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBytesInCurrentEpochPerHost, netStats.TotalBytesReceivedInCurrentEpoch())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSendBytesInCurrentEpochPerHost, netStats.TotalBytesSentInCurrentEpoch())
 	})
 }
 
