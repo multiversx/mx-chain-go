@@ -218,6 +218,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", nodesFileName)
 
+	if ctx.IsSet(startInEpoch.Name) {
+		log.Debug("start in epoch is enabled")
+		cfgs.generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
+	}
+
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:              *cfgs.generalConfig,
 		RatingsConfig:       *cfgs.ratingsConfig,
@@ -240,15 +245,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = managedCoreComponents.Create()
 	if err != nil {
 		return err
-	}
-
-	if ctx.IsSet(startInEpoch.Name) {
-		log.Debug("start in epoch is enabled")
-		cfgs.generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
-		if cfgs.generalConfig.GeneralSettings.StartInEpochEnabled {
-			delayedStartInterval := 2 * time.Second
-			time.Sleep(delayedStartInterval)
-		}
 	}
 
 	validatorKeyPemFileName := ctx.GlobalString(validatorKeyPemFile.Name)

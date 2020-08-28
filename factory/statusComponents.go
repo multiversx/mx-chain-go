@@ -144,29 +144,6 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		return nil, err
 	}
 
-	if !scf.externalConfig.ElasticSearchConnector.Enabled {
-		log.Debug("elastic search indexing not enabled, will create a NilIndexer")
-		elasticIndexer = indexer.NewNilIndexer()
-	} else {
-		elasticIndexerArgs := indexer.ElasticIndexerArgs{
-			ShardId:                  scf.shardCoordinator.SelfId(),
-			Url:                      scf.externalConfig.ElasticSearchConnector.URL,
-			UserName:                 scf.externalConfig.ElasticSearchConnector.Username,
-			Password:                 scf.externalConfig.ElasticSearchConnector.Password,
-			Marshalizer:              scf.coreComponents.VmMarshalizer(),
-			Hasher:                   scf.coreComponents.Hasher(),
-			EpochStartNotifier:       scf.epochStartNotifier,
-			NodesCoordinator:         scf.nodesCoordinator,
-			AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
-			ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
-			Options:                  scf.elasticOptions,
-		}
-		elasticIndexer, err = indexer.NewElasticIndexer(elasticIndexerArgs)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return &statusComponents{
 		softwareVersion: softwareVersionChecker,
 		tpsBenchmark:    tpsBenchmark,
