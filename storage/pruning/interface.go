@@ -14,5 +14,6 @@ type EpochStartNotifier interface {
 // DbFactoryHandler defines what a db factory implementation should do
 type DbFactoryHandler interface {
 	Create(filePath string) (storage.Persister, error)
+	CreateDisabled() storage.Persister
 	IsInterfaceNil() bool
 }

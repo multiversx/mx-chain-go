@@ -3,6 +3,7 @@ package mock
 // StorerStub -
 type StorerStub struct {
 	PutCalled              func(key, data []byte) error
+	PutInEpochCalled       func(key, data []byte, epoch uint32) error
 	GetCalled              func(key []byte) ([]byte, error)
 	GetFromEpochCalled     func(key []byte, epoch uint32) ([]byte, error)
 	HasCalled              func(key []byte) error
@@ -28,6 +29,11 @@ func (ss *StorerStub) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string]
 // HasInEpoch -
 func (ss *StorerStub) HasInEpoch(key []byte, epoch uint32) error {
 	return ss.HasInEpochCalled(key, epoch)
+}
+
+// PutInEpoch -
+func (ss *StorerStub) PutInEpoch(key, data []byte, epoch uint32) error {
+	return ss.PutInEpochCalled(key, data, epoch)
 }
 
 // SearchFirst -

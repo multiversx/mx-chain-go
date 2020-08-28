@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -77,7 +77,7 @@ type baseProcessor struct {
 
 	indexer       indexer.Indexer
 	tpsBenchmark  statistics.TPSBenchmark
-	historyRepo   fullHistory.HistoryRepository
+	historyRepo   dblookupext.HistoryRepository
 	epochNotifier process.EpochNotifier
 }
 
