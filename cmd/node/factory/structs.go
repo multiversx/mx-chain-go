@@ -639,9 +639,9 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 	log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
-	// In "dblookupext" index, record both the metachain and the shard blocks
-	for shard, genesisBlockHeader := range genesisBlocks {
-		if args.shardCoordinator.SelfId() != shard {
+	// In "dblookupext" index, record both the metachain and the shardID blocks
+	for shardID, genesisBlockHeader := range genesisBlocks {
+		if args.shardCoordinator.SelfId() != shardID {
 			continue
 		}
 
@@ -650,13 +650,13 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 			return err
 		}
 
-		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shard, "hash", genesisBlockHash)
+		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", shardID, "hash", genesisBlockHash)
 		err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
 		if err != nil {
 			return err
 		}
 
-		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shard)
+		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardID)
 		nonceAsBytes := args.coreData.Uint64ByteSliceConverter.ToByteSlice(genesisBlockHeader.GetNonce())
 		err = args.data.Store.Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
 		if err != nil {
@@ -2032,6 +2032,7 @@ func newMetaBlockProcessor(
 		ValidatorInfoCreator:    validatorStatisticsProcessor,
 		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 		StakingSCAddress:        vm.StakingSCAddress,
+		ChanceComputer:          nodesCoordinator,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {

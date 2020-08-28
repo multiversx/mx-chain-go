@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -24,6 +25,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	Marshalizer          marshal.Marshalizer
 	StartRating          uint32
 	ValidatorInfoCreator epochStart.ValidatorInfoCreator
+	ChanceComputer       sharding.ChanceComputer
 
 	EndOfEpochCallerAddress []byte
 	StakingSCAddress        []byte
@@ -34,6 +36,7 @@ type systemSCProcessor struct {
 	userAccountsDB          state.AccountsAdapter
 	marshalizer             marshal.Marshalizer
 	peerAccountsDB          state.AccountsAdapter
+	chanceComputer          sharding.ChanceComputer
 	startRating             uint32
 	validatorInfoCreator    epochStart.ValidatorInfoCreator
 	endOfEpochCallerAddress []byte
@@ -63,6 +66,9 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if len(args.StakingSCAddress) == 0 {
 		return nil, epochStart.ErrNilStakingSCAddress
 	}
+	if check.IfNil(args.ChanceComputer) {
+		return nil, epochStart.ErrNilChanceComputer
+	}
 
 	return &systemSCProcessor{
 		systemVM:                args.SystemVM,
@@ -73,6 +79,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		validatorInfoCreator:    args.ValidatorInfoCreator,
 		endOfEpochCallerAddress: args.EndOfEpochCallerAddress,
 		stakingSCAddress:        args.StakingSCAddress,
+		chanceComputer:          args.ChanceComputer,
 	}, nil
 }
 
@@ -256,9 +263,10 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 
 func (s *systemSCProcessor) getSortedJailedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) []*state.ValidatorInfo {
 	jailedValidators := make([]*state.ValidatorInfo, 0)
+	minChance := s.chanceComputer.GetChance(0)
 	for _, listValidators := range validatorInfos {
 		for _, validatorInfo := range listValidators {
-			if validatorInfo.List == string(core.JailedList) {
+			if s.chanceComputer.GetChance(validatorInfo.TempRating) < minChance {
 				jailedValidators = append(jailedValidators, validatorInfo)
 			}
 		}

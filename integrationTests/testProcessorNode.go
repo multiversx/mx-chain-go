@@ -1009,7 +1009,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
-		builtInFuncs.Add(name, function)
+		_ = builtInFuncs.Add(name, function)
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -1439,6 +1439,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ValidatorInfoCreator:    tpn.ValidatorStatisticsProcessor,
 			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 			StakingSCAddress:        vm.StakingSCAddress,
+			ChanceComputer:          tpn.NodesCoordinator,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 

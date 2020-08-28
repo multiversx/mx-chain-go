@@ -34,6 +34,14 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	t.Parallel()
 
 	args := createFullArgumentsForSystemSCProcessing()
+	args.ChanceComputer = &mock.ChanceComputerStub{
+		GetChanceCalled: func(rating uint32) uint32 {
+			if rating == 0 {
+				return 10
+			}
+			return rating
+		},
+	}
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(args.UserAccountsDB, []byte("jailedPubKey0"), []byte("waitingPubKey"), args.Marshalizer)
@@ -45,6 +53,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 		PublicKey:       []byte("jailedPubKey0"),
 		ShardId:         0,
 		List:            string(core.JailedList),
+		TempRating:      1,
 		RewardAddress:   []byte("address"),
 		AccumulatedFees: big.NewInt(0),
 	}
@@ -200,6 +209,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		ValidatorInfoCreator:    vCreator,
 		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 		StakingSCAddress:        vm.StakingSCAddress,
+		ChanceComputer:          &mock.ChanceComputerStub{},
 	}
 	return args
 }
