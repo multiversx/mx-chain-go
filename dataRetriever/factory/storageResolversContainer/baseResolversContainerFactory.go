@@ -3,6 +3,7 @@ package storageResolversContainers
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
@@ -20,6 +21,7 @@ type baseResolversContainerFactory struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	dataPacker               dataRetriever.DataPacker
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	chanGracefullyClose      chan endProcess.ArgEndProcess
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -43,6 +45,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.manualEpochStartNotifier) {
 		return dataRetriever.ErrNilManualEpochStartNotifier
+	}
+	if brcf.chanGracefullyClose == nil {
+		return dataRetriever.ErrNilGracefullyCloseChannel
 	}
 
 	return nil

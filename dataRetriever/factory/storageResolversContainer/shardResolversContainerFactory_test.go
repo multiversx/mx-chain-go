@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -184,5 +185,6 @@ func getArgumentsShard() storageResolversContainers.FactoryArgs {
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 		DataPacker:               &mock.DataPackerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
+		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
 	}
 }
