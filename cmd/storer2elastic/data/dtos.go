@@ -8,7 +8,7 @@ import (
 // RoundPersistedData holds the data for a round which inclused the meta block and the shard headers
 type RoundPersistedData struct {
 	MetaBlockData *HeaderData
-	ShardHeaders  map[uint32]*HeaderData
+	ShardHeaders  map[uint32][]*HeaderData
 }
 
 // HeaderData holds the data for a shard in a round
