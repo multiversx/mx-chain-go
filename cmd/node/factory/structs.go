@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -168,7 +168,7 @@ type processComponentsFactoryArgs struct {
 	indexer                   indexer.Indexer
 	uint64Converter           typeConverters.Uint64ByteSliceConverter
 	tpsBenchmark              statistics.TPSBenchmark
-	historyRepo               fullHistory.HistoryRepository
+	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
 	txSimulatorProcessorArgs  *txsimulator.ArgsTxSimulator
 	storageReolverImportPath  string
@@ -214,7 +214,7 @@ func NewProcessComponentsFactoryArgs(
 	workingDir string,
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
-	historyRepo fullHistory.HistoryRepository,
+	historyRepo dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	storageReolverImportPath string,
@@ -349,7 +349,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	if args.startEpochNum == 0 {
-		err = indexGenesisBlock(args, genesisBlocks)
+		err = indexGenesisBlocks(args, genesisBlocks)
 		if err != nil {
 			return nil, err
 		}
@@ -628,20 +628,40 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 	return nil
 }
 
-func indexGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
+func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
+	// In Elastic Indexer, only index the metachain block
 	genesisBlockHeader := genesisBlocks[core.MetachainShardId]
 	genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
 	if err != nil {
 		return err
 	}
 
-	log.Info("indexGenesisBlock", "hash", genesisBlockHash)
-
+	log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
-	err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
-	if err != nil {
-		return err
+	// In "dblookupext" index, record both the metachain and the shard blocks
+	for shard, genesisBlockHeader := range genesisBlocks {
+		if args.shardCoordinator.SelfId() != shard {
+			continue
+		}
+
+		genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
+		if err != nil {
+			return err
+		}
+
+		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shard, "hash", genesisBlockHash)
+		err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
+		if err != nil {
+			return err
+		}
+
+		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shard)
+		nonceAsBytes := args.coreData.Uint64ByteSliceConverter.ToByteSlice(genesisBlockHeader.GetNonce())
+		err = args.data.Store.Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -1392,7 +1412,7 @@ func newShardBlockProcessor(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
-	historyRepository fullHistory.HistoryRepository,
+	historyRepository dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) (process.BlockProcessor, error) {
@@ -1693,7 +1713,7 @@ func newMetaBlockProcessor(
 	indexer indexer.Indexer,
 	tpsBenchmark statistics.TPSBenchmark,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
-	historyRepository fullHistory.HistoryRepository,
+	historyRepository dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) (process.BlockProcessor, error) {

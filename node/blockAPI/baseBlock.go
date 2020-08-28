@@ -6,7 +6,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -15,12 +15,12 @@ import (
 )
 
 type baseAPIBockProcessor struct {
-	isFullHistoryNode        bool
+	hasDbLookupExtensions    bool
 	selfShardID              uint32
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	historyRepo              fullHistory.HistoryRepository
+	historyRepo              dblookupext.HistoryRepository
 	unmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 }
 
@@ -109,7 +109,7 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 }
 
 func (bap *baseAPIBockProcessor) getFromStorer(unit dataRetriever.UnitType, key []byte) ([]byte, error) {
-	if !bap.isFullHistoryNode {
+	if !bap.hasDbLookupExtensions {
 		return bap.store.Get(unit, key)
 	}
 

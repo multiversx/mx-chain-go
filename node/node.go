@@ -20,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -155,7 +155,7 @@ type Node struct {
 	peerHonestyHandler consensus.PeerHonestyHandler
 
 	watchdog          core.WatchdogTimer
-	historyRepository fullHistory.HistoryRepository
+	historyRepository dblookupext.HistoryRepository
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
