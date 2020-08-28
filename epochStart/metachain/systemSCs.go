@@ -93,7 +93,7 @@ func (s *systemSCProcessor) auctionSelection() error {
 func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*state.ValidatorInfo) error {
 	jailedValidators := s.getSortedJailedNodes(validatorInfos)
 
-	log.Warn("number of jailed validators", "num", len(jailedValidators))
+	log.Debug("number of jailed validators", "num", len(jailedValidators))
 	for _, jailedValidator := range jailedValidators {
 
 		vmInput := &vmcommon.ContractCallInput{
@@ -111,7 +111,7 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 			return err
 		}
 
-		log.Warn("swtichJailedWithWaiting", "key", jailedValidator.PublicKey, "code", vmOutput.ReturnCode.String(), "err", err)
+		log.Debug("swtichJailedWithWaiting", "key", jailedValidator.PublicKey, "code", vmOutput.ReturnCode.String())
 		if vmOutput.ReturnCode != vmcommon.Ok || vmOutput.ReturnMessage == vm.ErrBLSPublicKeyAlreadyJailed.Error() {
 			continue
 		}
@@ -149,8 +149,8 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 			break
 		}
 	}
-	log.Warn("noone in waiting suitable for switch")
 	if activeStorageUpdate == nil {
+		log.Debug("no one in waiting suitable for switch")
 		return nil
 	}
 
@@ -161,7 +161,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	blsPubKey := activeStorageUpdate.Offset
-	log.Warn("staking validator key ", "blsKey", blsPubKey)
+	log.Debug("staking validator key who switches with the jailed one", "blsKey", blsPubKey)
 	account, err := s.getPeerAccount(blsPubKey)
 	if err != nil {
 		return err
