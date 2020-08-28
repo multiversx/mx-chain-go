@@ -688,7 +688,8 @@ func (txProc *txProcessor) getUserTxCost(
 		gasUsed := txProc.economicsFee.ComputeGasLimit(userTx)
 		isTooMuchGasProvided := userTx.GasLimit > gasUsed*process.MaxGasFeeHigherFactorAccepted
 		if isTooMuchGasProvided {
-			log.Trace("txProcessor.getUserTxCost: too much gas has been provided",
+			//TODO: Change log level back to Trace
+			log.Warn("txProcessor.getUserTxCost: too much gas provided",
 				"hash", userTxHash,
 				"nonce", userTx.GetNonce(),
 				"value", userTx.GetValue(),

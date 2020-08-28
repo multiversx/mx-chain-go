@@ -3,6 +3,7 @@ package arwen
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -17,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -52,6 +54,12 @@ var hasher = sha256.Sha256{}
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
+// GasSchedulePath --
+var GasSchedulePath = "../gasSchedule.toml"
+
+// DNSAddresses --
+var DNSAddresses = make(map[string]struct{})
+
 // TestContext -
 type TestContext struct {
 	T *testing.T
@@ -80,6 +88,10 @@ type TestContext struct {
 	VMContainer      process.VirtualMachinesContainer
 	BlockchainHook   *hooks.BlockChainHookImpl
 	RewardsProcessor RewardsProcessor
+
+	LastTxHash    []byte
+	SCRForwarder  *mock.IntermediateTransactionHandlerMock
+	LastSCResults []*smartContractResult.SmartContractResult
 }
 
 type testParticipant struct {
@@ -107,7 +119,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 
 	context.initAccounts()
 
-	context.GasSchedule, err = core.LoadGasScheduleConfig("../gasSchedule.toml")
+	context.GasSchedule, err = core.LoadGasScheduleConfig(GasSchedulePath)
 	require.Nil(t, err)
 
 	context.initFeeHandlers()
@@ -147,7 +159,7 @@ func (context *TestContext) initFeeHandlers() {
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          context.GasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
+		MapDNSAddresses: DNSAddresses,
 		Marshalizer:     marshalizer,
 	}
 
@@ -194,6 +206,8 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
+
+	context.SCRForwarder = &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:    context.VMContainer,
 		ArgsParser:     smartContract.NewArgumentParser(),
@@ -203,7 +217,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		BlockChainHook: context.BlockchainHook,
 		PubkeyConv:     pkConverter,
 		Coordinator:    oneShardCoordinator,
-		ScrForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		ScrForwarder:   context.SCRForwarder,
 		BadTxForwarder: &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler:   context.UnsignexTxHandler,
 		EconomicsFee:   context.EconomicsFee,
@@ -211,6 +225,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
+		GasSchedule:      gasSchedule,
 		BuiltInFunctions: context.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
@@ -350,7 +365,14 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		tx.GasLimit = maxGasLimit
 	}
 
-	_, err := context.TxProcessor.ProcessTransaction(tx)
+	txHash, err := core.CalculateHash(marshalizer, hasher, tx)
+	if err != nil {
+		return err
+	}
+
+	context.LastTxHash = txHash
+
+	_, err = context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}
@@ -365,6 +387,8 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 	if err != nil {
 		return err
 	}
+
+	context.UpdateLastSCResults()
 
 	return nil
 }
@@ -395,7 +419,14 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 		tx.GasLimit = maxGasLimit
 	}
 
-	_, err := context.TxProcessor.ProcessTransaction(tx)
+	txHash, err := core.CalculateHash(marshalizer, hasher, tx)
+	if err != nil {
+		return err
+	}
+
+	context.LastTxHash = txHash
+
+	_, err = context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}
@@ -410,6 +441,8 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 	if err != nil {
 		return err
 	}
+
+	context.UpdateLastSCResults()
 
 	return nil
 }
@@ -451,7 +484,14 @@ func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData s
 		tx.GasLimit = maxGasLimit
 	}
 
-	_, err := context.TxProcessor.ProcessTransaction(tx)
+	txHash, err := core.CalculateHash(marshalizer, hasher, tx)
+	if err != nil {
+		return err
+	}
+
+	context.LastTxHash = txHash
+
+	_, err = context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
 	}
@@ -465,6 +505,24 @@ func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData s
 	err = context.GetLatestError()
 	if err != nil {
 		return err
+	}
+
+	context.UpdateLastSCResults()
+
+	return nil
+}
+
+// UpdateLastSCResults --
+func (context *TestContext) UpdateLastSCResults() error {
+	transactions := context.SCRForwarder.GetIntermediateTransactions()
+	context.LastSCResults = make([]*smartContractResult.SmartContractResult, len(transactions))
+	for i, tx := range transactions {
+		scrTx, ok := tx.(*smartContractResult.SmartContractResult)
+		if ok {
+			context.LastSCResults[i] = scrTx
+		} else {
+			return errors.New("could not convert tx to scr")
+		}
 	}
 
 	return nil

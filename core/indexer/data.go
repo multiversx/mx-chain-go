@@ -26,6 +26,7 @@ type Transaction struct {
 	Signature            string        `json:"signature"`
 	Timestamp            time.Duration `json:"timestamp"`
 	Status               string        `json:"status"`
+	SearchOrder          uint32        `json:"searchOrder"`
 	SmartContractResults []ScResult    `json:"scResults,omitempty"`
 	Log                  TxLog         `json:"-"`
 }
@@ -84,6 +85,7 @@ type Block struct {
 	PrevHash              string        `json:"prevHash"`
 	ShardID               uint32        `json:"shardId"`
 	TxCount               uint32        `json:"txCount"`
+	SearchOrder           uint32        `json:"searchOrder"`
 }
 
 //ValidatorsPublicKeys is a structure containing fields for validators public keys

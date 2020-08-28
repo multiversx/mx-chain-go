@@ -15,6 +15,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -591,6 +592,121 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 			assert.Equal(t, hashedUserName, userAcc.GetUserName())
 		}
 	}
+}
+
+func TestSCCallingBuiltinAndFails(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	testBuiltinFunc := &integrationTests.TestBuiltinFunction{}
+	testBuiltinFunc.Function = func(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+		if !check.IfNil(acntSnd) {
+			fmt.Println("builtin snd", hex.EncodeToString(acntSnd.AddressBytes()))
+		}
+		if !check.IfNil(acntDst) {
+			fmt.Println("builtin dst", hex.EncodeToString(acntDst.AddressBytes()))
+			return nil, errors.New("some error")
+		}
+
+		vmOutput := &vmcommon.VMOutput{}
+		vmOutput.ReturnCode = vmcommon.Ok
+		vmOutput.GasRemaining = vmInput.GasProvided / 2
+		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
+		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
+			Address:  vmInput.RecipientAddr,
+			Data:     []byte("testfunc@01"),
+			CallType: vmcommon.AsynchronousCall,
+			GasLimit: 200000,
+		}
+
+		fmt.Println("OutputAccount recipient", hex.EncodeToString(vmInput.RecipientAddr))
+
+		return vmOutput, nil
+	}
+
+	integrationTests.TestBuiltinFunctions["testfunc"] = testBuiltinFunc
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000000)
+	initialVal.Mul(initialVal, initialVal)
+	fmt.Printf("Initial minted sum: %s\n", initialVal.String())
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	require.Equal(t, uint32(0), nodes[0].ShardCoordinator.SelfId())
+	require.Equal(t, uint32(1), nodes[1].ShardCoordinator.SelfId())
+
+	scOwner := []byte("12345678901234567890123456789000")
+	mintPubKey(scOwner, initialVal, nodes)
+	scAddress := putDeploySCToDataPool(
+		"./testdata/callBuiltin/output/callBuiltin.wasm",
+		scOwner,
+		0,
+		big.NewInt(0),
+		"",
+		[]*integrationTests.TestProcessorNode{nodes[0]},
+		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+
+	sender := nodes[0]
+	receiver := nodes[1]
+
+	fmt.Println("nodes[0]", hex.EncodeToString(sender.OwnAccount.Address))
+	fmt.Println("nodes[1]", hex.EncodeToString(receiver.OwnAccount.Address))
+	fmt.Println("scAddress", hex.EncodeToString(scAddress))
+
+	integrationTests.CreateAndSendTransaction(
+		sender,
+		big.NewInt(0),
+		scAddress,
+		"callBuiltin@"+hex.EncodeToString(receiver.OwnAccount.Address),
+		150000,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+
+	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)
+	require.NotNil(t, testValue1)
+	require.Equal(t, uint64(255), testValue1.Uint64())
+
+	testValue2 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue2", nil)
+	require.NotNil(t, testValue2)
+	require.Equal(t, uint64(254), testValue2.Uint64())
 }
 
 func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) string {

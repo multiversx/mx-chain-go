@@ -1,43 +1,82 @@
 package genericmocks
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
+	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // StorerMock -
 type StorerMock struct {
-	mutex sync.RWMutex
-	Data  map[string][]byte
+	mutex        sync.RWMutex
+	Name         string
+	DataByEpoch  map[uint32]*container.MutexMap
+	currentEpoch atomic.Uint32
 }
 
 // NewStorerMock -
-func NewStorerMock() *StorerMock {
-	return &StorerMock{
-		Data: make(map[string][]byte),
+func NewStorerMock(name string, currentEpoch uint32) *StorerMock {
+	sm := &StorerMock{
+		Name:        name,
+		DataByEpoch: make(map[uint32]*container.MutexMap),
 	}
+
+	sm.SetCurrentEpoch(currentEpoch)
+	return sm
+}
+
+// SetCurrentEpoch -
+func (sm *StorerMock) SetCurrentEpoch(epoch uint32) {
+	sm.currentEpoch.Set(epoch)
+}
+
+// GetCurrentEpochData -
+func (sm *StorerMock) GetCurrentEpochData() *container.MutexMap {
+	return sm.GetEpochData(sm.currentEpoch.Get())
+}
+
+// GetEpochData -
+func (sm *StorerMock) GetEpochData(epoch uint32) *container.MutexMap {
+	sm.mutex.RLock()
+	data, ok := sm.DataByEpoch[epoch]
+	sm.mutex.RUnlock()
+
+	if ok {
+		return data
+	}
+
+	sm.mutex.Lock()
+	data = container.NewMutexMap()
+	sm.DataByEpoch[epoch] = data
+	sm.mutex.Unlock()
+
+	return data
 }
 
 // GetFromEpoch -
-func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
-	return sm.Get(key)
+func (sm *StorerMock) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
+	data := sm.GetEpochData(epoch)
+	value, ok := data.Get(string(key))
+	if !ok {
+		return nil, sm.newErrNotFound(key, epoch)
+	}
+
+	return value.([]byte), nil
 }
 
 // GetBulkFromEpoch -
-func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]byte, error) {
-	sm.mutex.RLock()
-	defer sm.mutex.RUnlock()
-
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[string][]byte, error) {
+	data := sm.GetEpochData(epoch)
 	result := map[string][]byte{}
 
 	for _, key := range keys {
-		value, ok := sm.Data[string(key)]
+		value, ok := data.Get(string(key))
 		if ok {
-			result[string(key)] = value
+			result[string(key)] = value.([]byte)
 		}
 	}
 
@@ -45,24 +84,28 @@ func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) (map[string][]by
 }
 
 // HasInEpoch -
-func (sm *StorerMock) HasInEpoch(key []byte, _ uint32) error {
-	sm.mutex.RLock()
-	defer sm.mutex.RUnlock()
+func (sm *StorerMock) HasInEpoch(key []byte, epoch uint32) error {
+	data := sm.GetEpochData(epoch)
 
-	_, ok := sm.Data[string(key)]
+	_, ok := data.Get(string(key))
 	if ok {
 		return nil
 	}
 
-	return fmt.Errorf("not in epoch")
+	return sm.newErrNotFound(key, epoch)
 }
 
 // Put -
-func (sm *StorerMock) Put(key, data []byte) error {
-	sm.mutex.Lock()
-	defer sm.mutex.Unlock()
+func (sm *StorerMock) Put(key, value []byte) error {
+	data := sm.GetCurrentEpochData()
+	data.Set(string(key), value)
+	return nil
+}
 
-	sm.Data[string(key)] = data
+// PutInEpoch -
+func (sm *StorerMock) PutInEpoch(key, value []byte, epoch uint32) error {
+	data := sm.GetEpochData(epoch)
+	data.Set(string(key), value)
 	return nil
 }
 
@@ -78,15 +121,13 @@ func (sm *StorerMock) PutWithMarshalizer(key []byte, obj interface{}, marshalize
 
 // Get -
 func (sm *StorerMock) Get(key []byte) ([]byte, error) {
-	sm.mutex.RLock()
-	defer sm.mutex.RUnlock()
-
-	value, ok := sm.Data[string(key)]
+	data := sm.GetCurrentEpochData()
+	value, ok := data.Get(string(key))
 	if !ok {
-		return nil, fmt.Errorf("key: %s not found", hex.EncodeToString(key))
+		return nil, sm.newErrNotFound(key, sm.currentEpoch.Get())
 	}
 
-	return value, nil
+	return value.([]byte), nil
 }
 
 // SearchFirst -
@@ -101,8 +142,7 @@ func (sm *StorerMock) Close() error {
 
 // Has -
 func (sm *StorerMock) Has(key []byte) error {
-	_, err := sm.Get(key)
-	return err
+	return sm.HasInEpoch(key, sm.currentEpoch.Get())
 }
 
 // Remove -
@@ -120,17 +160,21 @@ func (sm *StorerMock) DestroyUnit() error {
 }
 
 // RangeKeys -
-func (sm *StorerMock) RangeKeys(handler func(key []byte, val []byte) bool) {
+func (sm *StorerMock) RangeKeys(handler func(key []byte, value []byte) bool) {
 	if handler == nil {
 		return
 	}
 
-	sm.mutex.RLock()
-	defer sm.mutex.RUnlock()
+	data := sm.GetCurrentEpochData()
 
-	for k, v := range sm.Data {
-		shouldContinue := handler([]byte(k), v)
-		if !shouldContinue {
+	for _, key := range data.Keys() {
+		value, ok := data.Get(key)
+		if !ok {
+			continue
+		}
+
+		shouldContinueRange := handler([]byte(key.(string)), value.([]byte))
+		if !shouldContinueRange {
 			return
 		}
 	}
@@ -139,4 +183,8 @@ func (sm *StorerMock) RangeKeys(handler func(key []byte, val []byte) bool) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (sm *StorerMock) IsInterfaceNil() bool {
 	return sm == nil
+}
+
+func (sm *StorerMock) newErrNotFound(key []byte, epoch uint32) error {
+	return fmt.Errorf("not found in %s: key = %s, epoch = %d", sm.Name, string(key), epoch)
 }

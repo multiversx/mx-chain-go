@@ -409,7 +409,7 @@ func GetTransaction(c *gin.Context) {
 			http.StatusInternalServerError,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: errors.ErrGetTransaction.Error(),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetTransaction.Error(), err.Error()),
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
