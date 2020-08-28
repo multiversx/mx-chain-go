@@ -476,6 +476,7 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 	workingDir := getWorkingDir(ctx, log)
 
 	var fileLogging factory.FileLoggingHandler
@@ -1075,7 +1076,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if bootstrapParameters.NodesConfig != nil {
 		log.Info("the epoch from nodesConfig is", "epoch", bootstrapParameters.NodesConfig.CurrentEpoch)
 	}
-	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
+
 	nodesCoordinator, nodeShufflerOut, err := createNodesCoordinator(
 		log,
 		genesisNodesConfig,
@@ -1281,6 +1282,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochNotifier,
 		txSimulatorProcessorArgs,
 		ctx.GlobalString(importDbDirectory.Name),
+		chanStopNodeProcess,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1412,7 +1414,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	updateMachineStatisticsDuration := time.Second
-	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDuration)
+	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, epochStartNotifier, updateMachineStatisticsDuration)
 	if err != nil {
 		return err
 	}

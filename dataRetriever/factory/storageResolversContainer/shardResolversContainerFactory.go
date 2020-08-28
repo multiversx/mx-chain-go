@@ -28,6 +28,7 @@ func NewShardResolversContainerFactory(
 		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
 		dataPacker:               args.DataPacker,
 		manualEpochStartNotifier: args.ManualEpochStartNotifier,
+		chanGracefullyClose:      args.ChanGracefullyClose,
 	}
 
 	err := base.checkParams()
@@ -108,6 +109,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 		HdrStorage:               hdrStorer,
 		HeadersNoncesStorage:     hdrNonceStore,
 		ManualEpochStartNotifier: srcf.manualEpochStartNotifier,
+		ChanGracefullyClose:      srcf.chanGracefullyClose,
 	}
 	resolver, err := storageResolvers.NewHeaderResolver(arg)
 	if err != nil {
@@ -133,6 +135,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 		HdrStorage:               hdrStorer,
 		HeadersNoncesStorage:     hdrNonceStore,
 		ManualEpochStartNotifier: srcf.manualEpochStartNotifier,
+		ChanGracefullyClose:      srcf.chanGracefullyClose,
 	}
 	resolver, err := storageResolvers.NewHeaderResolver(arg)
 	if err != nil {

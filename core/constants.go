@@ -165,6 +165,12 @@ const MetricNetworkRecvBps = "erd_network_recv_bps"
 // MetricNetworkRecvBpsPeak is the metric for monitoring network received peak bytes per second
 const MetricNetworkRecvBpsPeak = "erd_network_recv_bps_peak"
 
+// MetricNetworkRecvBytesInCurrentEpochPerHost is the metric for monitoring network received bytes in current epoch per host
+const MetricNetworkRecvBytesInCurrentEpochPerHost = "erd_network_recv_bytes_in_epoch_per_host"
+
+// MetricNetworkSendBytesInCurrentEpochPerHost is the metric for monitoring network send bytes in current epoch per host
+const MetricNetworkSendBytesInCurrentEpochPerHost = "erd_network_sent_bytes_in_epoch_per_host"
+
 // MetricNetworkSentPercent is the metric for monitoring network sent load [%]
 const MetricNetworkSentPercent = "erd_network_sent_percent"
 
@@ -369,6 +375,8 @@ const (
 	NetworkShardingOrder
 	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
 	IndexerOrder
+	// NetStatisticsOrder defines the order in which netStatistic component is notified of a start of epoch event
+	NetStatisticsOrder
 )
 
 // NodeState specifies what type of state a node could have
@@ -439,6 +447,9 @@ const SCDeployInitFunctionName = "_init"
 
 // ShuffledOut signals that a restart is pending because the node was shuffled out
 const ShuffledOut = "shuffledOut"
+
+// ImportComplete signals that a node restart will be done because the import did complete
+const ImportComplete = "importComplete"
 
 // MaxRetriesToCreateDB represents the maximum number of times to try to create DB if it failed
 const MaxRetriesToCreateDB = 10
