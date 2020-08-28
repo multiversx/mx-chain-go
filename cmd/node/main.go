@@ -190,8 +190,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating core components")
-
-	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 	nodesFileName := ctx.GlobalString(nodesFile.Name)
 
 	//TODO when refactoring main, maybe initialize economics data before this line
@@ -786,7 +784,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		HistoryRepo:               historyRepository,
 		EpochNotifier:             epochNotifier,
 		HeaderIntegrityVerifier:   headerIntegrityVerifier,
-		ChanStopNodeProcess:       chanStopNodeProcess,
+		ChanGracefullyClose:       chanStopNodeProcess,
 	}
 	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 	if err != nil {

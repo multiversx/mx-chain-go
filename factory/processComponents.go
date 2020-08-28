@@ -12,12 +12,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -127,10 +128,11 @@ type ProcessComponentsFactoryArgs struct {
 	WorkingDir                string
 	Indexer                   indexer.Indexer
 	TpsBenchmark              statistics.TPSBenchmark
-	HistoryRepo               fullHistory.HistoryRepository
+	HistoryRepo               dblookupext.HistoryRepository
 	EpochNotifier             process.EpochNotifier
 	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
 	StorageResolverImportPath string
+	ChanGracefullyClose       chan endProcess.ArgEndProcess
 }
 
 type processComponentsFactory struct {
@@ -170,10 +172,11 @@ type processComponentsFactory struct {
 	workingDir                string
 	indexer                   indexer.Indexer
 	tpsBenchmark              statistics.TPSBenchmark
-	historyRepo               fullHistory.HistoryRepository
+	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
 	headerIntegrityVerifier   HeaderIntegrityVerifierHandler
 	storageResolverImportPath string
+	chanGracefullyClose       chan endProcess.ArgEndProcess
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -223,6 +226,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		headerIntegrityVerifier:   args.HeaderIntegrityVerifier,
 		epochNotifier:             args.EpochNotifier,
 		storageResolverImportPath: args.StorageResolverImportPath,
+		chanGracefullyClose:       args.ChanGracefullyClose,
 	}, nil
 }
 
@@ -284,7 +288,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	if pcf.startEpochNum == 0 {
-		err = pcf.indexGenesisBlock(genesisBlocks)
+		err = pcf.indexGenesisBlocks(genesisBlocks)
 		if err != nil {
 			return nil, err
 		}
@@ -722,20 +726,41 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint3
 	return nil
 }
 
-func (pcf *processComponentsFactory) indexGenesisBlock(genesisBlocks map[uint32]data.HeaderHandler) error {
+func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler) error {
+	// In Elastic Indexer, only index the metachain block
 	genesisBlockHeader := genesisBlocks[core.MetachainShardId]
 	genesisBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
 	if err != nil {
 		return err
 	}
 
-	log.Info("indexGenesisBlock", "hash", genesisBlockHash)
+	log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
 	pcf.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
-	err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
-	if err != nil {
-		return err
+	// In "dblookupext" index, record both the metachain and the shard blocks
+	for shard, genesisBlockHeader := range genesisBlocks {
+		if pcf.shardCoordinator.SelfId() != shard {
+			continue
+		}
+
+		genesisBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
+		if err != nil {
+			return err
+		}
+
+		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shard, "hash", genesisBlockHash)
+		err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
+		if err != nil {
+			return err
+		}
+
+		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shard)
+		nonceAsBytes := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlockHeader.GetNonce())
+		err = pcf.data.StorageService().Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -957,6 +982,7 @@ func (pcf *processComponentsFactory) createStorageResolversForMeta(
 		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
+		ChanGracefullyClose:      pcf.chanGracefullyClose,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -983,6 +1009,7 @@ func (pcf *processComponentsFactory) createStorageResolversForShard(
 		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
+		ChanGracefullyClose:      pcf.chanGracefullyClose,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {

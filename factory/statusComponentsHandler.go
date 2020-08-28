@@ -347,7 +347,7 @@ func (m *managedStatusComponents) startMachineStatisticsPolling(ctx context.Cont
 		return err
 	}
 
-	err = registerNetStatistics(appStatusPollingHandler, ctx)
+	err = registerNetStatistics(appStatusPollingHandler, m.statusComponentsFactory.epochStartNotifier, ctx)
 	if err != nil {
 		return err
 	}
@@ -370,8 +370,13 @@ func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 	})
 }
 
-func registerNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling, ctx context.Context) error {
+func registerNetStatistics(
+	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
+	notifier sharding.EpochStartEventNotifier,
+	ctx context.Context,
+) error {
 	netStats := &machine.NetStatistics{}
+	notifier.RegisterHandler(netStats.EpochStartEventHandler())
 	go func() {
 		for {
 			select {
@@ -391,6 +396,9 @@ func registerNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBps, netStats.BpsSent())
 		appStatusHandler.SetUInt64Value(core.MetricNetworkSentBpsPeak, netStats.BpsSentPeak())
 		appStatusHandler.SetUInt64Value(core.MetricNetworkSentPercent, netStats.PercentSent())
+
+		appStatusHandler.SetUInt64Value(core.MetricNetworkRecvBytesInCurrentEpochPerHost, netStats.TotalBytesReceivedInCurrentEpoch())
+		appStatusHandler.SetUInt64Value(core.MetricNetworkSendBytesInCurrentEpochPerHost, netStats.TotalBytesSentInCurrentEpoch())
 	})
 }
 
