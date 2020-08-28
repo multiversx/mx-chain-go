@@ -47,6 +47,10 @@ func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, stat
 }
 
 func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
+	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 1000
+	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
 	return ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
 		ArgsParser:  &mock.ArgumentParserMock{},
@@ -73,6 +77,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
+		GasSchedule:      gasSchedule,
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
 	}
@@ -703,7 +708,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	argParser.ParseCallDataCalled = func(data string) (string, [][]byte, error) {
 		return "", nil, tmpError
 	}
-	input, err := sc.createVMCallInput(tx)
+	input, err := sc.createVMCallInput(tx, []byte{})
 	require.Nil(t, input)
 	require.Equal(t, tmpError, err)
 }
@@ -727,7 +732,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
-	input, err := sc.createVMCallInput(tx)
+	input, err := sc.createVMCallInput(tx, []byte{})
 	require.NotNil(t, input)
 	require.Nil(t, err)
 }
