@@ -1,6 +1,7 @@
 package dataRetriever
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
@@ -25,4 +26,13 @@ func SetEpochHandlerToHdrResolver(
 	}
 
 	return nil
+}
+
+// GetHdrNonceHashDataUnit gets the HdrNonceHashDataUnit by shard
+func GetHdrNonceHashDataUnit(shard uint32) UnitType {
+	if shard == core.MetachainShardId {
+		return MetaHdrNonceHashDataUnit
+	}
+
+	return ShardHdrNonceHashDataUnit + UnitType(shard)
 }

@@ -650,34 +650,34 @@
     StableTagLocation = "https://api.github.com/repos/ElrondNetwork/elrond-go/releases/latest"
     PollingIntervalInMinutes = 65
 
-[FullHistory]
+[DbLookupExtensions]
     Enabled = false
-    [FullHistory.MiniblocksMetadataStorageConfig.Cache]
-        Name = "FullHistory.MiniblocksMetadataStorage"
+    [DbLookupExtensions.MiniblocksMetadataStorageConfig.Cache]
+        Name = "DbLookupExtensions.MiniblocksMetadataStorage"
         Capacity = 20000
         Type = "LRU"
-    [FullHistory.MiniblocksMetadataStorageConfig.DB]
-        FilePath = "FullHistory/MiniblocksMetadata"
+    [DbLookupExtensions.MiniblocksMetadataStorageConfig.DB]
+        FilePath = "DbLookupExtensions/MiniblocksMetadata"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
-    [FullHistory.MiniblockHashByTxHashStorageConfig.Cache]
-        Name = "FullHistory.MiniblockHashByTxHashStorage"
+    [DbLookupExtensions.MiniblockHashByTxHashStorageConfig.Cache]
+        Name = "DbLookupExtensions.MiniblockHashByTxHashStorage"
         Capacity = 20000
         Type = "LRU"
-    [FullHistory.MiniblockHashByTxHashStorageConfig.DB]
-        FilePath = "FullHistory/MiniblockHashByTxHash"
+    [DbLookupExtensions.MiniblockHashByTxHashStorageConfig.DB]
+        FilePath = "DbLookupExtensions_MiniblockHashByTxHash"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
-    [FullHistory.EpochByHashStorageConfig.Cache]
-        Name = "EpochByHashStorage"
+    [DbLookupExtensions.EpochByHashStorageConfig.Cache]
+        Name = "DbLookupExtensions.EpochByHashStorage"
         Capacity = 20000
         Type = "LRU"
-    [FullHistory.EpochByHashStorageConfig.DB]
-        FilePath = "HashEpochDB"
+    [DbLookupExtensions.EpochByHashStorageConfig.DB]
+        FilePath = "DbLookupExtensions_EpochByHash"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000

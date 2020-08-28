@@ -2,7 +2,7 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -53,7 +53,7 @@ type ArgBaseProcessor struct {
 	Indexer                 indexer.Indexer
 	TpsBenchmark            statistics.TPSBenchmark
 	Version                 string
-	HistoryRepository       fullHistory.HistoryRepository
+	HistoryRepository       dblookupext.HistoryRepository
 	EpochNotifier           process.EpochNotifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 }

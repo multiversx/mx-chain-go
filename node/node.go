@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -83,7 +83,7 @@ type Node struct {
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
 
-	historyRepository fullHistory.HistoryRepository
+	historyRepository dblookupext.HistoryRepository
 
 	bootstrapComponents mainFactory.BootstrapComponentsHolder
 	consensusComponents mainFactory.ConsensusComponentsHolder

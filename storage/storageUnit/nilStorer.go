@@ -33,6 +33,11 @@ func (ns *nilStorer) Put(_, _ []byte) error {
 	return nil
 }
 
+// PutInEpoch will do nothing
+func (ns *nilStorer) PutInEpoch(key, data []byte, _ uint32) error {
+	return nil
+}
+
 // Close will do nothing
 func (ns *nilStorer) Close() error {
 	return nil

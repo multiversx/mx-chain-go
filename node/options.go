@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
@@ -303,7 +303,7 @@ func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 }
 
 // WithHistoryRepository sets up a history repository for the node
-func WithHistoryRepository(historyRepo fullHistory.HistoryRepository) Option {
+func WithHistoryRepository(historyRepo dblookupext.HistoryRepository) Option {
 	return func(n *Node) error {
 		if check.IfNil(historyRepo) {
 			return ErrNilHistoryRepository

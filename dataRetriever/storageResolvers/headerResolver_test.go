@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
@@ -24,9 +25,10 @@ func createMockHeaderResolverArg() ArgHeaderResolver {
 				return 0, nil
 			},
 		},
-		HdrStorage:               genericmocks.NewStorerMock(),
-		HeadersNoncesStorage:     genericmocks.NewStorerMock(),
+		HdrStorage:               genericmocks.NewStorerMock("Hdr", 0),
+		HeadersNoncesStorage:     genericmocks.NewStorerMock("HeadersNonces", 0),
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
+		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
 	}
 }
 
@@ -85,6 +87,17 @@ func TestNewHeaderResolver_NilManualEpochStartNotifierShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilManualEpochStartNotifier, err)
 }
 
+func TestNewHeaderResolver_NilChanShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockHeaderResolverArg()
+	arg.ChanGracefullyClose = nil
+	hdRes, err := NewHeaderResolver(arg)
+
+	assert.True(t, check.IfNil(hdRes))
+	assert.Equal(t, dataRetriever.ErrNilGracefullyCloseChannel, err)
+}
+
 func TestNewHeaderResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -119,7 +132,7 @@ func TestHeaderResolver_SetEpochHandlerShouldWork(t *testing.T) {
 	assert.True(t, handler == hdRes.epochHandler) //pointer testing
 }
 
-func TestHeaderResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
+func TestHeaderResolver_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
@@ -150,6 +163,46 @@ func TestHeaderResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	assert.Equal(t, expectedErr, err)
 	assert.True(t, newEpochCalled)
 	assert.False(t, sendCalled)
+}
+
+func TestHeaderResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	newEpochCalled := false
+	sendCalled := false
+	arg := createMockHeaderResolverArg()
+	arg.HdrStorage = &mock.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			return nil, expectedErr
+		},
+	}
+	arg.ManualEpochStartNotifier = &mock.ManualEpochStartNotifierStub{
+		NewEpochCalled: func(epoch uint32) {
+			newEpochCalled = true
+		},
+	}
+	arg.Messenger = &mock.MessengerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			sendCalled = true
+
+			return nil
+		},
+	}
+	arg.ChanGracefullyClose = make(chan endProcess.ArgEndProcess, 1)
+	hdRes, _ := NewHeaderResolver(arg)
+
+	err := hdRes.RequestDataFromHash([]byte("hash"), 0)
+
+	assert.Equal(t, expectedErr, err)
+	assert.True(t, newEpochCalled)
+	assert.False(t, sendCalled)
+	select {
+	case argClose := <-arg.ChanGracefullyClose:
+		assert.Equal(t, core.ImportComplete, argClose.Reason)
+	default:
+		assert.Fail(t, "did not wrote on end chan")
+	}
 }
 
 func TestHeaderResolver_RequestDataFromHashShouldWork(t *testing.T) {

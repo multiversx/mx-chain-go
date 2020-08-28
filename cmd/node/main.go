@@ -23,9 +23,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
+	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
-	historyFactory "github.com/ElrondNetwork/elrond-go/core/fullHistory/factory"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -165,7 +165,7 @@ func main() {
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
-
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 	workingDir := getWorkingDir(ctx, log)
 	fileLogging, err := updateLogger(workingDir, ctx, log)
 	if err != nil {
@@ -697,14 +697,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	historyRepoFactoryArgs := &historyFactory.ArgsHistoryRepositoryFactory{
-		SelfShardID:       shardCoordinator.SelfId(),
-		FullHistoryConfig: cfgs.generalConfig.FullHistory,
-		Hasher:            managedCoreComponents.Hasher(),
-		Marshalizer:       managedCoreComponents.InternalMarshalizer(),
-		Store:             managedDataComponents.StorageService(),
+	historyRepoFactoryArgs := &dbLookupFactory.ArgsHistoryRepositoryFactory{
+		SelfShardID: shardCoordinator.SelfId(),
+		Config:      cfgs.generalConfig.DbLookupExtensions,
+		Hasher:      managedCoreComponents.Hasher(),
+		Marshalizer: managedCoreComponents.InternalMarshalizer(),
+		Store:       managedDataComponents.StorageService(),
 	}
-	historyRepositoryFactory, err := historyFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
+	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {
 		return err
 	}
@@ -786,6 +786,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		HistoryRepo:               historyRepository,
 		EpochNotifier:             epochNotifier,
 		HeaderIntegrityVerifier:   headerIntegrityVerifier,
+		ChanStopNodeProcess:       chanStopNodeProcess,
 	}
 	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1571,7 +1572,7 @@ func createNode(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
-	historyRepository fullHistory.HistoryRepository,
+	historyRepository dblookupext.HistoryRepository,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32

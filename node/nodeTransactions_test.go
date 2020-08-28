@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -31,7 +31,7 @@ func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
 func TestNode_GetTransaction_FromPool(t *testing.T) {
 	t.Parallel()
 
-	n, _, dataPool, _ := createNode(t, false)
+	n, _, dataPool, _ := createNode(t, 42, false)
 
 	// Normal transactions
 
@@ -99,7 +99,7 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	t.Parallel()
 
-	n, chainStorer, _, _ := createNode(t, false)
+	n, chainStorer, _, _ := createNode(t, 0, false)
 
 	// Normal transactions
 
@@ -177,10 +177,10 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	require.Nil(t, tx)
 }
 
-func TestNode_GetFullHistoryTransaction(t *testing.T) {
+func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	t.Parallel()
 
-	n, chainStorer, _, historyRepo := createNode(t, true)
+	n, chainStorer, _, historyRepo := createNode(t, 42, true)
 
 	// Normal transactions
 
@@ -265,7 +265,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 	require.Equal(t, transaction.TxStatusExecuted, actualG.Status)
 
 	// Missing transaction
-	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 		return nil, fmt.Errorf("fooError")
 	}
 	tx, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
@@ -276,8 +276,8 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 
 	// Badly serialized transaction
 	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
-	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
-		return &fullHistory.MiniblockMetadata{}, nil
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+		return &dblookupext.MiniblockMetadata{}, nil
 	}
 	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")))
 	require.NotNil(t, err)
@@ -286,7 +286,7 @@ func TestNode_GetFullHistoryTransaction(t *testing.T) {
 
 func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	tx := &transaction.ApiTransactionResult{}
-	metadata := &fullHistory.MiniblockMetadata{
+	metadata := &dblookupext.MiniblockMetadata{
 		Epoch:                             42,
 		Round:                             4321,
 		MiniblockHash:                     []byte{15},
@@ -315,13 +315,15 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
 }
 
-func createNode(t *testing.T, withFullHistory bool) (*node.Node, *genericmocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
-	chainStorer := genericmocks.NewChainStorerMock()
+func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericmocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
+	chainStorer := genericmocks.NewChainStorerMock(epoch)
 	dataPool := testscommon.NewPoolsHolderMock()
 	marshalizer := &mock.MarshalizerFake{}
 
 	historyRepo := &testscommon.HistoryRepositoryStub{
-		IsEnabledCalled: func() bool { return withFullHistory },
+		IsEnabledCalled: func() bool {
+			return withDbLookupExt
+		},
 	}
 
 	coreComponents := getDefaultCoreComponents()
@@ -365,8 +367,8 @@ func createShardCoordinator() *mock.ShardCoordinatorMock {
 }
 
 func setupGetMiniblockMetadataByTxHash(historyRepo *testscommon.HistoryRepositoryStub, blockType block.Type, sourceShard uint32, destinationShard uint32, epoch uint32) {
-	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*fullHistory.MiniblockMetadata, error) {
-		return &fullHistory.MiniblockMetadata{
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+		return &dblookupext.MiniblockMetadata{
 			Type:               int32(blockType),
 			SourceShardID:      sourceShard,
 			DestinationShardID: destinationShard,

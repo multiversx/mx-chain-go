@@ -165,7 +165,7 @@ type Config struct {
 	Health   HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
-	FullHistory           FullHistoryConfig
+	DbLookupExtensions    DbLookupExtensionsConfig
 	Versions              VersionsConfig
 	Logs                  LogsConfig
 }
@@ -350,8 +350,8 @@ type HardforkConfig struct {
 	AfterHardFork                bool
 }
 
-// FullHistoryConfig holds the configuration for the full history node
-type FullHistoryConfig struct {
+// DbLookupExtensionsConfig holds the configuration for the db lookup extensions
+type DbLookupExtensionsConfig struct {
 	Enabled                            bool
 	MiniblocksMetadataStorageConfig    StorageConfig
 	MiniblockHashByTxHashStorageConfig StorageConfig
