@@ -25,10 +25,9 @@ type managedCryptoComponents struct {
 }
 
 // NewManagedCryptoComponents creates a new Crypto components handler
-func NewManagedCryptoComponents(args CryptoComponentsHandlerArgs) (*managedCryptoComponents, error) {
-	ccf, err := NewCryptoComponentsFactory(CryptoComponentsFactoryArgs(args))
-	if err != nil {
-		return nil, err
+func NewManagedCryptoComponents(ccf *cryptoComponentsFactory) (*managedCryptoComponents, error) {
+	if ccf == nil {
+		return nil, errors.ErrNilCryptoComponentsFactory
 	}
 
 	return &managedCryptoComponents{

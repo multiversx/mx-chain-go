@@ -216,8 +216,8 @@ func (tP2pNode *TestP2PNode) initNode() {
 		CryptoComponents:  cryptoComponents,
 		ProcessComponents: processComponents,
 	}
-
-	managedHBComponents, err := factory.NewManagedHeartbeatComponents(hbCompArgs)
+	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(hbCompArgs)
+	managedHBComponents, err := factory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
 	log.LogIfError(err)
 
 	err = managedHBComponents.Create()

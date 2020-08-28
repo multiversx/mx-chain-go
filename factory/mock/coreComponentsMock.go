@@ -4,11 +4,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -31,6 +35,12 @@ type CoreComponentsMock struct {
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
 	mutIntMarshalizer           sync.RWMutex
+	RoundHandler                consensus.Rounder
+	EconomicsHandler            process.EconomicsHandler
+	RatingsConfig               process.RatingsInfoHandler
+	RatingHandler               sharding.PeerAccountListAndRatingHandler
+	NodesConfig                 factory.NodesSetupHandler
+	StartTime                   time.Time
 }
 
 // InternalMarshalizer -
@@ -136,6 +146,31 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 		return ccm.MinTransactionVersionCalled()
 	}
 	return 1
+}
+
+// Rounder -
+func (ccm *CoreComponentsMock) Rounder() consensus.Rounder {
+	return ccm.RoundHandler
+}
+
+// EconomicsData -
+func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsHandler {
+	return ccm.EconomicsHandler
+}
+
+// RatingsData -
+func (ccm *CoreComponentsMock) RatingsData() process.RatingsInfoHandler {
+	return ccm.RatingsConfig
+}
+
+// Rater -
+func (ccm *CoreComponentsMock) Rater() sharding.PeerAccountListAndRatingHandler {
+	return ccm.RatingHandler
+}
+
+// GenesisNodesSetup -
+func (ccm *CoreComponentsMock) GenesisNodesSetup() factory.NodesSetupHandler {
+	return ccm.NodesConfig
 }
 
 // IsInterfaceNil -

@@ -66,16 +66,18 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 func TestManagedNetworkComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	networkArgs := getNetworkArgs()
 	networkArgs.P2pConfig.Node.Port = "invalid"
-	managedCoreComponents, err := factory.NewManagedNetworkComponents(networkArgs)
+	networkComponentsFactory, _ := factory.NewNetworkComponentsFactory(networkArgs)
+	managedNetworkComponents, err := factory.NewManagedNetworkComponents(networkComponentsFactory)
 	require.NoError(t, err)
-	err = managedCoreComponents.Create()
+	err = managedNetworkComponents.Create()
 	require.Error(t, err)
-	require.Nil(t, managedCoreComponents.NetworkMessenger())
+	require.Nil(t, managedNetworkComponents.NetworkMessenger())
 }
 
 func TestManagedNetworkComponents_Create_ShouldWork(t *testing.T) {
 	networkArgs := getNetworkArgs()
-	managedNetworkComponents, err := factory.NewManagedNetworkComponents(networkArgs)
+	networkComponentsFactory, _ := factory.NewNetworkComponentsFactory(networkArgs)
+	managedNetworkComponents, err := factory.NewManagedNetworkComponents(networkComponentsFactory)
 	require.NoError(t, err)
 	require.Nil(t, managedNetworkComponents.NetworkMessenger())
 	require.Nil(t, managedNetworkComponents.InputAntiFloodHandler())
@@ -94,7 +96,8 @@ func TestManagedNetworkComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedNetworkComponents_Close(t *testing.T) {
 	networkArgs := getNetworkArgs()
-	managedNetworkComponents, _ := factory.NewManagedNetworkComponents(networkArgs)
+	networkComponentsFactory, _ := factory.NewNetworkComponentsFactory(networkArgs)
+	managedNetworkComponents, _ := factory.NewManagedNetworkComponents(networkComponentsFactory)
 	err := managedNetworkComponents.Create()
 	require.NoError(t, err)
 

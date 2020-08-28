@@ -21,10 +21,9 @@ type managedNetworkComponents struct {
 }
 
 // NewManagedNetworkComponents creates a new data components handler
-func NewManagedNetworkComponents(args NetworkComponentsFactoryArgs) (*managedNetworkComponents, error) {
-	ncf, err := NewNetworkComponentsFactory(args)
-	if err != nil {
-		return nil, err
+func NewManagedNetworkComponents(ncf *networkComponentsFactory) (*managedNetworkComponents, error) {
+	if ncf == nil {
+		return nil, errors.ErrNilNetworkComponentsFactory
 	}
 
 	return &managedNetworkComponents{

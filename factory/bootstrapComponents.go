@@ -1,6 +1,9 @@
 package factory
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -69,6 +72,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.GenesisNodesSetup) {
 		return nil, errors.ErrNilGenesisNodesSetup
 	}
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return nil, errors.ErrNilHeaderIntegrityVerifier
+	}
 	if args.WorkingDir == "" {
 		return nil, errors.ErrInvalidWorkingDir
 	}
@@ -93,17 +99,18 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	bootstrapDataProvider, err := storageFactory.NewBootstrapDataProvider(bcf.coreComponents.InternalMarshalizer())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", errors.ErrNewBootstrapDataProvider, err)
 	}
+
+	parentDir := filepath.Join(
+		bcf.workingDir,
+		core.DefaultDBPath,
+		bcf.coreComponents.ChainID())
 
 	latestStorageDataProvider, err := factory.CreateLatestStorageDataProvider(
 		bootstrapDataProvider,
-		bcf.coreComponents.InternalMarshalizer(),
-		bcf.coreComponents.Hasher(),
 		bcf.config,
-		bcf.coreComponents.ChainID(),
-		bcf.workingDir,
-		core.DefaultDBPath,
+		parentDir,
 		core.DefaultEpochString,
 		core.DefaultShardString,
 	)
@@ -114,11 +121,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	unitOpener, err := factory.CreateUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
-		bcf.coreComponents.InternalMarshalizer(),
 		bcf.config,
-		bcf.coreComponents.ChainID(),
-		bcf.workingDir,
-		core.DefaultDBPath,
 		core.DefaultEpochString,
 		core.DefaultShardString,
 	)
@@ -147,17 +150,19 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	epochStartBootstraper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
-		log.Error("could not create bootstrap", "err", err)
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
 	}
 
 	bootstrapParameters, err := epochStartBootstraper.Bootstrap()
 	if err != nil {
-		log.Error("bootstrap return error", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", errors.ErrBootstrap, err)
 	}
 
-	log.Info("bootstrap parameters", "shardId", bootstrapParameters.SelfShardId, "epoch", bootstrapParameters.Epoch, "numShards", bootstrapParameters.NumOfShards)
+	log.Info("bootstrap parameters",
+		"shardId", bootstrapParameters.SelfShardId,
+		"epoch", bootstrapParameters.Epoch,
+		"numShards", bootstrapParameters.NumOfShards,
+	)
 
 	return &bootstrapComponents{
 		epochStartBootstraper: epochStartBootstraper,
@@ -169,6 +174,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 // Close closes the bootstrap components, closing at the same time any running goroutines
 func (bc *bootstrapComponents) Close() error {
+
 	return nil
 }
 

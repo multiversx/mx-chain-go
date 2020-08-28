@@ -77,8 +77,38 @@ var ErrNilBlockTracker = errors.New("trying to set nil block tracker")
 // ErrNilBootStorer signals that the provided boot storer is nil
 var ErrNilBootStorer = errors.New("nil boot storer")
 
-// ErrNilBootstrapComponentsHolder signals that the provided bootstrap components holder
+// ErrNilBootstrapComponentsHolder signals that the provided bootstrap components holder is nil
 var ErrNilBootstrapComponentsHolder = errors.New("nil bootstrap components holder")
+
+// ErrNilBootstrapComponentsFactory signals that the provided bootstrap components factory is nil
+var ErrNilBootstrapComponentsFactory = errors.New("nil bootstrap components factory")
+
+// ErrNilConsensusComponentsFactory signals that the provided consensus components factory is nil
+var ErrNilConsensusComponentsFactory = errors.New("nil consensus components factory")
+
+// ErrNilCryptoComponentsFactory signals that the provided crypto components factory is nil
+var ErrNilCryptoComponentsFactory = errors.New("nil crypto components factory")
+
+// ErrNilCoreComponentsFactory signals that the provided core components factory is nil
+var ErrNilCoreComponentsFactory = errors.New("nil core components factory")
+
+// ErrNilDataComponentsFactory signals that the provided data components factory is nil
+var ErrNilDataComponentsFactory = errors.New("nil data components factory")
+
+// ErrNilHeartbeatComponentsFactory signals that the provided heartbeat components factory is nil
+var ErrNilHeartbeatComponentsFactory = errors.New("nil heartbeat components factory")
+
+// ErrNilNetworkComponentsFactory signals that the provided network components factory is nil
+var ErrNilNetworkComponentsFactory = errors.New("nil network components factory")
+
+// ErrNilProcessComponentsFactory signals that the provided process components factory is nil
+var ErrNilProcessComponentsFactory = errors.New("nil process components factory")
+
+// ErrNilStateComponentsFactory signals that the provided state components factory is nil
+var ErrNilStateComponentsFactory = errors.New("nil state components factory")
+
+// ErrNilStatusComponentsFactory signals that the provided status components factory is nil
+var ErrNilStatusComponentsFactory = errors.New("nil status components factory")
 
 // ErrNilBootstrapParamsHandler signals that the provided bootstrap parameters handler is nil
 var ErrNilBootstrapParamsHandler = errors.New("nil bootstrap parameters handler")
@@ -397,3 +427,15 @@ var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
 
 // ErrWrongTypeAssertion signals a wrong type assertion
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNewBootstrapDataProvider signals a new bootstrapDataProvider creation has failed
+var ErrNewBootstrapDataProvider = errors.New("bootstrapDataProvider creation has failed")
+
+// ErrBootstrapDataComponentsFactoryCreate signals that an error occured on bootstrapDataComponentsFactory.Create
+var ErrBootstrapDataComponentsFactoryCreate = errors.New("bootstrapDataComponentsFactory create() failed")
+
+// ErrNewBootstrapDataProvider signals a new epochStartBootstrap creation has failed
+var ErrNewEpochStartBootstrap = errors.New("epochStartBootstrap creation has failed")
+
+// ErrBootstrap signals the bootstrapping process has failed
+var ErrBootstrap = errors.New("bootstrap process has failed")

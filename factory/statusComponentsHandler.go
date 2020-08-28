@@ -32,10 +32,9 @@ type managedStatusComponents struct {
 }
 
 // NewManagedStatusComponents returns a new instance of managedStatusComponents
-func NewManagedStatusComponents(args StatusComponentsFactoryArgs) (*managedStatusComponents, error) {
-	scf, err := NewStatusComponentsFactory(args)
-	if err != nil {
-		return nil, err
+func NewManagedStatusComponents(scf *statusComponentsFactory) (*managedStatusComponents, error) {
+	if scf == nil {
+		return nil, errors.ErrNilStatusComponentsFactory
 	}
 
 	return &managedStatusComponents{

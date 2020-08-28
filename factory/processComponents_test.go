@@ -25,11 +25,12 @@ var maxGasLimitPerBlock = uint64(3000000)
 func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	processArgs := getProcessComponentsArgs()
 	_ = processArgs.CoreData.SetInternalMarshalizer(nil)
-	managedCoreComponents, err := factory.NewManagedProcessComponents(processArgs)
+	processComponentsFactory, _ := factory.NewProcessComponentsFactory(processArgs)
+	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)
 	require.NoError(t, err)
-	err = managedCoreComponents.Create()
+	err = managedProcessComponents.Create()
 	require.Error(t, err)
-	require.Nil(t, managedCoreComponents.NodesCoordinator())
+	require.Nil(t, managedProcessComponents.NodesCoordinator())
 }
 
 func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
@@ -40,7 +41,8 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	}
 	shardCoordinator.CurrentShard = core.MetachainShardId
 	processArgs.ShardCoordinator = shardCoordinator
-	managedProcessComponents, err := factory.NewManagedProcessComponents(processArgs)
+	processComponentsFactory, _ := factory.NewProcessComponentsFactory(processArgs)
+	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)
 	require.NoError(t, err)
 	require.Nil(t, managedProcessComponents.NodesCoordinator())
 	require.Nil(t, managedProcessComponents.InterceptorsContainer())
@@ -87,13 +89,14 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedProcessComponents_Close(t *testing.T) {
 	processArgs := getProcessComponentsArgs()
-	managedCoreComponents, _ := factory.NewManagedProcessComponents(processArgs)
-	err := managedCoreComponents.Create()
+	processComponentsFactory, _ := factory.NewProcessComponentsFactory(processArgs)
+	managedProcessComponents, _ := factory.NewManagedProcessComponents(processComponentsFactory)
+	err := managedProcessComponents.Create()
 	require.NoError(t, err)
 
-	err = managedCoreComponents.Close()
+	err = managedProcessComponents.Close()
 	require.NoError(t, err)
-	require.Nil(t, managedCoreComponents.NodesCoordinator())
+	require.Nil(t, managedProcessComponents.NodesCoordinator())
 }
 
 // ------------ Test CoreComponents --------------------

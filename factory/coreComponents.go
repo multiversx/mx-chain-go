@@ -75,7 +75,7 @@ type coreComponents struct {
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
-func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *coreComponentsFactory {
+func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	return &coreComponentsFactory{
 		config:              args.Config,
 		ratingsConfig:       args.RatingsConfig,
@@ -83,7 +83,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *coreComponentsFac
 		workingDir:          args.WorkingDirectory,
 		chanStopNodeProcess: args.ChanStopNodeProcess,
 		nodesFilename:       args.NodesFilename,
-	}
+	}, nil
 }
 
 // Create creates the core components

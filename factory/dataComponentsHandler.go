@@ -13,9 +13,6 @@ var _ ComponentHandler = (*managedDataComponents)(nil)
 var _ DataComponentsHolder = (*managedDataComponents)(nil)
 var _ DataComponentsHandler = (*managedDataComponents)(nil)
 
-// DataComponentsHandlerArgs holds the arguments required to create a crypto components handler
-type DataComponentsHandlerArgs DataComponentsFactoryArgs
-
 // managedDataComponents creates the data components handler that can create, close and access the data components
 type managedDataComponents struct {
 	*dataComponents
@@ -24,10 +21,9 @@ type managedDataComponents struct {
 }
 
 // NewManagedDataComponents creates a new data components handler
-func NewManagedDataComponents(args DataComponentsHandlerArgs) (*managedDataComponents, error) {
-	dcf, err := NewDataComponentsFactory(DataComponentsFactoryArgs(args))
-	if err != nil {
-		return nil, err
+func NewManagedDataComponents(dcf *dataComponentsFactory) (*managedDataComponents, error) {
+	if dcf == nil {
+		return nil, errors.ErrNilDataComponentsFactory
 	}
 
 	return &managedDataComponents{

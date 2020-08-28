@@ -8,8 +8,6 @@ import (
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
@@ -50,12 +48,8 @@ func CreateSoftwareVersionChecker(
 // CreateLatestStorageDataProvider will create a latest storage data provider handler
 func CreateLatestStorageDataProvider(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
 	generalConfig config.Config,
-	chainID string,
-	workingDir string,
-	defaultDBPath string,
+	parentDir string,
 	defaultEpochString string,
 	defaultShardString string,
 ) (storage.LatestStorageDataProviderHandler, error) {
@@ -63,13 +57,9 @@ func CreateLatestStorageDataProvider(
 
 	latestStorageDataArgs := storageFactory.ArgsLatestDataProvider{
 		GeneralConfig:         generalConfig,
-		Marshalizer:           marshalizer,
-		Hasher:                hasher,
 		BootstrapDataProvider: bootstrapDataProvider,
 		DirectoryReader:       directoryReader,
-		WorkingDir:            workingDir,
-		ChainID:               chainID,
-		DefaultDBPath:         defaultDBPath,
+		ParentDir:             parentDir,
 		DefaultEpochString:    defaultEpochString,
 		DefaultShardString:    defaultShardString,
 	}
@@ -80,22 +70,14 @@ func CreateLatestStorageDataProvider(
 func CreateUnitOpener(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
 	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
-	internalMarshalizer marshal.Marshalizer,
 	generalConfig config.Config,
-	chainID string,
-	workingDir string,
-	defaultDBPath string,
 	defaultEpochString string,
 	defaultShardString string,
 ) (storage.UnitOpenerHandler, error) {
 	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
 		GeneralConfig:             generalConfig,
-		Marshalizer:               internalMarshalizer,
 		BootstrapDataProvider:     bootstrapDataProvider,
 		LatestStorageDataProvider: latestDataFromStorageProvider,
-		WorkingDir:                workingDir,
-		ChainID:                   chainID,
-		DefaultDBPath:             defaultDBPath,
 		DefaultEpochString:        defaultEpochString,
 		DefaultShardString:        defaultShardString,
 	}
