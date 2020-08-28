@@ -26,13 +26,14 @@ import (
 )
 
 type flags struct {
-	dbPathWithChainID  string
-	configFilePath     string
-	nodeConfigFilePath string
-	nodesSetupFilePath string
-	startingEpoch      int
-	numShards          int
-	timeout            int
+	dbPathWithChainID    string
+	configFilePath       string
+	nodeConfigFilePath   string
+	ratingConfigFilePath string
+	nodesSetupFilePath   string
+	startingEpoch        int
+	numShards            int
+	timeout              int
 }
 
 var (
@@ -70,9 +71,17 @@ VERSION:
 	// nodeConfigFilePathFlag defines a flag which holds the configuration file path
 	nodeConfigFilePathFlag = cli.StringFlag{
 		Name:        "node-config",
-		Usage:       "This string file specifies the `filepath` for the node's toml configuration file",
+		Usage:       "This string flag specifies the `filepath` for the node's toml configuration file",
 		Value:       "../node/config/config.toml",
 		Destination: &flagsValues.nodeConfigFilePath,
+	}
+
+	// nodeConfigFilePathFlag defines a flag which holds the configuration file path
+	ratingsConfigFilePathFlag = cli.StringFlag{
+		Name:        "rating-config",
+		Usage:       "This string flag specifies the `filepath` for the node's toml ratings configuration file",
+		Value:       "../node/config/ratings.toml",
+		Destination: &flagsValues.ratingConfigFilePath,
 	}
 
 	// nodesSetupFilePathFlag defines a flag which holds the nodes setup json file path
@@ -81,14 +90,6 @@ VERSION:
 		Usage:       "This string file specifies the `filepath` for the node's nodes setup json configuration file",
 		Value:       "config/nodesSetup.json",
 		Destination: &flagsValues.nodesSetupFilePath,
-	}
-
-	// numOfShardsFlag defines the flag which holds the number of shards
-	numOfShardsFlag = cli.IntFlag{
-		Name:        "num-shards",
-		Usage:       "This int flag specifies the number of shards",
-		Value:       2,
-		Destination: &flagsValues.numShards,
 	}
 
 	startingEpochFlag = cli.IntFlag{
@@ -135,8 +136,8 @@ func initCliFlags() {
 		dbPathWithChainIDFlag,
 		configFilePathFlag,
 		nodeConfigFilePathFlag,
+		ratingsConfigFilePathFlag,
 		nodesSetupFilePathFlag,
-		numOfShardsFlag,
 		startingEpochFlag,
 	}
 	cliApp.Authors = []cli.Author{
@@ -158,9 +159,6 @@ func startStorer2Elastic(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if ctx.IsSet(numOfShardsFlag.Name) {
-		configuration.General.NumShards = int(ctx.GlobalUint64(numOfShardsFlag.Name))
-	}
 	if ctx.IsSet(dbPathWithChainIDFlag.Name) {
 		configuration.General.DBPathWithChainID = ctx.GlobalString(dbPathWithChainIDFlag.Name)
 	}
@@ -168,12 +166,36 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		configuration.General.NodeConfigFilePath = ctx.GlobalString(nodeConfigFilePathFlag.Name)
 	}
 
-	shardCoordinator, err = sharding.NewMultiShardCoordinator(uint32(configuration.General.NumShards), 0)
+	err = core.LoadTomlFile(&nodeConfig, configuration.General.NodeConfigFilePath)
 	if err != nil {
 		return err
 	}
 
-	err = core.LoadTomlFile(&nodeConfig, configuration.General.NodeConfigFilePath)
+	addressPubKeyConverter, err = stateFactory.NewPubkeyConverter(nodeConfig.AddressPubkeyConverter)
+	if err != nil {
+		return err
+	}
+	validatorPubKeyConverter, err = stateFactory.NewPubkeyConverter(nodeConfig.ValidatorPubkeyConverter)
+	if err != nil {
+		return err
+	}
+
+	genesisNodesConfig, err := sharding.NewNodesSetup(
+		flagsValues.nodesSetupFilePath,
+		addressPubKeyConverter,
+		validatorPubKeyConverter,
+	)
+	if err != nil {
+		return err
+	}
+
+	shardCoordinator, err = sharding.NewMultiShardCoordinator(genesisNodesConfig.NumberOfShards(), 0)
+	if err != nil {
+		return err
+	}
+
+	ratingsConfig := nodeConfigPackage.RatingsConfig{}
+	err = core.LoadTomlFile(&ratingsConfig, flagsValues.ratingConfigFilePath)
 	if err != nil {
 		return err
 	}
@@ -183,14 +205,6 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 	hasher, err = hasherFactory.NewHasher(nodeConfig.Hasher.Type)
-	if err != nil {
-		return err
-	}
-	addressPubKeyConverter, err = stateFactory.NewPubkeyConverter(nodeConfig.AddressPubkeyConverter)
-	if err != nil {
-		return err
-	}
-	validatorPubKeyConverter, err = stateFactory.NewPubkeyConverter(nodeConfig.ValidatorPubkeyConverter)
 	if err != nil {
 		return err
 	}
@@ -218,7 +232,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 2,
 		MaxBatchSize:      30000,
-		MaxOpenFiles:      20,
+		MaxOpenFiles:      200,
 	}
 
 	persisterFactory := factory.NewPersisterFactory(nodeConfigPackage.DBConfig(generalDBConfig))
@@ -243,16 +257,9 @@ func startStorer2Elastic(ctx *cli.Context) error {
 			Marshalizer:              marshalizer,
 			Hasher:                   hasher,
 			ElasticIndexer:           elasticIndexer,
+			GenesisNodesConfig:       genesisNodesConfig,
+			RatingsConfig:            ratingsConfig,
 		},
-	)
-	if err != nil {
-		return err
-	}
-
-	genesisNodesConfig, err := sharding.NewNodesSetup(
-		flagsValues.nodesSetupFilePath,
-		addressPubKeyConverter,
-		validatorPubKeyConverter,
 	)
 	if err != nil {
 		return err
@@ -295,6 +302,8 @@ func startStorer2Elastic(ctx *cli.Context) error {
 			ShardCoordinator:    shardCoordinator,
 			TPSBenchmarkUpdater: tpsBenchmarkUpdater,
 			RatingsProcessor:    ratingsProcessor,
+			RatingConfig:        ratingsConfig,
+			StartingEpoch:       uint32(flagsValues.startingEpoch),
 		})
 	if err != nil {
 		return err
