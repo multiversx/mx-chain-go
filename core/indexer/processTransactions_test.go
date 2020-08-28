@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -231,4 +232,47 @@ func TestRelayedTransactions(t *testing.T) {
 	assert.Equal(t, 1, len(transactions))
 	assert.Equal(t, 3, len(transactions[0].SmartContractResults))
 	assert.Equal(t, txStatusSuccess, transactions[0].Status)
+}
+
+func TestSetTransactionSearchOrder(t *testing.T) {
+	t.Parallel()
+	txHash1 := []byte("txHash1")
+	tx1 := &Transaction{}
+
+	txHash2 := []byte("txHash2")
+	tx2 := &Transaction{}
+
+	txPool := map[string]*Transaction {
+		string(txHash1): tx1,
+		string(txHash2): tx2,
+	}
+
+	txDbProc := newTxDatabaseProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.PubkeyConverterMock{},
+		&mock.PubkeyConverterMock{},
+	)
+
+	transactions := txDbProc.setTransactionSearchOrder(txPool, 0)
+	assert.True(t, txPoolHasSearchOrder(transactions, 20))
+	assert.True(t, txPoolHasSearchOrder(transactions, 21))
+
+	transactions = txDbProc.setTransactionSearchOrder(txPool, 1)
+	assert.True(t, txPoolHasSearchOrder(transactions, 30))
+	assert.True(t, txPoolHasSearchOrder(transactions, 31))
+
+	transactions = txDbProc.setTransactionSearchOrder(txPool, core.MetachainShardId)
+	assert.True(t, txPoolHasSearchOrder(transactions, 10))
+	assert.True(t, txPoolHasSearchOrder(transactions, 11))
+}
+
+func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bool {
+	for _, tx := range txPool {
+		if tx.SearchOrder == searchOrder {
+			return true
+		}
+	}
+
+	return false
 }
