@@ -1412,7 +1412,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	updateMachineStatisticsDuration := time.Second
-	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, updateMachineStatisticsDuration)
+	err = metrics.StartMachineStatisticsPolling(coreComponents.StatusHandler, epochStartNotifier, updateMachineStatisticsDuration)
 	if err != nil {
 		return err
 	}

@@ -187,3 +187,25 @@ func TestNewPresenterStatusHandler_GetNumShardHeadersProcessed(t *testing.T) {
 
 	assert.Equal(t, numShardHeadersProcessed, result)
 }
+
+func TestPresenterStatusHandler_GetEpochInfo(t *testing.T) {
+	t.Parallel()
+
+	numRoundsPerEpoch := uint64(20)
+	roundDuration := uint64(5000)
+	roundAtEpochStart := uint64(60)
+	currentRound := uint64(70)
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricRoundDuration, roundDuration)
+	presenterStatusHandler.SetUInt64Value(core.MetricRoundsPerEpoch, numRoundsPerEpoch)
+	presenterStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, roundAtEpochStart)
+	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRound, currentRound)
+
+	expectedRemainingTime := core.SecondsToHourMinSec(int((roundAtEpochStart + numRoundsPerEpoch - currentRound) * roundDuration / 1000))
+	currentEpochRound, currentEpochFinishRound, epochLoadPercent, remainingTime := presenterStatusHandler.GetEpochInfo()
+	assert.Equal(t, currentRound, currentEpochRound)
+	assert.Equal(t, numRoundsPerEpoch+roundAtEpochStart, currentEpochFinishRound)
+	assert.Equal(t, expectedRemainingTime, remainingTime)
+	assert.Equal(t, 50, epochLoadPercent)
+}
