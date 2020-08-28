@@ -300,7 +300,7 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 		NotarizedAtDestinationInMetaHash:  []byte{12},
 	}
 
-	node.PutHistoryFieldsInTransaction(tx, metadata)
+	node.PutMiniblockFieldsInTransaction(tx, metadata)
 
 	require.Equal(t, 42, int(tx.Epoch))
 	require.Equal(t, 4321, int(tx.Round))
