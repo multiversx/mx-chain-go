@@ -48,11 +48,11 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 	}
 
 	tx.Status = (&transaction.StatusComputer{
-		SourceShard:      n.shardCoordinator.ComputeId(tx.Tx.GetSndAddr()),
-		DestinationShard: n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()),
+		SourceShard:      n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetSndAddr()),
+		DestinationShard: n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetRcvAddr()),
 		Receiver:         tx.Tx.GetRcvAddr(),
 		TransactionData:  tx.Data,
-		SelfShard:        n.shardCoordinator.SelfId(),
+		SelfShard:        n.processComponents.ShardCoordinator().SelfId(),
 	}).ComputeStatusWhenInPool()
 
 	return tx, nil
@@ -83,7 +83,7 @@ func (n *Node) getFullHistoryTransaction(hash []byte) (*transaction.ApiTransacti
 		DestinationShard: tx.DestinationShard,
 		Receiver:         tx.Tx.GetRcvAddr(),
 		TransactionData:  tx.Data,
-		SelfShard:        n.shardCoordinator.SelfId(),
+		SelfShard:        n.processComponents.ShardCoordinator().SelfId(),
 	}).ComputeStatusWhenInStorageKnowingMiniblock()
 
 	return tx, nil
@@ -121,11 +121,11 @@ func (n *Node) getTransactionFromStorage(hash []byte) (*transaction.ApiTransacti
 
 	tx.Status = (&transaction.StatusComputer{
 		// TODO: take care of this when integrating the adaptivity
-		SourceShard:      n.shardCoordinator.ComputeId(tx.Tx.GetSndAddr()),
-		DestinationShard: n.shardCoordinator.ComputeId(tx.Tx.GetRcvAddr()),
+		SourceShard:      n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetSndAddr()),
+		DestinationShard: n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetRcvAddr()),
 		Receiver:         tx.Tx.GetRcvAddr(),
 		TransactionData:  tx.Data,
-		SelfShard:        n.shardCoordinator.SelfId(),
+		SelfShard:        n.processComponents.ShardCoordinator().SelfId(),
 	}).ComputeStatusWhenInStorageNotKnowingMiniblock()
 
 	return tx, nil
@@ -313,47 +313,4 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		Data:     tx.GetData(),
 		Code:     string(tx.GetCode()),
 	}, nil
-}
-
-func (n *Node) computeTransactionStatus(tx data.TransactionHandler, isInPool bool) core.TransactionStatus {
-	shardCoordinator := n.processComponents.ShardCoordinator()
-	selfShardID := shardCoordinator.SelfId()
-	receiverShardID := shardCoordinator.ComputeId(tx.GetRcvAddr())
-
-	var senderShardID uint32
-	sndAddr := tx.GetSndAddr()
-	if sndAddr != nil {
-		senderShardID = shardCoordinator.ComputeId(tx.GetSndAddr())
-	} else {
-		// reward transaction (sender address is nil)
-		senderShardID = core.MetachainShardId
-	}
-
-	isScDeploy := n.isDestAddressEmpty(tx) && len(tx.GetData()) > 0
-	isDestinationMe := selfShardID == receiverShardID
-	if isInPool {
-		if isScDeploy {
-			return core.TxStatusReceived
-		}
-
-		isCrossShard := senderShardID != receiverShardID
-		if isDestinationMe && isCrossShard {
-			return core.TxStatusPartiallyExecuted
-		}
-
-		return core.TxStatusReceived
-	}
-
-	// transaction is in storage
-	if isDestinationMe || isScDeploy {
-		return core.TxStatusExecuted
-	}
-
-	// is in storage on source shard
-	return core.TxStatusPartiallyExecuted
-}
-
-func (n *Node) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, n.coreComponents.AddressPubKeyConverter().Len()))
-	return isEmptyAddress
 }

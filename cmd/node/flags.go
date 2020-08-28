@@ -266,6 +266,14 @@ var (
 		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network." +
 			"Should be enabled if data is not available in local disk.",
 	}
+
+	// importDbDirectory defines a flag for the optional import DB directory on which the node will re-check the blockchain against
+	importDbDirectory = cli.StringFlag{
+		Name: "import-db",
+		Usage: "This flag, if set, will make the node start the import process using the provided data path. Will re-check" +
+			"and re-process everything",
+		Value: "",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -307,5 +315,6 @@ func getFlags() []cli.Flag {
 		numEpochsToSave,
 		numActivePersisters,
 		startInEpoch,
+		importDbDirectory,
 	}
 }

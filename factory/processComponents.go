@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"path/filepath"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -20,9 +21,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
+	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -46,6 +49,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -126,6 +130,7 @@ type ProcessComponentsFactoryArgs struct {
 	HistoryRepo               fullHistory.HistoryRepository
 	EpochNotifier             process.EpochNotifier
 	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
+	StorageResolverImportPath string
 }
 
 type processComponentsFactory struct {
@@ -168,6 +173,7 @@ type processComponentsFactory struct {
 	historyRepo               fullHistory.HistoryRepository
 	epochNotifier             process.EpochNotifier
 	headerIntegrityVerifier   HeaderIntegrityVerifierHandler
+	storageResolverImportPath string
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -216,6 +222,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		historyRepo:               args.HistoryRepo,
 		headerIntegrityVerifier:   args.HeaderIntegrityVerifier,
 		epochNotifier:             args.EpochNotifier,
+		storageResolverImportPath: args.StorageResolverImportPath,
 	}, nil
 }
 
@@ -276,7 +283,13 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	pcf.indexer.SaveBlock(&dataBlock.Body{}, genesisBlocks[core.MetachainShardId], nil, nil, nil)
+	if pcf.startEpochNum == 0 {
+		err = pcf.indexGenesisBlock(genesisBlocks)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	err = pcf.setGenesisHeader(genesisBlocks)
 	if err != nil {
 		return nil, err
@@ -709,6 +722,25 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint3
 	return nil
 }
 
+func (pcf *processComponentsFactory) indexGenesisBlock(genesisBlocks map[uint32]data.HeaderHandler) error {
+	genesisBlockHeader := genesisBlocks[core.MetachainShardId]
+	genesisBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
+	if err != nil {
+		return err
+	}
+
+	log.Info("indexGenesisBlock", "hash", genesisBlockHash)
+
+	pcf.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
+
+	err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (pcf *processComponentsFactory) newBlockTracker(
 	headerValidator process.HeaderConstructionValidator,
 	requestHandler process.RequestHandler,
@@ -748,6 +780,10 @@ func (pcf *processComponentsFactory) newBlockTracker(
 
 // -- Resolvers container Factory begin
 func (pcf *processComponentsFactory) newResolverContainerFactory() (dataRetriever.ResolversContainerFactory, error) {
+	if len(pcf.storageResolverImportPath) > 0 {
+		log.Debug("starting with storage resolvers", "path", pcf.storageResolverImportPath)
+		return pcf.newStorageResolver()
+	}
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
 		return pcf.newShardResolverContainerFactory()
 	}
@@ -838,6 +874,122 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	}
 
 	return nil, nil, errors.New("could not create interceptor container factory")
+}
+
+func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.ResolversContainerFactory, error) {
+	pathManager, err := createPathManager(pcf.storageResolverImportPath, pcf.coreData.ChainID())
+	if err != nil {
+		return nil, err
+	}
+
+	manualEpochStartNotifier := notifier.NewManualEpochStartNotifier()
+	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
+		&pcf.coreFactoryArgs.Config,
+		pcf.shardCoordinator,
+		pathManager,
+		manualEpochStartNotifier,
+		pcf.startEpochNum,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
+		store, errStore := storageServiceCreator.CreateForMeta()
+		if errStore != nil {
+			return nil, errStore
+		}
+
+		return pcf.createStorageResolversForMeta(
+			store,
+			manualEpochStartNotifier,
+		)
+	}
+
+	store, err := storageServiceCreator.CreateForShard()
+	if err != nil {
+		return nil, err
+	}
+
+	return pcf.createStorageResolversForShard(
+		store,
+		manualEpochStartNotifier,
+	)
+}
+
+func createPathManager(
+	storageResolverImportPath string,
+	chainID string,
+) (storage.PathManagerHandler, error) {
+	pathTemplateForPruningStorer := filepath.Join(
+		storageResolverImportPath,
+		core.DefaultDBPath,
+		chainID,
+		fmt.Sprintf("%s_%s", core.DefaultEpochString, core.PathEpochPlaceholder),
+		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
+		core.PathIdentifierPlaceholder)
+
+	pathTemplateForStaticStorer := filepath.Join(
+		storageResolverImportPath,
+		core.DefaultDBPath,
+		chainID,
+		core.DefaultStaticDbString,
+		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
+		core.PathIdentifierPlaceholder)
+
+	return pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
+}
+
+func (pcf *processComponentsFactory) createStorageResolversForMeta(
+	store dataRetriever.StorageService,
+	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
+) (dataRetriever.ResolversContainerFactory, error) {
+	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
+	if err != nil {
+		return nil, err
+	}
+
+	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
+		ShardCoordinator:         pcf.shardCoordinator,
+		Messenger:                pcf.network.NetworkMessenger(),
+		Store:                    store,
+		Marshalizer:              pcf.coreData.InternalMarshalizer(),
+		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: manualEpochStartNotifier,
+	}
+	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolversContainerFactory, nil
+}
+
+func (pcf *processComponentsFactory) createStorageResolversForShard(
+	store dataRetriever.StorageService,
+	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
+) (dataRetriever.ResolversContainerFactory, error) {
+	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
+	if err != nil {
+		return nil, err
+	}
+
+	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
+		ShardCoordinator:         pcf.shardCoordinator,
+		Messenger:                pcf.network.NetworkMessenger(),
+		Store:                    store,
+		Marshalizer:              pcf.coreData.InternalMarshalizer(),
+		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: manualEpochStartNotifier,
+	}
+	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolversContainerFactory, nil
 }
 
 func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
