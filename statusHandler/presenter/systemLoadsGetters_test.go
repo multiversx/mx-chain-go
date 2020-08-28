@@ -116,3 +116,25 @@ func TestPresenterStatusHandler_GetNetworkSentBpsPeak(t *testing.T) {
 
 	assert.Equal(t, networkSentBpsPeak, result)
 }
+
+func TestPresenterStatusHandler_GetNetworkSendBytesInEpoch(t *testing.T) {
+	t.Parallel()
+
+	networkBytesSentInEpoch := uint64(10000)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricNetworkSendBytesInCurrentEpochPerHost, networkBytesSentInEpoch)
+	result := presenterStatusHandler.GetNetworkSentBytesInEpoch()
+
+	assert.Equal(t, networkBytesSentInEpoch, result)
+}
+
+func TestPresenterStatusHandler_GetNetworkReceivedBytesInEpoch(t *testing.T) {
+	t.Parallel()
+
+	networkBytesSentInEpoch := uint64(15000)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricNetworkRecvBytesInCurrentEpochPerHost, networkBytesSentInEpoch)
+	result := presenterStatusHandler.GetNetworkReceivedBytesInEpoch()
+
+	assert.Equal(t, networkBytesSentInEpoch, result)
+}

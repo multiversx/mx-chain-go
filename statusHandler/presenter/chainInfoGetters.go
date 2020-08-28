@@ -61,7 +61,7 @@ func (psh *PresenterStatusHandler) GetCurrentRound() uint64 {
 func (psh *PresenterStatusHandler) CalculateTimeToSynchronize() string {
 	currentSynchronizedRound := psh.GetSynchronizedRound()
 
-	numsynchronizationSpeedHistory := len(psh.synchronizationSpeedHistory)
+	numSynchronizationSpeedHistory := len(psh.synchronizationSpeedHistory)
 
 	sum := uint64(0)
 	for i := 0; i < len(psh.synchronizationSpeedHistory); i++ {
@@ -69,8 +69,8 @@ func (psh *PresenterStatusHandler) CalculateTimeToSynchronize() string {
 	}
 
 	speed := float64(0)
-	if numsynchronizationSpeedHistory > 0 {
-		speed = float64(sum) / float64(numsynchronizationSpeedHistory)
+	if numSynchronizationSpeedHistory > 0 {
+		speed = float64(sum) / float64(numSynchronizationSpeedHistory)
 	}
 
 	currentRound := psh.GetCurrentRound()
@@ -122,4 +122,28 @@ func (psh *PresenterStatusHandler) GetNumShardHeadersInPool() uint64 {
 // GetNumShardHeadersProcessed will return number of shard header processed until now
 func (psh *PresenterStatusHandler) GetNumShardHeadersProcessed() uint64 {
 	return psh.getFromCacheAsUint64(core.MetricNumShardHeadersProcessed)
+}
+
+// GetEpochInfo will return information about current epoch
+func (psh *PresenterStatusHandler) GetEpochInfo() (uint64, uint64, int, string) {
+	roundAtEpochStart := psh.getFromCacheAsUint64(core.MetricRoundAtEpochStart)
+	roundsPerEpoch := psh.getFromCacheAsUint64(core.MetricRoundsPerEpoch)
+	currentRound := psh.getFromCacheAsUint64(core.MetricCurrentRound)
+	roundDuration := psh.getFromCacheAsUint64(core.MetricRoundDuration)
+
+	epochFinishRound := roundAtEpochStart + roundsPerEpoch
+	roundsRemained := epochFinishRound - currentRound
+	if epochFinishRound < currentRound {
+		roundsRemained = 0
+	}
+	if roundsRemained <= 0 || roundsPerEpoch == 0 || roundDuration == 0 {
+		return 0, 0, 0, ""
+	}
+	secondsRemainedInEpoch := roundsRemained * roundDuration / 1000
+
+	remainingTime := core.SecondsToHourMinSec(int(secondsRemainedInEpoch))
+
+	epochLoadPercent := 100 - int(float64(roundsRemained)/float64(roundsPerEpoch)*100.0)
+
+	return currentRound, epochFinishRound, epochLoadPercent, remainingTime
 }
