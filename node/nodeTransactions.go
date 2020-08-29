@@ -86,12 +86,12 @@ func (n *Node) lookupHistoricalTransaction(hash []byte) (*transaction.ApiTransac
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
 
 	tx.Status = (&transaction.StatusComputer{
-		MiniblockType:           block.Type(miniblockMetadata.Type),
-		MiniblockFullyNotarized: tx.NotarizedAtDestinationInMetaNonce > 0,
-		DestinationShard:        tx.DestinationShard,
-		Receiver:                tx.Tx.GetRcvAddr(),
-		TransactionData:         tx.Data,
-		SelfShard:               n.shardCoordinator.SelfId(),
+		MiniblockType:             block.Type(miniblockMetadata.Type),
+		IsMiniblockFullyNotarized: tx.NotarizedAtDestinationInMetaNonce > 0,
+		DestinationShard:          tx.DestinationShard,
+		Receiver:                  tx.Tx.GetRcvAddr(),
+		TransactionData:           tx.Data,
+		SelfShard:                 n.shardCoordinator.SelfId(),
 	}).ComputeStatusWhenInStorageKnowingMiniblock()
 
 	return tx, nil
