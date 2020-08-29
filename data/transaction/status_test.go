@@ -65,11 +65,11 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 
 	// Cross, at source, but knowing that it has been fully notarized (through DatabaseLookupExtensions)
 	computer = &StatusComputer{
-		MiniblockType:             block.TxBlock,
-		IsMiniblockFullyNotarized: true,
-		SourceShard:               12,
-		DestinationShard:          13,
-		SelfShard:                 12,
+		MiniblockType:        block.TxBlock,
+		IsMiniblockFinalized: true,
+		SourceShard:          12,
+		DestinationShard:     13,
+		SelfShard:            12,
 	}
 	require.Equal(t, TxStatusExecuted, computer.ComputeStatusWhenInStorageKnowingMiniblock())
 
