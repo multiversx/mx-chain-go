@@ -41,6 +41,7 @@ type Presenter interface {
 	GetNumTxProcessed() uint64
 	GetCurrentBlockHash() string
 	GetEpochNumber() uint64
+	GetEpochInfo() (uint64, uint64, int, string)
 	CalculateTimeToSynchronize() string
 	CalculateSynchronizationSpeed() uint64
 	GetCurrentRoundTimestamp() uint64
@@ -49,6 +50,9 @@ type Presenter interface {
 	GetNumShardHeadersProcessed() uint64
 	GetHighestFinalBlock() uint64
 	CheckSoftwareVersion() (bool, string)
+
+	GetNetworkSentBytesInEpoch() uint64
+	GetNetworkReceivedBytesInEpoch() uint64
 
 	GetTotalRewardsValue() (string, string)
 	CalculateRewardsPerHour() string
