@@ -23,12 +23,13 @@ const (
 
 // StatusComputer computes a transaction status
 type StatusComputer struct {
-	MiniblockType    block.Type
-	SourceShard      uint32
-	DestinationShard uint32
-	Receiver         []byte
-	TransactionData  []byte
-	SelfShard        uint32
+	MiniblockType           block.Type
+	MiniblockFullyNotarized bool
+	SourceShard             uint32
+	DestinationShard        uint32
+	Receiver                []byte
+	TransactionData         []byte
+	SelfShard               uint32
 }
 
 // ComputeStatusWhenInPool computes the transaction status when transaction is in pool
@@ -48,7 +49,7 @@ func (params *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxSta
 	if params.isMiniblockInvalid() {
 		return TxStatusInvalid
 	}
-	if params.isDestinationMe() || params.isContractDeploy() {
+	if params.MiniblockFullyNotarized || params.isDestinationMe() || params.isContractDeploy() {
 		return TxStatusExecuted
 	}
 
