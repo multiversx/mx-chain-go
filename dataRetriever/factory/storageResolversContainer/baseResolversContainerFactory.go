@@ -95,11 +95,13 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	txStorer := brcf.store.GetStorer(unit)
 
 	arg := storageResolvers.ArgSliceResolver{
-		Messenger:         brcf.messenger,
-		ResponseTopicName: responseTopic,
-		Storage:           txStorer,
-		DataPacker:        brcf.dataPacker,
-		Marshalizer:       brcf.marshalizer,
+		Messenger:                brcf.messenger,
+		ResponseTopicName:        responseTopic,
+		Storage:                  txStorer,
+		DataPacker:               brcf.dataPacker,
+		Marshalizer:              brcf.marshalizer,
+		ManualEpochStartNotifier: brcf.manualEpochStartNotifier,
+		ChanGracefullyClose:      brcf.chanGracefullyClose,
 	}
 	resolver, err := storageResolvers.NewSliceResolver(arg)
 	if err != nil {
@@ -151,11 +153,13 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 	miniBlocksStorer := brcf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
 	arg := storageResolvers.ArgSliceResolver{
-		Messenger:         brcf.messenger,
-		ResponseTopicName: responseTopic,
-		Storage:           miniBlocksStorer,
-		DataPacker:        brcf.dataPacker,
-		Marshalizer:       brcf.marshalizer,
+		Messenger:                brcf.messenger,
+		ResponseTopicName:        responseTopic,
+		Storage:                  miniBlocksStorer,
+		DataPacker:               brcf.dataPacker,
+		Marshalizer:              brcf.marshalizer,
+		ManualEpochStartNotifier: brcf.manualEpochStartNotifier,
+		ChanGracefullyClose:      brcf.chanGracefullyClose,
 	}
 	mbResolver, err := storageResolvers.NewSliceResolver(arg)
 	if err != nil {

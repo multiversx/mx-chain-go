@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
@@ -14,11 +15,13 @@ import (
 
 func createMockSliceResolverArg() ArgSliceResolver {
 	return ArgSliceResolver{
-		Messenger:         &mock.MessageHandlerStub{},
-		ResponseTopicName: "",
-		Storage:           genericmocks.NewStorerMock("Storage", 0),
-		DataPacker:        &mock.DataPackerStub{},
-		Marshalizer:       &mock.MarshalizerMock{},
+		Messenger:                &mock.MessageHandlerStub{},
+		ResponseTopicName:        "",
+		Storage:                  genericmocks.NewStorerMock("Storage", 0),
+		DataPacker:               &mock.DataPackerStub{},
+		Marshalizer:              &mock.MarshalizerMock{},
+		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
+		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
 	}
 }
 
@@ -66,6 +69,28 @@ func TestNewSliceResolver_NilDataPackerShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 }
 
+func TestNewSliceResolver_NilManualEpochStartNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockSliceResolverArg()
+	arg.ManualEpochStartNotifier = nil
+	sr, err := NewSliceResolver(arg)
+
+	assert.True(t, check.IfNil(sr))
+	assert.Equal(t, dataRetriever.ErrNilManualEpochStartNotifier, err)
+}
+
+func TestNewSliceResolver_NilGracefullyCloseChanShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockSliceResolverArg()
+	arg.ChanGracefullyClose = nil
+	sr, err := NewSliceResolver(arg)
+
+	assert.True(t, check.IfNil(sr))
+	assert.Equal(t, dataRetriever.ErrNilGracefullyCloseChannel, err)
+}
+
 func TestNewSliceResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -93,12 +118,19 @@ func TestSliceResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 			return nil
 		},
 	}
+	arg.ChanGracefullyClose = make(chan endProcess.ArgEndProcess, 1)
 	sr, _ := NewSliceResolver(arg)
 
 	err := sr.RequestDataFromHash([]byte("hash"), 0)
 
 	assert.Equal(t, expectedErr, err)
 	assert.False(t, sendWasCalled)
+	select {
+	case argClose := <-arg.ChanGracefullyClose:
+		assert.Equal(t, core.ImportComplete, argClose.Reason)
+	default:
+		assert.Fail(t, "did not wrote on end chan")
+	}
 }
 
 func TestSliceResolver_RequestDataFromHashShouldWork(t *testing.T) {
@@ -176,6 +208,7 @@ func TestSliceResolver_GetErroredShouldReturnErr(t *testing.T) {
 			return nil
 		},
 	}
+	arg.ChanGracefullyClose = make(chan endProcess.ArgEndProcess, 1)
 	sr, _ := NewSliceResolver(arg)
 
 	hashes := [][]byte{[]byte("hash1"), []byte("hash2")}
@@ -184,6 +217,12 @@ func TestSliceResolver_GetErroredShouldReturnErr(t *testing.T) {
 	assert.True(t, errors.Is(err, expectedErr))
 	assert.Equal(t, len(hashes)-1, numSendCalled)
 	assert.Equal(t, len(hashes), numGetCalled)
+	select {
+	case argClose := <-arg.ChanGracefullyClose:
+		assert.Equal(t, core.ImportComplete, argClose.Reason)
+	default:
+		assert.Fail(t, "did not wrote on end chan")
+	}
 }
 
 func TestSliceResolver_SendErroredShouldReturnErr(t *testing.T) {
