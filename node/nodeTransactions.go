@@ -70,6 +70,13 @@ func (n *Node) lookupHistoricalTransaction(hash []byte) (*transaction.ApiTransac
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
 	}
 
+	// After looking up a transaction from storage, it's impossible to say whether it was successful or invalid
+	// (since both successful and invalid transactions are kept in the same storage unit),
+	// so we have to use our extra information from the "miniblockMetadata" to correct the txType if appropriate
+	if block.Type(miniblockMetadata.Type) == block.InvalidBlock {
+		txType = transaction.TxTypeInvalid
+	}
+
 	tx, err := n.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot unmarshal transaction")
