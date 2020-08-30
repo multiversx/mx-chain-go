@@ -95,6 +95,7 @@ const (
 	secondsToWaitForP2PBootstrap = 20
 	maxTimeToClose               = 10 * time.Second
 	maxMachineIDLen              = 10
+	checkpointRoundsModulus      = 14400
 )
 
 var (
@@ -1489,8 +1490,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.Context) {
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
 	if len(importDbDirectoryValue) > 0 {
-		log.Info("import DB directory is set, turning off start in epoch", "value", importDbDirectoryValue)
+		log.Info("import DB directory is set, altering config values!",
+			"GeneralSettings.StartInEpochEnabled", "false",
+			"StateTriesConfig.CheckpointRoundsModulus", checkpointRoundsModulus,
+			"import DB path", importDbDirectoryValue,
+		)
 		config.GeneralSettings.StartInEpochEnabled = false
+		config.StateTriesConfig.CheckpointRoundsModulus = checkpointRoundsModulus
 	}
 }
 
