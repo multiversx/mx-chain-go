@@ -137,7 +137,9 @@ func (txProc *baseTxProcessor) checkTxValues(
 		return process.ErrWrongTypeAssertion
 	}
 
-	txFee := core.SafeMul(tx.GasLimit, tx.GasPrice)
+	//TODO: Use epoch activation approach
+	//txFee := core.SafeMul(tx.GasLimit, tx.GasPrice)
+	txFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
 	if stAcc.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,
@@ -146,7 +148,9 @@ func (txProc *baseTxProcessor) checkTxValues(
 		)
 	}
 
-	cost := big.NewInt(0).Add(txFee, tx.Value)
+	//TODO: Use epoch activation approach
+	//cost := big.NewInt(0).Add(txFee, tx.Value)
+	cost := big.NewInt(0).Add(core.SafeMul(tx.GasLimit, tx.GasPrice), tx.Value)
 	if stAcc.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
