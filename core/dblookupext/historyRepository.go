@@ -244,13 +244,13 @@ func (hr *historyRepository) onNotarizedBlocks(shardID uint32, headers []data.He
 			for _, shardData := range metaBlock.ShardInfo {
 				hr.onNotarizedInMetaBlock(metaBlock.GetNonce(), headerHash, &shardData)
 			}
-			return
+			continue
 		}
 
 		header, isHeader := headerHandler.(*block.Header)
 		if isHeader {
 			hr.onNotarizedInRegularBlockOfMeta(header.GetNonce(), headerHash, header)
-			return
+			continue
 		}
 
 		log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", headerHandler))
