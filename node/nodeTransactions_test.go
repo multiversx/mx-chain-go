@@ -214,6 +214,18 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, 42, int(actualC.Epoch))
 	require.Equal(t, transaction.TxStatusExecuted, actualC.Status)
 
+	// Invalid transaction
+	txInvalid := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
+	chainStorer.Transactions.PutWithMarshalizer([]byte("invalid"), txInvalid, n.internalMarshalizer)
+	setupGetMiniblockMetadataByTxHash(historyRepo, block.InvalidBlock, 1, 1, 42)
+
+	actualInvalid, err := n.GetTransaction(hex.EncodeToString([]byte("invalid")))
+	require.Nil(t, err)
+	require.Equal(t, txInvalid.Nonce, actualInvalid.Nonce)
+	require.Equal(t, 42, int(actualInvalid.Epoch))
+	require.Equal(t, string(transaction.TxTypeInvalid), actualInvalid.Type)
+	require.Equal(t, transaction.TxStatusInvalid, actualInvalid.Status)
+
 	// Reward transactions
 
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
@@ -223,6 +235,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualD.Epoch))
+	require.Equal(t, string(transaction.TxTypeReward), actualD.Type)
 	require.Equal(t, transaction.TxStatusExecuted, actualD.Status)
 
 	// Unsigned transactions
@@ -236,6 +249,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualE.Epoch))
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
+	require.Equal(t, string(transaction.TxTypeUnsigned), actualE.Type)
 	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualE.Status)
 
 	// Cross-shard, we are destination
@@ -247,6 +261,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualF.Epoch))
 	require.Equal(t, txF.GasLimit, actualF.GasLimit)
+	require.Equal(t, string(transaction.TxTypeUnsigned), actualF.Type)
 	require.Equal(t, transaction.TxStatusExecuted, actualF.Status)
 
 	// Intra-shard
@@ -258,6 +273,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualG.Epoch))
 	require.Equal(t, txG.GasLimit, actualG.GasLimit)
+	require.Equal(t, string(transaction.TxTypeUnsigned), actualG.Type)
 	require.Equal(t, transaction.TxStatusExecuted, actualG.Status)
 
 	// Missing transaction

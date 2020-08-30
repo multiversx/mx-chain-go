@@ -21,7 +21,12 @@ type ApiTransactionResult struct {
 	GasPrice                          uint64                  `json:"gasPrice,omitempty"`
 	GasLimit                          uint64                  `json:"gasLimit,omitempty"`
 	Data                              []byte                  `json:"data,omitempty"`
+	CodeMetadata                      []byte                  `json:"codeMetadata,omitempty"`
 	Code                              string                  `json:"code,omitempty"`
+	PreviousTransactionHash           string                  `json:"previousTransactionHash,omitempty"`
+	OriginalTransactionHash           string                  `json:"originalTransactionHash,omitempty"`
+	ReturnMessage                     string                  `json:"returnMessage,omitempty"`
+	OriginalSender                    string                  `json:"originalSender,omitempty"`
 	Signature                         string                  `json:"signature,omitempty"`
 	SourceShard                       uint32                  `json:"sourceShard"`
 	DestinationShard                  uint32                  `json:"destinationShard"`

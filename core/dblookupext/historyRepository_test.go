@@ -500,3 +500,79 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
 	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
 }
+
+func TestHistoryRepository_OnNotarizedBlocksWithMetachainTransactions(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHistoryRepoArgs(42)
+	args.SelfShardID = 14
+	repoAtShard, err := NewHistoryRepository(args)
+	require.Nil(t, err)
+	require.NotNil(t, repoAtShard)
+
+	args = createMockHistoryRepoArgs(42)
+	args.SelfShardID = core.MetachainShardId
+	repoAtMeta, err := NewHistoryRepository(args)
+	require.Nil(t, err)
+	require.NotNil(t, repoAtMeta)
+
+	// Assumming one miniblock of system smart contract transactions,
+	miniblock := &block.MiniBlock{
+		SenderShardID:   14,
+		ReceiverShardID: core.MetachainShardId,
+		TxHashes:        [][]byte{[]byte("txStaking")},
+	}
+	miniblockHash, _ := repoAtShard.computeMiniblockHash(miniblock)
+
+	// Let's commit the block at source
+	repoAtShard.RecordBlock([]byte("fooBlock"),
+		&block.Header{Epoch: 42, Round: 4321},
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				miniblock,
+			},
+		},
+	)
+
+	// Let's commit the block at metachain as well
+	repoAtMeta.RecordBlock([]byte("barBlock"),
+		&block.Header{Epoch: 42, Round: 4321, Nonce: 3999},
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				miniblock,
+			},
+		},
+	)
+
+	// At metachain, the hyperblock coordinates should be already set at commit time
+	metadata, err := repoAtMeta.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	require.Nil(t, err)
+	require.Equal(t, 42, int(metadata.Epoch))
+	require.Equal(t, 3999, int(metadata.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, []byte("barBlock"), metadata.NotarizedAtSourceInMetaHash)
+	require.Equal(t, 3999, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, []byte("barBlock"), metadata.NotarizedAtDestinationInMetaHash)
+
+	// Now, we should receive a the notification at source shard
+	blockOfMeta := &block.Header{
+		Nonce: 3999,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				SenderShardID:   14,
+				ReceiverShardID: core.MetachainShardId,
+				Hash:            miniblockHash,
+			},
+		},
+	}
+
+	repoAtShard.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{blockOfMeta}, [][]byte{[]byte("barBlock")})
+
+	// The hyperblock coordinates should now be set at source as well
+	metadata, err = repoAtShard.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	require.Nil(t, err)
+	require.Equal(t, 42, int(metadata.Epoch))
+	require.Equal(t, 3999, int(metadata.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, []byte("barBlock"), metadata.NotarizedAtSourceInMetaHash)
+	require.Equal(t, 3999, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, []byte("barBlock"), metadata.NotarizedAtDestinationInMetaHash)
+}
