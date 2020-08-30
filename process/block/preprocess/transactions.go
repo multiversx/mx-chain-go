@@ -907,8 +907,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			}
 
 			numTxsBad++
-			//TODO: Change log level back to Trace
-			log.Warn("bad tx",
+			log.Trace("bad tx",
 				"error", err.Error(),
 				"hash", txHash,
 			)
