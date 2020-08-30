@@ -558,7 +558,7 @@ func TestHistoryRepository_OnNotarizedBlocksWithMetachainTransactions(t *testing
 		Nonce: 3999,
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{
-				SenderShardID:   12,
+				SenderShardID:   14,
 				ReceiverShardID: core.MetachainShardId,
 				Hash:            miniblockHash,
 			},
@@ -568,7 +568,7 @@ func TestHistoryRepository_OnNotarizedBlocksWithMetachainTransactions(t *testing
 	repoAtShard.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{blockOfMeta}, [][]byte{[]byte("barBlock")})
 
 	// The hyperblock coordinates should now be set at source as well
-	metadata, err = repoAtMeta.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	metadata, err = repoAtShard.getMiniblockMetadataByMiniblockHash(miniblockHash)
 	require.Nil(t, err)
 	require.Equal(t, 42, int(metadata.Epoch))
 	require.Equal(t, 3999, int(metadata.NotarizedAtSourceInMetaNonce))

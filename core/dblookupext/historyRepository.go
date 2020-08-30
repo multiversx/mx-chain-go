@@ -236,34 +236,30 @@ func (hr *historyRepository) onNotarizedBlocks(shardID uint32, headers []data.He
 		return
 	}
 
-	for i, header := range headers {
+	for i, headerHandler := range headers {
 		headerHash := headersHashes[i]
 
-		asMetaBlock, isMetaBlock := header.(*block.MetaBlock)
+		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
 		if isMetaBlock {
-			for _, shardData := range asMetaBlock.ShardInfo {
-				hr.onNotarizedInMetaBlock(asMetaBlock.GetNonce(), headerHash, &shardData)
+			for _, shardData := range metaBlock.ShardInfo {
+				hr.onNotarizedInMetaBlock(metaBlock.GetNonce(), headerHash, &shardData)
 			}
 			return
 		}
 
-		asBlock, isBlock := header.(*block.Header)
-		if isBlock {
-			if asBlock.GetShardID() != core.MetachainShardId {
-				continue
-			}
-
-			hr.onNotarizedInRegularBlockOfMeta(asMetaBlock.GetNonce(), headerHash, asBlock)
+		header, isHeader := headerHandler.(*block.Header)
+		if isHeader {
+			hr.onNotarizedInRegularBlockOfMeta(header.GetNonce(), headerHash, header)
 			return
 		}
 
-		log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", header))
+		log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", headerHandler))
 	}
 }
 
-func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaBlockHash []byte, blockHeader *block.ShardData) {
-	for _, miniblockHeader := range blockHeader.GetShardMiniBlockHeaders() {
-		hr.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, blockHeader.GetShardID(), miniblockHeader)
+func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaBlockHash []byte, shardData *block.ShardData) {
+	for _, miniblockHeader := range shardData.GetShardMiniBlockHeaders() {
+		hr.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, shardData.GetShardID(), miniblockHeader)
 	}
 }
 
