@@ -895,6 +895,7 @@ func newStorageResolver(
 	}
 
 	manualEpochStartNotifier := notifier.NewManualEpochStartNotifier()
+	manualEpochStartNotifier.NewEpoch(currentEpoch + 1)
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		config,
 		shardCoordinator,
