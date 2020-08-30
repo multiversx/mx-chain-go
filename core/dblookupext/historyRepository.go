@@ -126,6 +126,17 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 		DestinationShardID: miniblock.GetReceiverShardID(),
 	}
 
+	// If we are on metachain and the miniblock is towards us, then we can also apply hyperblock coordinates at commit & record time,
+	// since there will be no notification via blockTracker.Register(*)NotarizedHeadersHandler anyway.
+	selfIsMeta := hr.selfShardID == core.MetachainShardId
+	receiverIsMeta := miniblock.GetReceiverShardID() == core.MetachainShardId
+	if selfIsMeta && receiverIsMeta {
+		miniblockMetadata.NotarizedAtSourceInMetaNonce = blockHeader.GetNonce()
+		miniblockMetadata.NotarizedAtSourceInMetaHash = blockHeaderHash
+		miniblockMetadata.NotarizedAtDestinationInMetaNonce = blockHeader.GetNonce()
+		miniblockMetadata.NotarizedAtDestinationInMetaHash = blockHeaderHash
+	}
+
 	// Here we need to use queued notifications
 	notification, ok := hr.notarizedAtSourceNotifications.Get(string(miniblockHash))
 	if ok {
@@ -225,30 +236,44 @@ func (hr *historyRepository) onNotarizedBlocks(shardID uint32, headers []data.He
 		return
 	}
 
-	for i, header := range headers {
+	for i, headerHandler := range headers {
 		headerHash := headersHashes[i]
 
-		metaBlock, ok := header.(*block.MetaBlock)
-		if !ok {
-			return
+		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
+		if isMetaBlock {
+			for _, shardData := range metaBlock.ShardInfo {
+				hr.onNotarizedInMetaBlock(metaBlock.GetNonce(), headerHash, &shardData)
+			}
+			continue
 		}
 
-		for _, shardData := range metaBlock.ShardInfo {
-			hr.onNotarizedBlock(metaBlock.GetNonce(), headerHash, shardData)
+		header, isHeader := headerHandler.(*block.Header)
+		if isHeader {
+			hr.onNotarizedInRegularBlockOfMeta(header.GetNonce(), headerHash, header)
+			continue
 		}
+
+		log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", headerHandler))
 	}
 }
 
-func (hr *historyRepository) onNotarizedBlock(metaBlockNonce uint64, metaBlockHash []byte, blockHeader block.ShardData) {
-	for _, miniblockHeader := range blockHeader.GetShardMiniBlockHeaders() {
-		hr.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, blockHeader, miniblockHeader)
+func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaBlockHash []byte, shardData *block.ShardData) {
+	for _, miniblockHeader := range shardData.GetShardMiniBlockHeaders() {
+		hr.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, shardData.GetShardID(), miniblockHeader)
 	}
 }
 
-func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, blockHeader block.ShardData, miniblockHeader block.MiniBlockHeader) {
+func (hr *historyRepository) onNotarizedInRegularBlockOfMeta(blockOfMetaNonce uint64, blockOfMetaHash []byte, blockHeader *block.Header) {
+	for _, miniblockHeader := range blockHeader.GetMiniBlockHeaders() {
+		hr.onNotarizedMiniblock(blockOfMetaNonce, blockOfMetaHash, blockHeader.GetShardID(), miniblockHeader)
+	}
+}
+
+func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, shardOfContainingBlock uint32, miniblockHeader block.MiniBlockHeader) {
 	miniblockHash := miniblockHeader.Hash
 	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
-	notarizedAtSource := miniblockHeader.SenderShardID == blockHeader.ShardID
+	notarizedAtSource := miniblockHeader.SenderShardID == shardOfContainingBlock
+	isToMeta := miniblockHeader.ReceiverShardID == core.MetachainShardId
 
 	iDontCare := miniblockHeader.SenderShardID != hr.selfShardID && miniblockHeader.ReceiverShardID != hr.selfShardID
 	if iDontCare {
@@ -282,13 +307,13 @@ func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlo
 		return
 	}
 
-	if isIntra {
+	if isIntra || isToMeta {
 		metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
 		metadata.NotarizedAtSourceInMetaHash = metaBlockHash
 		metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
 		metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
 
-		log.Trace("onNotarizedMiniblock() intra",
+		log.Trace("onNotarizedMiniblock() intra shard or towards meta",
 			"miniblock", miniblockHash,
 			"direction", fmt.Sprintf("[%d -> %d]", metadata.SourceShardID, metadata.DestinationShardID),
 			"meta nonce", metaBlockNonce,

@@ -70,6 +70,13 @@ func (n *Node) lookupHistoricalTransaction(hash []byte) (*transaction.ApiTransac
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
 	}
 
+	// After looking up a transaction from storage, it's impossible to say whether it was successful or invalid
+	// (since both successful and invalid transactions are kept in the same storage unit),
+	// so we have to use our extra information from the "miniblockMetadata" to correct the txType if appropriate
+	if block.Type(miniblockMetadata.Type) == block.InvalidBlock {
+		txType = transaction.TxTypeInvalid
+	}
+
 	tx, err := n.unmarshalTransaction(txBytes, txType)
 	if err != nil {
 		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot unmarshal transaction")
@@ -79,11 +86,12 @@ func (n *Node) lookupHistoricalTransaction(hash []byte) (*transaction.ApiTransac
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
 
 	tx.Status = (&transaction.StatusComputer{
-		MiniblockType:    block.Type(miniblockMetadata.Type),
-		DestinationShard: tx.DestinationShard,
-		Receiver:         tx.Tx.GetRcvAddr(),
-		TransactionData:  tx.Data,
-		SelfShard:        n.shardCoordinator.SelfId(),
+		MiniblockType:        block.Type(miniblockMetadata.Type),
+		IsMiniblockFinalized: tx.NotarizedAtDestinationInMetaNonce > 0,
+		DestinationShard:     tx.DestinationShard,
+		Receiver:             tx.Tx.GetRcvAddr(),
+		TransactionData:      tx.Data,
+		SelfShard:            n.shardCoordinator.SelfId(),
 	}).ComputeStatusWhenInStorageKnowingMiniblock()
 
 	return tx, nil
@@ -218,10 +226,12 @@ func (n *Node) getTxBytesFromStorageByEpoch(hash []byte, epoch uint32) ([]byte, 
 func (n *Node) castObjToTransaction(txObj interface{}, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 	switch txType {
 	case transaction.TxTypeNormal:
-		fallthrough
-	case transaction.TxTypeInvalid:
 		if tx, ok := txObj.(*transaction.Transaction); ok {
 			return n.prepareNormalTx(tx)
+		}
+	case transaction.TxTypeInvalid:
+		if tx, ok := txObj.(*transaction.Transaction); ok {
+			return n.prepareInvalidTx(tx)
 		}
 	case transaction.TxTypeReward:
 		if tx, ok := txObj.(*rewardTxData.RewardTx); ok {
@@ -240,14 +250,19 @@ func (n *Node) castObjToTransaction(txObj interface{}, txType transaction.TxType
 func (n *Node) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
 	switch txType {
 	case transaction.TxTypeNormal:
-		fallthrough
-	case transaction.TxTypeInvalid:
 		var tx transaction.Transaction
 		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
 		return n.prepareNormalTx(&tx)
+	case transaction.TxTypeInvalid:
+		var tx transaction.Transaction
+		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
+		if err != nil {
+			return nil, err
+		}
+		return n.prepareInvalidTx(&tx)
 	case transaction.TxTypeReward:
 		var tx rewardTxData.RewardTx
 		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
@@ -283,6 +298,21 @@ func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTra
 	}, nil
 }
 
+func (n *Node) prepareInvalidTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
+	return &transaction.ApiTransactionResult{
+		Tx:        tx,
+		Type:      string(transaction.TxTypeInvalid),
+		Nonce:     tx.Nonce,
+		Value:     tx.Value.String(),
+		Receiver:  n.addressPubkeyConverter.Encode(tx.RcvAddr),
+		Sender:    n.addressPubkeyConverter.Encode(tx.SndAddr),
+		GasPrice:  tx.GasPrice,
+		GasLimit:  tx.GasLimit,
+		Data:      tx.Data,
+		Signature: hex.EncodeToString(tx.Signature),
+	}, nil
+}
+
 func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
 		Tx:          tx,
@@ -298,15 +328,20 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTrans
 
 func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
-		Tx:       tx,
-		Type:     string(transaction.TxTypeUnsigned),
-		Nonce:    tx.GetNonce(),
-		Value:    tx.GetValue().String(),
-		Receiver: n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
-		Sender:   n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
-		GasPrice: tx.GetGasPrice(),
-		GasLimit: tx.GetGasLimit(),
-		Data:     tx.GetData(),
-		Code:     string(tx.GetCode()),
+		Tx:                      tx,
+		Type:                    string(transaction.TxTypeUnsigned),
+		Nonce:                   tx.GetNonce(),
+		Value:                   tx.GetValue().String(),
+		Receiver:                n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
+		Sender:                  n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
+		GasPrice:                tx.GetGasPrice(),
+		GasLimit:                tx.GetGasLimit(),
+		Data:                    tx.GetData(),
+		Code:                    string(tx.GetCode()),
+		CodeMetadata:            tx.GetCodeMetadata(),
+		PreviousTransactionHash: hex.EncodeToString(tx.GetPrevTxHash()),
+		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
+		OriginalSender:          n.addressPubkeyConverter.Encode(tx.GetOriginalSender()),
+		ReturnMessage:           string(tx.GetReturnMessage()),
 	}, nil
 }
