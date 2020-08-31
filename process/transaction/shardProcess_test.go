@@ -1083,7 +1083,7 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 	args.Accounts = adb
 	args.ShardCoordinator = shardC
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+		EstimateMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(1)
 		},
 	}

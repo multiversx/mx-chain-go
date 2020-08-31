@@ -695,6 +695,8 @@ func CreateEconomicsData() *economics.EconomicsData {
 				DataLimitForBaseCalc:    "10000",
 			},
 		},
+		0,
+		&mock.EpochNotifierStub{},
 	)
 	return economicsData
 }
@@ -1257,9 +1259,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.ScProcessor,
 		txTypeHandler,
 		tpn.EconomicsData,
-		0,
-		0,
-		tpn.EpochNotifier,
 	)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(

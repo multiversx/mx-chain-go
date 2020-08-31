@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -17,17 +16,13 @@ import (
 )
 
 type baseTxProcessor struct {
-	accounts                       state.AccountsAdapter
-	shardCoordinator               sharding.Coordinator
-	pubkeyConv                     core.PubkeyConverter
-	economicsFee                   process.FeeHandler
-	hasher                         hashing.Hasher
-	marshalizer                    marshal.Marshalizer
-	scProcessor                    process.SmartContractProcessor
-	flagRelayedTx                  atomic.Flag
-	flagPenalizedTooMuchGas        atomic.Flag
-	relayedTxEnableEpoch           uint32
-	penalizedTooMuchGasEnableEpoch uint32
+	accounts         state.AccountsAdapter
+	shardCoordinator sharding.Coordinator
+	pubkeyConv       core.PubkeyConverter
+	economicsFee     process.FeeHandler
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	scProcessor      process.SmartContractProcessor
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -142,13 +137,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		return process.ErrWrongTypeAssertion
 	}
 
-	var txFee *big.Int
-	if txProc.flagPenalizedTooMuchGas.IsSet() {
-		txFee = core.SafeMul(tx.GasLimit, tx.GasPrice)
-	} else {
-		txFee = txProc.economicsFee.ComputeMoveBalanceFee(tx)
-	}
-
+	txFee := txProc.economicsFee.EstimateMoveBalanceFee(tx)
 	if stAcc.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,
@@ -157,13 +146,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		)
 	}
 
-	var cost *big.Int
-	if txProc.flagPenalizedTooMuchGas.IsSet() {
-		cost = big.NewInt(0).Add(txFee, tx.Value)
-	} else {
-		cost = big.NewInt(0).Add(core.SafeMul(tx.GasLimit, tx.GasPrice), tx.Value)
-	}
-
+	cost := big.NewInt(0).Add(core.SafeMul(tx.GasLimit, tx.GasPrice), tx.Value)
 	if stAcc.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
@@ -203,13 +186,4 @@ func (txProc *baseTxProcessor) processIfTxErrorCrossShard(tx *transaction.Transa
 	}
 
 	return nil
-}
-
-// EpochConfirmed is called whenever a new epoch is confirmed
-func (txProc *baseTxProcessor) EpochConfirmed(epoch uint32) {
-	txProc.flagRelayedTx.Toggle(epoch >= txProc.relayedTxEnableEpoch)
-	log.Debug("txProcessor: relayed transactions", "enabled", txProc.flagRelayedTx.IsSet())
-
-	txProc.flagPenalizedTooMuchGas.Toggle(epoch >= txProc.penalizedTooMuchGasEnableEpoch)
-	log.Debug("txProcessor: penalized too much gas", "enabled", txProc.flagPenalizedTooMuchGas.IsSet())
 }

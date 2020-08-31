@@ -1366,7 +1366,6 @@ func newBlockProcessor(
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return newMetaBlockProcessor(
-			&processArgs.coreComponents.Config,
 			requestHandler,
 			processArgs.shardCoordinator,
 			processArgs.nodesCoordinator,
@@ -1701,7 +1700,6 @@ func newShardBlockProcessor(
 }
 
 func newMetaBlockProcessor(
-	config *config.Config,
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
@@ -1849,26 +1847,12 @@ func newMetaBlockProcessor(
 		scProcessor,
 		txTypeHandler,
 		economicsData,
-		config.GeneralSettings.RelayedTransactionsEnableEpoch,
-		config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
-		epochNotifier,
 	)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	err = createMetaTxSimulatorProcessor(
-		argsNewScProcessor,
-		shardCoordinator,
-		data,
-		core,
-		stateComponents,
-		txTypeHandler,
-		txSimulatorProcessorArgs,
-		config.GeneralSettings.RelayedTransactionsEnableEpoch,
-		config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
-		epochNotifier,
-	)
+	err = createMetaTxSimulatorProcessor(argsNewScProcessor, shardCoordinator, data, core, stateComponents, txTypeHandler, txSimulatorProcessorArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -2171,9 +2155,6 @@ func createMetaTxSimulatorProcessor(
 	stateComponents *mainFactory.StateComponents,
 	txTypeHandler process.TxTypeHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
-	relayedTxEnableEpoch uint32,
-	penalizedTooMuchGasEnableEpoch uint32,
-	epochNotifier process.EpochNotifier,
 ) error {
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
@@ -2225,9 +2206,6 @@ func createMetaTxSimulatorProcessor(
 		scProcessor,
 		txTypeHandler,
 		&processDisabled.FeeHandler{},
-		relayedTxEnableEpoch,
-		penalizedTooMuchGasEnableEpoch,
-		epochNotifier,
 	)
 	if err != nil {
 		return err

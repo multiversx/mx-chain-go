@@ -27,9 +27,6 @@ func createMetaTxProcessor() process.TransactionProcessor {
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	return txProc
@@ -49,9 +46,6 @@ func TestNewMetaTxProcessor_NilAccountsShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -70,9 +64,6 @@ func TestNewMetaTxProcessor_NilPubkeyConverterMockShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
@@ -91,9 +82,6 @@ func TestNewMetaTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -112,9 +100,6 @@ func TestNewMetaTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 		nil,
 		&mock.TxTypeHandlerMock{},
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
@@ -133,9 +118,6 @@ func TestNewMetaTxProcessor_NilTxTypeHandlerShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		nil,
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	assert.Equal(t, process.ErrNilTxTypeHandler, err)
@@ -154,33 +136,9 @@ func TestNewMetaTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
 		nil,
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
-	assert.Nil(t, txProc)
-}
-
-func TestNewMetaTxProcessor_NilEpochNotifierShouldErr(t *testing.T) {
-	t.Parallel()
-
-	txProc, err := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.TxTypeHandlerMock{},
-		createFreeTxFeeHandler(),
-		0,
-		0,
-		nil,
-	)
-
-	assert.Equal(t, process.ErrNilEpochNotifier, err)
 	assert.Nil(t, txProc)
 }
 
@@ -196,9 +154,6 @@ func TestNewMetaTxProcessor_OkValsShouldWork(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	assert.Nil(t, err)
@@ -230,9 +185,6 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	tx := transaction.Transaction{}
@@ -271,9 +223,6 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	_, err = execTx.ProcessTransaction(&tx)
@@ -317,9 +266,6 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 		},
 		&mock.TxTypeHandlerMock{},
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	_, err = execTx.ProcessTransaction(&tx)
@@ -375,9 +321,6 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 			},
 		},
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	_, err = execTx.ProcessTransaction(&tx)
@@ -429,9 +372,6 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 			return process.SCInvoking
 		}},
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	_, err = execTx.ProcessTransaction(&tx)
@@ -503,9 +443,6 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		scProcessorMock,
 		computeType,
 		createFreeTxFeeHandler(),
-		0,
-		0,
-		&mock.EpochNotifierStub{},
 	)
 
 	_, err = execTx.ProcessTransaction(&tx)

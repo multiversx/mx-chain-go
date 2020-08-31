@@ -325,9 +325,6 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		scProcessor,
 		txTypeHandler,
 		genesisFeeHandler,
-		generalConfig.RelayedTransactionsEnableEpoch,
-		generalConfig.PenalizedTooMuchGasEnableEpoch,
-		epochNotifier,
 	)
 	if err != nil {
 		return nil, process.ErrNilTxProcessor

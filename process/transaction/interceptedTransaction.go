@@ -318,9 +318,7 @@ func (inTx *InterceptedTransaction) SenderAddress() []byte {
 
 // Fee returns the estimated cost of the transaction
 func (inTx *InterceptedTransaction) Fee() *big.Int {
-	//TODO: Use epoch activation approach
-	//return core.SafeMul(inTx.tx.GasPrice, inTx.tx.GasLimit)
-	return inTx.feeHandler.ComputeMoveBalanceFee(inTx.tx)
+	return inTx.feeHandler.EstimateMoveBalanceFee(inTx.tx)
 }
 
 // Type returns the type of this intercepted data

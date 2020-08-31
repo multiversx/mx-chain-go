@@ -71,6 +71,8 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				DataLimitForBaseCalc:    "10000",
 			},
 		},
+		0,
+		&mock.EpochNotifierStub{},
 	)
 
 	arguments := peer.ArgValidatorStatisticsProcessor{

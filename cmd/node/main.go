@@ -833,7 +833,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
 	log.Trace("creating economics data components")
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
+	economicsData, err := economics.NewEconomicsData(
+		economicsConfig,
+		generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		epochNotifier,
+	)
 	if err != nil {
 		return err
 	}

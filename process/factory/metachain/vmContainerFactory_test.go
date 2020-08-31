@@ -110,6 +110,8 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				DataLimitForBaseCalc:    "10000",
 			},
 		},
+		0,
+		&mock.EpochNotifierStub{},
 	)
 
 	vmf, err := NewVMContainerFactory(

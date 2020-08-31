@@ -233,6 +233,8 @@ func createEconomicsData() *economics2.EconomicsData {
 				DataLimitForBaseCalc:    "10000",
 			},
 		},
+		0,
+		&mock.EpochNotifierStub{},
 	)
 	return economicsData
 }

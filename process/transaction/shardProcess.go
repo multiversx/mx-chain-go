@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
@@ -26,13 +27,17 @@ var _ process.TransactionProcessor = (*txProcessor)(nil)
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
-	txFeeHandler     process.TransactionFeeHandler
-	txTypeHandler    process.TxTypeHandler
-	receiptForwarder process.IntermediateTransactionHandler
-	badTxForwarder   process.IntermediateTransactionHandler
-	argsParser       process.ArgumentsParser
-	scrForwarder     process.IntermediateTransactionHandler
-	signMarshalizer  marshal.Marshalizer
+	txFeeHandler                   process.TransactionFeeHandler
+	txTypeHandler                  process.TxTypeHandler
+	receiptForwarder               process.IntermediateTransactionHandler
+	badTxForwarder                 process.IntermediateTransactionHandler
+	argsParser                     process.ArgumentsParser
+	scrForwarder                   process.IntermediateTransactionHandler
+	signMarshalizer                marshal.Marshalizer
+	flagRelayedTx                  atomic.Flag
+	flagPenalizedTooMuchGas        atomic.Flag
+	relayedTxEnableEpoch           uint32
+	penalizedTooMuchGasEnableEpoch uint32
 }
 
 // ArgsNewTxProcessor defines defines the arguments needed for new tx processor
@@ -105,26 +110,26 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	}
 
 	baseTxProcess := &baseTxProcessor{
-		accounts:                       args.Accounts,
-		shardCoordinator:               args.ShardCoordinator,
-		pubkeyConv:                     args.PubkeyConv,
-		economicsFee:                   args.EconomicsFee,
-		hasher:                         args.Hasher,
-		marshalizer:                    args.Marshalizer,
-		scProcessor:                    args.ScProcessor,
-		relayedTxEnableEpoch:           args.RelayedTxEnableEpoch,
-		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
+		accounts:         args.Accounts,
+		shardCoordinator: args.ShardCoordinator,
+		pubkeyConv:       args.PubkeyConv,
+		economicsFee:     args.EconomicsFee,
+		hasher:           args.Hasher,
+		marshalizer:      args.Marshalizer,
+		scProcessor:      args.ScProcessor,
 	}
 
 	txProc := &txProcessor{
-		baseTxProcessor:  baseTxProcess,
-		txFeeHandler:     args.TxFeeHandler,
-		txTypeHandler:    args.TxTypeHandler,
-		receiptForwarder: args.ReceiptForwarder,
-		badTxForwarder:   args.BadTxForwarder,
-		argsParser:       args.ArgsParser,
-		scrForwarder:     args.ScrForwarder,
-		signMarshalizer:  args.SignMarshalizer,
+		baseTxProcessor:                baseTxProcess,
+		txFeeHandler:                   args.TxFeeHandler,
+		txTypeHandler:                  args.TxTypeHandler,
+		receiptForwarder:               args.ReceiptForwarder,
+		badTxForwarder:                 args.BadTxForwarder,
+		argsParser:                     args.ArgsParser,
+		scrForwarder:                   args.ScrForwarder,
+		signMarshalizer:                args.SignMarshalizer,
+		relayedTxEnableEpoch:           args.RelayedTxEnableEpoch,
+		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
@@ -235,13 +240,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return nil
 	}
 
-	txFee := big.NewInt(0)
-	if txProc.flagPenalizedTooMuchGas.IsSet() {
-		txFee.Set(core.SafeMul(tx.GasPrice, tx.GasLimit))
-	} else {
-		txFee.Set(txProc.economicsFee.ComputeMoveBalanceFee(tx))
-	}
-
+	txFee := txProc.economicsFee.EstimateMoveBalanceFee(tx)
 	err := acntSnd.SubFromBalance(txFee)
 	if err != nil {
 		return err
@@ -801,6 +800,15 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 	}
 
 	return nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (txProc *txProcessor) EpochConfirmed(epoch uint32) {
+	txProc.flagRelayedTx.Toggle(epoch >= txProc.relayedTxEnableEpoch)
+	log.Debug("txProcessor: relayed transactions", "enabled", txProc.flagRelayedTx.IsSet())
+
+	txProc.flagPenalizedTooMuchGas.Toggle(epoch >= txProc.penalizedTooMuchGasEnableEpoch)
+	log.Debug("txProcessor: penalized too much gas", "enabled", txProc.flagPenalizedTooMuchGas.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
