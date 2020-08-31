@@ -1257,6 +1257,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.ScProcessor,
 		txTypeHandler,
 		tpn.EconomicsData,
+		0,
+		0,
+		tpn.EpochNotifier,
 	)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(

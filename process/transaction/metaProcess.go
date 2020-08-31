@@ -30,6 +30,9 @@ func NewMetaTxProcessor(
 	scProcessor process.SmartContractProcessor,
 	txTypeHandler process.TxTypeHandler,
 	economicsFee process.FeeHandler,
+	relayedTxEnableEpoch uint32,
+	penalizedTooMuchGasEnableEpoch uint32,
+	epochNotifier process.EpochNotifier,
 ) (*metaTxProcessor, error) {
 
 	if check.IfNil(accounts) {
@@ -50,21 +53,30 @@ func NewMetaTxProcessor(
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-
-	baseTxProcess := &baseTxProcessor{
-		accounts:         accounts,
-		shardCoordinator: shardCoordinator,
-		pubkeyConv:       pubkeyConv,
-		economicsFee:     economicsFee,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		scProcessor:      scProcessor,
+	if check.IfNil(epochNotifier) {
+		return nil, process.ErrNilEpochNotifier
 	}
 
-	return &metaTxProcessor{
+	baseTxProcess := &baseTxProcessor{
+		accounts:                       accounts,
+		shardCoordinator:               shardCoordinator,
+		pubkeyConv:                     pubkeyConv,
+		economicsFee:                   economicsFee,
+		hasher:                         hasher,
+		marshalizer:                    marshalizer,
+		scProcessor:                    scProcessor,
+		relayedTxEnableEpoch:           relayedTxEnableEpoch,
+		penalizedTooMuchGasEnableEpoch: penalizedTooMuchGasEnableEpoch,
+	}
+
+	metaTxProc := &metaTxProcessor{
 		baseTxProcessor: baseTxProcess,
 		txTypeHandler:   txTypeHandler,
-	}, nil
+	}
+
+	epochNotifier.RegisterNotifyHandler(metaTxProc)
+
+	return metaTxProc, nil
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
