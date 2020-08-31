@@ -645,23 +645,24 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
 	// In "dblookupext" index, record both the metachain and the shard blocks
-	for shard, genesisBlockHeader := range genesisBlocks {
-		if args.shardCoordinator.SelfId() != shard {
+	var shardID uint32
+	for shardID, genesisBlockHeader = range genesisBlocks {
+		if args.shardCoordinator.SelfId() != shardID {
 			continue
 		}
 
-		genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
+		genesisBlockHash, err = core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
 		if err != nil {
 			return err
 		}
 
-		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shard, "hash", genesisBlockHash)
+		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shardID, "hash", genesisBlockHash)
 		err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
 		if err != nil {
 			return err
 		}
 
-		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shard)
+		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardID)
 		nonceAsBytes := args.coreData.Uint64ByteSliceConverter.ToByteSlice(genesisBlockHeader.GetNonce())
 		err = args.data.Store.Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
 		if err != nil {
@@ -912,6 +913,8 @@ func newStorageResolver(
 			return nil, errStore
 		}
 
+		manualEpochStartNotifier.NewEpoch(currentEpoch + 1)
+
 		return createStorageResolversForMeta(
 			shardCoordinator,
 			coreData,
@@ -926,6 +929,8 @@ func newStorageResolver(
 	if err != nil {
 		return nil, err
 	}
+
+	manualEpochStartNotifier.NewEpoch(currentEpoch + 1)
 
 	return createStorageResolversForShard(
 		shardCoordinator,
