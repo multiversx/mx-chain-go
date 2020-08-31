@@ -19,6 +19,7 @@ import (
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -172,6 +173,7 @@ type processComponentsFactoryArgs struct {
 	epochNotifier             process.EpochNotifier
 	txSimulatorProcessorArgs  *txsimulator.ArgsTxSimulator
 	storageReolverImportPath  string
+	chanGracefullyClose       chan endProcess.ArgEndProcess
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -218,6 +220,7 @@ func NewProcessComponentsFactoryArgs(
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	storageReolverImportPath string,
+	chanGracefullyClose chan endProcess.ArgEndProcess,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -263,6 +266,7 @@ func NewProcessComponentsFactoryArgs(
 		epochNotifier:             epochNotifier,
 		txSimulatorProcessorArgs:  txSimulatorProcessorArgs,
 		storageReolverImportPath:  storageReolverImportPath,
+		chanGracefullyClose:       chanGracefullyClose,
 	}
 }
 
@@ -306,6 +310,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.storageReolverImportPath,
 		&args.mainConfig,
 		args.startEpochNum,
+		args.chanGracefullyClose,
 	)
 	if err != nil {
 		return nil, err
@@ -833,6 +838,7 @@ func newResolverContainerFactory(
 	storageResolverImportPath string,
 	config *config.Config,
 	currentEpoch uint32,
+	chanGracefullyClose chan endProcess.ArgEndProcess,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	if len(storageResolverImportPath) > 0 {
@@ -844,6 +850,7 @@ func newResolverContainerFactory(
 			storageResolverImportPath,
 			config,
 			currentEpoch,
+			chanGracefullyClose,
 		)
 	}
 
@@ -880,6 +887,7 @@ func newStorageResolver(
 	storageResolverImportPath string,
 	config *config.Config,
 	currentEpoch uint32,
+	chanGracefullyClose chan endProcess.ArgEndProcess,
 ) (dataRetriever.ResolversContainerFactory, error) {
 	pathManager, err := createPathManager(storageResolverImportPath, string(coreData.ChainID))
 	if err != nil {
@@ -910,6 +918,7 @@ func newStorageResolver(
 			network,
 			store,
 			manualEpochStartNotifier,
+			chanGracefullyClose,
 		)
 	}
 
@@ -924,6 +933,7 @@ func newStorageResolver(
 		network,
 		store,
 		manualEpochStartNotifier,
+		chanGracefullyClose,
 	)
 }
 
@@ -956,6 +966,7 @@ func createStorageResolversForMeta(
 	network *mainFactory.NetworkComponents,
 	store dataRetriever.StorageService,
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
+	chanGracefullyClose chan endProcess.ArgEndProcess,
 ) (dataRetriever.ResolversContainerFactory, error) {
 	dataPacker, err := partitioning.NewSimpleDataPacker(coreData.InternalMarshalizer)
 	if err != nil {
@@ -970,6 +981,7 @@ func createStorageResolversForMeta(
 		Uint64ByteSliceConverter: coreData.Uint64ByteSliceConverter,
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
+		ChanGracefullyClose:      chanGracefullyClose,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -985,6 +997,7 @@ func createStorageResolversForShard(
 	network *mainFactory.NetworkComponents,
 	store dataRetriever.StorageService,
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
+	chanGracefullyClose chan endProcess.ArgEndProcess,
 ) (dataRetriever.ResolversContainerFactory, error) {
 	dataPacker, err := partitioning.NewSimpleDataPacker(coreData.InternalMarshalizer)
 	if err != nil {
@@ -999,6 +1012,7 @@ func createStorageResolversForShard(
 		Uint64ByteSliceConverter: coreData.Uint64ByteSliceConverter,
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
+		ChanGracefullyClose:      chanGracefullyClose,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {

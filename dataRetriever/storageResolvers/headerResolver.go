@@ -5,6 +5,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
@@ -21,16 +22,16 @@ type ArgHeaderResolver struct {
 	HdrStorage               storage.Storer
 	HeadersNoncesStorage     storage.Storer
 	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	ChanGracefullyClose      chan endProcess.ArgEndProcess
 }
 
 type headerResolver struct {
 	*storageResolver
-	nonceConverter           typeConverters.Uint64ByteSliceConverter
-	mutEpochHandler          sync.RWMutex
-	epochHandler             dataRetriever.EpochHandler
-	hdrStorage               storage.Storer
-	hdrNoncesStorage         storage.Storer
-	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	nonceConverter   typeConverters.Uint64ByteSliceConverter
+	mutEpochHandler  sync.RWMutex
+	epochHandler     dataRetriever.EpochHandler
+	hdrStorage       storage.Storer
+	hdrNoncesStorage storage.Storer
 }
 
 // NewHeaderResolver creates a new storage header resolver
@@ -50,18 +51,22 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*headerResolver, error) {
 	if check.IfNil(arg.ManualEpochStartNotifier) {
 		return nil, dataRetriever.ErrNilManualEpochStartNotifier
 	}
+	if arg.ChanGracefullyClose == nil {
+		return nil, dataRetriever.ErrNilGracefullyCloseChannel
+	}
 
 	epochHandler := epochproviders.NewNilEpochHandler()
 	return &headerResolver{
 		storageResolver: &storageResolver{
-			messenger:         arg.Messenger,
-			responseTopicName: arg.ResponseTopicName,
+			messenger:                arg.Messenger,
+			responseTopicName:        arg.ResponseTopicName,
+			manualEpochStartNotifier: arg.ManualEpochStartNotifier,
+			chanGracefullyClose:      arg.ChanGracefullyClose,
 		},
-		hdrStorage:               arg.HdrStorage,
-		hdrNoncesStorage:         arg.HeadersNoncesStorage,
-		nonceConverter:           arg.NonceConverter,
-		epochHandler:             epochHandler,
-		manualEpochStartNotifier: arg.ManualEpochStartNotifier,
+		hdrStorage:       arg.HdrStorage,
+		hdrNoncesStorage: arg.HeadersNoncesStorage,
+		nonceConverter:   arg.NonceConverter,
+		epochHandler:     epochHandler,
 	}, nil
 }
 
@@ -75,6 +80,8 @@ func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 
 	buff, err := hdrRes.hdrStorage.SearchFirst(hash)
 	if err != nil {
+		hdrRes.signalGracefullyClose()
+
 		return err
 	}
 
@@ -86,6 +93,8 @@ func (hdrRes *headerResolver) RequestDataFromNonce(nonce uint64, epoch uint32) e
 	nonceKey := hdrRes.nonceConverter.ToByteSlice(nonce)
 	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(nonceKey)
 	if err != nil {
+		hdrRes.signalGracefullyClose()
+
 		return err
 	}
 
