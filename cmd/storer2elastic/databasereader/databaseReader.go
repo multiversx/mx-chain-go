@@ -81,7 +81,9 @@ func (dr *databaseReader) GetDatabaseInfo() ([]*DatabaseInfo, error) {
 		epochStr := re.FindString(dirname)
 		epoch, errParseInt := strconv.ParseInt(epochStr, 10, 64)
 		if errParseInt != nil {
-			log.Warn("cannot parse epoch number from directory name", "directory name", dirname)
+			if dirname != "Static" {
+				log.Warn("cannot parse epoch number from directory name", "directory name", dirname)
+			}
 			continue
 		}
 
