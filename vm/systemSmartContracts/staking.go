@@ -992,12 +992,15 @@ func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 
 	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
 	if err != nil {
+		r.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
+		r.eei.AddReturnMessage("no need to jail as not a validator")
 		return vmcommon.UserError
 	}
 	if !registrationData.Staked {
+		r.eei.AddReturnMessage("no need to jail as not a validator")
 		return vmcommon.UserError
 	}
 	if registrationData.Jailed {

@@ -2,7 +2,6 @@ package scToProtocol
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go/vm"
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -16,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -178,18 +178,33 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 	return nil
 }
 
+func (stp *stakingToPeer) processOldValidatorUnJail(
+	stakingData systemSmartContracts.StakedData,
+	account state.PeerAccountHandler,
+	nonce uint64,
+) error {
+	if stakingData.UnJailedNonce != nonce {
+		return nil
+	}
+
+	account.SetListAndIndex(account.GetShardId(), string(core.InactiveList), uint32(stakingData.JailedNonce))
+	account.SetTempRating(stp.jailRating)
+
+	return stp.peerState.SaveAccount(account)
+}
+
 func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakedData,
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
-	if stakingData.StakedNonce == math.MaxUint64 {
-		return nil
-	}
-
 	account, err := stp.getPeerAccount(blsPubKey)
 	if err != nil {
 		return err
+	}
+
+	if stakingData.StakedNonce == math.MaxUint64 {
+		return stp.processOldValidatorUnJail(stakingData, account, nonce)
 	}
 
 	if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
