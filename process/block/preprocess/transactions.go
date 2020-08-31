@@ -961,12 +961,13 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		}
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
-		numTxs := 1
+		numScCalls := 0
 		if core.IsSmartContractAddress(tx.RcvAddr) {
 			//we need to increment this as to account for the corresponding SCR hash
-			numTxs++
+			numScCalls++
 		}
-		txs.blockSizeComputation.AddNumTxs(numTxs)
+		txs.blockSizeComputation.AddNumTxs(1)
+		txs.blockSizeComputation.AddNumTxs(numScCalls)
 		numTxsAdded++
 	}
 
@@ -1121,20 +1122,14 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 
 	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
 
-	//TODO remove this hack -> just for testing
-	numScCalls := 0
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	for index, txHash := range miniBlockTxHashes {
 		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: miniBlockTxs[index], txShardInfo: txShardInfoToSet}
-		if core.IsSmartContractAddress(miniBlockTxs[index].RcvAddr) {
-			numScCalls++
-		}
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	txs.blockSizeComputation.AddNumMiniBlocks(1)
 	txs.blockSizeComputation.AddNumTxs(len(miniBlockTxs))
-	txs.blockSizeComputation.AddNumTxs(numScCalls)
 
 	return nil, nil
 }

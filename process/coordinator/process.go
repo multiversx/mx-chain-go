@@ -509,6 +509,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
 	nrMiniBlocksProcessed := 0
+	numPostProcessMbs := 0
+	numPostProcessTxs := 0
 
 	if check.IfNil(hdr) {
 		return miniBlocks, nrTxAdded, false, nil
@@ -522,7 +524,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			break
 		}
 
-		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
+		if tc.blockSizeComputation.IsMaxBlockSizeReached(numPostProcessMbs, numPostProcessTxs) {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
 				"stop creating", "max block size has been reached")
 			break
@@ -560,11 +562,16 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
+		numPostProcessMbs, numPostProcessTxs = tc.getPostProcessNumOfMbsAndTxs()
+
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, miniBlock)
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
 		nrMiniBlocksProcessed++
 	}
+
+	tc.blockSizeComputation.AddNumMiniBlocks(numPostProcessMbs)
+	tc.blockSizeComputation.AddNumTxs(numPostProcessTxs)
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
 
@@ -979,6 +986,27 @@ func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
 	}
 
 	return tc.marshalizer.Marshal(receiptsBatch)
+}
+
+func (tc *transactionCoordinator) getPostProcessNumOfMbsAndTxs() (int, int) {
+	numMbs := 0
+	numTxs := 0
+
+	for _, blockType := range tc.keysInterimProcs {
+		interimProc := tc.getInterimProcessor(blockType)
+		if check.IfNil(interimProc) {
+			continue
+		}
+
+		mbs := interimProc.CreateAllInterMiniBlocks()
+		for _, mb := range mbs {
+			numTxs += len(mb.TxHashes)
+		}
+
+		numMbs += len(mbs)
+	}
+
+	return numMbs, numTxs
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
