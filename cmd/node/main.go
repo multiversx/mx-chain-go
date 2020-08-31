@@ -1493,8 +1493,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.Context) {
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
 	if len(importDbDirectoryValue) > 0 {
-		log.Info("import DB directory is set, turning off start in epoch", "value", importDbDirectoryValue)
+		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
+		log.Info("import DB directory is set, altering config values!",
+			"GeneralSettings.StartInEpochEnabled", "false",
+			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"import DB path", importDbDirectoryValue,
+		)
 		config.GeneralSettings.StartInEpochEnabled = false
+		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 	}
 }
 
