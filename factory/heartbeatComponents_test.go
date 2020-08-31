@@ -101,6 +101,9 @@ func getDefaultHeartbeatComponents() factory.HeartbeatComponentsFactoryArgs {
 					},
 				},
 			},
+			ValidatorStatistics: config.ValidatorStatisticsConfig{
+				CacheRefreshIntervalInSec: uint32(100),
+			},
 		},
 		Prefs:             config.Preferences{},
 		AppVersion:        "test",

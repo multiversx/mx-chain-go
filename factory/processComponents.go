@@ -92,7 +92,7 @@ type processComponents struct {
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
 type ProcessComponentsFactoryArgs struct {
-	CoreFactoryArgs           *CoreComponentsFactoryArgs
+	Config                    config.Config
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
 	EconomicsData             *economics.EconomicsData
@@ -136,7 +136,7 @@ type ProcessComponentsFactoryArgs struct {
 }
 
 type processComponentsFactory struct {
-	coreFactoryArgs           *CoreComponentsFactoryArgs
+	config                    config.Config
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             *economics.EconomicsData
@@ -187,7 +187,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		coreFactoryArgs:           args.CoreFactoryArgs,
+		config:                    args.Config,
 		accountsParser:            args.AccountsParser,
 		smartContractParser:       args.SmartContractParser,
 		economicsData:             args.EconomicsData,
@@ -304,7 +304,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	cacheRefreshDuration := time.Duration(pcf.coreFactoryArgs.Config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
+	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
 	argVSP := peer.ArgValidatorsProvider{
 		NodesCoordinator:                  pcf.nodesCoordinator,
 		StartEpoch:                        pcf.startEpochNum,
@@ -518,7 +518,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		peerDataPool = pcf.data.Datapool()
 	}
 
-	hardForkConfig := pcf.coreFactoryArgs.Config.Hardfork
+	hardForkConfig := pcf.config.Hardfork
 	ratingEnabledEpoch := uint32(0)
 	if hardForkConfig.AfterHardFork {
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
@@ -598,7 +598,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
 		argEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        time.Unix(pcf.nodesConfig.GetStartTime(), 0),
-			Settings:           &pcf.coreFactoryArgs.Config.EpochStartConfig,
+			Settings:           &pcf.config.EpochStartConfig,
 			Epoch:              pcf.startEpochNum,
 			EpochStartRound:    pcf.data.Blockchain().GetGenesisHeader().GetRound(),
 			EpochStartNotifier: pcf.epochStartNotifier,
@@ -622,7 +622,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 }
 
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, error) {
-	genesisVmConfig := pcf.coreFactoryArgs.Config.VirtualMachineConfig
+	genesisVmConfig := pcf.config.VirtualMachineConfig
 	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
 	conversionBase := 10
 	genesisNodePrice, ok := big.NewInt(0).SetString(pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
@@ -645,15 +645,15 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GasMap:               pcf.gasSchedule,
 		VirtualMachineConfig: genesisVmConfig,
 		TxLogsProcessor:      pcf.txLogsProcessor,
-		HardForkConfig:       pcf.coreFactoryArgs.Config.Hardfork,
+		HardForkConfig:       pcf.config.Hardfork,
 		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
 		SystemSCConfig:       *pcf.systemSCConfig,
 		ImportStartHandler:   pcf.importStartHandler,
 		WorkingDir:           pcf.workingDir,
 		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
-		GenesisString:        pcf.coreFactoryArgs.Config.GeneralSettings.GenesisString,
+		GenesisString:        pcf.config.GeneralSettings.GenesisString,
 		GenesisNodePrice:     genesisNodePrice,
-		GeneralConfig:        &pcf.coreFactoryArgs.Config.GeneralSettings,
+		GeneralConfig:        &pcf.config.GeneralSettings,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
@@ -909,7 +909,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 
 	manualEpochStartNotifier := notifier.NewManualEpochStartNotifier()
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
-		&pcf.coreFactoryArgs.Config,
+		&pcf.config,
 		pcf.shardCoordinator,
 		pathManager,
 		manualEpochStartNotifier,
@@ -1111,7 +1111,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 func (pcf *processComponentsFactory) prepareNetworkShardingCollector() (*networksharding.PeerShardMapper, error) {
 
 	networkShardingCollector, err := createNetworkShardingCollector(
-		&pcf.coreFactoryArgs.Config,
+		&pcf.config,
 		pcf.nodesCoordinator,
 		pcf.epochStartNotifier,
 		pcf.startEpochNum,
@@ -1183,9 +1183,6 @@ func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
 
 func checkArgs(args ProcessComponentsFactoryArgs) error {
 	baseErrMessage := "error creating process components"
-	if args.CoreFactoryArgs == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilCoreComponents)
-	}
 	if check.IfNil(args.AccountsParser) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAccountsParser)
 	}

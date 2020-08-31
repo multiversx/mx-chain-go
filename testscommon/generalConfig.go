@@ -7,6 +7,42 @@ import (
 
 func GetGeneralConfig() config.Config {
 	return config.Config{
+		PublicKeyPeerId: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		PublicKeyShardId: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		PeerIdShardId: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		PeerHonesty: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		AddressPubkeyConverter: config.PubkeyConfig{
+			Length:          32,
+			Type:            "bech32",
+			SignatureLength: 0,
+		},
+		ValidatorPubkeyConverter: config.PubkeyConfig{
+			Length:          96,
+			Type:            "hex",
+			SignatureLength: 48,
+		},
+		Consensus: config.ConsensusConfig{
+			Type: "bls",
+		},
+		ValidatorStatistics: config.ValidatorStatisticsConfig{
+			CacheRefreshIntervalInSec: uint32(100),
+		},
 		GeneralSettings: config.GeneralSettingsConfig{
 			StartInEpochEnabled: true,
 		},
@@ -247,6 +283,9 @@ func GetGeneralConfig() config.Config {
 					Version:    "*",
 				},
 			},
+		},
+		SoftwareVersionConfig: config.SoftwareVersionConfig{
+			PollingIntervalInMinutes: 30,
 		},
 	}
 }

@@ -118,7 +118,6 @@ func getProcessComponentsArgs() factory.ProcessComponentsFactoryArgs {
 	cryptoComponents := getCryptoComponents(coreComponents)
 	stateComponents := getStateComponents(coreComponents)
 	processArgs := getProcessArgs(
-		getCoreArgs(),
 		coreComponents,
 		dataComponents,
 		cryptoComponents,
@@ -129,8 +128,7 @@ func getProcessComponentsArgs() factory.ProcessComponentsFactoryArgs {
 }
 
 func getProcessArgs(
-	coreArgs factory.CoreComponentsFactoryArgs,
-	coreComponets factory.CoreComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
 	dataComponents factory.DataComponentsHolder,
 	cryptoComponents factory.CryptoComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
@@ -147,7 +145,7 @@ func getProcessArgs(
 	epochStartConfig := getEpochStartConfig()
 
 	return factory.ProcessComponentsFactoryArgs{
-		CoreFactoryArgs:     &coreArgs,
+		Config:              testscommon.GetGeneralConfig(),
 		AccountsParser:      &mock.AccountsParserStub{},
 		SmartContractParser: &mock.SmartContractParserStub{},
 		EconomicsData:       CreateEconomicsData(),
@@ -166,7 +164,7 @@ func getProcessArgs(
 		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(2),
 		NodesCoordinator:          &mock.NodesCoordinatorMock{},
 		Data:                      dataComponents,
-		CoreData:                  coreComponets,
+		CoreData:                  coreComponents,
 		Crypto:                    cryptoComponents,
 		State:                     stateComponents,
 		Network:                   networkComponents,

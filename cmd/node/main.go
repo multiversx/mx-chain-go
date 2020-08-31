@@ -745,7 +745,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating process components")
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
-		CoreFactoryArgs:           (*mainFactory.CoreComponentsFactoryArgs)(&coreArgs),
+		Config:                    coreArgs.Config,
 		AccountsParser:            accountsParser,
 		SmartContractParser:       smartContractParser,
 		EconomicsData:             economicsData,

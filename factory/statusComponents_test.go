@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -107,11 +108,15 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 
 // ------------ Test ManagedStatusComponents --------------------
 func TestManagedStatusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
-	t.Skip("Should be fixed")
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	coreComponents := getDefaultCoreComponents()
+	statusArgs.CoreComponents = coreComponents
+
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
 	managedStatusComponents, err := factory.NewManagedStatusComponents(statusComponentsFactory)
 	require.NoError(t, err)
+
+	coreComponents.StatusHdl = nil
 	err = managedStatusComponents.Create()
 	require.Error(t, err)
 	require.Nil(t, managedStatusComponents.StatusHandler())
@@ -158,8 +163,40 @@ func TestStatusComponents_Close_ShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func getStatusComponents(
+	coreComponents factory.CoreComponentsHolder,
+	networkComponents factory.NetworkComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
+	processComponents factory.ProcessComponentsHolder,
+) factory.StatusComponentsHandler {
+	statusArgs := factory.StatusComponentsFactoryArgs{
+		Config:             testscommon.GetGeneralConfig(),
+		ExternalConfig:     config.ExternalConfig{},
+		RoundDurationSec:   4,
+		ElasticOptions:     &indexer.Options{},
+		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
+		NodesCoordinator:   processComponents.NodesCoordinator(),
+		EpochStartNotifier: processComponents.EpochStartNotifier(),
+		CoreComponents:     coreComponents,
+		DataComponents:     dataComponents,
+		NetworkComponents:  networkComponents,
+		StatusUtils:        &mock.StatusHandlersUtilsMock{},
+	}
+
+	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
+	managedStatusComponents, err := factory.NewManagedStatusComponents(statusComponentsFactory)
+	if err != nil {
+		fmt.Println("getStatusComponents NewManagedStatusComponents", "error", err.Error())
+		return nil
+	}
+	err = managedStatusComponents.Create()
+	if err != nil {
+		fmt.Println("getStatusComponents Create", "error", err.Error())
+	}
+	return managedStatusComponents
+}
+
 func getStatusComponentsFactoryArgsAndProcessComponents() (factory.StatusComponentsFactoryArgs, factory.ProcessComponentsHolder) {
-	coreArgs := getCoreArgs()
 	coreComponents := getCoreComponents()
 	networkComponents := getNetworkComponents()
 	dataComponents := getDataComponents(coreComponents)
@@ -174,7 +211,7 @@ func getStatusComponentsFactoryArgsAndProcessComponents() (factory.StatusCompone
 	)
 
 	return factory.StatusComponentsFactoryArgs{
-		Config:             coreArgs.Config,
+		Config:             testscommon.GetGeneralConfig(),
 		ExternalConfig:     config.ExternalConfig{},
 		RoundDurationSec:   4,
 		ElasticOptions:     &indexer.Options{},
@@ -246,7 +283,6 @@ func getProcessComponents(
 	stateComponents factory.StateComponentsHolder,
 ) factory.ProcessComponentsHolder {
 	processArgs := getProcessArgs(
-		getCoreArgs(),
 		coreComponents,
 		dataComponents,
 		cryptoComponents,
