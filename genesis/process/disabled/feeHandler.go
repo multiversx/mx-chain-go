@@ -36,8 +36,8 @@ func (fh *FeeHandler) ComputeMoveBalanceFee(_ process.TransactionWithFeeHandler)
 	return big.NewInt(0)
 }
 
-// EstimateMoveBalanceFee returns 0
-func (fh *FeeHandler) EstimateMoveBalanceFee(_ process.TransactionWithFeeHandler) *big.Int {
+// ComputeTxFee returns 0
+func (fh *FeeHandler) ComputeTxFee(_ process.TransactionWithFeeHandler) *big.Int {
 	return big.NewInt(0)
 }
 

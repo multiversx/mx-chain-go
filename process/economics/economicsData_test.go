@@ -44,10 +44,19 @@ func createDummyEconomicsConfig() *config.EconomicsConfig {
 	}
 }
 
+func createArgsForEconomicsData() economics.ArgsNewEconomicsData {
+	args := economics.ArgsNewEconomicsData{
+		Economics:                      createDummyEconomicsConfig(),
+		PenalizedTooMuchGasEnableEpoch: 0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
+	}
+	return args
+}
+
 func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	economicsConfig := createDummyEconomicsConfig()
+	args := createArgsForEconomicsData()
 	badGasLimitPerBlock := []string{
 		"-1",
 		"-100000000000000000000",
@@ -61,8 +70,8 @@ func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
 	}
 
 	for _, gasLimitPerBlock := range badGasLimitPerBlock {
-		economicsConfig.FeeSettings.MaxGasLimitPerBlock = gasLimitPerBlock
-		_, err := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+		args.Economics.FeeSettings.MaxGasLimitPerBlock = gasLimitPerBlock
+		_, err := economics.NewEconomicsData(args)
 		assert.Equal(t, process.ErrInvalidMaxGasLimitPerBlock, err)
 	}
 
@@ -71,7 +80,7 @@ func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {
 func TestNewEconomicsData_InvalidMinGasPriceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	economicsConfig := createDummyEconomicsConfig()
+	args := createArgsForEconomicsData()
 	badGasPrice := []string{
 		"-1",
 		"-100000000000000000000",
@@ -85,8 +94,8 @@ func TestNewEconomicsData_InvalidMinGasPriceShouldErr(t *testing.T) {
 	}
 
 	for _, gasPrice := range badGasPrice {
-		economicsConfig.FeeSettings.MinGasPrice = gasPrice
-		_, err := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+		args.Economics.FeeSettings.MinGasPrice = gasPrice
+		_, err := economics.NewEconomicsData(args)
 		assert.Equal(t, process.ErrInvalidMinimumGasPrice, err)
 	}
 
@@ -95,7 +104,7 @@ func TestNewEconomicsData_InvalidMinGasPriceShouldErr(t *testing.T) {
 func TestNewEconomicsData_InvalidMinGasLimitShouldErr(t *testing.T) {
 	t.Parallel()
 
-	economicsConfig := createDummyEconomicsConfig()
+	args := createArgsForEconomicsData()
 	bagMinGasLimit := []string{
 		"-1",
 		"-100000000000000000000",
@@ -109,8 +118,8 @@ func TestNewEconomicsData_InvalidMinGasLimitShouldErr(t *testing.T) {
 	}
 
 	for _, minGasLimit := range bagMinGasLimit {
-		economicsConfig.FeeSettings.MinGasLimit = minGasLimit
-		_, err := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+		args.Economics.FeeSettings.MinGasLimit = minGasLimit
+		_, err := economics.NewEconomicsData(args)
 		assert.Equal(t, process.ErrInvalidMinimumGasLimitForTx, err)
 	}
 
@@ -119,10 +128,10 @@ func TestNewEconomicsData_InvalidMinGasLimitShouldErr(t *testing.T) {
 func TestNewEconomicsData_InvalidLeaderPercentageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RewardsSettings.LeaderPercentage = -0.1
+	args := createArgsForEconomicsData()
+	args.Economics.RewardsSettings.LeaderPercentage = -0.1
 
-	_, err := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+	_, err := economics.NewEconomicsData(args)
 	assert.Equal(t, process.ErrInvalidRewardsPercentages, err)
 
 }
@@ -130,9 +139,10 @@ func TestNewEconomicsData_InvalidLeaderPercentageShouldErr(t *testing.T) {
 func TestNewEconomicsData_NilEpochNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	economicsConfig := createDummyEconomicsConfig()
+	args := createArgsForEconomicsData()
+	args.EpochNotifier = nil
 
-	_, err := economics.NewEconomicsData(economicsConfig, 0, nil)
+	_, err := economics.NewEconomicsData(args)
 	assert.Equal(t, process.ErrNilEpochNotifier, err)
 
 }
@@ -140,18 +150,18 @@ func TestNewEconomicsData_NilEpochNotifierShouldErr(t *testing.T) {
 func TestNewEconomicsData_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	economicsConfig := createDummyEconomicsConfig()
-	economicsData, _ := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+	args := createArgsForEconomicsData()
+	economicsData, _ := economics.NewEconomicsData(args)
 	assert.NotNil(t, economicsData)
 }
 
 func TestEconomicsData_LeaderPercentage(t *testing.T) {
 	t.Parallel()
 
+	args := createArgsForEconomicsData()
 	leaderPercentage := 0.40
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.RewardsSettings.LeaderPercentage = leaderPercentage
-	economicsData, _ := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+	args.Economics.RewardsSettings.LeaderPercentage = leaderPercentage
+	economicsData, _ := economics.NewEconomicsData(args)
 
 	value := economicsData.LeaderPercentage()
 	assert.Equal(t, leaderPercentage, value)
@@ -160,11 +170,11 @@ func TestEconomicsData_LeaderPercentage(t *testing.T) {
 func TestEconomicsData_ComputeMoveBalanceFeeNoTxData(t *testing.T) {
 	t.Parallel()
 
+	args := createArgsForEconomicsData()
 	gasPrice := uint64(500)
 	minGasLimit := uint64(12)
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
-	economicsData, _ := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+	args.Economics.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
+	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
 		GasLimit: minGasLimit,
@@ -181,12 +191,12 @@ func TestEconomicsData_ComputeMoveBalanceFeeNoTxData(t *testing.T) {
 func TestEconomicsData_ComputeMoveBalanceFeeWithTxData(t *testing.T) {
 	t.Parallel()
 
+	args := createArgsForEconomicsData()
 	gasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	txData := "text to be notarized"
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
-	economicsData, _ := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+	args.Economics.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
+	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
 		GasLimit: minGasLimit,
@@ -203,27 +213,28 @@ func TestEconomicsData_ComputeMoveBalanceFeeWithTxData(t *testing.T) {
 	assert.Equal(t, expectedCost, cost)
 }
 
-func TestEconomicsData_EstimateMoveBalanceFeeShouldWork(t *testing.T) {
+func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	t.Parallel()
 
+	args := createArgsForEconomicsData()
 	gasPrice := uint64(500)
 	gasLimit := uint64(20)
 	minGasLimit := uint64(10)
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
-	economicsData, _ := economics.NewEconomicsData(economicsConfig, 1, &mock.EpochNotifierStub{})
+	args.Economics.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
+	args.PenalizedTooMuchGasEnableEpoch = 1
+	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 	}
 
-	cost := economicsData.EstimateMoveBalanceFee(tx)
+	cost := economicsData.ComputeTxFee(tx)
 	expectedCost := core.SafeMul(minGasLimit, gasPrice)
 	assert.Equal(t, expectedCost, cost)
 
 	economicsData.EpochConfirmed(1)
 
-	cost = economicsData.EstimateMoveBalanceFee(tx)
+	cost = economicsData.ComputeTxFee(tx)
 	expectedCost = core.SafeMul(gasLimit, gasPrice)
 	assert.Equal(t, expectedCost, cost)
 }
@@ -231,12 +242,12 @@ func TestEconomicsData_EstimateMoveBalanceFeeShouldWork(t *testing.T) {
 func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
 	t.Parallel()
 
+	args := createArgsForEconomicsData()
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
-	economicsData, _ := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice - 1,
 		GasLimit: minGasLimit,
@@ -251,12 +262,12 @@ func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
 func TestEconomicsData_TxWithLowerGasLimitShouldErr(t *testing.T) {
 	t.Parallel()
 
+	args := createArgsForEconomicsData()
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
-	economicsData, _ := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit - 1,
@@ -271,14 +282,14 @@ func TestEconomicsData_TxWithLowerGasLimitShouldErr(t *testing.T) {
 func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 	t.Parallel()
 
+	args := createArgsForEconomicsData()
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	maxGasLimitPerBlock := minGasLimit
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
-	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
-	economicsData, _ := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+	args.Economics.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit + 1,
@@ -294,14 +305,14 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 func TestEconomicsData_TxWithWithMinGasPriceAndLimitShouldWork(t *testing.T) {
 	t.Parallel()
 
+	args := createArgsForEconomicsData()
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	maxGasLimitPerBlock := minGasLimit + 1
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
-	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
-	economicsData, _ := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+	args.Economics.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice,
 		GasLimit: minGasLimit,
@@ -316,14 +327,14 @@ func TestEconomicsData_TxWithWithMinGasPriceAndLimitShouldWork(t *testing.T) {
 func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerBlockShouldNotWork(t *testing.T) {
 	t.Parallel()
 
+	args := createArgsForEconomicsData()
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	maxGasLimitPerBlock := uint64(42)
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
-	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
-	economicsData, _ := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+	args.Economics.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	economicsData, _ := economics.NewEconomicsData(args)
 
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice + 1,
@@ -353,14 +364,14 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerBlockShouldNotWork(t 
 func TestEconomicsData_TxWithWithMoreValueThanGenesisSupplyShouldError(t *testing.T) {
 	t.Parallel()
 
+	args := createArgsForEconomicsData()
 	minGasPrice := uint64(500)
 	minGasLimit := uint64(12)
 	maxGasLimitPerBlock := minGasLimit + 42
-	economicsConfig := createDummyEconomicsConfig()
-	economicsConfig.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
-	economicsConfig.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
-	economicsConfig.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
-	economicsData, _ := economics.NewEconomicsData(economicsConfig, 0, &mock.EpochNotifierStub{})
+	args.Economics.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: minGasPrice + 1,
 		GasLimit: minGasLimit + 1,
