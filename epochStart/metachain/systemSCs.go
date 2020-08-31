@@ -101,7 +101,12 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 	jailedValidators := s.getSortedJailedNodes(validatorInfos)
 
 	log.Debug("number of jailed validators", "num", len(jailedValidators))
+
+	newValidators := make(map[string]struct{})
 	for _, jailedValidator := range jailedValidators {
+		if _, ok := newValidators[string(jailedValidator.PublicKey)]; ok {
+			continue
+		}
 
 		vmInput := &vmcommon.ContractCallInput{
 			VMInput: vmcommon.VMInput{
@@ -126,9 +131,13 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 			continue
 		}
 
-		err = s.stakingToValidatorStatistics(validatorInfos, jailedValidator, vmOutput)
+		newValidator, err := s.stakingToValidatorStatistics(validatorInfos, jailedValidator, vmOutput)
 		if err != nil {
 			return err
+		}
+
+		if len(newValidator) != 0 {
+			newValidators[string(newValidator)] = struct{}{}
 		}
 	}
 
@@ -139,10 +148,10 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 	jailedValidator *state.ValidatorInfo,
 	vmOutput *vmcommon.VMOutput,
-) error {
+) ([]byte, error) {
 	stakingSCOutput, ok := vmOutput.OutputAccounts[string(s.stakingSCAddress)]
 	if !ok {
-		return epochStart.ErrStakingSCOutputAccountNotFound
+		return nil, epochStart.ErrStakingSCOutputAccountNotFound
 	}
 
 	var activeStorageUpdate *vmcommon.StorageUpdate
@@ -156,39 +165,42 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 	if activeStorageUpdate == nil {
 		log.Debug("no one in waiting suitable for switch")
-		return nil
+		return nil, nil
 	}
 
 	err := s.processSCOutputAccounts(vmOutput)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var stakingData systemSmartContracts.StakedData
 	err = s.marshalizer.Unmarshal(&stakingData, activeStorageUpdate.Data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	blsPubKey := activeStorageUpdate.Offset
 	log.Debug("staking validator key who switches with the jailed one", "blsKey", blsPubKey)
 	account, err := s.getPeerAccount(blsPubKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
 		err = account.SetRewardAddress(stakingData.RewardAddress)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
 		err = account.SetBLSPublicKey(blsPubKey)
 		if err != nil {
-			return err
+			return nil, err
 		}
+	} else {
+		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
+		deleteNewValidatorIfExistsFromMap(validatorInfos, blsPubKey, account.GetShardId())
 	}
 
 	account.SetListAndIndex(jailedValidator.ShardId, string(core.NewList), uint32(stakingData.StakedNonce))
@@ -197,25 +209,41 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 
 	err = s.peerAccountsDB.SaveAccount(account)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	jailedAccount, err := s.getPeerAccount(jailedValidator.PublicKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	jailedAccount.SetListAndIndex(jailedValidator.ShardId, string(core.JailedList), jailedValidator.Index)
 	jailedAccount.ResetAtNewEpoch()
 	err = s.peerAccountsDB.SaveAccount(jailedAccount)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
 	switchJailedWithNewValidatorInMap(validatorInfos, jailedValidator, newValidatorInfo)
 
-	return nil
+	return blsPubKey, nil
+}
+
+func deleteNewValidatorIfExistsFromMap(
+	validatorInfos map[uint32][]*state.ValidatorInfo,
+	blsPubKey []byte,
+	shardID uint32,
+) {
+	for index, validatorInfo := range validatorInfos[shardID] {
+		if bytes.Equal(validatorInfo.PublicKey, blsPubKey) {
+			length := len(validatorInfos[shardID])
+			validatorInfos[shardID][index] = validatorInfos[shardID][length-1]
+			validatorInfos[shardID][length-1] = nil
+			validatorInfos[shardID] = validatorInfos[shardID][:length-1]
+			break
+		}
+	}
 }
 
 func switchJailedWithNewValidatorInMap(
