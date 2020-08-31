@@ -409,7 +409,7 @@ func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestinatio
 	repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
 
 	// Notifications have been queued
-	require.Equal(t, 2, repo.notarizedAtSourceNotifications.Len())
+	require.Equal(t, 2, repo.pendingNotarizedAtSourceNotifications.Len())
 
 	// Let's commit the blocks at destination
 	repo.RecordBlock([]byte("fooBlock"),
@@ -430,7 +430,7 @@ func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestinatio
 	)
 
 	// Notifications have been cleared
-	require.Equal(t, 0, repo.notarizedAtSourceNotifications.Len())
+	require.Equal(t, 0, repo.pendingNotarizedAtSourceNotifications.Len())
 
 	// Check "notarization coordinates"
 	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
