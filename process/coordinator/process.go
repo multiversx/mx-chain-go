@@ -522,12 +522,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			break
 		}
 
-		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
-			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
-				"stop creating", "max block size has been reached")
-			break
-		}
-
 		_, ok := processedMiniBlocksHashes[key]
 		if ok {
 			nrMiniBlocksProcessed++
@@ -543,6 +537,12 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		miniBlock, ok := miniVal.(*block.MiniBlock)
 		if !ok {
 			continue
+		}
+
+		if tc.blockSizeComputation.IsMaxBlockSizeReached(1, len(miniBlock.TxHashes)) {
+			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
+				"stop creating", "max block size has been reached")
+			break
 		}
 
 		preproc := tc.getPreProcessor(miniBlock.Type)
