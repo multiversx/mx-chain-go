@@ -470,7 +470,7 @@ func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedData, ad
 	}
 
 	if !r.canStake() {
-		r.eei.AddReturnMessage("staking is full")
+		r.eei.AddReturnMessage(fmt.Sprintf("staking is full key put into waiting list %s", hex.EncodeToString(blsKey)))
 		err := r.addToWaitingList(blsKey, addFirst)
 		if err != nil {
 			r.eei.AddReturnMessage("error while adding to waiting")

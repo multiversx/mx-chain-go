@@ -10,6 +10,8 @@ import (
 
 var log = logger.GetOrCreate("epochstart/notifier")
 
+// manualEpochStartNotifier will notice all recorded handlers to a provided epoch (from other components)
+// TODO think about a better name as this does not get its data from the exterior of the node
 type manualEpochStartNotifier struct {
 	mutHandlers     sync.RWMutex
 	handlers        []epochStart.ActionHandler

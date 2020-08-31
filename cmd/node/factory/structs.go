@@ -645,12 +645,13 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks
-	for shardID, genesisBlockHeader := range genesisBlocks {
+	var shardID uint32
+	for shardID, genesisBlockHeader = range genesisBlocks {
 		if args.shardCoordinator.SelfId() != shardID {
 			continue
 		}
 
-		genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
+		genesisBlockHash, err = core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
 		if err != nil {
 			return err
 		}
@@ -912,6 +913,8 @@ func newStorageResolver(
 			return nil, errStore
 		}
 
+		manualEpochStartNotifier.NewEpoch(currentEpoch + 1)
+
 		return createStorageResolversForMeta(
 			shardCoordinator,
 			coreData,
@@ -926,6 +929,8 @@ func newStorageResolver(
 	if err != nil {
 		return nil, err
 	}
+
+	manualEpochStartNotifier.NewEpoch(currentEpoch + 1)
 
 	return createStorageResolversForShard(
 		shardCoordinator,

@@ -164,7 +164,7 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnJail * uint64(len(args.Arguments)))
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnJail * uint64(numBLSKeys))
 	if err != nil {
 		s.eei.AddReturnMessage("insufficient gas limit")
 		return vmcommon.OutOfGas
@@ -742,7 +742,6 @@ func (s *stakingAuctionSC) activateStakingFor(
 		}
 
 		if len(vmOutput.ReturnData) > 0 && bytes.Equal(vmOutput.ReturnData[0], []byte{waiting}) {
-			s.eei.AddReturnMessage(fmt.Sprintf("key put into waiting list %s", hex.EncodeToString(blsKeys[i])))
 			s.eei.Finish(blsKeys[i])
 			s.eei.Finish([]byte{waiting})
 		}
