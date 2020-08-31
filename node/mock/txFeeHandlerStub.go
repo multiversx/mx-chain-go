@@ -8,15 +8,15 @@ import (
 
 // FeeHandlerStub -
 type FeeHandlerStub struct {
-	MaxGasLimitPerBlockCalled    func() uint64
-	SetMinGasPriceCalled         func(minasPrice uint64)
-	SetMinGasLimitCalled         func(minGasLimit uint64)
-	ComputeGasLimitCalled        func(tx process.TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFeeCalled  func(tx process.TransactionWithFeeHandler) *big.Int
-	EstimateMoveBalanceFeeCalled func(tx process.TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValuesCalled  func(tx process.TransactionWithFeeHandler) error
-	DeveloperPercentageCalled    func() float64
-	MinGasPriceCalled            func() uint64
+	MaxGasLimitPerBlockCalled   func() uint64
+	SetMinGasPriceCalled        func(minasPrice uint64)
+	SetMinGasLimitCalled        func(minGasLimit uint64)
+	ComputeGasLimitCalled       func(tx process.TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFeeCalled func(tx process.TransactionWithFeeHandler) *big.Int
+	ComputeTxFeeCalled          func(tx process.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValuesCalled func(tx process.TransactionWithFeeHandler) error
+	DeveloperPercentageCalled   func() float64
+	MinGasPriceCalled           func() uint64
 }
 
 // MinGasPrice -
@@ -47,9 +47,9 @@ func (fhs *FeeHandlerStub) ComputeMoveBalanceFee(tx process.TransactionWithFeeHa
 	return fhs.ComputeMoveBalanceFeeCalled(tx)
 }
 
-// EstimateMoveBalanceFee -
-func (fhs *FeeHandlerStub) EstimateMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
-	return fhs.EstimateMoveBalanceFeeCalled(tx)
+// ComputeTxFee -
+func (fhs *FeeHandlerStub) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
+	return fhs.ComputeTxFeeCalled(tx)
 }
 
 // CheckValidityTxValues -

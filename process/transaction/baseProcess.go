@@ -137,7 +137,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		return process.ErrWrongTypeAssertion
 	}
 
-	txFee := txProc.economicsFee.EstimateMoveBalanceFee(tx)
+	txFee := txProc.economicsFee.ComputeTxFee(tx)
 	if stAcc.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,

@@ -240,7 +240,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return nil
 	}
 
-	txFee := txProc.economicsFee.EstimateMoveBalanceFee(tx)
+	txFee := txProc.economicsFee.ComputeTxFee(tx)
 	err := acntSnd.SubFromBalance(txFee)
 	if err != nil {
 		return err

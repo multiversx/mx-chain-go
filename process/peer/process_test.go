@@ -45,8 +45,8 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 }
 
 func createMockArguments() peer.ArgValidatorStatisticsProcessor {
-	economicsData, _ := economics.NewEconomicsData(
-		&config.EconomicsConfig{
+	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
 				MinimumInflation:   0,
@@ -71,9 +71,10 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				DataLimitForBaseCalc:    "10000",
 			},
 		},
-		0,
-		&mock.EpochNotifierStub{},
-	)
+		PenalizedTooMuchGasEnableEpoch: 0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
+	}
+	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer: &mock.MarshalizerMock{},
