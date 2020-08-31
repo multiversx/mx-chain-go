@@ -49,7 +49,13 @@ iterateOverValidators() {
 startSingleValidator() {
   local SHARD=$1
   local VALIDATOR_INDEX=$2
-  local startCommand="$(assembleCommand_startValidatorNode $VALIDATOR_INDEX)"
+  local startCommand=""
+  if [ "$NODE_WATCHER" -eq 1 ]; then
+    setWorkdirForNextCommands "$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX"
+    startCommand="$(assembleCommand_startValidatorNodeWithWatcher $VALIDATOR_INDEX)"
+  else
+    startCommand="$(assembleCommand_startValidatorNode $VALIDATOR_INDEX)"
+  fi
   runCommandInTerminal "$startCommand"
 }
 
@@ -82,77 +88,41 @@ stopSingleValidator() {
 }
 
 
-function isNodeRunning {
-  local VALIDATOR_INDEX=$1
+assembleCommand_startValidatorNodeWithWatcher() {
+  VALIDATOR_INDEX=$1
   (( PORT=$PORT_ORIGIN_VALIDATOR + $VALIDATOR_INDEX ))
-	local PID=$(lsof -t -i:$PORT)
-	if [ -n "$PID" ]; then
-		echo 1
-	else
-		echo 0
-	fi
-}
-
-function startSingleValidatorWithWatcher {
-  local SHARD=$1
-  local VALIDATOR_INDEX=$2
-  startWatcher $SHARD $VALIDATOR_INDEX &
-}
-
-function startWatcher {
-  local SHARD=$1
-  local VALIDATOR_INDEX=$2
   WORKING_DIR=$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX
-  mkdir -p $WORKING_DIR
 
+  local source_command="source $ELRONDTESTNETSCRIPTSDIR/include/watcher.sh"
+  local watcher_command="node-start-with-watcher $VALIDATOR_INDEX $PORT &"
+  local node_command=$(assembleCommand_startValidatorNode $VALIDATOR_INDEX)
+  echo "$node_command" > $WORKING_DIR/node-command
+  echo "$PORT" > $WORKING_DIR/node-port
 
-  if [ -f "$WORKING_DIR/norestart" ]; then
-    rm $WORKING_DIR/norestart
-  fi
-
-  echo "Starting watcher for validator $VALIDATOR_INDEX..."
-  echo "[$(date)] Watcher for validator $VALIDATOR_INDEX started" > $WORKING_DIR/watcher-status
-	local probedelay=5
-	while true; do
-		local running=$(isNodeRunning $VALIDATOR_INDEX)
-		if [ "$running" == "0" ]; then
-			if [ -f "$WORKING_DIR/norestart" ]; then
-        echo "[$(date)] Watcher instructed to stop completely" >> $WORKING_DIR/watcher-status
-				break
-			fi
-			sleep 10
-      startSingleValidator $SHARD $VALIDATOR_INDEX
-      echo "[$(date)] Validator $VALIDATOR_INDEX found not to be running; started by watcher" >> $WORKING_DIR/watcher-status
-			probedelay=60
-		else
-			probedelay=5
-		fi
-		sleep $probedelay
-	done
-  echo "[$(date)] Watcher for validator $VALIDATOR_INDEX exiting..." >> $WORKING_DIR/watcher-status
+  echo "$source_command ; $watcher_command"
 }
 
 assembleCommand_startValidatorNode() {
   VALIDATOR_INDEX=$1
   (( PORT=$PORT_ORIGIN_VALIDATOR + $VALIDATOR_INDEX ))
-  (( RESTAPIPOR=$PORT_ORIGIN_VALIDATOR_REST + $VALIDATOR_INDEX ))
+  (( RESTAPIPORT=$PORT_ORIGIN_VALIDATOR_REST + $VALIDATOR_INDEX ))
   (( KEY_INDEX=$VALIDATOR_INDEX ))
   WORKING_DIR=$TESTNETDIR/node_working_dirs/validator$VALIDATOR_INDEX
 
-  local nodeCommand="./node \
+  local node_command="./node \
         -port $PORT --profile-mode -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
         -sk-index $KEY_INDEX \
         -working-directory $WORKING_DIR -config ./config/config_validator.toml"
 
   if [ -n "$NODE_NICENESS" ]
   then
-    nodeCommand="nice -n $NODE_NICENESS $nodeCommand"
+    node_command="nice -n $NODE_NICENESS $node_command"
   fi
 
   if [ $NODETERMUI -eq 0 ]
   then
-    nodeCommand="$nodeCommand -use-log-view"
+    node_command="$node_command -use-log-view"
   fi
 
-  echo $nodeCommand
+  echo $node_command
 }
