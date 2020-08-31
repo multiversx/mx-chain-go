@@ -11,7 +11,7 @@ import (
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
-const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 90 / 100)
+const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 95 / 100)
 
 // subroundBlock defines the data needed by the subround Block
 type subroundBlock struct {

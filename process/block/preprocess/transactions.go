@@ -961,7 +961,12 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		}
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
-		txs.blockSizeComputation.AddNumTxs(1)
+		numTxs := 1
+		if core.IsSmartContractAddress(tx.RcvAddr) {
+			//we need to increment this as to account for the corresponding SCR hash
+			numTxs++
+		}
+		txs.blockSizeComputation.AddNumTxs(numTxs)
 		numTxsAdded++
 	}
 

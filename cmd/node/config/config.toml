@@ -541,7 +541,7 @@
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
-    MaxSizeInBytes = 891289 # 943718 is 85% from 1MB
+    MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
 
 [VirtualMachineConfig]
     OutOfProcessEnabled = true
