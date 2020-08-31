@@ -156,8 +156,9 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 	notarizedHeaders := dp.computeNotarizedHeaders(data.Header)
 	newBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
 	for _, mb := range data.Body.MiniBlocks {
-		if mb.Type == block.ReceiptBlock ||
-			(mb.Type == block.SmartContractResultBlock && mb.ReceiverShardID == mb.SenderShardID && mb.SenderShardID != core.MetachainShardId) { // don't index receipt and intra shard scr miniblocks
+		shouldSkipIndexing := mb.Type == block.ReceiptBlock ||
+			(mb.Type == block.SmartContractResultBlock && mb.ReceiverShardID == mb.SenderShardID && mb.SenderShardID != core.MetachainShardId)
+		if shouldSkipIndexing {
 			continue
 		}
 
