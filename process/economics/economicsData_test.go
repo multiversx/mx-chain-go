@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -199,6 +200,31 @@ func TestEconomicsData_ComputeMoveBalanceFeeWithTxData(t *testing.T) {
 	expectedGasLimit.Add(expectedGasLimit, big.NewInt(int64(len(txData))))
 	expectedCost := big.NewInt(0).SetUint64(gasPrice)
 	expectedCost.Mul(expectedCost, expectedGasLimit)
+	assert.Equal(t, expectedCost, cost)
+}
+
+func TestEconomicsData_EstimateMoveBalanceFeeShouldWork(t *testing.T) {
+	t.Parallel()
+
+	gasPrice := uint64(500)
+	gasLimit := uint64(20)
+	minGasLimit := uint64(10)
+	economicsConfig := createDummyEconomicsConfig()
+	economicsConfig.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
+	economicsData, _ := economics.NewEconomicsData(economicsConfig, 1, &mock.EpochNotifierStub{})
+	tx := &transaction.Transaction{
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+
+	cost := economicsData.EstimateMoveBalanceFee(tx)
+	expectedCost := core.SafeMul(minGasLimit, gasPrice)
+	assert.Equal(t, expectedCost, cost)
+
+	economicsData.EpochConfirmed(1)
+
+	cost = economicsData.EstimateMoveBalanceFee(tx)
+	expectedCost = core.SafeMul(gasLimit, gasPrice)
 	assert.Equal(t, expectedCost, cost)
 }
 
