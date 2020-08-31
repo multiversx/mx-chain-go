@@ -203,7 +203,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	jailedAccount.SetListAndIndex(jailedValidator.ShardId, string(core.JailedList), jailedValidator.Index)
-	jailedAccount.SetRating(jailedAccount.GetTempRating())
+	jailedAccount.ResetAtNewEpoch()
 	err = s.peerAccountsDB.SaveAccount(jailedAccount)
 	if err != nil {
 		return err
