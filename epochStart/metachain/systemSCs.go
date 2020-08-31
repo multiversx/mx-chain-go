@@ -118,7 +118,10 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 			return err
 		}
 
-		log.Debug("switchJailedWithWaiting", "key", jailedValidator.PublicKey, "code", vmOutput.ReturnCode.String())
+		log.Debug("switchJailedWithWaiting called for",
+			"key", jailedValidator.PublicKey,
+			"returnMessage", vmOutput.ReturnMessage,
+			"returnCode", vmOutput.ReturnCode.String())
 		if vmOutput.ReturnCode != vmcommon.Ok || vmOutput.ReturnMessage == vm.ErrBLSPublicKeyAlreadyJailed.Error() {
 			continue
 		}
