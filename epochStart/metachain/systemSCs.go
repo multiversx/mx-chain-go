@@ -123,11 +123,6 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 			continue
 		}
 
-		err = s.processSCOutputAccounts(vmOutput)
-		if err != nil {
-			return err
-		}
-
 		err = s.stakingToValidatorStatistics(validatorInfos, jailedValidator, vmOutput)
 		if err != nil {
 			return err
@@ -161,8 +156,13 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		return nil
 	}
 
+	err := s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
 	var stakingData systemSmartContracts.StakedData
-	err := s.marshalizer.Unmarshal(&stakingData, activeStorageUpdate.Data)
+	err = s.marshalizer.Unmarshal(&stakingData, activeStorageUpdate.Data)
 	if err != nil {
 		return err
 	}
