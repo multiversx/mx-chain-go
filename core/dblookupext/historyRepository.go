@@ -144,6 +144,14 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 		miniblockMetadata.NotarizedAtSourceInMetaNonce = notificationTyped.metaNonce
 		miniblockMetadata.NotarizedAtSourceInMetaHash = notificationTyped.metaHash
 
+		// If we have a queued notification about this miniblock being notarized, then we should also set
+		// its destination "coordinates" if it's an intra-shard miniblock.
+		isIntra := miniblock.SenderShardID == miniblock.ReceiverShardID
+		if isIntra {
+			miniblockMetadata.NotarizedAtDestinationInMetaNonce = notificationTyped.metaNonce
+			miniblockMetadata.NotarizedAtDestinationInMetaHash = notificationTyped.metaHash
+		}
+
 		hr.notarizedAtSourceNotifications.Remove(string(miniblockHash))
 	}
 
