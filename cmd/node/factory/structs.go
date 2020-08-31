@@ -912,6 +912,8 @@ func newStorageResolver(
 			return nil, errStore
 		}
 
+		manualEpochStartNotifier.NewEpoch(currentEpoch + 1)
+
 		return createStorageResolversForMeta(
 			shardCoordinator,
 			coreData,
@@ -926,6 +928,8 @@ func newStorageResolver(
 	if err != nil {
 		return nil, err
 	}
+
+	manualEpochStartNotifier.NewEpoch(currentEpoch + 1)
 
 	return createStorageResolversForShard(
 		shardCoordinator,
