@@ -262,6 +262,29 @@ func (mcc *managedCryptoComponents) MessageSignVerifier() vm.MessageSignVerifier
 	return mcc.cryptoComponents.messageSignVerifier
 }
 
+// Clone creates a shallow clone of a managedCryptoComponents
+func (mcc *managedCryptoComponents) Clone() interface{} {
+	cryptoComp := (*cryptoComponents)(nil)
+	if mcc.cryptoComponents != nil {
+		cryptoComp = &cryptoComponents{
+			txSingleSigner:      mcc.TxSingleSigner(),
+			blockSingleSigner:   mcc.BlockSigner(),
+			multiSigner:         mcc.MultiSigner(),
+			peerSignHandler:     mcc.PeerSignatureHandler(),
+			blockSignKeyGen:     mcc.BlockSignKeyGen(),
+			txSignKeyGen:        mcc.TxSignKeyGen(),
+			messageSignVerifier: mcc.MessageSignVerifier(),
+			cryptoParams:        mcc.cryptoParams,
+		}
+	}
+
+	return &managedCryptoComponents{
+		cryptoComponents:        cryptoComp,
+		cryptoComponentsFactory: mcc.cryptoComponentsFactory,
+		mutCryptoComponents:     sync.RWMutex{},
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCryptoComponents) IsInterfaceNil() bool {
 	return mcc == nil

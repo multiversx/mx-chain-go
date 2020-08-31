@@ -114,6 +114,25 @@ func (ccm *CryptoComponentsMock) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccm.MsgSigVerifier
 }
 
+// Clone -
+func (ccm *CryptoComponentsMock) Clone() interface{} {
+	return &CryptoComponentsMock{
+		PubKey:          ccm.PubKey,
+		PrivKey:         ccm.PrivKey,
+		PubKeyString:    ccm.PubKeyString,
+		PrivKeyBytes:    ccm.PrivKeyBytes,
+		PubKeyBytes:     ccm.PubKeyBytes,
+		BlockSig:        ccm.BlockSig,
+		TxSig:           ccm.TxSig,
+		MultiSig:        ccm.MultiSig,
+		PeerSignHandler: ccm.PeerSignHandler,
+		BlKeyGen:        ccm.BlKeyGen,
+		TxKeyGen:        ccm.TxKeyGen,
+		MsgSigVerifier:  ccm.MsgSigVerifier,
+		mutMultiSig:     sync.RWMutex{},
+	}
+}
+
 // IsInterfaceNil -
 func (ccm *CryptoComponentsMock) IsInterfaceNil() bool {
 	return ccm == nil

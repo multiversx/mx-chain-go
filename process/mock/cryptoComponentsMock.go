@@ -57,6 +57,19 @@ func (ccm *CryptoComponentsMock) PublicKey() crypto.PublicKey {
 	return ccm.PubKey
 }
 
+// Clone -
+func (ccm *CryptoComponentsMock) Clone() interface{} {
+	return &CryptoComponentsMock{
+		BlockSig:    ccm.BlockSig,
+		TxSig:       ccm.TxSig,
+		MultiSig:    ccm.MultiSig,
+		BlKeyGen:    ccm.BlKeyGen,
+		TxKeyGen:    ccm.TxKeyGen,
+		PubKey:      ccm.PubKey,
+		mutMultiSig: sync.RWMutex{},
+	}
+}
+
 // IsInterfaceNil -
 func (ccm *CryptoComponentsMock) IsInterfaceNil() bool {
 	return ccm == nil

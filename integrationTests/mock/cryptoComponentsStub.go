@@ -114,6 +114,25 @@ func (ccs *CryptoComponentsStub) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccs.MsgSigVerifier
 }
 
+// Clone -
+func (ccs *CryptoComponentsStub) Clone() interface{} {
+	return &CryptoComponentsStub{
+		PubKey:          ccs.PubKey,
+		PrivKey:         ccs.PrivKey,
+		PubKeyString:    ccs.PubKeyString,
+		PrivKeyBytes:    ccs.PrivKeyBytes,
+		PubKeyBytes:     ccs.PubKeyBytes,
+		BlockSig:        ccs.BlockSig,
+		TxSig:           ccs.TxSig,
+		MultiSig:        ccs.MultiSig,
+		PeerSignHandler: ccs.PeerSignHandler,
+		BlKeyGen:        ccs.BlKeyGen,
+		TxKeyGen:        ccs.TxKeyGen,
+		MsgSigVerifier:  ccs.MsgSigVerifier,
+		mutMultiSig:     sync.RWMutex{},
+	}
+}
+
 // IsInterfaceNil -
 func (ccs *CryptoComponentsStub) IsInterfaceNil() bool {
 	return ccs == nil
