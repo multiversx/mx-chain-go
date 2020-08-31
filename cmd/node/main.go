@@ -88,14 +88,13 @@ import (
 )
 
 const (
-	defaultStatsPath              = "stats"
-	defaultLogsPath               = "logs"
-	notSetDestinationShardID      = "disabled"
-	metachainShardName            = "metachain"
-	secondsToWaitForP2PBootstrap  = 20
-	maxTimeToClose                = 10 * time.Second
-	maxMachineIDLen               = 10
-	importCheckpointRoundsModulus = 14400
+	defaultStatsPath             = "stats"
+	defaultLogsPath              = "logs"
+	notSetDestinationShardID     = "disabled"
+	metachainShardName           = "metachain"
+	secondsToWaitForP2PBootstrap = 20
+	maxTimeToClose               = 10 * time.Second
+	maxMachineIDLen              = 10
 )
 
 var (
@@ -1490,6 +1489,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.Context) {
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
 	if len(importDbDirectoryValue) > 0 {
+		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
 		log.Info("import DB directory is set, altering config values!",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
