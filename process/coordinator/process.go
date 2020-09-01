@@ -768,21 +768,13 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 
 	preProc := tc.getPreProcessor(blockType)
 	if preProc != nil {
-		log.Debug("transactionCoordinator.GetAllCurrentUsedTxs: preProc is not nil")
 		txPool = preProc.GetAllCurrentUsedTxs()
 	}
 
 	interProc := tc.getInterimProcessor(blockType)
 	if interProc != nil {
-		log.Debug("transactionCoordinator.GetAllCurrentUsedTxs: interProc is not nil")
 		interTxPool = interProc.GetAllCurrentFinishedTxs()
 	}
-
-	log.Debug("transactionCoordinator.GetAllCurrentUsedTxs",
-		"blockType", blockType,
-		"len(txPool)", len(txPool),
-		"len(interTxPool)", len(interTxPool),
-	)
 
 	for hash, tx := range interTxPool {
 		txPool[hash] = tx
@@ -1016,20 +1008,13 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 	numTxs := 0
 	numCrossShardScCalls := 0
 
-	allTxs := make(map[string]data.TransactionHandler)
-	for _, blockType := range tc.keysInterimProcs {
-		txs := tc.GetAllCurrentUsedTxs(blockType)
-
-		log.Debug("transactionCoordinator.isMaxBlockSizeReached",
-			"blockType", blockType,
-			"txs", len(txs))
-
-		for txHash, tx := range txs {
-			allTxs[txHash] = tx
-		}
+	preProc := tc.getPreProcessor(block.TxBlock)
+	if preProc == nil {
+		log.Warn("transactionCoordinator.isMaxBlockSizeReached: preProc is nil", "blockType", block.TxBlock)
+		return true
 	}
 
-	log.Debug("transactionCoordinator.isMaxBlockSizeReached", "allTxs", len(allTxs))
+	allTxs := preProc.GetAllCurrentUsedTxs()
 
 	for _, mb := range body.MiniBlocks {
 		numTxs += len(mb.TxHashes)
@@ -1051,7 +1036,7 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 					"receiverShardID", mb.ReceiverShardID,
 					"numTxHashes", len(mb.TxHashes),
 					"tx hash", txHash)
-				continue
+				return true
 			}
 
 			if core.IsSmartContractAddress(tx.GetRcvAddr()) {
@@ -1062,7 +1047,7 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 
 	isMaxBlockSizeReached := tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs+numCrossShardScCalls)
 
-	// TODO: Change to log level Trace after testing
+	//TODO: Change to log level Trace after testing
 	log.Debug("transactionCoordinator.isMaxBlockSizeReached",
 		"isMaxBlockSizeReached", isMaxBlockSizeReached,
 		"numMbs", numMbs,
