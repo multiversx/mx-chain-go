@@ -49,7 +49,7 @@ func NewManagedStatusComponents(scf *statusComponentsFactory) (*managedStatusCom
 func (m *managedStatusComponents) Create() error {
 	components, err := m.statusComponentsFactory.Create()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errors.ErrStatusComponentsFactoryCreate, err)
 	}
 
 	m.mutStatusComponents.Lock()

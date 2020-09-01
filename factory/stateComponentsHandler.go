@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -37,7 +38,7 @@ func NewManagedStateComponents(scf *stateComponentsFactory) (*managedStateCompon
 func (m *managedStateComponents) Create() error {
 	sc, err := m.factory.Create()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errors.ErrStateComponentsFactoryCreate, err)
 	}
 
 	m.mutStateComponents.Lock()

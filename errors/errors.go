@@ -431,8 +431,35 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 // ErrNewBootstrapDataProvider signals a new bootstrapDataProvider creation has failed
 var ErrNewBootstrapDataProvider = errors.New("bootstrapDataProvider creation has failed")
 
-// ErrBootstrapDataComponentsFactoryCreate signals that an error occured on bootstrapDataComponentsFactory.Create
+// ErrBootstrapDataComponentsFactoryCreate signals that an error occured on bootstrapDataComponentsFactory create
 var ErrBootstrapDataComponentsFactoryCreate = errors.New("bootstrapDataComponentsFactory create() failed")
+
+// ErrConsensusComponentsFactoryCreate signals that an error occured on consensusComponentsFactory create
+var ErrConsensusComponentsFactoryCreate = errors.New("consensusComponentsFactory create failed")
+
+// ErrCoreComponentsFactoryCreate signals that an error occured on coreComponentsFactory create
+var ErrCoreComponentsFactoryCreate = errors.New("coreComponentsFactory create failed")
+
+// ErrCryptoComponentsFactoryCreate signals that an error occured on cryptoComponentsFactory create
+var ErrCryptoComponentsFactoryCreate = errors.New("cryptoComponentsFactory create failed")
+
+// ErrDataComponentsFactoryCreate signals that an error occured on dataComponentsFactory create
+var ErrDataComponentsFactoryCreate = errors.New("dataComponentsFactory create failed")
+
+// ErrHeartbeatComponentsFactoryCreate signals that an error occured on heartbeatComponentsFactory create
+var ErrHeartbeatComponentsFactoryCreate = errors.New("heartbeatComponentsFactory create failed")
+
+// ErrNetworkComponentsFactoryCreate signals that an error occured on networkComponentsFactory create
+var ErrNetworkComponentsFactoryCreate = errors.New("networkComponentsFactory create failed")
+
+// ErrProcessComponentsFactoryCreate signals that an error occured on processComponentsFactory create
+var ErrProcessComponentsFactoryCreate = errors.New("processComponentsFactory create failed")
+
+// ErrStateComponentsFactoryCreate signals that an error occured on stateComponentsFactory create
+var ErrStateComponentsFactoryCreate = errors.New("stateComponentsFactory create failed")
+
+// ErrStatusComponentsFactoryCreate signals that an error occured on statusComponentsFactory create
+var ErrStatusComponentsFactoryCreate = errors.New("statusComponentsFactory create failed")
 
 // ErrNewBootstrapDataProvider signals a new epochStartBootstrap creation has failed
 var ErrNewEpochStartBootstrap = errors.New("epochStartBootstrap creation has failed")
