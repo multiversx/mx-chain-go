@@ -352,9 +352,19 @@ func (hr *historyRepository) consumePendingNotificationsNoLock(pendingMap *conta
 			continue
 		}
 
-		miniblockHash := []byte(key.(string))
-		notificationTyped := notification.(*notarizedNotification)
+		keyTyped, ok := key.(string)
+		if !ok {
+			log.Error("consumePendingNotificationsNoLock(): bad key", "key", key)
+			continue
+		}
 
+		notificationTyped, ok := notification.(*notarizedNotification)
+		if !ok {
+			log.Error("consumePendingNotificationsNoLock(): bad value", "value", fmt.Sprintf("%T", notification))
+			continue
+		}
+
+		miniblockHash := []byte(keyTyped)
 		metadata, err := hr.getMiniblockMetadataByMiniblockHash(miniblockHash)
 		if err != nil {
 			// Maybe not yet committed / saved in storer

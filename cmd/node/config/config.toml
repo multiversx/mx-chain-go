@@ -645,7 +645,7 @@
     PollingIntervalInMinutes = 65
 
 [DbLookupExtensions]
-    Enabled = false
+    Enabled = true # TODO: Disable after tests
     [DbLookupExtensions.MiniblocksMetadataStorageConfig.Cache]
         Name = "DbLookupExtensions.MiniblocksMetadataStorage"
         Capacity = 20000
