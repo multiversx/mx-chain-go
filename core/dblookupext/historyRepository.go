@@ -238,7 +238,7 @@ func (hr *historyRepository) onNotarizedBlocks(shardID uint32, headers []data.He
 }
 
 func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaBlockHash []byte, shardData *block.ShardData) {
-	if metaBlockNonce <= 1 {
+	if metaBlockNonce < 1 {
 		return
 	}
 
