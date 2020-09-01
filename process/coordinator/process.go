@@ -400,10 +400,6 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return process.ErrNilBlockBody
 	}
 
-	if tc.isMaxBlockSizeReached(body) {
-		return process.ErrMaxBlockSizeReached
-	}
-
 	haveTime := func() bool {
 		return timeRemaining() >= 0
 	}
@@ -439,6 +435,10 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	)
 	if err != nil {
 		return err
+	}
+
+	if tc.isMaxBlockSizeReached(body) {
+		return process.ErrMaxBlockSizeReached
 	}
 
 	return nil
