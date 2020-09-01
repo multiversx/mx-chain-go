@@ -229,15 +229,13 @@ func (hr *historyRepository) RegisterToBlockTracker(blockTracker BlockTracker) {
 	blockTracker.RegisterSelfNotarizedHeadersHandler(hr.onNotarizedBlocks)
 }
 
+// This is called both with "shardID" == "metachain" (regular notarization events),
+// but also with "shardID" IN [0, 1, 2, ...] when blocks produced by the metachain (as a source) are notarized.
 func (hr *historyRepository) onNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
-	log.Trace("onNotarizedBlocks()", "shardID", shardID, "len(headers)", len(headers))
-
-	if shardID != core.MetachainShardId {
-		return
-	}
-
 	for i, headerHandler := range headers {
 		headerHash := headersHashes[i]
+
+		log.Debug("onNotarizedBlocks()", "shardID", shardID, "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
 
 		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
 		if isMetaBlock {
@@ -272,15 +270,18 @@ func (hr *historyRepository) onNotarizedInRegularBlockOfMeta(blockOfMetaNonce ui
 func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, shardOfContainingBlock uint32, miniblockHeader block.MiniBlockHeader) {
 	miniblockHash := miniblockHeader.Hash
 	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
-	notarizedAtSource := miniblockHeader.SenderShardID == shardOfContainingBlock
+	isFromMeta := miniblockHeader.SenderShardID == core.MetachainShardId
 	isToMeta := miniblockHeader.ReceiverShardID == core.MetachainShardId
+	isNotarizedAtBoth := isIntra || isToMeta || isFromMeta
+	isNotarizedAtSource := miniblockHeader.SenderShardID == shardOfContainingBlock
+	isNotarizedAtDestination := miniblockHeader.ReceiverShardID == shardOfContainingBlock
 
 	iDontCare := miniblockHeader.SenderShardID != hr.selfShardID && miniblockHeader.ReceiverShardID != hr.selfShardID
 	if iDontCare {
 		return
 	}
 
-	log.Trace("onNotarizedMiniblock()",
+	log.Debug("onNotarizedMiniblock()",
 		"metaBlockNonce", metaBlockNonce,
 		"metaBlockHash", metaBlockHash,
 		"shardOfContainingBlock", shardOfContainingBlock,
@@ -288,24 +289,23 @@ func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlo
 		"direction", fmt.Sprintf("[%d -> %d]", miniblockHeader.SenderShardID, miniblockHeader.ReceiverShardID),
 	)
 
-	if isIntra || isToMeta {
+	if isNotarizedAtBoth {
 		hr.pendingNotarizedAtBothNotifications.Set(string(miniblockHash), &notarizedNotification{
 			metaNonce: metaBlockNonce,
 			metaHash:  metaBlockHash,
 		})
+	} else if isNotarizedAtSource {
+		hr.pendingNotarizedAtSourceNotifications.Set(string(miniblockHash), &notarizedNotification{
+			metaNonce: metaBlockNonce,
+			metaHash:  metaBlockHash,
+		})
+	} else if isNotarizedAtDestination {
+		hr.pendingNotarizedAtDestinationNotifications.Set(string(miniblockHash), &notarizedNotification{
+			metaNonce: metaBlockNonce,
+			metaHash:  metaBlockHash,
+		})
 	} else {
-		// Is cross-shard miniblock
-		if notarizedAtSource {
-			hr.pendingNotarizedAtSourceNotifications.Set(string(miniblockHash), &notarizedNotification{
-				metaNonce: metaBlockNonce,
-				metaHash:  metaBlockHash,
-			})
-		} else {
-			hr.pendingNotarizedAtDestinationNotifications.Set(string(miniblockHash), &notarizedNotification{
-				metaNonce: metaBlockNonce,
-				metaHash:  metaBlockHash,
-			})
-		}
+		log.Error("onNotarizedMiniblock(): unexpected condition, notification not understood")
 	}
 
 	hr.consumePendingNotificationsWithLock()
