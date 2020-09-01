@@ -400,6 +400,10 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return process.ErrNilBlockBody
 	}
 
+	if tc.isMaxBlockSizeReached(body) {
+		return process.ErrMaxBlockSizeReached
+	}
+
 	haveTime := func() bool {
 		return timeRemaining() >= 0
 	}
@@ -509,8 +513,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	miniBlocks := make(block.MiniBlockSlice, 0)
 	nrTxAdded := uint32(0)
 	nrMiniBlocksProcessed := 0
-	numPostProcessMbs := 0
-	numPostProcessTxs := 0
 
 	if check.IfNil(hdr) {
 		return miniBlocks, nrTxAdded, false, nil
@@ -524,7 +526,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			break
 		}
 
-		if tc.blockSizeComputation.IsMaxBlockSizeReached(numPostProcessMbs, numPostProcessTxs) {
+		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
 				"stop creating", "max block size has been reached")
 			break
@@ -562,16 +564,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		numPostProcessMbs, numPostProcessTxs = tc.getPostProcessNumOfMbsAndTxs()
-
 		// all txs processed, add to processed miniblocks
 		miniBlocks = append(miniBlocks, miniBlock)
 		nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
 		nrMiniBlocksProcessed++
 	}
-
-	tc.blockSizeComputation.AddNumMiniBlocks(numPostProcessMbs)
-	tc.blockSizeComputation.AddNumTxs(numPostProcessTxs)
 
 	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
 
@@ -844,7 +841,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 
 	snapshot := tc.accounts.JournalLen()
 
-	processedTxs, err := preproc.ProcessMiniBlock(miniBlock, haveTime)
+	processedTxs, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
 	if err != nil {
 		log.Debug("ProcessMiniBlock", "error", err.Error())
 
@@ -988,9 +985,9 @@ func (tc *transactionCoordinator) CreateMarshalizedReceipts() ([]byte, error) {
 	return tc.marshalizer.Marshal(receiptsBatch)
 }
 
-func (tc *transactionCoordinator) getPostProcessNumOfMbsAndTxs() (int, int) {
-	numMbs := 0
-	numTxs := 0
+func (tc *transactionCoordinator) getNumOfCrossInterMbsAndTxs() (int, int) {
+	totalNumMbs := 0
+	totalNumTxs := 0
 
 	for _, blockType := range tc.keysInterimProcs {
 		interimProc := tc.getInterimProcessor(blockType)
@@ -998,15 +995,67 @@ func (tc *transactionCoordinator) getPostProcessNumOfMbsAndTxs() (int, int) {
 			continue
 		}
 
-		mbs := interimProc.CreateAllInterMiniBlocks()
-		for _, mb := range mbs {
-			numTxs += len(mb.TxHashes)
-		}
-
-		numMbs += len(mbs)
+		numMbs, numTxs := interimProc.GetNumOfCrossInterMbsAndTxs()
+		totalNumMbs += numMbs
+		totalNumTxs += numTxs
 	}
 
-	return numMbs, numTxs
+	return totalNumMbs, totalNumTxs
+}
+
+func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
+	numMbs := len(body.MiniBlocks)
+	numTxs := 0
+	numCrossShardScCalls := 0
+
+	allTxs := make(map[string]data.TransactionHandler)
+	for _, blockType := range tc.keysInterimProcs {
+		txs := tc.GetAllCurrentUsedTxs(blockType)
+		for txHash, tx := range txs {
+			allTxs[txHash] = tx
+		}
+	}
+
+	for _, mb := range body.MiniBlocks {
+		numTxs += len(mb.TxHashes)
+
+		isCrossShardTxBlockFromSelf := mb.Type == block.TxBlock &&
+			mb.SenderShardID == tc.shardCoordinator.SelfId() &&
+			mb.ReceiverShardID != tc.shardCoordinator.SelfId()
+
+		if !isCrossShardTxBlockFromSelf {
+			continue
+		}
+
+		for txHash := range mb.TxHashes {
+			tx, ok := allTxs[string(txHash)]
+			if !ok {
+				log.Warn("transactionCoordinator.isMaxBlockSizeReached: tx not found",
+					"mb type", mb.Type,
+					"senderShardID", mb.SenderShardID,
+					"receiverShardID", mb.ReceiverShardID,
+					"numTxHashes", len(mb.TxHashes),
+					"tx hash", txHash)
+				continue
+			}
+
+			if core.IsSmartContractAddress(tx.GetRcvAddr()) {
+				numCrossShardScCalls++
+			}
+		}
+	}
+
+	isMaxBlockSizeReached := tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs+numCrossShardScCalls)
+
+	// TODO: Change to log level Trace after testing
+	log.Debug("transactionCoordinator.isMaxBlockSizeReached",
+		"isMaxBlockSizeReached", isMaxBlockSizeReached,
+		"numMbs", numMbs,
+		"numTxs", numTxs,
+		"numCrossShardScCalls", numCrossShardScCalls,
+	)
+
+	return isMaxBlockSizeReached
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

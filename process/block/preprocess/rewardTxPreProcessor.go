@@ -417,7 +417,7 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 
 // ProcessMiniBlock processes all the reward transactions from a miniblock and saves the processed reward transactions
 // in local cache
-func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error) {
+func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() (int, int)) ([][]byte, error) {
 
 	if miniBlock.Type != block.RewardsBlock {
 		return nil, process.ErrWrongTypeInMiniBlock

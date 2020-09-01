@@ -8,6 +8,7 @@ import (
 // IntermediateTransactionHandlerMock -
 type IntermediateTransactionHandlerMock struct {
 	AddIntermediateTransactionsCalled        func(txs []data.TransactionHandler) error
+	GetNumOfCrossInterMbsAndTxsCalled        func() (int, int)
 	CreateAllInterMiniBlocksCalled           func() []*block.MiniBlock
 	VerifyInterMiniBlocksCalled              func(body *block.Body) error
 	SaveCurrentIntermediateTxToStorageCalled func() error
@@ -58,6 +59,14 @@ func (ith *IntermediateTransactionHandlerMock) AddIntermediateTransactions(txs [
 // GetIntermediateTransactions -
 func (ith *IntermediateTransactionHandlerMock) GetIntermediateTransactions() []data.TransactionHandler {
 	return ith.intermediateTransactions
+}
+
+// GetNumOfCrossInterMbsAndTxs -
+func (ith *IntermediateTransactionHandlerMock) GetNumOfCrossInterMbsAndTxs() (int, int) {
+	if ith.GetNumOfCrossInterMbsAndTxsCalled == nil {
+		return 0, 0
+	}
+	return ith.GetNumOfCrossInterMbsAndTxsCalled()
 }
 
 // CreateAllInterMiniBlocks -

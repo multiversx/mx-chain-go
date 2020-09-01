@@ -776,6 +776,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	numTxsSkipped := 0
 	numTxsFailed := 0
 	numTxsWithInitialBalanceConsumed := 0
+	numCrossShardScCalls := 0
 
 	totalTimeUsedForProcesss := time.Duration(0)
 	totalTimeUsedForComputeGasConsumed := time.Duration(0)
@@ -961,13 +962,12 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		}
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
-		numScCalls := 0
-		if core.IsSmartContractAddress(tx.RcvAddr) {
-			//we need to increment this as to account for the corresponding SCR hash
-			numScCalls++
-		}
 		txs.blockSizeComputation.AddNumTxs(1)
-		txs.blockSizeComputation.AddNumTxs(numScCalls)
+		if receiverShardID != txs.shardCoordinator.SelfId() && core.IsSmartContractAddress(tx.RcvAddr) {
+			numCrossShardScCalls++
+			//we need to increment this as to account for the corresponding SCR hash
+			txs.blockSizeComputation.AddNumTxs(1)
+		}
 		numTxsAdded++
 	}
 
@@ -994,6 +994,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		"num txs failed", numTxsFailed,
 		"num txs skipped", numTxsSkipped,
 		"num txs with initial balance consumed", numTxsWithInitialBalanceConsumed,
+		"num cross shard sc calls", numCrossShardScCalls,
 		"used time for computeGasConsumed", totalTimeUsedForComputeGasConsumed,
 		"used time for processAndRemoveBadTransaction", totalTimeUsedForProcesss)
 
@@ -1056,7 +1057,12 @@ func (txs *transactions) computeSortedTxs(
 }
 
 // ProcessMiniBlock processes all the transactions from a and saves the processed transactions in local cache complete miniblock
-func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error) {
+func (txs *transactions) ProcessMiniBlock(
+	miniBlock *block.MiniBlock,
+	haveTime func() bool,
+	getNumOfCrossInterMbsAndTxs func() (int, int),
+) ([][]byte, error) {
+
 	if miniBlock.Type != block.TxBlock {
 		return nil, process.ErrWrongTypeInMiniBlock
 	}
@@ -1106,6 +1112,8 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
 	}
 
+	numOfOldCrossInterMbs, numOfOldCrossInterTxs := getNumOfCrossInterMbsAndTxs()
+
 	for index := range miniBlockTxs {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
@@ -1120,6 +1128,23 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 		}
 	}
 
+	numOfCrtCrossInterMbs, numOfCrtCrossInterTxs := getNumOfCrossInterMbsAndTxs()
+	numOfNewCrossInterMbs := numOfCrtCrossInterMbs - numOfOldCrossInterMbs
+	numOfNewCrossInterTxs := numOfCrtCrossInterTxs - numOfOldCrossInterTxs
+
+	// TODO: Change to log level Trace after testing
+	log.Debug("transactions.ProcessMiniBlock",
+		"numOfOldCrossInterMbs", numOfOldCrossInterMbs, "numOfOldCrossInterTxs", numOfOldCrossInterTxs,
+		"numOfCrtCrossInterMbs", numOfCrtCrossInterMbs, "numOfCrtCrossInterTxs", numOfCrtCrossInterTxs,
+		"numOfNewCrossInterMbs", numOfNewCrossInterMbs, "numOfNewCrossInterTxs", numOfNewCrossInterTxs,
+	)
+
+	numMiniBlocks := 1 + numOfNewCrossInterMbs
+	numTxs := len(miniBlockTxs) + numOfNewCrossInterTxs
+	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMiniBlocks, numTxs) {
+		return processedTxHashes, process.ErrMaxBlockSizeReached
+	}
+
 	txShardInfoToSet := &txShardInfo{senderShardID: miniBlock.SenderShardID, receiverShardID: miniBlock.ReceiverShardID}
 
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
@@ -1128,8 +1153,8 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 	}
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
-	txs.blockSizeComputation.AddNumMiniBlocks(1)
-	txs.blockSizeComputation.AddNumTxs(len(miniBlockTxs))
+	txs.blockSizeComputation.AddNumMiniBlocks(numMiniBlocks)
+	txs.blockSizeComputation.AddNumTxs(numTxs)
 
 	return nil, nil
 }
