@@ -9,7 +9,8 @@ else
 fi
 
 source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
-source "$ELRONDTESTNETSCRIPTSDIR/include/nodes.sh"
+source "$ELRONDTESTNETSCRIPTSDIR/include/validators.sh"
+source "$ELRONDTESTNETSCRIPTSDIR/include/observers.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/tools.sh"
 
 if [ $USE_PROXY -eq 1 ]; then
