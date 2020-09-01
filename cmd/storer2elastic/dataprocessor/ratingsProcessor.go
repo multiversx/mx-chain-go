@@ -96,7 +96,9 @@ func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock *block.
 	rootHash := metaBlock.ValidatorStatsRootHash
 	leaves, err := rp.peerAdapter.GetAllLeaves(rootHash)
 	if err != nil {
-		return err
+		log.Error("ratingsProcessor -> GetAllLeaves error", "error", err, "root hash", rootHash)
+		// don't return error because if the trie is prunned this kind of data will be available only for the last 3 epochs
+		return nil
 	}
 
 	validatorsRatingData, err := rp.getValidatorsRatingFromLeaves(leaves)
