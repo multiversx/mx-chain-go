@@ -965,11 +965,12 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		txs.blockSizeComputation.AddNumTxs(1)
 		if receiverShardID != txs.shardCoordinator.SelfId() && core.IsSmartContractAddress(tx.RcvAddr) {
 			numCrossShardScCalls++
-			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(1)
 		}
 		numTxsAdded++
 	}
+
+	//we need to increment this as to account for the corresponding SCR hash
+	txs.blockSizeComputation.AddNumTxs(numCrossShardScCalls)
 
 	miniBlocks := txs.getMiniBlockSliceFromMap(mapMiniBlocks)
 

@@ -1027,7 +1027,7 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 			continue
 		}
 
-		for txHash := range mb.TxHashes {
+		for _, txHash := range mb.TxHashes {
 			tx, ok := allTxs[string(txHash)]
 			if !ok {
 				log.Warn("transactionCoordinator.isMaxBlockSizeReached: tx not found",
