@@ -250,10 +250,11 @@ func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaB
 func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, shardOfContainingBlock uint32, miniblockHeader block.MiniBlockHeader) {
 	miniblockHash := miniblockHeader.Hash
 	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
+	isFromMeta := miniblockHeader.SenderShardID == core.MetachainShardId
 	isToMeta := miniblockHeader.ReceiverShardID == core.MetachainShardId
-	isNotarizedAtBoth := isIntra || isToMeta
 	isNotarizedAtSource := miniblockHeader.SenderShardID == shardOfContainingBlock
 	isNotarizedAtDestination := miniblockHeader.ReceiverShardID == shardOfContainingBlock
+	isNotarizedAtBoth := isIntra || isToMeta || (isFromMeta && isNotarizedAtDestination)
 
 	iDontCare := miniblockHeader.SenderShardID != hr.selfShardID && miniblockHeader.ReceiverShardID != hr.selfShardID
 	if iDontCare {
