@@ -345,7 +345,7 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		CodeMetadata:            tx.GetCodeMetadata(),
 		PreviousTransactionHash: hex.EncodeToString(tx.GetPrevTxHash()),
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
-		OriginalSender:          n.addressPubkeyConverter.Encode(tx.GetOriginalSender()),
+		OriginalSender:          n.coreComponents.AddressPubKeyConverter().Encode(tx.GetOriginalSender()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
 	}, nil
 }

@@ -220,7 +220,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 
 	// Invalid transaction
 	txInvalid := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
-	chainStorer.Transactions.PutWithMarshalizer([]byte("invalid"), txInvalid, n.internalMarshalizer)
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("invalid"), txInvalid, n.GetCoreComponents().InternalMarshalizer())
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.InvalidBlock, 1, 1, 42)
 
 	actualInvalid, err := n.GetTransaction(hex.EncodeToString([]byte("invalid")))

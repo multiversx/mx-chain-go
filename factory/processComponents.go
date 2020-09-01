@@ -739,23 +739,24 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 	pcf.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
 	// In "dblookupext" index, record both the metachain and the shard blocks
-	for shard, genesisBlockHeader := range genesisBlocks {
-		if pcf.shardCoordinator.SelfId() != shard {
+	var shardID uint32
+	for shardID, genesisBlockHeader = range genesisBlocks {
+		if pcf.shardCoordinator.SelfId() != shardID {
 			continue
 		}
 
-		genesisBlockHash, err := core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
+		genesisBlockHash, err = core.CalculateHash(pcf.coreData.InternalMarshalizer(), pcf.coreData.Hasher(), genesisBlockHeader)
 		if err != nil {
 			return err
 		}
 
-		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shard, "hash", genesisBlockHash)
+		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shardID, "hash", genesisBlockHash)
 		err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
 		if err != nil {
 			return err
 		}
 
-		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shard)
+		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardID)
 		nonceAsBytes := pcf.coreData.Uint64ByteSliceConverter().ToByteSlice(genesisBlockHeader.GetNonce())
 		err = pcf.data.StorageService().Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
 		if err != nil {
@@ -925,6 +926,8 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 			return nil, errStore
 		}
 
+		manualEpochStartNotifier.NewEpoch(pcf.startEpochNum + 1)
+
 		return pcf.createStorageResolversForMeta(
 			store,
 			manualEpochStartNotifier,
@@ -935,6 +938,8 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 	if err != nil {
 		return nil, err
 	}
+
+	manualEpochStartNotifier.NewEpoch(pcf.startEpochNum + 1)
 
 	return pcf.createStorageResolversForShard(
 		store,
