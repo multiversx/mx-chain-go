@@ -138,17 +138,6 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 		DestinationShardID: miniblock.GetReceiverShardID(),
 	}
 
-	// If we are on metachain and the miniblock is towards us, then we simulate a notarization notification at commit & record time,
-	// since there will be no notification via blockTracker.Register(*)NotarizedHeadersHandler anyway.
-	selfIsMeta := hr.selfShardID == core.MetachainShardId
-	receiverIsMeta := miniblock.GetReceiverShardID() == core.MetachainShardId
-	if selfIsMeta && receiverIsMeta {
-		hr.pendingNotarizedAtBothNotifications.Set(string(miniblockHash), &notarizedNotification{
-			metaNonce: blockHeader.GetNonce(),
-			metaHash:  blockHeaderHash,
-		})
-	}
-
 	err = hr.putMiniblockMetadata(miniblockHash, miniblockMetadata)
 	if err != nil {
 		return err
@@ -157,7 +146,7 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 	for _, txHash := range miniblock.TxHashes {
 		err := hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
 		if err != nil {
-			log.Warn("miniblockHashByTxHashIndex.putMiniblockByTx()", "txHash", txHash, "err", err)
+			log.Warn("miniblockHashByTxHashIndex.Put()", "txHash", txHash, "err", err)
 			continue
 		}
 	}
@@ -227,57 +216,34 @@ func (hr *historyRepository) RegisterToBlockTracker(blockTracker BlockTracker) {
 		return
 	}
 
-	blockTracker.RegisterCrossNotarizedHeadersHandler(hr.onCrossNotarizedHeaders)
-	blockTracker.RegisterSelfNotarizedHeadersHandler(hr.onSelfNotarizedHeaders)
+	blockTracker.RegisterFinalMetachainHeadersHandler(hr.onNotarizedBlocks)
 }
 
-func (hr *historyRepository) onCrossNotarizedHeaders(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
-	log.Debug("onCrossNotarizedHeaders()", "shardID", shardID)
-	hr.onNotarizedBlocks(shardID, headers, headersHashes)
-}
-
-func (hr *historyRepository) onSelfNotarizedHeaders(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
-	log.Debug("onSelfNotarizedHeaders()", "shardID", shardID)
-	hr.onNotarizedBlocks(shardID, headers, headersHashes)
-}
-
-// This is called both with "shardID" == "metachain" (regular notarization events),
-// but also with "shardID" IN [0, 1, 2, ...] when blocks produced by the metachain (as a source) are notarized.
 // TODO: In the future, find a way to skip already processed notifications (e.g. using "headerHash" as a deduplication key).
 func (hr *historyRepository) onNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 	for i, headerHandler := range headers {
 		headerHash := headersHashes[i]
 
-		log.Debug("onNotarizedBlocks() on header:", "shardID", shardID, "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
+		log.Debug("onNotarizedBlocks():", "shardID", shardID, "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
 
 		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
 		if isMetaBlock {
 			for _, shardData := range metaBlock.ShardInfo {
 				hr.onNotarizedInMetaBlock(metaBlock.GetNonce(), headerHash, &shardData)
 			}
-			continue
+		} else {
+			log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", headerHandler))
 		}
-
-		// Fix this! this is imprecise:
-		header, isHeader := headerHandler.(*block.Header)
-		if isHeader {
-			hr.onNotarizedInRegularBlockOfMeta(header.GetNonce(), headerHash, header)
-			continue
-		}
-
-		log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", headerHandler))
 	}
 }
 
 func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaBlockHash []byte, shardData *block.ShardData) {
+	if metaBlockNonce <= 1 {
+		return
+	}
+
 	for _, miniblockHeader := range shardData.GetShardMiniBlockHeaders() {
 		hr.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, shardData.GetShardID(), miniblockHeader)
-	}
-}
-
-func (hr *historyRepository) onNotarizedInRegularBlockOfMeta(blockOfMetaNonce uint64, blockOfMetaHash []byte, blockHeader *block.Header) {
-	for _, miniblockHeader := range blockHeader.GetMiniBlockHeaders() {
-		hr.onNotarizedMiniblock(blockOfMetaNonce, blockOfMetaHash, blockHeader.GetShardID(), miniblockHeader)
 	}
 }
 
