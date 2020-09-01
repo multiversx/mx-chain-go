@@ -5,7 +5,7 @@ startProxy() {
   setTerminalLayout "even-vertical"
 
   setWorkdirForNextCommands "$TESTNETDIR/proxy"
-  runCommandInTerminal "./proxy" $1 v
+  runCommandInTerminal "./proxy" $1
 }
 
 pauseProxy() {
@@ -48,4 +48,32 @@ resumeTxGen() {
 
 stopTxGen() {
   stopProcessByPort $PORT_TXGEN
+}
+
+startSeednode() {
+  setTerminalSession "elrond-tools"
+  setTerminalLayout "even-horizontal"
+
+  setWorkdirForNextCommands "$TESTNETDIR/seednode"
+
+  if [ -n "$NODE_NICENESS" ]
+  then
+    seednodeCommand="nice -n $NODE_NICENESS ./seednode"
+  else
+    seednodeCommand="./seednode"
+  fi
+
+  runCommandInTerminal "$seednodeCommand" $1
+}
+
+pauseSeednode() {
+  pauseProcessByPort $PORT_SEEDNODE
+}
+
+resumeSeednode() {
+  resumeProcessByPort $PORT_SEEDNODE
+}
+
+stopSeednode() {
+  stopProcessByPort $PORT_SEEDNODE
 }
