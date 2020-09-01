@@ -256,7 +256,10 @@ func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlo
 	isNotarizedAtDestination := miniblockHeader.ReceiverShardID == shardOfContainingBlock
 	isNotarizedAtBoth := isIntra || isToMeta || (isFromMeta && isNotarizedAtDestination)
 
-	iDontCare := miniblockHeader.SenderShardID != hr.selfShardID && miniblockHeader.ReceiverShardID != hr.selfShardID
+	notFromMe := miniblockHeader.SenderShardID != hr.selfShardID
+	notToMe := miniblockHeader.ReceiverShardID != hr.selfShardID
+	isPeerMiniblock := miniblockHeader.Type == block.PeerBlock
+	iDontCare := (notFromMe && notToMe) || isPeerMiniblock
 	if iDontCare {
 		return
 	}
