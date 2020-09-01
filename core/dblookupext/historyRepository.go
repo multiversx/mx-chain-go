@@ -86,6 +86,8 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 
 // RecordBlock records a block
 func (hr *historyRepository) RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
+	log.Debug("RecordBlock()", "blockHeaderHash", blockHeaderHash, "header type", fmt.Sprintf("%T", blockHeader))
+
 	body, ok := blockBody.(*block.Body)
 	if !ok {
 		return errCannotCastToBlockBody
@@ -225,17 +227,28 @@ func (hr *historyRepository) RegisterToBlockTracker(blockTracker BlockTracker) {
 		return
 	}
 
-	blockTracker.RegisterCrossNotarizedHeadersHandler(hr.onNotarizedBlocks)
-	blockTracker.RegisterSelfNotarizedHeadersHandler(hr.onNotarizedBlocks)
+	blockTracker.RegisterCrossNotarizedHeadersHandler(hr.onCrossNotarizedHeaders)
+	blockTracker.RegisterSelfNotarizedHeadersHandler(hr.onSelfNotarizedHeaders)
+}
+
+func (hr *historyRepository) onCrossNotarizedHeaders(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+	log.Debug("onCrossNotarizedHeaders()", "shardID", shardID)
+	hr.onNotarizedBlocks(shardID, headers, headersHashes)
+}
+
+func (hr *historyRepository) onSelfNotarizedHeaders(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+	log.Debug("onSelfNotarizedHeaders()", "shardID", shardID)
+	hr.onNotarizedBlocks(shardID, headers, headersHashes)
 }
 
 // This is called both with "shardID" == "metachain" (regular notarization events),
 // but also with "shardID" IN [0, 1, 2, ...] when blocks produced by the metachain (as a source) are notarized.
+// TODO: In the future, find a way to skip already processed notifications (e.g. using "headerHash" as a deduplication key).
 func (hr *historyRepository) onNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 	for i, headerHandler := range headers {
 		headerHash := headersHashes[i]
 
-		log.Debug("onNotarizedBlocks()", "shardID", shardID, "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
+		log.Debug("onNotarizedBlocks() on header:", "shardID", shardID, "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
 
 		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
 		if isMetaBlock {
