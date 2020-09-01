@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -34,7 +35,7 @@ func NewManagedConsensusComponents(ccf *consensusComponentsFactory) (*managedCon
 func (mcf *managedConsensusComponents) Create() error {
 	cc, err := mcf.consensusComponentsFactory.Create()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errors.ErrConsensusComponentsFactoryCreate, err)
 	}
 
 	mcf.mutConsensusComponents.Lock()
@@ -49,7 +50,7 @@ func (mcf *managedConsensusComponents) Close() error {
 	mcf.mutConsensusComponents.Lock()
 	defer mcf.mutConsensusComponents.Unlock()
 
-	if mcf.consensusComponents == nil {
+	if mcf.consensusComponents != nil {
 		err := mcf.consensusComponents.Close()
 		if err != nil {
 			return err
@@ -63,7 +64,7 @@ func (mcf *managedConsensusComponents) Close() error {
 // Chronology returns the chronology handler
 func (mcf *managedConsensusComponents) Chronology() consensus.ChronologyHandler {
 	mcf.mutConsensusComponents.RLock()
-	defer mcf.mutConsensusComponents.Unlock()
+	defer mcf.mutConsensusComponents.RUnlock()
 
 	if mcf.consensusComponents == nil {
 		return nil
@@ -75,7 +76,7 @@ func (mcf *managedConsensusComponents) Chronology() consensus.ChronologyHandler 
 // ConsensusWorker returns the consensus worker
 func (mcf *managedConsensusComponents) ConsensusWorker() ConsensusWorker {
 	mcf.mutConsensusComponents.RLock()
-	defer mcf.mutConsensusComponents.Unlock()
+	defer mcf.mutConsensusComponents.RUnlock()
 
 	if mcf.consensusComponents == nil {
 		return nil
@@ -87,7 +88,7 @@ func (mcf *managedConsensusComponents) ConsensusWorker() ConsensusWorker {
 // BroadcastMessenger returns the consensus broadcast messenger
 func (mcf *managedConsensusComponents) BroadcastMessenger() consensus.BroadcastMessenger {
 	mcf.mutConsensusComponents.RLock()
-	defer mcf.mutConsensusComponents.Unlock()
+	defer mcf.mutConsensusComponents.RUnlock()
 
 	if mcf.consensusComponents == nil {
 		return nil

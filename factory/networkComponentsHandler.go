@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -36,7 +37,7 @@ func NewManagedNetworkComponents(ncf *networkComponentsFactory) (*managedNetwork
 func (mnc *managedNetworkComponents) Create() error {
 	nc, err := mnc.networkComponentsFactory.Create()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errors.ErrNetworkComponentsFactoryCreate, err)
 	}
 
 	mnc.mutNetworkComponents.Lock()

@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -40,7 +41,7 @@ func NewManagedCryptoComponents(ccf *cryptoComponentsFactory) (*managedCryptoCom
 func (mcc *managedCryptoComponents) Create() error {
 	cc, err := mcc.cryptoComponentsFactory.Create()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errors.ErrCryptoComponentsFactoryCreate, err)
 	}
 
 	mcc.mutCryptoComponents.Lock()

@@ -1,8 +1,11 @@
 package factory_test
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -10,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test BootstrapComponentsFactory --------------------
+// ------------ Test ConsensusComponentsFactory --------------------
 func TestNewConsensusComponentsFactory_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -94,36 +97,41 @@ func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 	require.Equal(t, errorsErd.ErrNilStateComponentsHolder, err)
 }
 
-/*
+//------------ Test Old Use Cases --------------------
 func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
 	t.Parallel()
 
-	n, _ := node.NewNode(
-		node.WithBlockChain(&mock.ChainHandlerStub{
-			GetGenesisHeaderHashCalled: func() []byte {
-				return nil
-			},
-			GetGenesisHeaderCalled: func() data.HeaderHandler {
-				return nil
-			},
-		}),
-	)
+	consensusArgs := getConsensusArgs()
+	consensusComponentsFactory, _ := factory.NewConsensusComponentsFactory(consensusArgs)
+	managedConsensusComponents, _ := factory.NewManagedConsensusComponents(consensusComponentsFactory)
 
-	err := n.StartConsensus()
+	dataComponents := consensusArgs.DataComponents
 
-	assert.Equal(t, node.ErrGenesisBlockNotInitialized, err)
+	dataComponents.SetBlockchain(&mock.ChainHandlerStub{
+		GetGenesisHeaderHashCalled: func() []byte {
+			return nil
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return nil
+		},
+	})
+
+	err := managedConsensusComponents.Create()
+	require.True(t, errors.Is(err, errorsErd.ErrConsensusComponentsFactoryCreate))
+	require.True(t, strings.Contains(err.Error(), errorsErd.ErrGenesisBlockNotInitialized.Error()))
 }
 
-func TestNode_ConsensusTopicNilShardCoordinator(t *testing.T) {
-	t.Parallel()
+//func TestNode_ConsensusTopicNilShardCoordinator(t *testing.T) {
+//	t.Parallel()
+//
+//	messageProc := &mock.HeaderResolverStub{}
+//	n, _ := node.NewNode()
+//
+//	err := n.CreateConsensusTopic(messageProc)
+//	require.Equal(t, node.ErrNilShardCoordinator, err)
+//}
 
-	messageProc := &mock.HeaderResolverStub{}
-	n, _ := node.NewNode()
-
-	err := n.CreateConsensusTopic(messageProc)
-	require.Equal(t, node.ErrNilShardCoordinator, err)
-}
-
+/*
 func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
 	t.Parallel()
 
