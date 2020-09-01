@@ -768,13 +768,21 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 
 	preProc := tc.getPreProcessor(blockType)
 	if preProc != nil {
+		log.Debug("transactionCoordinator.GetAllCurrentUsedTxs: preProc is not nil")
 		txPool = preProc.GetAllCurrentUsedTxs()
 	}
 
 	interProc := tc.getInterimProcessor(blockType)
 	if interProc != nil {
+		log.Debug("transactionCoordinator.GetAllCurrentUsedTxs: interProc is not nil")
 		interTxPool = interProc.GetAllCurrentFinishedTxs()
 	}
+
+	log.Debug("transactionCoordinator.GetAllCurrentUsedTxs",
+		"blockType", blockType,
+		"len(txPool)", len(txPool),
+		"len(interTxPool)", len(interTxPool),
+	)
 
 	for hash, tx := range interTxPool {
 		txPool[hash] = tx
@@ -1011,10 +1019,17 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 	allTxs := make(map[string]data.TransactionHandler)
 	for _, blockType := range tc.keysInterimProcs {
 		txs := tc.GetAllCurrentUsedTxs(blockType)
+
+		log.Debug("transactionCoordinator.isMaxBlockSizeReached",
+			"blockType", blockType,
+			"txs", len(txs))
+
 		for txHash, tx := range txs {
 			allTxs[txHash] = tx
 		}
 	}
+
+	log.Debug("transactionCoordinator.isMaxBlockSizeReached", "allTxs", len(allTxs))
 
 	for _, mb := range body.MiniBlocks {
 		numTxs += len(mb.TxHashes)
