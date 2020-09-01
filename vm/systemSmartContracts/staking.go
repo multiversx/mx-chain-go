@@ -476,7 +476,6 @@ func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedData, ad
 			r.eei.AddReturnMessage("error while adding to waiting")
 			return err
 		}
-		registrationData.UnJailedNonce = 0
 		registrationData.Waiting = true
 		r.eei.Finish([]byte{waiting})
 		return nil

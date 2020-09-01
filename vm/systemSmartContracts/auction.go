@@ -18,6 +18,7 @@ import (
 )
 
 const minArgsLenToChangeValidatorKey = 4
+const unJailedFunds = "unJailFunds"
 
 var zero = big.NewInt(0)
 
@@ -149,6 +150,17 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 	return vmcommon.UserError
 }
 
+func (s *stakingAuctionSC) addToUnJailFunds(value *big.Int) {
+	currentValue := big.NewInt(0)
+	storageData := s.eei.GetStorage([]byte(unJailedFunds))
+	if len(storageData) > 0 {
+		currentValue.SetBytes(storageData)
+	}
+
+	currentValue.Add(currentValue, value)
+	s.eei.SetStorage([]byte(unJailedFunds), currentValue.Bytes())
+}
+
 func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) == 0 || len(args.Arguments)%2 != 0 {
 		s.eei.AddReturnMessage("invalid number of arguments: expected even number")
@@ -203,6 +215,9 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 		s.eei.AddReturnMessage("transfer error on unJail function")
 		return vmcommon.UserError
 	}
+
+	finalUnJailFunds := big.NewInt(0).Sub(args.CallValue, transferBack)
+	s.addToUnJailFunds(finalUnJailFunds)
 
 	return vmcommon.Ok
 }

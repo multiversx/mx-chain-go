@@ -183,11 +183,14 @@ func (stp *stakingToPeer) processOldValidatorUnJail(
 	account state.PeerAccountHandler,
 	nonce uint64,
 ) error {
+	if len(account.GetBLSPublicKey()) == 0 {
+		return nil
+	}
 	if stakingData.UnJailedNonce != nonce {
 		return nil
 	}
 
-	account.SetListAndIndex(account.GetShardId(), string(core.InactiveList), uint32(stakingData.JailedNonce))
+	account.SetListAndIndex(account.GetShardId(), string(core.InactiveList), uint32(stakingData.UnJailedNonce))
 	account.SetTempRating(stp.jailRating)
 
 	return stp.peerState.SaveAccount(account)
