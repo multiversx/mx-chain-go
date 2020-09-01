@@ -969,5 +969,6 @@ type CryptoComponentsHolder interface {
 	MultiSigner() crypto.MultiSigner
 	SetMultiSigner(ms crypto.MultiSigner) error
 	PublicKey() crypto.PublicKey
+	Clone() interface{}
 	IsInterfaceNil() bool
 }

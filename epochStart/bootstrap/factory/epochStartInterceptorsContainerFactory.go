@@ -46,12 +46,15 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	if check.IfNil(args.CryptoComponents) {
 		return nil, epochStart.ErrNilCryptoComponentsHolder
 	}
-	err := args.CryptoComponents.SetMultiSigner(disabled.NewMultiSigner())
-	if err != nil {
-		return nil, err
-	}
+
 	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
 		return nil, epochStart.ErrNilPubkeyConverter
+	}
+
+	cryptoComponents := args.CryptoComponents.Clone().(process.CryptoComponentsHolder)
+	err := cryptoComponents.SetMultiSigner(disabled.NewMultiSigner())
+	if err != nil {
+		return nil, err
 	}
 
 	nodesCoordinator := disabled.NewNodesCoordinator()
@@ -67,7 +70,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 
 	containerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
 		CoreComponents:          args.CoreComponents,
-		CryptoComponents:        args.CryptoComponents,
+		CryptoComponents:        cryptoComponents,
 		ShardCoordinator:        args.ShardCoordinator,
 		NodesCoordinator:        nodesCoordinator,
 		Messenger:               args.Messenger,
