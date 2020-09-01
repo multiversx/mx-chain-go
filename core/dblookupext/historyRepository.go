@@ -258,6 +258,7 @@ func (hr *historyRepository) onNotarizedBlocks(shardID uint32, headers []data.He
 			continue
 		}
 
+		// Fix this! this is imprecise:
 		header, isHeader := headerHandler.(*block.Header)
 		if isHeader {
 			hr.onNotarizedInRegularBlockOfMeta(header.GetNonce(), headerHash, header)
