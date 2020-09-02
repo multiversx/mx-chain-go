@@ -30,6 +30,7 @@ type BlockTrackerStub struct {
 	IsShardStuckCalled                                func(shardId uint32) bool
 	RegisterCrossNotarizedHeadersHandlerCalled        func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterFinalMetachainHeadersHandlerCalled        func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeadersCalled                  func()
 	RestoreToGenesisCalled                            func()
 	ShouldAddHeaderCalled                             func(headerHandler data.HeaderHandler) bool
@@ -219,6 +220,13 @@ func (bts *BlockTrackerStub) RegisterCrossNotarizedHeadersHandler(handler func(s
 func (bts *BlockTrackerStub) RegisterSelfNotarizedHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if bts.RegisterSelfNotarizedHeadersHandlerCalled != nil {
 		bts.RegisterSelfNotarizedHeadersHandlerCalled(handler)
+	}
+}
+
+// RegisterFinalMetachainHeadersHandler -
+func (bts *BlockTrackerStub) RegisterFinalMetachainHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
+	if bts.RegisterFinalMetachainHeadersHandlerCalled != nil {
+		bts.RegisterFinalMetachainHeadersHandlerCalled(handler)
 	}
 }
 

@@ -544,6 +544,7 @@ type FeeHandler interface {
 	MaxGasLimitPerBlock(shardID uint32) uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
+	ComputeTxFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
 	MinGasPrice() uint64
 	IsInterfaceNil() bool
@@ -687,6 +688,7 @@ type BlockTracker interface {
 	IsShardStuck(shardID uint32) bool
 	RegisterCrossNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterFinalMetachainHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeaders()
 	RestoreToGenesis()
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
