@@ -2,10 +2,10 @@ package dns
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"sort"
 	"testing"
 	"time"
@@ -297,7 +297,15 @@ func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) 
 }
 
 func generateNewUserName() string {
-	buff := make([]byte, 10)
-	_, _ = rand.Read(buff)
-	return hex.EncodeToString(buff)
+	return RandStringBytes(10)
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyz"
+
+func RandStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }
