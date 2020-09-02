@@ -669,8 +669,8 @@ func CreateEconomicsData() *economics.EconomicsData {
 	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
 	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
 
-	economicsData, _ := economics.NewEconomicsData(
-		&config.EconomicsConfig{
+	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
 				MinimumInflation:   0,
@@ -695,7 +695,10 @@ func CreateEconomicsData() *economics.EconomicsData {
 				DataLimitForBaseCalc:    "10000",
 			},
 		},
-	)
+		PenalizedTooMuchGasEnableEpoch: 0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
+	}
+	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	return economicsData
 }
 
