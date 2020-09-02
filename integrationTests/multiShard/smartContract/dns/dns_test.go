@@ -112,7 +112,7 @@ func TestDNSandRelayedTxNormal(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard := 20
+	nrRoundsToPropagateMultiShard := 30
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)
@@ -143,6 +143,10 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 		integrationTests.GetConnectableAddress(advertiser),
 		genesisFile,
 	)
+
+	for _, node := range nodes {
+		node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+	}
 
 	idxProposers := make([]int, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
@@ -199,7 +203,7 @@ func sendRegisterUserNameAsRelayedTx(
 ) []string {
 
 	userNames := make([]string, len(players))
-	gasLimit := uint64(200000)
+	gasLimit := uint64(2000000)
 	for i, player := range players {
 		userName := generateNewUserName()
 		scAddress := selectDNSAddressFromUserName(sortedDNSAddresses, userName)
@@ -218,7 +222,7 @@ func sendRegisterUserNameTxForPlayers(
 	dnsRegisterValue *big.Int,
 ) []string {
 
-	gasLimit := uint64(200000)
+	gasLimit := uint64(2000000)
 	userNames := make([]string, len(players))
 	for i, player := range players {
 		userName := generateNewUserName()
@@ -264,9 +268,10 @@ func checkUserNamesAreSetCorrectly(
 
 		dnsAddress := selectDNSAddressFromUserName(sortedDNSAddresses, userNames[i])
 		scQuery := &process.SCQuery{
-			ScAddress: []byte(dnsAddress),
-			FuncName:  "resolve",
-			Arguments: [][]byte{[]byte(userNames[i])},
+			CallerAddr: player.Address,
+			ScAddress:  []byte(dnsAddress),
+			FuncName:   "resolve",
+			Arguments:  [][]byte{[]byte(userNames[i])},
 		}
 
 		dnsSHId := nodes[0].ShardCoordinator.ComputeId([]byte(dnsAddress))
@@ -279,7 +284,7 @@ func checkUserNamesAreSetCorrectly(
 
 			require.NotNil(t, vmOutput)
 			require.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
-
+			require.Equal(t, len(vmOutput.ReturnData), 1)
 			assert.True(t, bytes.Equal(player.Address, vmOutput.ReturnData[0]))
 		}
 	}

@@ -87,7 +87,7 @@ func (s *saveUserName) ProcessBuiltinFunction(
 
 	acntDst.SetUserName(vmInput.Arguments[0])
 
-	return &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - s.gasCost}, nil
+	return &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - s.gasCost, ReturnCode: vmcommon.Ok}, nil
 }
 
 // IsInterfaceNil returns true if underlying object in nil
