@@ -843,7 +843,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 
 	processedTxs, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
 	if err != nil {
-		log.Debug("processCompleteMiniBlock.ProcessMiniBlock", "processedTxs", processedTxs, "error", err.Error())
+		log.Debug("processCompleteMiniBlock.ProcessMiniBlock", "num txs processed", len(processedTxs), "error", err.Error())
 
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
@@ -1028,7 +1028,7 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 
 	isMaxBlockSizeReached := tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs+numCrossShardScCalls)
 
-	//TODO: Change to log level Trace after testing
+	//TODO: Remove or change to log level Trace after testing
 	log.Debug("transactionCoordinator.isMaxBlockSizeReached",
 		"isMaxBlockSizeReached", isMaxBlockSizeReached,
 		"numMbs", numMbs,

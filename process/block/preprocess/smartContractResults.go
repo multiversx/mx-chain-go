@@ -458,7 +458,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := scr.gasHandler.TotalGasConsumed()
 
-	//TODO: Change to log level Trace after testing
+	//TODO: Remove or change to log level Trace after testing
 	log.Debug("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
 	for index := range miniBlockScrs {
@@ -477,7 +477,32 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			&totalGasConsumedInSelfShard)
 
 		if err != nil {
-			//TODO: Change to log level Trace after testing
+			//TODO: Remove this after testing
+			txGasLimitInSenderShard, txGasLimitInReceiverShard, errComputeGasConsumed := scr.gasHandler.ComputeGasConsumedByTx(
+				miniBlock.SenderShardID,
+				miniBlock.ReceiverShardID,
+				miniBlockScrs[index])
+
+			//TODO: Remove or change to log level Trace after testing
+			log.Debug("smartContractResults.ProcessMiniBlock: tx info (1)",
+				"nonce", miniBlockScrs[index].Nonce,
+				"RcvAddr", miniBlockScrs[index].RcvAddr,
+				"SndAddr", miniBlockScrs[index].SndAddr,
+				"GasLimit", miniBlockScrs[index].GasLimit,
+				"GasPrice", miniBlockScrs[index].GasPrice,
+				"len(Data)", len(miniBlockScrs[index].Data),
+			)
+
+			//TODO: Remove or change to log level Trace after testing
+			log.Debug("smartContractResults.ProcessMiniBlock: tx info (2)",
+				"txGasLimitInSenderShard", txGasLimitInSenderShard,
+				"txGasLimitInReceiverShard", txGasLimitInReceiverShard,
+				"errComputeGasConsumed", errComputeGasConsumed,
+				"isSmartContractAddress", core.IsSmartContractAddress(miniBlockScrs[index].GetRcvAddr()),
+				"moveBalanceConsumption", scr.economicsFee.ComputeGasLimit(miniBlockScrs[index]),
+			)
+
+			//TODO: Remove or change to log level Trace after testing
 			log.Debug("smartContractResults.ProcessMiniBlock",
 				"senderShardID", miniBlock.SenderShardID,
 				"receiverShardID", miniBlock.ReceiverShardID,
