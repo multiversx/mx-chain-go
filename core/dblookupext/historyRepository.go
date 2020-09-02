@@ -228,8 +228,12 @@ func (hr *historyRepository) onNotarizedBlocks(shardID uint32, headers []data.He
 
 		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
 		if isMetaBlock {
+			for _, miniBlock := range metaBlock.MiniBlockHeaders {
+				hr.onNotarizedMiniblock(headerHandler.GetNonce(), headerHash, headerHandler.GetShardID(), miniBlock)
+			}
+
 			for _, shardData := range metaBlock.ShardInfo {
-				hr.onNotarizedInMetaBlock(metaBlock.GetNonce(), headerHash, &shardData)
+				hr.onNotarizedInMetaBlock(headerHandler.GetNonce(), headerHash, &shardData)
 			}
 		} else {
 			log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", headerHandler))
@@ -250,11 +254,10 @@ func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaB
 func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, shardOfContainingBlock uint32, miniblockHeader block.MiniBlockHeader) {
 	miniblockHash := miniblockHeader.Hash
 	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
-	isFromMeta := miniblockHeader.SenderShardID == core.MetachainShardId
 	isToMeta := miniblockHeader.ReceiverShardID == core.MetachainShardId
 	isNotarizedAtSource := miniblockHeader.SenderShardID == shardOfContainingBlock
 	isNotarizedAtDestination := miniblockHeader.ReceiverShardID == shardOfContainingBlock
-	isNotarizedAtBoth := isIntra || isToMeta || (isFromMeta && isNotarizedAtDestination)
+	isNotarizedAtBoth := isIntra || isToMeta
 
 	notFromMe := miniblockHeader.SenderShardID != hr.selfShardID
 	notToMe := miniblockHeader.ReceiverShardID != hr.selfShardID
