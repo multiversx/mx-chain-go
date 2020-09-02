@@ -1,8 +1,11 @@
 package factory_test
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/core"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -12,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test BootstrapComponentsFactory --------------------
+// ------------ Test ConsensusComponentsFactory --------------------
 func TestNewConsensusComponentsFactory_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -94,6 +97,30 @@ func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 
 	require.Nil(t, bcf)
 	require.Equal(t, errorsErd.ErrNilStateComponentsHolder, err)
+}
+
+//------------ Test Old Use Cases --------------------
+func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	consensusArgs := getConsensusArgs()
+	consensusComponentsFactory, _ := factory.NewConsensusComponentsFactory(consensusArgs)
+	managedConsensusComponents, _ := factory.NewManagedConsensusComponents(consensusComponentsFactory)
+
+	dataComponents := consensusArgs.DataComponents
+
+	dataComponents.SetBlockchain(&mock.ChainHandlerStub{
+		GetGenesisHeaderHashCalled: func() []byte {
+			return nil
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return nil
+		},
+	})
+
+	err := managedConsensusComponents.Create()
+	require.True(t, errors.Is(err, errorsErd.ErrConsensusComponentsFactoryCreate))
+	require.True(t, strings.Contains(err.Error(), errorsErd.ErrGenesisBlockNotInitialized.Error()))
 }
 
 func TestConsensusComponentsFactory_CreateForShard(t *testing.T) {

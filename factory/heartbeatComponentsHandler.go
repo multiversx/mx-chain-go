@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -34,7 +35,7 @@ func NewManagedHeartbeatComponents(hcf *heartbeatComponentsFactory) (*managedHea
 func (mhc *managedHeartbeatComponents) Create() error {
 	hc, err := mhc.heartbeatComponentsFactory.Create()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errors.ErrHeartbeatComponentsFactoryCreate, err)
 	}
 
 	mhc.mutHeartbeatComponents.Lock()

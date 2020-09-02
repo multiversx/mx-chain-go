@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -36,7 +37,7 @@ func NewManagedDataComponents(dcf *dataComponentsFactory) (*managedDataComponent
 func (mdc *managedDataComponents) Create() error {
 	dc, err := mdc.dataComponentsFactory.Create()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errors.ErrDataComponentsFactoryCreate, err)
 	}
 
 	mdc.mutDataComponents.Lock()
@@ -146,9 +147,10 @@ func (mdc *managedDataComponents) Clone() interface{} {
 	dataComps := (*dataComponents)(nil)
 	if mdc.dataComponents != nil {
 		dataComps = &dataComponents{
-			blkc:     mdc.Blockchain(),
-			store:    mdc.StorageService(),
-			datapool: mdc.Datapool(),
+			blkc:               mdc.Blockchain(),
+			store:              mdc.StorageService(),
+			datapool:           mdc.Datapool(),
+			miniBlocksProvider: mdc.MiniBlocksProvider(),
 		}
 	}
 

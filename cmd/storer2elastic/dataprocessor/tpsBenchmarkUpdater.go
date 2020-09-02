@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const numMillisecondsInASecond = 1000
+
 type tpsBenchmarkUpdater struct {
 	tpsBenchmark   statistics.TPSBenchmark
 	elasticIndexer indexer.Indexer
@@ -25,7 +27,10 @@ func NewTPSBenchmarkUpdater(
 		return nil, ErrNilElasticIndexer
 	}
 
-	tpsBenchmark, err := statistics.NewTPSBenchmark(genesisNodesConfig.NumberOfShards(), genesisNodesConfig.GetRoundDuration())
+	tpsBenchmark, err := statistics.NewTPSBenchmark(
+		genesisNodesConfig.NumberOfShards(),
+		genesisNodesConfig.GetRoundDuration()/numMillisecondsInASecond,
+	)
 	if err != nil {
 		return nil, err
 	}

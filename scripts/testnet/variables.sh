@@ -36,6 +36,10 @@ export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 # blank to not adjust niceness.
 export NODE_NICENESS=10
 
+# Start a watcher daemon for each validator node, which restarts the node if it
+# is suffled out of its shard.
+export NODE_WATCHER=1
+
 # Delays after running executables.
 export SEEDNODE_DELAY=5
 export GENESIS_DELAY=30

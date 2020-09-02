@@ -507,7 +507,7 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
-	consumedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+	consumedFee := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	scrIfError := sc.createSCRsWhenError(txHash, tx, returnCode, returnMessage)
 
 	if check.IfNil(acntSnd) {

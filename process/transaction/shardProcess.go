@@ -240,7 +240,13 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return nil
 	}
 
-	txFee := core.SafeMul(tx.GasPrice, tx.GasLimit)
+	txFee := big.NewInt(0)
+	if txProc.flagPenalizedTooMuchGas.IsSet() {
+		txFee.Set(core.SafeMul(tx.GasPrice, tx.GasLimit))
+	} else {
+		txFee.Set(txProc.economicsFee.ComputeMoveBalanceFee(tx))
+	}
+
 	err := acntSnd.SubFromBalance(txFee)
 	if err != nil {
 		return err

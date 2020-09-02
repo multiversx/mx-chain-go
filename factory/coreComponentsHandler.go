@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -45,7 +46,7 @@ func NewManagedCoreComponents(ccf *coreComponentsFactory) (*managedCoreComponent
 func (mcc *managedCoreComponents) Create() error {
 	cc, err := mcc.coreComponentsFactory.Create()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %v", errors.ErrCoreComponentsFactoryCreate, err)
 	}
 
 	mcc.mutCoreComponents.Lock()
