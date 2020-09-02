@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/relayedTx"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSCCallingDNSUserNames(t *testing.T) {
@@ -250,6 +251,11 @@ func checkUserNamesAreSetCorrectly(
 
 			hashedUserName := keccak.Keccak{}.Compute(userNames[i])
 			assert.Equal(t, hashedUserName, userAcc.GetUserName())
+
+			bech32c := integrationTests.TestAddressPubkeyConverter
+			usernameReportedByNode, err := node.Node.GetUsername(bech32c.Encode(player.Address))
+			require.NoError(t, err)
+			require.Equal(t, string(hashedUserName), usernameReportedByNode)
 		}
 	}
 }
