@@ -221,7 +221,7 @@ func (ncm *NodesCoordinatorMock) ShuffleOutForEpoch(_ uint32) {
 func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	_ uint32,
 ) (map[string]struct{}, error) {
-	panic("not implemented")
+	return map[string]struct{}{}, nil
 }
 
 // ValidatorsWeights -
