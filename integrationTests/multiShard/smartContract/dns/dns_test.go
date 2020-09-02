@@ -1,4 +1,4 @@
-package smartContract
+package dns
 
 import (
 	"crypto/rand"
@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/relayedTx"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
@@ -55,7 +55,6 @@ func TestSCCallingDNSUserNamesTwice(t *testing.T) {
 	}
 
 	nodes, players, idxProposers, advertiser := prepareNodesAndPlayers()
-
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
@@ -73,26 +72,66 @@ func TestSCCallingDNSUserNamesTwice(t *testing.T) {
 	userNames := sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
 
 	time.Sleep(time.Second)
-
-	nrRoundsToPropagateMultiShard := 5
+	nrRoundsToPropagateMultiShard := 10
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	_ = sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
-	_ = logger.SetLogLevel("arwen:TRACE")
+
+	time.Sleep(time.Second)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	checkUserNamesAreSetCorrectly(t, players, nodes, userNames)
 }
 
+func TestDNSandRelayedTxNormal(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	nodes, players, idxProposers, advertiser := prepareNodesAndPlayers()
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	relayer := createAndMintRelayer(nodes)
+	dnsRegisterValue, sortedDNSAddresses := getDNSContractsData(nodes[0])
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	userNames := sendRegisterUserNameAsRelayedTx(relayer, players, nodes, sortedDNSAddresses, dnsRegisterValue)
+
+	time.Sleep(time.Second)
+
+	nrRoundsToPropagateMultiShard := 20
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+
+	checkUserNamesAreSetCorrectly(t, players, nodes, userNames)
+}
+
+func createAndMintRelayer(nodes []*integrationTests.TestProcessorNode) *integrationTests.TestWalletAccount {
+	relayer := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
+
+	initialVal := big.NewInt(10000000000000)
+	initialVal.Mul(initialVal, initialVal)
+	integrationTests.MintAllPlayers(nodes, []*integrationTests.TestWalletAccount{relayer}, initialVal)
+	return relayer
+}
+
 func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, []int, p2p.Messenger) {
-	numOfShards := 1
+	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
-	genesisFile := "testdata/smartcontracts.json"
+	genesisFile := "smartcontracts.json"
 	nodes := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
@@ -145,6 +184,27 @@ func getDNSContractsData(node *integrationTests.TestProcessorNode) (*big.Int, []
 	})
 
 	return dnsRegisterValue, sortedDNSAddresses
+}
+
+func sendRegisterUserNameAsRelayedTx(
+	relayer *integrationTests.TestWalletAccount,
+	players []*integrationTests.TestWalletAccount,
+	nodes []*integrationTests.TestProcessorNode,
+	sortedDNSAddresses []string,
+	dnsRegisterValue *big.Int,
+) []string {
+
+	userNames := make([]string, len(players))
+	gasLimit := uint64(200000)
+	for i, player := range players {
+		userName := generateNewUserName()
+		scAddress := selectDNSAddressFromUserName(sortedDNSAddresses, userName)
+		_ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, []byte(scAddress), dnsRegisterValue,
+			gasLimit, []byte("register@"+hex.EncodeToString([]byte(userName))))
+		userNames[i] = userName
+	}
+
+	return userNames
 }
 
 func sendRegisterUserNameTxForPlayers(

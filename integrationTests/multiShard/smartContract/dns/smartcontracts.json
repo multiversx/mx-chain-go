@@ -1,0 +1,17 @@
+[
+  {
+    "owner": "erd16grmckn46ry7fwyvass8e8pz88klazzpc0c5f0pnrv643td4797sgnvjkm",
+    "filename": "dns.wasm",
+    "vm-type": "0500",
+    "init-parameters": "64",
+    "type": "dns"
+  },
+  {
+    "owner": "erd16grmckn46ry7fwyvass8e8pz88klazzpc0c5f0pnrv643td4797sgnvjkm",
+    "filename": "delegation.wasm",
+    "vm-type": "0500",
+    "init-parameters": "%auction_sc_address%@03E8@03E8@03E8",
+    "type": "delegation",
+    "version": "0.3.*"
+  }
+]
