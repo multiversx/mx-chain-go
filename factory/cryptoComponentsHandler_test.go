@@ -55,3 +55,23 @@ func TestManagedCryptoComponents_Close(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, managedCryptoComponents.MultiSigner())
 }
+
+func TestManagedCryptoComponents_Clone(t *testing.T) {
+	coreComponents := getCoreComponents()
+	args := getCryptoArgs(coreComponents)
+	cryptoComponentsFactory, _ := factory.NewCryptoComponentsFactory(args)
+	managedCryptoComponents, _ := factory.NewManagedCryptoComponents(cryptoComponentsFactory)
+	err := managedCryptoComponents.Create()
+	require.NoError(t, err)
+
+	clonedBeforeCreate := managedCryptoComponents.Clone()
+	require.Equal(t, managedCryptoComponents, clonedBeforeCreate)
+
+	_ = managedCryptoComponents.Create()
+	clonedAfterCreate := managedCryptoComponents.Clone()
+	require.Equal(t, managedCryptoComponents, clonedAfterCreate)
+
+	_ = managedCryptoComponents.Close()
+	clonedAfterClose := managedCryptoComponents.Clone()
+	require.Equal(t, managedCryptoComponents, clonedAfterClose)
+}
