@@ -505,3 +505,7 @@ const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
 // DefaultLogProfileIdentifier represents the default log profile used when the logviewer/termui applications do not
 // need to change the current logging profile
 const DefaultLogProfileIdentifier = "[default log profile]"
+
+// MultiplyFactorForScCall specifies the multiply factor, in terms of number, which should be used for how many sc calls
+// could be included in one block (normal txs -> aprox. 27000, sc calls -> aprox. 2700 with value of 9 set below)
+const MultiplyFactorForScCall = 3
