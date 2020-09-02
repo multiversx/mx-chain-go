@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -15,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/relayedTx"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,10 +47,10 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard := 15
+	nrRoundsToPropagateMultiShard := 20
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
-	checkUserNamesAreSetCorrectly(t, players, nodes, userNames)
+	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)
 }
 
 func TestSCCallingDNSUserNamesTwice(t *testing.T) {
@@ -81,7 +84,7 @@ func TestSCCallingDNSUserNamesTwice(t *testing.T) {
 	time.Sleep(time.Second)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
-	checkUserNamesAreSetCorrectly(t, players, nodes, userNames)
+	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)
 }
 
 func TestDNSandRelayedTxNormal(t *testing.T) {
@@ -112,7 +115,7 @@ func TestDNSandRelayedTxNormal(t *testing.T) {
 	nrRoundsToPropagateMultiShard := 20
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
-	checkUserNamesAreSetCorrectly(t, players, nodes, userNames)
+	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)
 }
 
 func createAndMintRelayer(nodes []*integrationTests.TestProcessorNode) *integrationTests.TestWalletAccount {
@@ -238,6 +241,7 @@ func checkUserNamesAreSetCorrectly(
 	players []*integrationTests.TestWalletAccount,
 	nodes []*integrationTests.TestProcessorNode,
 	userNames []string,
+	sortedDNSAddresses []string,
 ) {
 	for i, player := range players {
 		playerShID := nodes[0].ShardCoordinator.ComputeId(player.Address)
@@ -257,7 +261,29 @@ func checkUserNamesAreSetCorrectly(
 			require.NoError(t, err)
 			require.Equal(t, string(hashedUserName), usernameReportedByNode)
 		}
+
+		dnsAddress := selectDNSAddressFromUserName(sortedDNSAddresses, userNames[i])
+		scQuery := &process.SCQuery{
+			ScAddress: []byte(dnsAddress),
+			FuncName:  "resolve",
+			Arguments: [][]byte{[]byte(userNames[i])},
+		}
+
+		dnsSHId := nodes[0].ShardCoordinator.ComputeId([]byte(dnsAddress))
+		for _, node := range nodes {
+			if node.ShardCoordinator.SelfId() != dnsSHId {
+				continue
+			}
+
+			vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+
+			require.NotNil(t, vmOutput)
+			require.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
+
+			assert.True(t, bytes.Equal(player.Address, vmOutput.ReturnData[0]))
+		}
 	}
+
 }
 
 func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) string {
