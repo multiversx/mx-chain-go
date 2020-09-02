@@ -96,6 +96,7 @@ assembleCommand_startValidatorNodeWithWatcher() {
   local source_command="source $ELRONDTESTNETSCRIPTSDIR/include/watcher.sh"
   local watcher_command="node-start-with-watcher $VALIDATOR_INDEX $PORT &"
   local node_command=$(assembleCommand_startValidatorNode $VALIDATOR_INDEX)
+  mkdir -p $WORKING_DIR
   echo "$node_command" > $WORKING_DIR/node-command
   echo "$PORT" > $WORKING_DIR/node-port
 
