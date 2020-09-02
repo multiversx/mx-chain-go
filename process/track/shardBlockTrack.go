@@ -40,8 +40,10 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		ShardCoordinator:              arguments.ShardCoordinator,
 		BlockTracker:                  &sbt,
 		CrossNotarizer:                bbt.crossNotarizer,
+		SelfNotarizer:                 bbt.selfNotarizer,
 		CrossNotarizedHeadersNotifier: bbt.crossNotarizedHeadersNotifier,
 		SelfNotarizedHeadersNotifier:  bbt.selfNotarizedHeadersNotifier,
+		FinalMetachainHeadersNotifier: bbt.finalMetachainHeadersNotifier,
 		Rounder:                       arguments.Rounder,
 	}
 

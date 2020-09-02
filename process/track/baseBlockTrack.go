@@ -42,6 +42,7 @@ type baseBlockTrack struct {
 	selfNotarizer                 blockNotarizerHandler
 	crossNotarizedHeadersNotifier blockNotifierHandler
 	selfNotarizedHeadersNotifier  blockNotifierHandler
+	finalMetachainHeadersNotifier blockNotifierHandler
 	blockBalancer                 blockBalancerHandler
 	whitelistHandler              process.WhiteListHandler
 
@@ -78,6 +79,11 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		return nil, err
 	}
 
+	finalMetachainHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
 	blockBalancerInstance, err := NewBlockBalancer()
 	if err != nil {
 		return nil, err
@@ -95,6 +101,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		selfNotarizer:                 selfNotarizer,
 		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		finalMetachainHeadersNotifier: finalMetachainHeadersNotifier,
 		blockBalancer:                 blockBalancerInstance,
 		maxNumHeadersToKeepPerShard:   maxNumHeadersToKeepPerShard,
 		whitelistHandler:              arguments.WhitelistHandler,
@@ -629,6 +636,13 @@ func (bbt *baseBlockTrack) RegisterSelfNotarizedHeadersHandler(
 	handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte),
 ) {
 	bbt.selfNotarizedHeadersNotifier.RegisterHandler(handler)
+}
+
+// RegisterFinalMetachainHeadersHandler registers a new handler to be called when a metachain header is final
+func (bbt *baseBlockTrack) RegisterFinalMetachainHeadersHandler(
+	handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte),
+) {
+	bbt.finalMetachainHeadersNotifier.RegisterHandler(handler)
 }
 
 // RemoveLastNotarizedHeaders removes last notarized headers from tracker list

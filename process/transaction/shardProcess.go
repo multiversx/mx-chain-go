@@ -5,7 +5,7 @@ import (
 	"errors"
 	"math/big"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/transaction")
@@ -240,13 +240,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return nil
 	}
 
-	txFee := big.NewInt(0)
-	if txProc.flagPenalizedTooMuchGas.IsSet() {
-		txFee.Set(core.SafeMul(tx.GasPrice, tx.GasLimit))
-	} else {
-		txFee.Set(txProc.economicsFee.ComputeMoveBalanceFee(tx))
-	}
-
+	txFee := txProc.economicsFee.ComputeTxFee(tx)
 	err := acntSnd.SubFromBalance(txFee)
 	if err != nil {
 		return err
