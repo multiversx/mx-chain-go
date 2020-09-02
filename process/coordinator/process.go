@@ -843,7 +843,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 
 	processedTxs, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
 	if err != nil {
-		log.Debug("ProcessMiniBlock", "error", err.Error())
+		log.Debug("processCompleteMiniBlock.ProcessMiniBlock", "processedTxs", processedTxs, "error", err.Error())
 
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {

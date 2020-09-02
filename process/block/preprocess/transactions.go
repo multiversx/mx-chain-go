@@ -831,7 +831,17 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		if len(miniBlock.TxHashes) == 0 {
 			numNewMiniBlocks = 1
 		}
-		if isMaxBlockSizeReached(numNewMiniBlocks, 1) {
+		numNewTxs := 1
+
+		isCrossShardScCall := receiverShardID != txs.shardCoordinator.SelfId() && core.IsSmartContractAddress(tx.RcvAddr)
+		if isCrossShardScCall {
+			if !firstCrossShardScCallFound {
+				numNewMiniBlocks++
+			}
+			numNewTxs++
+		}
+
+		if isMaxBlockSizeReached(numNewMiniBlocks, numNewTxs) {
 			log.Debug("max txs accepted in one block is reached",
 				"num txs added", numTxsAdded,
 				"total txs", len(sortedTxs))
@@ -964,7 +974,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 		txs.blockSizeComputation.AddNumTxs(1)
-		if receiverShardID != txs.shardCoordinator.SelfId() && core.IsSmartContractAddress(tx.RcvAddr) {
+		if isCrossShardScCall {
 			if !firstCrossShardScCallFound {
 				firstCrossShardScCallFound = true
 				txs.blockSizeComputation.AddNumMiniBlocks(1)

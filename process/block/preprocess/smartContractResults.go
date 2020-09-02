@@ -458,7 +458,8 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := scr.gasHandler.TotalGasConsumed()
 
-	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	//TODO: Change to log level Trace after testing
+	log.Debug("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
@@ -476,6 +477,17 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			&totalGasConsumedInSelfShard)
 
 		if err != nil {
+			//TODO: Change to log level Trace after testing
+			log.Debug("smartContractResults.ProcessMiniBlock",
+				"senderShardID", miniBlock.SenderShardID,
+				"receiverShardID", miniBlock.ReceiverShardID,
+				"selfShardID", scr.shardCoordinator.SelfId(),
+				"gasConsumedByMiniBlockInSenderShard", gasConsumedByMiniBlockInSenderShard,
+				"gasConsumedByMiniBlockInReceiverShard", gasConsumedByMiniBlockInReceiverShard,
+				"totalGasConsumedInSelfShard", totalGasConsumedInSelfShard,
+				"maxGasLimitPerBlockInSenderShard", scr.economicsFee.MaxGasLimitPerBlock(miniBlock.SenderShardID),
+				"maxGasLimitPerBlockInReceiverShard", scr.economicsFee.MaxGasLimitPerBlock(miniBlock.ReceiverShardID),
+			)
 			return processedTxHashes, err
 		}
 
