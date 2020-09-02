@@ -1101,7 +1101,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.tpsBenchmark.Update(lastMetaBlock)
 
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
-	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
+	go mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce)

@@ -32,8 +32,10 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 		ShardCoordinator:              shardCoordinatorMock,
 		BlockTracker:                  &mock.BlockTrackerHandlerMock{},
 		CrossNotarizer:                &mock.BlockNotarizerHandlerMock{},
+		SelfNotarizer:                 &mock.BlockNotarizerHandlerMock{},
 		CrossNotarizedHeadersNotifier: &mock.BlockNotifierHandlerMock{},
 		SelfNotarizedHeadersNotifier:  &mock.BlockNotifierHandlerMock{},
+		FinalMetachainHeadersNotifier: &mock.BlockNotifierHandlerMock{},
 		Rounder:                       &mock.RounderMock{},
 	}
 
@@ -95,6 +97,17 @@ func TestNewBlockProcessor_ShouldErrNilCrossNotarizer(t *testing.T) {
 	assert.Nil(t, bp)
 }
 
+func TestNewBlockProcessor_ShouldErrNilSelfNotarizer(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments.SelfNotarizer = nil
+	bp, err := track.NewBlockProcessor(blockProcessorArguments)
+
+	assert.Equal(t, track.ErrNilSelfNotarizer, err)
+	assert.Nil(t, bp)
+}
+
 func TestNewBlockProcessor_ShouldErrCrossNotarizedHeadersNotifier(t *testing.T) {
 	t.Parallel()
 
@@ -114,6 +127,17 @@ func TestNewBlockProcessor_ShouldErrSelfNotarizedHeadersNotifier(t *testing.T) {
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
 	assert.Equal(t, track.ErrNilSelfNotarizedHeadersNotifier, err)
+	assert.Nil(t, bp)
+}
+
+func TestNewBlockProcessor_ShouldErrFinalMetachainHeadersNotifier(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments.FinalMetachainHeadersNotifier = nil
+	bp, err := track.NewBlockProcessor(blockProcessorArguments)
+
+	assert.Equal(t, track.ErrNilFinalMetachainHeadersNotifier, err)
 	assert.Nil(t, bp)
 }
 
@@ -167,7 +191,7 @@ func TestProcessReceivedHeader_ShouldWorkWhenHeaderIsFromCrossShard(t *testing.T
 	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
 		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
 			called = true
-			return nil, nil, nil
+			return &block2.MetaBlock{}, []byte(""), nil
 		},
 	}
 
@@ -273,6 +297,12 @@ func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
 	}
 
 	blockProcessorArguments.CrossNotarizedHeadersNotifier = &mock.BlockNotifierHandlerMock{
+		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+			called++
+		},
+	}
+
+	blockProcessorArguments.FinalMetachainHeadersNotifier = &mock.BlockNotifierHandlerMock{
 		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 			called++
 		},
