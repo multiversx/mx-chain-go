@@ -1008,41 +1008,18 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 	numTxs := 0
 	numCrossShardScCalls := 0
 
-	preProc := tc.getPreProcessor(block.TxBlock)
-	if preProc == nil {
-		log.Warn("transactionCoordinator.isMaxBlockSizeReached: preProc is nil", "blockType", block.TxBlock)
-		return true
-	}
+	allTxs := make(map[string]data.TransactionHandler)
 
-	allTxs := preProc.GetAllCurrentUsedTxs()
+	preProc := tc.getPreProcessor(block.TxBlock)
+	if check.IfNil(preProc) {
+		log.Warn("transactionCoordinator.isMaxBlockSizeReached: preProc is nil", "blockType", block.TxBlock)
+	} else {
+		allTxs = preProc.GetAllCurrentUsedTxs()
+	}
 
 	for _, mb := range body.MiniBlocks {
 		numTxs += len(mb.TxHashes)
-
-		isCrossShardTxBlockFromSelf := mb.Type == block.TxBlock &&
-			mb.SenderShardID == tc.shardCoordinator.SelfId() &&
-			mb.ReceiverShardID != tc.shardCoordinator.SelfId()
-
-		if !isCrossShardTxBlockFromSelf {
-			continue
-		}
-
-		for _, txHash := range mb.TxHashes {
-			tx, ok := allTxs[string(txHash)]
-			if !ok {
-				log.Warn("transactionCoordinator.isMaxBlockSizeReached: tx not found",
-					"mb type", mb.Type,
-					"senderShardID", mb.SenderShardID,
-					"receiverShardID", mb.ReceiverShardID,
-					"numTxHashes", len(mb.TxHashes),
-					"tx hash", txHash)
-				return true
-			}
-
-			if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-				numCrossShardScCalls++
-			}
-		}
+		numCrossShardScCalls += getNumOfCrossShardScCalls(mb, allTxs, tc.shardCoordinator.SelfId())
 	}
 
 	isMaxBlockSizeReached := tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs+numCrossShardScCalls)
@@ -1056,6 +1033,45 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 	)
 
 	return isMaxBlockSizeReached
+}
+
+func getNumOfCrossShardScCalls(
+	mb *block.MiniBlock,
+	allTxs map[string]data.TransactionHandler,
+	selfShardID uint32,
+) int {
+
+	numCrossShardScCalls := 0
+
+	isCrossShardTxBlockFromSelf := mb.Type == block.TxBlock &&
+		mb.SenderShardID == selfShardID &&
+		mb.ReceiverShardID != selfShardID
+
+	if !isCrossShardTxBlockFromSelf {
+		return 0
+	}
+
+	for _, txHash := range mb.TxHashes {
+		tx, ok := allTxs[string(txHash)]
+		if !ok {
+			log.Warn("transactionCoordinator.isMaxBlockSizeReached: tx not found",
+				"mb type", mb.Type,
+				"senderShardID", mb.SenderShardID,
+				"receiverShardID", mb.ReceiverShardID,
+				"numTxHashes", len(mb.TxHashes),
+				"tx hash", txHash)
+
+			// If the tx is not found we assume that it is the smart contract call to handle the worst case scenario
+			numCrossShardScCalls++
+			continue
+		}
+
+		if core.IsSmartContractAddress(tx.GetRcvAddr()) {
+			numCrossShardScCalls++
+		}
+	}
+
+	return numCrossShardScCalls
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
