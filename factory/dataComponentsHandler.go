@@ -147,9 +147,10 @@ func (mdc *managedDataComponents) Clone() interface{} {
 	dataComps := (*dataComponents)(nil)
 	if mdc.dataComponents != nil {
 		dataComps = &dataComponents{
-			blkc:     mdc.Blockchain(),
-			store:    mdc.StorageService(),
-			datapool: mdc.Datapool(),
+			blkc:               mdc.Blockchain(),
+			store:              mdc.StorageService(),
+			datapool:           mdc.Datapool(),
+			miniBlocksProvider: mdc.MiniBlocksProvider(),
 		}
 	}
 

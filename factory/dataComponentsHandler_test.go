@@ -50,3 +50,21 @@ func TestManagedDataComponents_Close(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, managedDataComponents.Blockchain())
 }
+
+func TestManagedDataComponents_Clone(t *testing.T) {
+	coreComponents := getCoreComponents()
+	args := getDataArgs(coreComponents)
+	dataComponentsFactory, _ := factory.NewDataComponentsFactory(args)
+	managedDataComponents, _ := factory.NewManagedDataComponents(dataComponentsFactory)
+
+	clonedBeforeCreate := managedDataComponents.Clone()
+	require.Equal(t, managedDataComponents, clonedBeforeCreate)
+
+	_ = managedDataComponents.Create()
+	clonedAfterCreate := managedDataComponents.Clone()
+	require.Equal(t, managedDataComponents, clonedAfterCreate)
+
+	_ = managedDataComponents.Close()
+	clonedAfterClose := managedDataComponents.Clone()
+	require.Equal(t, managedDataComponents, clonedAfterClose)
+}
