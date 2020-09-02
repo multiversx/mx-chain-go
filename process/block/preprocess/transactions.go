@@ -782,6 +782,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	totalTimeUsedForComputeGasConsumed := time.Duration(0)
 
 	firstInvalidTxFound := false
+	firstCrossShardScCallFound := false
 
 	gasConsumedByMiniBlocksInSenderShard := uint64(0)
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
@@ -964,9 +965,13 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 		txs.blockSizeComputation.AddNumTxs(1)
 		if receiverShardID != txs.shardCoordinator.SelfId() && core.IsSmartContractAddress(tx.RcvAddr) {
-			numCrossShardScCalls++
+			if !firstCrossShardScCallFound {
+				firstCrossShardScCallFound = true
+				txs.blockSizeComputation.AddNumMiniBlocks(1)
+			}
 			//we need to increment this as to account for the corresponding SCR hash
 			txs.blockSizeComputation.AddNumTxs(1)
+			numCrossShardScCalls++
 		}
 		numTxsAdded++
 	}

@@ -1022,6 +1022,10 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 		numCrossShardScCalls += getNumOfCrossShardScCalls(mb, allTxs, tc.shardCoordinator.SelfId())
 	}
 
+	if numCrossShardScCalls > 0 {
+		numMbs++
+	}
+
 	isMaxBlockSizeReached := tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs+numCrossShardScCalls)
 
 	//TODO: Change to log level Trace after testing
