@@ -36,6 +36,11 @@ func (fh *FeeHandler) ComputeMoveBalanceFee(_ process.TransactionWithFeeHandler)
 	return big.NewInt(0)
 }
 
+// ComputeTxFee returns 0
+func (fh *FeeHandler) ComputeTxFee(_ process.TransactionWithFeeHandler) *big.Int {
+	return big.NewInt(0)
+}
+
 // CheckValidityTxValues returns nil
 func (fh *FeeHandler) CheckValidityTxValues(_ process.TransactionWithFeeHandler) error {
 	return nil
