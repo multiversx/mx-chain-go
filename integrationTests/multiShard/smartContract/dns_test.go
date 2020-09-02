@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
@@ -73,17 +74,18 @@ func TestSCCallingDNSUserNamesTwice(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard := 10
+	nrRoundsToPropagateMultiShard := 5
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	_ = sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
+	_ = logger.SetLogLevel("arwen:TRACE")
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	checkUserNamesAreSetCorrectly(t, players, nodes, userNames)
 }
 
 func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, []int, p2p.Messenger) {
-	numOfShards := 2
+	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
