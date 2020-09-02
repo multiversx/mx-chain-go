@@ -491,6 +491,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 				"GasLimit", miniBlockScrs[index].GasLimit,
 				"GasPrice", miniBlockScrs[index].GasPrice,
 				"len(Data)", len(miniBlockScrs[index].Data),
+				"data", string(miniBlockScrs[index].Data),
 			)
 
 			//TODO: Remove or change to log level Trace after testing

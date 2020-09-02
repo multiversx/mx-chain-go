@@ -1019,7 +1019,7 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 
 	for _, mb := range body.MiniBlocks {
 		numTxs += len(mb.TxHashes)
-		numCrossShardScCalls += getNumOfCrossShardScCalls(mb, allTxs, tc.shardCoordinator.SelfId())
+		numCrossShardScCalls += getNumOfCrossShardScCalls(mb, allTxs, tc.shardCoordinator.SelfId()) * core.MultiplyFactorForScCall
 	}
 
 	if numCrossShardScCalls > 0 {
