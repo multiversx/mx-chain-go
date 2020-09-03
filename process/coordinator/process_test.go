@@ -2591,3 +2591,135 @@ func TestTransactionCoordinator_CreateMarshalizedReceiptsShouldWork(t *testing.T
 	assert.Nil(t, err)
 	assert.Equal(t, expectedMarshalizedReceipts, marshalizedReceipts)
 }
+
+func TestTransactionCoordinator_GetNumOfCrossInterMbsAndTxsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tc, _ := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+
+	tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
+	tc.keysInterimProcs = append(tc.keysInterimProcs, block.ReceiptBlock)
+
+	tc.interimProcessors[block.SmartContractResultBlock] = &mock.IntermediateTransactionHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: func() (int, int) {
+			return 2, 2
+		},
+	}
+	tc.interimProcessors[block.ReceiptBlock] = &mock.IntermediateTransactionHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: func() (int, int) {
+			return 3, 8
+		},
+	}
+
+	numMbs, numTxs := tc.getNumOfCrossInterMbsAndTxs()
+
+	assert.Equal(t, 5, numMbs)
+	assert.Equal(t, 10, numTxs)
+}
+
+func TestTransactionCoordinator_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tc, _ := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{
+			IsMaxBlockSizeWithoutThrottleReachedCalled: func(i int, i2 int) bool {
+				if i+i2 > 4 {
+					return true
+				}
+				return false
+			},
+		},
+		&mock.BalanceComputationStub{},
+	)
+
+	tc.keysTxPreProcs = append(tc.keysTxPreProcs, block.TxBlock)
+
+	body := &block.Body{
+		MiniBlocks: make([]*block.MiniBlock, 0),
+	}
+
+	mb1 := &block.MiniBlock{
+		Type:            block.TxBlock,
+		ReceiverShardID: 0,
+		TxHashes:        [][]byte{[]byte("txHash1")},
+	}
+	mb2 := &block.MiniBlock{
+		Type:            block.TxBlock,
+		ReceiverShardID: 1,
+		TxHashes:        [][]byte{[]byte("txHash2")},
+	}
+	body.MiniBlocks = append(body.MiniBlocks, mb1)
+	body.MiniBlocks = append(body.MiniBlocks, mb2)
+
+	tc.txPreProcessors[block.TxBlock] = &mock.PreProcessorMock{
+		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
+			allTxs := make(map[string]data.TransactionHandler)
+			allTxs["txHash2"] = &transaction.Transaction{
+				RcvAddr: make([]byte, 0),
+			}
+			return allTxs
+		},
+	}
+	assert.False(t, tc.isMaxBlockSizeReached(body))
+
+	tc.txPreProcessors[block.TxBlock] = &mock.PreProcessorMock{
+		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
+			allTxs := make(map[string]data.TransactionHandler)
+			allTxs["txHash2"] = &transaction.Transaction{
+				RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1),
+			}
+			return allTxs
+		},
+	}
+	assert.True(t, tc.isMaxBlockSizeReached(body))
+}
+
+func TestTransactionCoordinator_GetNumOfCrossShardScCallsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	mb := &block.MiniBlock{
+		Type:     block.TxBlock,
+		TxHashes: [][]byte{[]byte("txHash1")},
+	}
+
+	allTxs := make(map[string]data.TransactionHandler)
+
+	mb.ReceiverShardID = 0
+	assert.Equal(t, 0, getNumOfCrossShardScCalls(mb, allTxs, 0))
+
+	mb.ReceiverShardID = 1
+	assert.Equal(t, 1, getNumOfCrossShardScCalls(mb, allTxs, 0))
+
+	allTxs["txHash1"] = &transaction.Transaction{
+		RcvAddr: make([]byte, 0),
+	}
+	assert.Equal(t, 0, getNumOfCrossShardScCalls(mb, allTxs, 0))
+
+	allTxs["txHash1"] = &transaction.Transaction{
+		RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1),
+	}
+	assert.Equal(t, 1, getNumOfCrossShardScCalls(mb, allTxs, 0))
+}

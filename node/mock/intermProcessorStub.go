@@ -8,6 +8,7 @@ import (
 // IntermediateTransactionHandlerStub -
 type IntermediateTransactionHandlerStub struct {
 	AddIntermediateTransactionsCalled        func(txs []data.TransactionHandler) error
+	GetNumOfCrossInterMbsAndTxsCalled        func() (int, int)
 	CreateAllInterMiniBlocksCalled           func() []*block.MiniBlock
 	VerifyInterMiniBlocksCalled              func(body *block.Body) error
 	SaveCurrentIntermediateTxToStorageCalled func() error
@@ -45,6 +46,14 @@ func (ith *IntermediateTransactionHandlerStub) AddIntermediateTransactions(txs [
 // GetIntermediateTransactions -
 func (ith *IntermediateTransactionHandlerStub) GetIntermediateTransactions() []data.TransactionHandler {
 	return ith.intermediateTransactions
+}
+
+// GetNumOfCrossInterMbsAndTxs -
+func (ith *IntermediateTransactionHandlerStub) GetNumOfCrossInterMbsAndTxs() (int, int) {
+	if ith.GetNumOfCrossInterMbsAndTxsCalled == nil {
+		return 0, 0
+	}
+	return ith.GetNumOfCrossInterMbsAndTxsCalled()
 }
 
 // CreateAllInterMiniBlocks -
