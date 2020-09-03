@@ -319,6 +319,7 @@ type ForkDetector interface {
 	RestoreToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
 	ResetProbableHighestNonce()
+	SetFinalToLastCheckpoint()
 	IsInterfaceNil() bool
 }
 
