@@ -3,6 +3,7 @@ package postprocess
 import (
 	"bytes"
 	"sort"
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -355,6 +356,51 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 		}
 	}
 	assert.Equal(t, 5, len(miniBlockTest.TxHashes))
+}
+
+func TestIntermediateResultsProcessor_GetNumOfCrossInterMbsAndTxsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	nrShards := 5
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	snd := []byte("snd")
+
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, snd) {
+			return shardCoordinator.SelfId()
+		}
+
+		shardID, _ := strconv.Atoi(string(address))
+		return uint32(shardID)
+	}
+
+	irp, _ := NewIntermediateResultsProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		shardCoordinator,
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		block.SmartContractResultBlock,
+		&mock.TxForCurrentBlockStub{},
+	)
+
+	txs := make([]data.TransactionHandler, 0)
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 0, SndAddr: snd, RcvAddr: []byte("0")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 1, SndAddr: snd, RcvAddr: []byte("1")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 2, SndAddr: snd, RcvAddr: []byte("1")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 3, SndAddr: snd, RcvAddr: []byte("2")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 4, SndAddr: snd, RcvAddr: []byte("2")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 5, SndAddr: snd, RcvAddr: []byte("2")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 6, SndAddr: snd, RcvAddr: []byte("3")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 7, SndAddr: snd, RcvAddr: []byte("3")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 8, SndAddr: snd, RcvAddr: []byte("3")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 9, SndAddr: snd, RcvAddr: []byte("3")})
+
+	_ = irp.AddIntermediateTransactions(txs)
+
+	numMbs, numTxs := irp.GetNumOfCrossInterMbsAndTxs()
+	assert.Equal(t, 3, numMbs)
+	assert.Equal(t, 9, numTxs)
 }
 
 func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T) {

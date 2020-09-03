@@ -290,7 +290,7 @@ func (bpp *basePreProcess) computeGasConsumed(
 	} else {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
 
-		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
+		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock(senderShardId) {
 			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
 		}
 	}
