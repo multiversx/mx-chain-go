@@ -838,7 +838,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			if !firstCrossShardScCallFound {
 				numNewMiniBlocks++
 			}
-			numNewTxs += 1 * core.MultiplyFactorForScCall
+			numNewTxs += core.MultiplyFactorForScCall
 		}
 
 		if isMaxBlockSizeReached(numNewMiniBlocks, numNewTxs) {
@@ -980,7 +980,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 				txs.blockSizeComputation.AddNumMiniBlocks(1)
 			}
 			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(1 * core.MultiplyFactorForScCall)
+			txs.blockSizeComputation.AddNumTxs(core.MultiplyFactorForScCall)
 			numCrossShardScCalls++
 		}
 		numTxsAdded++
