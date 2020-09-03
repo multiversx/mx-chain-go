@@ -506,6 +506,8 @@ const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
 // need to change the current logging profile
 const DefaultLogProfileIdentifier = "[default log profile]"
 
-// MultiplyFactorForScCall specifies the multiply factor, in terms of number, which should be used for how many sc calls
-// could be included in one block (normal txs -> aprox. 27000, sc calls -> aprox. 2700 with value of 9 set below)
+// MultiplyFactorForScCall specifies the multiply factor, in terms of number, which should be used by a node when it
+// includes sc calls in a miniblock.
+// Ex.: normal txs -> aprox. 27000, sc calls -> aprox. 6250 = 27000 / (MultiplyFactorForScCall + 1),
+// considering that constant below is set to 3
 const MultiplyFactorForScCall = 3

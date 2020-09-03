@@ -121,12 +121,6 @@ func (bsc *blockSizeComputation) generateDummyMiniblock(numTxHashes int) *block.
 
 // Init reset the stored values of accumulated numTxs and numMiniBlocks
 func (bsc *blockSizeComputation) Init() {
-	// TODO: Remove or change to log level Trace after testing
-	log.Debug("blockSizeComputation.Init: old values",
-		"num mbs", atomic.LoadUint32(&bsc.numMiniBlocks),
-		"num txs", atomic.LoadUint32(&bsc.numTxs),
-	)
-
 	atomic.StoreUint32(&bsc.numTxs, 0)
 	atomic.StoreUint32(&bsc.numMiniBlocks, 0)
 }

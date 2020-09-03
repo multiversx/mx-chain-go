@@ -1028,8 +1028,7 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 
 	isMaxBlockSizeReached := tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs+numCrossShardScCalls)
 
-	//TODO: Remove or change to log level Trace after testing
-	log.Debug("transactionCoordinator.isMaxBlockSizeReached",
+	log.Trace("transactionCoordinator.isMaxBlockSizeReached",
 		"isMaxBlockSizeReached", isMaxBlockSizeReached,
 		"numMbs", numMbs,
 		"numTxs", numTxs,
