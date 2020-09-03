@@ -1153,3 +1153,29 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldWorkOnEqualRoundWit
 	assert.Equal(t, uint64(math.MaxUint64), forkInfo.Round)
 	assert.Nil(t, forkInfo.Hash)
 }
+
+func TestBasicForkDetector_SetFinalToLastCheckpointShouldWork(t *testing.T) {
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewMetaForkDetector(
+		rounderMock,
+		&mock.BlackListHandlerStub{},
+		&mock.BlockTrackerMock{},
+		0,
+	)
+
+	rounderMock.RoundIndex = 1000
+	_ = bfd.AddHeader(
+		&block.MetaBlock{Nonce: 900, Round: 1000, PubKeysBitmap: []byte("X")},
+		[]byte("hash"),
+		process.BHProcessed,
+		nil,
+		nil)
+
+	assert.Equal(t, uint64(0), bfd.GetHighestFinalBlockNonce())
+	assert.Nil(t, bfd.GetHighestFinalBlockHash())
+
+	bfd.SetFinalToLastCheckpoint()
+
+	assert.Equal(t, uint64(900), bfd.GetHighestFinalBlockNonce())
+	assert.Equal(t, []byte("hash"), bfd.GetHighestFinalBlockHash())
+}
