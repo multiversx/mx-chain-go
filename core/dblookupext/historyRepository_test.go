@@ -1,6 +1,7 @@
 package dblookupext
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -429,7 +430,13 @@ func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestinatio
 		},
 	)
 
-	// Notifications have been cleared
+	// Notifications have not been cleared after record block
+	require.Equal(t, 2, repo.pendingNotarizedAtSourceNotifications.Len())
+
+	// Now receive any new notarization notification
+	repo.onNotarizedBlocks(42, []data.HeaderHandler{}, [][]byte{[]byte("nothing")})
+
+	// Notifications have been processed & cleared
 	require.Equal(t, 0, repo.pendingNotarizedAtSourceNotifications.Len())
 
 	// Check "notarization coordinates"
@@ -501,6 +508,12 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
 }
 
+func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes_Loop(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t)
+	}
+}
+
 func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t *testing.T) {
 	args := createMockHistoryRepoArgs(42)
 	args.SelfShardID = 14
@@ -529,8 +542,6 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 			},
 		},
 	}
-
-	repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -561,6 +572,9 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 	}()
 
 	wg.Wait()
+
+	// Simulate continuation of the blockchain (so that any pending notifications are consumed)
+	repo.onNotarizedBlocks(42, []data.HeaderHandler{}, [][]byte{[]byte("nothing")})
 
 	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHash)
 	require.Nil(t, err)

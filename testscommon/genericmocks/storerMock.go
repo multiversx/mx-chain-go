@@ -1,6 +1,7 @@
 package genericmocks
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync"
@@ -186,5 +187,5 @@ func (sm *StorerMock) IsInterfaceNil() bool {
 }
 
 func (sm *StorerMock) newErrNotFound(key []byte, epoch uint32) error {
-	return fmt.Errorf("not found in %s: key = %s, epoch = %d", sm.Name, string(key), epoch)
+	return fmt.Errorf("StorerMock: not found in %s: key = %s, epoch = %d", sm.Name, hex.EncodeToString(key), epoch)
 }
