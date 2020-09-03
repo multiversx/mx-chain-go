@@ -17,14 +17,16 @@ var _ process.DataMarshalizer = (*validatorInfoPreprocessor)(nil)
 var _ process.PreProcessor = (*validatorInfoPreprocessor)(nil)
 
 type validatorInfoPreprocessor struct {
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
+	hasher               hashing.Hasher
+	marshalizer          marshal.Marshalizer
+	blockSizeComputation BlockSizeComputationHandler
 }
 
 // NewValidatorInfoPreprocessor creates a new validatorInfo preprocessor object
 func NewValidatorInfoPreprocessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
+	blockSizeComputation BlockSizeComputationHandler,
 ) (*validatorInfoPreprocessor, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
@@ -32,10 +34,14 @@ func NewValidatorInfoPreprocessor(
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(blockSizeComputation) {
+		return nil, process.ErrNilBlockSizeComputationHandler
+	}
 
 	rtp := &validatorInfoPreprocessor{
-		hasher:      hasher,
-		marshalizer: marshalizer,
+		hasher:               hasher,
+		marshalizer:          marshalizer,
+		blockSizeComputation: blockSizeComputation,
 	}
 	return rtp, nil
 }
@@ -144,6 +150,13 @@ func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBloc
 	if miniBlock.SenderShardID != core.MetachainShardId {
 		return nil, process.ErrValidatorInfoMiniBlockNotFromMeta
 	}
+
+	if vip.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
+		return nil, process.ErrMaxBlockSizeReached
+	}
+
+	vip.blockSizeComputation.AddNumMiniBlocks(1)
+	vip.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
 
 	return nil, nil
 }

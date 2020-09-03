@@ -458,8 +458,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 	gasConsumedByMiniBlockInReceiverShard := uint64(0)
 	totalGasConsumedInSelfShard := scr.gasHandler.TotalGasConsumed()
 
-	//TODO: Remove or change to log level Trace after testing
-	log.Debug("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
+	log.Trace("smartContractResults.ProcessMiniBlock", "totalGasConsumedInSelfShard", totalGasConsumedInSelfShard)
 
 	for index := range miniBlockScrs {
 		if !haveTime() {
@@ -477,43 +476,6 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			&totalGasConsumedInSelfShard)
 
 		if err != nil {
-			//TODO: Remove this after testing
-			txGasLimitInSenderShard, txGasLimitInReceiverShard, errComputeGasConsumed := scr.gasHandler.ComputeGasConsumedByTx(
-				miniBlock.SenderShardID,
-				miniBlock.ReceiverShardID,
-				miniBlockScrs[index])
-
-			//TODO: Remove or change to log level Trace after testing
-			log.Debug("smartContractResults.ProcessMiniBlock: tx info (1)",
-				"nonce", miniBlockScrs[index].Nonce,
-				"RcvAddr", miniBlockScrs[index].RcvAddr,
-				"SndAddr", miniBlockScrs[index].SndAddr,
-				"GasLimit", miniBlockScrs[index].GasLimit,
-				"GasPrice", miniBlockScrs[index].GasPrice,
-				"len(Data)", len(miniBlockScrs[index].Data),
-				"data", string(miniBlockScrs[index].Data),
-			)
-
-			//TODO: Remove or change to log level Trace after testing
-			log.Debug("smartContractResults.ProcessMiniBlock: tx info (2)",
-				"txGasLimitInSenderShard", txGasLimitInSenderShard,
-				"txGasLimitInReceiverShard", txGasLimitInReceiverShard,
-				"errComputeGasConsumed", errComputeGasConsumed,
-				"isSmartContractAddress", core.IsSmartContractAddress(miniBlockScrs[index].GetRcvAddr()),
-				"moveBalanceConsumption", scr.economicsFee.ComputeGasLimit(miniBlockScrs[index]),
-			)
-
-			//TODO: Remove or change to log level Trace after testing
-			log.Debug("smartContractResults.ProcessMiniBlock",
-				"senderShardID", miniBlock.SenderShardID,
-				"receiverShardID", miniBlock.ReceiverShardID,
-				"selfShardID", scr.shardCoordinator.SelfId(),
-				"gasConsumedByMiniBlockInSenderShard", gasConsumedByMiniBlockInSenderShard,
-				"gasConsumedByMiniBlockInReceiverShard", gasConsumedByMiniBlockInReceiverShard,
-				"totalGasConsumedInSelfShard", totalGasConsumedInSelfShard,
-				"maxGasLimitPerBlockInSenderShard", scr.economicsFee.MaxGasLimitPerBlock(miniBlock.SenderShardID),
-				"maxGasLimitPerBlockInReceiverShard", scr.economicsFee.MaxGasLimitPerBlock(miniBlock.ReceiverShardID),
-			)
 			return processedTxHashes, err
 		}
 

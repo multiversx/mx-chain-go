@@ -17,6 +17,7 @@ func TestNewValidatorInfoPreprocessor_NilHasherShouldErr(t *testing.T) {
 	rtp, err := NewValidatorInfoPreprocessor(
 		nil,
 		&mock.MarshalizerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -29,10 +30,24 @@ func TestNewValidatorInfoPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 	rtp, err := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
 		nil,
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewValidatorInfoPreprocessor_NilBlockSizeComputationHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	rtp, err := NewValidatorInfoPreprocessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		nil,
+	)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
 }
 
 func TestNewValidatorInfoPreprocessor_OkValsShouldWork(t *testing.T) {
@@ -41,6 +56,7 @@ func TestNewValidatorInfoPreprocessor_OkValsShouldWork(t *testing.T) {
 	rtp, err := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rtp)
@@ -52,6 +68,7 @@ func TestNewValidatorInfoPreprocessor_CreateMarshalizedDataShouldWork(t *testing
 	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	hash := make([][]byte, 0)
@@ -67,6 +84,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShould
 	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	txHashes := make([][]byte, 0)
@@ -87,6 +105,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	txHashes := make([][]byte, 0)
@@ -107,6 +126,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	txHashes := make([][]byte, 0)
@@ -126,10 +146,12 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	blockSizeComputation := &mock.BlockSizeComputationStub{}
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		hasher,
 		marshalizer,
+		blockSizeComputation,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -165,10 +187,12 @@ func TestNewValidatorInfoPreprocessor_RestoreOtherBlockIntoPoolsShouldNotRestore
 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	blockSizeComputation := &mock.BlockSizeComputationStub{}
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		hasher,
 		marshalizer,
+		blockSizeComputation,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -204,10 +228,12 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	blockSizeComputation := &mock.BlockSizeComputationStub{}
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		hasher,
 		marshalizer,
+		blockSizeComputation,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -243,10 +269,12 @@ func TestNewValidatorInfoPreprocessor_RemoveOtherTypeBlockFromPoolShouldNotRemov
 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	blockSizeComputation := &mock.BlockSizeComputationStub{}
 
 	rtp, _ := NewValidatorInfoPreprocessor(
 		hasher,
 		marshalizer,
+		blockSizeComputation,
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}

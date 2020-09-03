@@ -1147,8 +1147,7 @@ func (txs *transactions) ProcessMiniBlock(
 	numOfNewCrossInterMbs := numOfCrtCrossInterMbs - numOfOldCrossInterMbs
 	numOfNewCrossInterTxs := numOfCrtCrossInterTxs - numOfOldCrossInterTxs
 
-	// TODO: Change to log level Trace after testing
-	log.Debug("transactions.ProcessMiniBlock",
+	log.Trace("transactions.ProcessMiniBlock",
 		"numOfOldCrossInterMbs", numOfOldCrossInterMbs, "numOfOldCrossInterTxs", numOfOldCrossInterTxs,
 		"numOfCrtCrossInterMbs", numOfCrtCrossInterMbs, "numOfCrtCrossInterTxs", numOfCrtCrossInterTxs,
 		"numOfNewCrossInterMbs", numOfNewCrossInterMbs, "numOfNewCrossInterTxs", numOfNewCrossInterTxs,
