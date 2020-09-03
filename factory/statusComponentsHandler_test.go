@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/stretchr/testify/require"
@@ -51,4 +52,28 @@ func TestManagedStatusComponents_Close(t *testing.T) {
 	err = managedStatusComponents.Close()
 	require.NoError(t, err)
 	require.Nil(t, managedStatusComponents.StatusHandler())
+}
+
+func TestManagedStatusComponents_CheckSubcomponents(t *testing.T) {
+	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
+	managedStatusComponents, _ := factory.NewManagedStatusComponents(statusComponentsFactory)
+	err := managedStatusComponents.Create()
+	require.NoError(t, err)
+
+	err = managedStatusComponents.CheckSubcomponents()
+	require.NoError(t, err)
+}
+
+func TestManagedStatusComponents_StartPolling(t *testing.T) {
+	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	statusArgs.Config.GeneralSettings.StatusPollingIntervalSec = 10
+	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
+	managedStatusComponents, _ := factory.NewManagedStatusComponents(statusComponentsFactory)
+	err := managedStatusComponents.Create()
+	require.NoError(t, err)
+
+	err = managedStatusComponents.StartPolling()
+	require.NoError(t, err)
+	time.Sleep(3 * time.Second)
 }
