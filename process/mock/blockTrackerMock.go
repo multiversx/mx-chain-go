@@ -43,6 +43,7 @@ type BlockTrackerMock struct {
 	IsShardStuckCalled                                func(shardId uint32) bool
 	RegisterCrossNotarizedHeadersHandlerCalled        func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterFinalMetachainHeadersHandlerCalled        func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeadersCalled                  func()
 	RestoreToGenesisCalled                            func()
 	ShouldAddHeaderCalled                             func(headerHandler data.HeaderHandler) bool
@@ -461,6 +462,13 @@ func (btm *BlockTrackerMock) RegisterCrossNotarizedHeadersHandler(handler func(s
 func (btm *BlockTrackerMock) RegisterSelfNotarizedHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if btm.RegisterSelfNotarizedHeadersHandlerCalled != nil {
 		btm.RegisterSelfNotarizedHeadersHandlerCalled(handler)
+	}
+}
+
+// RegisterFinalMetachainHeadersHandler -
+func (btm *BlockTrackerMock) RegisterFinalMetachainHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
+	if btm.RegisterFinalMetachainHeadersHandlerCalled != nil {
+		btm.RegisterFinalMetachainHeadersHandlerCalled(handler)
 	}
 }
 

@@ -36,7 +36,7 @@ func newTestMetaBlock() *block.MetaBlock {
 
 func NewElasticIndexerArguments() indexerOld.ElasticIndexerArgs {
 	return indexerOld.ElasticIndexerArgs{
-		Url:                      "url",
+		Url:                      "Url",
 		UserName:                 "user",
 		Password:                 "password",
 		Marshalizer:              &mock.MarshalizerMock{},

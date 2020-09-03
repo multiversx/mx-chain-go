@@ -94,6 +94,7 @@ func TestDelegation_Claims(t *testing.T) {
 	context.TakeAccountBalanceSnapshot(&context.Bob)
 	context.TakeAccountBalanceSnapshot(&context.Carol)
 
+	context.GasLimit = 20000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
 	require.Equal(t, 15518713, int(context.LastConsumedFee))
@@ -154,6 +155,7 @@ func TestDelegation_WithManyUsers_Claims(t *testing.T) {
 	for _, user := range context.Participants {
 		context.TakeAccountBalanceSnapshot(user)
 
+		context.GasLimit = 20000000
 		err = context.ExecuteSC(user, "claimRewards")
 		require.Nil(t, err)
 		require.LessOrEqual(t, int(context.LastConsumedFee), 17000000)

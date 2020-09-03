@@ -15,6 +15,18 @@ import (
 
 var log = logger.GetOrCreate("process/interceptors")
 
+// ArgMultiDataInterceptor is the argument for the multi-data interceptor
+type ArgMultiDataInterceptor struct {
+	Topic            string
+	Marshalizer      marshal.Marshalizer
+	DataFactory      process.InterceptedDataFactory
+	Processor        process.InterceptorProcessor
+	Throttler        process.InterceptorThrottler
+	AntifloodHandler process.P2PAntifloodHandler
+	WhiteListRequest process.WhiteListHandler
+	CurrentPeerId    core.PeerID
+}
+
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
 	topic                      string
@@ -26,48 +38,45 @@ type MultiDataInterceptor struct {
 	antifloodHandler           process.P2PAntifloodHandler
 	mutInterceptedDebugHandler sync.RWMutex
 	interceptedDebugHandler    process.InterceptedDebugger
+	currentPeerId              core.PeerID
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
-func NewMultiDataInterceptor(
-	topic string,
-	marshalizer marshal.Marshalizer,
-	factory process.InterceptedDataFactory,
-	processor process.InterceptorProcessor,
-	throttler process.InterceptorThrottler,
-	antifloodHandler process.P2PAntifloodHandler,
-	whiteListRequest process.WhiteListHandler,
-) (*MultiDataInterceptor, error) {
-	if len(topic) == 0 {
+func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor, error) {
+	if len(arg.Topic) == 0 {
 		return nil, process.ErrEmptyTopic
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(arg.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(factory) {
+	if check.IfNil(arg.DataFactory) {
 		return nil, process.ErrNilInterceptedDataFactory
 	}
-	if check.IfNil(processor) {
+	if check.IfNil(arg.Processor) {
 		return nil, process.ErrNilInterceptedDataProcessor
 	}
-	if check.IfNil(throttler) {
+	if check.IfNil(arg.Throttler) {
 		return nil, process.ErrNilInterceptorThrottler
 	}
-	if check.IfNil(antifloodHandler) {
+	if check.IfNil(arg.AntifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
-	if check.IfNil(whiteListRequest) {
+	if check.IfNil(arg.WhiteListRequest) {
 		return nil, process.ErrNilWhiteListHandler
+	}
+	if len(arg.CurrentPeerId) == 0 {
+		return nil, process.ErrEmptyPeerID
 	}
 
 	multiDataIntercept := &MultiDataInterceptor{
-		topic:            topic,
-		marshalizer:      marshalizer,
-		factory:          factory,
-		processor:        processor,
-		throttler:        throttler,
-		whiteListRequest: whiteListRequest,
-		antifloodHandler: antifloodHandler,
+		topic:            arg.Topic,
+		marshalizer:      arg.Marshalizer,
+		factory:          arg.DataFactory,
+		processor:        arg.Processor,
+		throttler:        arg.Throttler,
+		whiteListRequest: arg.WhiteListRequest,
+		antifloodHandler: arg.AntifloodHandler,
+		currentPeerId:    arg.CurrentPeerId,
 	}
 	multiDataIntercept.interceptedDebugHandler = resolver.NewDisabledInterceptorResolver()
 
@@ -77,7 +86,7 @@ func NewMultiDataInterceptor(
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-	err := preProcessMesage(mdi.throttler, mdi.antifloodHandler, message, fromConnectedPeer, mdi.topic)
+	err := preProcessMesage(mdi.throttler, mdi.antifloodHandler, message, fromConnectedPeer, mdi.topic, mdi.currentPeerId)
 	if err != nil {
 		return err
 	}

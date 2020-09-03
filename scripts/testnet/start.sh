@@ -8,7 +8,8 @@ export EXTRA=$2
 source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/config.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/build.sh"
-source "$ELRONDTESTNETSCRIPTSDIR/include/nodes.sh"
+source "$ELRONDTESTNETSCRIPTSDIR/include/validators.sh"
+source "$ELRONDTESTNETSCRIPTSDIR/include/observers.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/tools.sh"
 
 prepareFolders

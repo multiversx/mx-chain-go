@@ -189,6 +189,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.SignMarshalizer) {
 		return process.ErrNilMarshalizer
 	}
+	if arg.GeneralConfig == nil {
+		return genesis.ErrNilGeneralSettingsConfig
+	}
 
 	return nil
 }
@@ -306,7 +309,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	}
 	allScAddresses = append(allScAddresses, scResults...)
 
-	err = gbc.checkDelegationsAgainstDeployedSC(allScAddresses, gbc.arg.AccountsParser)
+	err = gbc.checkDelegationsAgainstDeployedSC(allScAddresses, gbc.arg)
 	if err != nil {
 		return nil, err
 	}
@@ -436,9 +439,13 @@ func (gbc *genesisBlockCreator) saveGenesisBlock(header data.HeaderHandler) erro
 
 func (gbc *genesisBlockCreator) checkDelegationsAgainstDeployedSC(
 	allScAddresses [][]byte,
-	accountsParser genesis.AccountsParser,
+	arg ArgsGenesisBlockCreator,
 ) error {
-	initialAccounts := accountsParser.InitialAccounts()
+	if mustDoHardForkImportProcess(arg) {
+		return nil
+	}
+
+	initialAccounts := arg.AccountsParser.InitialAccounts()
 	for _, ia := range initialAccounts {
 		dh := ia.GetDelegationHandler()
 		if check.IfNil(dh) {

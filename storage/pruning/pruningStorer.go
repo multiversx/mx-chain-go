@@ -198,7 +198,25 @@ func initPersistersInEpoch(
 		oldestEpochActive = 0
 	}
 
+	log.Debug("initPersistersInEpoch",
+		"StartingEpoch", args.StartingEpoch,
+		"NumOfEpochsToKeep", args.NumOfEpochsToKeep,
+		"oldestEpochKeep", oldestEpochKeep,
+		"NumOfActivePersisters", args.NumOfActivePersisters,
+		"oldestEpochActive", oldestEpochActive,
+	)
+
+	// If "database lookup extensions" is enabled, we'll create shallow (not initialized) persisters for all epochs
+	if args.EnabledDbLookupExtensions {
+		for epoch := int64(args.StartingEpoch); epoch >= 0; epoch-- {
+			log.Debug("initPersistersInEpoch(): createShallowPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
+			persistersMapByEpoch[uint32(epoch)] = createShallowPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
+		}
+	}
+
+	// Shallow persister data will be overwritten in case of active persisters
 	for epoch := int64(args.StartingEpoch); epoch >= oldestEpochKeep; epoch-- {
+		log.Debug("initPersistersInEpoch(): createPersisterDataForEpoch", "identifier", args.Identifier, "epoch", epoch, "shardID", shardIDStr)
 		p, err := createPersisterDataForEpoch(args, uint32(epoch), shardIDStr)
 		if err != nil {
 			return nil, nil, err
@@ -209,8 +227,9 @@ func initPersistersInEpoch(
 		if epoch < oldestEpochActive {
 			err = p.persister.Close()
 			if err != nil {
-				log.Debug("persister.Close()", "error", err.Error())
+				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
 			}
+			p.setIsClosed(true)
 		} else {
 			persisters = append(persisters, p)
 			log.Debug("appended a pruning active persister", "epoch", epoch, "identifier", args.Identifier)
@@ -237,8 +256,11 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 		}
 	}
 	ps.lock.RUnlock()
+	return ps.doPutInPersister(key, data, persisterToUse.persister)
+}
 
-	err := persisterToUse.persister.Put(key, data)
+func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Persister) error {
+	err := persister.Put(key, data)
 	if err != nil {
 		ps.cacher.Remove(key)
 		return err
@@ -249,6 +271,60 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 	}
 
 	return nil
+}
+
+// PutInEpoch adds data to specified epoch
+func (ps *PruningStorer) PutInEpoch(key, data []byte, epoch uint32) error {
+	ps.cacher.Put(key, data, len(data))
+
+	ps.lock.RLock()
+	pd, exists := ps.persistersMapByEpoch[epoch]
+	ps.lock.RUnlock()
+	if !exists {
+		return fmt.Errorf("put in epoch: persister for epoch %d not found", epoch)
+	}
+
+	persister, closePersister, err := ps.createAndInitPersisterIfClosed(pd)
+	if err != nil {
+		return err
+	}
+	defer closePersister()
+
+	return ps.doPutInPersister(key, data, persister)
+}
+
+func (ps *PruningStorer) createAndInitPersisterIfClosed(pd *persisterData) (storage.Persister, func(), error) {
+	isOpen := !pd.getIsClosed()
+	if isOpen {
+		noopClose := func() {}
+		return pd.persister, noopClose, nil
+	}
+
+	return ps.createAndInitPersister(pd)
+}
+
+func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Persister, func(), error) {
+	persister, err := ps.persisterFactory.Create(pd.path)
+	if err != nil {
+		log.Warn("createAndInitPersister()", "error", err.Error())
+		return nil, nil, err
+	}
+
+	close := func() {
+		err = persister.Close()
+		if err != nil {
+			log.Warn("createAndInitPersister(): persister.Close()", "error", err.Error())
+		}
+		pd.setIsClosed(true)
+	}
+
+	err = persister.Init()
+	if err != nil {
+		log.Warn("createAndInitPersister(): persister.Init()", "error", err.Error())
+		return nil, nil, err
+	}
+
+	return persister, close, nil
 }
 
 // Get searches the key in the cache. In case it is not found, it verifies with the bloom filter
@@ -301,6 +377,7 @@ func (ps *PruningStorer) Close() error {
 			log.Error("cannot close persister", err)
 			closedSuccessfully = false
 		}
+		persister.setIsClosed(true)
 	}
 
 	if closedSuccessfully {
@@ -326,28 +403,11 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 			hex.EncodeToString(key), ps.identifier)
 	}
 
-	if !pd.getIsClosed() {
-		return pd.persister.Get(key)
-	}
-
-	persister, err := ps.persisterFactory.Create(pd.path)
+	persister, closePersister, err := ps.createAndInitPersisterIfClosed(pd)
 	if err != nil {
-		log.Debug("open old persister", "error", err.Error())
 		return nil, err
 	}
-
-	defer func() {
-		err = persister.Close()
-		if err != nil {
-			log.Debug("persister.Close()", "error", err.Error())
-		}
-	}()
-
-	err = persister.Init()
-	if err != nil {
-		log.Debug("init old persister", "error", err.Error())
-		return nil, err
-	}
+	defer closePersister()
 
 	res, err := persister.Get(key)
 	if err == nil {
@@ -377,29 +437,11 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 		return nil, errors.New("persister does not exits")
 	}
 
-	var persisterToRead storage.Persister
-	var err error
-	if pd.getIsClosed() {
-		// TODO add a mutex when a persisterToRead is created
-		persisterToRead, err = ps.persisterFactory.Create(pd.path)
-		if err != nil {
-			log.Debug("open old persister", "error", err.Error())
-			return nil, err
-		}
-		defer func() {
-			err = persisterToRead.Close()
-			if err != nil {
-				log.Debug("persister.Close()", "error", err.Error())
-			}
-		}()
-		err = persisterToRead.Init()
-		if err != nil {
-			log.Debug("init old persister", "error", err.Error())
-			return nil, err
-		}
-	} else {
-		persisterToRead = pd.persister
+	persisterToRead, closePersister, err := ps.createAndInitPersisterIfClosed(pd)
+	if err != nil {
+		return nil, err
 	}
+	defer closePersister()
 
 	returnMap := make(map[string][]byte, 0)
 	for _, key := range keys {
@@ -493,28 +535,11 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 			return storage.ErrKeyNotFound
 		}
 
-		if !pd.getIsClosed() {
-			return pd.persister.Has(key)
-		}
-
-		persister, err := ps.persisterFactory.Create(pd.path)
+		persister, closePersister, err := ps.createAndInitPersisterIfClosed(pd)
 		if err != nil {
-			log.Debug("open old persister", "error", err.Error())
 			return err
 		}
-
-		defer func() {
-			err = persister.Close()
-			if err != nil {
-				log.Debug("persister.Close()", "error", err.Error())
-			}
-		}()
-
-		err = persister.Init()
-		if err != nil {
-			log.Debug("init old persister", "error", err.Error())
-			return err
-		}
+		defer closePersister()
 
 		return persister.Has(key)
 	}
@@ -873,13 +898,30 @@ func (ps *PruningStorer) IsInterfaceNil() bool {
 	return ps == nil
 }
 
-func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shardIdStr string) (*persisterData, error) {
+func createShallowPersisterDataForEpoch(args *StorerArgs, epoch uint32, shard string) *persisterData {
+	filePath := createPersisterPathForEpoch(args, epoch, shard)
+
+	return &persisterData{
+		persister: args.PersisterFactory.CreateDisabled(),
+		epoch:     epoch,
+		path:      filePath,
+		isClosed:  true,
+	}
+}
+
+func createPersisterPathForEpoch(args *StorerArgs, epoch uint32, shard string) string {
+	filePath := args.PathManager.PathForEpoch(core.GetShardIDString(args.ShardCoordinator.SelfId()), epoch, args.Identifier)
+	if len(shard) > 0 {
+		filePath += shard
+	}
+
+	return filePath
+}
+
+func createPersisterDataForEpoch(args *StorerArgs, epoch uint32, shard string) (*persisterData, error) {
 	// TODO: if booting from storage in an epoch > 0, shardId needs to be taken from somewhere else
 	// e.g. determined from directories in persister path or taken from boot storer
-	filePath := args.PathManager.PathForEpoch(core.GetShardIDString(args.ShardCoordinator.SelfId()), epoch, args.Identifier)
-	if len(shardIdStr) > 0 {
-		filePath += shardIdStr
-	}
+	filePath := createPersisterPathForEpoch(args, epoch, shard)
 
 	db, err := args.PersisterFactory.Create(filePath)
 	if err != nil {

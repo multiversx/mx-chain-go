@@ -15,10 +15,10 @@ type metaAPIBlockProcessor struct {
 
 // NewMetaApiBlockProcessor will create a new instance of meta api block processor
 func NewMetaApiBlockProcessor(arg *APIBlockProcessorArg) *metaAPIBlockProcessor {
-	isFullHistoryNode := arg.HistoryRepo.IsEnabled()
+	hasDbLookupExtensions := arg.HistoryRepo.IsEnabled()
 	return &metaAPIBlockProcessor{
 		baseAPIBockProcessor: &baseAPIBockProcessor{
-			isFullHistoryNode:        isFullHistoryNode,
+			hasDbLookupExtensions:    hasDbLookupExtensions,
 			selfShardID:              arg.SelfShardID,
 			store:                    arg.Store,
 			marshalizer:              arg.Marshalizer,
@@ -49,7 +49,7 @@ func (mbp *metaAPIBlockProcessor) GetBlockByNonce(nonce uint64, withTxs bool) (*
 
 // GetBlockByHash will return a shard APIBlock by hash
 func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*apiBlock.APIBlock, error) {
-	blockBytes, err := mbp.getFromStorer(dataRetriever.BlockHeaderUnit, hash)
+	blockBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -76,10 +76,10 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		numOfTxs += mb.TxCount
 
 		miniblockAPI := &apiBlock.APIMiniBlock{
-			Hash:               hex.EncodeToString(mb.Hash),
-			Type:               mb.Type.String(),
-			SourceShardID:      mb.SenderShardID,
-			DestinationShardID: mb.ReceiverShardID,
+			Hash:             hex.EncodeToString(mb.Hash),
+			Type:             mb.Type.String(),
+			SourceShard:      mb.SenderShardID,
+			DestinationShard: mb.ReceiverShardID,
 		}
 		if withTxs {
 			miniblockAPI.Transactions = mbp.getTxsByMb(&mb, headerEpoch)
@@ -88,20 +88,26 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	shardHeaderHashes := make([]string, len(blockHeader.ShardInfo))
-	for idx := 0; idx < len(blockHeader.ShardInfo); idx++ {
-		shardHeaderHashes[idx] = hex.EncodeToString(blockHeader.ShardInfo[idx].HeaderHash)
+	notarizedBlocks := make([]*apiBlock.APINotarizedBlock, 0, len(blockHeader.ShardInfo))
+	for _, shardData := range blockHeader.ShardInfo {
+		notarizedBlock := &apiBlock.APINotarizedBlock{
+			Hash:  hex.EncodeToString(shardData.HeaderHash),
+			Nonce: shardData.Nonce,
+			Shard: shardData.ShardID,
+		}
+
+		notarizedBlocks = append(notarizedBlocks, notarizedBlock)
 	}
 
 	return &apiBlock.APIBlock{
-		Nonce:                blockHeader.Nonce,
-		Round:                blockHeader.Round,
-		Epoch:                blockHeader.Epoch,
-		ShardID:              core.MetachainShardId,
-		Hash:                 hex.EncodeToString(hash),
-		PrevBlockHash:        hex.EncodeToString(blockHeader.PrevHash),
-		NumTxs:               numOfTxs,
-		NotarizedBlockHashes: shardHeaderHashes,
-		MiniBlocks:           miniblocks,
+		Nonce:           blockHeader.Nonce,
+		Round:           blockHeader.Round,
+		Epoch:           blockHeader.Epoch,
+		Shard:           core.MetachainShardId,
+		Hash:            hex.EncodeToString(hash),
+		PrevBlockHash:   hex.EncodeToString(blockHeader.PrevHash),
+		NumTxs:          numOfTxs,
+		NotarizedBlocks: notarizedBlocks,
+		MiniBlocks:      miniblocks,
 	}, nil
 }

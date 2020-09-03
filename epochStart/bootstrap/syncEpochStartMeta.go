@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorsFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -36,23 +35,24 @@ type epochStartMetaSyncer struct {
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	RequestHandler     RequestHandler
-	Messenger          Messenger
-	Marshalizer        marshal.Marshalizer
-	TxSignMarshalizer  marshal.Marshalizer
-	ShardCoordinator   sharding.Coordinator
-	KeyGen             crypto.KeyGenerator
-	BlockKeyGen        crypto.KeyGenerator
-	Hasher             hashing.Hasher
-	Signer             crypto.SingleSigner
-	BlockSigner        crypto.SingleSigner
-	ChainID            []byte
-	EconomicsData      *economics.EconomicsData
-	WhitelistHandler   process.WhiteListHandler
-	AddressPubkeyConv  core.PubkeyConverter
-	NonceConverter     typeConverters.Uint64ByteSliceConverter
-	StartInEpochConfig config.EpochStartConfig
-	ArgsParser         process.ArgumentsParser
+	RequestHandler          RequestHandler
+	Messenger               Messenger
+	Marshalizer             marshal.Marshalizer
+	TxSignMarshalizer       marshal.Marshalizer
+	ShardCoordinator        sharding.Coordinator
+	KeyGen                  crypto.KeyGenerator
+	BlockKeyGen             crypto.KeyGenerator
+	Hasher                  hashing.Hasher
+	Signer                  crypto.SingleSigner
+	BlockSigner             crypto.SingleSigner
+	ChainID                 []byte
+	EconomicsData           *economics.EconomicsData
+	WhitelistHandler        process.WhiteListHandler
+	AddressPubkeyConv       core.PubkeyConverter
+	NonceConverter          typeConverters.Uint64ByteSliceConverter
+	StartInEpochConfig      config.EpochStartConfig
+	ArgsParser              process.ArgumentsParser
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -63,6 +63,9 @@ const thresholdForConsideringMetaBlockCorrect = 67
 func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaSyncer, error) {
 	if check.IfNil(args.AddressPubkeyConv) {
 		return nil, epochStart.ErrNilPubkeyConverter
+	}
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return nil, epochStart.ErrNilHeaderIntegrityVerifier
 	}
 
 	e := &epochStartMetaSyncer{
@@ -85,10 +88,6 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		return nil, err
 	}
 	e.metaBlockProcessor = processor
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(args.ChainID)
-	if err != nil {
-		return nil, err
-	}
 
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
 		ProtoMarshalizer:        args.Marshalizer,
@@ -104,7 +103,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		AddressPubkeyConv:       args.AddressPubkeyConv,
 		FeeHandler:              args.EconomicsData,
 		HeaderSigVerifier:       disabled.NewHeaderSigVerifier(),
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
 		ValidityAttester:        disabled.NewValidityAttester(),
 		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
 		ArgsParser:              args.ArgsParser,
@@ -116,12 +115,15 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}
 
 	e.singleDataInterceptor, err = interceptors.NewSingleDataInterceptor(
-		factory.MetachainBlocksTopic,
-		interceptedMetaHdrDataFactory,
-		processor,
-		disabled.NewThrottler(),
-		disabled.NewAntiFloodHandler(),
-		args.WhitelistHandler,
+		interceptors.ArgSingleDataInterceptor{
+			Topic:            factory.MetachainBlocksTopic,
+			DataFactory:      interceptedMetaHdrDataFactory,
+			Processor:        processor,
+			Throttler:        disabled.NewThrottler(),
+			AntifloodHandler: disabled.NewAntiFloodHandler(),
+			WhiteListRequest: args.WhitelistHandler,
+			CurrentPeerId:    args.Messenger.ID(),
+		},
 	)
 	if err != nil {
 		return nil, err

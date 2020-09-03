@@ -4,17 +4,23 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/shirou/gopsutil/net"
 )
 
 // NetStatistics can compute the network statistics
 type NetStatistics struct {
-	bpsSent     uint64
-	bpsRecv     uint64
-	bpsSentPeak uint64
-	bpsRecvPeak uint64
-	percentSent uint64
-	percentRecv uint64
+	bpsSent                   uint64
+	bpsRecv                   uint64
+	bpsSentPeak               uint64
+	bpsRecvPeak               uint64
+	percentSent               uint64
+	percentRecv               uint64
+	totalBytesSentInEpoch     uint64
+	totalBytesReceivedInEpoch uint64
 }
 
 // ComputeStatistics computes the current network statistics usage.
@@ -52,6 +58,9 @@ func (ns *NetStatistics) ComputeStatistics() {
 	bpsRecv := nEnd[0].BytesRecv - nStart[0].BytesRecv
 	bpsSent := nEnd[0].BytesSent - nStart[0].BytesSent
 
+	atomic.AddUint64(&ns.totalBytesSentInEpoch, bpsSent)
+	atomic.AddUint64(&ns.totalBytesReceivedInEpoch, bpsRecv)
+
 	atomic.StoreUint64(&ns.bpsRecv, bpsRecv)
 	atomic.StoreUint64(&ns.bpsSent, bpsSent)
 
@@ -80,6 +89,16 @@ func (ns *NetStatistics) ComputeStatistics() {
 	atomic.StoreUint64(&ns.percentSent, sentPercent)
 
 	time.Sleep(durationSecond)
+}
+
+// EpochStartEventHandler -
+func (ns *NetStatistics) EpochStartEventHandler() epochStart.ActionHandler {
+	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+		atomic.StoreUint64(&ns.totalBytesSentInEpoch, 0)
+		atomic.StoreUint64(&ns.totalBytesReceivedInEpoch, 0)
+	}, func(_ data.HeaderHandler) {}, core.NetStatisticsOrder)
+
+	return subscribeHandler
 }
 
 func (ns *NetStatistics) setZeroStatsAndWait() {
@@ -118,4 +137,14 @@ func (ns *NetStatistics) PercentSent() uint64 {
 // PercentRecv BpsRecv / BpsRecvPeak * 100
 func (ns *NetStatistics) PercentRecv() uint64 {
 	return atomic.LoadUint64(&ns.percentRecv)
+}
+
+// TotalBytesSentInCurrentEpoch returns the number of bytes sent in current epoch
+func (ns *NetStatistics) TotalBytesSentInCurrentEpoch() uint64 {
+	return atomic.LoadUint64(&ns.totalBytesSentInEpoch)
+}
+
+// TotalBytesReceivedInCurrentEpoch returns the number of bytes received in current epoch
+func (ns *NetStatistics) TotalBytesReceivedInCurrentEpoch() uint64 {
+	return atomic.LoadUint64(&ns.totalBytesReceivedInEpoch)
 }

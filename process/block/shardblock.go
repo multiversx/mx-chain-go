@@ -51,33 +51,34 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	genesisHdr := arguments.BlockChain.GetGenesisHeader()
 	base := &baseProcessor{
-		accountsDB:             arguments.AccountsDB,
-		blockSizeThrottler:     arguments.BlockSizeThrottler,
-		forkDetector:           arguments.ForkDetector,
-		hasher:                 arguments.Hasher,
-		marshalizer:            arguments.Marshalizer,
-		store:                  arguments.Store,
-		shardCoordinator:       arguments.ShardCoordinator,
-		nodesCoordinator:       arguments.NodesCoordinator,
-		uint64Converter:        arguments.Uint64Converter,
-		requestHandler:         arguments.RequestHandler,
-		appStatusHandler:       statusHandler.NewNilStatusHandler(),
-		blockChainHook:         arguments.BlockChainHook,
-		txCoordinator:          arguments.TxCoordinator,
-		rounder:                arguments.Rounder,
-		epochStartTrigger:      arguments.EpochStartTrigger,
-		headerValidator:        arguments.HeaderValidator,
-		bootStorer:             arguments.BootStorer,
-		blockTracker:           arguments.BlockTracker,
-		dataPool:               arguments.DataPool,
-		stateCheckpointModulus: arguments.StateCheckpointModulus,
-		blockChain:             arguments.BlockChain,
-		feeHandler:             arguments.FeeHandler,
-		indexer:                arguments.Indexer,
-		tpsBenchmark:           arguments.TpsBenchmark,
-		genesisNonce:           genesisHdr.GetNonce(),
-		version:                core.TrimSoftwareVersion(arguments.Version),
-		historyRepo:            arguments.HistoryRepository,
+		accountsDB:              arguments.AccountsDB,
+		blockSizeThrottler:      arguments.BlockSizeThrottler,
+		forkDetector:            arguments.ForkDetector,
+		hasher:                  arguments.Hasher,
+		marshalizer:             arguments.Marshalizer,
+		store:                   arguments.Store,
+		shardCoordinator:        arguments.ShardCoordinator,
+		nodesCoordinator:        arguments.NodesCoordinator,
+		uint64Converter:         arguments.Uint64Converter,
+		requestHandler:          arguments.RequestHandler,
+		appStatusHandler:        statusHandler.NewNilStatusHandler(),
+		blockChainHook:          arguments.BlockChainHook,
+		txCoordinator:           arguments.TxCoordinator,
+		rounder:                 arguments.Rounder,
+		epochStartTrigger:       arguments.EpochStartTrigger,
+		headerValidator:         arguments.HeaderValidator,
+		bootStorer:              arguments.BootStorer,
+		blockTracker:            arguments.BlockTracker,
+		dataPool:                arguments.DataPool,
+		stateCheckpointModulus:  arguments.StateCheckpointModulus,
+		blockChain:              arguments.BlockChain,
+		feeHandler:              arguments.FeeHandler,
+		indexer:                 arguments.Indexer,
+		tpsBenchmark:            arguments.TpsBenchmark,
+		genesisNonce:            genesisHdr.GetNonce(),
+		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
+		historyRepo:             arguments.HistoryRepository,
+		epochNotifier:           arguments.EpochNotifier,
 	}
 
 	sp := shardProcessor{
@@ -126,6 +127,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	sp.epochNotifier.CheckEpoch(headerHandler.GetEpoch())
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
 	log.Debug("started processing block",
@@ -693,7 +695,9 @@ func (sp *shardProcessor) CreateBlock(
 	}
 
 	shardHdr.SetEpoch(sp.epochStartTrigger.MetaEpoch())
+	sp.epochNotifier.CheckEpoch(shardHdr.GetEpoch())
 	sp.blockChainHook.SetCurrentHeader(shardHdr)
+	shardHdr.SoftwareVersion = []byte(sp.headerIntegrityVerifier.GetVersion(shardHdr.Epoch))
 	body, err := sp.createBlockBody(shardHdr, haveTime)
 	if err != nil {
 		return nil, nil, err
@@ -796,7 +800,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	sp.saveBody(body)
+	sp.saveBody(body, header)
 
 	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
@@ -864,7 +868,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
-	sp.saveHistoryData(headerHash, headerHandler, bodyHandler)
+	go sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
@@ -1133,7 +1137,6 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) data.Heade
 		Round:           round,
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
-		SoftwareVersion: []byte(sp.version),
 	}
 
 	return header
@@ -1672,6 +1675,12 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool) (*block.Body, e
 
 	if sp.blockTracker.IsShardStuck(core.MetachainShardId) {
 		log.Warn("shardProcessor.createMiniBlocks", "error", process.ErrShardIsStuck, "shard", core.MetachainShardId)
+
+		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
+		if len(interMBs) > 0 {
+			miniBlocks = append(miniBlocks, interMBs...)
+		}
+
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 

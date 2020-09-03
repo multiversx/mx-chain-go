@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
@@ -49,6 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	txProc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -72,6 +74,8 @@ var P2pBootstrapDelay = 5 * time.Second
 
 // InitialRating is used to initiate a node's info
 var InitialRating = uint32(50)
+
+var AdditionalGasLimit = uint64(999000)
 
 var log = logger.GetOrCreate("integrationtests")
 
@@ -335,6 +339,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -585,6 +590,12 @@ func CreateFullGenesisBlocks(
 				return false
 			},
 		},
+		GeneralConfig: &config.GeneralSettingsConfig{
+			BuiltInFunctionsEnableEpoch:    0,
+			SCDeployEnableEpoch:            0,
+			RelayedTransactionsEnableEpoch: 0,
+			PenalizedTooMuchGasEnableEpoch: 0,
+		},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -663,6 +674,12 @@ func CreateGenesisMetaBlock(
 		BlockSignKeyGen:    &mock.KeyGenMock{},
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:   big.NewInt(1000),
+		GeneralConfig: &config.GeneralSettingsConfig{
+			BuiltInFunctionsEnableEpoch:    0,
+			SCDeployEnableEpoch:            0,
+			RelayedTransactionsEnableEpoch: 0,
+			PenalizedTooMuchGasEnableEpoch: 0,
+		},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -847,18 +864,18 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
 				return nil
 			},
-			ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 				fee := big.NewInt(0).SetUint64(tx.GetGasLimit())
 				fee.Mul(fee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
 
 				return fee
 			},
 		},
-		ReceiptForwarder:  &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:        smartContract.NewArgumentParser(),
-		ScrForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		DisabledRelayedTx: false,
+		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:       smartContract.NewArgumentParser(),
+		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 
@@ -1099,6 +1116,23 @@ func extractUint64ValueFromTxHandler(txHandler data.TransactionHandler) uint64 {
 	return binary.BigEndian.Uint64(buff)
 }
 
+// CreateHeaderIntegrityVerifier outputs a valid header integrity verifier handler
+func CreateHeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	headerVersioning, _ := headerCheck.NewHeaderIntegrityVerifier(
+		ChainID,
+		[]config.VersionByEpochs{
+			{
+				StartEpoch: 0,
+				Version:    "*",
+			},
+		},
+		"default",
+		testscommon.NewCacherMock(),
+	)
+
+	return headerVersioning
+}
+
 // CreateNodes creates multiple nodes in different shards
 func CreateNodes(
 	numOfShards int,
@@ -1300,6 +1334,7 @@ func CreateAndSendTransaction(
 	txValue *big.Int,
 	rcvAddress []byte,
 	txData string,
+	additionalGasLimit uint64,
 ) {
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
@@ -1308,7 +1343,7 @@ func CreateAndSendTransaction(
 		RcvAddr:  rcvAddress,
 		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit*1000 + uint64(len(txData)),
+		GasLimit: MinTxGasLimit + uint64(len(txData)) + additionalGasLimit,
 		ChainID:  ChainID,
 		Version:  MinTransactionVersion,
 	}

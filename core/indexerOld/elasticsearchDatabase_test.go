@@ -30,29 +30,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestElasticSearchDatabase(elasticsearchWriter databaseClientHandler, arguments elasticSearchDatabaseArgs) *elasticSearchDatabase {
+func newTestElasticSearchDatabase(elasticsearchWriter databaseClientHandler, arguments ElasticSearchDatabaseArgs) *elasticSearchDatabase {
 	return &elasticSearchDatabase{
 		txDatabaseProcessor: newTxDatabaseProcessor(
-			arguments.hasher,
-			arguments.marshalizer,
-			arguments.addressPubkeyConverter,
-			arguments.validatorPubkeyConverter,
+			arguments.Hasher,
+			arguments.Marshalizer,
+			arguments.AddressPubkeyConverter,
+			arguments.ValidatorPubkeyConverter,
 		),
 		dbClient:    elasticsearchWriter,
-		marshalizer: arguments.marshalizer,
-		hasher:      arguments.hasher,
+		marshalizer: arguments.Marshalizer,
+		hasher:      arguments.Hasher,
 	}
 }
 
-func createMockElasticsearchDatabaseArgs() elasticSearchDatabaseArgs {
-	return elasticSearchDatabaseArgs{
-		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
-		validatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
-		url:                      "url",
-		userName:                 "username",
-		password:                 "password",
-		hasher:                   &mock.HasherMock{},
-		marshalizer:              &mock.MarshalizerMock{},
+func createMockElasticsearchDatabaseArgs() ElasticSearchDatabaseArgs {
+	return ElasticSearchDatabaseArgs{
+		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
+		Url:                      "Url",
+		UserName:                 "username",
+		Password:                 "Password",
+		Hasher:                   &mock.HasherMock{},
+		Marshalizer:              &mock.MarshalizerMock{},
 	}
 }
 
@@ -113,9 +113,9 @@ func TestNewElasticSearchDatabase_IndexesError(t *testing.T) {
 		}))
 
 		arguments := createMockElasticsearchDatabaseArgs()
-		arguments.url = ts.URL
+		arguments.Url = ts.URL
 
-		elasticDatabase, err := newElasticSearchDatabase(arguments)
+		elasticDatabase, err := NewElasticSearchDatabase(arguments)
 		require.Nil(t, elasticDatabase)
 		require.Equal(t, ErrCannotCreateIndex, err)
 	}
@@ -160,7 +160,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 
 	arguments := createMockElasticsearchDatabaseArgs()
 
-	mbHash, _ := core.CalculateHash(arguments.marshalizer, arguments.hasher, miniBlock)
+	mbHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, miniBlock)
 	hexEncodedHash := hex.EncodeToString(mbHash)
 
 	dbWriter := &mock.DatabaseWriterStub{
@@ -345,15 +345,15 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 func TestUpdateMiniBlock(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := elasticSearchDatabaseArgs{
-		url:         "http://localhost:9200",
-		userName:    "basic_auth_username",
-		password:    "basic_auth_password",
-		marshalizer: &mock.MarshalizerMock{},
-		hasher:      &mock.HasherMock{},
+	args := ElasticSearchDatabaseArgs{
+		Url:         "http://localhost:9200",
+		UserName:    "basic_auth_username",
+		Password:    "basic_auth_password",
+		Marshalizer: &mock.MarshalizerMock{},
+		Hasher:      &mock.HasherMock{},
 	}
 
-	esDatabase, _ := newElasticSearchDatabase(args)
+	esDatabase, _ := NewElasticSearchDatabase(args)
 
 	header1 := &dataBlock.Header{
 		ShardID: 0,
@@ -378,16 +378,16 @@ func TestUpdateMiniBlock(t *testing.T) {
 func TestSaveRoundsInfo(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := elasticSearchDatabaseArgs{
-		url:                    "http://localhost:9200",
-		userName:               "basic_auth_username",
-		password:               "basic_auth_password",
-		marshalizer:            &mock.MarshalizerMock{},
-		hasher:                 &mock.HasherMock{},
-		addressPubkeyConverter: &mock.PubkeyConverterMock{},
+	args := ElasticSearchDatabaseArgs{
+		Url:                    "http://localhost:9200",
+		UserName:               "basic_auth_username",
+		Password:               "basic_auth_password",
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &mock.HasherMock{},
+		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
 	}
 
-	esDatabase, _ := newElasticSearchDatabase(args)
+	esDatabase, _ := NewElasticSearchDatabase(args)
 
 	roundInfo1 := RoundInfo{
 		Index: 1, ShardId: 0, BlockWasProposed: true,
@@ -405,16 +405,16 @@ func TestSaveRoundsInfo(t *testing.T) {
 func TestUpdateTransaction(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := elasticSearchDatabaseArgs{
-		url:                    "http://localhost:9200",
-		userName:               "basic_auth_username",
-		password:               "basic_auth_password",
-		marshalizer:            &mock.MarshalizerMock{},
-		hasher:                 &mock.HasherMock{},
-		addressPubkeyConverter: &mock.PubkeyConverterMock{},
+	args := ElasticSearchDatabaseArgs{
+		Url:                    "http://localhost:9200",
+		UserName:               "basic_auth_username",
+		Password:               "basic_auth_password",
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &mock.HasherMock{},
+		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
 	}
 
-	esDatabase, _ := newElasticSearchDatabase(args)
+	esDatabase, _ := NewElasticSearchDatabase(args)
 
 	txHash1 := []byte("txHash1")
 	tx1 := &transaction.Transaction{
@@ -513,16 +513,16 @@ func TestUpdateTransaction(t *testing.T) {
 func TestGetMultiple(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := elasticSearchDatabaseArgs{
-		url:                    "https://elastic-aws.elrond.com",
-		userName:               "basic_auth_username",
-		password:               "basic_auth_password",
-		marshalizer:            &mock.MarshalizerMock{},
-		hasher:                 &mock.HasherMock{},
-		addressPubkeyConverter: &mock.PubkeyConverterMock{},
+	args := ElasticSearchDatabaseArgs{
+		Url:                    "https://elastic-aws.elrond.com",
+		UserName:               "basic_auth_username",
+		Password:               "basic_auth_password",
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &mock.HasherMock{},
+		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
 	}
 
-	esDatabase, _ := newElasticSearchDatabase(args)
+	esDatabase, _ := NewElasticSearchDatabase(args)
 
 	hashes := []string{
 		"57cf251084cd7f79563207c52f938359eebdaf27f91fef1335a076f5dc4873351",
@@ -536,16 +536,16 @@ func TestGetMultiple(t *testing.T) {
 func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := elasticSearchDatabaseArgs{
-		url:                    "http://localhost:9200",
-		userName:               "basic_auth_username",
-		password:               "basic_auth_password",
-		marshalizer:            &mock.MarshalizerMock{},
-		hasher:                 &mock.HasherMock{},
-		addressPubkeyConverter: &mock.PubkeyConverterMock{},
+	args := ElasticSearchDatabaseArgs{
+		Url:                    "http://localhost:9200",
+		UserName:               "basic_auth_username",
+		Password:               "basic_auth_password",
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &mock.HasherMock{},
+		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
 	}
 
-	esDatabase, _ := newElasticSearchDatabase(args)
+	esDatabase, _ := NewElasticSearchDatabase(args)
 
 	txHash1 := []byte("txHash1")
 	tx1 := &transaction.Transaction{
@@ -591,16 +591,16 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 func TestDoBulkRequestLimit(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := elasticSearchDatabaseArgs{
-		url:                    "http://localhost:9200",
-		userName:               "basic_auth_username",
-		password:               "basic_auth_password",
-		marshalizer:            &mock.MarshalizerMock{},
-		hasher:                 &mock.HasherMock{},
-		addressPubkeyConverter: &mock.PubkeyConverterMock{},
+	args := ElasticSearchDatabaseArgs{
+		Url:                    "http://localhost:9200",
+		UserName:               "basic_auth_username",
+		Password:               "basic_auth_password",
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &mock.HasherMock{},
+		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
 	}
 
-	esDatabase, _ := newElasticSearchDatabase(args)
+	esDatabase, _ := NewElasticSearchDatabase(args)
 
 	//Generate transaction and hashes
 	numTransactions := 1

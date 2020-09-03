@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -169,4 +170,109 @@ func TestPrepareTxLog(t *testing.T) {
 
 	dbTxLog := txDbProc.prepareTxLog(txLog)
 	assert.Equal(t, expectedTxLog, dbTxLog)
+}
+
+func TestRelayedTransactions(t *testing.T) {
+	t.Parallel()
+
+	txHash1 := []byte("txHash1")
+	tx1 := &transaction.Transaction{
+		GasLimit: 100,
+		GasPrice: 100,
+		Data:     []byte("relayedTx@blablabllablalba"),
+	}
+
+	scHash1 := []byte("scHash1")
+	scResult1 := &smartContractResult.SmartContractResult{
+		OriginalTxHash: txHash1,
+		PrevTxHash:     txHash1,
+		GasLimit:       1,
+	}
+	scHash2 := []byte("scHash2")
+	scResult2 := &smartContractResult.SmartContractResult{
+		OriginalTxHash: txHash1,
+		PrevTxHash:     txHash1,
+		GasLimit:       1,
+	}
+	scHash3 := []byte("scHash3")
+	scResult3 := &smartContractResult.SmartContractResult{
+		OriginalTxHash: scHash1,
+		Data:           []byte("@" + "6F6B"),
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes: [][]byte{txHash1},
+				Type:     block.TxBlock,
+			},
+			{
+				TxHashes: [][]byte{scHash1, scHash2, scHash3},
+				Type:     block.SmartContractResultBlock,
+			},
+		},
+	}
+
+	header := &block.Header{}
+	txPool := map[string]data.TransactionHandler{
+		string(txHash1): tx1,
+		string(scHash1): scResult1,
+		string(scHash2): scResult2,
+		string(scHash3): scResult3,
+	}
+
+	txDbProc := newTxDatabaseProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.PubkeyConverterMock{},
+		&mock.PubkeyConverterMock{},
+	)
+
+	transactions := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	assert.Equal(t, 1, len(transactions))
+	assert.Equal(t, 3, len(transactions[0].SmartContractResults))
+	assert.Equal(t, txStatusSuccess, transactions[0].Status)
+}
+
+func TestSetTransactionSearchOrder(t *testing.T) {
+	t.Parallel()
+	txHash1 := []byte("txHash1")
+	tx1 := &Transaction{}
+
+	txHash2 := []byte("txHash2")
+	tx2 := &Transaction{}
+
+	txPool := map[string]*Transaction {
+		string(txHash1): tx1,
+		string(txHash2): tx2,
+	}
+
+	txDbProc := newTxDatabaseProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.PubkeyConverterMock{},
+		&mock.PubkeyConverterMock{},
+	)
+
+	transactions := txDbProc.setTransactionSearchOrder(txPool, 0)
+	assert.True(t, txPoolHasSearchOrder(transactions, 20))
+	assert.True(t, txPoolHasSearchOrder(transactions, 21))
+
+	transactions = txDbProc.setTransactionSearchOrder(txPool, 1)
+	assert.True(t, txPoolHasSearchOrder(transactions, 30))
+	assert.True(t, txPoolHasSearchOrder(transactions, 31))
+
+	transactions = txDbProc.setTransactionSearchOrder(txPool, core.MetachainShardId)
+	assert.True(t, txPoolHasSearchOrder(transactions, 10))
+	assert.True(t, txPoolHasSearchOrder(transactions, 11))
+}
+
+func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bool {
+	for _, tx := range txPool {
+		if tx.SearchOrder == searchOrder {
+			return true
+		}
+	}
+
+	return false
 }

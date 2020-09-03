@@ -34,6 +34,7 @@ func TestMemoryConfig(t *testing.T) {
 	plannedMemory += nodeConfig.MetaHdrNonceHashStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.AccountsTrieStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.PeerAccountsTrieStorage.Cache.SizeInBytes
+	plannedMemory += nodeConfig.ReceiptsStorage.Cache.SizeInBytes
 	plannedMemory += nodeConfig.BadBlocksCache.SizeInBytes
 	plannedMemory += nodeConfig.PeerBlockBodyDataPool.SizeInBytes
 	plannedMemory += nodeConfig.TxDataPool.SizeInBytes

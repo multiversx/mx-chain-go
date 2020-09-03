@@ -30,10 +30,10 @@ type commonProcessor struct {
 
 func checkDataIndexerParams(arguments DataIndexerArgs) error {
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return fmt.Errorf("%w when setting addressPubkeyConverter in indexer", ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", ErrNilPubkeyConverter)
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return fmt.Errorf("%w when setting validatorPubkeyConverter in indexer", ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", ErrNilPubkeyConverter)
 	}
 	if arguments.Url == "" {
 		return core.ErrNilUrl
@@ -173,57 +173,30 @@ func (cm *commonProcessor) buildRewardTransaction(
 	}
 }
 
-func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.SmartContractResult) ScResult {
-	decodedData := decodeScResultData(sc.Data)
+func (cm *commonProcessor) convertScResultInDatabaseScr(scHash string, sc *smartContractResult.SmartContractResult) ScResult {
+	relayerAddr := ""
+	if len(sc.RelayerAddr) > 0 {
+		relayerAddr = cm.addressPubkeyConverter.Encode(sc.RelayerAddr)
+	}
+
 	return ScResult{
-		Nonce:         sc.Nonce,
-		GasLimit:      sc.GasLimit,
-		GasPrice:      sc.GasPrice,
-		Value:         sc.Value.String(),
-		Sender:        cm.addressPubkeyConverter.Encode(sc.SndAddr),
-		Receiver:      cm.addressPubkeyConverter.Encode(sc.RcvAddr),
-		Code:          string(sc.Code),
-		Data:          decodedData,
-		PreTxHash:     hex.EncodeToString(sc.PrevTxHash),
-		CallType:      strconv.Itoa(int(sc.CallType)),
-		CodeMetadata:  sc.CodeMetadata,
-		ReturnMessage: string(sc.ReturnMessage),
+		Hash:           hex.EncodeToString([]byte(scHash)),
+		Nonce:          sc.Nonce,
+		GasLimit:       sc.GasLimit,
+		GasPrice:       sc.GasPrice,
+		Value:          sc.Value.String(),
+		Sender:         cm.addressPubkeyConverter.Encode(sc.SndAddr),
+		Receiver:       cm.addressPubkeyConverter.Encode(sc.RcvAddr),
+		RelayerAddr:    relayerAddr,
+		RelayedValue:   sc.RelayedValue.String(),
+		Code:           string(sc.Code),
+		Data:           sc.Data,
+		PreTxHash:      hex.EncodeToString(sc.PrevTxHash),
+		OriginalTxHash: hex.EncodeToString(sc.OriginalTxHash),
+		CallType:       strconv.Itoa(int(sc.CallType)),
+		CodeMetadata:   sc.CodeMetadata,
+		ReturnMessage:  string(sc.ReturnMessage),
 	}
-}
-
-func decodeScResultData(scrData []byte) []byte {
-	encodedData := strings.Split(string(scrData), "@")
-	encodedData = append([]string(nil), encodedData[1:]...)
-
-	decodedData := ""
-	for i, enc := range encodedData {
-		if !canInterpretAsString([]byte(enc)) {
-			continue
-		}
-		if i > 0 {
-			decodedData += "@" + enc
-			continue
-		}
-
-		val, _ := hex.DecodeString(enc)
-		if len(val) > 0 {
-			decodedData += "@" + string(val)
-		}
-	}
-
-	return []byte(decodedData)
-}
-
-func canInterpretAsString(bytes []byte) bool {
-	if len(bytes) == 0 {
-		return false
-	}
-	for _, b := range bytes {
-		if b < 32 || b > 126 {
-			return false
-		}
-	}
-	return true
 }
 
 func serializeBulkMiniBlocks(

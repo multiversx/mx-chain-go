@@ -105,7 +105,6 @@ func (s *suiteEd25519) CheckPointValid(pointBytes []byte) error {
 	return nil
 }
 
-
 // RandomStream returns nothing - TODO: Remove this
 func (s *suiteEd25519) RandomStream() cipher.Stream {
 	log.Debug("suiteEd25519",

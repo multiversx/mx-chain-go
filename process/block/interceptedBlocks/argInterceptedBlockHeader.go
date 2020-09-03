@@ -14,7 +14,7 @@ type ArgInterceptedBlockHeader struct {
 	Hasher                  hashing.Hasher
 	ShardCoordinator        sharding.Coordinator
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
+	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
 }

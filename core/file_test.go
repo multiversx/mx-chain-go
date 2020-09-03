@@ -257,17 +257,20 @@ func TestSaveSkToPemFile_ShouldPass(t *testing.T) {
 func TestCreateFile(t *testing.T) {
 	t.Parallel()
 
-	prefix := "prefix"
-	dirName := "subdir"
-	extension := "extension"
-	file, err := core.CreateFile(prefix, dirName, extension)
+	arg := core.ArgCreateFileArgument{
+		Directory:     "subdir",
+		Prefix:        "prefix",
+		FileExtension: "extension",
+	}
+
+	file, err := core.CreateFile(arg)
 	assert.Nil(t, err)
 	assert.NotNil(t, file)
 
-	assert.True(t, strings.Contains(file.Name(), prefix))
-	assert.True(t, strings.Contains(file.Name(), extension))
+	assert.True(t, strings.Contains(file.Name(), arg.Prefix))
+	assert.True(t, strings.Contains(file.Name(), arg.FileExtension))
 	if _, errF := os.Stat(file.Name()); errF == nil {
 		_ = os.Remove(file.Name())
-		_ = os.Remove(dirName)
+		_ = os.Remove(arg.Directory)
 	}
 }

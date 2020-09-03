@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"bytes"
 	"math"
 	"math/big"
 	"sync"
@@ -258,6 +259,90 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestSCQueryService_ExecuteQueryShouldNotIncludeCallerAddressAndValue(t *testing.T) {
+	t.Parallel()
+
+	callerAddressAndCallValueAreNotSet := false
+	mockVM := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+			if input.CallValue.Cmp(big.NewInt(0)) == 0 && bytes.Equal(input.CallerAddr, input.RecipientAddr) {
+				callerAddressAndCallValueAreNotSet = true
+			}
+			return &vmcommon.VMOutput{
+				ReturnCode: vmcommon.Ok,
+				ReturnData: [][]byte{[]byte("ok")},
+			}, nil
+		},
+	}
+
+	target, _ := NewSCQueryService(
+		&mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
+			},
+		},
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		},
+	)
+
+	query := process.SCQuery{
+		ScAddress: []byte(DummyScAddress),
+		FuncName:  "function",
+		Arguments: [][]byte{},
+	}
+
+	_, err := target.ExecuteQuery(&query)
+	require.NoError(t, err)
+	require.True(t, callerAddressAndCallValueAreNotSet)
+}
+
+func TestSCQueryService_ExecuteQueryShouldIncludeCallerAddressAndValue(t *testing.T) {
+	t.Parallel()
+
+	expectedCallerAddr := []byte("caller addr")
+	expectedValue := big.NewInt(37)
+	callerAddressAndCallValueAreSet := false
+	mockVM := &mock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+			if input.CallValue.Cmp(expectedValue) == 0 && bytes.Equal(input.CallerAddr, expectedCallerAddr) {
+				callerAddressAndCallValueAreSet = true
+			}
+			return &vmcommon.VMOutput{
+				ReturnCode: vmcommon.Ok,
+				ReturnData: [][]byte{[]byte("ok")},
+			}, nil
+		},
+	}
+
+	target, _ := NewSCQueryService(
+		&mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
+			},
+		},
+		&mock.FeeHandlerStub{
+			MaxGasLimitPerBlockCalled: func() uint64 {
+				return uint64(math.MaxUint64)
+			},
+		},
+	)
+
+	query := process.SCQuery{
+		ScAddress:  []byte(DummyScAddress),
+		FuncName:   "function",
+		CallerAddr: expectedCallerAddr,
+		CallValue:  expectedValue,
+		Arguments:  [][]byte{},
+	}
+
+	_, err := target.ExecuteQuery(&query)
+	require.NoError(t, err)
+	require.True(t, callerAddressAndCallValueAreSet)
 }
 
 func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
