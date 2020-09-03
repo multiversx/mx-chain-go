@@ -500,3 +500,74 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
 	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
 }
+
+func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t *testing.T) {
+	args := createMockHistoryRepoArgs(42)
+	args.SelfShardID = 14
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
+
+	miniblock := &block.MiniBlock{
+		SenderShardID:   14,
+		ReceiverShardID: 14,
+		TxHashes:        [][]byte{[]byte("txA")},
+	}
+	miniblockHash, _ := repo.computeMiniblockHash(miniblock)
+
+	metablock := &block.MetaBlock{
+		Nonce: 4001,
+		ShardInfo: []block.ShardData{
+			{
+				ShardID: 14,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						SenderShardID:   14,
+						ReceiverShardID: 14,
+						Hash:            miniblockHash,
+					},
+				},
+			},
+		},
+	}
+
+	repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		// Simulate commit & rollback
+		for i := 0; i < 500; i++ {
+			repo.RecordBlock([]byte("fooBlock"),
+				&block.Header{Epoch: 42, Round: 4321},
+				&block.Body{
+					MiniBlocks: []*block.MiniBlock{
+						miniblock,
+					},
+				},
+			)
+		}
+
+		wg.Done()
+	}()
+
+	go func() {
+		// Receive less notifications (to test more aggressively)
+		for i := 0; i < 50; i++ {
+			repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
+		}
+
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	require.Nil(t, err)
+	require.Equal(t, 42, int(metadata.Epoch))
+	require.Equal(t, 4321, int(metadata.Round))
+	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
+	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
+}
