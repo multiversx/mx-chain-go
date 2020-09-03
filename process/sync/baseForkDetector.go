@@ -721,7 +721,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		"final check point nonce", bfd.finalCheckpoint().nonce)
 }
 
-// SetFinalToLastCheckpoint sets the final checkpoint to the last check point added in list
+// SetFinalToLastCheckpoint sets the final checkpoint to the last checkpoint added in list
 func (bfd *baseForkDetector) SetFinalToLastCheckpoint() {
 	bfd.setFinalCheckpoint(bfd.lastCheckpoint())
 }
