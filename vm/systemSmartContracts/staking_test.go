@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"math/big"
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -1191,6 +1192,12 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	assert.Equal(t, []byte("w_firsstKey"), waitingList.FirstKey)
 	assert.Equal(t, []byte("w_fifthhKey"), waitingList.LastKey)
 
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("sixthhKey"))
+	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("firsstKey"), vmcommon.Ok, 1)
+	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("secondKey"), vmcommon.Ok, 2)
+	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("fifthhKey"), vmcommon.Ok, 3)
+	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("sixthhKey"), vmcommon.Ok, 4)
+
 	stakingSmartContract.unBondPeriod = 0
 	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
 	waitingList, _ = stakingSmartContract.getWaitingListHead()
@@ -1199,6 +1206,19 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
 	waitingList, _ = stakingSmartContract.getWaitingListHead()
 	assert.Equal(t, 0, len(waitingList.LastJailedKey))
+}
+
+func doGetWaitingListIndex(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, expectedCode vmcommon.ReturnCode, expectedIndex int) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getWaitingListIndex"
+	arguments.CallerAddr = sc.stakeAccessAddr
+	arguments.Arguments = [][]byte{blsKey}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, expectedCode, retCode)
+
+	lastOutput := eei.output[len(eei.output)-1]
+	assert.True(t, bytes.Equal(lastOutput, []byte(strconv.Itoa(expectedIndex))))
 }
 
 func doUnJail(t *testing.T, sc *stakingSC, callerAddr, addrToUnJail []byte, withStake []byte, expectedCode vmcommon.ReturnCode) {
