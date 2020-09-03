@@ -718,7 +718,7 @@ func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic
 
 func (netMes *networkMessenger) checkSendableData(buff []byte) error {
 	if len(buff) > maxSendBuffSize {
-		return p2p.ErrMessageTooLarge
+		return fmt.Errorf("%w, to be sent: %d, maximum: %d", p2p.ErrMessageTooLarge, len(buff), maxSendBuffSize)
 	}
 	if len(buff) == 0 {
 		return p2p.ErrEmptyBufferToSend
