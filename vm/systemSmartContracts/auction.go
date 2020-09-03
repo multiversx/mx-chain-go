@@ -144,6 +144,8 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 	//	return s.changeValidatorKeys(args)
 	case "unJail":
 		return s.unJail(args)
+	case "getTotalStaked":
+		return s.getTotalStaked(args)
 	}
 
 	s.eei.AddReturnMessage("invalid method to call")
@@ -1271,6 +1273,28 @@ func isNumArgsCorrectToStake(args [][]byte) bool {
 	areEnoughArgs := uint64(len(args)) >= 2*maxNodesToRun+1       // NumNodes + LIST(BLS_KEY+SignedMessage)
 	areNotTooManyArgs := uint64(len(args)) <= 2*maxNodesToRun+1+2 // +2 are the optionals - reward address, maxStakePerNode
 	return areEnoughArgs && areNotTooManyArgs
+}
+
+func (s *stakingAuctionSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Get)
+	if err != nil {
+		s.eei.AddReturnMessage("insufficient gas limit")
+		return vmcommon.OutOfGas
+	}
+
+	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
+	if err != nil {
+		s.eei.AddReturnMessage("cannot get or create registration data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	if len(registrationData.RewardAddress) == 0 {
+		s.eei.AddReturnMessage("caller not registered in staking/auction sc")
+		return vmcommon.UserError
+	}
+
+	s.eei.Finish([]byte(registrationData.TotalStakeValue.String()))
+	return vmcommon.Ok
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

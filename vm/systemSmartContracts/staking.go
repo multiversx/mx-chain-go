@@ -137,6 +137,14 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.switchJailedWithWaiting(args)
 	case "getWaitingListIndex":
 		return r.getWaitingListIndex(args)
+	case "getWaitingListSize":
+		return r.getWaitingListSize(args)
+	case "getRewardAddress":
+		return r.getRewardAddress(args)
+	case "getBLSKeyStatus":
+		return r.getStatus(args)
+	case "getRemainingUnBondPeriod":
+		return r.getRemainingUnbondPeriod(args)
 	}
 
 	return vmcommon.UserError
@@ -488,6 +496,9 @@ func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedData, ad
 	registrationData.Staked = true
 	registrationData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
 	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
+	registrationData.UnStakedEpoch = core.DefaultUnstakedEpoch
+	registrationData.UnStakedNonce = 0
+
 	return nil
 }
 
@@ -585,6 +596,8 @@ func (r *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) (bool, e
 	nodeData.Staked = true
 	nodeData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	nodeData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
+	nodeData.UnStakedNonce = 0
+	nodeData.UnStakedEpoch = core.DefaultUnstakedEpoch
 
 	r.addToStakedNodes()
 	return true, r.saveStakingData(elementInList.BLSPublicKey, nodeData)
@@ -1100,6 +1113,101 @@ func (r *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 
 	r.eei.AddReturnMessage("element in waiting list not found")
 	return vmcommon.UserError
+}
+
+func (r *stakingSC) getWaitingListSize(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Get)
+	if err != nil {
+		r.eei.AddReturnMessage("insufficient gas")
+		return vmcommon.OutOfGas
+	}
+
+	waitingListHead, err := r.getWaitingListHead()
+	if err != nil {
+		r.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	r.eei.Finish([]byte(strconv.Itoa(int(waitingListHead.Length))))
+	return vmcommon.Ok
+}
+
+func (r *stakingSC) getRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	stakedData, returnCode := r.getStakedDataIfExists(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	r.eei.Finish([]byte(hex.EncodeToString(stakedData.RewardAddress)))
+	return vmcommon.Ok
+}
+
+func (r *stakingSC) getStakedDataIfExists(args *vmcommon.ContractCallInput) (*StakedData, vmcommon.ReturnCode) {
+	err := r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Get)
+	if err != nil {
+		r.eei.AddReturnMessage("insufficient gas")
+		return nil, vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 1 {
+		r.eei.AddReturnMessage("number of arguments must be equal to 1")
+		return nil, vmcommon.UserError
+	}
+	stakedData, err := r.getOrCreateRegisteredData(args.Arguments[0])
+	if err != nil {
+		r.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.UserError
+	}
+	if len(stakedData.RewardAddress) == 0 {
+		r.eei.AddReturnMessage("blsKey not registered in staking sc")
+		return nil, vmcommon.UserError
+	}
+
+	return stakedData, vmcommon.Ok
+}
+
+func (r *stakingSC) getStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	stakedData, returnCode := r.getStakedDataIfExists(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if stakedData.Jailed {
+		r.eei.Finish([]byte("jailed"))
+		return vmcommon.Ok
+	}
+	if stakedData.Waiting {
+		r.eei.Finish([]byte("waiting"))
+		return vmcommon.Ok
+	}
+	if stakedData.Staked {
+		r.eei.Finish([]byte("staked"))
+		return vmcommon.Ok
+	}
+
+	r.eei.Finish([]byte("unStaked"))
+	return vmcommon.Ok
+}
+
+func (r *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	stakedData, returnCode := r.getStakedDataIfExists(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if stakedData.UnStakedNonce == 0 {
+		r.eei.AddReturnMessage("not in unbond period")
+		return vmcommon.UserError
+	}
+
+	currentNonce := r.eei.BlockChainHook().CurrentNonce()
+	passedNonce := currentNonce - stakedData.UnStakedNonce
+	if passedNonce >= r.unBondPeriod {
+		r.eei.Finish([]byte("0"))
+	} else {
+		remaining := r.unBondPeriod - passedNonce
+		r.eei.Finish([]byte(strconv.Itoa(int(remaining))))
+	}
+
+	return vmcommon.Ok
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not
