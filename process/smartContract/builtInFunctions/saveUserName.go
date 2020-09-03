@@ -12,8 +12,6 @@ import (
 
 var _ process.BuiltinFunction = (*saveUserName)(nil)
 
-const userNameHashLength = 32
-
 type saveUserName struct {
 	gasCost         uint64
 	mapDnsAddresses map[string]struct{}
@@ -60,7 +58,7 @@ func (s *saveUserName) ProcessBuiltinFunction(
 	if !ok {
 		return nil, process.ErrCallerIsNotTheDNSAddress
 	}
-	if len(vmInput.Arguments) != 1 || len(vmInput.Arguments[0]) != userNameHashLength {
+	if len(vmInput.Arguments) != 1 {
 		return nil, process.ErrInvalidArguments
 	}
 

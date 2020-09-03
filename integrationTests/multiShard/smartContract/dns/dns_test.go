@@ -28,7 +28,6 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 	}
 
 	nodes, players, idxProposers, advertiser := prepareNodesAndPlayers()
-
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
