@@ -18,14 +18,15 @@ const (
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
-	Trigger(epoch uint32) error
+	Trigger(epoch uint32, forced bool) error
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }
 
 // HarforkRequest represents the structure on which user input for triggering a hardfork will validate against
 type HarforkRequest struct {
-	Epoch uint32 `form:"epoch" json:"epoch"`
+	Epoch  uint32 `form:"epoch" json:"epoch"`
+	Forced bool   `form:"forced" json:"forced"`
 }
 
 // Routes defines node related routes
@@ -84,7 +85,7 @@ func Trigger(c *gin.Context) {
 		return
 	}
 
-	err = facade.Trigger(hr.Epoch)
+	err = facade.Trigger(hr.Epoch, hr.Forced)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

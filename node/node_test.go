@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -1893,10 +1894,12 @@ func TestNode_DirectTrigger(t *testing.T) {
 	wasCalled := false
 	epoch := uint32(47839)
 	recoveredEpoch := uint32(0)
+	recoveredForced := atomicCore.Flag{}
 	hardforkTrigger := &mock.HardforkTriggerStub{
-		TriggerCalled: func(e uint32) error {
+		TriggerCalled: func(epoch uint32, forced bool) error {
 			wasCalled = true
-			atomic.StoreUint32(&recoveredEpoch, e)
+			atomic.StoreUint32(&recoveredEpoch, epoch)
+			recoveredForced.Toggle(forced)
 
 			return nil
 		},
@@ -1905,11 +1908,12 @@ func TestNode_DirectTrigger(t *testing.T) {
 		node.WithHardforkTrigger(hardforkTrigger),
 	)
 
-	err := n.DirectTrigger(epoch)
+	err := n.DirectTrigger(epoch, true)
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, epoch, recoveredEpoch)
+	assert.True(t, recoveredForced.IsSet())
 }
 
 func TestNode_IsSelfTrigger(t *testing.T) {

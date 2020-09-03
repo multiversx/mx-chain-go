@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -510,21 +511,24 @@ func TestNodeFacade_Trigger(t *testing.T) {
 	arg := createMockArguments()
 	epoch := uint32(4638)
 	recoveredEpoch := uint32(0)
+	recoveredForced := atomicCore.Flag{}
 	arg.Node = &mock.NodeStub{
-		DirectTriggerCalled: func(e uint32) error {
+		DirectTriggerCalled: func(epoch uint32, forced bool) error {
 			wasCalled = true
-			atomic.StoreUint32(&recoveredEpoch, e)
+			atomic.StoreUint32(&recoveredEpoch, epoch)
+			recoveredForced.Toggle(forced)
 
 			return expectedErr
 		},
 	}
 	nf, _ := NewNodeFacade(arg)
 
-	err := nf.Trigger(epoch)
+	err := nf.Trigger(epoch, true)
 
 	assert.True(t, wasCalled)
 	assert.Equal(t, expectedErr, err)
 	assert.Equal(t, epoch, atomic.LoadUint32(&recoveredEpoch))
+	assert.True(t, recoveredForced.IsSet())
 }
 
 func TestNodeFacade_IsSelfTrigger(t *testing.T) {

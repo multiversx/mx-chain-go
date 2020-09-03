@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -66,6 +67,7 @@ type trigger struct {
 	closers                      []update.Closer
 	chanTriggerReceived          chan struct{}
 	importStartHandler           update.ImportStartHandler
+	isForced                     bool
 }
 
 // NewTrigger returns the trigger instance
@@ -161,18 +163,19 @@ func (t *trigger) computeTriggerStartOfEpoch(receivedTrigger uint32) bool {
 }
 
 // Trigger will start the hardfork process
-func (t *trigger) Trigger(epoch uint32) error {
+func (t *trigger) Trigger(epoch uint32, forced bool) error {
 	if !t.enabled {
 		return update.ErrTriggerNotEnabled
 	}
 
-	log.Debug("hardfork trigger", "epoch", epoch)
+	log.Debug("hardfork trigger", "epoch", epoch, "forced", forced)
+	t.isForced = forced
 
 	if epoch < minimumEpochForHarfork {
 		return fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
 
-	shouldTrigger, err := t.computeAndSetTrigger(epoch, nil) //original payload is nil because this node is the originator
+	shouldTrigger, err := t.computeAndSetTrigger(epoch, nil, forced) //original payload is nil because this node is the originator
 	if err != nil {
 		return err
 	}
@@ -189,7 +192,7 @@ func (t *trigger) Trigger(epoch uint32) error {
 
 // computeAndSetTrigger needs to do 2 things atomically: set the original payload and epoch and determine if the trigger
 // can be called
-func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte) (bool, error) {
+func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte, forced bool) (bool, error) {
 	t.mutTriggered.Lock()
 	defer t.mutTriggered.Unlock()
 
@@ -202,7 +205,12 @@ func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte) (bo
 		t.recordedTriggerMessage = originalPayload
 	}
 
-	if epoch > t.epochProvider.MetaEpoch() {
+	if forced {
+		t.epochProvider.ForceEpochStart()
+	}
+
+	shouldSetTriggerFromEpochChange := epoch > t.epochProvider.MetaEpoch()
+	if shouldSetTriggerFromEpochChange {
 		t.shouldTriggerFromEpochChange = true
 		return false, nil
 	}
@@ -288,7 +296,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		return true, update.ErrTriggerPubKeyMismatch
 	}
 
-	if len(arguments) != 2 {
+	if len(arguments) < 2 {
 		return true, update.ErrIncorrectHardforkMessage
 	}
 
@@ -310,12 +318,17 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		return true, fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
 
+	forced := false
+	if len(arguments) == 3 {
+		forced = t.getBoolFromArgument(string(arguments[2]))
+	}
+
 	currentEpoch := int64(t.epochProvider.MetaEpoch())
 	if currentEpoch-epoch > epochGracePeriod {
 		return true, fmt.Errorf("%w epoch out of grace period", update.ErrIncorrectHardforkMessage)
 	}
 
-	shouldTrigger, err := t.computeAndSetTrigger(uint32(epoch), originalPayload)
+	shouldTrigger, err := t.computeAndSetTrigger(uint32(epoch), originalPayload, forced)
 	if err != nil {
 		log.Debug("received trigger", "status", err)
 		return true, nil
@@ -354,6 +367,11 @@ func (t *trigger) getIntFromArgument(value string) (int64, error) {
 	return n, nil
 }
 
+func (t *trigger) getBoolFromArgument(value string) bool {
+	upperTrue := strings.ToUpper(fmt.Sprintf("%v", true))
+	return strings.ToUpper(value) == upperTrue
+}
+
 // IsSelfTrigger returns true if self public key is the trigger public key set in the configs
 func (t *trigger) IsSelfTrigger() bool {
 	return t.isTriggerSelf
@@ -372,7 +390,8 @@ func (t *trigger) CreateData() []byte {
 	t.mutTriggered.RLock()
 	payload := hardforkTriggerString +
 		dataSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", t.getTimestampHandler()))) +
-		dataSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", t.epoch)))
+		dataSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", t.epoch))) +
+		dataSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%v", t.isForced)))
 	t.mutTriggered.RUnlock()
 
 	return []byte(payload)

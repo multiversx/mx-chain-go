@@ -1068,8 +1068,8 @@ func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[str
 }
 
 // DirectTrigger will start the hardfork trigger
-func (n *Node) DirectTrigger(epoch uint32) error {
-	return n.hardforkTrigger.Trigger(epoch)
+func (n *Node) DirectTrigger(epoch uint32, forced bool) error {
+	return n.hardforkTrigger.Trigger(epoch, forced)
 }
 
 // IsSelfTrigger returns true if the trigger's registered public key matches the self public key
