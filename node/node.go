@@ -13,8 +13,6 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
@@ -244,30 +242,6 @@ func (n *Node) castAccountToUserAccount(ah state.AccountHandler) (state.UserAcco
 
 	account, ok := ah.(state.UserAccountHandler)
 	return account, ok
-}
-
-// createChronologyHandler method creates a chronology object
-func (n *Node) createChronologyHandler(
-	rounder consensus.Rounder,
-	appStatusHandler core.AppStatusHandler,
-	watchdog core.WatchdogTimer,
-) (consensus.ChronologyHandler, error) {
-	chr, err := chronology.NewChronology(
-		n.genesisTime,
-		rounder,
-		n.coreComponents.SyncTimer(),
-		watchdog,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = chr.SetAppStatusHandler(appStatusHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	return chr, nil
 }
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes

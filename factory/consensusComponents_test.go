@@ -98,7 +98,7 @@ func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 }
 
 //------------ Test Old Use Cases --------------------
-func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
+func TestNewConsensusComponentsFactory_Create_GenesisBlockNotInitializedShouldErr(t *testing.T) {
 	t.Parallel()
 
 	consensusArgs := getConsensusArgs()
@@ -121,13 +121,15 @@ func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
 	require.True(t, strings.Contains(err.Error(), errorsErd.ErrGenesisBlockNotInitialized.Error()))
 }
 
-//func TestNode_ConsensusTopicNilShardCoordinator(t *testing.T) {
+//func TestNewConsensusComponentsFactory_CreateConsensusTopicNilShardCoordinator(t *testing.T) {
 //	t.Parallel()
 //
-//	messageProc := &mock.HeaderResolverStub{}
-//	n, _ := node.NewNode()
+//	consensusArgs := getConsensusArgs()
+//	consensusComponentsFactory, _ := factory.NewConsensusComponentsFactory(consensusArgs)
 //
-//	err := n.CreateConsensusTopic(messageProc)
+//	cc, err := consensusComponentsFactory.Create()
+//
+//	//err := n.CreateConsensusTopic(messageProc)
 //	require.Equal(t, node.ErrNilShardCoordinator, err)
 //}
 

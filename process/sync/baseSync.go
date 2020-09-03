@@ -209,16 +209,6 @@ func (boot *baseBootstrap) AddSyncStateListener(syncStateListener func(isSyncing
 	boot.mutSyncStateListeners.Unlock()
 }
 
-// SetStatusHandler will set the instance of the AppStatusHandler
-func (boot *baseBootstrap) SetStatusHandler(handler core.AppStatusHandler) error {
-	if handler == nil || handler.IsInterfaceNil() {
-		return process.ErrNilAppStatusHandler
-	}
-	boot.statusHandler = handler
-
-	return nil
-}
-
 func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
 	boot.mutSyncStateListeners.RLock()
 	for i := 0; i < len(boot.syncStateListeners); i++ {
@@ -441,6 +431,9 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	}
 	if check.IfNil(arguments.MiniblocksProvider) {
 		return process.ErrNilMiniBlocksProvider
+	}
+	if check.IfNil(arguments.AppStatusHandler) {
+		return process.ErrNilAppStatusHandler
 	}
 
 	return nil
