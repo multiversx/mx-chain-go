@@ -120,8 +120,8 @@ func (s *Sender) SendHeartbeat() error {
 
 	triggerMessage, isHardforkTriggered := s.hardforkTrigger.RecordedTriggerMessage()
 	if isHardforkTriggered {
-		isPayloadRecorder := len(triggerMessage) != 0
-		if isPayloadRecorder {
+		isPayloadRecorded := len(triggerMessage) != 0
+		if isPayloadRecorded {
 			//beside sending the regular heartbeat message, send also the initial payload hardfork trigger message
 			// so that will be spread in an epidemic manner
 			s.peerMessenger.Broadcast(s.topic, triggerMessage)

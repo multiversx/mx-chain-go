@@ -141,6 +141,10 @@ func (e *EpochStartTriggerStub) ReceivedHeader(header data.HeaderHandler) {
 func (e *EpochStartTriggerStub) SetRoundsPerEpoch(_ uint64) {
 }
 
+// SetMinRoundsBetweenEpochs -
+func (e *EpochStartTriggerStub) SetMinRoundsBetweenEpochs(_ uint64) {
+}
+
 // Close -
 func (e *EpochStartTriggerStub) Close() error {
 	return nil

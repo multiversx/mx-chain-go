@@ -21,10 +21,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -73,6 +75,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -413,6 +416,7 @@ func NewTestProcessorNodeWithFullGenesis(
 	initialNodeAddr string,
 	accountParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
+	heartbeatPk string,
 ) *TestProcessorNode {
 
 	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
@@ -461,6 +465,7 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.initNode()
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
+	tpn.createHeartbeatWithHardforkTrigger(heartbeatPk)
 
 	return tpn
 }
@@ -794,7 +799,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
 	tpn.BlockBlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
 	if check.IfNil(tpn.EpochStartNotifier) {
-		tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
+		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 
@@ -1012,7 +1017,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
-		builtInFuncs.Add(name, function)
+		err := builtInFuncs.Add(name, function)
+		log.LogIfError(err)
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -1349,7 +1355,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
-		tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
+		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -1990,4 +1996,63 @@ func (tpn *TestProcessorNode) initHeaderValidator() {
 	}
 
 	tpn.HeaderValidator, _ = block.NewHeaderValidator(argsHeaderValidator)
+}
+
+func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk string) {
+	pkBytes, _ := tpn.NodeKeys.Pk.ToByteArray()
+	argHardforkTrigger := trigger.ArgHardforkTrigger{
+		TriggerPubKeyBytes:        pkBytes,
+		Enabled:                   true,
+		EnabledAuthenticated:      true,
+		ArgumentParser:            smartContract.NewArgumentParser(),
+		EpochProvider:             tpn.EpochStartTrigger,
+		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
+		CloseAfterExportInMinutes: 5,
+		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
+		EpochConfirmedNotifier:    tpn.EpochStartNotifier,
+		SelfPubKeyBytes:           pkBytes,
+		ImportStartHandler:        &mock.ImportStartHandlerStub{},
+	}
+	var err error
+	if len(heartbeatPk) > 0 {
+		argHardforkTrigger.TriggerPubKeyBytes, err = hex.DecodeString(heartbeatPk)
+		log.LogIfError(err)
+	}
+
+	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)
+	log.LogIfError(err)
+
+	cacher := testscommon.NewCacherMock()
+	psh, err := peerSignatureHandler.NewPeerSignatureHandler(
+		cacher,
+		tpn.OwnAccount.BlockSingleSigner,
+		tpn.OwnAccount.KeygenBlockSign,
+	)
+	log.LogIfError(err)
+
+	err = tpn.Node.ApplyOptions(
+		node.WithHardforkTrigger(hardforkTrigger),
+		node.WithPeerSignatureHandler(psh),
+		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
+			GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {{PublicKey: []byte("pk0")}},
+				}, nil
+			},
+		}),
+		node.WithEpochStartEventNotifier(tpn.EpochStartNotifier),
+		node.WithEpochStartTrigger(tpn.EpochStartTrigger),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
+	)
+
+	hbConfig := config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 4,
+		MaxTimeToWaitBetweenBroadcastsInSec: 6,
+		DurationToConsiderUnresponsiveInSec: 60,
+		HeartbeatRefreshIntervalInSec:       5,
+		HideInactiveValidatorIntervalInSec:  600,
+	}
+	err = tpn.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
+	log.LogIfError(err)
 }

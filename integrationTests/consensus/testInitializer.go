@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
@@ -321,7 +322,7 @@ func createConsensusOnlyNode(
 
 	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 		GenesisTime:        time.Unix(startTime, 0),
-		EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
 		Settings: &config.EpochStartConfig{
 			MinRoundsBetweenEpochs: 1,
 			RoundsPerEpoch:         3,
@@ -458,7 +459,7 @@ func createNodes(
 
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
-		epochStartRegistrationHandler := &mock.EpochStartNotifierStub{}
+		epochStartRegistrationHandler := notifier.NewEpochStartSubscriptionHandler()
 		bootStorer := integrationTests.CreateMemUnit()
 		consensusCache, _ := lrucache.NewCache(10000)
 

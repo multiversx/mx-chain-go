@@ -209,6 +209,10 @@ func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte, for
 		t.epochProvider.ForceEpochStart()
 	}
 
+	if len(originalPayload) == 0 {
+		t.writeOnNotifyChan()
+	}
+
 	shouldSetTriggerFromEpochChange := epoch > t.epochProvider.MetaEpoch()
 	if shouldSetTriggerFromEpochChange {
 		t.shouldTriggerFromEpochChange = true
@@ -221,13 +225,15 @@ func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte, for
 
 	t.triggerExecuting = true
 
+	return true, nil
+}
+
+func (t *trigger) writeOnNotifyChan() {
 	//writing on the notification chan should not be blocking as to allow self to initiate the hardfork process
 	select {
 	case t.chanTriggerReceived <- struct{}{}:
 	default:
 	}
-
-	return true, nil
 }
 
 func (t *trigger) doTrigger() {

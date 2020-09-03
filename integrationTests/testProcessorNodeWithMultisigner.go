@@ -210,7 +210,7 @@ func CreateNodeWithBLSAndTxKeys(
 	ratingsData *rating.RatingsData,
 ) *TestProcessorNode {
 
-	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
 	bootStorer := CreateMemUnit()
 	argFactory := ArgIndexHashedNodesCoordinatorFactory{
 		nodesPerShard:           nodesPerShard,
@@ -399,24 +399,24 @@ func CreateNode(
 	ratingsData *rating.RatingsData,
 ) *TestProcessorNode {
 
-	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
 	bootStorer := CreateMemUnit()
 
 	argFactory := ArgIndexHashedNodesCoordinatorFactory{
-		nodesPerShard,
-		nbMetaNodes,
-		shardConsensusGroupSize,
-		metaConsensusGroupSize,
-		shardId,
-		nbShards,
-		validatorsMap,
-		waitingMap,
-		keyIndex,
-		cp,
-		epochStartSubscriber,
-		TestHasher,
-		cache,
-		bootStorer,
+		nodesPerShard:           nodesPerShard,
+		nbMetaNodes:             nbMetaNodes,
+		shardConsensusGroupSize: shardConsensusGroupSize,
+		metaConsensusGroupSize:  metaConsensusGroupSize,
+		shardId:                 shardId,
+		nbShards:                nbShards,
+		validatorsMap:           validatorsMap,
+		waitingMap:              waitingMap,
+		keyIndex:                keyIndex,
+		cp:                      cp,
+		epochStartSubscriber:    epochStartSubscriber,
+		hasher:                  TestHasher,
+		consensusGroupCache:     cache,
+		bootStorer:              bootStorer,
 	}
 	nodesCoordinator := coordinatorFactory.CreateNodesCoordinator(argFactory)
 
@@ -475,7 +475,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		adaptivity,
 		shuffleBetweenShards,
 	)
-	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
 	bootStorer := CreateMemUnit()
 
 	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
@@ -562,7 +562,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	waitingMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(waitingMap)
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
-	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
 	nodeShuffler := &mock.NodeShufflerMock{}
 
 	nodesSetup := &mock.NodesSetupStub{

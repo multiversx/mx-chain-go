@@ -232,6 +232,7 @@ func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 		case <-time.After(timeToWait):
 		case <-hbh.arg.HardforkTrigger.NotifyTriggerReceived(): //this will force an immediate broadcast of the trigger
 			//message on the network
+			log.Debug("hardfork message prepared for heartbeat sending")
 		}
 
 		err := hbh.sender.SendHeartbeat()
