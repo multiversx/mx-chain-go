@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strconv"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -134,6 +135,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.changeValidatorKey(args)
 	case "switchJailedWithWaiting":
 		return r.switchJailedWithWaiting(args)
+	case "getWaitingListIndex":
+		return r.getWaitingListIndex(args)
 	}
 
 	return vmcommon.UserError
@@ -1031,6 +1034,72 @@ func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 	}
 
 	return vmcommon.Ok
+}
+
+func (r *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
+		r.eei.AddReturnMessage("this is only a view function")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		r.eei.AddReturnMessage("number of arguments must be equal to 1")
+		return vmcommon.UserError
+	}
+	err := r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Get)
+	if err != nil {
+		r.eei.AddReturnMessage("insufficient gas")
+		return vmcommon.OutOfGas
+	}
+
+	waitingElementKey := r.createWaitingListKey(args.Arguments[0])
+	_, err = r.getWaitingListElement(waitingElementKey)
+	if err != nil {
+		r.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	waitingListHead, err := r.getWaitingListHead()
+	if err != nil {
+		r.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	if bytes.Equal(waitingElementKey, waitingListHead.FirstKey) {
+		r.eei.Finish([]byte(strconv.Itoa(1)))
+		return vmcommon.Ok
+	}
+	if bytes.Equal(waitingElementKey, waitingListHead.LastKey) {
+		r.eei.Finish([]byte(strconv.Itoa(int(waitingListHead.Length))))
+		return vmcommon.Ok
+	}
+
+	prevElement, err := r.getWaitingListElement(waitingListHead.FirstKey)
+	if err != nil {
+		r.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	index := 2
+	nextKey := make([]byte, len(waitingElementKey))
+	copy(nextKey, prevElement.NextKey)
+	for len(nextKey) != 0 {
+		if bytes.Equal(nextKey, waitingElementKey) {
+			r.eei.Finish([]byte(strconv.Itoa(index)))
+			return vmcommon.Ok
+		}
+
+		prevElement, err = r.getWaitingListElement(nextKey)
+		if err != nil {
+			r.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		index++
+		copy(nextKey, prevElement.NextKey)
+	}
+
+	r.eei.AddReturnMessage("element in waiting list not found")
+	return vmcommon.UserError
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not
