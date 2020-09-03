@@ -3,23 +3,18 @@ package indexer
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"strings"
-
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
+	"io"
+	"net/http"
 )
 
 type responseErrorHandler func(res *esapi.Response) error
 
 type elasticClient struct {
 	elasticBaseUrl string
-	es *elasticsearch.Client
+	es             *elasticsearch.Client
 }
 
 func newElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
@@ -27,43 +22,38 @@ func newElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
 		return nil, ErrNoElasticUrlProvided
 	}
 
- 	es, err := elasticsearch.NewClient(cfg)
+	es, err := elasticsearch.NewClient(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	ec := &elasticClient{
-		es: es,
+		es:             es,
 		elasticBaseUrl: cfg.Addresses[0],
 	}
 
 	return ec, nil
 }
 
-// NodesInfo returns info about the elastic cluster nodes
-func (ec *elasticClient) NodesInfo() (*esapi.Response, error) {
-	return ec.es.Nodes.Info()
-}
-
 // TemplateExists checks weather a template is already created
 func (ec *elasticClient) TemplateExists(index string) bool {
 	res, err := ec.es.Indices.ExistsTemplate([]string{index})
-	return ec.exists(res, err)
+	return exists(res, err)
 }
 
 // IndexExists checks if a given index already exists
 func (ec *elasticClient) IndexExists(index string) bool {
 	res, err := ec.es.Indices.Exists([]string{index})
-	return ec.exists(res, err)
+	return exists(res, err)
 }
 
 // PolicyExists checks if a policy was already created
 func (ec *elasticClient) PolicyExists(policy string) bool {
 	policyRoute := fmt.Sprintf(
-	"%s/%s/ism/policies/%s",
-			ec.elasticBaseUrl,
-			kibanaPluginPath,
-			policy,
+		"%s/%s/ism/policies/%s",
+		ec.elasticBaseUrl,
+		kibanaPluginPath,
+		policy,
 	)
 
 	req, err := newRequest(http.MethodGet, policyRoute, nil)
@@ -85,7 +75,7 @@ func (ec *elasticClient) PolicyExists(policy string) bool {
 	}
 
 	existsRes := &kibanaExistsResponse{}
-	err = ec.parseResponse(response, existsRes, ec.kibanaResponseErrorHandler)
+	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
 	if err != nil {
 		log.Warn("elasticClient.PolicyExists", "error returned by kibana api", err.Error())
 		return false
@@ -120,7 +110,7 @@ func (ec *elasticClient) AliasExists(alias string) bool {
 		Header:     res.Header,
 	}
 
-	return ec.exists(response, nil)
+	return exists(response, nil)
 }
 
 // CreateIndex creates an elasticsearch index
@@ -130,7 +120,7 @@ func (ec *elasticClient) CreateIndex(index string) error {
 		return err
 	}
 
-	return ec.parseResponse(res, nil, ec.elasticDefaultErrorResponseHandler)
+	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
 }
 
 // CreatePolicy creates a new policy for elastic indexes. Policies define rollover parameters
@@ -161,7 +151,7 @@ func (ec *elasticClient) CreatePolicy(policyName string, policy io.Reader) error
 	}
 
 	existsRes := &kibanaExistsResponse{}
-	err = ec.parseResponse(response, existsRes, ec.kibanaResponseErrorHandler)
+	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
 	if err != nil {
 		return err
 	}
@@ -180,7 +170,7 @@ func (ec *elasticClient) CreateIndexTemplate(templateName string, template io.Re
 		return err
 	}
 
-	return ec.parseResponse(res, nil, ec.elasticDefaultErrorResponseHandler)
+	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
 }
 
 // CreateAlias creates an index alias
@@ -190,7 +180,7 @@ func (ec *elasticClient) CreateAlias(alias string, index string) error {
 		return err
 	}
 
-	return ec.parseResponse(res, nil, ec.elasticDefaultErrorResponseHandler)
+	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
 }
 
 // CheckAndCreateTemplate creates an index template if it does not already exist
@@ -236,8 +226,7 @@ func (ec *elasticClient) DoRequest(req *esapi.IndexRequest) error {
 		return err
 	}
 
-
-	return ec.parseResponse(res, nil, ec.elasticDefaultErrorResponseHandler)
+	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
 }
 
 // DoBulkRequest will do a bulk of request to elastic server
@@ -251,7 +240,7 @@ func (ec *elasticClient) DoBulkRequest(buff *bytes.Buffer, index string) error {
 		return err
 	}
 
-	return ec.parseResponse(res, nil, ec.elasticDefaultErrorResponseHandler)
+	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
 }
 
 // DoMultiGet wil do a multi get request to elaticsearch server
@@ -271,138 +260,11 @@ func (ec *elasticClient) DoMultiGet(obj object, index string) (object, error) {
 	}
 
 	var decodedBody object
-	err = ec.parseResponse(res, &decodedBody, ec.elasticDefaultErrorResponseHandler)
+	err = parseResponse(res, &decodedBody, elasticDefaultErrorResponseHandler)
 	if err != nil {
 		log.Warn("elasticClient.DoMultiGet", "error parsing response", err.Error())
 		return nil, err
 	}
 
 	return decodedBody, nil
-}
-
-/**
-  * parseResponse will check and load the elastic/kibana api response into the destination object. Custom errorHandler
-  *  can be passed for special requests that want to handle StatusCode != 200. Every responseErrorHandler
-  *  implementation should call loadResponseBody or consume the response body in order to be able to
-  *  reuse persistent TCP connections: https://github.com/elastic/go-elasticsearch#usage
- */
-func (ec *elasticClient) parseResponse(res *esapi.Response, dest interface{}, errorHandler responseErrorHandler) error {
-	defer func() {
-		if res.Body != nil {
-			err := res.Body.Close()
-			if err != nil {
-				log.Warn("elasticClient.parseResponse", "could not close body: ", err.Error())
-			}
-		}
-	}()
-
-	if errorHandler == nil {
-		errorHandler = ec.elasticDefaultErrorResponseHandler
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return errorHandler(res)
-	}
-
-	err := ec.loadResponseBody(res.Body, dest)
-	if err != nil {
-		log.Warn("elasticClient.parseResponse", "could not load response body:", err.Error())
-		return ErrBackOff
-	}
-
-	return nil
-}
-
-func (ec *elasticClient) loadResponseBody(body io.ReadCloser, dest interface{}) error {
-	if dest == nil {
-		_, err := io.Copy(ioutil.Discard, body)
-		return err
-	}
-
-	err := json.NewDecoder(body).Decode(dest)
-	return err
-}
-
-func (ec *elasticClient) exists(res *esapi.Response, err error) bool {
-	defer func() {
-		if res.Body != nil {
-			_, _ = io.Copy(ioutil.Discard, res.Body)
-			err = res.Body.Close()
-			if err != nil {
-				log.Warn("elasticClient.IndexExists", "could not close body: ", err.Error())
-			}
-		}
-	}()
-
-	if err != nil {
-		log.Warn("elasticClient.IndexExists", "could not check index on the elastic nodes:", err.Error())
-		return false
-	}
-
-	if res.StatusCode == http.StatusOK {
-		return true
-	}
-
-	if res.StatusCode == http.StatusNotFound {
-		return false
-	}
-
-	log.Warn("elasticClient.exists", "invalid status code returned by the elastic nodes:", res.StatusCode)
-
-	return false
-}
-
-func (ec *elasticClient) elasticDefaultErrorResponseHandler(res *esapi.Response) error {
-	decodeErr := ec.loadResponseBody(res.Body, nil)
-	if decodeErr != nil {
-		return decodeErr
-	}
-
-	if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated {
-		return nil
-	}
-
-	log.Warn("elasticClient.parseResponse", "error returned by elastic API:", res.StatusCode)
-	log.Warn("elasticClient.parseResponse", "error returned by elastic API:", res.Body)
-	return ErrBackOff
-}
-
-func (ec *elasticClient) kibanaResponseErrorHandler(res *esapi.Response) error {
-	errorRes := &kibanaErrorResponse{}
-	decodeErr := ec.loadResponseBody(res.Body, errorRes)
-	if decodeErr != nil {
-		return decodeErr
-	}
-
-	log.Warn("elasticClient.parseResponse", "error returned by elastic API:", errorRes.Error, "code", res.StatusCode)
-	return ErrBackOff
-}
-
-func newRequest(method, path string, body io.Reader) (*http.Request, error) {
-	r := http.Request{
-		Method:     method,
-		URL:        &url.URL{Path: path},
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Header:     make(http.Header),
-	}
-
-	if body != nil {
-		switch b := body.(type) {
-		case *bytes.Buffer:
-			r.Body = ioutil.NopCloser(body)
-			r.ContentLength = int64(b.Len())
-		case *bytes.Reader:
-			r.Body = ioutil.NopCloser(body)
-			r.ContentLength = int64(b.Len())
-		case *strings.Reader:
-			r.Body = ioutil.NopCloser(body)
-			r.ContentLength = int64(b.Len())
-		default:
-			r.Body = ioutil.NopCloser(body)
-		}
-	}
-
-	return &r, nil
 }

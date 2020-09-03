@@ -5,13 +5,15 @@ import (
 	"time"
 )
 
-const backOffTime = time.Second*10
-const maxBackOff = time.Minute*5
-const workCycleTime = time.Second*2
+const (
+	backOffTime   = time.Second * 10
+	maxBackOff    = time.Minute * 5
+	workCycleTime = time.Second * 2
+)
 
 type workQueue struct {
-	backOff time.Duration
-	workMut sync.RWMutex
+	backOff         time.Duration
+	workMut         sync.RWMutex
 	pendingRequests []*workItem
 }
 
@@ -81,5 +83,10 @@ func (wq *workQueue) GotBackOff() {
 		return
 	}
 
-	wq.backOff += wq.backOff/5
+	wq.backOff += wq.backOff / 5
+}
+
+// GetBackOffTime will return back off time
+func (wq *workQueue) GetBackOffTime() int64 {
+	return int64(wq.backOff)
 }

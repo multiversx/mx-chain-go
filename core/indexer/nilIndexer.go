@@ -1,9 +1,9 @@
 package indexer
 
 import (
-"github.com/ElrondNetwork/elrond-go/core/statistics"
-"github.com/ElrondNetwork/elrond-go/data"
-"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // NilIndexer will be used when an Indexer is required, but another one isn't necessary or available
@@ -41,6 +41,11 @@ func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []ValidatorRatingInfo) {
 
 // SaveValidatorsPubKeys will do nothing
 func (ni *NilIndexer) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
+}
+
+// GetQueueLength -
+func (ni *NilIndexer) GetQueueLength() int {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

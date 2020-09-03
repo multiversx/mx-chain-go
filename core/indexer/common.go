@@ -28,7 +28,7 @@ type commonProcessor struct {
 	validatorPubkeyConverter core.PubkeyConverter
 }
 
-func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
+func checkDataIndexerParams(arguments DataIndexerArgs) error {
 	if check.IfNil(arguments.AddressPubkeyConverter) {
 		return fmt.Errorf("%w when setting addressPubkeyConverter in indexer", ErrNilPubkeyConverter)
 	}
@@ -37,12 +37,6 @@ func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
 	}
 	if arguments.Url == "" {
 		return core.ErrNilUrl
-	}
-	if arguments.UserName == "" {
-		return ErrEmptyUserName
-	}
-	if arguments.Password == "" {
-		return ErrEmptyPassword
 	}
 	if check.IfNil(arguments.Marshalizer) {
 		return core.ErrNilMarshalizer

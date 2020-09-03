@@ -1,15 +1,13 @@
 package indexer
 
 import (
+	"context"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
+
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var log = logger.GetOrCreate("core/indexer")
@@ -21,15 +19,16 @@ type Options struct {
 
 type dataDispatcher struct {
 	elasticIndexer ElasticIndexer
-	workQueue      *workQueue
+	workQueue      QueueHandler
 
 	options     *Options
 	marshalizer marshal.Marshalizer
+	cancelFunc  func()
 }
 
 // NewDataDispatcher creates a new dataDispatcher instance, capable of selecting the correct es that will
 //  handle saving different types
-func NewDataDispatcher(arguments ElasticIndexerArgs) (Indexer, error) {
+func NewDataDispatcher(arguments DataIndexerArgs) (*dataDispatcher, error) {
 	ei, err := NewElasticIndexer(arguments)
 	if err != nil {
 		return nil, err
@@ -48,92 +47,90 @@ func NewDataDispatcher(arguments ElasticIndexerArgs) (Indexer, error) {
 		marshalizer: arguments.Marshalizer,
 	}
 
-	go dd.startWorker()
-
 	return dd, nil
 }
 
-// SaveBlock saves the block info in the queue to be sent to elastic
-func (d *dataDispatcher) SaveBlock(
-	bodyHandler data.BodyHandler,
-	headerHandler data.HeaderHandler,
-	txPool map[string]data.TransactionHandler,
-	signersIndexes []uint64,
-	notarizedHeadersHashes []string,
-) {
-	wi, err := NewWorkItem(WorkTypeSaveBlock, &saveBlockData{
-		bodyHandler:            bodyHandler,
-		headerHandler:          headerHandler,
-		txPool:                 txPool,
-		signersIndexes:         signersIndexes,
-		notarizedHeadersHashes: notarizedHeadersHashes,
-	})
-	if err != nil {
-		log.Error("dataDispatcher.SaveBlock", "error creating work item", err.Error())
+// StartIndexData -
+func (d *dataDispatcher) StartIndexData() {
+	var ctx context.Context
+	ctx, d.cancelFunc = context.WithCancel(context.Background())
+
+	go d.startWorker(ctx)
+}
+
+func (d *dataDispatcher) startWorker(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug("dispatcher's go routine is stopping...")
+			return
+		default:
+			d.doWork()
+		}
+	}
+}
+
+// Close will close the endless running go routine
+func (d *dataDispatcher) Close() error {
+	if d.cancelFunc != nil {
+		d.cancelFunc()
+	}
+
+	return nil
+}
+
+// Add --
+func (d *dataDispatcher) Add(item *workItem) {
+	d.workQueue.Add(item)
+}
+
+// GetQueueLength -
+func (d *dataDispatcher) GetQueueLength() int {
+	return d.workQueue.Length()
+}
+
+func (d *dataDispatcher) doWork() {
+	if d.workQueue.Length() == 0 {
+		time.Sleep(d.workQueue.GetCycleTime())
 		return
 	}
 
-	d.workQueue.Add(wi)
-}
+	if d.workQueue.GetBackOffTime() != 0 {
+		time.Sleep(d.workQueue.GetCycleTime())
+		return
+	}
 
-// RevertIndexedBlock -
-func (d *dataDispatcher) RevertIndexedBlock(header data.HeaderHandler) {
-	
-}
+	wi := d.workQueue.Next()
+	if wi == nil {
+		return
+	}
 
-// SaveRoundsInfos will save data about a slice of rounds on elasticsearch
-func (d *dataDispatcher) SaveRoundsInfos(roundsInfos []RoundInfo) {
-
-}
-
-// SaveValidatorsRating will send all validators rating info to elasticsearch
-func (d *dataDispatcher) SaveValidatorsRating(indexID string, validatorsRatingInfo []ValidatorRatingInfo) {
-
-}
-
-// SaveValidatorsPubKeys will send all validators public keys to elasticsearch
-func (d *dataDispatcher) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
-
-}
-
-// UpdateTPS updates the tps and statistics into elasticsearch index
-func (d *dataDispatcher) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
-
-}
-
-// SetTxLogsProcessor will set tx logs processor
-func (d *dataDispatcher) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
-
-}
-
-// IsNilIndexer will return a bool value that signals if the indexer's implementation is a NilIndexer
-func (d *dataDispatcher) IsNilIndexer() bool {
-	return false
+	switch wi.Type {
+	case WorkTypeSaveBlock:
+		d.saveBlock(wi)
+		break
+	case WorkTypeUpdateTPSBenchmark:
+		d.updateTPSBenchmark(wi)
+		break
+	case WorkTypeSaveValidatorsRating:
+		d.saveValidatorsRating(wi)
+		break
+	case WorkTypeSaveValidatorsPubKeys:
+		d.saveValidatorsPubKeys(wi)
+		break
+	case WorkTypeSaveRoundsInfo:
+		d.saveRoundsInfo(wi)
+		break
+	default:
+		log.Error("dataDispatcher.doWork invalid work type received")
+		d.workQueue.Done()
+		break
+	}
 }
 
 func (d *dataDispatcher) saveBlock(item *workItem) {
-	saveBlockParams, ok := item.Data.(*saveBlockData)
+	saveBlockParams, body, ok := getBlockParamsAndBody(item)
 	if !ok {
-		log.Warn("dataDispatcher.saveBlock", "removing item from queue", ErrInvalidWorkItemData.Error())
-		d.workQueue.Done()
-		return
-	}
-
-	if len(saveBlockParams.signersIndexes) == 0 {
-		log.Warn("block has no signers, returning")
-		d.workQueue.Done()
-		return
-	}
-
-	body, ok := saveBlockParams.bodyHandler.(*block.Body)
-	if !ok {
-		log.Warn("dataDispatcher.saveBlock", "removing item from queue", ErrBodyTypeAssertion.Error())
-		d.workQueue.Done()
-		return
-	}
-
-	if check.IfNil(saveBlockParams.headerHandler) {
-		log.Warn("dataDispatcher.saveBlock", "removing item from queue", ErrNoHeader.Error())
 		d.workQueue.Done()
 		return
 	}
@@ -156,11 +153,16 @@ func (d *dataDispatcher) saveBlock(item *workItem) {
 		return
 	}
 
-	mbsInDb := d.elasticIndexer.SaveMiniblocks(saveBlockParams.headerHandler, body)
+	mbsInDb, err := d.elasticIndexer.SaveMiniblocks(saveBlockParams.headerHandler, body)
+	if err != nil && err == ErrBackOff {
+		log.Warn("dataDispatcher.saveBlock", "could not index miniblocks, received back off:", err.Error())
+		d.workQueue.GotBackOff()
+		return
+	}
 
-	shardId := saveBlockParams.headerHandler.GetShardID()
+	shardID := saveBlockParams.headerHandler.GetShardID()
 	if d.options.TxIndexingEnabled {
-		err = d.elasticIndexer.SaveTransactions(body, saveBlockParams.headerHandler, saveBlockParams.txPool, shardId, mbsInDb)
+		err = d.elasticIndexer.SaveTransactions(body, saveBlockParams.headerHandler, saveBlockParams.txPool, shardID, mbsInDb)
 		if err != nil && err == ErrBackOff {
 			log.Warn("dataDispatcher.saveBlock", "could not index header, received back off:", err.Error())
 			d.workQueue.GotBackOff()
@@ -171,35 +173,101 @@ func (d *dataDispatcher) saveBlock(item *workItem) {
 	d.workQueue.Done()
 }
 
-func (d *dataDispatcher) startWorker() {
-	for {
-		time.Sleep(d.workQueue.GetCycleTime())
-		d.doWork()
-	}
-}
+func (d *dataDispatcher) updateTPSBenchmark(item *workItem) {
+	tpsBenchmark := item.Data.(*statistics.TPSBenchmark)
 
-func (d *dataDispatcher) doWork() {
-	if d.workQueue.Length() == 0 {
+	err := d.elasticIndexer.SaveShardStatistics(*tpsBenchmark)
+	if err != nil && err == ErrBackOff {
+		log.Warn("dataDispatcher.updateTPSBenchmark", "could not index tps benchmark, received back off:", err.Error())
+		d.workQueue.GotBackOff()
+		return
+	}
+	if err != nil {
+		log.Warn("dataDispatcher.updateTPSBenchmark", "removing item from queue", err.Error())
+		d.workQueue.Done()
 		return
 	}
 
-	wi := d.workQueue.Next()
-	if wi == nil {
+	d.workQueue.Done()
+}
+
+func (d *dataDispatcher) saveValidatorsRating(item *workItem) {
+	validatorsRatingData, ok := item.Data.(*saveValidatorsRatingData)
+	if !ok {
+		log.Warn("dataDispatcher.saveValidatorsRating",
+			"removing item from queue", ErrInvalidWorkItemData.Error())
+		d.workQueue.Done()
 		return
 	}
 
-	switch wi.Type {
-	case WorkTypeSaveBlock:
-		d.saveBlock(wi)
-		break
-	default:
-		log.Error("dataDispatcher.doWork invalid work type received")
-		break
+	err := d.elasticIndexer.SaveValidatorsRating(validatorsRatingData.indexID, validatorsRatingData.infoRating)
+	if err != nil && err == ErrBackOff {
+		log.Warn("dataDispatcher.saveValidatorsRating",
+			"could not index validators rating, received back off:", err.Error())
+		d.workQueue.GotBackOff()
+		return
 	}
+	if err != nil {
+		log.Warn("dataDispatcher.saveValidatorsRating",
+			"removing item from queue", err.Error())
+		d.workQueue.Done()
+		return
+	}
+
+	d.workQueue.Done()
 }
 
+func (d *dataDispatcher) saveValidatorsPubKeys(item *workItem) {
+	validatorsPubKeysData, ok := item.Data.(*saveValidatorsPubKeysData)
+	if !ok {
+		log.Warn("dataDispatcher.saveValidatorsPubKeys",
+			"removing item from queue", ErrInvalidWorkItemData.Error())
+		d.workQueue.Done()
+		return
+	}
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (d *dataDispatcher) IsInterfaceNil() bool {
-	return d == nil
+	for shardID, shardPubKeys := range validatorsPubKeysData.validatorsPubKeys {
+		err := d.elasticIndexer.SaveShardValidatorsPubKeys(shardID, validatorsPubKeysData.epoch, shardPubKeys)
+		if err != nil && err == ErrBackOff {
+			log.Warn("dataDispatcher.saveValidatorsPubKeys",
+				"could not index validators public keys, ",
+				"for shard", shardID,
+				"received back off:", err.Error())
+			d.workQueue.GotBackOff()
+			return
+		}
+		if err != nil {
+			log.Warn("dataDispatcher.saveValidatorsPubKeys",
+				"removing item from queue", err.Error())
+			continue
+		}
+	}
+
+	d.workQueue.Done()
+}
+
+func (d *dataDispatcher) saveRoundsInfo(item *workItem) {
+	roundsInfo, ok := item.Data.(*[]RoundInfo)
+	if !ok {
+		log.Warn("dataDispatcher.saveRoundsInfo",
+			"removing item from queue", ErrInvalidWorkItemData.Error())
+		d.workQueue.Done()
+		return
+	}
+
+	err := d.elasticIndexer.SaveRoundsInfos(*roundsInfo)
+	if err != nil && err == ErrBackOff {
+		log.Warn("dataDispatcher.saveRoundsInfo",
+			"could not index rounds info, received back off:", err.Error())
+		d.workQueue.GotBackOff()
+		return
+	}
+	if err != nil {
+		log.Warn("dataDispatcher.saveRoundsInfo",
+			"removing item from queue", err.Error())
+		d.workQueue.Done()
+		return
+	}
+
+	d.workQueue.Done()
 }

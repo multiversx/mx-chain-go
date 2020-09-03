@@ -6,9 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/elastic/go-elasticsearch/v7"
@@ -18,12 +17,12 @@ import (
 type elasticIndexer struct {
 	*txDatabaseProcessor
 
-	dataNodesCount uint32
-	elasticClient  *elasticClient
+	elasticClient *elasticClient
+	parser        *dataParser
 }
 
 // NewElasticIndexer creates an elasticsearch es and handles saving
-func NewElasticIndexer(arguments ElasticIndexerArgs) (ElasticIndexer, error) {
+func NewElasticIndexer(arguments DataIndexerArgs) (ElasticIndexer, error) {
 	ec, err := newElasticClient(elasticsearch.Config{
 		Addresses: []string{arguments.Url},
 	})
@@ -33,6 +32,10 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (ElasticIndexer, error) {
 
 	ei := &elasticIndexer{
 		elasticClient: ec,
+		parser: &dataParser{
+			hasher:      arguments.Hasher,
+			marshalizer: arguments.Marshalizer,
+		},
 	}
 
 	ei.txDatabaseProcessor = newTxDatabaseProcessor(
@@ -50,109 +53,30 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (ElasticIndexer, error) {
 	return ei, nil
 }
 
-// SaveHeader will prepare and save information about a header in elasticsearch server
-func (ei *elasticIndexer) SaveHeader(
-	header data.HeaderHandler,
-	signersIndexes []uint64,
-	body *block.Body,
-	notarizedHeadersHashes []string,
-	txsSize int,
-) error {
-	var buff bytes.Buffer
-
-	serializedBlock, headerHash := ei.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
-
-	buff.Grow(len(serializedBlock))
-	_, err := buff.Write(serializedBlock)
+func (ei *elasticIndexer) init(arguments DataIndexerArgs) error {
+	err := ei.createOpenDistroTemplates(arguments.IndexTemplates)
 	if err != nil {
 		return err
 	}
 
-	req := &esapi.IndexRequest{
-		Index:      blockIndex,
-		DocumentID: hex.EncodeToString(headerHash),
-		Body:       bytes.NewReader(buff.Bytes()),
-		Refresh:    "true",
-	}
-
-	return ei.elasticClient.DoRequest(req)
-}
-
-// SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
-func (ei *elasticIndexer) SaveMiniblocks(header data.HeaderHandler, body *block.Body) map[string]bool {
-	miniblocks := ei.getMiniblocks(header, body)
-	if miniblocks == nil {
-		log.Warn("indexer: could not index miniblocks")
-		return make(map[string]bool)
-	}
-	if len(miniblocks) == 0 {
-		return make(map[string]bool)
-	}
-
-	buff, mbHashDb := serializeBulkMiniBlocks(header.GetShardID(), miniblocks, ei.foundedObjMap)
-	err := ei.elasticClient.DoBulkRequest(&buff, miniblocksIndex)
-	if err != nil {
-		log.Warn("indexing bulk of miniblocks", "error", err.Error())
-	}
-
-	return mbHashDb
-}
-
-// SaveTransactions will prepare and save information about a transactions in elasticsearch server
-func (ei *elasticIndexer) SaveTransactions(
-	body *block.Body,
-	header data.HeaderHandler,
-	txPool map[string]data.TransactionHandler,
-	selfShardID uint32,
-    mbsInDb map[string]bool,
-) error {
-	txs := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
-	for _, tx := range txs {
-		fmt.Println(tx.Hash)
-	}
-	buffSlice := serializeTransactions(txs, selfShardID, ei.foundedObjMap, mbsInDb)
-
-	for idx := range buffSlice {
-		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], txIndex)
-		if err != nil {
-			log.Warn("indexer indexing bulk of transactions",
-				"error", err.Error())
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (ei *elasticIndexer) init(arguments ElasticIndexerArgs) error {
-	err := ei.setDataNodesCount()
-	if err != nil {
-		return nil
-	}
-
-	err = ei.createOpenDistroTemplates(arguments.IndexTemplates)
-	if err != nil {
-		return nil
-	}
-
 	err = ei.createIndexPolicies(arguments.IndexPolicies)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = ei.createIndexTemplates(arguments.IndexTemplates)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = ei.createIndexes()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = ei.setInitialAliases()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil
@@ -215,6 +139,38 @@ func (ei *elasticIndexer) createIndexTemplates(indexTemplates map[string]io.Read
 		}
 	}
 
+	tpsTemplate := getTemplateByName(tpsIndex, indexTemplates)
+	if tpsTemplate != nil {
+		err := ei.elasticClient.CheckAndCreateTemplate(tpsIndex, tpsTemplate)
+		if err != nil {
+			return err
+		}
+	}
+
+	ratingTemplate := getTemplateByName(ratingIndex, indexTemplates)
+	if ratingTemplate != nil {
+		err := ei.elasticClient.CheckAndCreateTemplate(ratingIndex, ratingTemplate)
+		if err != nil {
+			return err
+		}
+	}
+
+	roundsTemplate := getTemplateByName(roundIndex, indexTemplates)
+	if ratingTemplate != nil {
+		err := ei.elasticClient.CheckAndCreateTemplate(roundIndex, roundsTemplate)
+		if err != nil {
+			return err
+		}
+	}
+
+	validatorsTemplate := getTemplateByName(validatorsIndex, indexTemplates)
+	if ratingTemplate != nil {
+		err := ei.elasticClient.CheckAndCreateTemplate(validatorsIndex, validatorsTemplate)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -225,14 +181,38 @@ func (ei *elasticIndexer) createIndexes() error {
 		return err
 	}
 
-	firstBlocksIndexName :=  fmt.Sprintf("%s-000001", blockIndex)
+	firstBlocksIndexName := fmt.Sprintf("%s-000001", blockIndex)
 	err = ei.elasticClient.CheckAndCreateIndex(firstBlocksIndexName)
 	if err != nil {
 		return err
 	}
 
-	firstMiniBlocksIndexName :=  fmt.Sprintf("%s-000001", miniblocksIndex)
+	firstMiniBlocksIndexName := fmt.Sprintf("%s-000001", miniblocksIndex)
 	err = ei.elasticClient.CheckAndCreateIndex(firstMiniBlocksIndexName)
+	if err != nil {
+		return err
+	}
+
+	firstTpsIndexName := fmt.Sprintf("%s-000001", tpsIndex)
+	err = ei.elasticClient.CheckAndCreateIndex(firstTpsIndexName)
+	if err != nil {
+		return err
+	}
+
+	firstRatingIndexName := fmt.Sprintf("%s-000001", ratingIndex)
+	err = ei.elasticClient.CheckAndCreateIndex(firstRatingIndexName)
+	if err != nil {
+		return err
+	}
+
+	firstRoundsIndexName := fmt.Sprintf("%s-000001", roundIndex)
+	err = ei.elasticClient.CheckAndCreateIndex(firstRoundsIndexName)
+	if err != nil {
+		return err
+	}
+
+	firstValidatorsIndexName := fmt.Sprintf("%s-000001", validatorsIndex)
+	err = ei.elasticClient.CheckAndCreateIndex(firstValidatorsIndexName)
 	if err != nil {
 		return err
 	}
@@ -247,47 +227,43 @@ func (ei *elasticIndexer) setInitialAliases() error {
 		return err
 	}
 
-	firstBlocksIndexName :=  fmt.Sprintf("%s-000001", blockIndex)
+	firstBlocksIndexName := fmt.Sprintf("%s-000001", blockIndex)
 	err = ei.elasticClient.CheckAndCreateAlias(blockIndex, firstBlocksIndexName)
 	if err != nil {
 		return err
 	}
 
-	firstMiniBlocksIndexName :=  fmt.Sprintf("%s-000001", miniblocksIndex)
+	firstMiniBlocksIndexName := fmt.Sprintf("%s-000001", miniblocksIndex)
 	err = ei.elasticClient.CheckAndCreateAlias(miniblocksIndex, firstMiniBlocksIndexName)
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func (ei *elasticIndexer) setDataNodesCount() error {
-	infoRes, err := ei.elasticClient.NodesInfo()
+	firstTpsIndexName := fmt.Sprintf("%s-000001", tpsIndex)
+	err = ei.elasticClient.CheckAndCreateAlias(tpsIndex, firstTpsIndexName)
 	if err != nil {
 		return err
 	}
 
-	decRes := &elasticNodesInfo{}
-	err = ei.elasticClient.parseResponse(infoRes, decRes, ei.elasticClient.elasticDefaultErrorResponseHandler)
+	firstRatingIndexName := fmt.Sprintf("%s-000001", ratingIndex)
+	err = ei.elasticClient.CheckAndCreateAlias(ratingIndex, firstRatingIndexName)
 	if err != nil {
 		return err
 	}
 
-	ei.setDataNodesCountFromESResponse(decRes)
+	firstRoundsIndexName := fmt.Sprintf("%s-000001", roundIndex)
+	err = ei.elasticClient.CheckAndCreateAlias(roundIndex, firstRoundsIndexName)
+	if err != nil {
+		return err
+	}
+
+	firstValidatorsIndexName := fmt.Sprintf("%s-000001", validatorsIndex)
+	err = ei.elasticClient.CheckAndCreateAlias(validatorsIndex, firstValidatorsIndexName)
+	if err != nil {
+		return err
+	}
 
 	return nil
-}
-
-func (ei *elasticIndexer) setDataNodesCountFromESResponse(eni *elasticNodesInfo) {
-	for _, nodeInfo := range eni.Nodes {
-		for _, nodeType := range nodeInfo.Roles {
-			if nodeType == dataNodeIdentifier {
-				ei.dataNodesCount++
-				break
-			}
-		}
-	}
 }
 
 func (ei *elasticIndexer) foundedObjMap(hashes []string, index string) (map[string]bool, error) {
@@ -303,111 +279,6 @@ func (ei *elasticIndexer) foundedObjMap(hashes []string, index string) (map[stri
 	return getDecodedResponseMultiGet(response), nil
 }
 
-func (ei *elasticIndexer) getMiniblocks(header data.HeaderHandler, body *block.Body) []*Miniblock {
-	headerHash, err := core.CalculateHash(ei.marshalizer, ei.hasher, header)
-	if err != nil {
-		log.Warn("indexer: could not calculate header hash", "error", err.Error())
-		return nil
-	}
-
-	encodedHeaderHash := hex.EncodeToString(headerHash)
-
-	miniblocks := make([]*Miniblock, 0)
-	for _, miniblock := range body.MiniBlocks {
-		mbHash, errComputeHash := core.CalculateHash(ei.marshalizer, ei.hasher, miniblock)
-		if errComputeHash != nil {
-			log.Warn("internal error computing hash", "error", errComputeHash)
-
-			continue
-		}
-
-		encodedMbHash := hex.EncodeToString(mbHash)
-
-		mb := &Miniblock{
-			Hash:            encodedMbHash,
-			SenderShardID:   miniblock.SenderShardID,
-			ReceiverShardID: miniblock.ReceiverShardID,
-			Type:            miniblock.Type.String(),
-		}
-
-		if mb.SenderShardID == header.GetShardID() {
-			mb.SenderBlockHash = encodedHeaderHash
-		} else {
-			mb.ReceiverBlockHash = encodedHeaderHash
-		}
-
-		if mb.SenderShardID == mb.ReceiverShardID {
-			mb.ReceiverBlockHash = encodedHeaderHash
-		}
-
-		miniblocks = append(miniblocks, mb)
-	}
-
-	return miniblocks
-}
-
-func (ei *elasticIndexer) getSerializedElasticBlockAndHeaderHash(
-	header data.HeaderHandler,
-	signersIndexes []uint64,
-	body *block.Body,
-	notarizedHeadersHashes []string,
-	sizeTxs int,
-) ([]byte, []byte) {
-	headerBytes, err := ei.marshalizer.Marshal(header)
-	if err != nil {
-		log.Debug("indexer: marshal header", "error", err)
-		return nil, nil
-	}
-	bodyBytes, err := ei.marshalizer.Marshal(body)
-	if err != nil {
-		log.Debug("indexer: marshal body", "error", err)
-		return nil, nil
-	}
-
-	blockSizeInBytes := len(headerBytes) + len(bodyBytes)
-
-	miniblocksHashes := make([]string, 0)
-	for _, miniblock := range body.MiniBlocks {
-		mbHash, errComputeHash := core.CalculateHash(ei.marshalizer, ei.hasher, miniblock)
-		if errComputeHash != nil {
-			log.Warn("internal error computing hash", "error", errComputeHash)
-
-			continue
-		}
-
-		encodedMbHash := hex.EncodeToString(mbHash)
-		miniblocksHashes = append(miniblocksHashes, encodedMbHash)
-	}
-
-	headerHash := ei.hasher.Compute(string(headerBytes))
-	elasticBlock := Block{
-		Nonce:                 header.GetNonce(),
-		Round:                 header.GetRound(),
-		Epoch:                 header.GetEpoch(),
-		ShardID:               header.GetShardID(),
-		Hash:                  hex.EncodeToString(headerHash),
-		MiniBlocksHashes:      miniblocksHashes,
-		NotarizedBlocksHashes: notarizedHeadersHashes,
-		Proposer:              signersIndexes[0],
-		Validators:            signersIndexes,
-		PubKeyBitmap:          hex.EncodeToString(header.GetPubKeysBitmap()),
-		Size:                  int64(blockSizeInBytes),
-		SizeTxs:               int64(sizeTxs),
-		Timestamp:             time.Duration(header.GetTimeStamp()),
-		TxCount:               header.GetTxCount(),
-		StateRootHash:         hex.EncodeToString(header.GetRootHash()),
-		PrevHash:              hex.EncodeToString(header.GetPrevHash()),
-	}
-
-	serializedBlock, err := json.Marshal(elasticBlock)
-	if err != nil {
-		log.Debug("indexer: marshal", "error", "could not marshal elastic header")
-		return nil, nil
-	}
-
-	return serializedBlock, headerHash
-}
-
 func getTemplateByName(templateName string, templateList map[string]io.Reader) io.Reader {
 	if template, ok := templateList[templateName]; ok {
 		return template
@@ -415,4 +286,181 @@ func getTemplateByName(templateName string, templateList map[string]io.Reader) i
 
 	log.Debug("elasticIndexer.getTemplateByName", "could not find template", templateName)
 	return nil
+}
+
+// SaveHeader will prepare and save information about a header in elasticsearch server
+func (ei *elasticIndexer) SaveHeader(
+	header data.HeaderHandler,
+	signersIndexes []uint64,
+	body *block.Body,
+	notarizedHeadersHashes []string,
+	txsSize int,
+) error {
+	var buff bytes.Buffer
+
+	serializedBlock, headerHash := ei.parser.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
+
+	buff.Grow(len(serializedBlock))
+	_, err := buff.Write(serializedBlock)
+	if err != nil {
+		return err
+	}
+
+	req := &esapi.IndexRequest{
+		Index:      blockIndex,
+		DocumentID: hex.EncodeToString(headerHash),
+		Body:       bytes.NewReader(buff.Bytes()),
+		Refresh:    "true",
+	}
+
+	return ei.elasticClient.DoRequest(req)
+}
+
+// SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
+func (ei *elasticIndexer) SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error) {
+	miniblocks := ei.parser.getMiniblocks(header, body)
+	if miniblocks == nil {
+		log.Warn("indexer: could not index miniblocks")
+		return make(map[string]bool), nil
+	}
+	if len(miniblocks) == 0 {
+		return make(map[string]bool), nil
+	}
+
+	buff, mbHashDb := serializeBulkMiniBlocks(header.GetShardID(), miniblocks, ei.foundedObjMap)
+	return mbHashDb, ei.elasticClient.DoBulkRequest(&buff, miniblocksIndex)
+}
+
+// SaveTransactions will prepare and save information about a transactions in elasticsearch server
+func (ei *elasticIndexer) SaveTransactions(
+	body *block.Body,
+	header data.HeaderHandler,
+	txPool map[string]data.TransactionHandler,
+	selfShardID uint32,
+	mbsInDb map[string]bool,
+) error {
+	txs := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
+	for _, tx := range txs {
+		fmt.Println(tx.Hash)
+	}
+	buffSlice := serializeTransactions(txs, selfShardID, ei.foundedObjMap, mbsInDb)
+
+	for idx := range buffSlice {
+		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], txIndex)
+		if err != nil {
+			log.Warn("indexer indexing bulk of transactions",
+				"error", err.Error())
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SaveShardStatistics will prepare and save information about a shard statistics in elasticsearch server
+func (ei *elasticIndexer) SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark) error {
+	buff := prepareGeneralInfo(tpsBenchmark)
+
+	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
+		serializedShardInfo, serializedMetaInfo := serializeShardInfo(shardInfo)
+		if serializedShardInfo == nil {
+			continue
+		}
+
+		buff.Grow(len(serializedMetaInfo) + len(serializedShardInfo))
+		_, err := buff.Write(serializedMetaInfo)
+		if err != nil {
+			log.Warn("elastic search: update TPS write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedShardInfo)
+		if err != nil {
+			log.Warn("elastic search: update TPS write serialized data", "error", err.Error())
+		}
+	}
+
+	return ei.elasticClient.DoBulkRequest(&buff, tpsIndex)
+}
+
+// SaveValidatorsRating will save validators rating
+func (ei *elasticIndexer) SaveValidatorsRating(index string, validatorsRatingInfo []ValidatorRatingInfo) error {
+	var buff bytes.Buffer
+
+	infosRating := ValidatorsRatingInfo{ValidatorsInfos: validatorsRatingInfo}
+
+	marshalizedInfoRating, err := json.Marshal(&infosRating)
+	if err != nil {
+		log.Debug("indexer: marshal", "error", "could not marshal validators rating")
+		return err
+	}
+
+	buff.Grow(len(marshalizedInfoRating))
+	_, err = buff.Write(marshalizedInfoRating)
+	if err != nil {
+		log.Warn("elastic search: save validators rating, write", "error", err.Error())
+	}
+
+	req := &esapi.IndexRequest{
+		Index:      ratingIndex,
+		DocumentID: index,
+		Body:       bytes.NewReader(buff.Bytes()),
+		Refresh:    "true",
+	}
+
+	return ei.elasticClient.DoRequest(req)
+}
+
+// SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
+func (ei *elasticIndexer) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error {
+	var buff bytes.Buffer
+
+	shardValPubKeys := ValidatorsPublicKeys{
+		PublicKeys: make([]string, 0, len(shardValidatorsPubKeys)),
+	}
+	for _, validatorPk := range shardValidatorsPubKeys {
+		strValidatorPk := ei.validatorPubkeyConverter.Encode(validatorPk)
+		shardValPubKeys.PublicKeys = append(shardValPubKeys.PublicKeys, strValidatorPk)
+	}
+
+	marshalizedValidatorPubKeys, err := json.Marshal(shardValPubKeys)
+	if err != nil {
+		log.Debug("indexer: marshal", "error", "could not marshal validators public keys")
+		return err
+	}
+
+	buff.Grow(len(marshalizedValidatorPubKeys))
+	_, err = buff.Write(marshalizedValidatorPubKeys)
+	if err != nil {
+		log.Warn("elastic search: save shard validators pub keys, write", "error", err.Error())
+	}
+
+	req := &esapi.IndexRequest{
+		Index:      validatorsIndex,
+		DocumentID: fmt.Sprintf("%d_%d", shardID, epoch),
+		Body:       bytes.NewReader(buff.Bytes()),
+		Refresh:    "true",
+	}
+
+	return ei.elasticClient.DoRequest(req)
+}
+
+// SaveRoundsInfos will prepare and save information about a slice of rounds in elasticsearch server
+func (ei *elasticIndexer) SaveRoundsInfos(infos []RoundInfo) error {
+	var buff bytes.Buffer
+
+	for _, info := range infos {
+		serializedRoundInfo, meta := serializeRoundInfo(info)
+
+		buff.Grow(len(meta) + len(serializedRoundInfo))
+		_, err := buff.Write(meta)
+		if err != nil {
+			log.Warn("indexer: cannot write meta", "error", err.Error())
+		}
+
+		_, err = buff.Write(serializedRoundInfo)
+		if err != nil {
+			log.Warn("indexer: cannot write serialized round info", "error", err.Error())
+		}
+	}
+
+	return ei.elasticClient.DoBulkRequest(&buff, roundIndex)
 }

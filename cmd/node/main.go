@@ -1919,7 +1919,7 @@ func createElasticIndexer(
 	startNotifier notifier.EpochStartNotifier,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
-	shardId uint32,
+	shardID uint32,
 ) (indexer.Indexer, error) {
 
 	if !elasticSearchConfig.Enabled {
@@ -1929,7 +1929,7 @@ func createElasticIndexer(
 
 	log.Debug("elastic search indexing enabled, will create an ElasticIndexer")
 	indexTemplates, indexPolicies := getElasticTemplates()
-	arguments := indexer.ElasticIndexerArgs{
+	arguments := indexer.DataIndexerArgs{
 		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
 		Password:                 elasticSearchConfig.Password,
@@ -1940,12 +1940,12 @@ func createElasticIndexer(
 		EpochStartNotifier:       startNotifier,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		ShardId:                  shardId,
+		ShardID:                  shardID,
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 	}
 
-	return indexer.NewDataDispatcher(arguments)
+	return indexer.NewDataIndexer(arguments)
 }
 func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -2421,7 +2421,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 
 func getElasticTemplates() (map[string]io.Reader, map[string]io.Reader) {
 	indexTemplates := make(map[string]io.Reader)
-	indexPolicies  := make(map[string]io.Reader)
+	indexPolicies := make(map[string]io.Reader)
 
 	opendistroTemplate, _ := core.OpenFile("./config/elasticIndexTemplates/opendistro.json")
 	indexTemplates["opendistro"] = opendistroTemplate
