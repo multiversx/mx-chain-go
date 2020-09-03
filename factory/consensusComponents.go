@@ -92,13 +92,14 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 
 func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	var err error
+
+	err = ccf.checkArgs()
+	if err != nil {
+		return nil, err
+	}
 	cc := &consensusComponents{}
 
 	blockchain := ccf.dataComponents.Blockchain()
-	if check.IfNil(blockchain) {
-		return nil, errors.ErrNilBlockChainHandler
-	}
-
 	notInitializedGenesisBlock := len(blockchain.GetGenesisHeaderHash()) == 0 ||
 		check.IfNil(blockchain.GetGenesisHeader())
 	if notInitializedGenesisBlock {
@@ -481,7 +482,7 @@ func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusCompone
 		return errors.ErrNilShardCoordinator
 	}
 	if check.IfNil(messenger) {
-		return errors.ErrNilNetworkMessenger
+		return errors.ErrNilMessenger
 	}
 
 	cc.consensusTopic = core.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
@@ -510,9 +511,26 @@ func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Clos
 	return nil
 }
 
-func (ccf *consensusComponentsFactory) checkArguments() error {
-	if check.IfNil(ccf.dataComponents.Blockchain()) {
+func (ccf *consensusComponentsFactory) checkArgs() error {
+	blockchain := ccf.dataComponents.Blockchain()
+	if check.IfNil(blockchain) {
 		return errors.ErrNilBlockChainHandler
+	}
+	marshalizer := ccf.coreComponents.InternalMarshalizer()
+	if check.IfNil(marshalizer) {
+		return errors.ErrNilMarshalizer
+	}
+	dataPool := ccf.dataComponents.Datapool()
+	if check.IfNil(dataPool) {
+		return errors.ErrNilDataPoolsHolder
+	}
+	shardCoordinator := ccf.processComponents.ShardCoordinator()
+	if check.IfNil(shardCoordinator) {
+		return errors.ErrNilShardCoordinator
+	}
+	netMessenger := ccf.networkComponents.NetworkMessenger()
+	if check.IfNil(netMessenger) {
+		return errors.ErrNilMessenger
 	}
 
 	return nil

@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -72,6 +73,10 @@ func GetBroadcastMessenger(
 	headersSubscriber consensus.HeadersPoolSubscriber,
 	interceptorsContainer process.InterceptorsContainer,
 ) (consensus.BroadcastMessenger, error) {
+
+	if check.IfNil(shardCoordinator) {
+		return nil, spos.ErrNilShardCoordinator
+	}
 
 	commonMessengerArgs := broadcast.CommonMessengerArgs{
 		Marshalizer:                marshalizer,

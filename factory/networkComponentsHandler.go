@@ -72,7 +72,7 @@ func (mnc *managedNetworkComponents) CheckSubcomponents() error {
 		return errors.ErrNilNetworkComponents
 	}
 	if check.IfNil(mnc.netMessenger) {
-		return errors.ErrNilNetworkMessenger
+		return errors.ErrNilMessenger
 	}
 	if check.IfNil(mnc.inputAntifloodHandler) {
 		return errors.ErrNilInputAntiFloodHandler

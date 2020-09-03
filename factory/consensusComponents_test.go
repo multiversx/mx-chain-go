@@ -5,10 +5,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -98,7 +103,7 @@ func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 }
 
 //------------ Test Old Use Cases --------------------
-func TestNewConsensusComponentsFactory_Create_GenesisBlockNotInitializedShouldErr(t *testing.T) {
+func TestConsensusComponentsFactory_Create_GenesisBlockNotInitializedShouldErr(t *testing.T) {
 	t.Parallel()
 
 	consensusArgs := getConsensusArgs()
@@ -121,584 +126,193 @@ func TestNewConsensusComponentsFactory_Create_GenesisBlockNotInitializedShouldEr
 	require.True(t, strings.Contains(err.Error(), errorsErd.ErrGenesisBlockNotInitialized.Error()))
 }
 
-//func TestNewConsensusComponentsFactory_CreateConsensusTopicNilShardCoordinator(t *testing.T) {
-//	t.Parallel()
-//
-//	consensusArgs := getConsensusArgs()
-//	consensusComponentsFactory, _ := factory.NewConsensusComponentsFactory(consensusArgs)
-//
-//	cc, err := consensusComponentsFactory.Create()
-//
-//	//err := n.CreateConsensusTopic(messageProc)
-//	require.Equal(t, node.ErrNilShardCoordinator, err)
-//}
-
-/*
-func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
+func TestConsensusComponentsFactory_Create_NilRounder(t *testing.T) {
 	t.Parallel()
 
-	messageProc := &mock.HeaderResolverStub{}
-	n, _ := node.NewNode(
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return true
-			},
-			HasTopicCalled: func(name string) bool {
-				return true
-			},
-		}),
-	)
+	consensusArgs := getConsensusArgs()
+	processComponents := &mock.ProcessComponentsMock{}
+	consensusArgs.ProcessComponents = processComponents
+	consensusComponentsFactory, _ := factory.NewConsensusComponentsFactory(consensusArgs)
 
-	err := n.CreateConsensusTopic(messageProc)
-	require.Equal(t, node.ErrValidatorAlreadySet, err)
+	cc, err := consensusComponentsFactory.Create()
+
+	require.Nil(t, cc)
+	require.Equal(t, errorsErd.ErrNilShardCoordinator, err)
 }
 
-func TestNode_ConsensusTopicCreateTopicError(t *testing.T) {
+func TestConsensusComponentsFactory_Create_ConsensusTopicValidatorAlreadySet(t *testing.T) {
+	t.Parallel()
+
+	args := getConsensusArgs()
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return true
+		},
+		HasTopicCalled: func(name string) bool {
+			return true
+		},
+	}
+	args.NetworkComponents = networkComponents
+
+	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	cc, err := bcf.Create()
+
+	require.Nil(t, cc)
+	require.Equal(t, errorsErd.ErrValidatorAlreadySet, err)
+}
+
+func TestConsensusComponentsFactory_Create_ConsensusTopicCreateTopicError(t *testing.T) {
 	t.Parallel()
 
 	localError := errors.New("error")
-	messageProc := &mock.HeaderResolverStub{}
-	n, _ := node.NewNode(
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			HasTopicCalled: func(name string) bool {
-				return false
-			},
-			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-				return localError
-			},
-		}),
-	)
+	args := getConsensusArgs()
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		HasTopicCalled: func(name string) bool {
+			return false
+		},
+		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+			return localError
+		},
+	}
+	args.NetworkComponents = networkComponents
 
-	err := n.CreateConsensusTopic(messageProc)
+	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	cc, err := bcf.Create()
+
+	require.Nil(t, cc)
 	require.Equal(t, localError, err)
 }
 
-func TestNode_ConsensusTopicNilMessageProcessor(t *testing.T) {
+func TestConsensusComponentsFactory_Create_ConsensusTopicNilMessageProcessor(t *testing.T) {
 	t.Parallel()
 
-	n, _ := node.NewNode(node.WithShardCoordinator(&mock.ShardCoordinatorMock{}))
+	args := getConsensusArgs()
+	networkComponents := getDefaultNetworkComponents()
+	networkComponents.Messenger = nil
+	args.NetworkComponents = networkComponents
 
-	err := n.CreateConsensusTopic(nil)
-	require.Equal(t, node.ErrNilMessenger, err)
+	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	cc, err := bcf.Create()
+
+	require.Nil(t, cc)
+	require.Equal(t, errorsErd.ErrNilMessenger, err)
 }
 
-func TestStartConsensus_NilSyncTimer(t *testing.T) {
+func TestConsensusComponentsFactory_Create_NilSyncTimer(t *testing.T) {
 	t.Parallel()
 
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
+	args := getConsensusArgs()
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.NtpSyncTimer = nil
+	args.CoreComponents = coreComponents
+	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	cc, err := bcf.Create()
 
-	n, _ := node.NewNode(
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, chronology.ErrNilSyncTimer, err)
+	require.Nil(t, cc)
+	require.Equal(t, chronology.ErrNilSyncTimer, err)
 }
 
 func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 	t.Parallel()
 
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	rf := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverStub{}, nil
-		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverStub{}, nil
-		},
-	}
+	args := getConsensusArgs()
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = nil
+	args.StateComponents = stateComponents
+	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	cc, err := bcf.Create()
 
-	store := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return nil
-		},
-	}
-
-	n, _ := node.NewNode(
-		node.WithDataPool(&testscommon.PoolsHolderStub{
-			MiniBlocksCalled: func() storage.Cacher {
-				return &testscommon.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
-
-					},
-				}
-			},
-			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{
-					RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
-
-					},
-				}
-			},
-		}),
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithResolversFinder(rf),
-		node.WithDataStore(store),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithForkDetector(&mock.ForkDetectorMock{
-			CheckForkCalled: func() *process.ForkInfo {
-				return &process.ForkInfo{}
-			},
-			ProbableHighestNonceCalled: func() uint64 {
-				return 0
-			},
-		}),
-		node.WithBootStorer(&mock.BoostrapStorerMock{
-			GetHighestRoundCalled: func() int64 {
-				return 0
-			},
-			GetCalled: func(round int64) (bootstrapData bootstrapStorage.BootstrapData, err error) {
-				return bootstrapStorage.BootstrapData{}, errors.New("localErr")
-			},
-		}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithRequestHandler(&mock.RequestHandlerStub{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, state.ErrNilAccountsAdapter, err)
+	require.Nil(t, cc)
+	require.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
 func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 	t.Parallel()
 
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	rf := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverStub{}, nil
-		},
-	}
+	args := getConsensusArgs()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = nil
+	args.DataComponents = dataComponents
+	processComponents := getDefaultProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	shardCoordinator.CurrentShard = 0
+	processComponents.ShardCoord = shardCoordinator
+	args.ProcessComponents = processComponents
+	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	cc, err := bcf.Create()
 
-	store := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{}
-		},
-	}
-
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
-
-	n, _ := node.NewNode(
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithAccountsAdapter(accountDb),
-		node.WithResolversFinder(rf),
-		node.WithDataStore(store),
-		node.WithBootStorer(&mock.BoostrapStorerMock{}),
-		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithTxSignMarshalizer(&mock.MarshalizerMock{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, process.ErrNilPoolsHolder, err)
+	require.Nil(t, cc)
+	require.Equal(t, errorsErd.ErrNilDataPoolsHolder, err)
 }
 
 func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 	t.Parallel()
 
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	shardingCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	shardingCoordinator.CurrentShard = core.MetachainShardId
-	store := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return nil
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(shardingCoordinator),
-		node.WithDataStore(store),
-		node.WithResolversFinder(&mock.ResolversFinderStub{
-			IntraShardResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-				return &mock.MiniBlocksResolverStub{}, nil
-			},
-		}),
-		node.WithBootStorer(&mock.BoostrapStorerMock{}),
-		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithTxSignMarshalizer(&mock.MarshalizerMock{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-	)
+	args := getConsensusArgs()
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = nil
+	args.DataComponents = dataComponents
+	processComponents := getDefaultProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	shardCoordinator.CurrentShard = core.MetachainShardId
+	processComponents.ShardCoord = shardCoordinator
+	args.ProcessComponents = processComponents
+	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	cc, err := bcf.Create()
 
-	err := n.StartConsensus()
-	assert.Equal(t, process.ErrNilPoolsHolder, err)
+	require.Nil(t, cc)
+	require.Equal(t, errorsErd.ErrNilDataPoolsHolder, err)
 }
 
 func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 	t.Parallel()
 
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	shardingCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	shardingCoordinator.CurrentShard = 2
-	n, _ := node.NewNode(
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(shardingCoordinator),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithDataPool(testscommon.NewPoolsHolderStub()),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-	)
+	args := getConsensusArgs()
+	processComponents := getDefaultProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	shardCoordinator.CurrentShard = 2
+	processComponents.ShardCoord = shardCoordinator
+	args.ProcessComponents = processComponents
+	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	cc, err := bcf.Create()
 
-	err := n.StartConsensus()
-	assert.Equal(t, sharding.ErrShardIdOutOfRange, err)
+	require.Nil(t, cc)
+	require.Equal(t, sharding.ErrShardIdOutOfRange, err)
 }
 
 func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 	t.Parallel()
 
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	rf := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverStub{}, nil
-		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverStub{}, nil
-		},
-	}
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
-
 	localErr := errors.New("err")
-	n, _ := node.NewNode(
-		node.WithDataPool(&testscommon.PoolsHolderStub{
-			MiniBlocksCalled: func() storage.Cacher {
-				return &testscommon.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
-
-					},
-				}
-			},
-			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{
-					RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
-
-					},
-				}
-			},
-		}),
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithAccountsAdapter(accountDb),
-		node.WithResolversFinder(rf),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
-		node.WithMessenger(&mock.MessengerStub{
-			IsConnectedToTheNetworkCalled: func() bool {
-				return false
-			},
-		}),
-		node.WithBootStorer(&mock.BoostrapStorerMock{
-			GetHighestRoundCalled: func() int64 {
-				return 0
-			},
-			GetCalled: func(round int64) (bootstrapData bootstrapStorage.BootstrapData, err error) {
-				return bootstrapStorage.BootstrapData{}, errors.New("localErr")
-			},
-		}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithPubKey(&mock.PublicKeyMock{
-			ToByteArrayHandler: func() (i []byte, err error) {
-				return []byte("nil"), localErr
-			},
-		}),
-		node.WithRequestHandler(&mock.RequestHandlerStub{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, localErr, err)
+	args := getConsensusArgs()
+	cryptoParams := getDefaultCryptoComponents()
+	cryptoParams.PubKey = &mock.PublicKeyMock{
+		ToByteArrayHandler: func() (i []byte, err error) {
+			return []byte("nil"), localErr
+		},
+	}
+	args.CryptoComponents = cryptoParams
+	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	cc, err := bcf.Create()
+	require.Nil(t, cc)
+	require.Equal(t, localErr, err)
 }
 
 func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 	t.Parallel()
 
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	rf := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverStub{}, nil
-		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverStub{}, nil
-		},
-	}
-
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
-
-	n, _ := node.NewNode(
-		node.WithDataPool(&testscommon.PoolsHolderStub{
-			MiniBlocksCalled: func() storage.Cacher {
-				return &testscommon.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
-
-					},
-				}
-			},
-			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{
-					RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
-
-					},
-				}
-			},
-		}),
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithAccountsAdapter(accountDb),
-		node.WithResolversFinder(rf),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
-		node.WithMessenger(&mock.MessengerStub{
-			IsConnectedToTheNetworkCalled: func() bool {
-				return false
-			},
-		}),
-		node.WithBootStorer(&mock.BoostrapStorerMock{
-			GetHighestRoundCalled: func() int64 {
-				return 0
-			},
-			GetCalled: func(round int64) (bootstrapData bootstrapStorage.BootstrapData, err error) {
-				return bootstrapStorage.BootstrapData{}, errors.New("localErr")
-			},
-		}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithPubKey(&mock.PublicKeyMock{
-			ToByteArrayHandler: func() (i []byte, err error) {
-				return []byte("keyBytes"), nil
-			},
-		}),
-		node.WithRequestHandler(&mock.RequestHandlerStub{}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-	)
-
-	err := n.StartConsensus()
-	assert.Equal(t, sposFactory.ErrInvalidConsensusType, err)
+	args := getConsensusArgs()
+	args.Config.Consensus.Type = "invalid"
+	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	cc, err := bcf.Create()
+	require.Nil(t, cc)
+	require.Equal(t, sposFactory.ErrInvalidConsensusType, err)
 }
-
-func TestStartConsensus_ShardBootstrapper(t *testing.T) {
-	t.Parallel()
-
-	chainHandler := &mock.ChainHandlerStub{
-		GetGenesisHeaderHashCalled: func() []byte {
-			return []byte("hdrHash")
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
-	}
-	rf := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, err error) {
-			return &mock.MiniBlocksResolverStub{}, nil
-		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
-			return &mock.HeaderResolverStub{}, nil
-		},
-	}
-
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
-
-	n, _ := node.NewNode(
-		node.WithDataPool(&testscommon.PoolsHolderStub{
-			MiniBlocksCalled: func() storage.Cacher {
-				return &testscommon.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
-
-					},
-				}
-			},
-			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{
-					RegisterHandlerCalled: func(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
-
-					},
-				}
-			},
-		}),
-		node.WithBlockChain(chainHandler),
-		node.WithRounder(&mock.RounderMock{}),
-		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncTimerStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithAccountsAdapter(accountDb),
-		node.WithResolversFinder(rf),
-		node.WithDataStore(&mock.ChainStorerMock{}),
-		node.WithHasher(&mock.HasherMock{}),
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
-		node.WithForkDetector(&mock.ForkDetectorMock{
-			CheckForkCalled: func() *process.ForkInfo {
-				return &process.ForkInfo{}
-			},
-			ProbableHighestNonceCalled: func() uint64 {
-				return 0
-			},
-		}),
-		node.WithBlockBlackListHandler(&mock.TimeCacheStub{}),
-		node.WithMessenger(&mock.MessengerStub{
-			IsConnectedToTheNetworkCalled: func() bool {
-				return false
-			},
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			HasTopicCalled: func(name string) bool {
-				return true
-			},
-			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
-				return nil
-			},
-		}),
-		node.WithBootStorer(&mock.BoostrapStorerMock{
-			GetHighestRoundCalled: func() int64 {
-				return 0
-			},
-			GetCalled: func(round int64) (bootstrapData bootstrapStorage.BootstrapData, err error) {
-				return bootstrapStorage.BootstrapData{}, errors.New("localErr")
-			},
-		}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithRequestedItemsHandler(&mock.TimeCacheStub{}),
-		node.WithBlockProcessor(&mock.BlockProcessorStub{}),
-		node.WithPubKey(&mock.PublicKeyMock{
-			ToByteArrayHandler: func() (i []byte, err error) {
-				return []byte("keyBytes"), nil
-			},
-		}),
-		node.WithConsensusType("bls"),
-		node.WithPrivKey(&mock.PrivateKeyStub{}),
-		node.WithSingleSigner(&mock.SingleSignerMock{}),
-		node.WithKeyGen(&mock.KeyGenMock{}),
-		node.WithChainID([]byte("id")),
-		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
-		node.WithMultiSigner(&mock.MultisignMock{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithRequestHandler(&mock.RequestHandlerStub{}),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithBlockTracker(&mock.BlockTrackerStub{}),
-		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
-		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
-		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
-		node.WithPeerHonestyHandler(&testscommon.PeerHonestyHandlerStub{}),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
-		node.WithWatchdogTimer(&mock.WatchdogMock{}),
-		node.WithPeerSignatureHandler(&mock.PeerSignatureHandler{}),
-	)
-
-	err := n.StartConsensus()
-	assert.Nil(t, err)
-}
-*/
 
 func getConsensusArgs() factory.ConsensusComponentsFactoryArgs {
 	coreComponents := getCoreComponents()
@@ -732,5 +346,78 @@ func getConsensusArgs() factory.ConsensusComponentsFactoryArgs {
 		ProcessComponents:   processComponents,
 		StateComponents:     stateComponents,
 		StatusComponents:    statusComponents,
+	}
+}
+
+func getDefaultNetworkComponents() *mock.NetworkComponentsMock {
+	return &mock.NetworkComponentsMock{
+		Messenger:       &mock.MessengerStub{},
+		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
+		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},
+		PeerBlackList:   &mock.PeerBlackListHandlerStub{},
+	}
+}
+
+func getDefaultStateComponents() *testscommon.StateComponentsMock {
+	return &testscommon.StateComponentsMock{
+		PeersAcc:        &mock.AccountsStub{},
+		Accounts:        &mock.AccountsStub{},
+		Tries:           &mock.TriesHolderStub{},
+		StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
+	}
+}
+
+func getDefaultDataComponents() *mock.DataComponentsMock {
+	return &mock.DataComponentsMock{
+		Blkc:              &mock.ChainHandlerStub{},
+		Storage:           &mock.ChainStorerStub{},
+		DataPool:          &testscommon.PoolsHolderMock{},
+		MiniBlockProvider: &mock.MiniBlocksProviderStub{},
+	}
+}
+
+func getDefaultProcessComponents() *mock.ProcessComponentsMock {
+	return &mock.ProcessComponentsMock{
+		NodesCoord: &mock.NodesCoordinatorMock{},
+		ShardCoord: &testscommon.ShardsCoordinatorMock{
+			NoShards:     1,
+			CurrentShard: 0,
+		},
+		IntContainer:             &mock.InterceptorsContainerStub{},
+		ResFinder:                &mock.ResolversFinderStub{},
+		RoundHandler:             &testscommon.RounderMock{},
+		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
+		EpochNotifier:            &mock.EpochStartNotifierStub{},
+		ForkDetect:               &mock.ForkDetectorMock{},
+		BlockProcess:             &mock.BlockProcessorStub{},
+		BlackListHdl:             &testscommon.TimeCacheStub{},
+		BootSore:                 &mock.BootstrapStorerMock{},
+		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},
+		HeaderIntegrVerif:        &mock.HeaderIntegrityVerifierStub{},
+		ValidatorStatistics:      &mock.ValidatorStatisticsProcessorStub{},
+		ValidatorProvider:        &mock.ValidatorsProviderStub{},
+		BlockTrack:               &mock.BlockTrackerStub{},
+		PendingMiniBlocksHdl:     &mock.PendingMiniBlocksHandlerStub{},
+		ReqHandler:               &mock.RequestHandlerStub{},
+		TxLogsProcess:            &mock.TxLogProcessorMock{},
+		HeaderConstructValidator: &mock.HeaderValidatorStub{},
+		PeerMapper:               &mock.NetworkShardingCollectorStub{},
+	}
+}
+
+func getDefaultCryptoComponents() *mock.CryptoComponentsMock {
+	return &mock.CryptoComponentsMock{
+		PubKey:          &mock.PublicKeyMock{},
+		PrivKey:         &mock.PrivateKeyStub{},
+		PubKeyString:    "pubKey",
+		PrivKeyBytes:    []byte("privKey"),
+		PubKeyBytes:     []byte("pubKey"),
+		BlockSig:        &mock.SinglesignMock{},
+		TxSig:           &mock.SinglesignMock{},
+		MultiSig:        &mock.MultisignMock{},
+		PeerSignHandler: &mock.PeerSignatureHandler{},
+		BlKeyGen:        &mock.KeyGenMock{},
+		TxKeyGen:        &mock.KeyGenMock{},
+		MsgSigVerifier:  &testscommon.MessageSignVerifierMock{},
 	}
 }
