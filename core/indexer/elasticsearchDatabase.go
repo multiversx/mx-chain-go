@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -18,15 +19,15 @@ import (
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
-// elasticSearchDatabaseArgs is struct that is used to store all parameters that are needed to create a elasticsearch database
-type elasticSearchDatabaseArgs struct {
-	url                      string
-	userName                 string
-	password                 string
-	marshalizer              marshal.Marshalizer
-	hasher                   hashing.Hasher
-	addressPubkeyConverter   core.PubkeyConverter
-	validatorPubkeyConverter core.PubkeyConverter
+// ElasticSearchDatabaseArgs is struct that is used to store all parameters that are needed to create a elasticsearch database
+type ElasticSearchDatabaseArgs struct {
+	Url                      string
+	UserName                 string
+	Password                 string
+	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	AddressPubkeyConverter   core.PubkeyConverter
+	ValidatorPubkeyConverter core.PubkeyConverter
 }
 
 // elasticSearchDatabase object it contains business logic built over databaseWriterHandler glue code wrapper
@@ -37,12 +38,12 @@ type elasticSearchDatabase struct {
 	hasher      hashing.Hasher
 }
 
-// newElasticSearchDatabase is method that will create a new elastic search dbClient
-func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSearchDatabase, error) {
+// NewElasticSearchDatabase is method that will create a new elastic search dbClient
+func NewElasticSearchDatabase(arguments ElasticSearchDatabaseArgs) (*elasticSearchDatabase, error) {
 	cfg := elasticsearch.Config{
-		Addresses: []string{arguments.url},
-		Username:  arguments.userName,
-		Password:  arguments.password,
+		Addresses: []string{arguments.Url},
+		Username:  arguments.UserName,
+		Password:  arguments.Password,
 	}
 	es, err := newDatabaseWriter(cfg)
 	if err != nil {
@@ -51,14 +52,14 @@ func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSear
 
 	esdb := &elasticSearchDatabase{
 		dbClient:    es,
-		marshalizer: arguments.marshalizer,
-		hasher:      arguments.hasher,
+		marshalizer: arguments.Marshalizer,
+		hasher:      arguments.Hasher,
 	}
 	esdb.txDatabaseProcessor = newTxDatabaseProcessor(
-		arguments.hasher,
-		arguments.marshalizer,
-		arguments.addressPubkeyConverter,
-		arguments.validatorPubkeyConverter,
+		arguments.Hasher,
+		arguments.Marshalizer,
+		arguments.AddressPubkeyConverter,
+		arguments.ValidatorPubkeyConverter,
 	)
 
 	err = esdb.createIndexes()
@@ -189,6 +190,7 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 		TxCount:               header.GetTxCount(),
 		StateRootHash:         hex.EncodeToString(header.GetRootHash()),
 		PrevHash:              hex.EncodeToString(header.GetPrevHash()),
+		SearchOrder:           esd.computeBlockSearchOrder(header),
 	}
 
 	if header.GetNonce() == 0 {
@@ -288,7 +290,7 @@ func (esd *elasticSearchDatabase) getMiniblocks(header data.HeaderHandler, body 
 			mb.ReceiverBlockHash = encodedHeaderHash
 		}
 
-		if mb.SenderShardID == mb.ReceiverShardID {
+		if mb.SenderShardID == mb.ReceiverShardID || mb.ReceiverShardID == core.AllShardId {
 			mb.ReceiverBlockHash = encodedHeaderHash
 		}
 
@@ -449,3 +451,17 @@ func (esd *elasticSearchDatabase) foundedObjMap(hashes []string, index string) (
 
 	return getDecodedResponseMultiGet(response), nil
 }
+
+func (esd *elasticSearchDatabase) computeBlockSearchOrder(header data.HeaderHandler) uint32 {
+	shardIdentifier := esd.txDatabaseProcessor.createShardIdentifier(header.GetShardID())
+	stringOrder := fmt.Sprintf("%d%d", shardIdentifier, header.GetNonce())
+
+	order, err := strconv.ParseUint(stringOrder, 10, 32)
+	if err != nil {
+		log.Debug("elasticsearchDatabase.computeBlockSearchOrder", "could not set uint32 search order", err.Error())
+		return 0
+	}
+
+	return uint32(order)
+}
+

@@ -31,6 +31,7 @@ func TestScDeploy(t *testing.T) {
 	builtinEnableEpoch := uint32(0)
 	deployEnableEpoch := uint32(1)
 	relayedTxEnableEpoch := uint32(0)
+	penalizedTooMuchGasEnableEpoch := uint32(0)
 	roundsPerEpoch := uint64(10)
 
 	shardNode := integrationTests.NewTestProcessorNodeSoftFork(
@@ -41,6 +42,7 @@ func TestScDeploy(t *testing.T) {
 		builtinEnableEpoch,
 		deployEnableEpoch,
 		relayedTxEnableEpoch,
+		penalizedTooMuchGasEnableEpoch,
 	)
 	shardNode.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 
@@ -52,6 +54,7 @@ func TestScDeploy(t *testing.T) {
 		builtinEnableEpoch,
 		deployEnableEpoch,
 		relayedTxEnableEpoch,
+		penalizedTooMuchGasEnableEpoch,
 	)
 	metaNode.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 

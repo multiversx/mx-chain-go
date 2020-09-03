@@ -13,6 +13,13 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
+// ArgCreateFileArgument will hold the arguments for a new file creation method call
+type ArgCreateFileArgument struct {
+	Directory     string
+	Prefix        string
+	FileExtension string
+}
+
 // OpenFile method opens the file from given path - does not close the file
 func OpenFile(relativePath string) (*os.File, error) {
 	path, err := filepath.Abs(relativePath)
@@ -103,8 +110,8 @@ func LoadJsonFile(dest interface{}, relativePath string) error {
 }
 
 // CreateFile opens or creates a file relative to the default path
-func CreateFile(prefix string, subfolder string, fileExtension string) (*os.File, error) {
-	absPath, err := filepath.Abs(subfolder)
+func CreateFile(arg ArgCreateFileArgument) (*os.File, error) {
+	absPath, err := filepath.Abs(arg.Directory)
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +123,12 @@ func CreateFile(prefix string, subfolder string, fileExtension string) (*os.File
 
 	fileName := time.Now().Format("2006-01-02T15-04-05")
 	fileName = strings.Replace(fileName, "T", "-", 1)
-	if prefix != "" {
-		fileName = prefix + "-" + fileName
+	if arg.Prefix != "" {
+		fileName = arg.Prefix + "-" + fileName
 	}
 
 	return os.OpenFile(
-		filepath.Join(absPath, fileName+"."+fileExtension),
+		filepath.Join(absPath, fileName+"."+arg.FileExtension),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
 		FileModeUserReadWrite)
 }

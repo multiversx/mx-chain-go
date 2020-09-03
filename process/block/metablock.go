@@ -84,34 +84,34 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	genesisHdr := arguments.BlockChain.GetGenesisHeader()
 	base := &baseProcessor{
-		accountsDB:             arguments.AccountsDB,
-		blockSizeThrottler:     arguments.BlockSizeThrottler,
-		forkDetector:           arguments.ForkDetector,
-		hasher:                 arguments.Hasher,
-		marshalizer:            arguments.Marshalizer,
-		store:                  arguments.Store,
-		shardCoordinator:       arguments.ShardCoordinator,
-		feeHandler:             arguments.FeeHandler,
-		nodesCoordinator:       arguments.NodesCoordinator,
-		uint64Converter:        arguments.Uint64Converter,
-		requestHandler:         arguments.RequestHandler,
-		appStatusHandler:       statusHandler.NewNilStatusHandler(),
-		blockChainHook:         arguments.BlockChainHook,
-		txCoordinator:          arguments.TxCoordinator,
-		epochStartTrigger:      arguments.EpochStartTrigger,
-		headerValidator:        arguments.HeaderValidator,
-		rounder:                arguments.Rounder,
-		bootStorer:             arguments.BootStorer,
-		blockTracker:           arguments.BlockTracker,
-		dataPool:               arguments.DataPool,
-		blockChain:             arguments.BlockChain,
-		stateCheckpointModulus: arguments.StateCheckpointModulus,
-		indexer:                arguments.Indexer,
-		tpsBenchmark:           arguments.TpsBenchmark,
-		genesisNonce:           genesisHdr.GetNonce(),
-		version:                core.TrimSoftwareVersion(arguments.Version),
-		historyRepo:            arguments.HistoryRepository,
-		epochNotifier:          arguments.EpochNotifier,
+		accountsDB:              arguments.AccountsDB,
+		blockSizeThrottler:      arguments.BlockSizeThrottler,
+		forkDetector:            arguments.ForkDetector,
+		hasher:                  arguments.Hasher,
+		marshalizer:             arguments.Marshalizer,
+		store:                   arguments.Store,
+		shardCoordinator:        arguments.ShardCoordinator,
+		feeHandler:              arguments.FeeHandler,
+		nodesCoordinator:        arguments.NodesCoordinator,
+		uint64Converter:         arguments.Uint64Converter,
+		requestHandler:          arguments.RequestHandler,
+		appStatusHandler:        statusHandler.NewNilStatusHandler(),
+		blockChainHook:          arguments.BlockChainHook,
+		txCoordinator:           arguments.TxCoordinator,
+		epochStartTrigger:       arguments.EpochStartTrigger,
+		headerValidator:         arguments.HeaderValidator,
+		rounder:                 arguments.Rounder,
+		bootStorer:              arguments.BootStorer,
+		blockTracker:            arguments.BlockTracker,
+		dataPool:                arguments.DataPool,
+		blockChain:              arguments.BlockChain,
+		stateCheckpointModulus:  arguments.StateCheckpointModulus,
+		indexer:                 arguments.Indexer,
+		tpsBenchmark:            arguments.TpsBenchmark,
+		genesisNonce:            genesisHdr.GetNonce(),
+		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
+		historyRepo:             arguments.HistoryRepository,
+		epochNotifier:           arguments.EpochNotifier,
 	}
 
 	mp := metaProcessor{
@@ -641,6 +641,7 @@ func (mp *metaProcessor) CreateBlock(
 
 	mp.epochStartTrigger.Update(initialHdr.GetRound(), initialHdr.GetNonce())
 	metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
+	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch))
 	mp.epochNotifier.CheckEpoch(metaHdr.GetEpoch())
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
 
@@ -1036,7 +1037,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.commitEpochStart(header, body)
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
-	mp.saveBody(body)
+	mp.saveBody(body, header)
 
 	err = mp.commitAll()
 	if err != nil {
@@ -1097,9 +1098,10 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
-	mp.tpsBenchmark.Update(header)
+	mp.tpsBenchmark.Update(lastMetaBlock)
+
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
-	mp.saveHistoryData(headerHash, headerHandler, bodyHandler)
+	go mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce)
@@ -1983,7 +1985,6 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) data.Header
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		DeveloperFees:          big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
-		SoftwareVersion:        []byte(mp.version),
 	}
 
 	mp.epochStartTrigger.Update(round, nonce)

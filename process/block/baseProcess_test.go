@@ -202,6 +202,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
 	return store
 }
 
@@ -308,16 +309,16 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 					return nil
 				},
 			},
-			DataPool:           initDataPool([]byte("")),
-			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			BlockChain:         blkc,
-			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
-			Indexer:            &mock.IndexerMock{},
-			TpsBenchmark:       &testscommon.TpsBenchmarkMock{},
-			Version:            "softwareVersion",
-			HistoryRepository:  &mock.HistoryRepositoryStub{},
-			EpochNotifier:      &mock.EpochNotifierStub{},
-			OutportDriver:      outport.NewDisabledOutportDriver(),
+			DataPool:                initDataPool([]byte("")),
+			BlockTracker:            mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
+			BlockChain:              blkc,
+			BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
+			Indexer:                 &mock.IndexerMock{},
+			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
+			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
+			EpochNotifier:           &mock.EpochNotifierStub{},
+			OutportDriver:           outport.NewDisabledOutportDriver(),
 		},
 	}
 

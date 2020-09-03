@@ -138,6 +138,7 @@ type TransactionCoordinator interface {
 
 	CreateReceiptsHash() ([]byte, error)
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
+	CreateMarshalizedReceipts() ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -451,6 +452,7 @@ type TopicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+	ID() core.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -541,7 +543,8 @@ type FeeHandler interface {
 	DeveloperPercentage() float64
 	MaxGasLimitPerBlock(shardID uint32) uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
-	ComputeFee(tx TransactionWithFeeHandler) *big.Int
+	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
+	ComputeTxFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
 	MinGasPrice() uint64
 	IsInterfaceNil() bool
@@ -652,10 +655,11 @@ type InterceptedHeaderSigVerifier interface {
 	IsInterfaceNil() bool
 }
 
-// InterceptedHeaderIntegrityVerifier is the interface needed at interceptors level to check that a header's integrity
+// HeaderIntegrityVerifier is the interface needed to check that a header's integrity
 // is correct
-type InterceptedHeaderIntegrityVerifier interface {
+type HeaderIntegrityVerifier interface {
 	Verify(header data.HeaderHandler) error
+	GetVersion(epoch uint32) string
 	IsInterfaceNil() bool
 }
 
@@ -684,6 +688,7 @@ type BlockTracker interface {
 	IsShardStuck(shardID uint32) bool
 	RegisterCrossNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterFinalMetachainHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeaders()
 	RestoreToGenesis()
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool

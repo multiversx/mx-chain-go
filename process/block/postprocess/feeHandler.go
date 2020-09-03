@@ -65,10 +65,16 @@ func (f *feeHandler) ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHas
 	}
 
 	f.mut.Lock()
-	fee := &feeData{
-		cost:   big.NewInt(0).Set(cost),
-		devFee: big.NewInt(0).Set(devFee),
+	fee, ok := f.mapHashFee[string(txHash)]
+	if !ok {
+		fee = &feeData{
+			cost:   big.NewInt(0),
+			devFee: big.NewInt(0),
+		}
 	}
+
+	fee.cost.Add(fee.cost, cost)
+	fee.devFee.Add(fee.devFee, devFee)
 
 	f.mapHashFee[string(txHash)] = fee
 	f.accumulatedFees.Add(f.accumulatedFees, cost)

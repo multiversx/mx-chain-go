@@ -1,9 +1,11 @@
 package logs
 
 import (
+	"bytes"
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gorilla/websocket"
@@ -92,6 +94,10 @@ func (ls *logSender) waitForProfile() error {
 	_, message, err := ls.conn.ReadMessage()
 	if err != nil {
 		return err
+	}
+
+	if bytes.Equal(message, []byte(core.DefaultLogProfileIdentifier)) {
+		return nil
 	}
 
 	profile, err := logger.UnmarshalProfile(message)

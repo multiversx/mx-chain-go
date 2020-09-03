@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 // NewTestProcessorNodeWithStateCheckpointModulus creates a new testNodeProcessor with custom state checkpoint modulus
@@ -66,10 +67,10 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		Messenger:               messenger,
 		NodesCoordinator:        nodesCoordinator,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
 		MinTransactionVersion:   MinTransactionVersion,
-		HistoryRepository:       &mock.HistoryRepositoryStub{},
+		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 	tpn.NodesSetup = nodesSetup

@@ -31,8 +31,13 @@ func (fh *FeeHandler) ComputeGasLimit(_ process.TransactionWithFeeHandler) uint6
 	return 0
 }
 
-// ComputeFee returns 0
-func (fh *FeeHandler) ComputeFee(_ process.TransactionWithFeeHandler) *big.Int {
+// ComputeMoveBalanceFee returns 0
+func (fh *FeeHandler) ComputeMoveBalanceFee(_ process.TransactionWithFeeHandler) *big.Int {
+	return big.NewInt(0)
+}
+
+// ComputeTxFee returns 0
+func (fh *FeeHandler) ComputeTxFee(_ process.TransactionWithFeeHandler) *big.Int {
 	return big.NewInt(0)
 }
 

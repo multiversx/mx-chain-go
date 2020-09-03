@@ -16,14 +16,19 @@ func TestTomlParser(t *testing.T) {
 	txBlockBodyStorageFile := "path1/file1"
 	txBlockBodyStorageTypeDB := "type2"
 
+	receiptsStorageSize := 171
+	receiptsStorageType := "type3"
+	receiptsStorageFile := "path1/file2"
+	receiptsStorageTypeDB := "type4"
+
 	logsPath := "pathLogger"
 	logsStackDepth := 1010
 
-	accountsStorageSize := 171
-	accountsStorageType := "type3"
-	accountsStorageFile := "path2/file2"
-	accountsStorageTypeDB := "type4"
-	accountsStorageBlomSize := 172
+	accountsStorageSize := 172
+	accountsStorageType := "type5"
+	accountsStorageFile := "path2/file3"
+	accountsStorageTypeDB := "type6"
+	accountsStorageBlomSize := 173
 	accountsStorageBlomHash1 := "hashFunc1"
 	accountsStorageBlomHash2 := "hashFunc2"
 	accountsStorageBlomHash3 := "hashFunc3"
@@ -45,6 +50,16 @@ func TestTomlParser(t *testing.T) {
 				Type:     txBlockBodyStorageTypeDB,
 			},
 		},
+		ReceiptsStorage: StorageConfig{
+			Cache: CacheConfig{
+				Capacity: uint32(receiptsStorageSize),
+				Type:     receiptsStorageType,
+			},
+			DB: DBConfig{
+				FilePath: receiptsStorageFile,
+				Type:     receiptsStorageTypeDB,
+			},
+		},
 		AccountsTrieStorage: StorageConfig{
 			Cache: CacheConfig{
 				Capacity: uint32(accountsStorageSize),
@@ -55,7 +70,7 @@ func TestTomlParser(t *testing.T) {
 				Type:     accountsStorageTypeDB,
 			},
 			Bloom: BloomFilterConfig{
-				Size:     172,
+				Size:     173,
 				HashFunc: []string{accountsStorageBlomHash1, accountsStorageBlomHash2, accountsStorageBlomHash3},
 			},
 		},
@@ -79,6 +94,14 @@ func TestTomlParser(t *testing.T) {
     [MiniBlocksStorage.DB]
         FilePath = "` + txBlockBodyStorageFile + `"
         Type = "` + txBlockBodyStorageTypeDB + `"
+
+[ReceiptsStorage]
+    [ReceiptsStorage.Cache]
+        Capacity = ` + strconv.Itoa(receiptsStorageSize) + `
+        Type = "` + receiptsStorageType + `"
+    [ReceiptsStorage.DB]
+        FilePath = "` + receiptsStorageFile + `"
+        Type = "` + receiptsStorageTypeDB + `"
 
 [Logger]
     Path = "` + logsPath + `"

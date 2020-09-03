@@ -44,6 +44,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		BuiltInFunctionsEnableEpoch:    0,
 		SCDeployEnableEpoch:            0,
 		RelayedTransactionsEnableEpoch: 0,
+		PenalizedTooMuchGasEnableEpoch: 0,
 	}
 	processors, err := createProcessorsForMetaGenesisBlock(arg, genesisOverrideConfig)
 	if err != nil {
@@ -173,8 +174,14 @@ func saveGenesisMetaToStorage(
 ) error {
 
 	epochStartID := core.EpochStartIdentifier(genesisBlock.GetEpoch())
+
 	metaHdrStorage := storageService.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
+		return process.ErrNilStorage
+	}
+
+	triggerStorage := storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if check.IfNil(triggerStorage) {
 		return process.ErrNilStorage
 	}
 
@@ -184,6 +191,11 @@ func saveGenesisMetaToStorage(
 	}
 
 	err = metaHdrStorage.Put([]byte(epochStartID), marshaledData)
+	if err != nil {
+		return err
+	}
+
+	err = triggerStorage.Put([]byte(epochStartID), marshaledData)
 	if err != nil {
 		return err
 	}
@@ -277,25 +289,27 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	argsParser := smartContract.NewArgumentParser()
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:        vmContainer,
-		ArgsParser:         argsParser,
-		Hasher:             arg.Hasher,
-		Marshalizer:        arg.Marshalizer,
-		AccountsDB:         arg.Accounts,
-		BlockChainHook:     virtualMachineFactory.BlockChainHookImpl(),
-		PubkeyConv:         arg.PubkeyConv,
-		Coordinator:        arg.ShardCoordinator,
-		ScrForwarder:       scForwarder,
-		TxFeeHandler:       genesisFeeHandler,
-		EconomicsFee:       genesisFeeHandler,
-		TxTypeHandler:      txTypeHandler,
-		GasHandler:         gasHandler,
-		BuiltInFunctions:   virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:    arg.TxLogsProcessor,
-		BadTxForwarder:     badTxForwarder,
-		EpochNotifier:      epochNotifier,
-		DeployEnableEpoch:  generalConfig.SCDeployEnableEpoch,
-		BuiltinEnableEpoch: generalConfig.BuiltInFunctionsEnableEpoch,
+		VmContainer:                    vmContainer,
+		ArgsParser:                     argsParser,
+		Hasher:                         arg.Hasher,
+		Marshalizer:                    arg.Marshalizer,
+		AccountsDB:                     arg.Accounts,
+		BlockChainHook:                 virtualMachineFactory.BlockChainHookImpl(),
+		PubkeyConv:                     arg.PubkeyConv,
+		Coordinator:                    arg.ShardCoordinator,
+		ScrForwarder:                   scForwarder,
+		TxFeeHandler:                   genesisFeeHandler,
+		EconomicsFee:                   genesisFeeHandler,
+		TxTypeHandler:                  txTypeHandler,
+		GasHandler:                     gasHandler,
+		GasSchedule:                    arg.GasMap,
+		BuiltInFunctions:               virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:                arg.TxLogsProcessor,
+		BadTxForwarder:                 badTxForwarder,
+		EpochNotifier:                  epochNotifier,
+		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

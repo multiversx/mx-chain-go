@@ -183,3 +183,15 @@ var ErrNilHistoryRepository = errors.New("history repository is nil")
 
 // ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
 var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")
+
+// ErrNilTxSimulatorProcessor signals that a nil transaction simulator processor has been provided
+var ErrNilTxSimulatorProcessor = errors.New("nil transaction simulator processor")
+
+// ErrNilIntermediateProcessorContainer signals that intermediate processors container is nil
+var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor container is nil")
+
+// ErrTransactionNotFound signals that a transaction was not found
+var ErrTransactionNotFound = errors.New("transaction not found")
+
+// ErrCannotRetrieveTransaction signals that a transaction was not found
+var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")

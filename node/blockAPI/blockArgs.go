@@ -1,7 +1,7 @@
 package blockAPI
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -14,6 +14,6 @@ type APIBlockProcessorArg struct {
 	Store                    dataRetriever.StorageService
 	Marshalizer              marshal.Marshalizer
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	HistoryRepo              fullHistory.HistoryRepository
-	UnmarshalTx              func(txBytes []byte, txType string) (*transaction.ApiTransactionResult, error)
+	HistoryRepo              dblookupext.HistoryRepository
+	UnmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 }

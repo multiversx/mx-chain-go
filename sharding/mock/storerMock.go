@@ -29,6 +29,11 @@ func (sm *StorerMock) Put(key, data []byte) error {
 	return nil
 }
 
+// PutInEpoch -
+func (sm *StorerMock) PutInEpoch(key, data []byte, _ uint32) error {
+	return sm.Put(key, data)
+}
+
 // Get -
 func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 	sm.mut.Lock()
