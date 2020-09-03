@@ -1276,6 +1276,10 @@ func isNumArgsCorrectToStake(args [][]byte) bool {
 }
 
 func (s *stakingAuctionSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.AddReturnMessage("transaction value must be zero")
+		return vmcommon.UserError
+	}
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Get)
 	if err != nil {
 		s.eei.AddReturnMessage("insufficient gas limit")

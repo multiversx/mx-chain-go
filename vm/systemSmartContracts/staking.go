@@ -1115,7 +1115,12 @@ func (r *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.UserError
 }
 
-func (r *stakingSC) getWaitingListSize(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (r *stakingSC) getWaitingListSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		r.eei.AddReturnMessage("transaction value must be zero")
+		return vmcommon.UserError
+	}
+
 	err := r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Get)
 	if err != nil {
 		r.eei.AddReturnMessage("insufficient gas")
@@ -1133,6 +1138,11 @@ func (r *stakingSC) getWaitingListSize(_ *vmcommon.ContractCallInput) vmcommon.R
 }
 
 func (r *stakingSC) getRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		r.eei.AddReturnMessage("transaction value must be zero")
+		return vmcommon.UserError
+	}
+
 	stakedData, returnCode := r.getStakedDataIfExists(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
@@ -1166,6 +1176,11 @@ func (r *stakingSC) getStakedDataIfExists(args *vmcommon.ContractCallInput) (*St
 }
 
 func (r *stakingSC) getStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		r.eei.AddReturnMessage("transaction value must be zero")
+		return vmcommon.UserError
+	}
+
 	stakedData, returnCode := r.getStakedDataIfExists(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
@@ -1189,6 +1204,11 @@ func (r *stakingSC) getStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 }
 
 func (r *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		r.eei.AddReturnMessage("transaction value must be zero")
+		return vmcommon.UserError
+	}
+
 	stakedData, returnCode := r.getStakedDataIfExists(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
