@@ -256,13 +256,12 @@ func checkUserNamesAreSetCorrectly(
 			acnt, _ := node.AccntState.GetExistingAccount(player.Address)
 			userAcc, _ := acnt.(state.UserAccountHandler)
 
-			hashedUserName := keccak.Keccak{}.Compute(userNames[i])
-			assert.Equal(t, hashedUserName, userAcc.GetUserName())
+			assert.Equal(t, userNames[i], string(userAcc.GetUserName()))
 
 			bech32c := integrationTests.TestAddressPubkeyConverter
 			usernameReportedByNode, err := node.Node.GetUsername(bech32c.Encode(player.Address))
 			require.NoError(t, err)
-			require.Equal(t, string(hashedUserName), usernameReportedByNode)
+			require.Equal(t, userNames[i], usernameReportedByNode)
 		}
 
 		dnsAddress := selectDNSAddressFromUserName(sortedDNSAddresses, userNames[i])

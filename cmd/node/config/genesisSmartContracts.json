@@ -13,6 +13,6 @@
     "vm-type": "0500",
     "init-parameters": "00",
     "type": "dns",
-    "version": "0.2.*"
+    "version": "0.3.*"
   }
 ]
