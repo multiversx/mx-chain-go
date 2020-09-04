@@ -261,7 +261,9 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	require.Nil(t, err)
 
 	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
-	require.Equal(t, parseError, GetLatestTestError(sc))
+
+	scrs := GetAllSCRs(sc)
+	require.Equal(t, parseError.Error(), string(scrs[0].GetData()))
 	require.Equal(t, vmcommon.UserError, returnCode)
 	require.Equal(t, uint64(1), acntSrc.GetNonce())
 	require.True(t, acntSrc.GetBalance().Cmp(tx.Value) == 0)
@@ -302,7 +304,8 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	}
 
 	_, _ = sc.DeploySmartContract(tx, acntSrc)
-	require.Equal(t, createError, GetLatestTestError(sc))
+	scrs := GetAllSCRs(sc)
+	require.Equal(t, createError.Error(), string(scrs[0].GetData()))
 }
 
 func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
@@ -2217,4 +2220,8 @@ func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T
 	sc.EpochConfirmed(1)
 	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
 	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
+}
+
+func TestSCProcessor_createSCRWhenError(t *testing.T) {
+
 }

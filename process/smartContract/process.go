@@ -507,12 +507,7 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
-	scrIfError, consumedFee := sc.createSCRsWhenError(txHash, tx, returnCode, returnMessage)
-	if check.IfNil(acntSnd) {
-		moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
-		consumedFee.Sub(consumedFee, moveBalanceCost)
-	}
-
+	scrIfError, consumedFee := sc.createSCRsWhenError(acntSnd, txHash, tx, returnCode, returnMessage)
 	err = sc.addBackTxValues(acntSnd, scrIfError, tx)
 	if err != nil {
 		return err
@@ -891,13 +886,13 @@ func isTooMuchGasProvided(gasProvided uint64, gasRemained uint64) bool {
 }
 
 func (sc *scProcessor) createSCRsWhenError(
+	acntSnd state.UserAccountHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
 	returnMessage []byte,
 ) (*smartContractResult.SmartContractResult, *big.Int) {
 	rcvAddress := tx.GetSndAddr()
-
 	callType := determineCallType(tx)
 	if callType == vmcommon.AsynchronousCallBack {
 		rcvAddress = tx.GetRcvAddr()
@@ -915,21 +910,27 @@ func (sc *scProcessor) createSCRsWhenError(
 	consumedFee := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	if !sc.flagDeploy.IsSet() {
 		scr.Data = []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash))
+		if check.IfNil(acntSnd) {
+			moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
+			consumedFee.Sub(consumedFee, moveBalanceCost)
+		}
 	} else {
 		if callType == vmcommon.AsynchronousCall {
 			scr.CallType = vmcommon.AsynchronousCallBack
 			scr.GasPrice = tx.GetGasPrice()
 
-			moveBalanceGas := sc.economicsFee.ComputeGasLimit(tx)
 			gasToLock := sc.asyncCallStepCost + sc.asyncCallbackGasLock
-
-			if tx.GetGasLimit() >= moveBalanceGas+gasToLock {
+			if tx.GetGasLimit() >= gasToLock {
 				scr.GasLimit = gasToLock
-				consumedFee = core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit()-moveBalanceGas-gasToLock)
+				consumedFee = core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit()-gasToLock)
 			}
 			scr.Data = []byte("@" + core.ConvertToEvenHex(int(vmcommon.UserError)))
 		} else {
 			scr.Data = []byte(returnCode)
+			if check.IfNil(acntSnd) {
+				moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
+				consumedFee.Sub(consumedFee, moveBalanceCost)
+			}
 		}
 	}
 

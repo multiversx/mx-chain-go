@@ -27,8 +27,8 @@ func GetLatestTestError(scProcessorAsInterface interface{}) error {
 
 	for i := len(scResults) - 1; i >= 0; i-- {
 		tx := scResults[i]
-		data := string(tx.GetData())
-		dataTrimmed := strings.Trim(data, "@")
+		txData := string(tx.GetData())
+		dataTrimmed := strings.Trim(txData, "@")
 
 		parts := strings.Split(dataTrimmed, "@")
 		if len(parts) == 0 {
@@ -37,17 +37,32 @@ func GetLatestTestError(scProcessorAsInterface interface{}) error {
 
 		returnCodeHex := parts[0]
 		returnCode, err := hex.DecodeString(returnCodeHex)
-		if err != nil {
-			return nil
+		if err == nil {
+			returnCodeAsString := string(returnCode)
+			if returnCodeAsString == "ok" || returnCodeAsString == "" {
+				return nil
+			}
 		}
 
-		returnCodeAsString := string(returnCode)
-		if returnCodeAsString == "ok" || returnCodeAsString == "" {
-			return nil
-		}
-
-		return fmt.Errorf(string(returnCode))
+		return fmt.Errorf(returnCodeHex)
 	}
 
 	return nil
+}
+
+// GetAllSCRs returns all generated scrs
+func GetAllSCRs(scProcessorAsInterface interface{}) []data.TransactionHandler {
+	scProc, ok := scProcessorAsInterface.(*scProcessor)
+	if !ok {
+		return nil
+	}
+
+	scrProvider, ok := scProc.scrForwarder.(interface {
+		GetIntermediateTransactions() []data.TransactionHandler
+	})
+	if !ok {
+		return nil
+	}
+
+	return scrProvider.GetIntermediateTransactions()
 }
