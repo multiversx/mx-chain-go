@@ -66,6 +66,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		EpochHandler:        &mock.EpochStartTriggerStub{},
 		MiniblocksProvider:  &mock.MiniBlocksProviderStub{},
 		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
+		AppStatusHandler:    &mock.AppStatusHandlerStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -116,6 +117,18 @@ func TestNewMetaBootstrap_NilStoreShouldErr(t *testing.T) {
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilStore, err)
+}
+
+func TestNewMetaBootstrap_NilAppStatusHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.AppStatusHandler = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilAppStatusHandler, err)
 }
 
 func TestNewMetaBootstrap_NilBlockchainShouldErr(t *testing.T) {
@@ -1406,21 +1419,4 @@ func TestMetaBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	wg.Wait()
 
 	assert.Equal(t, 3, calls)
-}
-
-func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := CreateMetaBootstrapMockArguments()
-
-	pools := createMockPools()
-	pools.HeadersCalled = func() dataRetriever.HeadersPool {
-		return &mock.HeadersCacherStub{}
-	}
-	args.PoolsHolder = pools
-
-	bs, _ := sync.NewMetaBootstrap(args)
-	err := bs.SetStatusHandler(nil)
-
-	assert.Equal(t, process.ErrNilAppStatusHandler, err)
 }

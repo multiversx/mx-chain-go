@@ -305,7 +305,6 @@ type Bootstrapper interface {
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() core.NodeState
 	StartSyncingBlocks()
-	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 

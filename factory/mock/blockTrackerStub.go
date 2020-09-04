@@ -2,7 +2,6 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -11,8 +10,8 @@ type BlockTrackerStub struct {
 	AddTrackedHeaderCalled                            func(header data.HeaderHandler, hash []byte)
 	AddCrossNotarizedHeaderCalled                     func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
 	AddSelfNotarizedHeaderCalled                      func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
-	CheckBlockAgainstFinalCalled                      func(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRounderCalled                    func(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstFinalCalled                      func(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstWhitelistCalled                  func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                   func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChainCalled                         func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
@@ -165,11 +164,11 @@ func (bts *BlockTrackerStub) GetLastSelfNotarizedHeader(shardID uint32) (data.He
 
 // GetSelfNotarizedHeader -
 func (bts *BlockTrackerStub) GetSelfNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
-	if bts.GetSelfNotarizedHeaderCalled != nil {
-		return bts.GetSelfNotarizedHeaderCalled(shardID, offset)
+	if bts.GetCrossNotarizedHeaderCalled != nil {
+		return bts.GetCrossNotarizedHeaderCalled(shardID, offset)
 	}
 
-	return &block.MetaBlock{}, []byte("hash"), nil
+	return nil, nil, nil
 }
 
 // GetTrackedHeaders -

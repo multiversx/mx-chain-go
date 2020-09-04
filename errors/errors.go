@@ -45,7 +45,7 @@ var ErrMissingMultiHasherConfig = errors.New("no multisig hasher provided in con
 var ErrMultiSigHasherMissmatch = errors.New("wrong multisig hasher provided for bls consensus type")
 
 // ErrNilAccountsAdapter signals that a nil accounts adapter has been provided
-var ErrNilAccountsAdapter = errors.New("trying to set nil accounts adapter")
+var ErrNilAccountsAdapter = errors.New("nil accounts adapter")
 
 // ErrNilAccountsParser signals that a nil accounts parser has been provided
 var ErrNilAccountsParser = errors.New("nil accounts parser")
@@ -244,9 +244,6 @@ var ErrNilNetworkComponents = errors.New("nil network components")
 
 // ErrNilNetworkComponentsHolder signals that a nil network components holder was provided
 var ErrNilNetworkComponentsHolder = errors.New("nil network components holder")
-
-// ErrNilNetworkMessenger signals that a nil network messenger was provided
-var ErrNilNetworkMessenger = errors.New("nil network messenger")
 
 // ErrNilNodesConfig signals that a nil nodes configuration was provided
 var ErrNilNodesConfig = errors.New("nil nodes config")
@@ -466,3 +463,6 @@ var ErrNewEpochStartBootstrap = errors.New("epochStartBootstrap creation has fai
 
 // ErrBootstrap signals the bootstrapping process has failed
 var ErrBootstrap = errors.New("bootstrap process has failed")
+
+// ErrNilDataPoolsHolder signals that a nil data pools holder was provided
+var ErrNilDataPoolsHolder = errors.New("nil data pools holder")

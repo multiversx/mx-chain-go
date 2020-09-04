@@ -2,23 +2,16 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/factory"
 )
-
-// MiniBlockProvider defines what a miniblock data provider should do
-type MiniBlockProvider interface {
-	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
-	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
-	IsInterfaceNil() bool
-}
 
 // DataComponentsMock -
 type DataComponentsMock struct {
 	Storage           dataRetriever.StorageService
 	Blkc              data.ChainHandler
 	DataPool          dataRetriever.PoolsHolder
-	MiniBlockProvider MiniBlockProvider
+	MiniBlockProvider factory.MiniBlockProvider
 }
 
 // StorageService -
@@ -46,7 +39,7 @@ func (dcm *DataComponentsMock) Datapool() dataRetriever.PoolsHolder {
 }
 
 // MiniBlocksProvider -
-func (dcm *DataComponentsMock) MiniBlocksProvider() MiniBlockProvider {
+func (dcm *DataComponentsMock) MiniBlocksProvider() factory.MiniBlockProvider {
 	return dcm.MiniBlockProvider
 }
 

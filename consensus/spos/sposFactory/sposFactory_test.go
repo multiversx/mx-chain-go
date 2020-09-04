@@ -178,6 +178,27 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	assert.NotNil(t, bm)
 }
 
+func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	headersSubscriber := &mock.HeadersCacherStub{}
+	interceptosContainer := &mock.InterceptorsContainerStub{}
+
+	bm, err := sposFactory.GetBroadcastMessenger(
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		headersSubscriber,
+		interceptosContainer,
+	)
+
+	assert.Nil(t, bm)
+	assert.Equal(t, spos.ErrNilShardCoordinator, err)
+}
+
 func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 

@@ -9,7 +9,6 @@ import (
 
 // AccountsStub -
 type AccountsStub struct {
-	AddJournalEntryCalled    func(je state.JournalEntry)
 	GetExistingAccountCalled func(addressContainer []byte) (state.AccountHandler, error)
 	LoadAccountCalled        func(container []byte) (state.AccountHandler, error)
 	SaveAccountCalled        func(account state.AccountHandler) error
@@ -42,7 +41,7 @@ func (as *AccountsStub) LoadAccount(address []byte) (state.AccountHandler, error
 	if as.LoadAccountCalled != nil {
 		return as.LoadAccountCalled(address)
 	}
-	return nil, errNotImplemented
+	return nil, nil
 }
 
 // SaveAccount -
@@ -62,13 +61,6 @@ func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error)
 }
 
 var errNotImplemented = errors.New("not implemented")
-
-// AddJournalEntry -
-func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {
-	if as.AddJournalEntryCalled != nil {
-		as.AddJournalEntryCalled(je)
-	}
-}
 
 // Commit -
 func (as *AccountsStub) Commit() ([]byte, error) {
@@ -112,7 +104,7 @@ func (as *AccountsStub) RevertToSnapshot(snapshot int) error {
 		return as.RevertToSnapshotCalled(snapshot)
 	}
 
-	return nil
+	return errNotImplemented
 }
 
 // RootHash -
@@ -135,9 +127,7 @@ func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 
 // PruneTrie -
 func (as *AccountsStub) PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier) {
-	if as.PruneTrieCalled != nil {
-		as.PruneTrieCalled(rootHash, identifier)
-	}
+	as.PruneTrieCalled(rootHash, identifier)
 }
 
 // CancelPrune -
