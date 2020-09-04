@@ -2223,5 +2223,53 @@ func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T
 }
 
 func TestSCProcessor_createSCRWhenError(t *testing.T) {
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
 
+	acntSnd := &mock.UserAccountStub{}
+	scr, consumedFee := sc.createSCRsWhenError(nil, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"))
+	assert.Equal(t, uint64(0), scr.GasLimit)
+	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
+	assert.Equal(t, "string", string(scr.Data))
+
+	scr, consumedFee = sc.createSCRsWhenError(acntSnd, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"))
+	assert.Equal(t, uint64(0), scr.GasLimit)
+	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
+	assert.Equal(t, "string", string(scr.Data))
+
+	scr, consumedFee = sc.createSCRsWhenError(
+		acntSnd,
+		[]byte("txHash"),
+		&smartContractResult.SmartContractResult{CallType: vmcommon.AsynchronousCall},
+		"string",
+		[]byte("msg"))
+	assert.Equal(t, uint64(0), scr.GasLimit)
+	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
+	assert.Equal(t, "@04", string(scr.Data))
+
+	sc.asyncCallbackGasLock = 10
+	sc.asyncCallStepCost = 10
+	scr, consumedFee = sc.createSCRsWhenError(
+		acntSnd,
+		[]byte("txHash"),
+		&smartContractResult.SmartContractResult{CallType: vmcommon.AsynchronousCall, GasPrice: 1, GasLimit: 100},
+		"string",
+		[]byte("msg"))
+	assert.Equal(t, uint64(1), scr.GasPrice)
+	assert.Equal(t, consumedFee.Cmp(big.NewInt(80)), 0)
+	assert.Equal(t, "@04", string(scr.Data))
+	assert.Equal(t, uint64(20), scr.GasLimit)
+
+	sc.asyncCallbackGasLock = 100
+	sc.asyncCallStepCost = 100
+	scr, consumedFee = sc.createSCRsWhenError(
+		acntSnd,
+		[]byte("txHash"),
+		&smartContractResult.SmartContractResult{CallType: vmcommon.AsynchronousCall, GasPrice: 1, GasLimit: 100},
+		"string",
+		[]byte("msg"))
+	assert.Equal(t, uint64(1), scr.GasPrice)
+	assert.Equal(t, consumedFee.Cmp(big.NewInt(100)), 0)
+	assert.Equal(t, "@04", string(scr.Data))
+	assert.Equal(t, uint64(0), scr.GasLimit)
 }

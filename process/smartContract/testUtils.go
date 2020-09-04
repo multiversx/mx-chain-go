@@ -42,6 +42,7 @@ func GetLatestTestError(scProcessorAsInterface interface{}) error {
 			if returnCodeAsString == "ok" || returnCodeAsString == "" {
 				return nil
 			}
+			return fmt.Errorf(returnCodeAsString)
 		}
 
 		return fmt.Errorf(returnCodeHex)
