@@ -2,6 +2,7 @@ package systemSmartContracts
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"math"
 	"math/big"
@@ -1183,7 +1184,9 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fifthhKey"))
 	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fifthhKey"), vmcommon.UserError)
 
+	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "jailed")
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), []byte{1}, vmcommon.Ok)
+	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "waiting")
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), []byte{1}, vmcommon.Ok)
 
 	waitingList, _ := stakingSmartContract.getWaitingListHead()
@@ -1206,6 +1209,75 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
 	waitingList, _ = stakingSmartContract.getWaitingListHead()
 	assert.Equal(t, 0, len(waitingList.LastJailedKey))
+
+	doGetWaitingListSize(t, stakingSmartContract, eei, 2)
+	doGetRewardAddress(t, stakingSmartContract, eei, []byte("fifthhKey"), string(stakerAddress))
+	doGetStatus(t, stakingSmartContract, eei, []byte("fifthhKey"), "waiting")
+	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "staked")
+
+	stakingSmartContract.unBondPeriod = 100
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 1
+	}
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"), vmcommon.Ok)
+	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, []byte("fourthKey"), 100)
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 50
+	}
+	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, []byte("fourthKey"), 51)
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 101
+	}
+	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, []byte("fourthKey"), 0)
+}
+
+func doGetRewardAddress(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, expectedAddress string) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getRewardAddress"
+	arguments.Arguments = [][]byte{blsKey}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	lastOutput := eei.output[len(eei.output)-1]
+	assert.True(t, bytes.Equal(lastOutput, []byte(hex.EncodeToString([]byte(expectedAddress)))))
+}
+
+func doGetRemainingUnbondPeriod(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, expected int) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getRemainingUnBondPeriod"
+	arguments.Arguments = [][]byte{blsKey}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	lastOutput := eei.output[len(eei.output)-1]
+	assert.True(t, bytes.Equal(lastOutput, []byte(strconv.Itoa(expected))))
+}
+
+func doGetStatus(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, expectedStatus string) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getBLSKeyStatus"
+	arguments.Arguments = [][]byte{blsKey}
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	lastOutput := eei.output[len(eei.output)-1]
+	assert.True(t, bytes.Equal(lastOutput, []byte(expectedStatus)))
+}
+
+func doGetWaitingListSize(t *testing.T, sc *stakingSC, eei *vmContext, expectedSize int) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getWaitingListSize"
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	lastOutput := eei.output[len(eei.output)-1]
+	assert.True(t, bytes.Equal(lastOutput, []byte(strconv.Itoa(expectedSize))))
 }
 
 func doGetWaitingListIndex(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, expectedCode vmcommon.ReturnCode, expectedIndex int) {
