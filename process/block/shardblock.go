@@ -839,6 +839,8 @@ func (sp *shardProcessor) CommitBlock(
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain()
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
+	sp.notifyFinalMetaHdrs(processedMetaHdrs)
+
 	sp.updateState(selfNotarizedHeaders, header)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
@@ -913,6 +915,26 @@ func (sp *shardProcessor) CommitBlock(
 	sp.cleanupPools(headerHandler)
 
 	return nil
+}
+
+func (sp *shardProcessor) notifyFinalMetaHdrs(processedMetaHeaders []data.HeaderHandler) {
+	metaHeaders := make([]data.HeaderHandler, 0)
+	metaHeadersHashes := make([][]byte, 0)
+
+	for _, metaHeader := range processedMetaHeaders {
+		metaHeaderHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, metaHeader)
+		if err != nil {
+			log.Debug("shardProcessor.notifyFinalMetaHdrs", "error", err.Error())
+			continue
+		}
+
+		metaHeaders = append(metaHeaders, metaHeader)
+		metaHeadersHashes = append(metaHeadersHashes, metaHeaderHash)
+	}
+
+	if len(metaHeaders) > 0 {
+		go sp.historyRepo.OnNotarizedBlocks(core.MetachainShardId, metaHeaders, metaHeadersHashes)
+	}
 }
 
 func (sp *shardProcessor) displayPoolsInfo() {
@@ -1311,8 +1333,6 @@ func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 		return err
 	}
 
-	processedMetaHdrsHashes := make([][]byte, len(processedMetaHdrs))
-
 	// processedMetaHdrs is also sorted
 	for i := 0; i < len(processedMetaHdrs); i++ {
 		hdr := processedMetaHdrs[i]
@@ -1330,15 +1350,10 @@ func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 		}
 
 		headerHash := sp.hasher.Compute(string(marshalizedHeader))
-		processedMetaHdrsHashes[i] = headerHash
 
 		sp.saveMetaHeader(hdr, headerHash, marshalizedHeader)
 
 		sp.processedMiniBlocks.RemoveMetaBlockHash(string(headerHash))
-	}
-
-	if len(processedMetaHdrs) > 0 {
-		go sp.historyRepo.OnNotarizedBlocks(core.MetachainShardId, processedMetaHdrs, processedMetaHdrsHashes)
 	}
 
 	return nil
