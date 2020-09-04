@@ -57,6 +57,11 @@ func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 	relayerAccount := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
 	integrationTests.MintAllPlayers(nodes, []*integrationTests.TestWalletAccount{relayerAccount}, initialVal)
 
+	maxGasPerBlock := uint64(1500000000)
+	for _, node := range nodes {
+		node.EconomicsData.SetMaxGasLimitPerBlock(maxGasPerBlock)
+	}
+
 	return nodes, idxProposers, players, relayerAccount, advertiser
 }
 
@@ -234,8 +239,8 @@ func CheckPlayerBalances(
 	players []*integrationTests.TestWalletAccount) {
 	for _, player := range players {
 		userAcc := GetUserAccount(nodes, player.Address)
-		assert.Equal(t, userAcc.GetBalance().Cmp(player.Balance), 0)
-		assert.Equal(t, userAcc.GetNonce(), player.Nonce)
+		assert.Equal(t, player.Balance.String(), userAcc.GetBalance().String())
+		assert.Equal(t, player.Nonce, userAcc.GetNonce())
 	}
 }
 

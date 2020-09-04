@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -225,6 +226,8 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		fmt.Printf("error generating multisigner: %s\n", err)
 		return nil
 	}
+	tpn.BlockSizeComputation, err = preprocess.NewBlockSizeComputation(TestMarshalizer, &mock.BlockSizeThrottlerStub{}, uint32(core.MegabyteSize*90/100))
+	log.LogIfError(err)
 
 	tpn.OwnAccount = &TestWalletAccount{
 		SingleSigner:      createTestSingleSigner(),

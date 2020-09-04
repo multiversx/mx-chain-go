@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 
@@ -63,6 +64,9 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
+	var err error
+	tpn.BlockSizeComputation, err = preprocess.NewBlockSizeComputation(TestMarshalizer, &mock.BlockSizeThrottlerStub{}, uint32(core.MegabyteSize*90/100))
+	log.LogIfError(err)
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
 	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
@@ -246,6 +250,9 @@ func CreateNodeWithBLSAndTxKeys(
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
+	var err error
+	tpn.BlockSizeComputation, err = preprocess.NewBlockSizeComputation(TestMarshalizer, &mock.BlockSizeThrottlerStub{}, uint32(core.MegabyteSize*90/100))
+	log.LogIfError(err)
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
 	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
@@ -511,7 +518,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			Marshalizer:       TestMarshalizer,
 			Hasher:            TestHasher,
 			NodesCoordinator:  nodesCoordinator,
-			MultiSigVerifier:  TestMultiSig,
+			MultiSigVerifier:  mock.NewMultiSigner(1),
 			SingleSigVerifier: signer,
 			KeyGen:            keyGen,
 		}
@@ -610,7 +617,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				Marshalizer:       TestMarshalizer,
 				Hasher:            TestHasher,
 				NodesCoordinator:  nodesCoordinator,
-				MultiSigVerifier:  TestMultiSig,
+				MultiSigVerifier:  mock.NewMultiSigner(1),
 				SingleSigVerifier: singleSigner,
 				KeyGen:            keyGenForBlocks,
 			}

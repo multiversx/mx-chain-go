@@ -58,6 +58,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 			"sender address", interceptedTx.SenderAddress(),
 			"sender shard", interceptedTx.SenderShardId(),
 			"receiver shard", interceptedTx.ReceiverShardId(),
+			"error", err,
 		)
 		return nil
 	}

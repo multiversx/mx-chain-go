@@ -98,9 +98,6 @@ var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32)
 // TestValidatorPubkeyConverter represents an address public key converter
 var TestValidatorPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(96)
 
-// TestMultiSig represents a mock multisig
-var TestMultiSig = mock.NewMultiSigner(1)
-
 // TestKeyGenForAccounts represents a mock key generator for balances
 var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
 
@@ -110,15 +107,6 @@ var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 // TestBuiltinFunctions is an additional map of builtin functions to be added
 // to the scProcessor
 var TestBuiltinFunctions = make(map[string]process.BuiltinFunction)
-
-// TestBlockSizeThrottler represents a block size throttler used in adaptive block size computation
-var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
-
-// TestBlockSizeComputation represents a block size computation handler
-var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize*90/100))
-
-// TestBalanceComputationHandler represents a balance computation handler
-var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
 
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(10)
@@ -231,6 +219,7 @@ type TestProcessorNode struct {
 	WhiteListHandler         process.WhiteListHandler
 	WhiteListerVerifiedTxs   process.WhiteListHandler
 	NetworkShardingCollector consensus.NetworkShardingCollector
+	BlockSizeComputation     preprocess.BlockSizeComputationHandler
 
 	EpochStartTrigger  TestEpochStartTrigger
 	EpochStartNotifier notifier.EpochStartNotifier
@@ -355,12 +344,15 @@ func newBaseTestProcessorNode(
 		HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
+	var err error
+	tpn.BlockSizeComputation, err = preprocess.NewBlockSizeComputation(TestMarshalizer, &mock.BlockSizeThrottlerStub{}, uint32(core.MegabyteSize*90/100))
+	log.LogIfError(err)
 
 	tpn.NodeKeys = &TestKeyPair{
 		Sk: sk,
 		Pk: pk,
 	}
-	tpn.MultiSigner = TestMultiSig
+	tpn.MultiSigner = mock.NewMultiSigner(1)
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.StorageBootstrapper = &mock.StorageBootstrapperMock{}
 	tpn.BootstrapStorer = &mock.BoostrapStorerMock{}
@@ -496,8 +488,11 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		Sk: sk,
 		Pk: pk,
 	}
-	tpn.MultiSigner = TestMultiSig
+	tpn.MultiSigner = mock.NewMultiSigner(1)
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
+	var err error
+	tpn.BlockSizeComputation, err = preprocess.NewBlockSizeComputation(TestMarshalizer, &mock.BlockSizeThrottlerStub{}, uint32(core.MegabyteSize*90/100))
+	log.LogIfError(err)
 
 	tpn.initDataPools()
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
@@ -666,6 +661,7 @@ func (tpn *TestProcessorNode) initRatingsData() {
 // CreateEconomicsData creates a mock EconomicsData object
 func CreateEconomicsData() *economics.EconomicsData {
 	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
+	maxGasLimitPerMetaBlock := strconv.FormatUint(MaxGasLimitPerBlock*10, 10)
 	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
 	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
 
@@ -688,7 +684,7 @@ func CreateEconomicsData() *economics.EconomicsData {
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
-				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
+				MaxGasLimitPerMetaBlock: maxGasLimitPerMetaBlock,
 				MinGasPrice:             minGasPrice,
 				MinGasLimit:             minGasLimit,
 				GasPerDataByte:          "1",
@@ -821,7 +817,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ProtoMarshalizer:        TestMarshalizer,
 			TxSignMarshalizer:       TestTxSignMarshalizer,
 			Hasher:                  TestHasher,
-			MultiSigner:             TestMultiSig,
+			MultiSigner:             mock.NewMultiSigner(1),
 			DataPool:                tpn.DataPool,
 			Accounts:                tpn.AccntState,
 			AddressPubkeyConverter:  TestAddressPubkeyConverter,
@@ -888,7 +884,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			BlockSignKeyGen:         tpn.OwnAccount.KeygenBlockSign,
 			SingleSigner:            tpn.OwnAccount.SingleSigner,
 			BlockSingleSigner:       tpn.OwnAccount.BlockSingleSigner,
-			MultiSigner:             TestMultiSig,
+			MultiSigner:             mock.NewMultiSigner(1),
 			DataPool:                tpn.DataPool,
 			AddressPubkeyConverter:  TestAddressPubkeyConverter,
 			MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
@@ -1012,7 +1008,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
-		builtInFuncs.Add(name, function)
+		_ = builtInFuncs.Add(name, function)
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -1107,6 +1103,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 
+	testBalanceComputationHandler, _ := preprocess.NewBalanceComputation()
+
 	fact, _ := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		tpn.Storage,
@@ -1123,8 +1121,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.EconomicsData,
 		tpn.GasHandler,
 		tpn.BlockTracker,
-		TestBlockSizeComputationHandler,
-		TestBalanceComputationHandler,
+		tpn.BlockSizeComputation,
+		testBalanceComputationHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1139,8 +1137,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.InterimProcContainer,
 		tpn.GasHandler,
 		tpn.FeeAccumulator,
-		TestBlockSizeComputationHandler,
-		TestBalanceComputationHandler,
+		tpn.BlockSizeComputation,
+		testBalanceComputationHandler,
 	)
 }
 
@@ -1262,6 +1260,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.EconomicsData,
 	)
 
+	testBalanceComputationHandler, _ := preprocess.NewBalanceComputation()
+
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		tpn.Storage,
@@ -1276,8 +1276,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.GasHandler,
 		tpn.BlockTracker,
 		TestAddressPubkeyConverter,
-		TestBlockSizeComputationHandler,
-		TestBalanceComputationHandler,
+		tpn.BlockSizeComputation,
+		testBalanceComputationHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1292,8 +1292,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.InterimProcContainer,
 		tpn.GasHandler,
 		tpn.FeeAccumulator,
-		TestBlockSizeComputationHandler,
-		TestBalanceComputationHandler,
+		tpn.BlockSizeComputation,
+		testBalanceComputationHandler,
 	)
 }
 
@@ -1340,7 +1340,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		DataPool:                tpn.DataPool,
 		StateCheckpointModulus:  stateCheckpointModulus,
 		BlockChain:              tpn.BlockChain,
-		BlockSizeThrottler:      TestBlockSizeThrottler,
+		BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
 		Indexer:                 indexer.NewNilIndexer(),
 		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 		HistoryRepository:       tpn.HistoryRepository,
@@ -1669,7 +1669,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 
 	blockHeader.SetPrevHash(currHdrHash)
 	blockHeader.SetPrevRandSeed(currHdr.GetRandSeed())
-	sig, _ := TestMultiSig.AggregateSigs(nil)
+	sig, _ := mock.NewMultiSigner(1).AggregateSigs(nil)
 	blockHeader.SetSignature(sig)
 	blockHeader.SetRandSeed(sig)
 	blockHeader.SetLeaderSignature([]byte("leader sign"))

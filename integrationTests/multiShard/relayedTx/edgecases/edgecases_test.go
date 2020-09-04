@@ -37,6 +37,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *t
 	relayerInitialValue := big.NewInt(0).Set(relayer.Balance)
 	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+
 		for _, player := range players {
 			player.Nonce += 1
 			relayerTx := relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
@@ -47,16 +49,12 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *t
 			totalFees.Add(totalFees, totalFee)
 		}
 
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-
 		time.Sleep(time.Second)
 	}
 
 	roundToPropagateMultiShard := int64(20)
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	}
 
 	time.Sleep(time.Second)
@@ -103,13 +101,13 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 	tooMuchGasLimit := integrationTests.MinTxGasLimit + additionalGasLimit
 	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+
 		for _, player := range players {
 			_ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, tooMuchGasLimit, []byte(""))
 			_ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, tooMuchGasLimit, []byte(""))
 		}
-
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 		time.Sleep(time.Second)
 	}

@@ -75,6 +75,7 @@ var P2pBootstrapDelay = 5 * time.Second
 // InitialRating is used to initiate a node's info
 var InitialRating = uint32(50)
 
+// AdditionalGasLimit -
 var AdditionalGasLimit = uint64(999000)
 
 var log = logger.GetOrCreate("integrationtests")
@@ -955,7 +956,7 @@ func IncrementAndPrintRound(round uint64) uint64 {
 	return round
 }
 
-// ProposeBlock proposes a block for every shard
+// ProposeBlock proposes a block for every shardx
 func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, nonce uint64) {
 	fmt.Println("All shards propose blocks...")
 

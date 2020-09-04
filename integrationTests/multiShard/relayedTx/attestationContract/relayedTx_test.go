@@ -27,10 +27,6 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 		}
 	}()
 
-	for _, node := range nodes {
-		node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
-	}
-
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -57,7 +53,6 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	attestVMGas := uint64(100000)
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 	uniqueIDs := make([]string, len(players))
 	for i, player := range players {
@@ -70,7 +65,6 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	nrRoundsToPropagateMultiShard := int64(10)
 	for i := int64(0); i <= nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	}
 
 	cryptoHook := hooks.NewVMCryptoHook()

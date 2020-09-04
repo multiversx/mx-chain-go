@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -94,8 +95,11 @@ func NewTestSyncNode(
 		Sk: sk,
 		Pk: pk,
 	}
+	var err error
+	tpn.BlockSizeComputation, err = preprocess.NewBlockSizeComputation(TestMarshalizer, &mock.BlockSizeThrottlerStub{}, uint32(core.MegabyteSize*90/100))
+	log.LogIfError(err)
 
-	tpn.MultiSigner = TestMultiSig
+	tpn.MultiSigner = mock.NewMultiSigner(1)
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initTestNodeWithSync()
@@ -183,7 +187,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		DataPool:                tpn.DataPool,
 		StateCheckpointModulus:  stateCheckpointModulus,
 		BlockChain:              tpn.BlockChain,
-		BlockSizeThrottler:      TestBlockSizeThrottler,
+		BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
 		Indexer:                 indexer.NewNilIndexer(),
 		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 		HistoryRepository:       tpn.HistoryRepository,

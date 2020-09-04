@@ -47,7 +47,6 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	nrRoundsToPropagateMultiShard := int64(10)
 	for i := int64(0); i < nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		time.Sleep(time.Second)
 	}
 	time.Sleep(time.Second)
@@ -75,13 +74,13 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	transferTokenFullGas := transferTokenBaseGas + transferTokenESDTGas
 	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+
 		for _, player := range players {
 			_ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, big.NewInt(0), transferTokenFullGas, []byte(txData))
 			_ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, big.NewInt(0), transferTokenFullGas, []byte(txData))
 		}
-
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 		time.Sleep(time.Second)
 	}

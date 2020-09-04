@@ -2,8 +2,10 @@ package integrationTests
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -74,12 +76,15 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		EpochNotifier:           forking.NewGenericEpochNotifier(),
 	}
 	tpn.NodesSetup = nodesSetup
+	var err error
+	tpn.BlockSizeComputation, err = preprocess.NewBlockSizeComputation(TestMarshalizer, &mock.BlockSizeThrottlerStub{}, uint32(core.MegabyteSize*90/100))
+	log.LogIfError(err)
 
 	tpn.NodeKeys = &TestKeyPair{
 		Sk: sk,
 		Pk: pk,
 	}
-	tpn.MultiSigner = TestMultiSig
+	tpn.MultiSigner = mock.NewMultiSigner(1)
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.initDataPools()
 	tpn.initHeaderValidator()
