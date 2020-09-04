@@ -3,6 +3,7 @@ package factory_test
 import (
 	"strconv"
 	"testing"
+	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -79,8 +80,10 @@ func getProcessArgs(
 			Hysteresis:                  0,
 			Adaptivity:                  false,
 		},
-		GasSchedule:               gasSchedule,
-		Rounder:                   &mock.RounderMock{},
+		GasSchedule: gasSchedule,
+		Rounder: &mock.RounderMock{
+			RoundTimeDuration: time.Second,
+		},
 		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(2),
 		NodesCoordinator:          &mock.NodesCoordinatorMock{},
 		Data:                      dataComponents,

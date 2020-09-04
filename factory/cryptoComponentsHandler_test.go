@@ -1,7 +1,6 @@
 package factory_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/factory"
@@ -60,13 +59,6 @@ func TestManagedCryptoComponents_SetMultiSigner(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, managedCryptoComponents.MultiSigner(), ms)
-}
-
-func TestManagedCryptoComponents_Clone(t *testing.T) {
-	managedCryptoComponents := getManagedCryptoComponents(t)
-
-	clonedManaged := managedCryptoComponents.Clone()
-	require.True(t, reflect.DeepEqual(managedCryptoComponents, clonedManaged))
 }
 
 func TestManagedCryptoComponents_Close(t *testing.T) {
