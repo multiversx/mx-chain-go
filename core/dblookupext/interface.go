@@ -12,7 +12,6 @@ type HistoryRepositoryFactory interface {
 
 // HistoryRepository provides methods needed for the history data processing
 type HistoryRepository interface {
-	RegisterToBlockTracker(blockTracker BlockTracker)
 	RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
 	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)

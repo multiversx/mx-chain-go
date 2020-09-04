@@ -9,19 +9,11 @@ import (
 
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
-	RegisterToBlockTrackerCalled       func(blockTracker dblookupext.BlockTracker)
 	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
 	OnNotarizedBlocksCalled            func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
 	IsEnabledCalled                    func() bool
-}
-
-// RegisterToBlockTracker -
-func (hp *HistoryRepositoryStub) RegisterToBlockTracker(blockTracker dblookupext.BlockTracker) {
-	if hp.RegisterToBlockTrackerCalled != nil {
-		hp.RegisterToBlockTrackerCalled(blockTracker)
-	}
 }
 
 // RecordBlock -
