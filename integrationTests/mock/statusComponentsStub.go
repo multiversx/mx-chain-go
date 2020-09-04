@@ -44,11 +44,6 @@ func (scs *StatusComponentsStub) SoftwareVersionChecker() statistics.SoftwareVer
 	return scs.SoftwareVersionCheck
 }
 
-// StatusHandler -
-func (scs *StatusComponentsStub) StatusHandler() core.AppStatusHandler {
-	return scs.AppStatusHandler
-}
-
 // IsInterfaceNil -
 func (scs *StatusComponentsStub) IsInterfaceNil() bool {
 	return scs == nil

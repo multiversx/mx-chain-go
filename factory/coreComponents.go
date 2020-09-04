@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
@@ -25,29 +26,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 )
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
-	Config              config.Config
-	RatingsConfig       config.RatingsConfig
-	EconomicsConfig     config.EconomicsConfig
-	NodesFilename       string
-	WorkingDirectory    string
-	ChanStopNodeProcess chan endProcess.ArgEndProcess
+	Config                config.Config
+	RatingsConfig         config.RatingsConfig
+	EconomicsConfig       config.EconomicsConfig
+	NodesFilename         string
+	WorkingDirectory      string
+	ChanStopNodeProcess   chan endProcess.ArgEndProcess
+	StatusHandlersFactory factory.StatusHandlerUtilsFactory
 }
 
 // coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
-	config              config.Config
-	ratingsConfig       config.RatingsConfig
-	economicsConfig     config.EconomicsConfig
-	nodesFilename       string
-	workingDir          string
-	chanStopNodeProcess chan endProcess.ArgEndProcess
+	config                config.Config
+	ratingsConfig         config.RatingsConfig
+	economicsConfig       config.EconomicsConfig
+	nodesFilename         string
+	workingDir            string
+	chanStopNodeProcess   chan endProcess.ArgEndProcess
+	statusHandlersFactory factory.StatusHandlerUtilsFactory
 }
 
 // coreComponents is the DTO used for core components
@@ -59,7 +61,7 @@ type coreComponents struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	addressPubKeyConverter   core.PubkeyConverter
 	validatorPubKeyConverter core.PubkeyConverter
-	statusHandler            core.AppStatusHandler
+	statusHandlersUtils      factory.StatusHandlersUtils
 	pathHandler              storage.PathManagerHandler
 	syncTimer                ntp.SyncTimer
 	rounder                  consensus.Rounder
@@ -77,12 +79,13 @@ type coreComponents struct {
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	return &coreComponentsFactory{
-		config:              args.Config,
-		ratingsConfig:       args.RatingsConfig,
-		economicsConfig:     args.EconomicsConfig,
-		workingDir:          args.WorkingDirectory,
-		chanStopNodeProcess: args.ChanStopNodeProcess,
-		nodesFilename:       args.NodesFilename,
+		config:                args.Config,
+		ratingsConfig:         args.RatingsConfig,
+		economicsConfig:       args.EconomicsConfig,
+		workingDir:            args.WorkingDirectory,
+		chanStopNodeProcess:   args.ChanStopNodeProcess,
+		nodesFilename:         args.NodesFilename,
+		statusHandlersFactory: args.StatusHandlersFactory,
 	}, nil
 }
 
@@ -209,6 +212,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	statusHandlersInfo, err := ccf.statusHandlersFactory.Create(internalMarshalizer, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, err
+	}
+
 	return &coreComponents{
 		hasher:                   hasher,
 		internalMarshalizer:      internalMarshalizer,
@@ -217,7 +225,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 		addressPubKeyConverter:   addressPubkeyConverter,
 		validatorPubKeyConverter: validatorPubkeyConverter,
-		statusHandler:            statusHandler.NewNilStatusHandler(),
+		statusHandlersUtils:      statusHandlersInfo,
 		pathHandler:              pathHandler,
 		syncTimer:                syncer,
 		rounder:                  rounder,
@@ -255,8 +263,8 @@ func (ccf *coreComponentsFactory) createStorerTemplatePaths() (string, string) {
 
 // Close closes all underlying components
 func (cc *coreComponents) Close() error {
-	if cc.statusHandler != nil {
-		cc.statusHandler.Close()
+	if cc.statusHandlersUtils != nil {
+		cc.statusHandlersUtils.StatusHandler().Close()
 	}
 
 	return nil

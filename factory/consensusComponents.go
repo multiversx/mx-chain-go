@@ -74,6 +74,9 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	if check.IfNil(args.StateComponents) {
 		return nil, errors.ErrNilStateComponentsHolder
 	}
+	if check.IfNil(args.StatusComponents) {
+		return nil, errors.ErrNilStatusComponentsHolder
+	}
 
 	return &consensusComponentsFactory{
 		config:              args.Config,
@@ -271,12 +274,8 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		ccf.processComponents.Rounder(),
 		ccf.coreComponents.SyncTimer(),
 		ccf.coreComponents.Watchdog(),
+		ccf.coreComponents.StatusHandler(),
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = chronologyHandler.SetAppStatusHandler(ccf.coreComponents.StatusHandler())
 	if err != nil {
 		return nil, err
 	}

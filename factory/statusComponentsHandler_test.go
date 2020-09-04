@@ -17,10 +17,9 @@ func TestManagedStatusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	managedStatusComponents, err := factory.NewManagedStatusComponents(statusComponentsFactory)
 	require.NoError(t, err)
 
-	coreComponents.StatusHdl = nil
+	coreComponents.AppStatusHdl = nil
 	err = managedStatusComponents.Create()
 	require.Error(t, err)
-	require.Nil(t, managedStatusComponents.StatusHandler())
 }
 
 func TestManagedStatusComponents_Create_ShouldWork(t *testing.T) {
@@ -28,14 +27,12 @@ func TestManagedStatusComponents_Create_ShouldWork(t *testing.T) {
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
 	managedStatusComponents, err := factory.NewManagedStatusComponents(statusComponentsFactory)
 	require.NoError(t, err)
-	require.Nil(t, managedStatusComponents.StatusHandler())
 	require.Nil(t, managedStatusComponents.ElasticIndexer())
 	require.Nil(t, managedStatusComponents.SoftwareVersionChecker())
 	require.Nil(t, managedStatusComponents.TpsBenchmark())
 
 	err = managedStatusComponents.Create()
 	require.NoError(t, err)
-	require.NotNil(t, managedStatusComponents.StatusHandler())
 	require.NotNil(t, managedStatusComponents.ElasticIndexer())
 	require.NotNil(t, managedStatusComponents.SoftwareVersionChecker())
 	require.NotNil(t, managedStatusComponents.TpsBenchmark())
@@ -50,5 +47,4 @@ func TestManagedStatusComponents_Close(t *testing.T) {
 
 	err = managedStatusComponents.Close()
 	require.NoError(t, err)
-	require.Nil(t, managedStatusComponents.StatusHandler())
 }

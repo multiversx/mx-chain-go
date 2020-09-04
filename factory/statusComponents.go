@@ -32,7 +32,6 @@ type StatusComponentsFactoryArgs struct {
 	ExternalConfig     config.ExternalConfig
 	RoundDurationSec   uint64
 	ElasticOptions     *indexer.Options
-	StatusUtils        StatusHandlersUtils
 	ShardCoordinator   sharding.Coordinator
 	NodesCoordinator   sharding.NodesCoordinator
 	EpochStartNotifier EpochStartNotifier
@@ -42,18 +41,17 @@ type StatusComponentsFactoryArgs struct {
 }
 
 type statusComponentsFactory struct {
-	config              config.Config
-	externalConfig      config.ExternalConfig
-	roundDurationSec    uint64
-	elasticOptions      *indexer.Options
-	statusHandlersUtils StatusHandlersUtils
-	shardCoordinator    sharding.Coordinator
-	nodesCoordinator    sharding.NodesCoordinator
-	epochStartNotifier  EpochStartNotifier
-	forkDetector        process.ForkDetector
-	coreComponents      CoreComponentsHolder
-	dataComponents      DataComponentsHolder
-	networkComponents   NetworkComponentsHolder
+	config             config.Config
+	externalConfig     config.ExternalConfig
+	roundDurationSec   uint64
+	elasticOptions     *indexer.Options
+	shardCoordinator   sharding.Coordinator
+	nodesCoordinator   sharding.NodesCoordinator
+	epochStartNotifier EpochStartNotifier
+	forkDetector       process.ForkDetector
+	coreComponents     CoreComponentsHolder
+	dataComponents     DataComponentsHolder
+	networkComponents  NetworkComponentsHolder
 }
 
 // NewStatusComponentsFactory will return a status components factory
@@ -85,26 +83,22 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if args.RoundDurationSec < 1 {
 		return nil, errors.ErrInvalidRoundDuration
 	}
-	if check.IfNil(args.StatusUtils) {
-		return nil, errors.ErrNilStatusHandlersUtils
-	}
 
 	if args.ElasticOptions == nil {
 		return nil, errors.ErrNilElasticOptions
 	}
 
 	return &statusComponentsFactory{
-		config:              args.Config,
-		externalConfig:      args.ExternalConfig,
-		roundDurationSec:    args.RoundDurationSec,
-		elasticOptions:      args.ElasticOptions,
-		shardCoordinator:    args.ShardCoordinator,
-		nodesCoordinator:    args.NodesCoordinator,
-		epochStartNotifier:  args.EpochStartNotifier,
-		coreComponents:      args.CoreComponents,
-		dataComponents:      args.DataComponents,
-		networkComponents:   args.NetworkComponents,
-		statusHandlersUtils: args.StatusUtils,
+		config:             args.Config,
+		externalConfig:     args.ExternalConfig,
+		roundDurationSec:   args.RoundDurationSec,
+		elasticOptions:     args.ElasticOptions,
+		shardCoordinator:   args.ShardCoordinator,
+		nodesCoordinator:   args.NodesCoordinator,
+		epochStartNotifier: args.EpochStartNotifier,
+		coreComponents:     args.CoreComponents,
+		dataComponents:     args.DataComponents,
+		networkComponents:  args.NetworkComponents,
 	}, nil
 }
 
@@ -124,7 +118,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		return nil, err
 	}
 
-	initialTpsBenchmark := scf.statusHandlersUtils.LoadTpsBenchmarkFromStorage(
+	initialTpsBenchmark := scf.coreComponents.StatusHandlerUtils().LoadTpsBenchmarkFromStorage(
 		scf.dataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
 		scf.coreComponents.InternalMarshalizer(),
 	)
@@ -158,7 +152,7 @@ func (scf *statusComponentsFactory) IsInterfaceNil() bool {
 	return scf == nil
 }
 
-// Closes all underlying components that need closing
+// Close closes all underlying components that need closing
 func (pc *statusComponents) Close() error {
 	pc.cancelFunc()
 

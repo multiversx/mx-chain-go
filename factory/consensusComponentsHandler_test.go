@@ -16,7 +16,7 @@ func TestManagedConsensusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T
 	managedConsensusComponents, err := factory.NewManagedConsensusComponents(consensusComponentsFactory)
 	require.NoError(t, err)
 
-	coreComponents.StatusHdl = nil
+	coreComponents.AppStatusHdl = nil
 	err = managedConsensusComponents.Create()
 	require.Error(t, err)
 	require.NotNil(t, managedConsensusComponents.CheckSubcomponents())

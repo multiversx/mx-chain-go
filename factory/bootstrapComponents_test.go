@@ -199,7 +199,7 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		StatusHdl:     &testscommon.AppStatusHandlerStub{},
+		AppStatusHdl:  &testscommon.AppStatusHandlerStub{},
 		WatchdogTimer: &testscommon.WatchdogMock{},
 		AlarmSch:      &testscommon.AlarmSchedulerStub{},
 		NtpSyncTimer:  &testscommon.SyncTimerStub{},

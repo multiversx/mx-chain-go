@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,15 +62,7 @@ func TestManagedCoreComponents_Close(t *testing.T) {
 	err := managedCoreComponents.Create()
 	require.NoError(t, err)
 
-	closed := false
-	statusHandlerMock := &mock.AppStatusHandlerMock{
-		CloseCalled: func() {
-			closed = true
-		},
-	}
-	_ = managedCoreComponents.SetStatusHandler(statusHandlerMock)
 	err = managedCoreComponents.Close()
 	require.NoError(t, err)
-	require.True(t, closed)
 	require.Nil(t, managedCoreComponents.StatusHandler())
 }

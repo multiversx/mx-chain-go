@@ -3,6 +3,7 @@ package mock
 import (
 	"time"
 
+	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -27,7 +28,8 @@ type CoreComponentsMock struct {
 	PathHdl                     storage.PathManagerHandler
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
-	AppStatusHandler            core.AppStatusHandler
+	StatusHdlUtils              nodeFactory.StatusHandlersUtils
+	AppStatusHdl                core.AppStatusHandler
 	WDTimer                     core.WatchdogTimer
 	Alarm                       core.TimersScheduler
 	NtpTimer                    ntp.SyncTimer
@@ -59,15 +61,14 @@ func (ccm *CoreComponentsMock) VmMarshalizer() marshal.Marshalizer {
 	return ccm.VmMarsh
 }
 
-// StatusHandler -
-func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
-	return ccm.AppStatusHandler
+// StatusHandlerUtils -
+func (ccm *CoreComponentsMock) StatusHandlerUtils() nodeFactory.StatusHandlersUtils {
+	return ccm.StatusHdlUtils
 }
 
-// SetStatusHandler -
-func (ccm *CoreComponentsMock) SetStatusHandler(statusHandler core.AppStatusHandler) error {
-	ccm.AppStatusHandler = statusHandler
-	return nil
+// StatusHandler -
+func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
+	return ccm.AppStatusHdl
 }
 
 // Watchdog -

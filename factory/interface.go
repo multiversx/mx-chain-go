@@ -3,6 +3,7 @@ package factory
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -105,8 +106,8 @@ type CoreComponentsHolder interface {
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverter() core.PubkeyConverter
 	ValidatorPubKeyConverter() core.PubkeyConverter
+	StatusHandlerUtils() factory.StatusHandlersUtils
 	StatusHandler() core.AppStatusHandler
-	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	PathHandler() storage.PathManagerHandler
 	Watchdog() core.WatchdogTimer
 	AlarmScheduler() core.TimersScheduler
@@ -265,19 +266,11 @@ type StateComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// StatusHandlersUtils provides some functionality for statusHandlers
-type StatusHandlersUtils interface {
-	UpdateStorerAndMetricsForPersistentHandler(store storage.Storer) error
-	LoadTpsBenchmarkFromStorage(store storage.Storer, marshalizer marshal.Marshalizer) *statistics.TpsPersistentData
-	IsInterfaceNil() bool
-}
-
 // StatusComponentsHolder holds the status components
 type StatusComponentsHolder interface {
 	TpsBenchmark() statistics.TPSBenchmark
 	ElasticIndexer() indexer.Indexer
 	SoftwareVersionChecker() statistics.SoftwareVersionChecker
-	StatusHandler() core.AppStatusHandler
 	IsInterfaceNil() bool
 }
 

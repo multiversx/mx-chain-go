@@ -45,16 +45,6 @@ func TestNewStatusComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T)
 	assert.Equal(t, errors.ErrNilEpochStartNotifier, err)
 }
 
-func TestNewStatusComponentsFactory_NilStatusHandlerErr(t *testing.T) {
-	t.Parallel()
-
-	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
-	args.StatusUtils = nil
-	scf, err := factory.NewStatusComponentsFactory(args)
-	assert.True(t, check.IfNil(scf))
-	assert.Equal(t, errors.ErrNilStatusHandlersUtils, err)
-}
-
 func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -134,7 +124,6 @@ func getStatusComponents(
 		CoreComponents:     coreComponents,
 		DataComponents:     dataComponents,
 		NetworkComponents:  networkComponents,
-		StatusUtils:        &mock.StatusHandlersUtilsMock{},
 	}
 
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
@@ -175,7 +164,6 @@ func getStatusComponentsFactoryArgsAndProcessComponents() (factory.StatusCompone
 		CoreComponents:     coreComponents,
 		DataComponents:     dataComponents,
 		NetworkComponents:  networkComponents,
-		StatusUtils:        &mock.StatusHandlersUtilsMock{},
 	}, processComponents
 }
 

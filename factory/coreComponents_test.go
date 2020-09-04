@@ -245,19 +245,9 @@ func TestCoreComponents_Close_ShouldWork(t *testing.T) {
 	args := getCoreArgs()
 	ccf, _ := factory.NewCoreComponentsFactory(args)
 	cc, _ := ccf.Create()
-
-	closeCalled := false
-	statusHandler := &mock.AppStatusHandlerMock{
-		CloseCalled: func() {
-			closeCalled = true
-		},
-	}
-	cc.SetStatusHandler(statusHandler)
-
 	err := cc.Close()
 
 	require.NoError(t, err)
-	require.True(t, closeCalled)
 }
 
 func getEpochStartConfig() config.EpochStartConfig {
@@ -332,11 +322,12 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				PollingIntervalInMinutes: 30,
 			},
 		},
-		WorkingDirectory:    "home",
-		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
-		NodesFilename:       "mock/nodesSetupMock.json",
-		EconomicsConfig:     createDummyEconomicsConfig(),
-		RatingsConfig:       createDummyRatingsConfig(),
+		RatingsConfig:         createDummyRatingsConfig(),
+		EconomicsConfig:       createDummyEconomicsConfig(),
+		NodesFilename:         "mock/nodesSetupMock.json",
+		WorkingDirectory:      "home",
+		ChanStopNodeProcess:   make(chan endProcess.ArgEndProcess),
+		StatusHandlersFactory: &mock.StatusHandlersFactoryMock{},
 	}
 }
 

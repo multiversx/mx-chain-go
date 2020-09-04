@@ -221,13 +221,29 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		cfgs.generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
 	}
 
+	chanCreateViews := make(chan struct{}, 1)
+	chanLogRewrite := make(chan struct{}, 1)
+
+	statusHandlersFactoryArgs := &factory.StatusHandlersFactoryArgs{
+		LogViewName:    useLogView.Name,
+		Ctx:            ctx,
+		ChanStartViews: chanCreateViews,
+		ChanLogRewrite: chanLogRewrite,
+	}
+
+	statusHandlersFactory, err := factory.NewStatusHandlersFactory(statusHandlersFactoryArgs)
+	if err != nil {
+		return err
+	}
+
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
-		Config:              *cfgs.generalConfig,
-		RatingsConfig:       *cfgs.ratingsConfig,
-		EconomicsConfig:     *cfgs.economicsConfig,
-		NodesFilename:       nodesFileName,
-		WorkingDirectory:    workingDir,
-		ChanStopNodeProcess: chanStopNodeProcess,
+		Config:                *cfgs.generalConfig,
+		RatingsConfig:         *cfgs.ratingsConfig,
+		EconomicsConfig:       *cfgs.economicsConfig,
+		NodesFilename:         nodesFileName,
+		WorkingDirectory:      workingDir,
+		ChanStopNodeProcess:   chanStopNodeProcess,
+		StatusHandlersFactory: statusHandlersFactory,
 	}
 
 	coreComponentsFactory, err := mainFactory.NewCoreComponentsFactory(coreArgs)
@@ -325,30 +341,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	healthService := health.NewHealthService(cfgs.generalConfig.Health, workingDir)
 	if ctx.IsSet(useHealthService.Name) {
 		healthService.Start()
-	}
-
-	chanCreateViews := make(chan struct{}, 1)
-	chanLogRewrite := make(chan struct{}, 1)
-	handlersArgs, err := factory.NewStatusHandlersFactoryArgs(
-		useLogView.Name,
-		ctx,
-		managedCoreComponents.InternalMarshalizer(),
-		managedCoreComponents.Uint64ByteSliceConverter(),
-		chanCreateViews,
-		chanLogRewrite,
-	)
-	if err != nil {
-		return err
-	}
-
-	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
-	if err != nil {
-		return err
-	}
-
-	err = managedCoreComponents.SetStatusHandler(statusHandlersInfo.StatusHandler)
-	if err != nil {
-		return err
 	}
 
 	log.Trace("creating network components")
@@ -586,7 +578,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	chanLogRewrite <- struct{}{}
 	chanCreateViews <- struct{}{}
 
-	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(
+	err = managedCoreComponents.StatusHandlerUtils().UpdateStorerAndMetricsForPersistentHandler(
 		managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
 	)
 	if err != nil {
@@ -721,7 +713,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ShardCoordinator:   shardCoordinator,
 		NodesCoordinator:   nodesCoordinator,
 		EpochStartNotifier: epochStartNotifier,
-		StatusUtils:        statusHandlersInfo,
 		CoreComponents:     managedCoreComponents,
 		DataComponents:     managedDataComponents,
 		NetworkComponents:  managedNetworkComponents,
@@ -896,7 +887,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		managedCoreComponents.Hasher(),
 		managedCoreComponents.Uint64ByteSliceConverter(),
 		shardCoordinator,
-		statusHandlersInfo.StatusMetrics,
+		managedCoreComponents.StatusHandlerUtils().Metrics(),
 		gasSchedule,
 		economicsData,
 		managedCryptoComponents.MessageSignVerifier(),

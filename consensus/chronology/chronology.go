@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ consensus.ChronologyHandler = (*chronology)(nil)
@@ -51,12 +50,14 @@ func NewChronology(
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
 	watchdog core.WatchdogTimer,
+	statusHandler core.AppStatusHandler,
 ) (*chronology, error) {
 
 	err := checkNewChronologyParams(
 		rounder,
 		syncTimer,
 		watchdog,
+		statusHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -66,7 +67,7 @@ func NewChronology(
 		genesisTime:      genesisTime,
 		rounder:          rounder,
 		syncTimer:        syncTimer,
-		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		appStatusHandler: statusHandler,
 		watchdog:         watchdog,
 	}
 
@@ -82,6 +83,7 @@ func checkNewChronologyParams(
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
 	watchdog core.WatchdogTimer,
+	statusHandler core.AppStatusHandler,
 ) error {
 
 	if check.IfNil(rounder) {
@@ -93,17 +95,10 @@ func checkNewChronologyParams(
 	if check.IfNil(watchdog) {
 		return ErrNilWatchdog
 	}
-
-	return nil
-}
-
-// SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
-func (chr *chronology) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(statusHandler) {
 		return ErrNilAppStatusHandler
 	}
 
-	chr.appStatusHandler = ash
 	return nil
 }
 

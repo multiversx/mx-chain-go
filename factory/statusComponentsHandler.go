@@ -162,18 +162,6 @@ func (m *managedStatusComponents) SoftwareVersionChecker() statistics.SoftwareVe
 	return m.statusComponents.softwareVersion
 }
 
-// StatusHandler returns the status handler
-func (m *managedStatusComponents) StatusHandler() core.AppStatusHandler {
-	m.mutStatusComponents.RLock()
-	defer m.mutStatusComponents.RUnlock()
-
-	if m.statusComponents == nil {
-		return nil
-	}
-
-	return m.statusComponents.statusHandler
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *managedStatusComponents) IsInterfaceNil() bool {
 	return m == nil

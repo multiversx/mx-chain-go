@@ -22,13 +22,11 @@ import (
 	"github.com/urfave/cli"
 )
 
-// ArgStatusHandlers is a struct that stores arguments needed to create status handlers
-type ArgStatusHandlers struct {
+// StatusHandlersFactoryArgs is a struct that stores arguments needed to create status handlers factory
+type StatusHandlersFactoryArgs struct {
 	LogViewName                  string
 	ServersConfigurationFileName string
 	Ctx                          *cli.Context
-	Marshalizer                  marshal.Marshalizer
-	Uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
 	ChanStartViews               chan struct{}
 	ChanLogRewrite               chan struct{}
 }
@@ -36,66 +34,72 @@ type ArgStatusHandlers struct {
 // StatusHandlersInfo is struct that stores all components that are returned when status handlers are created
 type statusHandlersInfo struct {
 	UseTermUI                bool
-	StatusHandler            core.AppStatusHandler
+	StatusHdl                core.AppStatusHandler
 	StatusMetrics            external.StatusMetricsHandler
 	PersistentHandler        *persister.PersistentStatusHandler
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
-// NewStatusHandlersFactoryArgs will return arguments for status handlers
-func NewStatusHandlersFactoryArgs(
-	logViewName string,
-	ctx *cli.Context,
-	marshalizer marshal.Marshalizer,
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-	chanStartViews chan struct{},
-	chanLogRewrite chan struct{},
-) (*ArgStatusHandlers, error) {
-	baseErrMessage := "error creating status handler factory arguments"
-	if ctx == nil {
+type statusHandlerUtilsFactory struct {
+	logViewName                  string
+	serversConfigurationFileName string
+	ctx                          *cli.Context
+	chanStartViews               chan struct{}
+	chanLogRewrite               chan struct{}
+}
+
+// NewStatusHandlersFactory will return the status handler factory
+func NewStatusHandlersFactory(
+	args *StatusHandlersFactoryArgs,
+) (*statusHandlerUtilsFactory, error) {
+	baseErrMessage := "error creating status handler factory"
+	if args.Ctx == nil {
 		return nil, fmt.Errorf("%s: nil context", baseErrMessage)
 	}
+	if args.ChanLogRewrite == nil {
+		return nil, fmt.Errorf("%s: nil log rewrite channel", baseErrMessage)
+	}
+	if args.ChanStartViews == nil {
+		return nil, fmt.Errorf("%s: nil views start channel", baseErrMessage)
+	}
+
+	return &statusHandlerUtilsFactory{
+		logViewName:    args.LogViewName,
+		ctx:            args.Ctx,
+		chanStartViews: args.ChanStartViews,
+		chanLogRewrite: args.ChanLogRewrite,
+	}, nil
+}
+
+// Create will return a slice of status handlers
+func (shuf *statusHandlerUtilsFactory) Create(
+	marshalizer marshal.Marshalizer,
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+) (StatusHandlersUtils, error) {
+	var appStatusHandlers []core.AppStatusHandler
+	var views []factoryViews.Viewer
+	var err error
+	var handler core.AppStatusHandler
+
+	baseErrMessage := "error creating status handler"
 	if check.IfNil(marshalizer) {
 		return nil, fmt.Errorf("%s: nil marshalizer", baseErrMessage)
 	}
 	if check.IfNil(uint64ByteSliceConverter) {
 		return nil, fmt.Errorf("%s: nil uint64 byte slice converter", baseErrMessage)
 	}
-	if chanLogRewrite == nil {
-		return nil, fmt.Errorf("%s: nil log rewrite channel", baseErrMessage)
-	}
-	if chanStartViews == nil {
-		return nil, fmt.Errorf("%s: nil views start channel", baseErrMessage)
-	}
-
-	return &ArgStatusHandlers{
-		LogViewName:              logViewName,
-		Ctx:                      ctx,
-		Marshalizer:              marshalizer,
-		Uint64ByteSliceConverter: uint64ByteSliceConverter,
-		ChanStartViews:           chanStartViews,
-		ChanLogRewrite:           chanLogRewrite,
-	}, nil
-}
-
-// CreateStatusHandlers will return a slice of status handlers
-func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, error) {
-	var appStatusHandlers []core.AppStatusHandler
-	var views []factoryViews.Viewer
-	var err error
-	var handler core.AppStatusHandler
 
 	presenterStatusHandler := createStatusHandlerPresenter()
 
-	useTermui := !arguments.Ctx.GlobalBool(arguments.LogViewName)
+	useTermui := !shuf.ctx.GlobalBool(shuf.logViewName)
 	if useTermui {
-		views, err = createViews(presenterStatusHandler, arguments.ChanStartViews)
+		views, err = createViews(presenterStatusHandler, shuf.chanStartViews)
 		if err != nil {
 			return nil, err
 		}
 
 		go func() {
-			<-arguments.ChanLogRewrite
+			<-shuf.chanLogRewrite
 			writer, ok := presenterStatusHandler.(io.Writer)
 			if !ok {
 				return
@@ -124,7 +128,7 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 	statusMetrics := statusHandler.NewStatusMetrics()
 	appStatusHandlers = append(appStatusHandlers, statusMetrics)
 
-	persistentHandler, err := persister.NewPersistentStatusHandler(arguments.Marshalizer, arguments.Uint64ByteSliceConverter)
+	persistentHandler, err := persister.NewPersistentStatusHandler(marshalizer, uint64ByteSliceConverter)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +145,7 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 	}
 
 	statusHandlersInfoObject := new(statusHandlersInfo)
-	statusHandlersInfoObject.StatusHandler = handler
+	statusHandlersInfoObject.StatusHdl = handler
 	statusHandlersInfoObject.UseTermUI = useTermui
 	statusHandlersInfoObject.StatusMetrics = statusMetrics
 	statusHandlersInfoObject.PersistentHandler = persistentHandler
@@ -214,6 +218,16 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
 	return okTpsBenchmarks
 }
 
+// StatusHandler returns the status handler
+func (shi *statusHandlersInfo) StatusHandler() core.AppStatusHandler {
+	return shi.StatusHdl
+}
+
+// Metrics returns the status metrics
+func (shi *statusHandlersInfo) Metrics() external.StatusMetricsHandler {
+	return shi.StatusMetrics
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (shi *statusHandlersInfo) IsInterfaceNil() bool {
 	return shi == nil
@@ -223,11 +237,11 @@ func (shi *statusHandlersInfo) updateTpsMetrics(metricsMap map[string]interface{
 	for key, value := range metricsMap {
 		if key == core.MetricAverageBlockTxCount {
 			log.Trace("setting metric value", "key", key, "value string", value.(string))
-			shi.StatusHandler.SetStringValue(key, value.(string))
+			shi.StatusHdl.SetStringValue(key, value.(string))
 			continue
 		}
 		log.Trace("setting metric value", "key", key, "value uint64", value.(uint64))
-		shi.StatusHandler.SetUInt64Value(key, value.(uint64))
+		shi.StatusHdl.SetUInt64Value(key, value.(uint64))
 	}
 }
 

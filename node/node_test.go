@@ -1231,7 +1231,7 @@ func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
 	}
 
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AppStatusHandler = &appStatusHandlerStub
+	coreComponents.AppStatusHdl = &appStatusHandlerStub
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents))
@@ -1259,7 +1259,7 @@ func TestNode_AppStatusHandlerShouldDecrement(t *testing.T) {
 	}
 
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AppStatusHandler = &appStatusHandlerStub
+	coreComponents.AppStatusHdl = &appStatusHandlerStub
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents))
@@ -1287,7 +1287,7 @@ func TestNode_AppStatusHandlerShouldSetInt64Value(t *testing.T) {
 	}
 
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AppStatusHandler = &appStatusHandlerStub
+	coreComponents.AppStatusHdl = &appStatusHandlerStub
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents))
@@ -1315,7 +1315,7 @@ func TestNode_AppStatusHandlerShouldSetUInt64Value(t *testing.T) {
 	}
 
 	coreComponents := getDefaultCoreComponents()
-	coreComponents.AppStatusHandler = &appStatusHandlerStub
+	coreComponents.AppStatusHdl = &appStatusHandlerStub
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents))

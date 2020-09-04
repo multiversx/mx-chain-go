@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -101,7 +102,7 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.validatorPubKeyConverter) {
 		return errors.ErrNilValidatorPublicKeyConverter
 	}
-	if check.IfNil(mcc.statusHandler) {
+	if check.IfNil(mcc.statusHandlersUtils) {
 		return errors.ErrNilStatusHandler
 	}
 	if check.IfNil(mcc.pathHandler) {
@@ -239,7 +240,19 @@ func (mcc *managedCoreComponents) ValidatorPubKeyConverter() core.PubkeyConverte
 	return mcc.coreComponents.validatorPubKeyConverter
 }
 
-// StatusHandler returns the core components status handler
+// StatusHandlerUtils returns the core components status handler utils
+func (mcc *managedCoreComponents) StatusHandlerUtils() factory.StatusHandlersUtils {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.statusHandlersUtils
+}
+
+// StatusHandler returns the application status handler
 func (mcc *managedCoreComponents) StatusHandler() core.AppStatusHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
@@ -248,25 +261,7 @@ func (mcc *managedCoreComponents) StatusHandler() core.AppStatusHandler {
 		return nil
 	}
 
-	return mcc.coreComponents.statusHandler
-}
-
-// SetStatusHandler allows the change of the status handler
-func (mcc *managedCoreComponents) SetStatusHandler(statusHandler core.AppStatusHandler) error {
-	if check.IfNil(statusHandler) {
-		return errors.ErrNilStatusHandler
-	}
-
-	mcc.mutCoreComponents.Lock()
-	defer mcc.mutCoreComponents.Unlock()
-
-	if mcc.coreComponents == nil {
-		return errors.ErrNilCoreComponents
-	}
-
-	mcc.coreComponents.statusHandler = statusHandler
-
-	return nil
+	return mcc.coreComponents.statusHandlersUtils.StatusHandler()
 }
 
 // PathHandler returns the core components path handler
