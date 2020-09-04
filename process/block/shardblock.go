@@ -1311,6 +1311,8 @@ func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 		return err
 	}
 
+	processedMetaHdrsHashes := make([][]byte, len(processedMetaHdrs))
+
 	// processedMetaHdrs is also sorted
 	for i := 0; i < len(processedMetaHdrs); i++ {
 		hdr := processedMetaHdrs[i]
@@ -1328,10 +1330,15 @@ func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 		}
 
 		headerHash := sp.hasher.Compute(string(marshalizedHeader))
+		processedMetaHdrsHashes[i] = headerHash
 
 		sp.saveMetaHeader(hdr, headerHash, marshalizedHeader)
 
 		sp.processedMiniBlocks.RemoveMetaBlockHash(string(headerHash))
+	}
+
+	if len(processedMetaHdrs) > 0 {
+		go sp.historyRepo.OnNotarizedBlocks(core.MetachainShardId, processedMetaHdrs, processedMetaHdrsHashes)
 	}
 
 	return nil
