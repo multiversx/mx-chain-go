@@ -141,16 +141,6 @@ type TPS struct {
 	ShardID               uint32   `json:"shardID"`
 }
 
-type elasticNode struct {
-	Name string `json:"name"`
-	Roles []string `json:"roles"`
-
-}
-
-type elasticNodesInfo struct {
-	Nodes map[string]elasticNode `json:"nodes"`
-}
-
 type kibanaExistsResponse struct {
 	Ok bool `json:"ok"`
 }

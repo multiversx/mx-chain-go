@@ -43,6 +43,11 @@ func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []ValidatorRatingInfo) {
 func (ni *NilIndexer) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 }
 
+// StopIndexing will do nothing
+func (ni *NilIndexer) StopIndexing() error {
+	return nil
+}
+
 // GetQueueLength -
 func (ni *NilIndexer) GetQueueLength() int {
 	return 0

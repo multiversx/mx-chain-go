@@ -56,7 +56,7 @@ func NewConnectorFactory(args ConnectorFactoryArgs) (*elasticSearchConnectorFact
 
 // Create will create and return a new indexer database handler
 func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
-	indexerArgs := indexer.ElasticIndexerArgs{
+	indexerArgs := indexer.DataIndexerArgs{
 		Url:                      escf.elasticConfig.URL,
 		UserName:                 escf.elasticConfig.Username,
 		Password:                 escf.elasticConfig.Password,
@@ -69,7 +69,7 @@ func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
 		Options:                  &indexer.Options{TxIndexingEnabled: true},
 	}
 
-	return indexer.NewElasticIndexer(indexerArgs)
+	return indexer.NewDataIndexer(indexerArgs)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

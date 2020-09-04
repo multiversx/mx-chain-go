@@ -1,51 +1,49 @@
-package indexerOld
+package indexer
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/data/receipt"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"io/ioutil"
 	"math/big"
-	"net/http"
-	"net/http/httptest"
 	"strconv"
-	"strings"
 	"testing"
-	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/elastic/go-elasticsearch/v7"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/receipt"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/stretchr/testify/require"
 )
 
-func newTestElasticSearchDatabase(elasticsearchWriter databaseClientHandler, arguments ElasticSearchDatabaseArgs) *elasticSearchDatabase {
-	return &elasticSearchDatabase{
+func newTestElasticSearchDatabase(elasticsearchWriter databaseClientHandler, arguments DataIndexerArgs) *elasticIndexer {
+	return &elasticIndexer{
 		txDatabaseProcessor: newTxDatabaseProcessor(
 			arguments.Hasher,
 			arguments.Marshalizer,
 			arguments.AddressPubkeyConverter,
 			arguments.ValidatorPubkeyConverter,
 		),
-		dbClient:    elasticsearchWriter,
-		marshalizer: arguments.Marshalizer,
-		hasher:      arguments.Hasher,
+		elasticClient: elasticsearchWriter,
+		parser: &dataParser{
+			marshalizer: arguments.Marshalizer,
+			hasher:      arguments.Hasher,
+		},
 	}
 }
 
-func createMockElasticsearchDatabaseArgs() ElasticSearchDatabaseArgs {
-	return ElasticSearchDatabaseArgs{
+func createMockElasticsearchDatabaseArgs() DataIndexerArgs {
+	return DataIndexerArgs{
 		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
 		Url:                      "Url",
@@ -102,30 +100,7 @@ func newTestBlockBody() *dataBlock.Body {
 	}
 }
 
-func TestNewElasticSearchDatabase_IndexesError(t *testing.T) {
-	indexes := []string{txIndex, blockIndex, tpsIndex, validatorsIndex, roundIndex}
-
-	for _, index := range indexes {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == ("/" + index) {
-				w.WriteHeader(http.StatusNotFound)
-			}
-		}))
-
-		arguments := createMockElasticsearchDatabaseArgs()
-		arguments.Url = ts.URL
-
-		elasticDatabase, err := NewElasticSearchDatabase(arguments)
-		require.Nil(t, elasticDatabase)
-		require.Equal(t, ErrCannotCreateIndex, err)
-	}
-}
-
 func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
-	output := &bytes.Buffer{}
-	_ = logger.SetLogLevel("core/indexer:TRACE")
-	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
-
 	localErr := errors.New("localErr")
 	header := &dataBlock.Header{Nonce: 1}
 	signerIndexes := []uint64{0, 1}
@@ -135,16 +110,10 @@ func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 			return localErr
 		},
 	}
-
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveHeader(header, signerIndexes, &dataBlock.Body{}, nil, 1)
 
-	defer func() {
-		_ = logger.RemoveLogObserver(output)
-		_ = logger.SetLogLevel("core/indexer:INFO")
-	}()
-
-	require.True(t, strings.Contains(output.String(), localErr.Error()))
+	err := elasticDatabase.SaveHeader(header, signerIndexes, &dataBlock.Body{}, nil, 1)
+	require.Equal(t, localErr, err)
 }
 
 func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
@@ -179,14 +148,11 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveHeader(header, signerIndexes, blockBody, nil, 1)
+	err := elasticDatabase.SaveHeader(header, signerIndexes, blockBody, nil, 1)
+	require.Nil(t, err)
 }
 
 func TestElasticseachSaveTransactions(t *testing.T) {
-	output := &bytes.Buffer{}
-	_ = logger.SetLogLevel("core/indexer:TRACE")
-	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
-
 	localErr := errors.New("localErr")
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
@@ -199,20 +165,12 @@ func TestElasticseachSaveTransactions(t *testing.T) {
 	header := &dataBlock.Header{Nonce: 1, TxCount: 2}
 	txPool := newTestTxPool()
 
-	defer func() {
-		_ = logger.RemoveLogObserver(output)
-		_ = logger.SetLogLevel("core/indexer:INFO")
-	}()
-
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
-	require.True(t, strings.Contains(output.String(), "indexing bulk of transactions"))
+	err := elasticDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
+	require.Equal(t, localErr, err)
 }
 
 func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
-	output := &bytes.Buffer{}
-	_ = logger.SetLogLevel("core/indexer:TRACE")
-	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	shardID := uint32(0)
 	epoch := uint32(0)
 	valPubKeys := [][]byte{[]byte("key1"), []byte("key2")}
@@ -224,14 +182,9 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 		},
 	}
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveShardValidatorsPubKeys(shardID, epoch, valPubKeys)
 
-	defer func() {
-		_ = logger.RemoveLogObserver(output)
-		_ = logger.SetLogLevel("core/indexer:INFO")
-	}()
-
-	require.True(t, strings.Contains(output.String(), localErr.Error()))
+	err := elasticDatabase.SaveShardValidatorsPubKeys(shardID, epoch, valPubKeys)
+	require.Equal(t, localErr, err)
 }
 
 func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
@@ -245,16 +198,13 @@ func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
 			return nil
 		},
 	}
-
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveShardValidatorsPubKeys(shardID, epoch, valPubKeys)
+
+	err := elasticDatabase.SaveShardValidatorsPubKeys(shardID, epoch, valPubKeys)
+	require.Nil(t, err)
 }
 
 func TestElasticsearch_saveShardStatistics_reqError(t *testing.T) {
-	output := &bytes.Buffer{}
-	_ = logger.SetLogLevel("core/indexer:TRACE")
-	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
-
 	tpsBenchmark := &testscommon.TpsBenchmarkMock{}
 	metaBlock := &dataBlock.MetaBlock{
 		TxCount: 2, Nonce: 1,
@@ -271,14 +221,9 @@ func TestElasticsearch_saveShardStatistics_reqError(t *testing.T) {
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveShardStatistics(tpsBenchmark)
 
-	defer func() {
-		_ = logger.RemoveLogObserver(output)
-		_ = logger.SetLogLevel("core/indexer:INFO")
-	}()
-
-	require.True(t, strings.Contains(output.String(), localError.Error()))
+	err := elasticDatabase.SaveShardStatistics(tpsBenchmark)
+	require.Equal(t, localError, err)
 }
 
 func TestElasticsearch_saveShardStatistics(t *testing.T) {
@@ -296,9 +241,10 @@ func TestElasticsearch_saveShardStatistics(t *testing.T) {
 			return nil
 		},
 	}
-
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveShardStatistics(tpsBenchmark)
+
+	err := elasticDatabase.SaveShardStatistics(tpsBenchmark)
+	require.Nil(t, err)
 }
 
 func TestElasticsearch_saveRoundInfo(t *testing.T) {
@@ -312,16 +258,13 @@ func TestElasticsearch_saveRoundInfo(t *testing.T) {
 			return nil
 		},
 	}
-
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveRoundsInfos([]RoundInfo{roundInfo})
+
+	err := elasticDatabase.SaveRoundsInfos([]RoundInfo{roundInfo})
+	require.Nil(t, err)
 }
 
 func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
-	output := &bytes.Buffer{}
-	_ = logger.SetLogLevel("core/indexer:TRACE")
-	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
-
 	roundInfo := RoundInfo{}
 	localError := errors.New("local err")
 	arguments := createMockElasticsearchDatabaseArgs()
@@ -330,30 +273,30 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 			return localError
 		},
 	}
-
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveRoundsInfos([]RoundInfo{roundInfo})
 
-	defer func() {
-		_ = logger.RemoveLogObserver(output)
-		_ = logger.SetLogLevel("core/indexer:INFO")
-	}()
+	err := elasticDatabase.SaveRoundsInfos([]RoundInfo{roundInfo})
+	require.Equal(t, localError, err)
 
-	require.True(t, strings.Contains(output.String(), localError.Error()))
 }
 
 func TestUpdateMiniBlock(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := ElasticSearchDatabaseArgs{
-		Url:         "http://localhost:9200",
-		UserName:    "basic_auth_username",
-		Password:    "basic_auth_password",
-		Marshalizer: &mock.MarshalizerMock{},
-		Hasher:      &mock.HasherMock{},
+	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
+	dbClient, _ := newElasticClient(elasticsearch.Config{
+		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+	})
+
+	args := ElasticIndexerArgs{
+		DBClient:       dbClient,
+		Marshalizer:    &mock.MarshalizerMock{},
+		Hasher:         &mock.HasherMock{},
+		IndexTemplates: indexTemplates,
+		IndexPolicies:  indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticSearchDatabase(args)
+	esDatabase, _ := NewElasticIndexer(args)
 
 	header1 := &dataBlock.Header{
 		ShardID: 0,
@@ -370,24 +313,28 @@ func TestUpdateMiniBlock(t *testing.T) {
 	}
 
 	// insert
-	esDatabase.SaveMiniblocks(header1, body1)
+	_, _ = esDatabase.SaveMiniblocks(header1, body1)
 	// update
-	esDatabase.SaveMiniblocks(header2, body1)
+	_, _ = esDatabase.SaveMiniblocks(header2, body1)
 }
 
 func TestSaveRoundsInfo(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := ElasticSearchDatabaseArgs{
-		Url:                    "http://localhost:9200",
-		UserName:               "basic_auth_username",
-		Password:               "basic_auth_password",
-		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
-		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
+	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
+	dbClient, _ := newElasticClient(elasticsearch.Config{
+		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+	})
+
+	args := ElasticIndexerArgs{
+		DBClient:       dbClient,
+		Marshalizer:    &mock.MarshalizerMock{},
+		Hasher:         &mock.HasherMock{},
+		IndexTemplates: indexTemplates,
+		IndexPolicies:  indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticSearchDatabase(args)
+	esDatabase, _ := NewElasticIndexer(args)
 
 	roundInfo1 := RoundInfo{
 		Index: 1, ShardId: 0, BlockWasProposed: true,
@@ -399,22 +346,26 @@ func TestSaveRoundsInfo(t *testing.T) {
 		Index: 3, ShardId: 0, BlockWasProposed: true,
 	}
 
-	esDatabase.SaveRoundsInfos([]RoundInfo{roundInfo1, roundInfo2, roundInfo3})
+	_ = esDatabase.SaveRoundsInfos([]RoundInfo{roundInfo1, roundInfo2, roundInfo3})
 }
 
 func TestUpdateTransaction(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := ElasticSearchDatabaseArgs{
-		Url:                    "http://localhost:9200",
-		UserName:               "basic_auth_username",
-		Password:               "basic_auth_password",
-		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
-		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
+	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
+	dbClient, _ := newElasticClient(elasticsearch.Config{
+		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+	})
+
+	args := ElasticIndexerArgs{
+		DBClient:       dbClient,
+		Marshalizer:    &mock.MarshalizerMock{},
+		Hasher:         &mock.HasherMock{},
+		IndexTemplates: indexTemplates,
+		IndexPolicies:  indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticSearchDatabase(args)
+	esDatabase, _ := NewElasticIndexer(args)
 
 	txHash1 := []byte("txHash1")
 	tx1 := &transaction.Transaction{
@@ -496,7 +447,7 @@ func TestUpdateTransaction(t *testing.T) {
 
 	body.MiniBlocks[0].ReceiverShardID = 1
 	// insert
-	esDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
+	_ = esDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
 
 	header.TimeStamp = 1234
 	txPool = map[string]data.TransactionHandler{
@@ -507,45 +458,56 @@ func TestUpdateTransaction(t *testing.T) {
 	}
 
 	// update
-	esDatabase.SaveTransactions(body, header, txPool, 1, map[string]bool{})
+	_ = esDatabase.SaveTransactions(body, header, txPool, 1, map[string]bool{})
 }
 
 func TestGetMultiple(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := ElasticSearchDatabaseArgs{
-		Url:                    "https://elastic-aws.elrond.com",
-		UserName:               "basic_auth_username",
-		Password:               "basic_auth_password",
-		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
-		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
+	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
+	dbClient, _ := newElasticClient(elasticsearch.Config{
+		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+	})
+
+	args := ElasticIndexerArgs{
+		DBClient:       dbClient,
+		Marshalizer:    &mock.MarshalizerMock{},
+		Hasher:         &mock.HasherMock{},
+		IndexTemplates: indexTemplates,
+		IndexPolicies:  indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticSearchDatabase(args)
+	esDatabase, _ := NewElasticIndexer(args)
 
 	hashes := []string{
 		"57cf251084cd7f79563207c52f938359eebdaf27f91fef1335a076f5dc4873351",
 		"9a3beb87930e42b820cbcb5e73b224ebfc707308aa377905eda18d4589e2b093",
 	}
 
-	response, _ := esDatabase.foundedObjMap(hashes, "transactions")
+	es := esDatabase.(*elasticIndexer)
+	response, _ := es.foundedObjMap(hashes, "transactions")
 	fmt.Println(response)
 }
 
 func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := ElasticSearchDatabaseArgs{
-		Url:                    "http://localhost:9200",
-		UserName:               "basic_auth_username",
-		Password:               "basic_auth_password",
-		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
-		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
+	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
+	dbClient, _ := newElasticClient(elasticsearch.Config{
+		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+	})
+
+	args := ElasticIndexerArgs{
+		DBClient:                 dbClient,
+		Marshalizer:              &mock.MarshalizerMock{},
+		Hasher:                   &mock.HasherMock{},
+		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
+		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
+		IndexTemplates:           indexTemplates,
+		IndexPolicies:            indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticSearchDatabase(args)
+	esDatabase, _ := NewElasticIndexer(args)
 
 	txHash1 := []byte("txHash1")
 	tx1 := &transaction.Transaction{
@@ -575,8 +537,8 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 	}
 	body.MiniBlocks[0].ReceiverShardID = 2
 	body.MiniBlocks[0].SenderShardID = 1
-	isMBSInDB := esDatabase.SaveMiniblocks(header, body)
-	esDatabase.SaveTransactions(body, header, txPool, 2, isMBSInDB)
+	isMBSInDB, _ := esDatabase.SaveMiniblocks(header, body)
+	_ = esDatabase.SaveTransactions(body, header, txPool, 2, isMBSInDB)
 
 	txPool = map[string]data.TransactionHandler{
 		string(txHash1): tx1,
@@ -584,24 +546,29 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 	}
 
 	header.ShardID = 1
-	isMBSInDB = esDatabase.SaveMiniblocks(header, body)
-	esDatabase.SaveTransactions(body, header, txPool, 0, isMBSInDB)
+	isMBSInDB, _ = esDatabase.SaveMiniblocks(header, body)
+	_ = esDatabase.SaveTransactions(body, header, txPool, 0, isMBSInDB)
 }
 
 func TestDoBulkRequestLimit(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	args := ElasticSearchDatabaseArgs{
-		Url:                    "http://localhost:9200",
-		UserName:               "basic_auth_username",
-		Password:               "basic_auth_password",
-		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &mock.HasherMock{},
-		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
+	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
+	dbClient, _ := newElasticClient(elasticsearch.Config{
+		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+	})
+
+	args := ElasticIndexerArgs{
+		DBClient:                 dbClient,
+		Marshalizer:              &mock.MarshalizerMock{},
+		Hasher:                   &mock.HasherMock{},
+		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
+		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
+		IndexTemplates:           indexTemplates,
+		IndexPolicies:            indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticSearchDatabase(args)
-
+	esDatabase, _ := NewElasticIndexer(args)
 	//Generate transaction and hashes
 	numTransactions := 1
 	dataSize := 900001
@@ -630,63 +597,6 @@ func TestDoBulkRequestLimit(t *testing.T) {
 		body.MiniBlocks[0].ReceiverShardID = 2
 		body.MiniBlocks[0].SenderShardID = 1
 
-		esDatabase.SaveTransactions(body, header, txsPool, 2, map[string]bool{})
+		_ = esDatabase.SaveTransactions(body, header, txsPool, 2, map[string]bool{})
 	}
-}
-
-func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transaction, []string) {
-	txs := make([]transaction.Transaction, numTxs)
-	hashes := make([]string, numTxs)
-
-	randomByteArray := make([]byte, datFieldSize)
-	_, _ = rand.Read(randomByteArray)
-
-	for i := 0; i < numTxs; i++ {
-		txs[i] = transaction.Transaction{
-			Nonce:     uint64(i),
-			Value:     big.NewInt(int64(i)),
-			RcvAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
-			SndAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
-			GasPrice:  200000000000,
-			GasLimit:  20000,
-			Data:      randomByteArray,
-			Signature: []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
-		}
-		hashes[i] = fmt.Sprintf("%v", time.Now())
-	}
-
-	return txs, hashes
-}
-
-func TestTrimSliceInBulks(t *testing.T) {
-	t.Parallel()
-
-	sliceSize := 9500
-	bulkSize := 1000
-
-	testSlice := make([]int, sliceSize)
-	bulks := make([][]int, sliceSize/bulkSize+1)
-	bulksBigCapacity1 := make([][]int, sliceSize/bulkSize+1)
-	bulksBigCapacity2 := make([][]int, sliceSize/bulkSize+1)
-
-	for i := 0; i < sliceSize; i++ {
-		testSlice[i] = i
-	}
-
-	for i := 0; i < len(bulks); i++ {
-		if i == len(bulks)-1 {
-			bulks[i] = append([]int(nil), testSlice[i*bulkSize:]...)
-			bulksBigCapacity1[i] = append(bulksBigCapacity1[i], testSlice[i*bulkSize:]...)
-			bulksBigCapacity2[i] = testSlice[i*bulkSize:]
-			continue
-		}
-
-		bulks[i] = append([]int(nil), testSlice[i*bulkSize:(i+1)*bulkSize]...)
-		bulksBigCapacity1[i] = append(bulksBigCapacity1[i], testSlice[i*bulkSize:(i+1)*bulkSize]...)
-		bulksBigCapacity2[i] = testSlice[i*bulkSize : (i+1)*bulkSize]
-	}
-
-	require.Equal(t, len(bulks), sliceSize/bulkSize+1)
-	require.Equal(t, len(bulksBigCapacity1), sliceSize/bulkSize+1)
-	require.Equal(t, len(bulksBigCapacity2), sliceSize/bulkSize+1)
 }

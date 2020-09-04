@@ -5,33 +5,26 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"io"
 
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
 type elasticIndexer struct {
 	*txDatabaseProcessor
 
-	elasticClient *elasticClient
+	elasticClient databaseClientHandler
 	parser        *dataParser
 }
 
 // NewElasticIndexer creates an elasticsearch es and handles saving
-func NewElasticIndexer(arguments DataIndexerArgs) (ElasticIndexer, error) {
-	ec, err := newElasticClient(elasticsearch.Config{
-		Addresses: []string{arguments.Url},
-	})
-	if err != nil {
-		return nil, err
-	}
-
+func NewElasticIndexer(arguments ElasticIndexerArgs) (ElasticIndexer, error) {
 	ei := &elasticIndexer{
-		elasticClient: ec,
+		elasticClient: arguments.DBClient,
 		parser: &dataParser{
 			hasher:      arguments.Hasher,
 			marshalizer: arguments.Marshalizer,
@@ -45,7 +38,7 @@ func NewElasticIndexer(arguments DataIndexerArgs) (ElasticIndexer, error) {
 		arguments.ValidatorPubkeyConverter,
 	)
 
-	err = ei.init(arguments)
+	err := ei.init(arguments.IndexTemplates, arguments.IndexPolicies)
 	if err != nil {
 		return nil, err
 	}
@@ -53,18 +46,18 @@ func NewElasticIndexer(arguments DataIndexerArgs) (ElasticIndexer, error) {
 	return ei, nil
 }
 
-func (ei *elasticIndexer) init(arguments DataIndexerArgs) error {
-	err := ei.createOpenDistroTemplates(arguments.IndexTemplates)
+func (ei *elasticIndexer) init(indexTemplates, indexPolicies map[string]io.Reader) error {
+	err := ei.createOpenDistroTemplates(indexTemplates)
 	if err != nil {
 		return err
 	}
 
-	err = ei.createIndexPolicies(arguments.IndexPolicies)
+	err = ei.createIndexPolicies(indexPolicies)
 	if err != nil {
 		return err
 	}
 
-	err = ei.createIndexTemplates(arguments.IndexTemplates)
+	err = ei.createIndexTemplates(indexTemplates)
 	if err != nil {
 		return err
 	}
@@ -316,6 +309,11 @@ func (ei *elasticIndexer) SaveHeader(
 	return ei.elasticClient.DoRequest(req)
 }
 
+// SetTxLogsProcessor will set tx logs processor
+func (ei *elasticIndexer) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
+	ei.txLogsProcessor = txLogsProc
+}
+
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
 func (ei *elasticIndexer) SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error) {
 	miniblocks := ei.parser.getMiniblocks(header, body)
@@ -340,9 +338,6 @@ func (ei *elasticIndexer) SaveTransactions(
 	mbsInDb map[string]bool,
 ) error {
 	txs := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
-	for _, tx := range txs {
-		fmt.Println(tx.Hash)
-	}
 	buffSlice := serializeTransactions(txs, selfShardID, ei.foundedObjMap, mbsInDb)
 
 	for idx := range buffSlice {

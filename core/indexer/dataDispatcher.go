@@ -2,6 +2,8 @@ package indexer
 
 import (
 	"context"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/elastic/go-elasticsearch/v7"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -29,7 +31,28 @@ type dataDispatcher struct {
 // NewDataDispatcher creates a new dataDispatcher instance, capable of selecting the correct es that will
 //  handle saving different types
 func NewDataDispatcher(arguments DataIndexerArgs) (*dataDispatcher, error) {
-	ei, err := NewElasticIndexer(arguments)
+	// create elastic search client
+	databaseClient, err := newElasticClient(elasticsearch.Config{
+		Addresses: []string{arguments.Url},
+		Username:  arguments.UserName,
+		Password:  arguments.Password,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	esIndexerArgs := ElasticIndexerArgs{
+		IndexTemplates:           arguments.IndexTemplates,
+		IndexPolicies:            arguments.IndexPolicies,
+		Marshalizer:              arguments.Marshalizer,
+		Hasher:                   arguments.Hasher,
+		AddressPubkeyConverter:   arguments.AddressPubkeyConverter,
+		ValidatorPubkeyConverter: arguments.ValidatorPubkeyConverter,
+		Options:                  arguments.Options,
+		DBClient:                 databaseClient,
+	}
+
+	ei, err := NewElasticIndexer(esIndexerArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +73,7 @@ func NewDataDispatcher(arguments DataIndexerArgs) (*dataDispatcher, error) {
 	return dd, nil
 }
 
-// StartIndexData -
+// StartIndexData will start index data in database
 func (d *dataDispatcher) StartIndexData() {
 	var ctx context.Context
 	ctx, d.cancelFunc = context.WithCancel(context.Background())
@@ -79,14 +102,19 @@ func (d *dataDispatcher) Close() error {
 	return nil
 }
 
-// Add --
+// Add will add a new item in queue
 func (d *dataDispatcher) Add(item *workItem) {
 	d.workQueue.Add(item)
 }
 
-// GetQueueLength -
+// GetQueueLength will  return the length of the queue
 func (d *dataDispatcher) GetQueueLength() int {
 	return d.workQueue.Length()
+}
+
+// SetTxLogsProcessor will set tx logs processor
+func (d *dataDispatcher) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
+	d.elasticIndexer.SetTxLogsProcessor(txLogsProc)
 }
 
 func (d *dataDispatcher) doWork() {

@@ -83,6 +83,11 @@ func (di *dataIndexer) GetQueueLength() int {
 	return di.dispatcher.GetQueueLength()
 }
 
+// StopIndexing will stop goroutine that index data in database
+func (di *dataIndexer) StopIndexing() error {
+	return di.dispatcher.Close()
+}
+
 // RevertIndexedBlock -
 func (di *dataIndexer) RevertIndexedBlock(header data.HeaderHandler) {
 	//TODO dont forget about this function
@@ -115,13 +120,18 @@ func (di *dataIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]by
 
 // UpdateTPS updates the tps and statistics into elasticsearch index
 func (di *dataIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
+	if tpsBenchmark == nil {
+		log.Debug("indexer: update tps called, but the tpsBenchmark is nil")
+		return
+	}
+
 	wi := NewWorkItem(WorkTypeUpdateTPSBenchmark, &tpsBenchmark)
 	di.dispatcher.Add(wi)
 }
 
 // SetTxLogsProcessor will set tx logs processor
 func (di *dataIndexer) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
-
+	di.dispatcher.SetTxLogsProcessor(txLogsProc)
 }
 
 // IsNilIndexer will return a bool value that signals if the indexer's implementation is a NilIndexer

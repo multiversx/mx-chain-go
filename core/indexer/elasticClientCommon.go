@@ -14,7 +14,7 @@ import (
 
 func exists(res *esapi.Response, err error) bool {
 	defer func() {
-		if res.Body != nil {
+		if res != nil && res.Body != nil {
 			_, _ = io.Copy(ioutil.Discard, res.Body)
 			err = res.Body.Close()
 			if err != nil {
@@ -137,7 +137,7 @@ func newRequest(method, path string, body io.Reader) (*http.Request, error) {
  */
 func parseResponse(res *esapi.Response, dest interface{}, errorHandler responseErrorHandler) error {
 	defer func() {
-		if res.Body != nil {
+		if res != nil && res.Body != nil {
 			err := res.Body.Close()
 			if err != nil {
 				log.Warn("elasticClient.parseResponse",

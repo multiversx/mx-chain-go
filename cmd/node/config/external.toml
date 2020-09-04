@@ -1,5 +1,6 @@
 # ElasticSearchConnector defines settings related to ElasticSearch such as login information or URL
 [ElasticSearchConnector]
+    # TODO change this to false after testing
     Enabled    = true
     URL        = "https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"
     Username   = ""

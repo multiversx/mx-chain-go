@@ -10,8 +10,8 @@ var ErrBodyTypeAssertion = errors.New("elasticsearch - body type assertion faile
 // ErrNoHeader signals that we could not create an elasticsearch index
 var ErrNoHeader = errors.New("elasticsearch - no header")
 
-// ErrBackOff -
-var ErrBackOff = errors.New("back off")
+// ErrBackOff signals that an error was received from the server
+var ErrBackOff = errors.New("back off something is not working well")
 
 // ErrNoElasticUrlProvided -
 var ErrNoElasticUrlProvided = errors.New("no elastic url provided")

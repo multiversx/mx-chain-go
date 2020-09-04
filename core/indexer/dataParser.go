@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -69,6 +70,7 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 		TxCount:               header.GetTxCount(),
 		StateRootHash:         hex.EncodeToString(header.GetRootHash()),
 		PrevHash:              hex.EncodeToString(header.GetPrevHash()),
+		SearchOrder:           computeBlockSearchOrder(header),
 	}
 
 	serializedBlock, err := json.Marshal(elasticBlock)
@@ -136,4 +138,26 @@ func serializeRoundInfo(info RoundInfo) ([]byte, []byte) {
 	serializedInfo = append(serializedInfo, "\n"...)
 
 	return serializedInfo, meta
+}
+
+func computeBlockSearchOrder(header data.HeaderHandler) uint32 {
+	shardIdentifier := createShardIdentifier(header.GetShardID())
+	stringOrder := fmt.Sprintf("%d%d", shardIdentifier, header.GetNonce())
+
+	order, err := strconv.ParseUint(stringOrder, 10, 32)
+	if err != nil {
+		log.Debug("elasticsearchDatabase.computeBlockSearchOrder", "could not set uint32 search order", err.Error())
+		return 0
+	}
+
+	return uint32(order)
+}
+
+func createShardIdentifier(shardID uint32) uint32 {
+	shardIdentifier := shardID + 2
+	if shardID == core.MetachainShardId {
+		shardIdentifier = 1
+	}
+
+	return shardIdentifier
 }

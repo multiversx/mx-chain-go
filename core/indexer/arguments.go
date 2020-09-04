@@ -25,3 +25,15 @@ type DataIndexerArgs struct {
 	IndexPolicies            map[string]io.Reader
 	Options                  *Options
 }
+
+//ElasticIndexerArgs is struct that is used to store all components that are needed to an elastic indexer
+type ElasticIndexerArgs struct {
+	IndexTemplates           map[string]io.Reader
+	IndexPolicies            map[string]io.Reader
+	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	AddressPubkeyConverter   core.PubkeyConverter
+	ValidatorPubkeyConverter core.PubkeyConverter
+	Options                  *Options
+	DBClient                 databaseClientHandler
+}

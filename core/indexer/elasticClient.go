@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"io"
 	"net/http"
+
+	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
 type responseErrorHandler func(res *esapi.Response) error
@@ -35,161 +36,13 @@ func newElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
 	return ec, nil
 }
 
-// TemplateExists checks weather a template is already created
-func (ec *elasticClient) TemplateExists(index string) bool {
-	res, err := ec.es.Indices.ExistsTemplate([]string{index})
-	return exists(res, err)
-}
-
-// IndexExists checks if a given index already exists
-func (ec *elasticClient) IndexExists(index string) bool {
-	res, err := ec.es.Indices.Exists([]string{index})
-	return exists(res, err)
-}
-
-// PolicyExists checks if a policy was already created
-func (ec *elasticClient) PolicyExists(policy string) bool {
-	policyRoute := fmt.Sprintf(
-		"%s/%s/ism/policies/%s",
-		ec.elasticBaseUrl,
-		kibanaPluginPath,
-		policy,
-	)
-
-	req, err := newRequest(http.MethodGet, policyRoute, nil)
-	if err != nil {
-		log.Warn("elasticClient.PolicyExists", "could not create request object", err.Error())
-		return false
-	}
-
-	res, err := ec.es.Transport.Perform(req)
-	if err != nil {
-		log.Warn("elasticClient.PolicyExists", "error performing request", err.Error())
-		return false
-	}
-
-	response := &esapi.Response{
-		StatusCode: res.StatusCode,
-		Body:       res.Body,
-		Header:     res.Header,
-	}
-
-	existsRes := &kibanaExistsResponse{}
-	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
-	if err != nil {
-		log.Warn("elasticClient.PolicyExists", "error returned by kibana api", err.Error())
-		return false
-	}
-
-	return existsRes.Ok
-}
-
-// AliasExists checks if an index alias already exists
-func (ec *elasticClient) AliasExists(alias string) bool {
-	aliasRoute := fmt.Sprintf(
-		"%s/_alias/%s",
-		ec.elasticBaseUrl,
-		alias,
-	)
-
-	req, err := newRequest(http.MethodHead, aliasRoute, nil)
-	if err != nil {
-		log.Warn("elasticClient.AliasExists", "could not create request object", err.Error())
-		return false
-	}
-
-	res, err := ec.es.Transport.Perform(req)
-	if err != nil {
-		log.Warn("elasticClient.AliasExists", "error performing request", err.Error())
-		return false
-	}
-
-	response := &esapi.Response{
-		StatusCode: res.StatusCode,
-		Body:       res.Body,
-		Header:     res.Header,
-	}
-
-	return exists(response, nil)
-}
-
-// CreateIndex creates an elasticsearch index
-func (ec *elasticClient) CreateIndex(index string) error {
-	res, err := ec.es.Indices.Create(index)
-	if err != nil {
-		return err
-	}
-
-	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
-}
-
-// CreatePolicy creates a new policy for elastic indexes. Policies define rollover parameters
-func (ec *elasticClient) CreatePolicy(policyName string, policy io.Reader) error {
-	policyRoute := fmt.Sprintf(
-		"%s/%s/ism/policies/%s",
-		ec.elasticBaseUrl,
-		kibanaPluginPath,
-		policyName,
-	)
-
-	req, err := newRequest(http.MethodPut, policyRoute, policy)
-	if err != nil {
-		return err
-	}
-
-	req.Header[headerContentType] = headerContentTypeJSON
-	req.Header[headerXSRF] = []string{"false"}
-	res, err := ec.es.Transport.Perform(req)
-	if err != nil {
-		return err
-	}
-
-	response := &esapi.Response{
-		StatusCode: res.StatusCode,
-		Body:       res.Body,
-		Header:     res.Header,
-	}
-
-	existsRes := &kibanaExistsResponse{}
-	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
-	if err != nil {
-		return err
-	}
-
-	if !existsRes.Ok {
-		return ErrCouldNotCreatePolicy
-	}
-
-	return nil
-}
-
-// CreateIndexTemplate creates an elasticsearch index template
-func (ec *elasticClient) CreateIndexTemplate(templateName string, template io.Reader) error {
-	res, err := ec.es.Indices.PutTemplate(template, templateName)
-	if err != nil {
-		return err
-	}
-
-	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
-}
-
-// CreateAlias creates an index alias
-func (ec *elasticClient) CreateAlias(alias string, index string) error {
-	res, err := ec.es.Indices.PutAlias([]string{index}, alias)
-	if err != nil {
-		return err
-	}
-
-	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
-}
-
 // CheckAndCreateTemplate creates an index template if it does not already exist
 func (ec *elasticClient) CheckAndCreateTemplate(templateName string, template io.Reader) error {
-	if ec.TemplateExists(templateName) {
+	if ec.templateExists(templateName) {
 		return nil
 	}
 
-	return ec.CreateIndexTemplate(templateName, template)
+	return ec.createIndexTemplate(templateName, template)
 }
 
 // CheckAndCreatePolicy creates a new index policy if it does not already exist
@@ -198,25 +51,25 @@ func (ec *elasticClient) CheckAndCreatePolicy(policyName string, policy io.Reade
 		return nil
 	}
 
-	return ec.CreatePolicy(policyName, policy)
+	return ec.createPolicy(policyName, policy)
 }
 
 // CheckAndCreateIndex creates a new index if it does not already exist
 func (ec *elasticClient) CheckAndCreateIndex(indexName string) error {
-	if ec.IndexExists(indexName) {
+	if ec.indexExists(indexName) {
 		return nil
 	}
 
-	return ec.CreateIndex(indexName)
+	return ec.createIndex(indexName)
 }
 
 // CheckAndCreateAlias creates a new alias if it does not already exist
 func (ec *elasticClient) CheckAndCreateAlias(alias string, indexName string) error {
-	if ec.AliasExists(alias) {
+	if ec.aliasExists(alias) {
 		return nil
 	}
 
-	return ec.CreateAlias(alias, indexName)
+	return ec.createAlias(alias, indexName)
 }
 
 // DoRequest will do a request to elastic server
@@ -267,4 +120,152 @@ func (ec *elasticClient) DoMultiGet(obj object, index string) (object, error) {
 	}
 
 	return decodedBody, nil
+}
+
+// TemplateExists checks weather a template is already created
+func (ec *elasticClient) templateExists(index string) bool {
+	res, err := ec.es.Indices.ExistsTemplate([]string{index})
+	return exists(res, err)
+}
+
+// IndexExists checks if a given index already exists
+func (ec *elasticClient) indexExists(index string) bool {
+	res, err := ec.es.Indices.Exists([]string{index})
+	return exists(res, err)
+}
+
+// PolicyExists checks if a policy was already created
+func (ec *elasticClient) PolicyExists(policy string) bool {
+	policyRoute := fmt.Sprintf(
+		"%s/%s/ism/policies/%s",
+		ec.elasticBaseUrl,
+		kibanaPluginPath,
+		policy,
+	)
+
+	req, err := newRequest(http.MethodGet, policyRoute, nil)
+	if err != nil {
+		log.Warn("elasticClient.PolicyExists", "could not create request object", err.Error())
+		return false
+	}
+
+	res, err := ec.es.Transport.Perform(req)
+	if err != nil {
+		log.Warn("elasticClient.PolicyExists", "error performing request", err.Error())
+		return false
+	}
+
+	response := &esapi.Response{
+		StatusCode: res.StatusCode,
+		Body:       res.Body,
+		Header:     res.Header,
+	}
+
+	existsRes := &kibanaExistsResponse{}
+	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
+	if err != nil {
+		log.Warn("elasticClient.PolicyExists", "error returned by kibana api", err.Error())
+		return false
+	}
+
+	return existsRes.Ok
+}
+
+// AliasExists checks if an index alias already exists
+func (ec *elasticClient) aliasExists(alias string) bool {
+	aliasRoute := fmt.Sprintf(
+		"%s/_alias/%s",
+		ec.elasticBaseUrl,
+		alias,
+	)
+
+	req, err := newRequest(http.MethodHead, aliasRoute, nil)
+	if err != nil {
+		log.Warn("elasticClient.AliasExists", "could not create request object", err.Error())
+		return false
+	}
+
+	res, err := ec.es.Transport.Perform(req)
+	if err != nil {
+		log.Warn("elasticClient.AliasExists", "error performing request", err.Error())
+		return false
+	}
+
+	response := &esapi.Response{
+		StatusCode: res.StatusCode,
+		Body:       res.Body,
+		Header:     res.Header,
+	}
+
+	return exists(response, nil)
+}
+
+// CreateIndex creates an elasticsearch index
+func (ec *elasticClient) createIndex(index string) error {
+	res, err := ec.es.Indices.Create(index)
+	if err != nil {
+		return err
+	}
+
+	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
+}
+
+// CreatePolicy creates a new policy for elastic indexes. Policies define rollover parameters
+func (ec *elasticClient) createPolicy(policyName string, policy io.Reader) error {
+	policyRoute := fmt.Sprintf(
+		"%s/%s/ism/policies/%s",
+		ec.elasticBaseUrl,
+		kibanaPluginPath,
+		policyName,
+	)
+
+	req, err := newRequest(http.MethodPut, policyRoute, policy)
+	if err != nil {
+		return err
+	}
+
+	req.Header[headerContentType] = headerContentTypeJSON
+	req.Header[headerXSRF] = []string{"false"}
+	res, err := ec.es.Transport.Perform(req)
+	if err != nil {
+		return err
+	}
+
+	response := &esapi.Response{
+		StatusCode: res.StatusCode,
+		Body:       res.Body,
+		Header:     res.Header,
+	}
+
+	existsRes := &kibanaExistsResponse{}
+	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
+	if err != nil {
+		return err
+	}
+
+	if !existsRes.Ok {
+		return ErrCouldNotCreatePolicy
+	}
+
+	return nil
+}
+
+// CreateIndexTemplate creates an elasticsearch index template
+func (ec *elasticClient) createIndexTemplate(templateName string, template io.Reader) error {
+	res, err := ec.es.Indices.PutTemplate(template, templateName)
+	if err != nil {
+		return err
+	}
+
+	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
+}
+
+// CreateAlias creates an index alias
+func (ec *elasticClient) createAlias(alias string, index string) error {
+	res, err := ec.es.Indices.PutAlias([]string{index}, alias)
+	if err != nil {
+		return err
+	}
+
+	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
 }

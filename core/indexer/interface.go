@@ -1,10 +1,13 @@
 package indexer
 
 import (
+	"bytes"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/elastic/go-elasticsearch/v7/esapi"
+	"io"
 	"time"
 )
 
@@ -18,17 +21,19 @@ type Indexer interface {
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRating(indexID string, infoRating []ValidatorRatingInfo)
+	StopIndexing() error
 	GetQueueLength() int
 	IsInterfaceNil() bool
 	IsNilIndexer() bool
 }
 
-// DispatcherHandler -
+// DispatcherHandler is an interface for the data dispatcher data is used to index data in database
 type DispatcherHandler interface {
 	StartIndexData()
 	Close() error
 	Add(item *workItem)
 	GetQueueLength() int
+	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
 }
 
 // ElasticIndexer defines the interface for the elastic search indexer
@@ -40,6 +45,7 @@ type ElasticIndexer interface {
 	SaveValidatorsRating(index string, validatorsRatingInfo []ValidatorRatingInfo) error
 	SaveRoundsInfos(infos []RoundInfo) error
 	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
+	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
 }
 
 // QueueHandler defines the interface for the queue
@@ -51,4 +57,15 @@ type QueueHandler interface {
 	GetBackOffTime() int64
 	GetCycleTime() time.Duration
 	Length() int
+}
+
+// databaseClientHandler is an interface that do requests to elasticsearch server
+type databaseClientHandler interface {
+	DoRequest(req *esapi.IndexRequest) error
+	DoBulkRequest(buff *bytes.Buffer, index string) error
+	DoMultiGet(query object, index string) (object, error)
+	CheckAndCreateIndex(index string) error
+	CheckAndCreateAlias(alias string, indexName string) error
+	CheckAndCreateTemplate(templateName string, template io.Reader) error
+	CheckAndCreatePolicy(policyName string, policy io.Reader) error
 }

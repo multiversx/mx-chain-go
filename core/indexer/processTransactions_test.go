@@ -1,4 +1,4 @@
-package indexerOld
+package indexer
 
 import (
 	"encoding/hex"
@@ -242,7 +242,7 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 	txHash2 := []byte("txHash2")
 	tx2 := &Transaction{}
 
-	txPool := map[string]*Transaction {
+	txPool := map[string]*Transaction{
 		string(txHash1): tx1,
 		string(txHash2): tx2,
 	}

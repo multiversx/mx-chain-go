@@ -251,9 +251,9 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 	return transactions, rewardsTxs
 }
 
-func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[string]*Transaction, shardId uint32) map[string]*Transaction {
+func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[string]*Transaction, shardID uint32) map[string]*Transaction {
 	currentOrder := 0
-	shardIdentifier := tdp.createShardIdentifier(shardId)
+	shardIdentifier := createShardIdentifier(shardID)
 
 	for _, tx := range transactions {
 		stringOrder := fmt.Sprintf("%d%d", shardIdentifier, currentOrder)
@@ -267,15 +267,6 @@ func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[strin
 	}
 
 	return transactions
-}
-
-func (tdp *txDatabaseProcessor) createShardIdentifier(shardId uint32) uint32 {
-	shardIdentifier := shardId+2
-	if shardId == core.MetachainShardId {
-		shardIdentifier = 1
-	}
-
-	return shardIdentifier
 }
 
 func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {

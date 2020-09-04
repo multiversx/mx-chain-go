@@ -35,6 +35,21 @@ func (dwm *DatabaseWriterStub) DoMultiGet(_ map[string]interface{}, _ string) (m
 }
 
 // CheckAndCreateIndex --
-func (dwm *DatabaseWriterStub) CheckAndCreateIndex(_ string, _ io.Reader) error {
+func (dwm *DatabaseWriterStub) CheckAndCreateIndex(_ string) error {
+	return nil
+}
+
+// CheckAndCreateAlias -
+func (dwm *DatabaseWriterStub) CheckAndCreateAlias(_ string, _ string) error {
+	return nil
+}
+
+// CheckAndCreateTemplate -
+func (dwm *DatabaseWriterStub) CheckAndCreateTemplate(_ string, _ io.Reader) error {
+	return nil
+}
+
+// CheckAndCreatePolicy -
+func (dwm *DatabaseWriterStub) CheckAndCreatePolicy(_ string, _ io.Reader) error {
 	return nil
 }
