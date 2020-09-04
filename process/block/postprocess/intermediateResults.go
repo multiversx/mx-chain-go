@@ -76,7 +76,30 @@ func NewIntermediateResultsProcessor(
 	return irp, nil
 }
 
-// CreateAllInterMiniBlocks returns the cross shard miniblocks for the current round created from the smart contract results
+// GetNumOfCrossInterMbsAndTxs returns the number of cross shard miniblocks and transactions for the current round,
+// created from the smart contract results
+func (irp *intermediateResultsProcessor) GetNumOfCrossInterMbsAndTxs() (int, int) {
+	miniBlocks := make(map[uint32]int)
+
+	irp.mutInterResultsForBlock.Lock()
+	for _, tx := range irp.interResultsForBlock {
+		if tx.receiverShardID == irp.shardCoordinator.SelfId() {
+			continue
+		}
+		miniBlocks[tx.receiverShardID]++
+	}
+	irp.mutInterResultsForBlock.Unlock()
+
+	numMbs := len(miniBlocks)
+	numTxs := 0
+	for _, numTxsInMb := range miniBlocks {
+		numTxs += numTxsInMb
+	}
+
+	return numMbs, numTxs
+}
+
+// CreateAllInterMiniBlocks returns the miniblocks for the current round created from the smart contract results
 func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.MiniBlock {
 	miniBlocks := make(map[uint32]*block.MiniBlock, int(irp.shardCoordinator.NumberOfShards())+1)
 	for i := uint32(0); i < irp.shardCoordinator.NumberOfShards(); i++ {

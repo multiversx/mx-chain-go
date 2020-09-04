@@ -313,7 +313,7 @@ func (dr *dataReplayer) processMetaBlock(
 		return nil, err
 	}
 
-	shardsHeaderData := make(map[uint32]*storer2ElasticData.HeaderData)
+	shardsHeaderData := make(map[uint32][]*storer2ElasticData.HeaderData)
 	for _, shardInfo := range metaBlock.ShardInfo {
 		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, &shardInfo, metaBlock.Epoch, shardPersisters[shardInfo.ShardID])
 		if errProcessShardInfo != nil {
@@ -321,7 +321,7 @@ func (dr *dataReplayer) processMetaBlock(
 			return nil, errProcessShardInfo
 		}
 
-		shardsHeaderData[shardInfo.ShardID] = shardHdrData
+		shardsHeaderData[shardInfo.ShardID] = append(shardsHeaderData[shardInfo.ShardID], shardHdrData)
 	}
 
 	return &storer2ElasticData.RoundPersistedData{
@@ -380,15 +380,7 @@ func (dr *dataReplayer) getShardHeader(
 }
 
 func (dr *dataReplayer) processHeader(persisters *persistersHolder, hdr data.HeaderHandler) (*storer2ElasticData.HeaderData, error) {
-	miniBlocksHashes := make([]string, 0)
-	shardIDs := dr.getShardIDs()
-	for _, shard := range shardIDs {
-		miniBlocksForShard := hdr.GetMiniBlockHeadersWithDst(shard)
-		for hash := range miniBlocksForShard {
-			miniBlocksHashes = append(miniBlocksHashes, hash)
-		}
-	}
-
+	miniBlocksHashes := hdr.GetMiniBlockHeadersHashes()
 	body, txPool, err := dr.processBodyAndTransactionsPoolForHeader(hdr, persisters, miniBlocksHashes)
 	if err != nil {
 		return nil, err
@@ -414,14 +406,14 @@ func (dr *dataReplayer) getShardIDs() []uint32 {
 func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
 	header data.HeaderHandler,
 	persisters *persistersHolder,
-	mbHashes []string,
+	mbHashes [][]byte,
 ) (*block.Body, map[string]data.TransactionHandler, error) {
 	txPool := make(map[string]data.TransactionHandler)
 	mbUnit := persisters.miniBlocksPersister
 
 	blockBody := &block.Body{}
 	for _, mbHash := range mbHashes {
-		recoveredMiniBlock, err := dr.getMiniBlockFromStorage(mbUnit, []byte(mbHash))
+		recoveredMiniBlock, err := dr.getMiniBlockFromStorage(mbUnit, mbHash)
 		if err != nil {
 			if header.GetShardID() == core.MetachainShardId {
 				// could be miniblocks headers for shard, so we can continue
@@ -467,7 +459,7 @@ func (dr *dataReplayer) getReceiptsIfNeeded(holder *persistersHolder, hdr data.H
 	batchBytes, err := holder.receiptsPersister.Get(hdr.GetReceiptsHash())
 	if err != nil {
 		log.Warn("receipts hash not found", "hash", hdr.GetReceiptsHash())
-		return nil, nil
+		return nil, err
 	}
 
 	var batchObj batch.Batch

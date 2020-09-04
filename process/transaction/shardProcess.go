@@ -5,7 +5,7 @@ import (
 	"errors"
 	"math/big"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/transaction")
@@ -240,7 +240,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return nil
 	}
 
-	txFee := core.SafeMul(tx.GasPrice, tx.GasLimit)
+	txFee := txProc.economicsFee.ComputeTxFee(tx)
 	err := acntSnd.SubFromBalance(txFee)
 	if err != nil {
 		return err
@@ -688,8 +688,7 @@ func (txProc *txProcessor) getUserTxCost(
 		gasUsed := txProc.economicsFee.ComputeGasLimit(userTx)
 		isTooMuchGasProvided := userTx.GasLimit > gasUsed*process.MaxGasFeeHigherFactorAccepted
 		if isTooMuchGasProvided {
-			//TODO: Change log level back to Trace
-			log.Warn("txProcessor.getUserTxCost: too much gas provided",
+			log.Trace("txProcessor.getUserTxCost: too much gas provided",
 				"hash", userTxHash,
 				"nonce", userTx.GetNonce(),
 				"value", userTx.GetValue(),

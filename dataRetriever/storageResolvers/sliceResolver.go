@@ -6,6 +6,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -16,11 +17,13 @@ const maxBuffToSend = 1 << 18 //256KB
 
 // ArgSliceResolver is the argument structure used to create a new sliceResolver instance
 type ArgSliceResolver struct {
-	Messenger         dataRetriever.MessageHandler
-	ResponseTopicName string
-	Storage           storage.Storer
-	DataPacker        dataRetriever.DataPacker
-	Marshalizer       marshal.Marshalizer
+	Messenger                dataRetriever.MessageHandler
+	ResponseTopicName        string
+	Storage                  storage.Storer
+	DataPacker               dataRetriever.DataPacker
+	Marshalizer              marshal.Marshalizer
+	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	ChanGracefullyClose      chan endProcess.ArgEndProcess
 }
 
 type sliceResolver struct {
@@ -44,11 +47,19 @@ func NewSliceResolver(arg ArgSliceResolver) (*sliceResolver, error) {
 	if check.IfNil(arg.DataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
+	if check.IfNil(arg.ManualEpochStartNotifier) {
+		return nil, dataRetriever.ErrNilManualEpochStartNotifier
+	}
+	if arg.ChanGracefullyClose == nil {
+		return nil, dataRetriever.ErrNilGracefullyCloseChannel
+	}
 
 	return &sliceResolver{
 		storageResolver: &storageResolver{
-			messenger:         arg.Messenger,
-			responseTopicName: arg.ResponseTopicName,
+			messenger:                arg.Messenger,
+			responseTopicName:        arg.ResponseTopicName,
+			manualEpochStartNotifier: arg.ManualEpochStartNotifier,
+			chanGracefullyClose:      arg.ChanGracefullyClose,
 		},
 		storage:     arg.Storage,
 		dataPacker:  arg.DataPacker,
@@ -60,6 +71,8 @@ func NewSliceResolver(arg ArgSliceResolver) (*sliceResolver, error) {
 func (sliceRes *sliceResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 	mb, err := sliceRes.storage.Get(hash)
 	if err != nil {
+		sliceRes.signalGracefullyClose()
+
 		return err
 	}
 
@@ -107,6 +120,8 @@ func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 
 	if errFetch != nil {
 		errFetch = fmt.Errorf("resolveMbRequestByHashArray last error %w from %d encountered errors", errFetch, errorsFound)
+
+		sliceRes.signalGracefullyClose()
 	}
 
 	return errFetch

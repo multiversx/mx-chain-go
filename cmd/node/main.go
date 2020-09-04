@@ -476,6 +476,7 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 	workingDir := getWorkingDir(ctx, log)
 
 	var fileLogging factory.FileLoggingHandler
@@ -832,7 +833,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
 	log.Trace("creating economics data components")
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
+	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		Economics:                      economicsConfig,
+		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		EpochNotifier:                  epochNotifier,
+	}
+	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
 		return err
 	}
@@ -1075,7 +1081,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if bootstrapParameters.NodesConfig != nil {
 		log.Info("the epoch from nodesConfig is", "epoch", bootstrapParameters.NodesConfig.CurrentEpoch)
 	}
-	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
+
 	nodesCoordinator, nodeShufflerOut, err := createNodesCoordinator(
 		log,
 		genesisNodesConfig,
@@ -1281,6 +1287,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochNotifier,
 		txSimulatorProcessorArgs,
 		ctx.GlobalString(importDbDirectory.Name),
+		chanStopNodeProcess,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1487,8 +1494,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.Context) {
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
 	if len(importDbDirectoryValue) > 0 {
-		log.Info("import DB directory is set, turning off start in epoch", "value", importDbDirectoryValue)
+		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
+		log.Info("import DB directory is set, altering config values!",
+			"GeneralSettings.StartInEpochEnabled", "false",
+			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"import DB path", importDbDirectoryValue,
+		)
 		config.GeneralSettings.StartInEpochEnabled = false
+		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 	}
 }
 

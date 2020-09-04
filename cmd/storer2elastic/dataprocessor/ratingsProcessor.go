@@ -21,12 +21,14 @@ import (
 // RatingProcessorArgs holds the arguments needed for creating a new ratingsProcessor
 type RatingProcessorArgs struct {
 	ValidatorPubKeyConverter core.PubkeyConverter
+	GenesisNodesConfig       sharding.GenesisNodesSetupHandler
 	ShardCoordinator         sharding.Coordinator
 	DbPathWithChainID        string
 	GeneralConfig            config.Config
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	ElasticIndexer           indexer.Indexer
+	RatingsConfig            config.RatingsConfig
 }
 
 type ratingsProcessor struct {
@@ -38,6 +40,8 @@ type ratingsProcessor struct {
 	hasher                   hashing.Hasher
 	elasticIndexer           indexer.Indexer
 	peerAdapter              state.AccountsAdapter
+	genesisNodesConfig       sharding.GenesisNodesSetupHandler
+	ratingsConfig            config.RatingsConfig
 }
 
 // NewRatingsProcessor will return a new instance of ratingsProcessor
@@ -57,6 +61,9 @@ func NewRatingsProcessor(args RatingProcessorArgs) (*ratingsProcessor, error) {
 	if check.IfNil(args.ElasticIndexer) {
 		return nil, ErrNilElasticIndexer
 	}
+	if check.IfNil(args.GenesisNodesConfig) {
+		return nil, ErrNilGenesisNodesSetup
+	}
 
 	rp := &ratingsProcessor{
 		validatorPubKeyConverter: args.ValidatorPubKeyConverter,
@@ -66,6 +73,8 @@ func NewRatingsProcessor(args RatingProcessorArgs) (*ratingsProcessor, error) {
 		hasher:                   args.Hasher,
 		elasticIndexer:           args.ElasticIndexer,
 		dbPathWithChainID:        args.DbPathWithChainID,
+		genesisNodesConfig:       args.GenesisNodesConfig,
+		ratingsConfig:            args.RatingsConfig,
 	}
 
 	err := rp.createPeerAdapter()
@@ -78,6 +87,11 @@ func NewRatingsProcessor(args RatingProcessorArgs) (*ratingsProcessor, error) {
 
 // IndexRatingsForEpochStartMetaBlock will index the ratings for an epoch start meta block
 func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock *block.MetaBlock) error {
+	if metaBlock.GetNonce() == 0 {
+		rp.indexRating(0, rp.getGenesisRating())
+		return nil
+	}
+
 	rootHash := metaBlock.ValidatorStatsRootHash
 	leaves, err := rp.peerAdapter.GetAllLeaves(rootHash)
 	if err != nil {
@@ -89,13 +103,17 @@ func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock *block.
 		return err
 	}
 
+	rp.indexRating(metaBlock.GetEpoch(), validatorsRatingData)
+
+	return nil
+}
+
+func (rp *ratingsProcessor) indexRating(epoch uint32, validatorsRatingData map[uint32][]indexer.ValidatorRatingInfo) {
 	for shardID, validators := range validatorsRatingData {
-		index := fmt.Sprintf("%d_%d", shardID, metaBlock.Epoch)
+		index := fmt.Sprintf("%d_%d", shardID, epoch)
 		rp.elasticIndexer.SaveValidatorsRating(index, validators)
 		log.Info("indexed validators rating", "shard ID", shardID, "num peers", len(validators))
 	}
-
-	return nil
 }
 
 func (rp *ratingsProcessor) createPeerAdapter() error {
@@ -162,11 +180,35 @@ func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leaves map[string][]by
 		validatorsRatingInfo[peerAccount.GetShardId()] = append(validatorsRatingInfo[peerAccount.GetShardId()],
 			indexer.ValidatorRatingInfo{
 				PublicKey: rp.validatorPubKeyConverter.Encode(peerAccount.GetBLSPublicKey()),
-				Rating:    float32(peerAccount.GetRating()) * 100 / 10000000,
+				Rating:    float32(peerAccount.GetRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
 			})
 	}
 
 	return validatorsRatingInfo, nil
+}
+
+func (rp *ratingsProcessor) getGenesisRating() map[uint32][]indexer.ValidatorRatingInfo {
+	ratingsForGenesis := make(map[uint32][]indexer.ValidatorRatingInfo)
+
+	eligible, waiting := rp.genesisNodesConfig.InitialNodesInfo()
+	for shardID, nodesInShard := range eligible {
+		for _, node := range nodesInShard {
+			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], indexer.ValidatorRatingInfo{
+				PublicKey: rp.validatorPubKeyConverter.Encode(node.PubKeyBytes()),
+				Rating:    float32(node.GetInitialRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
+			})
+		}
+	}
+	for shardID, nodesInShard := range waiting {
+		for _, node := range nodesInShard {
+			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], indexer.ValidatorRatingInfo{
+				PublicKey: rp.validatorPubKeyConverter.Encode(node.PubKeyBytes()),
+				Rating:    float32(node.GetInitialRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
+			})
+		}
+	}
+
+	return ratingsForGenesis
 }
 
 func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccountHandler, error) {

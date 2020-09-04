@@ -448,6 +448,9 @@ const SCDeployInitFunctionName = "_init"
 // ShuffledOut signals that a restart is pending because the node was shuffled out
 const ShuffledOut = "shuffledOut"
 
+// ImportComplete signals that a node restart will be done because the import did complete
+const ImportComplete = "importComplete"
+
 // MaxRetriesToCreateDB represents the maximum number of times to try to create DB if it failed
 const MaxRetriesToCreateDB = 10
 
@@ -502,3 +505,9 @@ const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
 // DefaultLogProfileIdentifier represents the default log profile used when the logviewer/termui applications do not
 // need to change the current logging profile
 const DefaultLogProfileIdentifier = "[default log profile]"
+
+// MultiplyFactorForScCall specifies the multiply factor, in terms of number, which should be used by a node when it
+// includes sc calls in a miniblock.
+// Ex.: normal txs -> aprox. 27000, sc calls -> aprox. 6250 = 27000 / (MultiplyFactorForScCall + 1),
+// considering that constant below is set to 3
+const MultiplyFactorForScCall = 3

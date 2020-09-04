@@ -19,6 +19,7 @@ import (
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -172,6 +173,7 @@ type processComponentsFactoryArgs struct {
 	epochNotifier             process.EpochNotifier
 	txSimulatorProcessorArgs  *txsimulator.ArgsTxSimulator
 	storageReolverImportPath  string
+	chanGracefullyClose       chan endProcess.ArgEndProcess
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -218,6 +220,7 @@ func NewProcessComponentsFactoryArgs(
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	storageReolverImportPath string,
+	chanGracefullyClose chan endProcess.ArgEndProcess,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -263,6 +266,7 @@ func NewProcessComponentsFactoryArgs(
 		epochNotifier:             epochNotifier,
 		txSimulatorProcessorArgs:  txSimulatorProcessorArgs,
 		storageReolverImportPath:  storageReolverImportPath,
+		chanGracefullyClose:       chanGracefullyClose,
 	}
 }
 
@@ -306,6 +310,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.storageReolverImportPath,
 		&args.mainConfig,
 		args.startEpochNum,
+		args.chanGracefullyClose,
 	)
 	if err != nil {
 		return nil, err
@@ -640,23 +645,24 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
 	// In "dblookupext" index, record both the metachain and the shard blocks
-	for shard, genesisBlockHeader := range genesisBlocks {
-		if args.shardCoordinator.SelfId() != shard {
+	var shardID uint32
+	for shardID, genesisBlockHeader = range genesisBlocks {
+		if args.shardCoordinator.SelfId() != shardID {
 			continue
 		}
 
-		genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
+		genesisBlockHash, err = core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
 		if err != nil {
 			return err
 		}
 
-		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shard, "hash", genesisBlockHash)
+		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shardID, "hash", genesisBlockHash)
 		err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
 		if err != nil {
 			return err
 		}
 
-		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shard)
+		nonceByHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(shardID)
 		nonceAsBytes := args.coreData.Uint64ByteSliceConverter.ToByteSlice(genesisBlockHeader.GetNonce())
 		err = args.data.Store.Put(nonceByHashDataUnit, nonceAsBytes, genesisBlockHash)
 		if err != nil {
@@ -833,6 +839,7 @@ func newResolverContainerFactory(
 	storageResolverImportPath string,
 	config *config.Config,
 	currentEpoch uint32,
+	chanGracefullyClose chan endProcess.ArgEndProcess,
 ) (dataRetriever.ResolversContainerFactory, error) {
 
 	if len(storageResolverImportPath) > 0 {
@@ -844,6 +851,7 @@ func newResolverContainerFactory(
 			storageResolverImportPath,
 			config,
 			currentEpoch,
+			chanGracefullyClose,
 		)
 	}
 
@@ -880,6 +888,7 @@ func newStorageResolver(
 	storageResolverImportPath string,
 	config *config.Config,
 	currentEpoch uint32,
+	chanGracefullyClose chan endProcess.ArgEndProcess,
 ) (dataRetriever.ResolversContainerFactory, error) {
 	pathManager, err := createPathManager(storageResolverImportPath, string(coreData.ChainID))
 	if err != nil {
@@ -904,12 +913,15 @@ func newStorageResolver(
 			return nil, errStore
 		}
 
+		manualEpochStartNotifier.NewEpoch(currentEpoch + 1)
+
 		return createStorageResolversForMeta(
 			shardCoordinator,
 			coreData,
 			network,
 			store,
 			manualEpochStartNotifier,
+			chanGracefullyClose,
 		)
 	}
 
@@ -918,12 +930,15 @@ func newStorageResolver(
 		return nil, err
 	}
 
+	manualEpochStartNotifier.NewEpoch(currentEpoch + 1)
+
 	return createStorageResolversForShard(
 		shardCoordinator,
 		coreData,
 		network,
 		store,
 		manualEpochStartNotifier,
+		chanGracefullyClose,
 	)
 }
 
@@ -956,6 +971,7 @@ func createStorageResolversForMeta(
 	network *mainFactory.NetworkComponents,
 	store dataRetriever.StorageService,
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
+	chanGracefullyClose chan endProcess.ArgEndProcess,
 ) (dataRetriever.ResolversContainerFactory, error) {
 	dataPacker, err := partitioning.NewSimpleDataPacker(coreData.InternalMarshalizer)
 	if err != nil {
@@ -970,6 +986,7 @@ func createStorageResolversForMeta(
 		Uint64ByteSliceConverter: coreData.Uint64ByteSliceConverter,
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
+		ChanGracefullyClose:      chanGracefullyClose,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -985,6 +1002,7 @@ func createStorageResolversForShard(
 	network *mainFactory.NetworkComponents,
 	store dataRetriever.StorageService,
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
+	chanGracefullyClose chan endProcess.ArgEndProcess,
 ) (dataRetriever.ResolversContainerFactory, error) {
 	dataPacker, err := partitioning.NewSimpleDataPacker(coreData.InternalMarshalizer)
 	if err != nil {
@@ -999,6 +1017,7 @@ func createStorageResolversForShard(
 		Uint64ByteSliceConverter: coreData.Uint64ByteSliceConverter,
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
+		ChanGracefullyClose:      chanGracefullyClose,
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
