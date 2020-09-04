@@ -52,3 +52,14 @@ func TestManagedStatusComponents_Close(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, managedStatusComponents.StatusHandler())
 }
+
+func TestManagedStatusComponents_CheckSubcomponents(t *testing.T) {
+	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
+	managedStatusComponents, _ := factory.NewManagedStatusComponents(statusComponentsFactory)
+	err := managedStatusComponents.Create()
+	require.NoError(t, err)
+
+	err = managedStatusComponents.CheckSubcomponents()
+	require.NoError(t, err)
+}

@@ -57,10 +57,10 @@ func TestNewConsensusComponentsFactory_NilDataComponents(t *testing.T) {
 func TestNewConsensusComponentsFactory_NilCryptoComponents(t *testing.T) {
 	t.Parallel()
 
-	args := getBootStrapArgs()
+	args := getConsensusArgs()
 	args.CryptoComponents = nil
 
-	bcf, err := factory.NewBootstrapComponentsFactory(args)
+	bcf, err := factory.NewConsensusComponentsFactory(args)
 
 	require.Nil(t, bcf)
 	require.Equal(t, errorsErd.ErrNilCryptoComponentsHolder, err)
@@ -69,10 +69,10 @@ func TestNewConsensusComponentsFactory_NilCryptoComponents(t *testing.T) {
 func TestNewConsensusComponentsFactory_NilNetworkComponents(t *testing.T) {
 	t.Parallel()
 
-	args := getBootStrapArgs()
+	args := getConsensusArgs()
 	args.NetworkComponents = nil
 
-	bcf, err := factory.NewBootstrapComponentsFactory(args)
+	bcf, err := factory.NewConsensusComponentsFactory(args)
 
 	require.Nil(t, bcf)
 	require.Equal(t, errorsErd.ErrNilNetworkComponentsHolder, err)
@@ -124,6 +124,47 @@ func TestConsensusComponentsFactory_Create_GenesisBlockNotInitializedShouldErr(t
 	err := managedConsensusComponents.Create()
 	require.True(t, errors.Is(err, errorsErd.ErrConsensusComponentsFactoryCreate))
 	require.True(t, strings.Contains(err.Error(), errorsErd.ErrGenesisBlockNotInitialized.Error()))
+}
+
+func TestConsensusComponentsFactory_CreateForShard(t *testing.T) {
+	t.Parallel()
+
+	args := getConsensusArgs()
+	ccf, _ := factory.NewConsensusComponentsFactory(args)
+	require.NotNil(t, ccf)
+
+	cc, err := ccf.Create()
+	require.NoError(t, err)
+	require.NotNil(t, cc)
+}
+
+type wrappedProcessComponents struct {
+	factory.ProcessComponentsHolder
+}
+
+func (wp *wrappedProcessComponents) ShardCoordinator() sharding.Coordinator {
+	shC := mock.NewMultiShardsCoordinatorMock(2)
+	shC.SelfIDCalled = func() uint32 {
+		return core.MetachainShardId
+	}
+
+	return shC
+}
+
+func TestConsensusComponentsFactory_CreateForMeta(t *testing.T) {
+	t.Parallel()
+
+	args := getConsensusArgs()
+
+	args.ProcessComponents = &wrappedProcessComponents{
+		ProcessComponentsHolder: args.ProcessComponents,
+	}
+	ccf, _ := factory.NewConsensusComponentsFactory(args)
+	require.NotNil(t, ccf)
+
+	cc, err := ccf.Create()
+	require.NoError(t, err)
+	require.NotNil(t, cc)
 }
 
 func TestConsensusComponentsFactory_Create_NilRounder(t *testing.T) {

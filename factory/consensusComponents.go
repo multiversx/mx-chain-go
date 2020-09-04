@@ -90,6 +90,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	}, nil
 }
 
+// Create will init all the components needed for a new instance of consensusComponents
 func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	var err error
 
@@ -247,6 +248,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	return cc, nil
 }
 
+// Close will close all the inner components
 func (cc *consensusComponents) Close() error {
 	err := cc.chronology.Close()
 	if err != nil {
