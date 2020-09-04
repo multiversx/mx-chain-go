@@ -241,16 +241,6 @@ func (hr *historyRepository) GetEpochByHash(hash []byte) (uint32, error) {
 	return hr.epochByHashIndex.getEpochByHash(hash)
 }
 
-// RegisterToBlockTracker registers the history repository to blockTracker events
-func (hr *historyRepository) RegisterToBlockTracker(blockTracker BlockTracker) {
-	if check.IfNil(blockTracker) {
-		log.Error("RegisterToBlockTracker(): blockTracker is nil")
-		return
-	}
-
-	blockTracker.RegisterFinalMetachainHeadersHandler(hr.OnNotarizedBlocks)
-}
-
 // OnNotarizedBlocks notifies the history repository about notarized blocks
 func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 	for i, headerHandler := range headers {
