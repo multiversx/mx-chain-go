@@ -17,14 +17,16 @@ var _ process.DataMarshalizer = (*validatorInfoPreprocessor)(nil)
 var _ process.PreProcessor = (*validatorInfoPreprocessor)(nil)
 
 type validatorInfoPreprocessor struct {
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
+	hasher               hashing.Hasher
+	marshalizer          marshal.Marshalizer
+	blockSizeComputation BlockSizeComputationHandler
 }
 
 // NewValidatorInfoPreprocessor creates a new validatorInfo preprocessor object
 func NewValidatorInfoPreprocessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
+	blockSizeComputation BlockSizeComputationHandler,
 ) (*validatorInfoPreprocessor, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
@@ -32,10 +34,14 @@ func NewValidatorInfoPreprocessor(
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(blockSizeComputation) {
+		return nil, process.ErrNilBlockSizeComputationHandler
+	}
 
 	rtp := &validatorInfoPreprocessor{
-		hasher:      hasher,
-		marshalizer: marshalizer,
+		hasher:               hasher,
+		marshalizer:          marshalizer,
+		blockSizeComputation: blockSizeComputation,
 	}
 	return rtp, nil
 }
@@ -137,13 +143,22 @@ func (vip *validatorInfoPreprocessor) CreateAndProcessMiniBlocks(_ func() bool) 
 }
 
 // ProcessMiniBlock does nothing
-func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool) ([][]byte, error) {
+func (vip *validatorInfoPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, _ func() bool, _ func() (int, int)) ([][]byte, error) {
 	if miniBlock.Type != block.PeerBlock {
 		return nil, process.ErrWrongTypeInMiniBlock
 	}
 	if miniBlock.SenderShardID != core.MetachainShardId {
 		return nil, process.ErrValidatorInfoMiniBlockNotFromMeta
 	}
+
+	//TODO: We need another function in the BlockSizeComputationHandler implementation that will better handle
+	//the PeerBlock miniblocks as those are not hashes
+	if vip.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
+		return nil, process.ErrMaxBlockSizeReached
+	}
+
+	vip.blockSizeComputation.AddNumMiniBlocks(1)
+	vip.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
 
 	return nil, nil
 }

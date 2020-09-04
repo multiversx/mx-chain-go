@@ -154,6 +154,7 @@ type SmartContractProcessor interface {
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
 type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
+	GetNumOfCrossInterMbsAndTxs() (int, int)
 	CreateAllInterMiniBlocks() []*block.MiniBlock
 	VerifyInterMiniBlocks(body *block.Body) error
 	SaveCurrentIntermediateTxToStorage() error
@@ -197,7 +198,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler

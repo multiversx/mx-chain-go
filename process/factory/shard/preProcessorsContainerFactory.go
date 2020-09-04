@@ -242,6 +242,7 @@ func (ppcm *preProcessorsContainerFactory) createValidatorInfoPreProcessor() (pr
 	validatorInfoPreprocessor, err := preprocess.NewValidatorInfoPreprocessor(
 		ppcm.hasher,
 		ppcm.marshalizer,
+		ppcm.blockSizeComputation,
 	)
 
 	return validatorInfoPreprocessor, err
