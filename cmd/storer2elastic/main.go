@@ -271,7 +271,6 @@ func startStorer2Elastic(ctx *cli.Context) error {
 	}
 
 	dataReplayerArgs := dataprocessor.DataReplayerArgs{
-		ElasticIndexer:           elasticIndexer,
 		GeneralConfig:            nodeConfig,
 		DatabaseReader:           dbReader,
 		ShardCoordinator:         shardCoordinator,

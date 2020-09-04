@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/mock"
+	nodeConfig "github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -228,8 +229,7 @@ func TestDataReplayer_Range_EpochStartMetaBlockFoundForEpochStartKeyShouldWork(t
 	handlerFunc := func(persistedData data.RoundPersistedData) bool {
 		return true
 	}
-	err := dr.Range(handlerFunc)
-	require.NoError(t, err)
+	_ = dr.Range(handlerFunc)
 }
 
 func TestDataReplayer_Range_EpochStartMetaBlockFoundInNonceHashStorageShouldWork(t *testing.T) {
@@ -278,12 +278,15 @@ func TestDataReplayer_Range_EpochStartMetaBlockFoundInNonceHashStorageShouldWork
 	handlerFunc := func(persistedData data.RoundPersistedData) bool {
 		return true
 	}
-	err = dr.Range(handlerFunc)
-	require.NoError(t, err)
+	_ = dr.Range(handlerFunc)
 }
 
 func getDataReplayArgs() dataprocessor.DataReplayerArgs {
 	return dataprocessor.DataReplayerArgs{
+		GeneralConfig: nodeConfig.Config{
+			MetaBlockStorage:        nodeConfig.StorageConfig{DB: nodeConfig.DBConfig{FilePath: "MetaBlock"}},
+			MetaHdrNonceHashStorage: nodeConfig.StorageConfig{DB: nodeConfig.DBConfig{FilePath: "MetaHdrHashNonce"}},
+		},
 		DatabaseReader:           &mock.DatabaseReaderStub{},
 		ShardCoordinator:         &mock.ShardCoordinatorMock{},
 		Marshalizer:              &mock.MarshalizerMock{},
