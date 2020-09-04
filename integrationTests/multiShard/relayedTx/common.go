@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -12,8 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
+// CreateGeneralSetupForRelayTxTest -
 func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount, p2p.Messenger) {
 	numOfShards := 2
 	nodesPerShard := 1
@@ -54,6 +60,7 @@ func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 	return nodes, idxProposers, players, relayerAccount, advertiser
 }
 
+// CreateAndSendRelayedAndUserTx -
 func CreateAndSendRelayedAndUserTx(
 	nodes []*integrationTests.TestProcessorNode,
 	relayer *integrationTests.TestWalletAccount,
@@ -63,10 +70,10 @@ func CreateAndSendRelayedAndUserTx(
 	gasLimit uint64,
 	txData []byte,
 ) *transaction.Transaction {
-	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address)
+	txDispatcherNode := GetNodeWithinSameShardAsPlayer(nodes, player.Address)
 
-	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData)
-	relayedTx := createRelayedTx(txDispatcherNode.EconomicsData, relayer, userTx)
+	userTx := CreateUserTx(player, rcvAddr, value, gasLimit, txData)
+	relayedTx := CreateRelayedTx(txDispatcherNode.EconomicsData, relayer, userTx)
 
 	_, err := txDispatcherNode.SendTransaction(relayedTx)
 	if err != nil {
@@ -76,7 +83,8 @@ func CreateAndSendRelayedAndUserTx(
 	return relayedTx
 }
 
-func createUserTx(
+// CreateUserTx -
+func CreateUserTx(
 	player *integrationTests.TestWalletAccount,
 	rcvAddr []byte,
 	value *big.Int,
@@ -100,7 +108,8 @@ func createUserTx(
 	return tx
 }
 
-func createRelayedTx(
+// CreateRelayedTx -
+func CreateRelayedTx(
 	feeHandler process.FeeHandler,
 	relayer *integrationTests.TestWalletAccount,
 	userTx *transaction.Transaction,
@@ -131,7 +140,8 @@ func createRelayedTx(
 	return tx
 }
 
-func createAndSendSimpleTransaction(
+// CreateAndSendSimpleTransaction -
+func CreateAndSendSimpleTransaction(
 	nodes []*integrationTests.TestProcessorNode,
 	player *integrationTests.TestWalletAccount,
 	rcvAddr []byte,
@@ -139,9 +149,9 @@ func createAndSendSimpleTransaction(
 	gasLimit uint64,
 	txData []byte,
 ) {
-	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address)
+	txDispatcherNode := GetNodeWithinSameShardAsPlayer(nodes, player.Address)
 
-	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData)
+	userTx := CreateUserTx(player, rcvAddr, value, gasLimit, txData)
 	_, err := txDispatcherNode.SendTransaction(userTx)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -149,7 +159,8 @@ func createAndSendSimpleTransaction(
 
 }
 
-func getNodeWithinSameShardAsPlayer(
+// GetNodeWithinSameShardAsPlayer -
+func GetNodeWithinSameShardAsPlayer(
 	nodes []*integrationTests.TestProcessorNode,
 	player []byte,
 ) *integrationTests.TestProcessorNode {
@@ -165,6 +176,7 @@ func getNodeWithinSameShardAsPlayer(
 	return nodeWithCaller
 }
 
+// GetUserAccount -
 func GetUserAccount(
 	nodes []*integrationTests.TestProcessorNode,
 	address []byte,
@@ -181,4 +193,81 @@ func GetUserAccount(
 		}
 	}
 	return nil
+}
+
+// CheckAttestedPublicKeys -
+func CheckAttestedPublicKeys(
+	t *testing.T,
+	node *integrationTests.TestProcessorNode,
+	scAddress []byte,
+	obfuscatedData []byte,
+	userAddress []byte,
+) {
+	scQuery := node.SCQueryService
+	vmOutput, err := scQuery.ExecuteQuery(&process.SCQuery{
+		ScAddress: scAddress,
+		FuncName:  "getPublicKey",
+		Arguments: [][]byte{obfuscatedData},
+	})
+	require.Nil(t, err)
+	require.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
+	require.Equal(t, vmOutput.ReturnData[0], userAddress)
+}
+
+// CheckSCBalance -
+func CheckSCBalance(t *testing.T, node *integrationTests.TestProcessorNode, scAddress []byte, userAddress []byte, balance *big.Int) {
+	scQuery := node.SCQueryService
+	vmOutput, err := scQuery.ExecuteQuery(&process.SCQuery{
+		ScAddress: scAddress,
+		FuncName:  "balanceOf",
+		Arguments: [][]byte{userAddress},
+	})
+	assert.Nil(t, err)
+	actualBalance := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+	assert.Equal(t, actualBalance.Cmp(balance), 0)
+}
+
+// CheckPlayerBalances -
+func CheckPlayerBalances(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	players []*integrationTests.TestWalletAccount) {
+	for _, player := range players {
+		userAcc := GetUserAccount(nodes, player.Address)
+		assert.Equal(t, userAcc.GetBalance().Cmp(player.Balance), 0)
+		assert.Equal(t, userAcc.GetNonce(), player.Nonce)
+	}
+}
+
+// CheckAddressHasESDTTokens -
+func CheckAddressHasESDTTokens(
+	t *testing.T,
+	address []byte,
+	nodes []*integrationTests.TestProcessorNode,
+	tokenName string,
+	value *big.Int,
+) {
+	userAcc := GetUserAccount(nodes, address)
+
+	tokenKey := []byte(core.ElrondProtectedKeyPrefix + "esdt" + tokenName)
+	esdtData, err := GetESDTDataFromKey(userAcc, tokenKey)
+	assert.Nil(t, err)
+
+	assert.Equal(t, esdtData.Value.Cmp(value), 0)
+}
+
+// GetESDTDataFromKey -
+func GetESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) (*builtInFunctions.ESDigitalToken, error) {
+	esdtData := &builtInFunctions.ESDigitalToken{Value: big.NewInt(0)}
+	marshaledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
+	if err != nil {
+		return esdtData, nil
+	}
+
+	err = integrationTests.TestMarshalizer.Unmarshal(esdtData, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return esdtData, nil
 }
