@@ -45,30 +45,19 @@ type chronology struct {
 }
 
 // NewChronology creates a new chronology object
-func NewChronology(
-	genesisTime time.Time,
-	rounder consensus.Rounder,
-	syncTimer ntp.SyncTimer,
-	watchdog core.WatchdogTimer,
-	statusHandler core.AppStatusHandler,
-) (*chronology, error) {
+func NewChronology(arg ArgChronology) (*chronology, error) {
 
-	err := checkNewChronologyParams(
-		rounder,
-		syncTimer,
-		watchdog,
-		statusHandler,
-	)
+	err := checkNewChronologyParams(arg)
 	if err != nil {
 		return nil, err
 	}
 
 	chr := chronology{
-		genesisTime:      genesisTime,
-		rounder:          rounder,
-		syncTimer:        syncTimer,
-		appStatusHandler: statusHandler,
-		watchdog:         watchdog,
+		genesisTime:      arg.GenesisTime,
+		rounder:          arg.Rounder,
+		syncTimer:        arg.SyncTimer,
+		appStatusHandler: arg.AppStatusHandler,
+		watchdog:         arg.Watchdog,
 	}
 
 	chr.subroundId = srBeforeStartRound
@@ -79,23 +68,18 @@ func NewChronology(
 	return &chr, nil
 }
 
-func checkNewChronologyParams(
-	rounder consensus.Rounder,
-	syncTimer ntp.SyncTimer,
-	watchdog core.WatchdogTimer,
-	statusHandler core.AppStatusHandler,
-) error {
+func checkNewChronologyParams(arg ArgChronology) error {
 
-	if check.IfNil(rounder) {
+	if check.IfNil(arg.Rounder) {
 		return ErrNilRounder
 	}
-	if check.IfNil(syncTimer) {
+	if check.IfNil(arg.SyncTimer) {
 		return ErrNilSyncTimer
 	}
-	if check.IfNil(watchdog) {
+	if check.IfNil(arg.Watchdog) {
 		return ErrNilWatchdog
 	}
-	if check.IfNil(statusHandler) {
+	if check.IfNil(arg.AppStatusHandler) {
 		return ErrNilAppStatusHandler
 	}
 

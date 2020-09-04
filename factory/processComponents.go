@@ -181,7 +181,7 @@ type processComponentsFactory struct {
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
 func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processComponentsFactory, error) {
-	err := checkArgs(args)
+	err := checkProcessComponentsArgs(args)
 	if err != nil {
 		return nil, err
 	}
@@ -1186,7 +1186,7 @@ func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
 	return storageUnit.NewCache(storageFactory.GetCacherFromConfig(cacheConfig))
 }
 
-func checkArgs(args ProcessComponentsFactoryArgs) error {
+func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	baseErrMessage := "error creating process components"
 	if check.IfNil(args.AccountsParser) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilAccountsParser)

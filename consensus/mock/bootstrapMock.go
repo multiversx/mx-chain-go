@@ -12,7 +12,6 @@ type BootstrapperMock struct {
 	AddSyncStateListenerCalled      func(func(bool))
 	GetNodeStateCalled              func() core.NodeState
 	StartSyncingBlocksCalled        func()
-	SetStatusHandlerCalled          func(handler core.AppStatusHandler) error
 }
 
 // CreateAndCommitEmptyBlock -
@@ -43,11 +42,6 @@ func (boot *BootstrapperMock) GetNodeState() core.NodeState {
 // StartSyncingBlocks -
 func (boot *BootstrapperMock) StartSyncingBlocks() {
 	boot.StartSyncingBlocksCalled()
-}
-
-// SetStatusHandler -
-func (boot *BootstrapperMock) SetStatusHandler(handler core.AppStatusHandler) error {
-	return boot.SetStatusHandlerCalled(handler)
 }
 
 // Close -

@@ -121,6 +121,9 @@ var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(Test
 // TestBalanceComputationHandler represents a balance computation handler
 var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
 
+// TestAppStatusHandler represents an AppStatusHandler
+var TestAppStatusHandler = &mock.AppStatusHandlerStub{}
+
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(10)
 

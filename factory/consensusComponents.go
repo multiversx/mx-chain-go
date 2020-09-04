@@ -93,13 +93,20 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	}, nil
 }
 
+// Create will init all the components needed for a new instance of consensusComponents
 func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	var err error
+
+	err = ccf.checkArgs()
+	if err != nil {
+		return nil, err
+	}
 	cc := &consensusComponents{}
+
 	blockchain := ccf.dataComponents.Blockchain()
-	isGenesisBlockNotInitialized := len(blockchain.GetGenesisHeaderHash()) == 0 ||
+	notInitializedGenesisBlock := len(blockchain.GetGenesisHeaderHash()) == 0 ||
 		check.IfNil(blockchain.GetGenesisHeader())
-	if isGenesisBlockNotInitialized {
+	if notInitializedGenesisBlock {
 		return nil, errors.ErrGenesisBlockNotInitialized
 	}
 
@@ -111,11 +118,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	cc.bootstrapper, err = ccf.createBootstrapper()
 	if err != nil {
 		return nil, err
-	}
-
-	err = cc.bootstrapper.SetStatusHandler(ccf.coreComponents.StatusHandler())
-	if err != nil {
-		log.Debug("cannot set app status handler for shard bootstrapper")
 	}
 
 	cc.bootstrapper.StartSyncingBlocks()
@@ -249,6 +251,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	return cc, nil
 }
 
+// Close will close all the inner components
 func (cc *consensusComponents) Close() error {
 	err := cc.chronology.Close()
 	if err != nil {
@@ -269,13 +272,14 @@ func (cc *consensusComponents) Close() error {
 }
 
 func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyHandler, error) {
-	chronologyHandler, err := chronology.NewChronology(
-		ccf.coreComponents.GenesisTime(),
-		ccf.processComponents.Rounder(),
-		ccf.coreComponents.SyncTimer(),
-		ccf.coreComponents.Watchdog(),
-		ccf.coreComponents.StatusHandler(),
-	)
+	chronologyArg := chronology.ArgChronology{
+		GenesisTime:      ccf.coreComponents.GenesisTime(),
+		Rounder:          ccf.processComponents.Rounder(),
+		SyncTimer:        ccf.coreComponents.SyncTimer(),
+		Watchdog:         ccf.coreComponents.Watchdog(),
+		AppStatusHandler: ccf.coreComponents.StatusHandler(),
+	}
+	chronologyHandler, err := chronology.NewChronology(chronologyArg)
 	if err != nil {
 		return nil, err
 	}
@@ -297,11 +301,17 @@ func (ccf *consensusComponentsFactory) getEpoch() uint32 {
 
 // createConsensusState method creates a consensusState object
 func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32) (*spos.ConsensusState, error) {
+	if ccf.cryptoComponents.PublicKey() == nil {
+		return nil, errors.ErrNilPublicKey
+	}
 	selfId, err := ccf.cryptoComponents.PublicKey().ToByteArray()
 	if err != nil {
 		return nil, err
 	}
 
+	if check.IfNil(ccf.processComponents.NodesCoordinator()) {
+		return nil, errors.ErrNilNodesCoordinator
+	}
 	eligibleNodesPubKeys, err := ccf.processComponents.NodesCoordinator().GetConsensusWhitelistedNodes(epoch)
 	if err != nil {
 		return nil, err
@@ -328,9 +338,12 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32) (*spos
 	return consensusState, nil
 }
 
-//TODO move this func in structs.go
 func (ccf *consensusComponentsFactory) createBootstrapper() (process.Bootstrapper, error) {
 	shardCoordinator := ccf.processComponents.ShardCoordinator()
+	if check.IfNil(shardCoordinator) {
+		return nil, errors.ErrNilShardCoordinator
+	}
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return ccf.createShardBootstrapper()
 	}
@@ -388,6 +401,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		EpochHandler:        ccf.processComponents.EpochStartTrigger(),
 		MiniblocksProvider:  ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:     ccf.coreComponents.Uint64ByteSliceConverter(),
+		AppStatusHandler:    ccf.coreComponents.StatusHandler(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -449,6 +463,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EpochHandler:        ccf.processComponents.EpochStartTrigger(),
 		MiniblocksProvider:  ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:     ccf.coreComponents.Uint64ByteSliceConverter(),
+		AppStatusHandler:    ccf.coreComponents.StatusHandler(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -466,6 +481,15 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 
 func (ccf *consensusComponentsFactory) createConsensusTopic(cc *consensusComponents) error {
 	shardCoordinator := ccf.processComponents.ShardCoordinator()
+	messenger := ccf.networkComponents.NetworkMessenger()
+
+	if check.IfNil(shardCoordinator) {
+		return errors.ErrNilShardCoordinator
+	}
+	if check.IfNil(messenger) {
+		return errors.ErrNilMessenger
+	}
+
 	cc.consensusTopic = core.ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 	if !ccf.networkComponents.NetworkMessenger().HasTopic(cc.consensusTopic) {
 		err := ccf.networkComponents.NetworkMessenger().CreateTopic(cc.consensusTopic, true)
@@ -487,6 +511,31 @@ func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Clos
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (ccf *consensusComponentsFactory) checkArgs() error {
+	blockchain := ccf.dataComponents.Blockchain()
+	if check.IfNil(blockchain) {
+		return errors.ErrNilBlockChainHandler
+	}
+	marshalizer := ccf.coreComponents.InternalMarshalizer()
+	if check.IfNil(marshalizer) {
+		return errors.ErrNilMarshalizer
+	}
+	dataPool := ccf.dataComponents.Datapool()
+	if check.IfNil(dataPool) {
+		return errors.ErrNilDataPoolsHolder
+	}
+	shardCoordinator := ccf.processComponents.ShardCoordinator()
+	if check.IfNil(shardCoordinator) {
+		return errors.ErrNilShardCoordinator
+	}
+	netMessenger := ccf.networkComponents.NetworkMessenger()
+	if check.IfNil(netMessenger) {
+		return errors.ErrNilMessenger
 	}
 
 	return nil
