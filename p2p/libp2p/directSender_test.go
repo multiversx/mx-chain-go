@@ -302,7 +302,7 @@ func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing
 
 	err := ds.Send("topic", messageTooLarge, core.PeerID(cs.RemotePeer()))
 
-	assert.Equal(t, p2p.ErrMessageTooLarge, err)
+	assert.True(t, errors.Is(err, p2p.ErrMessageTooLarge))
 }
 
 func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *testing.T) {
