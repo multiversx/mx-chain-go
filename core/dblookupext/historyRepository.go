@@ -106,7 +106,7 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte, blockHeader dat
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
 
-	log.Debug("RecordBlock()", "blockHeaderHash", blockHeaderHash, "header type", fmt.Sprintf("%T", blockHeader))
+	log.Debug("RecordBlock()", "nonce", blockHeader.GetNonce(), "blockHeaderHash", blockHeaderHash, "header type", fmt.Sprintf("%T", blockHeader))
 
 	body, ok := blockBody.(*block.Body)
 	if !ok {
@@ -248,11 +248,11 @@ func (hr *historyRepository) RegisterToBlockTracker(blockTracker BlockTracker) {
 		return
 	}
 
-	blockTracker.RegisterFinalMetachainHeadersHandler(hr.onNotarizedBlocks)
+	blockTracker.RegisterFinalMetachainHeadersHandler(hr.OnNotarizedBlocks)
 }
 
-// onNotarizedBlocks is called by the block tracker component, on a new goroutine every time.
-func (hr *historyRepository) onNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+// OnNotarizedBlocks notifies the history repository about notarized blocks
+func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 	for i, headerHandler := range headers {
 		headerHash := headersHashes[i]
 

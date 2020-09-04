@@ -14,6 +14,7 @@ type HistoryRepositoryFactory interface {
 type HistoryRepository interface {
 	RegisterToBlockTracker(blockTracker BlockTracker)
 	RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
+	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)
 	GetEpochByHash(hash []byte) (uint32, error)
 	IsEnabled() bool

@@ -259,7 +259,7 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 		},
 	}
 
-	repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockX")})
+	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockX")})
 
 	// Check "notarization coordinates" again
 	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
@@ -304,7 +304,7 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 		},
 	}
 
-	repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockY")})
+	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockY")})
 
 	// Check "notarization coordinates" again
 	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
@@ -339,7 +339,7 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 		},
 	}
 
-	repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockZ")})
+	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockZ")})
 
 	// Check "notarization coordinates" again
 	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
@@ -407,7 +407,7 @@ func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestinatio
 		},
 	}
 
-	repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
+	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
 
 	// Notifications have been queued
 	require.Equal(t, 2, repo.pendingNotarizedAtSourceNotifications.Len())
@@ -434,7 +434,7 @@ func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestinatio
 	require.Equal(t, 2, repo.pendingNotarizedAtSourceNotifications.Len())
 
 	// Now receive any new notarization notification
-	repo.onNotarizedBlocks(42, []data.HeaderHandler{}, [][]byte{[]byte("nothing")})
+	repo.OnNotarizedBlocks(42, []data.HeaderHandler{}, [][]byte{[]byte("nothing")})
 
 	// Notifications have been processed & cleared
 	require.Equal(t, 0, repo.pendingNotarizedAtSourceNotifications.Len())
@@ -496,7 +496,7 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 		},
 	}
 
-	repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
+	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
 
 	// Check "notarization coordinates"
 	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
@@ -565,7 +565,7 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 	go func() {
 		// Receive less notifications (to test more aggressively)
 		for i := 0; i < 50; i++ {
-			repo.onNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
+			repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
 		}
 
 		wg.Done()
@@ -574,7 +574,7 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 	wg.Wait()
 
 	// Simulate continuation of the blockchain (so that any pending notifications are consumed)
-	repo.onNotarizedBlocks(42, []data.HeaderHandler{}, [][]byte{[]byte("nothing")})
+	repo.OnNotarizedBlocks(42, []data.HeaderHandler{}, [][]byte{[]byte("nothing")})
 
 	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHash)
 	require.Nil(t, err)
