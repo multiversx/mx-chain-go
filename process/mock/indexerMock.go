@@ -23,6 +23,16 @@ func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandle
 func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
 
+// StopIndexing will do nothing
+func (im *IndexerMock) StopIndexing() error {
+	return nil
+}
+
+// GetQueueLength -
+func (im *IndexerMock) GetQueueLength() int {
+	return 0
+}
+
 // SaveValidatorsRating --
 func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexer.ValidatorRatingInfo) {
 

@@ -18,6 +18,16 @@ func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map
 	panic("implement me")
 }
 
+// StopIndexing will do nothing
+func (im *IndexerMock) StopIndexing() error {
+	return nil
+}
+
+// GetQueueLength -
+func (im *IndexerMock) GetQueueLength() int {
+	return 0
+}
+
 // SetTxLogsProcessor will do nothing
 func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
