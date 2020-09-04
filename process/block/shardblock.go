@@ -856,7 +856,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
-	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
+	go sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
@@ -909,11 +909,6 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockSizeThrottler.Succeed(header.Round)
 
 	sp.displayPoolsInfo()
-
-	errNotCritical = sp.removeBlockDataFromPools(headerHandler, bodyHandler)
-	if errNotCritical != nil {
-		log.Debug("removeBlockDataFromPools", "error", errNotCritical.Error())
-	}
 
 	sp.cleanupPools(headerHandler)
 

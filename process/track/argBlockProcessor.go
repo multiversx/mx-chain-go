@@ -13,7 +13,9 @@ type ArgBlockProcessor struct {
 	ShardCoordinator              sharding.Coordinator
 	BlockTracker                  blockTrackerHandler
 	CrossNotarizer                blockNotarizerHandler
+	SelfNotarizer                 blockNotarizerHandler
 	CrossNotarizedHeadersNotifier blockNotifierHandler
 	SelfNotarizedHeadersNotifier  blockNotifierHandler
+	FinalMetachainHeadersNotifier blockNotifierHandler
 	Rounder                       process.Rounder
 }
