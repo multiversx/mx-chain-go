@@ -1,5 +1,5 @@
 [general]
-    dbPathWithChainID = "db/chainID"
+    dbPath = "db"
     nodeConfigPath = "../node/config/config.toml"
 
 [elasticSearch]
