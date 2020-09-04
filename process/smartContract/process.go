@@ -507,9 +507,7 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
-	consumedFee := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
-	scrIfError := sc.createSCRsWhenError(txHash, tx, returnCode, returnMessage)
-
+	scrIfError, consumedFee := sc.createSCRsWhenError(txHash, tx, returnCode, returnMessage)
 	if check.IfNil(acntSnd) {
 		moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
 		consumedFee.Sub(consumedFee, moveBalanceCost)
@@ -897,7 +895,7 @@ func (sc *scProcessor) createSCRsWhenError(
 	tx data.TransactionHandler,
 	returnCode string,
 	returnMessage []byte,
-) *smartContractResult.SmartContractResult {
+) (*smartContractResult.SmartContractResult, *big.Int) {
 	rcvAddress := tx.GetSndAddr()
 
 	callType := determineCallType(tx)
@@ -910,9 +908,29 @@ func (sc *scProcessor) createSCRsWhenError(
 		Value:         tx.GetValue(),
 		RcvAddr:       rcvAddress,
 		SndAddr:       tx.GetRcvAddr(),
-		Data:          []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)),
 		PrevTxHash:    txHash,
 		ReturnMessage: returnMessage,
+	}
+
+	consumedFee := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	if !sc.flagDeploy.IsSet() {
+		scr.Data = []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash))
+	} else {
+		if callType == vmcommon.AsynchronousCall {
+			scr.CallType = vmcommon.AsynchronousCallBack
+			scr.GasPrice = tx.GetGasPrice()
+
+			moveBalanceGas := sc.economicsFee.ComputeGasLimit(tx)
+			gasToLock := sc.asyncCallStepCost + sc.asyncCallbackGasLock
+
+			if tx.GetGasLimit() >= moveBalanceGas+gasToLock {
+				scr.GasLimit = gasToLock
+				consumedFee = core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit()-moveBalanceGas-gasToLock)
+			}
+			scr.Data = []byte("@" + core.ConvertToEvenHex(int(vmcommon.UserError)))
+		} else {
+			scr.Data = []byte(returnCode)
+		}
 	}
 
 	setOriginalTxHash(scr, txHash, tx)
@@ -923,7 +941,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		scr.OriginalSender = tx.GetSndAddr()
 	}
 
-	return scr
+	return scr, consumedFee
 }
 
 func setOriginalTxHash(
