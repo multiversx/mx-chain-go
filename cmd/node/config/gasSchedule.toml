@@ -62,7 +62,7 @@
     ExecuteOnDestContext = 160000
     DelegateExecution    = 160000
     AsyncCallStep        = 200000
-    AsyncCallbackGasLock = 2000000
+    AsyncCallbackGasLock = 20000000
     ExecuteReadOnly      = 160000
     CreateContract       = 300000
     GetReturnData        = 100
