@@ -507,6 +507,7 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
+	log.Warn("processIfError on scProcessor", "err", returnCode, "msg", string(returnMessage))
 	consumedFee := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	scrIfError := sc.createSCRsWhenError(txHash, tx, returnCode, returnMessage)
 
@@ -1317,6 +1318,7 @@ func (sc *scProcessor) processSimpleSCR(
 		return process.ErrAccountNotPayable
 	}
 
+	log.Warn("processMoveBalance add scr", "value", scResult.Value, "currVal", dstAcc.GetBalance(), "address", dstAcc.AddressBytes())
 	err = dstAcc.AddToBalance(scResult.Value)
 	if err != nil {
 		return err

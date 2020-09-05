@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -121,9 +122,11 @@ func (txProc *baseTxProcessor) checkTxValues(
 	}
 
 	if acntSnd.GetNonce() < tx.Nonce {
+		log.Warn("higher nonce", "address", hex.EncodeToString(acntSnd.AddressBytes()), "nonce", acntSnd.GetNonce(), "txNonce", tx.Nonce)
 		return process.ErrHigherNonceInTransaction
 	}
 	if acntSnd.GetNonce() > tx.Nonce {
+		log.Warn("lower nonce", "address", hex.EncodeToString(acntSnd.AddressBytes()), "nonce", acntSnd.GetNonce(), "txNonce", tx.Nonce)
 		return process.ErrLowerNonceInTransaction
 	}
 

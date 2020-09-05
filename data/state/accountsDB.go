@@ -498,6 +498,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (AccountHandler, error) {
 		return nil, err
 	}
 	if acnt == nil {
+		log.Warn("not account created for address", "address", hex.EncodeToString(address))
 		return adb.accountFactory.CreateAccount(address)
 	}
 

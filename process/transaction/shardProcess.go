@@ -276,6 +276,8 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return err
 	}
 
+	log.Warn("processIfError", "err", txError)
+
 	return process.ErrFailedTransaction
 }
 
@@ -382,6 +384,8 @@ func (txProc *txProcessor) processMoveBalance(
 	// is sender address in node shard
 	if !check.IfNil(acntSrc) {
 		acntSrc.IncreaseNonce(1)
+
+		log.Warn("processMoveBalance sub", "value", tx.Value, "currVal", acntSrc.GetBalance(), "address", acntSrc.AddressBytes())
 		err := acntSrc.SubFromBalance(tx.Value)
 		if err != nil {
 			return err
@@ -408,7 +412,8 @@ func (txProc *txProcessor) processMoveBalance(
 
 	// is receiver address in node shard
 	if !check.IfNil(acntDst) {
-		err := acntDst.AddToBalance(tx.Value)
+		log.Warn("processMoveBalance add tx", "value", tx.Value, "currVal", acntDst.GetBalance(), "address", acntDst.AddressBytes())
+		err = acntDst.AddToBalance(tx.Value)
 		if err != nil {
 			return err
 		}
@@ -530,6 +535,7 @@ func (txProc *txProcessor) processRelayedTx(
 		txProc.txFeeHandler.ProcessTransactionFee(relayerFee, big.NewInt(0), txHash)
 	}
 
+	log.Warn("originalTX", "nonce", tx.Nonce, "hash", txHash)
 	if check.IfNil(acntDst) {
 		return vmcommon.Ok, nil
 	}
@@ -751,6 +757,8 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 	originalTxHash []byte,
 	errorMsg string,
 ) error {
+	log.Warn("executing failed relayed", "err", errorMsg)
+
 	scrForRelayer := &smartContractResult.SmartContractResult{
 		Nonce:          relayedNonce,
 		Value:          big.NewInt(0).Set(relayedTxValue),

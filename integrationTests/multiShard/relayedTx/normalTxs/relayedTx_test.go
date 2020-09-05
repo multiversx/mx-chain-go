@@ -1,6 +1,7 @@
 package normalTxs
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
@@ -99,7 +100,7 @@ func displayBalances(
 
 	relayerAccnt := relayedTx.GetUserAccount(nodes, relayer.Address)
 	lines = append(lines, display.NewLineData(false, []string{"relayer", fmt.Sprintf("nonce: %d", relayerAccnt.GetNonce())}))
-	lines = append(lines, display.NewLineData(true, []string{"relayer", fmt.Sprintf("balance: %s", relayerAccnt.GetBalance().String())}))
+	lines = append(lines, display.NewLineData(true, []string{hex.EncodeToString(relayer.Address), fmt.Sprintf("balance: %s", relayerAccnt.GetBalance().String())}))
 
 	for i, p := range players {
 		playerAccnt := relayedTx.GetUserAccount(nodes, p.Address)
@@ -111,22 +112,22 @@ func displayBalances(
 		}
 
 		lines = append(lines, display.NewLineData(false, []string{fmt.Sprintf("player %d", i+1), fmt.Sprintf("nonce: %d", nonce)}))
-		lines = append(lines, display.NewLineData(true, []string{fmt.Sprintf("player %d", i+1), fmt.Sprintf("balance: %s", balance.String())}))
+		lines = append(lines, display.NewLineData(true, []string{hex.EncodeToString(p.Address), fmt.Sprintf("balance: %s", balance.String())}))
 	}
 
 	rcv1 := relayedTx.GetUserAccount(nodes, receiver1)
 	bal := big.NewInt(0)
 	if rcv1 != nil {
-		bal = rcv1.GetBalance()
+		bal.Set(rcv1.GetBalance())
 	}
 	lines = append(lines, display.NewLineData(true, []string{"receiver 1", fmt.Sprintf("balance: %s", bal)}))
-
+	lines = append(lines, display.NewLineData(true, []string{hex.EncodeToString(receiver1), fmt.Sprintf("balance: %s", bal)}))
 	rcv2 := relayedTx.GetUserAccount(nodes, receiver2)
 	if rcv2 != nil {
-		bal = rcv2.GetBalance()
+		bal.Set(rcv2.GetBalance())
 	}
 	lines = append(lines, display.NewLineData(false, []string{"receiver 2", fmt.Sprintf("balance: %s", bal)}))
-
+	lines = append(lines, display.NewLineData(true, []string{hex.EncodeToString(receiver2), fmt.Sprintf("balance: %s", bal)}))
 	tbl, _ := display.CreateTableString(hdr, lines)
 
 	log := logger.GetOrCreate("integration")
