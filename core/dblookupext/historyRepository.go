@@ -50,6 +50,7 @@ type historyRepository struct {
 	// that could mistakenly override the "patch()" operations performed when consuming notarization notifications.
 	deduplicationCacheForInsertMiniblockMetadata storage.Cacher
 
+	// Question for review: this can be removed now, using the new approach (without the block tracker), right?
 	// This cache will keep track of already "seen" notarized headers, in order to increase performance during "sync" & "fast-reply-from-database",
 	// when "onNotarizedBlocks()" is fed the same headers multiple times. Redundant "patch()" operations for miniblock metadata records are thus skipped.
 	deduplicationCacheForNotarizedBlocks storage.Cacher
@@ -246,11 +247,13 @@ func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.He
 	for i, headerHandler := range headers {
 		headerHash := headersHashes[i]
 
+		log.Debug("onNotarizedBlocks():", "shardID", shardID, "nonce", headerHandler.GetNonce(), "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
+
+		// Question for review: this optimization is not required anymore, right?
+		// Can be removed in the new approach (without the block tracker)?
 		if hr.hasRecentlySeenNotarizedBlock(headerHash) {
 			continue
 		}
-
-		log.Debug("onNotarizedBlocks():", "shardID", shardID, "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
 
 		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
 		if isMetaBlock {
@@ -338,6 +341,12 @@ func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlo
 func (hr *historyRepository) consumePendingNotificationsWithLock() {
 	hr.consumePendingNotificationsMutex.Lock()
 	defer hr.consumePendingNotificationsMutex.Unlock()
+
+	if hr.pendingNotarizedAtSourceNotifications.Len() == 0 &&
+		hr.pendingNotarizedAtDestinationNotifications.Len() == 0 &&
+		hr.pendingNotarizedAtBothNotifications.Len() == 0 {
+		return
+	}
 
 	log.Debug("consumePendingNotificationsWithLock() begin",
 		"len(source)", hr.pendingNotarizedAtSourceNotifications.Len(),
