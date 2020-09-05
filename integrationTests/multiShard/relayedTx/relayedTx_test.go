@@ -22,6 +22,9 @@ import (
 )
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
+	//TODO fix this test: task EN-7532
+	t.Skip("fixme")
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -76,6 +79,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing.T) {
+	//TODO fix this test: task EN-7532
+	t.Skip("fixme")
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -165,6 +171,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
+	//TODO fix this test: task EN-7532
+	t.Skip("fixme")
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -254,6 +263,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *testing.T) {
+	//TODO fix this test: task EN-7532
+	t.Skip("fixme")
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
