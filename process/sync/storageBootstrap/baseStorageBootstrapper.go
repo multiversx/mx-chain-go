@@ -349,6 +349,10 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		st.blockTracker.AddTrackedHeader(header, bootInfos[i].LastHeader.Hash)
 	}
 
+	if len(bootInfos) == 1 {
+		st.forkDetector.SetFinalToLastCheckpoint()
+	}
+
 	err = st.nodesCoordinator.LoadState(bootInfos[0].NodesCoordinatorConfigKey)
 	if err != nil {
 		log.Debug("cannot load nodes coordinator state", "error", err.Error())
