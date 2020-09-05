@@ -18,6 +18,7 @@ type ForkDetectorStub struct {
 	RestoreToGenesisCalled          func()
 	SetRollBackNonceCalled          func(nonce uint64)
 	ResetProbableHighestNonceCalled func()
+	SetFinalToLastCheckpointCalled  func()
 }
 
 // RestoreToGenesis -
@@ -103,6 +104,13 @@ func (fdm *ForkDetectorStub) GetNotarizedHeaderHash(nonce uint64) []byte {
 func (fdm *ForkDetectorStub) ResetProbableHighestNonce() {
 	if fdm.ResetProbableHighestNonceCalled != nil {
 		fdm.ResetProbableHighestNonceCalled()
+	}
+}
+
+// SetFinalToLastCheckpoint -
+func (fdm *ForkDetectorStub) SetFinalToLastCheckpoint() {
+	if fdm.SetFinalToLastCheckpointCalled != nil {
+		fdm.SetFinalToLastCheckpointCalled()
 	}
 }
 
