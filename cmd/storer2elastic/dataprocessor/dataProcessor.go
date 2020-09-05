@@ -27,7 +27,7 @@ import (
 var log = logger.GetOrCreate("dataprocessor")
 
 // indexLogStep defines the step between logging an indexed header in order to avoid over-printing
-const indexLogStep = 100
+const indexLogStep = 10
 
 // ArgsDataProcessor holds the arguments needed for creating a new dataProcessor
 type ArgsDataProcessor struct {
@@ -156,16 +156,19 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 	notarizedHeaders := dp.computeNotarizedHeaders(data.Header)
 	newBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
 	for _, mb := range data.Body.MiniBlocks {
-		if mb.Type == block.ReceiptBlock { // don't index receipt miniblocks
+		shouldSkipIndexing := mb.Type == block.ReceiptBlock ||
+			(mb.Type == block.SmartContractResultBlock && mb.ReceiverShardID == mb.SenderShardID && mb.SenderShardID != core.MetachainShardId)
+		if shouldSkipIndexing {
 			continue
 		}
 
 		newBody.MiniBlocks = append(newBody.MiniBlocks, mb)
 	}
 	// TODO: analyze if saving to elastic search on go routines is the right way to go. Important performance improvement
-	// was noticed this way
-	go dp.elasticIndexer.SaveBlock(newBody, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders)
-	go dp.indexRoundInfo(signersIndexes, data.Header)
+	// was noticed this way, but at the moment of writing the code, there were issues when indexing on go routines ->
+	// not all data was indexed
+	dp.elasticIndexer.SaveBlock(newBody, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders)
+	dp.indexRoundInfo(signersIndexes, data.Header)
 	dp.logHeaderInfo(data.Header)
 	return nil
 }

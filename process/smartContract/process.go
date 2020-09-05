@@ -857,14 +857,13 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		return
 	}
 
-	isTooMuchGasProvided := callType != vmcommon.AsynchronousCall && isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
-	if !isTooMuchGasProvided {
+	isTooMuchProvided := callType != vmcommon.AsynchronousCall && isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
+	if !isTooMuchProvided {
 		return
 	}
 
 	gasUsed := gasProvided - vmOutput.GasRemaining
-	//TODO: Change log level back to Trace
-	log.Warn("scProcessor.penalizeUserIfNeeded: too much gas provided",
+	log.Trace("scProcessor.penalizeUserIfNeeded: too much gas provided",
 		"hash", txHash,
 		"nonce", tx.GetNonce(),
 		"value", tx.GetValue(),

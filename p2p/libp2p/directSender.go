@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -152,7 +153,7 @@ func (ds *directSender) NextSeqno() []byte {
 // Send will send a direct message to the connected peer
 func (ds *directSender) Send(topic string, buff []byte, peer core.PeerID) error {
 	if len(buff) >= maxSendBuffSize {
-		return p2p.ErrMessageTooLarge
+		return fmt.Errorf("%w, to be sent: %d, maximum: %d", p2p.ErrMessageTooLarge, len(buff), maxSendBuffSize)
 	}
 
 	mut := ds.mutexForPeer.Get(string(peer))
