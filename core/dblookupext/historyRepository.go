@@ -50,11 +50,6 @@ type historyRepository struct {
 	// that could mistakenly override the "patch()" operations performed when consuming notarization notifications.
 	deduplicationCacheForInsertMiniblockMetadata storage.Cacher
 
-	// Question for review: this can be removed now, using the new approach (without the block tracker), right?
-	// This cache will keep track of already "seen" notarized headers, in order to increase performance during "sync" & "fast-reply-from-database",
-	// when "onNotarizedBlocks()" is fed the same headers multiple times. Redundant "patch()" operations for miniblock metadata records are thus skipped.
-	deduplicationCacheForNotarizedBlocks storage.Cacher
-
 	recordBlockMutex                 sync.Mutex
 	consumePendingNotificationsMutex sync.Mutex
 }
@@ -84,7 +79,6 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
 	deduplicationCacheForInsertMiniblockMetadata, _ := lrucache.NewCache(sizeOfDeduplicationCache)
-	deduplicationCacheForNotarizedBlocks, _ := lrucache.NewCache(sizeOfDeduplicationCache)
 
 	return &historyRepository{
 		selfShardID:                           arguments.SelfShardID,
@@ -97,7 +91,6 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 		pendingNotarizedAtDestinationNotifications:   container.NewMutexMap(),
 		pendingNotarizedAtBothNotifications:          container.NewMutexMap(),
 		deduplicationCacheForInsertMiniblockMetadata: deduplicationCacheForInsertMiniblockMetadata,
-		deduplicationCacheForNotarizedBlocks:         deduplicationCacheForNotarizedBlocks,
 	}, nil
 }
 
@@ -249,12 +242,6 @@ func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.He
 
 		log.Debug("onNotarizedBlocks():", "shardID", shardID, "nonce", headerHandler.GetNonce(), "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
 
-		// Question for review: this optimization is not required anymore, right?
-		// Can be removed in the new approach (without the block tracker)?
-		if hr.hasRecentlySeenNotarizedBlock(headerHash) {
-			continue
-		}
-
 		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
 		if isMetaBlock {
 			for _, miniBlock := range metaBlock.MiniBlockHeaders {
@@ -267,19 +254,9 @@ func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.He
 		} else {
 			log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", headerHandler))
 		}
-
-		hr.markNotarizedBlockAsRecentlySeen(headerHash)
 	}
 
 	hr.consumePendingNotificationsWithLock()
-}
-
-func (hr *historyRepository) hasRecentlySeenNotarizedBlock(headerHash []byte) bool {
-	return hr.deduplicationCacheForNotarizedBlocks.Has(headerHash)
-}
-
-func (hr *historyRepository) markNotarizedBlockAsRecentlySeen(headerHash []byte) {
-	_ = hr.deduplicationCacheForNotarizedBlocks.Put(headerHash, nil, 0)
 }
 
 func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaBlockHash []byte, shardData *block.ShardData) {
