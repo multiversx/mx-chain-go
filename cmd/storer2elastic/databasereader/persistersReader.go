@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -103,6 +104,6 @@ func (dr *databaseReader) LoadStaticPersister(dbInfo *DatabaseInfo, unit string)
 		shardIDStr = "metachain"
 	}
 
-	persisterPath := filepath.Join(dr.dbPathWithChainID, "Static", fmt.Sprintf("Shard_%s", shardIDStr), unit)
+	persisterPath := filepath.Join(dr.dbPathWithChainID, factory.DefaultStaticDbString, fmt.Sprintf("Shard_%s", shardIDStr), unit)
 	return dr.persisterFactory.Create(persisterPath)
 }
