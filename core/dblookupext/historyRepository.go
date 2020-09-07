@@ -134,7 +134,7 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 		return err
 	}
 
-	if hr.hasRecentlyInsertedMiniblockMetadata(miniblockHash) {
+	if hr.hasRecentlyInsertedMiniblockMetadata(miniblockHash, epoch) {
 		return nil
 	}
 
@@ -159,7 +159,7 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 		return err
 	}
 
-	hr.markMiniblockMetadataAsRecentlyInserted(miniblockHash)
+	hr.markMiniblockMetadataAsRecentlyInserted(miniblockHash, epoch)
 
 	for _, txHash := range miniblock.TxHashes {
 		err := hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
@@ -176,12 +176,22 @@ func (hr *historyRepository) computeMiniblockHash(miniblock *block.MiniBlock) ([
 	return core.CalculateHash(hr.marshalizer, hr.hasher, miniblock)
 }
 
-func (hr *historyRepository) hasRecentlyInsertedMiniblockMetadata(miniblockHash []byte) bool {
-	return hr.deduplicationCacheForInsertMiniblockMetadata.Has(miniblockHash)
+func (hr *historyRepository) hasRecentlyInsertedMiniblockMetadata(miniblockHash []byte, epoch uint32) bool {
+	key := hr.buildKeyOfDeduplicationCacheForInsertMiniblockMetadata(miniblockHash, epoch)
+	return hr.deduplicationCacheForInsertMiniblockMetadata.Has(key)
 }
 
-func (hr *historyRepository) markMiniblockMetadataAsRecentlyInserted(miniblockHash []byte) {
-	_ = hr.deduplicationCacheForInsertMiniblockMetadata.Put(miniblockHash, nil, 0)
+// When building the key for the deduplication cache, we must take into account the epoch as well, in order to handle this case:
+// - miniblock M added in a fork at the end of epoch E,
+// - miniblock M re-added, on the canonical chain this time, in the next epoch E + 1.
+// This way we do not mistakenly ignore to update the "epochByHashIndex".
+func (hr *historyRepository) buildKeyOfDeduplicationCacheForInsertMiniblockMetadata(miniblockHash []byte, epoch uint32) []byte {
+	return []byte(fmt.Sprintf("%d_%x", epoch, miniblockHash))
+}
+
+func (hr *historyRepository) markMiniblockMetadataAsRecentlyInserted(miniblockHash []byte, epoch uint32) {
+	key := hr.buildKeyOfDeduplicationCacheForInsertMiniblockMetadata(miniblockHash, epoch)
+	_ = hr.deduplicationCacheForInsertMiniblockMetadata.Put(key, nil, 0)
 }
 
 // GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage

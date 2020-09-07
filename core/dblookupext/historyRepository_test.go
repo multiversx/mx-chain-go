@@ -508,6 +508,84 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
 }
 
+func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHistoryRepoArgs(42)
+	args.SelfShardID = 14
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
+
+	// Assumming one miniblock of transactions,
+	miniblock := &block.MiniBlock{
+		SenderShardID:   14,
+		ReceiverShardID: 14,
+		TxHashes:        [][]byte{[]byte("txA")},
+	}
+	miniblockHash, _ := repo.computeMiniblockHash(miniblock)
+
+	// Let's commit the intrashard block in epoch 42, on a fork
+	repo.RecordBlock([]byte("fooOnFork"),
+		&block.Header{Epoch: 42, Round: 4321},
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				miniblock,
+			},
+		},
+	)
+
+	// Let's go to next epoch
+	args.MiniblocksMetadataStorer.(*genericmocks.StorerMock).SetCurrentEpoch(43)
+
+	// Let's commit a block with the same miniblock, in the next epoch, on the canonical chain
+	repo.RecordBlock([]byte("fooOnChain"),
+		&block.Header{Epoch: 43, Round: 4350},
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				miniblock,
+			},
+		},
+	)
+
+	// Now let's receive a metablock and the "notarized" notification
+	metablock := &block.MetaBlock{
+		Epoch: 43,
+		Nonce: 4001,
+		ShardInfo: []block.ShardData{
+			{
+				ShardID: 14,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						SenderShardID:   14,
+						ReceiverShardID: 14,
+						Hash:            miniblockHash,
+					},
+				},
+			},
+		},
+	}
+	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
+
+	// Check "notarization coordinates"
+	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	require.Nil(t, err)
+	require.Equal(t, 43, int(metadata.Epoch))
+	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
+	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
+
+	// Epoch 42 will contain an orphaned record
+	orphanedMetadata := &MiniblockMetadata{}
+	args.MiniblocksMetadataStorer.(*genericmocks.StorerMock).GetFromEpochWithMarshalizer(miniblockHash, 42, orphanedMetadata, args.Marshalizer)
+
+	require.Equal(t, 42, int(orphanedMetadata.Epoch))
+	require.Equal(t, 0, int(orphanedMetadata.NotarizedAtSourceInMetaNonce))
+	require.Nil(t, orphanedMetadata.NotarizedAtSourceInMetaHash)
+	require.Equal(t, 0, int(orphanedMetadata.NotarizedAtDestinationInMetaNonce))
+	require.Nil(t, orphanedMetadata.NotarizedAtDestinationInMetaHash)
+}
+
 func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes_Loop(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t)
