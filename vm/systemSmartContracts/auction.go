@@ -164,12 +164,12 @@ func (s *stakingAuctionSC) addToUnJailFunds(value *big.Int) {
 }
 
 func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if len(args.Arguments) == 0 || len(args.Arguments)%2 != 0 {
+	if len(args.Arguments) == 0 {
 		s.eei.AddReturnMessage("invalid number of arguments: expected even number")
 		return vmcommon.UserError
 	}
 
-	numBLSKeys := len(args.Arguments) / 2
+	numBLSKeys := len(args.Arguments)
 	auctionConfig := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
 	totalUnJailPrice := big.NewInt(0).Mul(auctionConfig.UnJailPrice, big.NewInt(int64(numBLSKeys)))
 
@@ -190,20 +190,15 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	blsKeys := make([][]byte, numBLSKeys)
-	for i := 0; i < len(args.Arguments); i += 2 {
-		blsKeys[i/2] = args.Arguments[i]
-	}
-
-	err = verifyBLSPublicKeys(registrationData, blsKeys)
+	err = verifyBLSPublicKeys(registrationData, args.Arguments)
 	if err != nil {
 		s.eei.AddReturnMessage("could not get all blsKeys from registration data: " + err.Error())
 		return vmcommon.UserError
 	}
 
 	transferBack := big.NewInt(0)
-	for i, blsKey := range blsKeys {
-		vmOutput, err := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(args.Arguments[2*i+1])))
+	for _, blsKey := range args.Arguments {
+		vmOutput, err := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(blsKey)))
 		if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
 			transferBack.Add(transferBack, auctionConfig.UnJailPrice)
 			s.eei.Finish(blsKey)

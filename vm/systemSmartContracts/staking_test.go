@@ -1060,14 +1060,14 @@ func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, vmcommon.UserError)
 
 	// unJail wrong access address should not work
-	doUnJail(t, stakingSmartContract, []byte("addr"), stakerPubKey, []byte{0}, vmcommon.UserError)
+	doUnJail(t, stakingSmartContract, []byte("addr"), stakerPubKey, vmcommon.UserError)
 	// cannot do unJail on a address that not stake
-	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("addr"), []byte{0}, vmcommon.UserError)
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("addr"), vmcommon.UserError)
 	// unJail should work
 	blockChainHook.CurrentRoundCalled = func() uint64 {
 		return 1200
 	}
-	doUnJail(t, stakingSmartContract, stakingAccessAddress, stakerPubKey, []byte{0}, vmcommon.Ok)
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, stakerPubKey, vmcommon.Ok)
 }
 
 func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
@@ -1185,9 +1185,9 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	checkIsStaked(t, stakingSmartContract, callerAddress, []byte("fifthhKey"), vmcommon.UserError)
 
 	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "jailed")
-	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), []byte{1}, vmcommon.Ok)
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
 	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "waiting")
-	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), []byte{1}, vmcommon.Ok)
+	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
 
 	waitingList, _ := stakingSmartContract.getWaitingListHead()
 	assert.Equal(t, uint32(3), waitingList.Length)
@@ -1293,11 +1293,11 @@ func doGetWaitingListIndex(t *testing.T, sc *stakingSC, eei *vmContext, blsKey [
 	assert.True(t, bytes.Equal(lastOutput, []byte(strconv.Itoa(expectedIndex))))
 }
 
-func doUnJail(t *testing.T, sc *stakingSC, callerAddr, addrToUnJail []byte, withStake []byte, expectedCode vmcommon.ReturnCode) {
+func doUnJail(t *testing.T, sc *stakingSC, callerAddr, addrToUnJail []byte, expectedCode vmcommon.ReturnCode) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "unJail"
 	arguments.CallerAddr = callerAddr
-	arguments.Arguments = [][]byte{addrToUnJail, withStake}
+	arguments.Arguments = [][]byte{addrToUnJail}
 
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, expectedCode, retCode)
