@@ -1030,6 +1030,7 @@ func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 
 	registrationData.NumJailed++
 	registrationData.Jailed = true
+	registrationData.JailedNonce = r.eei.BlockChainHook().CurrentNonce()
 	if !switched {
 		r.eei.AddReturnMessage("did not switch as nobody in waiting, but jailed")
 	} else {

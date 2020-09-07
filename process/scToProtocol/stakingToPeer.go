@@ -178,24 +178,6 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 	return nil
 }
 
-func (stp *stakingToPeer) processOldValidatorUnJail(
-	stakingData systemSmartContracts.StakedData,
-	account state.PeerAccountHandler,
-	nonce uint64,
-) error {
-	if len(account.GetBLSPublicKey()) == 0 {
-		return nil
-	}
-	if stakingData.UnJailedNonce != nonce {
-		return nil
-	}
-
-	account.SetListAndIndex(account.GetShardId(), string(core.InactiveList), uint32(stakingData.UnJailedNonce))
-	account.SetTempRating(stp.jailRating)
-
-	return stp.peerState.SaveAccount(account)
-}
-
 func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakedData,
 	blsPubKey []byte,
@@ -206,8 +188,17 @@ func (stp *stakingToPeer) updatePeerState(
 		return err
 	}
 
+	isUnJailForInactive := len(account.GetBLSPublicKey()) > 0 && !stakingData.Staked &&
+		stakingData.UnJailedNonce == nonce && account.GetList() == string(core.JailedList)
+	if isUnJailForInactive {
+		account.SetListAndIndex(account.GetShardId(), string(core.InactiveList), uint32(stakingData.UnJailedNonce))
+		account.SetTempRating(stp.jailRating)
+
+		return stp.peerState.SaveAccount(account)
+	}
+
 	if stakingData.StakedNonce == math.MaxUint64 {
-		return stp.processOldValidatorUnJail(stakingData, account, nonce)
+		return nil
 	}
 
 	if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
