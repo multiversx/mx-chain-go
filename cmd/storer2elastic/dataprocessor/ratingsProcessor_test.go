@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/require"
 )
 
@@ -129,6 +130,44 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_UnmarshalPeerErrorS
 	require.False(t, indexWasCalled)
 }
 
+func TestRatingsProcessor_IndexRatingsForGenesisMetaBlock_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	indexWasCalled := false
+
+	args := getRatingsProcessorArgs()
+	args.ElasticIndexer = &mock.ElasticIndexerStub{
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []indexer.ValidatorRatingInfo) {
+			indexWasCalled = true
+		},
+	}
+	args.GenesisNodesConfig = &mock.GenesisNodesSetupHandlerStub{
+		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+			nodeEligible := mock.NewNodeInfo([]byte("addr1"), []byte("pubKey1"), 0, 10)
+			return map[uint32][]sharding.GenesisNodeInfoHandler{
+				0: {nodeEligible},
+			}, nil
+		},
+	}
+	rp, _ := dataprocessor.NewRatingsProcessor(args)
+
+	metaBlock := &block.MetaBlock{Nonce: 0, Epoch: 0}
+
+	acc, _ := state.NewPeerAccount([]byte("peer account"))
+	accBytes, _ := args.Marshalizer.Marshal(acc)
+	peerAdapter := &mock.AccountsStub{
+		GetAllLeavesCalled: func(_ []byte) (map[string][]byte, error) {
+			return map[string][]byte{"": accBytes}, nil
+		},
+	}
+
+	rp.SetPeerAdapter(peerAdapter)
+
+	err := rp.IndexRatingsForEpochStartMetaBlock(metaBlock)
+	require.NoError(t, err)
+	require.True(t, indexWasCalled)
+}
+
 func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -142,7 +181,7 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_ShouldWork(t *testi
 	}
 	rp, _ := dataprocessor.NewRatingsProcessor(args)
 
-	metaBlock := &block.MetaBlock{Epoch: 5}
+	metaBlock := &block.MetaBlock{Nonce: 5, Epoch: 5}
 
 	acc, _ := state.NewPeerAccount([]byte("peer account"))
 	accBytes, _ := args.Marshalizer.Marshal(acc)
@@ -163,6 +202,7 @@ func getRatingsProcessorArgs() dataprocessor.RatingProcessorArgs {
 	return dataprocessor.RatingProcessorArgs{
 		ValidatorPubKeyConverter: mock.NewPubkeyConverterMock(96),
 		ShardCoordinator:         &mock.ShardCoordinatorMock{NumOfShards: 2},
+		GenesisNodesConfig:       &mock.GenesisNodesSetupHandlerStub{},
 		DbPathWithChainID:        "path",
 		GeneralConfig: config.Config{
 			EvictionWaitingList: config.EvictionWaitingListConfig{
