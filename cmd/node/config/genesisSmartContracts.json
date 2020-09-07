@@ -11,8 +11,8 @@
     "owner": "erd16grmckn46ry7fwyvass8e8pz88klazzpc0c5f0pnrv643td4797sgnvjkm",
     "filename": "./config/genesisContracts/dns.wasm",
     "vm-type": "0500",
-    "init-parameters": "056bc75e2d63100000",
+    "init-parameters": "00",
     "type": "dns",
-    "version": "0.2.*"
+    "version": "0.3.*"
   }
 ]

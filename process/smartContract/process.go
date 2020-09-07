@@ -507,15 +507,7 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
-	log.Warn("processIfError on scProcessor", "err", returnCode, "msg", string(returnMessage))
-	consumedFee := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
-	scrIfError := sc.createSCRsWhenError(txHash, tx, returnCode, returnMessage)
-
-	if check.IfNil(acntSnd) {
-		moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
-		consumedFee.Sub(consumedFee, moveBalanceCost)
-	}
-
+	scrIfError, consumedFee := sc.createSCRsWhenError(acntSnd, txHash, tx, returnCode, returnMessage)
 	err = sc.addBackTxValues(acntSnd, scrIfError, tx)
 	if err != nil {
 		return err
@@ -858,8 +850,8 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		return
 	}
 
-	isTooMuchGasProvided := callType != vmcommon.AsynchronousCall && isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
-	if !isTooMuchGasProvided {
+	isTooMuchProvided := callType != vmcommon.AsynchronousCall && isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
+	if !isTooMuchProvided {
 		return
 	}
 
@@ -894,13 +886,13 @@ func isTooMuchGasProvided(gasProvided uint64, gasRemained uint64) bool {
 }
 
 func (sc *scProcessor) createSCRsWhenError(
+	acntSnd state.UserAccountHandler,
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
 	returnMessage []byte,
-) *smartContractResult.SmartContractResult {
+) (*smartContractResult.SmartContractResult, *big.Int) {
 	rcvAddress := tx.GetSndAddr()
-
 	callType := determineCallType(tx)
 	if callType == vmcommon.AsynchronousCallBack {
 		rcvAddress = tx.GetRcvAddr()
@@ -911,9 +903,35 @@ func (sc *scProcessor) createSCRsWhenError(
 		Value:         tx.GetValue(),
 		RcvAddr:       rcvAddress,
 		SndAddr:       tx.GetRcvAddr(),
-		Data:          []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)),
 		PrevTxHash:    txHash,
 		ReturnMessage: returnMessage,
+	}
+
+	consumedFee := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	if !sc.flagDeploy.IsSet() {
+		scr.Data = []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash))
+		if check.IfNil(acntSnd) {
+			moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
+			consumedFee.Sub(consumedFee, moveBalanceCost)
+		}
+	} else {
+		if callType == vmcommon.AsynchronousCall {
+			scr.CallType = vmcommon.AsynchronousCallBack
+			scr.GasPrice = tx.GetGasPrice()
+
+			gasToLock := sc.asyncCallStepCost + sc.asyncCallbackGasLock
+			if tx.GetGasLimit() >= gasToLock {
+				scr.GasLimit = gasToLock
+				consumedFee = core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit()-gasToLock)
+			}
+			scr.Data = []byte("@" + core.ConvertToEvenHex(int(vmcommon.UserError)))
+		} else {
+			scr.Data = []byte(returnCode)
+			if check.IfNil(acntSnd) {
+				moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
+				consumedFee.Sub(consumedFee, moveBalanceCost)
+			}
+		}
 	}
 
 	setOriginalTxHash(scr, txHash, tx)
@@ -924,7 +942,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		scr.OriginalSender = tx.GetSndAddr()
 	}
 
-	return scr
+	return scr, consumedFee
 }
 
 func setOriginalTxHash(
@@ -1318,6 +1336,7 @@ func (sc *scProcessor) processSimpleSCR(
 		return process.ErrAccountNotPayable
 	}
 
+	//TODO remove this
 	log.Warn("processMoveBalance add scr", "value", scResult.Value, "currVal", dstAcc.GetBalance(), "address", dstAcc.AddressBytes())
 	err = dstAcc.AddToBalance(scResult.Value)
 	if err != nil {
