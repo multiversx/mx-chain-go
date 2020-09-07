@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"reflect"
 	"sync"
@@ -1003,6 +1004,67 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 	assert.Equal(t, 1, len(mbs))
 	assert.Equal(t, uint32(1), txs)
 	assert.True(t, finalized)
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSkippedShard(t *testing.T) {
+	t.Parallel()
+
+	mbPool := testscommon.NewPoolsHolderMock().MiniBlocks()
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mbPool,
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+
+	tc.txPreProcessors[block.TxBlock] = &mock.PreProcessorMock{
+		RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+			return 0
+		},
+	}
+
+	haveTime := func() bool {
+		return true
+	}
+
+	metaBlock := &block.MetaBlock{}
+	metaBlock.ShardInfo = make([]block.ShardData, 0)
+	shardMbs := make([]block.MiniBlockHeader, 0)
+	shardMbs = append(shardMbs, block.MiniBlockHeader{Hash: []byte("mb0"), SenderShardID: 1, ReceiverShardID: 0, TxCount: 1})
+	shardMbs = append(shardMbs, block.MiniBlockHeader{Hash: []byte("mb1"), SenderShardID: 1, ReceiverShardID: 0, TxCount: 1})
+	shardMbs = append(shardMbs, block.MiniBlockHeader{Hash: []byte("mb2"), SenderShardID: 1, ReceiverShardID: 0, TxCount: 1})
+	shardData := block.ShardData{ShardID: 1, HeaderHash: []byte("header0"), TxCount: 3, ShardMiniBlockHeaders: shardMbs}
+
+	metaBlock.ShardInfo = append(metaBlock.ShardInfo, shardData)
+
+	for i := 0; i < len(metaBlock.ShardInfo); i++ {
+		for j := 0; j < len(metaBlock.ShardInfo[i].ShardMiniBlockHeaders); j++ {
+			mbHdr := metaBlock.ShardInfo[i].ShardMiniBlockHeaders[j]
+			if bytes.Equal(mbHdr.Hash, []byte("mb1")) {
+				continue
+			}
+
+			hash := fmt.Sprintf("tx_hash_from_%s", mbHdr.Hash)
+			mb := block.MiniBlock{SenderShardID: mbHdr.SenderShardID, ReceiverShardID: mbHdr.ReceiverShardID, Type: block.TxBlock, TxHashes: [][]byte{[]byte(hash)}}
+			mbPool.Put(mbHdr.Hash, &mb, mb.Size())
+		}
+	}
+
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaBlock, nil, haveTime)
+	assert.Nil(t, err)
+	require.Equal(t, 1, len(mbs))
+	assert.Equal(t, uint32(1), txs)
+	assert.False(t, finalized)
+	require.Equal(t, 1, len(mbs[0].TxHashes))
+	assert.Equal(t, []byte("tx_hash_from_mb0"), mbs[0].TxHashes[0])
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreProcessor(t *testing.T) {
