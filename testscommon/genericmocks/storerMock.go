@@ -129,6 +129,21 @@ func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 	return value.([]byte), nil
 }
 
+// GetFromEpochWithMarshalizer -
+func (sm *StorerMock) GetFromEpochWithMarshalizer(key []byte, epoch uint32, obj interface{}, marshalizer marshal.Marshalizer) error {
+	data, err := sm.GetFromEpoch(key, epoch)
+	if err != nil {
+		return err
+	}
+
+	err = marshalizer.Unmarshal(obj, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // SearchFirst -
 func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
 	return sm.Get(key)
