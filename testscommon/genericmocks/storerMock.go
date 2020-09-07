@@ -42,18 +42,16 @@ func (sm *StorerMock) GetCurrentEpochData() *container.MutexMap {
 
 // GetEpochData -
 func (sm *StorerMock) GetEpochData(epoch uint32) *container.MutexMap {
-	sm.mutex.RLock()
-	data, ok := sm.DataByEpoch[epoch]
-	sm.mutex.RUnlock()
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
 
+	data, ok := sm.DataByEpoch[epoch]
 	if ok {
 		return data
 	}
 
-	sm.mutex.Lock()
 	data = container.NewMutexMap()
 	sm.DataByEpoch[epoch] = data
-	sm.mutex.Unlock()
 
 	return data
 }
