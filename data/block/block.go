@@ -3,7 +3,6 @@ package block
 
 import (
 	"math/big"
-	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -131,10 +130,6 @@ func (h *Header) GetOrderedCrossMiniblocksWithDst(destId uint32) []*data.MiniBlo
 			})
 		}
 	}
-
-	sort.Slice(miniBlocks, func(i, j int) bool {
-		return miniBlocks[i].Round < miniBlocks[j].Round
-	})
 
 	return miniBlocks
 }

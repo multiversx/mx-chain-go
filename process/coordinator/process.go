@@ -520,8 +520,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	shouldSkipShard := make(map[uint32]bool)
 
-	crossMiniBlockHashes := hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId())
-	for _, miniBlockInfo := range crossMiniBlockHashes {
+	crossMiniBlockInfos := hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId())
+	for _, miniBlockInfo := range crossMiniBlockInfos {
 		if !haveTime() {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
 				"stop creating", "time is out")
@@ -611,7 +611,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		nrMiniBlocksProcessed++
 	}
 
-	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockHashes)
+	allMBsProcessed := nrMiniBlocksProcessed == len(crossMiniBlockInfos)
 
 	return miniBlocks, nrTxAdded, allMBsProcessed, nil
 }

@@ -310,21 +310,39 @@ func TestMetaBlock_GetOrderedCrossMiniblocksWithDstShouldWork(t *testing.T) {
 		ReceiverShardID: 1,
 	})
 
+	metaHdr.MiniBlockHeaders = append(metaHdr.MiniBlockHeaders, block.MiniBlockHeader{
+		Hash:            []byte("hash7"),
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: core.AllShardId,
+	})
+
+	metaHdr.MiniBlockHeaders = append(metaHdr.MiniBlockHeaders, block.MiniBlockHeader{
+		Hash:            []byte("hash8"),
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: 2,
+	})
+
 	miniBlocksInfo := metaHdr.GetOrderedCrossMiniblocksWithDst(1)
-	require.Equal(t, 5, len(miniBlocksInfo))
+	require.Equal(t, 6, len(miniBlocksInfo))
 	assert.Equal(t, miniBlocksInfo[0].Hash, []byte("hash6"))
 	assert.Equal(t, miniBlocksInfo[0].Round, uint64(6))
-	assert.Equal(t, miniBlocksInfo[1].Hash, []byte("hash4"))
-	assert.Equal(t, miniBlocksInfo[1].Round, uint64(8))
-	assert.Equal(t, miniBlocksInfo[2].Hash, []byte("hash2"))
-	assert.Equal(t, miniBlocksInfo[2].Round, uint64(9))
-	assert.Equal(t, miniBlocksInfo[3].Hash, []byte("hash3"))
-	assert.Equal(t, miniBlocksInfo[3].Round, uint64(10))
-	assert.Equal(t, miniBlocksInfo[4].Hash, []byte("hash1"))
-	assert.Equal(t, miniBlocksInfo[4].Round, uint64(11))
+	assert.Equal(t, miniBlocksInfo[1].Hash, []byte("hash7"))
+	assert.Equal(t, miniBlocksInfo[1].Round, uint64(6))
+	assert.Equal(t, miniBlocksInfo[2].Hash, []byte("hash4"))
+	assert.Equal(t, miniBlocksInfo[2].Round, uint64(8))
+	assert.Equal(t, miniBlocksInfo[3].Hash, []byte("hash2"))
+	assert.Equal(t, miniBlocksInfo[3].Round, uint64(9))
+	assert.Equal(t, miniBlocksInfo[4].Hash, []byte("hash3"))
+	assert.Equal(t, miniBlocksInfo[4].Round, uint64(10))
+	assert.Equal(t, miniBlocksInfo[5].Hash, []byte("hash1"))
+	assert.Equal(t, miniBlocksInfo[5].Round, uint64(11))
 
 	miniBlocksInfo = metaHdr.GetOrderedCrossMiniblocksWithDst(2)
-	require.Equal(t, 1, len(miniBlocksInfo))
-	assert.Equal(t, miniBlocksInfo[0].Hash, []byte("hash5"))
-	assert.Equal(t, miniBlocksInfo[0].Round, uint64(7))
+	require.Equal(t, 3, len(miniBlocksInfo))
+	assert.Equal(t, miniBlocksInfo[0].Hash, []byte("hash7"))
+	assert.Equal(t, miniBlocksInfo[0].Round, uint64(6))
+	assert.Equal(t, miniBlocksInfo[1].Hash, []byte("hash8"))
+	assert.Equal(t, miniBlocksInfo[1].Round, uint64(6))
+	assert.Equal(t, miniBlocksInfo[2].Hash, []byte("hash5"))
+	assert.Equal(t, miniBlocksInfo[2].Round, uint64(7))
 }
