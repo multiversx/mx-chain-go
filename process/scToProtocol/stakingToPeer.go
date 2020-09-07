@@ -2,7 +2,6 @@ package scToProtocol
 
 import (
 	"bytes"
-	"math"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -178,24 +177,6 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 	return nil
 }
 
-func (stp *stakingToPeer) processOldValidatorUnJail(
-	stakingData systemSmartContracts.StakedData,
-	account state.PeerAccountHandler,
-	nonce uint64,
-) error {
-	if len(account.GetBLSPublicKey()) == 0 {
-		return nil
-	}
-	if stakingData.UnJailedNonce != nonce {
-		return nil
-	}
-
-	account.SetListAndIndex(account.GetShardId(), string(core.InactiveList), uint32(stakingData.UnJailedNonce))
-	account.SetTempRating(stp.jailRating)
-
-	return stp.peerState.SaveAccount(account)
-}
-
 func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakedData,
 	blsPubKey []byte,
@@ -206,8 +187,13 @@ func (stp *stakingToPeer) updatePeerState(
 		return err
 	}
 
-	if stakingData.StakedNonce == math.MaxUint64 {
-		return stp.processOldValidatorUnJail(stakingData, account, nonce)
+	isValidator := account.GetList() == string(core.EligibleList) || account.GetList() == string(core.WaitingList)
+	unJailForInactive := len(account.GetBLSPublicKey()) > 0 && stakingData.UnJailedNonce == nonce && !isValidator
+	if unJailForInactive {
+		account.SetListAndIndex(account.GetShardId(), string(core.InactiveList), uint32(stakingData.UnJailedNonce))
+		account.SetTempRating(stp.jailRating)
+
+		return stp.peerState.SaveAccount(account)
 	}
 
 	if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
@@ -224,9 +210,7 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
-	isValidator := account.GetList() == string(core.EligibleList) || account.GetList() == string(core.WaitingList)
 	isJailed := stakingData.JailedNonce >= stakingData.UnJailedNonce && stakingData.JailedNonce > 0
-
 	if !isJailed {
 		if stakingData.StakedNonce == nonce && !isValidator {
 			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.StakedNonce))
