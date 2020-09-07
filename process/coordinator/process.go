@@ -518,8 +518,10 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		return miniBlocks, nrTxAdded, false, nil
 	}
 
-	crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
-	for key, senderShardId := range crossMiniBlockHashes {
+	shouldSkipShard := make(map[uint32]bool)
+
+	crossMiniBlockHashes := hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId())
+	for _, miniBlockInfo := range crossMiniBlockHashes {
 		if !haveTime() {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
 				"stop creating", "time is out")
@@ -532,20 +534,46 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			break
 		}
 
-		_, ok := processedMiniBlocksHashes[key]
-		if ok {
-			nrMiniBlocksProcessed++
+		if shouldSkipShard[miniBlockInfo.SenderShardID] {
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: should skip shard",
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
 			continue
 		}
 
-		miniVal, _ := tc.miniBlockPool.Peek([]byte(key))
+		_, ok := processedMiniBlocksHashes[string(miniBlockInfo.Hash)]
+		if ok {
+			nrMiniBlocksProcessed++
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block already processed",
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
+			continue
+		}
+
+		miniVal, _ := tc.miniBlockPool.Peek(miniBlockInfo.Hash)
 		if miniVal == nil {
-			go tc.onRequestMiniBlock(senderShardId, []byte(key))
+			go tc.onRequestMiniBlock(miniBlockInfo.SenderShardID, miniBlockInfo.Hash)
+			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block not found and was requested",
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
 			continue
 		}
 
 		miniBlock, ok := miniVal.(*block.MiniBlock)
 		if !ok {
+			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block assertion type failed",
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
 			continue
 		}
 
@@ -556,11 +584,24 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
 		if requestedTxs > 0 {
+			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: transactions not found and weere requested",
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+				"requested txs", requestedTxs,
+			)
 			continue
 		}
 
 		err := tc.processCompleteMiniBlock(preproc, miniBlock, haveTime)
 		if err != nil {
+			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
+				"sender shard", miniBlockInfo.SenderShardID,
+				"hash", miniBlockInfo.Hash,
+				"round", miniBlockInfo.Round,
+			)
 			continue
 		}
 
