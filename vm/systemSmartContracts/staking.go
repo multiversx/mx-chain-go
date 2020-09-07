@@ -297,8 +297,8 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		r.eei.AddReturnMessage("unJail function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
-	if len(args.Arguments) != 2 || len(args.Arguments[1]) != 1 {
-		r.eei.AddReturnMessage("wrong number of arguments, wanted 2")
+	if len(args.Arguments) != 1 {
+		r.eei.AddReturnMessage("wrong number of arguments, wanted 1")
 		return vmcommon.UserError
 	}
 
@@ -316,11 +316,9 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	stakedData.UnJailedNonce = r.eei.BlockChainHook().CurrentNonce()
 	stakedData.Jailed = false
 
-	if args.Arguments[1][0] == 1 {
-		err = r.processStake(args.Arguments[0], stakedData, stakedData.NumJailed == 1)
-		if err != nil {
-			return vmcommon.UserError
-		}
+	err = r.processStake(args.Arguments[0], stakedData, stakedData.NumJailed == 1)
+	if err != nil {
+		return vmcommon.UserError
 	}
 
 	err = r.saveStakingData(args.Arguments[0], stakedData)

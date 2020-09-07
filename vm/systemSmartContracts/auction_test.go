@@ -453,7 +453,7 @@ func TestStakingAuctionSC_ExecuteStakeUnJail(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	arguments.Function = "unJail"
-	arguments.Arguments = [][]byte{stakerPubKey, {0}}
+	arguments.Arguments = [][]byte{stakerPubKey}
 	arguments.CallValue = big.NewInt(1000)
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
