@@ -2,6 +2,7 @@ package scToProtocol
 
 import (
 	"bytes"
+	"math"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -187,13 +188,17 @@ func (stp *stakingToPeer) updatePeerState(
 		return err
 	}
 
-	isValidator := account.GetList() == string(core.EligibleList) || account.GetList() == string(core.WaitingList)
-	unJailForInactive := len(account.GetBLSPublicKey()) > 0 && stakingData.UnJailedNonce == nonce && !isValidator
-	if unJailForInactive {
+	isUnJailForInactive := len(account.GetBLSPublicKey()) > 0 && !stakingData.Staked &&
+		stakingData.UnJailedNonce == nonce && account.GetList() == string(core.JailedList)
+	if isUnJailForInactive {
 		account.SetListAndIndex(account.GetShardId(), string(core.InactiveList), uint32(stakingData.UnJailedNonce))
 		account.SetTempRating(stp.jailRating)
 
 		return stp.peerState.SaveAccount(account)
+	}
+
+	if stakingData.StakedNonce == math.MaxUint64 {
+		return nil
 	}
 
 	if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
@@ -210,7 +215,9 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
+	isValidator := account.GetList() == string(core.EligibleList) || account.GetList() == string(core.WaitingList)
 	isJailed := stakingData.JailedNonce >= stakingData.UnJailedNonce && stakingData.JailedNonce > 0
+
 	if !isJailed {
 		if stakingData.StakedNonce == nonce && !isValidator {
 			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.StakedNonce))

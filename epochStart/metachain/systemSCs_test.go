@@ -58,7 +58,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 		AccumulatedFees: big.NewInt(0),
 	}
 	validatorInfos[0] = append(validatorInfos[0], vInfo)
-	err := s.ProcessSystemSmartContract(validatorInfos)
+	err := s.ProcessSystemSmartContract(validatorInfos, 0)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(validatorInfos[0]), 1)

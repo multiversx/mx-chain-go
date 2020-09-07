@@ -84,8 +84,8 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 }
 
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
-func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error {
-	err := s.swapJailedWithWaiting(validatorInfos)
+func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error {
+	err := s.swapJailedWithWaiting(validatorInfos, epoch)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (s *systemSCProcessor) auctionSelection() error {
 	return nil
 }
 
-func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error {
 	jailedValidators := s.getSortedJailedNodes(validatorInfos)
 
 	log.Debug("number of jailed validators", "num", len(jailedValidators))
@@ -131,7 +131,7 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 			continue
 		}
 
-		newValidator, err := s.stakingToValidatorStatistics(validatorInfos, jailedValidator, vmOutput)
+		newValidator, err := s.stakingToValidatorStatistics(validatorInfos, jailedValidator, vmOutput, epoch)
 		if err != nil {
 			return err
 		}
@@ -148,6 +148,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 	jailedValidator *state.ValidatorInfo,
 	vmOutput *vmcommon.VMOutput,
+	epoch uint32,
 ) ([]byte, error) {
 	stakingSCOutput, ok := vmOutput.OutputAccounts[string(s.stakingSCAddress)]
 	if !ok {
@@ -218,6 +219,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	jailedAccount.SetListAndIndex(jailedValidator.ShardId, string(core.JailedList), jailedValidator.Index)
+	jailedAccount.SetUnStakedEpoch(epoch)
 	jailedAccount.ResetAtNewEpoch()
 	err = s.peerAccountsDB.SaveAccount(jailedAccount)
 	if err != nil {
