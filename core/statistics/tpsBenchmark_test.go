@@ -636,3 +636,47 @@ func TestTpsBenchmark_ZeroTxMetaBlockAndEmptyShardHeader(t *testing.T) {
 	bigTxCount := big.NewInt(0)
 	assert.Equal(t, bigTxCount, tpsBenchmark.TotalProcessedTxCount())
 }
+
+func TestTpsBenchmark_ShardStatisticConcurrentAccessBla(t *testing.T) {
+	t.Parallel()
+
+	tpsBenchmark, _ := statistics.NewTPSBenchmark(12, 4)
+
+	wg := sync.WaitGroup{}
+	wg.Add(200)
+	for i := uint64(0); i < 100; i++ {
+		go func(nonce uint64) {
+			time.Sleep(time.Millisecond)
+			metaBlock := &block.MetaBlock{
+				Nonce:   1,
+				Round:   2,
+				TxCount: 0,
+				ShardInfo: []block.ShardData{
+					{Nonce: nonce, ShardID: 0},
+					{Nonce: nonce, ShardID: 1},
+					{Nonce: nonce, ShardID: 2},
+					{Nonce: nonce, ShardID: 3},
+					{Nonce: nonce, ShardID: 4},
+					{Nonce: nonce, ShardID: 5},
+					{Nonce: nonce, ShardID: 6},
+					{Nonce: nonce, ShardID: 7},
+					{Nonce: nonce, ShardID: 8},
+					{Nonce: nonce, ShardID: 9},
+					{Nonce: nonce, ShardID: 10},
+					{Nonce: nonce, ShardID: 11},
+				},
+			}
+			tpsBenchmark.Update(metaBlock)
+			wg.Done()
+		}(i)
+		go func() {
+			for shardID, stats := range tpsBenchmark.ShardStatistics() {
+				time.Sleep(time.Millisecond)
+				_, _ = shardID, stats
+			}
+
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
