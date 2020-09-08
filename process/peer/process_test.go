@@ -625,9 +625,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetExistingPeerAccount(v1.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
 	leader := pa1.(*mock.PeerAccountHandlerMock)
-	pa2, _ := validatorStatistics.GetExistingPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	validator := pa2.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -664,11 +664,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesIgnoredSignatures
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetExistingPeerAccount(v1.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
 	leader := pa1.(*mock.PeerAccountHandlerMock)
-	pa2, _ := validatorStatistics.GetExistingPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	validatorIgnored := pa2.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetExistingPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	validator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -752,9 +752,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetExistingPeerAccount(v2.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	missedLeader := pa1.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetExistingPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
@@ -792,9 +792,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetExistingPeerAccount(v1.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
 	leader := pa1.(*mock.PeerAccountHandlerMock)
-	pa2, _ := validatorStatistics.GetExistingPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	validator := pa2.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -837,9 +837,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetExistingPeerAccount(v2.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	missedLeader := pa1.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetExistingPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
@@ -879,9 +879,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetExistingPeerAccount(v1.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
 	leader := pa1.(*mock.PeerAccountHandlerMock)
-	pa2, _ := validatorStatistics.GetExistingPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	validator := pa2.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -925,9 +925,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_P
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetExistingPeerAccount(v2.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	missedLeader := pa1.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetExistingPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
@@ -982,9 +982,9 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensu
 	err := validatorStatistics.UpdateShardDataPeerState(metaHeader, cache)
 	assert.Nil(t, err)
 
-	pa3, _ := validatorStatistics.GetExistingPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	leader := pa3.(*mock.PeerAccountHandlerMock)
-	pa4, _ := validatorStatistics.GetExistingPeerAccount(v4.PubKey())
+	pa4, _ := validatorStatistics.LoadPeerAccount(v4.PubKey())
 	validator := pa4.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -1046,9 +1046,9 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedSh
 	err = validatorStatistics.UpdateMissedBlocksCounters()
 	assert.Nil(t, err)
 
-	pa2, _ := validatorStatistics.GetExistingPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	missedLeader := pa2.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetExistingPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
@@ -1107,9 +1107,9 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensu
 	err = validatorStatistics.UpdateMissedBlocksCounters()
 	assert.Nil(t, err)
 
-	pa3, _ := validatorStatistics.GetExistingPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	leader := pa3.(*mock.PeerAccountHandlerMock)
-	pa4, _ := validatorStatistics.GetExistingPeerAccount(v4.PubKey())
+	pa4, _ := validatorStatistics.LoadPeerAccount(v4.PubKey())
 	validator := pa4.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -1171,9 +1171,9 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedSh
 	err = validatorStatistics.UpdateMissedBlocksCounters()
 	assert.Nil(t, err)
 
-	pa2, _ := validatorStatistics.GetExistingPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	missedLeader := pa2.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetExistingPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)

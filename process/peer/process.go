@@ -931,21 +931,6 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 	return nil
 }
 
-// GetExistingPeerAccount will return a PeerAccountHandler for a given address
-func (vs *validatorStatistics) GetExistingPeerAccount(address []byte) (state.PeerAccountHandler, error) {
-	account, err := vs.peerAdapter.GetExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	peerAccount, ok := account.(state.PeerAccountHandler)
-	if !ok {
-		return nil, process.ErrInvalidPeerAccount
-	}
-
-	return peerAccount, nil
-}
-
 func (vs *validatorStatistics) loadPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	account, err := vs.peerAdapter.LoadAccount(address)
 	if err != nil {
