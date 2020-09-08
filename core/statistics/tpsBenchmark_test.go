@@ -637,7 +637,7 @@ func TestTpsBenchmark_ZeroTxMetaBlockAndEmptyShardHeader(t *testing.T) {
 	assert.Equal(t, bigTxCount, tpsBenchmark.TotalProcessedTxCount())
 }
 
-func TestTpsBenchmark_ShardStatisticConcurrentAccessBla(t *testing.T) {
+func TestTpsBenchmark_ShardStatisticConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(12, 4)
