@@ -840,6 +840,8 @@ func (sp *shardProcessor) CommitBlock(
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain()
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
+	sp.notifyFinalMetaHdrs(processedMetaHdrs)
+
 	sp.updateState(selfNotarizedHeaders, header)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
@@ -857,7 +859,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
-	go sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
+	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
@@ -914,6 +916,26 @@ func (sp *shardProcessor) CommitBlock(
 	sp.cleanupPools(headerHandler)
 
 	return nil
+}
+
+func (sp *shardProcessor) notifyFinalMetaHdrs(processedMetaHeaders []data.HeaderHandler) {
+	metaHeaders := make([]data.HeaderHandler, 0)
+	metaHeadersHashes := make([][]byte, 0)
+
+	for _, metaHeader := range processedMetaHeaders {
+		metaHeaderHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, metaHeader)
+		if err != nil {
+			log.Debug("shardProcessor.notifyFinalMetaHdrs", "error", err.Error())
+			continue
+		}
+
+		metaHeaders = append(metaHeaders, metaHeader)
+		metaHeadersHashes = append(metaHeadersHashes, metaHeaderHash)
+	}
+
+	if len(metaHeaders) > 0 {
+		go sp.historyRepo.OnNotarizedBlocks(core.MetachainShardId, metaHeaders, metaHeadersHashes)
+	}
 }
 
 func (sp *shardProcessor) displayPoolsInfo() {
