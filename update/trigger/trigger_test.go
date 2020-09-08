@@ -118,7 +118,7 @@ func TestTrigger_TriggerEnabledShouldWork(t *testing.T) {
 	assert.True(t, wasTriggered)
 }
 
-func TestTrigger_TriggerWithForcedEnabledShouldWork(t *testing.T) {
+func TestTrigger_TriggerWithEarlyEndOfEpochEnabledShouldWork(t *testing.T) {
 	t.Parallel()
 
 	forceEpochStartWasCalled := false

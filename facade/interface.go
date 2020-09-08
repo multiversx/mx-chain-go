@@ -53,7 +53,7 @@ type NodeHandler interface {
 
 	// ValidatorStatisticsApi return the statistics for all the validators
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
-	DirectTrigger(epoch uint32, forced bool) error
+	DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 
 	EncodeAddressPubkey(pk []byte) (string, error)
@@ -82,7 +82,7 @@ type ApiResolver interface {
 
 // HardforkTrigger defines the structure used to trigger hardforks
 type HardforkTrigger interface {
-	Trigger(epoch uint32, forced bool) error
+	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }

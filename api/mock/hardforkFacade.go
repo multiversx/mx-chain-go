@@ -2,14 +2,14 @@ package mock
 
 // HardforkFacade -
 type HardforkFacade struct {
-	TriggerCalled       func(epoch uint32, forced bool) error
+	TriggerCalled       func(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTriggerCalled func() bool
 }
 
 // Trigger -
-func (hf *HardforkFacade) Trigger(epoch uint32, forced bool) error {
+func (hf *HardforkFacade) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 	if hf.TriggerCalled != nil {
-		return hf.TriggerCalled(epoch, forced)
+		return hf.TriggerCalled(epoch, withEarlyEndOfEpoch)
 	}
 
 	return nil

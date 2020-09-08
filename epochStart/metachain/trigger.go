@@ -188,8 +188,8 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 
 	isZeroEpochEdgeCase := nonce < minimumNonceToStartEpoch
 	isNormalEpochStart := t.currentRound > t.currEpochStartRound+t.roundsPerEpoch
-	isForcedEpochStart := t.currentRound >= t.nextEpochStartRound
-	shouldTriggerEpochStart := (isNormalEpochStart || isForcedEpochStart) && !isZeroEpochEdgeCase
+	isWithEarlyEndOfEpoch := t.currentRound >= t.nextEpochStartRound
+	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
 	if shouldTriggerEpochStart {
 		t.epoch += 1
 		t.isEpochStart = true

@@ -318,7 +318,7 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 	roundsForEarlyStartOfEpoch := uint64(3)
 	for i := uint64(0); i < numRoundsBeforeHardfork+roundsForEarlyStartOfEpoch; i++ {
 		if i == numRoundsBeforeHardfork {
-			log.Info("triggering hardfork (forced mode)")
+			log.Info("triggering hardfork (with early end of epoch)")
 			err := hardforkTriggerNode.Node.DirectTrigger(1, true)
 			log.LogIfError(err)
 		}

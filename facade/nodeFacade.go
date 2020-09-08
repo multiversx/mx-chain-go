@@ -346,8 +346,8 @@ func (nf *nodeFacade) PprofEnabled() bool {
 }
 
 // Trigger will trigger a hardfork event
-func (nf *nodeFacade) Trigger(epoch uint32, forced bool) error {
-	return nf.node.DirectTrigger(epoch, forced)
+func (nf *nodeFacade) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
+	return nf.node.DirectTrigger(epoch, withEarlyEndOfEpoch)
 }
 
 // IsSelfTrigger returns true if the self public key is the same with the registered public key

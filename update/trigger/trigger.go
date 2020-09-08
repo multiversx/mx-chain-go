@@ -67,7 +67,7 @@ type trigger struct {
 	closers                      []update.Closer
 	chanTriggerReceived          chan struct{}
 	importStartHandler           update.ImportStartHandler
-	isForced                     bool
+	isWithEarlyEndOfEpoch        bool
 }
 
 // NewTrigger returns the trigger instance
@@ -163,19 +163,19 @@ func (t *trigger) computeTriggerStartOfEpoch(receivedTrigger uint32) bool {
 }
 
 // Trigger will start the hardfork process
-func (t *trigger) Trigger(epoch uint32, forced bool) error {
+func (t *trigger) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 	if !t.enabled {
 		return update.ErrTriggerNotEnabled
 	}
 
-	log.Debug("hardfork trigger", "epoch", epoch, "forced", forced)
-	t.isForced = forced
+	log.Debug("hardfork trigger", "epoch", epoch, "withEarlyEndOfEpoch", withEarlyEndOfEpoch)
+	t.isWithEarlyEndOfEpoch = withEarlyEndOfEpoch
 
 	if epoch < minimumEpochForHarfork {
 		return fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
 
-	shouldTrigger, err := t.computeAndSetTrigger(epoch, nil, forced) //original payload is nil because this node is the originator
+	shouldTrigger, err := t.computeAndSetTrigger(epoch, nil, withEarlyEndOfEpoch) //original payload is nil because this node is the originator
 	if err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func (t *trigger) Trigger(epoch uint32, forced bool) error {
 
 // computeAndSetTrigger needs to do 2 things atomically: set the original payload and epoch and determine if the trigger
 // can be called
-func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte, forced bool) (bool, error) {
+func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte, withEarlyEndOfEpoch bool) (bool, error) {
 	t.mutTriggered.Lock()
 	defer t.mutTriggered.Unlock()
 
@@ -205,7 +205,7 @@ func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte, for
 		t.recordedTriggerMessage = originalPayload
 	}
 
-	if forced {
+	if withEarlyEndOfEpoch {
 		t.epochProvider.ForceEpochStart()
 	}
 
@@ -324,9 +324,9 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		return true, fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
 
-	forced := false
+	withEarlyEndOfEpoch := false
 	if len(arguments) == 3 {
-		forced = t.getBoolFromArgument(string(arguments[2]))
+		withEarlyEndOfEpoch = t.getBoolFromArgument(string(arguments[2]))
 	}
 
 	currentEpoch := int64(t.epochProvider.MetaEpoch())
@@ -334,7 +334,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		return true, fmt.Errorf("%w epoch out of grace period", update.ErrIncorrectHardforkMessage)
 	}
 
-	shouldTrigger, err := t.computeAndSetTrigger(uint32(epoch), originalPayload, forced)
+	shouldTrigger, err := t.computeAndSetTrigger(uint32(epoch), originalPayload, withEarlyEndOfEpoch)
 	if err != nil {
 		log.Debug("received trigger", "status", err)
 		return true, nil
@@ -397,7 +397,7 @@ func (t *trigger) CreateData() []byte {
 	payload := hardforkTriggerString +
 		dataSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", t.getTimestampHandler()))) +
 		dataSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", t.epoch))) +
-		dataSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%v", t.isForced)))
+		dataSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%v", t.isWithEarlyEndOfEpoch)))
 	t.mutTriggered.RUnlock()
 
 	return []byte(payload)

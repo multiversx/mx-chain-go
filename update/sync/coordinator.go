@@ -73,6 +73,8 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		return err
 	}
 
+	ss.printMetablockInfo(meta)
+
 	unFinished, err := ss.headers.GetUnfinishedMetaBlocks()
 	if err != nil {
 		return err
@@ -135,6 +137,23 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	}
 
 	return nil
+}
+
+func (ss *syncState) printMetablockInfo(metaBlock *block.MetaBlock) {
+	log.Debug("epoch start meta block",
+		"nonce", metaBlock.Nonce,
+		"round", metaBlock.Round,
+		"root hash", metaBlock.RootHash,
+		"epoch", metaBlock.Epoch,
+	)
+	for _, shardInfo := range metaBlock.ShardInfo {
+		log.Debug("epoch start meta block -> shard info",
+			"header hash", shardInfo.HeaderHash,
+			"shard ID", shardInfo.ShardID,
+			"nonce", shardInfo.Nonce,
+			"round", shardInfo.Round,
+		)
+	}
 }
 
 // GetEpochStartMetaBlock returns the synced metablock

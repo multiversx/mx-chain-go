@@ -511,12 +511,12 @@ func TestNodeFacade_Trigger(t *testing.T) {
 	arg := createMockArguments()
 	epoch := uint32(4638)
 	recoveredEpoch := uint32(0)
-	recoveredForced := atomicCore.Flag{}
+	recoveredWithEarlyEndOfEpoch := atomicCore.Flag{}
 	arg.Node = &mock.NodeStub{
-		DirectTriggerCalled: func(epoch uint32, forced bool) error {
+		DirectTriggerCalled: func(epoch uint32, withEarlyEndOfEpoch bool) error {
 			wasCalled = true
 			atomic.StoreUint32(&recoveredEpoch, epoch)
-			recoveredForced.Toggle(forced)
+			recoveredWithEarlyEndOfEpoch.Toggle(withEarlyEndOfEpoch)
 
 			return expectedErr
 		},
@@ -528,7 +528,7 @@ func TestNodeFacade_Trigger(t *testing.T) {
 	assert.True(t, wasCalled)
 	assert.Equal(t, expectedErr, err)
 	assert.Equal(t, epoch, atomic.LoadUint32(&recoveredEpoch))
-	assert.True(t, recoveredForced.IsSet())
+	assert.True(t, recoveredWithEarlyEndOfEpoch.IsSet())
 }
 
 func TestNodeFacade_IsSelfTrigger(t *testing.T) {
