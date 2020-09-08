@@ -28,3 +28,14 @@ func getDocumentsByIDsQuery(hashes []string) object {
 		"docs": interfaceSlice,
 	}
 }
+
+func prepareHashesForBulkRemove(hashes []string) object {
+	return object{
+		"query": object{
+			"ids": object{
+				"type":   "_doc",
+				"values": hashes,
+			},
+		},
+	}
+}

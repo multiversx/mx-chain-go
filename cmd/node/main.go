@@ -1974,14 +1974,17 @@ func createElasticIndexer(
 	}
 
 	log.Debug("elastic search indexing enabled, will create an ElasticIndexer")
-	indexTemplates, indexPolicies := getElasticTemplates()
+	indexTemplates, indexPolicies := indexer.GetElasticTemplatesAndPolicies()
 	arguments := indexer.DataIndexerArgs{
-		Url:                      elasticSearchConfig.URL,
-		UserName:                 elasticSearchConfig.Username,
-		Password:                 elasticSearchConfig.Password,
-		Marshalizer:              marshalizer,
-		Hasher:                   hasher,
-		Options:                  &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
+		Url:         elasticSearchConfig.URL,
+		UserName:    elasticSearchConfig.Username,
+		Password:    elasticSearchConfig.Password,
+		Marshalizer: marshalizer,
+		Hasher:      hasher,
+		Options: &indexer.Options{
+			TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name),
+			UseKibana:         elasticSearchConfig.UseKibana,
+		},
 		NodesCoordinator:         nodesCoordinator,
 		EpochStartNotifier:       startNotifier,
 		AddressPubkeyConverter:   addressPubkeyConverter,
@@ -2449,24 +2452,4 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
-}
-
-func getElasticTemplates() (map[string]io.Reader, map[string]io.Reader) {
-	indexTemplates := make(map[string]io.Reader)
-	indexPolicies := make(map[string]io.Reader)
-
-	opendistroTemplate, _ := core.OpenFile("./config/elasticIndexTemplates/opendistro.json")
-	indexTemplates["opendistro"] = opendistroTemplate
-	transactionsTemplate, _ := core.OpenFile("./config/elasticIndexTemplates/transactions.json")
-	indexTemplates["transactions"] = transactionsTemplate
-	blocksTemplate, _ := core.OpenFile("./config/elasticIndexTemplates/blocks.json")
-	indexTemplates["blocks"] = blocksTemplate
-	miniblocksTemplate, _ := core.OpenFile("./config/elasticIndexTemplates/miniblocks.json")
-	indexTemplates["miniblocks"] = miniblocksTemplate
-	transactionsPolicy, _ := core.OpenFile("./config/elasticIndexTemplates/transactions_policy.json")
-	indexPolicies["transactions_policy"] = transactionsPolicy
-	blocksPolicy, _ := core.OpenFile("./config/elasticIndexTemplates/blocks_policy.json")
-	indexPolicies["blocks_policy"] = blocksPolicy
-
-	return indexTemplates, indexPolicies
 }

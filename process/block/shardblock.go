@@ -341,18 +341,6 @@ func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	return nil
 }
 
-// RevertIndexedBlock should removed indexed info for reverted block
-func (sp *shardProcessor) RevertIndexedBlock(header data.HeaderHandler) {
-	if sp.indexer.IsNilIndexer() {
-		return
-	}
-	if check.IfNil(header) {
-		return
-	}
-
-	sp.indexer.RevertIndexedBlock(header)
-}
-
 func (sp *shardProcessor) checkEpochCorrectness(
 	header *block.Header,
 ) error {
@@ -591,6 +579,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
+	// TODO  instead of creating a goroutine make a method that blocks processing if queue is full
 	go sp.indexer.SaveBlock(body, header, txPool, signersIndexes, nil)
 
 	indexRoundInfo(sp.indexer, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)

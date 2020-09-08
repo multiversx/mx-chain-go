@@ -37,7 +37,7 @@ func newElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
 }
 
 // CheckAndCreateTemplate creates an index template if it does not already exist
-func (ec *elasticClient) CheckAndCreateTemplate(templateName string, template io.Reader) error {
+func (ec *elasticClient) CheckAndCreateTemplate(templateName string, template *bytes.Buffer) error {
 	if ec.templateExists(templateName) {
 		return nil
 	}
@@ -46,7 +46,7 @@ func (ec *elasticClient) CheckAndCreateTemplate(templateName string, template io
 }
 
 // CheckAndCreatePolicy creates a new index policy if it does not already exist
-func (ec *elasticClient) CheckAndCreatePolicy(policyName string, policy io.Reader) error {
+func (ec *elasticClient) CheckAndCreatePolicy(policyName string, policy *bytes.Buffer) error {
 	if ec.PolicyExists(policyName) {
 		return nil
 	}
@@ -120,6 +120,35 @@ func (ec *elasticClient) DoMultiGet(obj object, index string) (object, error) {
 	}
 
 	return decodedBody, nil
+}
+
+// DoBulkRemove will do a bulk remove to elasticsearch server
+func (ec *elasticClient) DoBulkRemove(index string, hashes []string) error {
+	obj := prepareHashesForBulkRemove(hashes)
+	body, err := encode(obj)
+	if err != nil {
+		return err
+	}
+
+	res, err := ec.es.DeleteByQuery(
+		[]string{index},
+		&body,
+		ec.es.DeleteByQuery.WithIgnoreUnavailable(true),
+	)
+
+	if err != nil {
+		log.Warn("elasticClient.DoMultiGet", "cannot do multi get no response", err.Error())
+		return err
+	}
+
+	var decodedBody object
+	err = parseResponse(res, &decodedBody, elasticDefaultErrorResponseHandler)
+	if err != nil {
+		log.Warn("elasticClient.DoMultiGet", "error parsing response", err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // TemplateExists checks weather a template is already created
@@ -211,7 +240,7 @@ func (ec *elasticClient) createIndex(index string) error {
 }
 
 // CreatePolicy creates a new policy for elastic indexes. Policies define rollover parameters
-func (ec *elasticClient) createPolicy(policyName string, policy io.Reader) error {
+func (ec *elasticClient) createPolicy(policyName string, policy *bytes.Buffer) error {
 	policyRoute := fmt.Sprintf(
 		"%s/%s/ism/policies/%s",
 		ec.elasticBaseUrl,

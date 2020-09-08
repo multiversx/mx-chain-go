@@ -1,7 +1,7 @@
 package indexer
 
 import (
-	"io"
+	"bytes"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -21,15 +21,15 @@ type DataIndexerArgs struct {
 	NodesCoordinator         sharding.NodesCoordinator
 	AddressPubkeyConverter   core.PubkeyConverter
 	ValidatorPubkeyConverter core.PubkeyConverter
-	IndexTemplates           map[string]io.Reader
-	IndexPolicies            map[string]io.Reader
+	IndexTemplates           map[string]*bytes.Buffer
+	IndexPolicies            map[string]*bytes.Buffer
 	Options                  *Options
 }
 
 //ElasticIndexerArgs is struct that is used to store all components that are needed to an elastic indexer
 type ElasticIndexerArgs struct {
-	IndexTemplates           map[string]io.Reader
-	IndexPolicies            map[string]io.Reader
+	IndexTemplates           map[string]*bytes.Buffer
+	IndexPolicies            map[string]*bytes.Buffer
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	AddressPubkeyConverter   core.PubkeyConverter

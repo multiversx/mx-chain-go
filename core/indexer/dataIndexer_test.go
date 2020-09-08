@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -406,24 +405,29 @@ func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transacti
 	return txs, hashes
 }
 
-func getIndexTemplateAndPolicies() (map[string]io.Reader, map[string]io.Reader) {
-	indexTemplates := make(map[string]io.Reader)
-	indexPolicies := make(map[string]io.Reader)
-	opendistroTemplate, _ := core.OpenFile("./testdata/opendistro.json")
-	indexTemplates["opendistro"] = opendistroTemplate
-	transactionsTemplate, _ := core.OpenFile("./testdata/transactions.json")
-	indexTemplates["transactions"] = transactionsTemplate
-	blocksTemplate, _ := core.OpenFile("./testdata/blocks.json")
-	indexTemplates["blocks"] = blocksTemplate
-	miniblocksTemplate, _ := core.OpenFile("./testdata/miniblocks.json")
-	indexTemplates["miniblocks"] = miniblocksTemplate
-	transactionsPolicy, _ := core.OpenFile("./testdata/transactions_policy.json")
-	indexPolicies["transactions_policy"] = transactionsPolicy
-	blocksPolicy, _ := core.OpenFile("./testdata/blocks_policy.json")
-	indexPolicies["blocks_policy"] = blocksPolicy
+func getIndexTemplateAndPolicies() (map[string]*bytes.Buffer, map[string]*bytes.Buffer) {
+	indexTemplates := make(map[string]*bytes.Buffer)
+	indexPolicies := make(map[string]*bytes.Buffer)
 
-	tpsTemplate, _ := core.OpenFile("./testdata/tps.json")
-	indexTemplates["tps"] = tpsTemplate
+	template := &bytes.Buffer{}
+	_ = core.LoadJsonFile(template, "./testdata/opendistro.json")
+	indexTemplates["opendistro"] = template
+	_ = core.LoadJsonFile(template, "./testdata/transactions.json")
+	indexTemplates["transactions"] = template
+
+	_ = core.LoadJsonFile(template, "./testdata/blocks.json")
+	indexTemplates["blocks"] = template
+	_ = core.LoadJsonFile(template, "./testdata/miniblocks.json")
+	indexTemplates["miniblocks"] = template
+
+	_ = core.LoadJsonFile(template, "./testdata/tps.json")
+	indexTemplates["tps"] = template
+
+	policy := &bytes.Buffer{}
+	_ = core.LoadJsonFile(template, "./testdata/transactions_policy.json")
+	indexPolicies["transactions_policy"] = policy
+	_ = core.LoadJsonFile(template, "./testdata/blocks_policy.json")
+	indexPolicies["blocks_policy"] = policy
 
 	return indexTemplates, indexPolicies
 }

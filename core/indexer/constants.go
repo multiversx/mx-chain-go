@@ -23,8 +23,13 @@ const (
 )
 
 const (
-	txPolicy    = "transactions_policy"
-	blockPolicy = "blocks_policy"
+	txPolicy         = "transactions_policy"
+	blockPolicy      = "blocks_policy"
+	miniblocksPolicy = "miniblocks_policy"
+	tpsPolicy        = "tps_policy"
+	validatorsPolicy = "validators_policy"
+	roundPolicy      = "rounds_policy"
+	ratingPolicy     = "rating_policy"
 )
 
 const txsBulkSizeThreshold = 800000 // 0.8MB

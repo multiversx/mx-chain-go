@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
@@ -100,7 +99,7 @@ func kibanaResponseErrorHandler(res *esapi.Response) error {
 	return ErrBackOff
 }
 
-func newRequest(method, path string, body io.Reader) (*http.Request, error) {
+func newRequest(method, path string, body *bytes.Buffer) (*http.Request, error) {
 	r := http.Request{
 		Method:     method,
 		URL:        &url.URL{Path: path},
@@ -111,19 +110,8 @@ func newRequest(method, path string, body io.Reader) (*http.Request, error) {
 	}
 
 	if body != nil {
-		switch b := body.(type) {
-		case *bytes.Buffer:
-			r.Body = ioutil.NopCloser(body)
-			r.ContentLength = int64(b.Len())
-		case *bytes.Reader:
-			r.Body = ioutil.NopCloser(body)
-			r.ContentLength = int64(b.Len())
-		case *strings.Reader:
-			r.Body = ioutil.NopCloser(body)
-			r.ContentLength = int64(b.Len())
-		default:
-			r.Body = ioutil.NopCloser(body)
-		}
+		r.Body = ioutil.NopCloser(body)
+		r.ContentLength = int64(body.Len())
 	}
 
 	return &r, nil

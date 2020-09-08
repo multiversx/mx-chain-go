@@ -18,6 +18,8 @@ const (
 	WorkTypeSaveValidatorsRating
 	// WorkTypeSaveValidatorsPubKeys defines the work type for saving validators public key when at epoch start
 	WorkTypeSaveValidatorsPubKeys
+	// WorkTypeRemoveBlock defines the work type for removing a block from indexer database
+	WorkTypeRemoveBlock
 )
 
 type workItem struct {

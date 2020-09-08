@@ -3,5 +3,6 @@
     # TODO change this to false after testing
     Enabled    = true
     URL        = "https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"
+    UseKibana  = true
     Username   = ""
     Password   = ""

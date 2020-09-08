@@ -90,8 +90,8 @@ func (di *dataIndexer) StopIndexing() error {
 
 // RevertIndexedBlock -
 func (di *dataIndexer) RevertIndexedBlock(header data.HeaderHandler) {
-	//TODO dont forget about this function
-	// ask Cristi
+	wi := NewWorkItem(WorkTypeRemoveBlock, &header)
+	di.dispatcher.Add(wi)
 }
 
 // SaveRoundsInfos will save data about a slice of rounds on elasticsearch

@@ -2,20 +2,21 @@ package indexer
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/elastic/go-elasticsearch/v7"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/elastic/go-elasticsearch/v7"
 )
 
 var log = logger.GetOrCreate("core/indexer")
 
 // Options structure holds the indexer's configuration options
 type Options struct {
+	UseKibana         bool
 	TxIndexingEnabled bool
 }
 
@@ -149,11 +150,48 @@ func (d *dataDispatcher) doWork() {
 	case WorkTypeSaveRoundsInfo:
 		d.saveRoundsInfo(wi)
 		break
+	case WorkTypeRemoveBlock:
+		d.removeBlock(wi)
+		break
 	default:
 		log.Error("dataDispatcher.doWork invalid work type received")
 		d.workQueue.Done()
 		break
 	}
+}
+
+func (d *dataDispatcher) removeBlock(item *workItem) {
+	header, ok := item.Data.(data.HeaderHandler)
+	if !ok {
+		d.workQueue.Done()
+		return
+	}
+
+	err := d.elasticIndexer.RemoveHeader(header)
+	if err != nil && err == ErrBackOff {
+		log.Warn("dataDispatcher.removeBlock", "could not remove header, received back off:", err.Error())
+		d.workQueue.GotBackOff()
+		return
+	}
+	if err != nil {
+		log.Warn("dataDispatcher.removeBlock", "removing item from queue", err.Error())
+		d.workQueue.Done()
+		return
+	}
+
+	err = d.elasticIndexer.RemoveMiniblocks(header)
+	if err != nil && err == ErrBackOff {
+		log.Warn("dataDispatcher.removeBlock", "could not remove miniblocks, received back off:", err.Error())
+		d.workQueue.GotBackOff()
+		return
+	}
+	if err != nil {
+		log.Warn("dataDispatcher.removeBlock", "removing item from queue", err.Error())
+		d.workQueue.Done()
+		return
+	}
+
+	d.workQueue.Done()
 }
 
 func (d *dataDispatcher) saveBlock(item *workItem) {

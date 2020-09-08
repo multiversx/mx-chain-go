@@ -5,12 +5,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"io"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
@@ -38,15 +38,22 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (ElasticIndexer, error) {
 		arguments.ValidatorPubkeyConverter,
 	)
 
-	err := ei.init(arguments.IndexTemplates, arguments.IndexPolicies)
-	if err != nil {
-		return nil, err
+	if arguments.Options.UseKibana {
+		err := ei.initWithKibana(arguments.IndexTemplates, arguments.IndexPolicies)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := ei.initNoKibana(arguments.IndexTemplates)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return ei, nil
 }
 
-func (ei *elasticIndexer) init(indexTemplates, indexPolicies map[string]io.Reader) error {
+func (ei *elasticIndexer) initWithKibana(indexTemplates, indexPolicies map[string]*bytes.Buffer) error {
 	err := ei.createOpenDistroTemplates(indexTemplates)
 	if err != nil {
 		return err
@@ -75,7 +82,16 @@ func (ei *elasticIndexer) init(indexTemplates, indexPolicies map[string]io.Reade
 	return nil
 }
 
-func (ei *elasticIndexer) createIndexPolicies(indexPolicies map[string]io.Reader) error {
+func (ei *elasticIndexer) initNoKibana(indexTemplates map[string]*bytes.Buffer) error {
+	err := ei.createOpenDistroTemplates(indexTemplates)
+	if err != nil {
+		return err
+	}
+
+	return ei.createIndexes()
+}
+
+func (ei *elasticIndexer) createIndexPolicies(indexPolicies map[string]*bytes.Buffer) error {
 	txp := getTemplateByName(txPolicy, indexPolicies)
 	if txp != nil {
 		err := ei.elasticClient.CheckAndCreatePolicy(txPolicy, txp)
@@ -92,10 +108,50 @@ func (ei *elasticIndexer) createIndexPolicies(indexPolicies map[string]io.Reader
 		}
 	}
 
+	roundsp := getTemplateByName(roundPolicy, indexPolicies)
+	if blockp != nil {
+		err := ei.elasticClient.CheckAndCreatePolicy(roundPolicy, roundsp)
+		if err != nil {
+			return err
+		}
+	}
+
+	validatorsp := getTemplateByName(validatorsPolicy, indexPolicies)
+	if blockp != nil {
+		err := ei.elasticClient.CheckAndCreatePolicy(validatorsPolicy, validatorsp)
+		if err != nil {
+			return err
+		}
+	}
+
+	ratingp := getTemplateByName(ratingPolicy, indexPolicies)
+	if blockp != nil {
+		err := ei.elasticClient.CheckAndCreatePolicy(ratingPolicy, ratingp)
+		if err != nil {
+			return err
+		}
+	}
+
+	tpsp := getTemplateByName(tpsPolicy, indexPolicies)
+	if blockp != nil {
+		err := ei.elasticClient.CheckAndCreatePolicy(tpsPolicy, tpsp)
+		if err != nil {
+			return err
+		}
+	}
+
+	miniblocksp := getTemplateByName(miniblocksPolicy, indexPolicies)
+	if blockp != nil {
+		err := ei.elasticClient.CheckAndCreatePolicy(miniblocksPolicy, miniblocksp)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-func (ei *elasticIndexer) createOpenDistroTemplates(indexTemplates map[string]io.Reader) error {
+func (ei *elasticIndexer) createOpenDistroTemplates(indexTemplates map[string]*bytes.Buffer) error {
 	opendistroTemplate := getTemplateByName("opendistro", indexTemplates)
 	if opendistroTemplate != nil {
 		err := ei.elasticClient.CheckAndCreateTemplate("opendistro", opendistroTemplate)
@@ -107,7 +163,7 @@ func (ei *elasticIndexer) createOpenDistroTemplates(indexTemplates map[string]io
 	return nil
 }
 
-func (ei *elasticIndexer) createIndexTemplates(indexTemplates map[string]io.Reader) error {
+func (ei *elasticIndexer) createIndexTemplates(indexTemplates map[string]*bytes.Buffer) error {
 	txTemplate := getTemplateByName(txIndex, indexTemplates)
 	if txTemplate != nil {
 		err := ei.elasticClient.CheckAndCreateTemplate(txIndex, txTemplate)
@@ -272,7 +328,7 @@ func (ei *elasticIndexer) foundedObjMap(hashes []string, index string) (map[stri
 	return getDecodedResponseMultiGet(response), nil
 }
 
-func getTemplateByName(templateName string, templateList map[string]io.Reader) io.Reader {
+func getTemplateByName(templateName string, templateList map[string]*bytes.Buffer) *bytes.Buffer {
 	if template, ok := templateList[templateName]; ok {
 		return template
 	}
@@ -307,6 +363,31 @@ func (ei *elasticIndexer) SaveHeader(
 	}
 
 	return ei.elasticClient.DoRequest(req)
+}
+
+// RemoveHeader will remove a block from elasticsearch server
+func (ei *elasticIndexer) RemoveHeader(header data.HeaderHandler) error {
+	headerHash, err := core.CalculateHash(ei.marshalizer, ei.hasher, header)
+	if err != nil {
+		return err
+	}
+
+	return ei.elasticClient.DoBulkRemove(blockIndex, []string{hex.EncodeToString(headerHash)})
+}
+
+// RemoveMiniblocks will remove all miniblocks that are in header from elasticsearch server
+func (ei *elasticIndexer) RemoveMiniblocks(header data.HeaderHandler) error {
+	miniblocksHashes := header.GetMiniBlockHeadersHashes()
+	if len(miniblocksHashes) == 0 {
+		return nil
+	}
+
+	encodedMiniblocksHashes := make([]string, 0)
+	for _, mbHash := range miniblocksHashes {
+		encodedMiniblocksHashes = append(encodedMiniblocksHashes, hex.EncodeToString(mbHash))
+	}
+
+	return ei.elasticClient.DoBulkRemove(miniblocksIndex, encodedMiniblocksHashes)
 }
 
 // SetTxLogsProcessor will set tx logs processor

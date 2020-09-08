@@ -417,3 +417,42 @@ func getDecodedResponseMultiGet(response object) map[string]bool {
 
 	return founded
 }
+
+// GetElasticTemplatesAndPolicies will return elastic templates and policies
+func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*bytes.Buffer) {
+	indexTemplates := make(map[string]*bytes.Buffer)
+	indexPolicies := make(map[string]*bytes.Buffer)
+
+	indexTemplates["opendistro"] = getTemplateByIndex("opendistro")
+	indexTemplates[txIndex] = getTemplateByIndex(txIndex)
+	indexTemplates[blockIndex] = getTemplateByIndex(blockIndex)
+	indexTemplates[miniblocksIndex] = getTemplateByIndex(miniblocksIndex)
+	indexTemplates[tpsIndex] = getTemplateByIndex(tpsIndex)
+	indexTemplates[validatorsIndex] = getTemplateByIndex(validatorsIndex)
+	indexTemplates[roundIndex] = getTemplateByIndex(roundIndex)
+	indexTemplates[ratingIndex] = getTemplateByIndex(ratingIndex)
+
+	indexPolicies[txPolicy] = getPolicyByIndex(txIndex)
+	indexPolicies[blockPolicy] = getPolicyByIndex(blockIndex)
+	indexPolicies[miniblocksPolicy] = getPolicyByIndex(miniblocksIndex)
+	indexPolicies[tpsPolicy] = getPolicyByIndex(tpsIndex)
+	indexPolicies[validatorsPolicy] = getPolicyByIndex(validatorsIndex)
+	indexPolicies[roundPolicy] = getPolicyByIndex(roundIndex)
+	indexPolicies[ratingPolicy] = getPolicyByIndex(ratingIndex)
+
+	return indexTemplates, indexPolicies
+}
+
+func getTemplateByIndex(index string) *bytes.Buffer {
+	indexTemplate := &bytes.Buffer{}
+	_ = core.LoadJsonFile(&indexTemplate, "./config/elasticIndexTemplates/"+index+".json")
+
+	return indexTemplate
+}
+
+func getPolicyByIndex(index string) *bytes.Buffer {
+	indexPolicy := &bytes.Buffer{}
+	_ = core.LoadJsonFile(&indexPolicy, "./config/elasticIndexTemplates/"+index+"_policy.json")
+
+	return indexPolicy
+}
