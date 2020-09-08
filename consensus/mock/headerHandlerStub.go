@@ -8,17 +8,18 @@ import (
 
 // HeaderHandlerStub -
 type HeaderHandlerStub struct {
-	GetMiniBlockHeadersWithDstCalled func(destId uint32) map[string]uint32
-	GetPubKeysBitmapCalled           func() []byte
-	GetSignatureCalled               func() []byte
-	GetRootHashCalled                func() []byte
-	GetRandSeedCalled                func() []byte
-	GetPrevRandSeedCalled            func() []byte
-	GetPrevHashCalled                func() []byte
-	CloneCalled                      func() data.HeaderHandler
-	GetChainIDCalled                 func() []byte
-	CheckChainIDCalled               func(reference []byte) error
-	GetReservedCalled                func() []byte
+	GetMiniBlockHeadersWithDstCalled       func(destId uint32) map[string]uint32
+	GetOrderedCrossMiniblocksWithDstCalled func(destId uint32) []*data.MiniBlockInfo
+	GetPubKeysBitmapCalled                 func() []byte
+	GetSignatureCalled                     func() []byte
+	GetRootHashCalled                      func() []byte
+	GetRandSeedCalled                      func() []byte
+	GetPrevRandSeedCalled                  func() []byte
+	GetPrevHashCalled                      func() []byte
+	CloneCalled                            func() data.HeaderHandler
+	GetChainIDCalled                       func() []byte
+	CheckChainIDCalled                     func(reference []byte) error
+	GetReservedCalled                      func() []byte
 }
 
 // GetAccumulatedFees -
@@ -205,6 +206,11 @@ func (hhs *HeaderHandlerStub) SetTxCount(_ uint32) {
 // GetMiniBlockHeadersWithDst -
 func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	return hhs.GetMiniBlockHeadersWithDstCalled(destId)
+}
+
+// GetOrderedCrossMiniblocksWithDst -
+func (hhs *HeaderHandlerStub) GetOrderedCrossMiniblocksWithDst(destId uint32) []*data.MiniBlockInfo {
+	return hhs.GetOrderedCrossMiniblocksWithDstCalled(destId)
 }
 
 // GetMiniBlockHeadersHashes -

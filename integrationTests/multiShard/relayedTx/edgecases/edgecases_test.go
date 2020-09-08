@@ -12,9 +12,6 @@ import (
 )
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *testing.T) {
-	//TODO fix this test: task EN-7532
-	t.Skip("fixme")
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -81,9 +78,6 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *t
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(t *testing.T) {
-	//TODO fix this test: task EN-7532
-	t.Skip("fixme")
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

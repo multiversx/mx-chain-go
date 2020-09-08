@@ -1208,6 +1208,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 			},
 		},
 		tpn.PeerState,
+		&mock.RaterMock{},
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()

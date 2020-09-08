@@ -116,6 +116,24 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	return hashDst
 }
 
+// GetOrderedCrossMiniblocksWithDst gets all cross miniblocks with the given destination shard ID, ordered in a
+// chronological way, taking into consideration the round in which they were created/executed in the sender shard
+func (h *Header) GetOrderedCrossMiniblocksWithDst(destId uint32) []*data.MiniBlockInfo {
+	miniBlocks := make([]*data.MiniBlockInfo, 0)
+
+	for _, mb := range h.MiniBlockHeaders {
+		if mb.ReceiverShardID == destId && mb.SenderShardID != destId {
+			miniBlocks = append(miniBlocks, &data.MiniBlockInfo{
+				Hash:          mb.Hash,
+				SenderShardID: mb.SenderShardID,
+				Round:         h.Round,
+			})
+		}
+	}
+
+	return miniBlocks
+}
+
 // GetMiniBlockHeadersHashes gets the miniblock hashes
 func (h *Header) GetMiniBlockHeadersHashes() [][]byte {
 	result := make([][]byte, 0, len(h.MiniBlockHeaders))

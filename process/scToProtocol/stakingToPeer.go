@@ -216,9 +216,7 @@ func (stp *stakingToPeer) updatePeerState(
 	}
 
 	isValidator := account.GetList() == string(core.EligibleList) || account.GetList() == string(core.WaitingList)
-	isJailed := stakingData.JailedNonce >= stakingData.UnJailedNonce && stakingData.JailedNonce > 0
-
-	if !isJailed {
+	if !stakingData.Jailed {
 		if stakingData.StakedNonce == nonce && !isValidator {
 			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.StakedNonce))
 			account.SetTempRating(stp.startRating)

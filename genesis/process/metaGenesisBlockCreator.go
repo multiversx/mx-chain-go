@@ -230,6 +230,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		arg.Marshalizer,
 		&arg.SystemSCConfig,
 		arg.ValidatorAccounts,
+		&disabled.Rater{},
 	)
 	if err != nil {
 		return nil, err

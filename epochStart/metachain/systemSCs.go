@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -125,9 +124,8 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 
 		log.Debug("switchJailedWithWaiting called for",
 			"key", jailedValidator.PublicKey,
-			"returnMessage", vmOutput.ReturnMessage,
-			"returnCode", vmOutput.ReturnCode.String())
-		if vmOutput.ReturnCode != vmcommon.Ok || vmOutput.ReturnMessage == vm.ErrBLSPublicKeyAlreadyJailed.Error() {
+			"returnMessage", vmOutput.ReturnMessage)
+		if vmOutput.ReturnCode != vmcommon.Ok {
 			continue
 		}
 
