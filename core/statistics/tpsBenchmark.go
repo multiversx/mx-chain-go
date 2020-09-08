@@ -179,8 +179,13 @@ func (s *TpsBenchmark) NrOfShards() uint32 {
 // ShardStatistics returns the current statistical state for a given shard
 func (s *TpsBenchmark) ShardStatistics() map[uint32]ShardStatistic {
 	s.mut.RLock()
-	defer s.mut.RUnlock()
-	return s.shardStatistics
+	shardStatisticsMapCopy := make(map[uint32]ShardStatistic)
+	for key, value := range s.shardStatistics {
+		shardStatisticsMapCopy[key] = value
+	}
+	s.mut.RUnlock()
+
+	return shardStatisticsMapCopy
 }
 
 // ShardStatistic returns the current statistical state for a given shard
