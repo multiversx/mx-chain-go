@@ -1401,6 +1401,7 @@ func newBlockProcessor(
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
+			processArgs.rater,
 		)
 	}
 
@@ -1735,6 +1736,7 @@ func newMetaBlockProcessor(
 	historyRepository dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	rater sharding.PeerAccountListAndRatingHandler,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1757,7 +1759,8 @@ func newMetaBlockProcessor(
 		core.Hasher,
 		core.InternalMarshalizer,
 		systemSCConfig,
-		stateComponents.PeerAccounts,
+		stateComponents.AccountsAdapter,
+		rater,
 	)
 	if err != nil {
 		return nil, err

@@ -194,7 +194,7 @@ func (vs *validatorStatistics) saveUpdatesForList(
 	peerType core.PeerType,
 ) error {
 	for index, pubKey := range pks {
-		peerAcc, err := vs.GetPeerAccount(pubKey)
+		peerAcc, err := vs.loadPeerAccount(pubKey)
 		if err != nil {
 			log.Debug("error getting peer account", "error", err, "key", pubKey)
 			return err
@@ -462,6 +462,26 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 	}
 }
 
+// IsLowRating returns true if temp rating is under 0 chance value
+func (vs *validatorStatistics) IsLowRating(blsKey []byte) bool {
+	acc, err := vs.peerAdapter.GetExistingAccount(blsKey)
+	if err != nil {
+		return false
+	}
+
+	validatorAccount, ok := acc.(state.PeerAccountHandler)
+	if !ok {
+		return false
+	}
+
+	minChance := vs.rater.GetChance(0)
+	if vs.rater.GetChance(validatorAccount.GetTempRating()) >= minChance {
+		return false
+	}
+
+	return true
+}
+
 func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
 	peerAccount := state.NewEmptyPeerAccount()
 	err := vs.marshalizer.Unmarshal(peerAccount, pa)
@@ -550,7 +570,7 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 
 	if computedThreshold <= signedThreshold {
 		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, validator.ValidatorFailure)
-		pa, err := vs.GetPeerAccount(validator.PublicKey)
+		pa, err := vs.loadPeerAccount(validator.PublicKey)
 		if err != nil {
 			return err
 		}
@@ -659,11 +679,11 @@ func (vs *validatorStatistics) computeDecrease(
 			return err
 		}
 
-		swInner.Start("GetPeerAccount")
-		leaderPeerAcc, err := vs.GetPeerAccount(consensusGroup[0].PubKey())
+		swInner.Start("loadPeerAccount")
+		leaderPeerAcc, err := vs.loadPeerAccount(consensusGroup[0].PubKey())
 		leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
 		log.Trace("Decreasing for leader", "leader", leaderPK, "round", i)
-		swInner.Stop("GetPeerAccount")
+		swInner.Stop("loadPeerAccount")
 		if err != nil {
 			return err
 		}
@@ -715,7 +735,7 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 	defer vs.mutValidatorStatistics.Unlock()
 
 	for j := 1; j < len(consensusGroup); j++ {
-		validatorPeerAccount, verr := vs.GetPeerAccount(consensusGroup[j].PubKey())
+		validatorPeerAccount, verr := vs.loadPeerAccount(consensusGroup[j].PubKey())
 		if verr != nil {
 			return verr
 		}
@@ -824,7 +844,7 @@ func (vs *validatorStatistics) initializeNode(
 	peerType core.PeerType,
 	index uint32,
 ) error {
-	peerAccount, err := vs.GetPeerAccount(node.PubKeyBytes())
+	peerAccount, err := vs.loadPeerAccount(node.PubKeyBytes())
 	if err != nil {
 		return err
 	}
@@ -873,7 +893,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 	}
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
-		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
+		peerAcc, err := vs.loadPeerAccount(validatorList[i].PubKey())
 		if err != nil {
 			return err
 		}
@@ -911,8 +931,22 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 	return nil
 }
 
-// GetPeerAccount will return a PeerAccountHandler for a given address
-func (vs *validatorStatistics) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+// GetExistingPeerAccount will return a PeerAccountHandler for a given address
+func (vs *validatorStatistics) GetExistingPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+	account, err := vs.peerAdapter.GetExistingAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	peerAccount, ok := account.(state.PeerAccountHandler)
+	if !ok {
+		return nil, process.ErrInvalidPeerAccount
+	}
+
+	return peerAccount, nil
+}
+
+func (vs *validatorStatistics) loadPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	account, err := vs.peerAdapter.LoadAccount(address)
 	if err != nil {
 		return nil, err
@@ -947,7 +981,7 @@ func (vs *validatorStatistics) updateMissedBlocksCounters() error {
 	}()
 
 	for pubKey, roundCounters := range vs.missedBlocksCounters {
-		peerAccount, err := vs.GetPeerAccount([]byte(pubKey))
+		peerAccount, err := vs.loadPeerAccount([]byte(pubKey))
 		if err != nil {
 			return err
 		}
@@ -992,7 +1026,7 @@ func (vs *validatorStatistics) IsInterfaceNil() bool {
 }
 
 func (vs *validatorStatistics) getTempRating(s string) uint32 {
-	peer, err := vs.GetPeerAccount([]byte(s))
+	peer, err := vs.loadPeerAccount([]byte(s))
 
 	if err != nil {
 		log.Debug("Error getting peer account", "error", err)
@@ -1003,7 +1037,7 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 }
 
 func (vs *validatorStatistics) display(validatorKey string) {
-	peerAcc, err := vs.GetPeerAccount([]byte(validatorKey))
+	peerAcc, err := vs.loadPeerAccount([]byte(validatorKey))
 
 	if err != nil {
 		log.Trace("display peer acc", "error", err)
@@ -1054,7 +1088,7 @@ func (vs *validatorStatistics) decreaseAll(
 	ratingDifference := uint32(0)
 
 	for i, validator := range shardValidators {
-		validatorPeerAccount, err := vs.GetPeerAccount(validator)
+		validatorPeerAccount, err := vs.loadPeerAccount(validator)
 		if err != nil {
 			return err
 		}
@@ -1092,7 +1126,7 @@ func (vs *validatorStatistics) decreaseAll(
 func (vs *validatorStatistics) Process(svi data.ShardValidatorInfoHandler) error {
 	log.Trace("ValidatorInfoData", "pk", svi.GetPublicKey(), "tempRating", svi.GetTempRating())
 
-	pa, err := vs.GetPeerAccount(svi.GetPublicKey())
+	pa, err := vs.loadPeerAccount(svi.GetPublicKey())
 	if err != nil {
 		return err
 	}

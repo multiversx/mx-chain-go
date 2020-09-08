@@ -196,6 +196,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 			},
 		},
 		peerAccountsDB,
+		&mock.ChanceComputerStub{},
 	)
 
 	vmContainer, _ := metaVmFactory.Create()

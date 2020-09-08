@@ -44,6 +44,8 @@ type SystemEI interface {
 	BlockChainHook() vmcommon.BlockchainHook
 	CryptoHook() vmcommon.CryptoHook
 	IsValidator(blsKey []byte) bool
+	CanUnJail(blsKey []byte) bool
+	IsBadRating(blsKey []byte) bool
 
 	IsInterfaceNil() bool
 }
