@@ -1401,6 +1401,7 @@ func newBlockProcessor(
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
+			processArgs.mainConfig.GeneralSettings,
 			processArgs.rater,
 		)
 	}
@@ -1736,6 +1737,7 @@ func newMetaBlockProcessor(
 	historyRepository dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	generalSettingsConfig config.GeneralSettingsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 ) (process.BlockProcessor, error) {
 
@@ -1759,7 +1761,7 @@ func newMetaBlockProcessor(
 		core.Hasher,
 		core.InternalMarshalizer,
 		systemSCConfig,
-		stateComponents.AccountsAdapter,
+		stateComponents.PeerAccounts,
 		rater,
 	)
 	if err != nil {
@@ -1822,24 +1824,27 @@ func newMetaBlockProcessor(
 	}
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:      vmContainer,
-		ArgsParser:       argsParser,
-		Hasher:           core.Hasher,
-		Marshalizer:      core.InternalMarshalizer,
-		AccountsDB:       stateComponents.AccountsAdapter,
-		BlockChainHook:   vmFactory.BlockChainHookImpl(),
-		PubkeyConv:       stateComponents.AddressPubkeyConverter,
-		Coordinator:      shardCoordinator,
-		ScrForwarder:     scForwarder,
-		TxFeeHandler:     txFeeHandler,
-		EconomicsFee:     economicsData,
-		TxTypeHandler:    txTypeHandler,
-		GasHandler:       gasHandler,
-		GasSchedule:      gasSchedule,
-		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:  txLogsProcessor,
-		BadTxForwarder:   badTxForwarder,
-		EpochNotifier:    epochNotifier,
+		VmContainer:                    vmContainer,
+		ArgsParser:                     argsParser,
+		Hasher:                         core.Hasher,
+		Marshalizer:                    core.InternalMarshalizer,
+		AccountsDB:                     stateComponents.AccountsAdapter,
+		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
+		PubkeyConv:                     stateComponents.AddressPubkeyConverter,
+		Coordinator:                    shardCoordinator,
+		ScrForwarder:                   scForwarder,
+		TxFeeHandler:                   txFeeHandler,
+		EconomicsFee:                   economicsData,
+		TxTypeHandler:                  txTypeHandler,
+		GasHandler:                     gasHandler,
+		GasSchedule:                    gasSchedule,
+		BuiltInFunctions:               vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:                txLogsProcessor,
+		DeployEnableEpoch:              generalSettingsConfig.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:             generalSettingsConfig.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: generalSettingsConfig.PenalizedTooMuchGasEnableEpoch,
+		BadTxForwarder:                 badTxForwarder,
+		EpochNotifier:                  epochNotifier,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
