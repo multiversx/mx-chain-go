@@ -640,6 +640,12 @@ func TestTpsBenchmark_ZeroTxMetaBlockAndEmptyShardHeader(t *testing.T) {
 func TestTpsBenchmark_ShardStatisticConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("code should not panic")
+		}
+	}()
+
 	tpsBenchmark, _ := statistics.NewTPSBenchmark(12, 4)
 
 	wg := sync.WaitGroup{}
