@@ -388,7 +388,7 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		return err
 	}
 
-	context.UpdateLastSCResults()
+	_ = context.UpdateLastSCResults()
 
 	return nil
 }
@@ -442,7 +442,7 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 		return err
 	}
 
-	context.UpdateLastSCResults()
+	_ = context.UpdateLastSCResults()
 
 	return nil
 }
@@ -468,6 +468,7 @@ func (context *TestContext) ExecuteSC(sender *testParticipant, txData string) er
 	return context.ExecuteSCWithValue(sender, txData, big.NewInt(0))
 }
 
+// ExecuteSCWithValue -
 func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData string, value *big.Int) error {
 	tx := &transaction.Transaction{
 		Nonce:    sender.Nonce,
@@ -507,7 +508,7 @@ func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData s
 		return err
 	}
 
-	context.UpdateLastSCResults()
+	_ = context.UpdateLastSCResults()
 
 	return nil
 }

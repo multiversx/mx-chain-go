@@ -2,13 +2,11 @@ package smartContract
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -19,8 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -481,119 +477,6 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	}
 }
 
-func TestSCCallingDNSUserNames(t *testing.T) {
-	//TODO fix this test
-	t.Skip("TODO fix this test")
-
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	numOfShards := 2
-	nodesPerShard := 1
-	numMetachainNodes := 1
-
-	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
-
-	genesisFile := "testdata/smartcontracts.json"
-	nodes, _ := integrationTests.CreateNodesWithFullGenesis(
-		numOfShards,
-		nodesPerShard,
-		numMetachainNodes,
-		integrationTests.GetConnectableAddress(advertiser),
-		genesisFile,
-	)
-
-	idxProposers := make([]int, numOfShards+1)
-	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
-	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
-
-	integrationTests.DisplayAndStartNodes(nodes)
-
-	defer func() {
-		_ = advertiser.Close()
-		for _, n := range nodes {
-			_ = n.Messenger.Close()
-		}
-	}()
-
-	numPlayers := 6
-	players := make([]*integrationTests.TestWalletAccount, numPlayers)
-	for i := 0; i < numPlayers; i++ {
-		players[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
-	}
-
-	initialVal := big.NewInt(10000000000000)
-	initialVal.Mul(initialVal, initialVal)
-	fmt.Printf("Initial minted sum: %s\n", initialVal.String())
-	integrationTests.MintAllNodes(nodes, initialVal)
-	integrationTests.MintAllPlayers(nodes, players, initialVal)
-
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
-
-	dnsRegisterValue := big.NewInt(100)
-	genesisSCs := nodes[0].SmartContractParser.InitialSmartContracts()
-	for _, genesisSC := range genesisSCs {
-		if genesisSC.GetType() == genesis.DNSType {
-			decodedValue, _ := hex.DecodeString(genesisSC.GetInitParameters())
-			dnsRegisterValue.SetBytes(decodedValue)
-			break
-		}
-	}
-
-	mapDNSAddresses, _ := nodes[0].SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
-	sortedDNSAddresses := make([]string, 0, len(mapDNSAddresses))
-	for address := range mapDNSAddresses {
-		sortedDNSAddresses = append(sortedDNSAddresses, address)
-	}
-	sort.Slice(sortedDNSAddresses, func(i, j int) bool {
-		return sortedDNSAddresses[i][31] < sortedDNSAddresses[j][31]
-	})
-
-	gasLimit := uint64(200000)
-
-	userNames := make([]string, len(players))
-	for i, player := range players {
-		userName := generateNewUserName()
-		scAddress := selectDNSAddressFromUserName(sortedDNSAddresses, userName)
-		integrationTests.PlayerSendsTransaction(
-			nodes,
-			player,
-			[]byte(scAddress),
-			dnsRegisterValue,
-			"register@"+hex.EncodeToString([]byte(userName)),
-			gasLimit,
-		)
-		userNames[i] = userName
-	}
-
-	time.Sleep(time.Second)
-
-	nrRoundsToPropagateMultiShard := 15
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-
-	for i, player := range players {
-		playerShID := nodes[0].ShardCoordinator.ComputeId(player.Address)
-		for _, node := range nodes {
-			if node.ShardCoordinator.SelfId() != playerShID {
-				continue
-			}
-
-			acnt, _ := node.AccntState.GetExistingAccount(player.Address)
-			userAcc, _ := acnt.(state.UserAccountHandler)
-
-			hashedUserName := keccak.Keccak{}.Compute(userNames[i])
-			assert.Equal(t, hashedUserName, userAcc.GetUserName())
-		}
-	}
-}
-
 func TestSCCallingBuiltinAndFails(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -707,17 +590,6 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 	testValue2 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue2", nil)
 	require.NotNil(t, testValue2)
 	require.Equal(t, uint64(254), testValue2.Uint64())
-}
-
-func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) string {
-	hashedAddr := keccak.Keccak{}.Compute(userName)
-	return sortedDNSAddresses[hashedAddr[31]]
-}
-
-func generateNewUserName() string {
-	buff := make([]byte, 10)
-	_, _ = rand.Read(buff)
-	return hex.EncodeToString(buff)
 }
 
 func TestSCCallingInCrossShardDelegationMock(t *testing.T) {

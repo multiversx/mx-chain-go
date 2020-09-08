@@ -8,7 +8,7 @@ type Config struct {
 
 // GeneralConfig holds basic configuration
 type GeneralConfig struct {
-	DBPathWithChainID  string `toml:"dbPathWithChainID"`
+	DBPath             string `toml:"dbPath"`
 	NodeConfigFilePath string `toml:"nodeConfigPath"`
 	ChainID            string `toml:"chainID"`
 }
