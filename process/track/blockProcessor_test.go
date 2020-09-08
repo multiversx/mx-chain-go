@@ -27,16 +27,28 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 	headerValidator, _ := block.NewHeaderValidator(argsHeaderValidator)
 
 	arguments := track.ArgBlockProcessor{
-		HeaderValidator:               headerValidator,
-		RequestHandler:                &mock.RequestHandlerStub{},
-		ShardCoordinator:              shardCoordinatorMock,
-		BlockTracker:                  &mock.BlockTrackerHandlerMock{},
-		CrossNotarizer:                &mock.BlockNotarizerHandlerMock{},
-		SelfNotarizer:                 &mock.BlockNotarizerHandlerMock{},
-		CrossNotarizedHeadersNotifier: &mock.BlockNotifierHandlerMock{},
-		SelfNotarizedHeadersNotifier:  &mock.BlockNotifierHandlerMock{},
-		FinalMetachainHeadersNotifier: &mock.BlockNotifierHandlerMock{},
-		Rounder:                       &mock.RounderMock{},
+		HeaderValidator:  headerValidator,
+		RequestHandler:   &mock.RequestHandlerStub{},
+		ShardCoordinator: shardCoordinatorMock,
+		BlockTracker:     &mock.BlockTrackerHandlerMock{},
+		CrossNotarizer:   &mock.BlockNotarizerHandlerMock{},
+		SelfNotarizer:    &mock.BlockNotarizerHandlerMock{},
+		CrossNotarizedHeadersNotifier: &mock.BlockNotifierHandlerMock{
+			GetNumRegisteredHandlersCalled: func() int {
+				return 1
+			},
+		},
+		SelfNotarizedHeadersNotifier: &mock.BlockNotifierHandlerMock{
+			GetNumRegisteredHandlersCalled: func() int {
+				return 1
+			},
+		},
+		FinalMetachainHeadersNotifier: &mock.BlockNotifierHandlerMock{
+			GetNumRegisteredHandlersCalled: func() int {
+				return 1
+			},
+		},
+		Rounder: &mock.RounderMock{},
 	}
 
 	return arguments
@@ -174,10 +186,15 @@ func TestProcessReceivedHeader_ShouldWorkWhenHeaderIsFromSelfShard(t *testing.T)
 			return nil, nil, nil, nil
 		},
 	}
+	blockProcessorArguments.SelfNotarizer = &mock.BlockNotarizerHandlerMock{
+		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return &block2.Header{}, nil, nil
+		},
+	}
 
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
-	bp.ProcessReceivedHeader(&block2.Header{})
+	bp.ProcessReceivedHeader(&block2.Header{Nonce: 1})
 
 	assert.True(t, called)
 }
@@ -197,7 +214,7 @@ func TestProcessReceivedHeader_ShouldWorkWhenHeaderIsFromCrossShard(t *testing.T
 
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
-	bp.ProcessReceivedHeader(&block2.MetaBlock{})
+	bp.ProcessReceivedHeader(&block2.MetaBlock{Nonce: 1})
 
 	assert.True(t, called)
 }
@@ -223,6 +240,9 @@ func TestDoJobOnReceivedHeader_ShouldWork(t *testing.T) {
 			if shardID == blockProcessorArguments.ShardCoordinator.SelfId() {
 				called = true
 			}
+		},
+		GetNumRegisteredHandlersCalled: func() int {
+			return 1
 		},
 	}
 
@@ -294,17 +314,26 @@ func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
 		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 			called++
 		},
+		GetNumRegisteredHandlersCalled: func() int {
+			return 1
+		},
 	}
 
 	blockProcessorArguments.CrossNotarizedHeadersNotifier = &mock.BlockNotifierHandlerMock{
 		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 			called++
 		},
+		GetNumRegisteredHandlersCalled: func() int {
+			return 1
+		},
 	}
 
 	blockProcessorArguments.FinalMetachainHeadersNotifier = &mock.BlockNotifierHandlerMock{
 		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 			called++
+		},
+		GetNumRegisteredHandlersCalled: func() int {
+			return 1
 		},
 	}
 
@@ -910,4 +939,55 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldRequestIfHighestRoundFromRec
 	mutCalled.RLock()
 	assert.True(t, called)
 	mutCalled.RUnlock()
+}
+
+func TestShouldProcessReceivedHeader_ShouldReturnFalseWhenGetLastNotarizedHeaderFails(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	blockProcessorArguments.SelfNotarizer = &mock.BlockNotarizerHandlerMock{
+		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return nil, nil, errors.New("error")
+		},
+	}
+
+	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
+		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return nil, nil, errors.New("error")
+		},
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+
+	assert.False(t, bp.ShouldProcessReceivedHeader(&block2.Header{}))
+	assert.False(t, bp.ShouldProcessReceivedHeader(&block2.MetaBlock{}))
+}
+
+func TestShouldProcessReceivedHeader_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+
+	blockProcessorArguments.SelfNotarizer = &mock.BlockNotarizerHandlerMock{
+		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return &block2.Header{Nonce: 15}, []byte(""), nil
+		},
+	}
+
+	blockProcessorArguments.CrossNotarizer = &mock.BlockNotarizerHandlerMock{
+		GetLastNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return &block2.MetaBlock{Nonce: 10}, []byte(""), nil
+		},
+	}
+
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+
+	assert.False(t, bp.ShouldProcessReceivedHeader(&block2.Header{Nonce: 14}))
+	assert.False(t, bp.ShouldProcessReceivedHeader(&block2.Header{Nonce: 15}))
+	assert.True(t, bp.ShouldProcessReceivedHeader(&block2.Header{Nonce: 16}))
+
+	assert.False(t, bp.ShouldProcessReceivedHeader(&block2.MetaBlock{Nonce: 9}))
+	assert.False(t, bp.ShouldProcessReceivedHeader(&block2.MetaBlock{Nonce: 10}))
+	assert.True(t, bp.ShouldProcessReceivedHeader(&block2.MetaBlock{Nonce: 11}))
 }

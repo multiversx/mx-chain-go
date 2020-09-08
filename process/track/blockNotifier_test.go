@@ -90,3 +90,16 @@ func TestCallHandler_ShouldWork(t *testing.T) {
 	assert.Equal(t, true, callf1)
 	assert.Equal(t, true, callf2)
 }
+
+func TestGetNumRegisteredHandlers_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	bn, _ := track.NewBlockNotifier()
+
+	f1 := func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {}
+	f2 := func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {}
+	bn.RegisterHandler(f1)
+	bn.RegisterHandler(f2)
+
+	assert.Equal(t, 2, bn.GetNumRegisteredHandlers())
+}

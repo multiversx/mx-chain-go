@@ -6,8 +6,9 @@ import (
 
 // BlockNotifierHandlerMock -
 type BlockNotifierHandlerMock struct {
-	CallHandlersCalled    func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
-	RegisterHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	CallHandlersCalled             func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
+	RegisterHandlerCalled          func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	GetNumRegisteredHandlersCalled func() int
 }
 
 // CallHandlers -
@@ -22,6 +23,15 @@ func (bnhm *BlockNotifierHandlerMock) RegisterHandler(handler func(shardID uint3
 	if bnhm.RegisterHandlerCalled != nil {
 		bnhm.RegisterHandlerCalled(handler)
 	}
+}
+
+// GetNumRegisteredHandlers -
+func (bnhm *BlockNotifierHandlerMock) GetNumRegisteredHandlers() int {
+	if bnhm.GetNumRegisteredHandlersCalled != nil {
+		return bnhm.GetNumRegisteredHandlersCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil -
