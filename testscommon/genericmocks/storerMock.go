@@ -1,6 +1,7 @@
 package genericmocks
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync"
@@ -41,18 +42,16 @@ func (sm *StorerMock) GetCurrentEpochData() *container.MutexMap {
 
 // GetEpochData -
 func (sm *StorerMock) GetEpochData(epoch uint32) *container.MutexMap {
-	sm.mutex.RLock()
-	data, ok := sm.DataByEpoch[epoch]
-	sm.mutex.RUnlock()
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
 
+	data, ok := sm.DataByEpoch[epoch]
 	if ok {
 		return data
 	}
 
-	sm.mutex.Lock()
 	data = container.NewMutexMap()
 	sm.DataByEpoch[epoch] = data
-	sm.mutex.Unlock()
 
 	return data
 }
@@ -130,6 +129,21 @@ func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 	return value.([]byte), nil
 }
 
+// GetFromEpochWithMarshalizer -
+func (sm *StorerMock) GetFromEpochWithMarshalizer(key []byte, epoch uint32, obj interface{}, marshalizer marshal.Marshalizer) error {
+	data, err := sm.GetFromEpoch(key, epoch)
+	if err != nil {
+		return err
+	}
+
+	err = marshalizer.Unmarshal(obj, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // SearchFirst -
 func (sm *StorerMock) SearchFirst(key []byte) ([]byte, error) {
 	return sm.Get(key)
@@ -186,5 +200,5 @@ func (sm *StorerMock) IsInterfaceNil() bool {
 }
 
 func (sm *StorerMock) newErrNotFound(key []byte, epoch uint32) error {
-	return fmt.Errorf("not found in %s: key = %s, epoch = %d", sm.Name, string(key), epoch)
+	return fmt.Errorf("StorerMock: not found in %s: key = %s, epoch = %d", sm.Name, hex.EncodeToString(key), epoch)
 }
