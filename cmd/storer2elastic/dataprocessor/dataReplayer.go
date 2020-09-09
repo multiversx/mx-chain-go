@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -56,7 +55,6 @@ type metaBlocksPersistersHolder struct {
 
 // DataReplayerArgs holds the arguments needed for creating a new dataReplayer
 type DataReplayerArgs struct {
-	ElasticIndexer           indexer.Indexer
 	DatabaseReader           DatabaseReaderHandler
 	GeneralConfig            config.Config
 	ShardCoordinator         sharding.Coordinator
@@ -107,6 +105,10 @@ func NewDataReplayer(args DataReplayerArgs) (*dataReplayer, error) {
 
 // Range will range over the data in storage until the handler returns false or the time is out
 func (dr *dataReplayer) Range(handler func(persistedData storer2ElasticData.RoundPersistedData) bool) error {
+	if handler == nil {
+		return ErrNilHandlerFunc
+	}
+
 	errChan := make(chan error, 0)
 	signalChannel := make(chan os.Signal, 2)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)

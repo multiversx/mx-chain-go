@@ -1805,6 +1805,56 @@ func TestRegisterCrossNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 	assert.True(t, called)
 }
 
+func TestRegisterSelfNotarizedFromCrossHeadersHandler_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	sbt.AddTrackedHeader(&block.Header{Nonce: 1}, []byte("hash"))
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	called := false
+	sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+		called = true
+		wg.Done()
+	})
+
+	startHeader := shardArguments.StartHeaders[core.MetachainShardId]
+	startHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, startHeader)
+
+	hdr1 := &block.MetaBlock{
+		Round:        1,
+		Nonce:        1,
+		PrevHash:     startHeaderHash,
+		PrevRandSeed: startHeader.GetRandSeed(),
+		ShardInfo: []block.ShardData{
+			block.ShardData{
+				Nonce:      1,
+				HeaderHash: []byte("hash"),
+			},
+		},
+	}
+	hdr1Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr1)
+
+	hdr2 := &block.MetaBlock{
+		Round:        2,
+		Nonce:        2,
+		PrevHash:     hdr1Hash,
+		PrevRandSeed: hdr1.GetRandSeed(),
+	}
+	hdr2Hash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, hdr2)
+
+	sbt.ReceivedMetaBlock(hdr1, hdr1Hash)
+	sbt.ReceivedMetaBlock(hdr2, hdr2Hash)
+
+	wg.Wait()
+
+	assert.True(t, called)
+}
+
 func TestRegisterSelfNotarizedHeadersHandler_ShouldWork(t *testing.T) {
 	t.Parallel()
 
