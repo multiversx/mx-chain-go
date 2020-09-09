@@ -21,6 +21,7 @@ type blockNotarizerHandler interface {
 type blockNotifierHandler interface {
 	CallHandlers(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	RegisterHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	GetNumRegisteredHandlers() int
 	IsInterfaceNil() bool
 }
 
