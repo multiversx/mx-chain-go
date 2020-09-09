@@ -38,6 +38,11 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 				return 1
 			},
 		},
+		SelfNotarizedFromCrossHeadersNotifier: &mock.BlockNotifierHandlerStub{
+			GetNumRegisteredHandlersCalled: func() int {
+				return 1
+			},
+		},
 		SelfNotarizedHeadersNotifier: &mock.BlockNotifierHandlerStub{
 			GetNumRegisteredHandlersCalled: func() int {
 				return 1
@@ -128,6 +133,17 @@ func TestNewBlockProcessor_ShouldErrCrossNotarizedHeadersNotifier(t *testing.T) 
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
 	assert.Equal(t, track.ErrNilCrossNotarizedHeadersNotifier, err)
+	assert.Nil(t, bp)
+}
+
+func TestNewBlockProcessor_ShouldErrSelfNotarizedFromCrossHeadersNotifier(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments.SelfNotarizedFromCrossHeadersNotifier = nil
+	bp, err := track.NewBlockProcessor(blockProcessorArguments)
+
+	assert.Equal(t, track.ErrNilSelfNotarizedFromCrossHeadersNotifier, err)
 	assert.Nil(t, bp)
 }
 
@@ -320,6 +336,15 @@ func TestDoJobOnReceivedCrossNotarizedHeader_ShouldWork(t *testing.T) {
 	}
 
 	blockProcessorArguments.CrossNotarizedHeadersNotifier = &mock.BlockNotifierHandlerStub{
+		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+			called++
+		},
+		GetNumRegisteredHandlersCalled: func() int {
+			return 1
+		},
+	}
+
+	blockProcessorArguments.SelfNotarizedFromCrossHeadersNotifier = &mock.BlockNotifierHandlerStub{
 		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 			called++
 		},

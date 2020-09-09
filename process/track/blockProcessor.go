@@ -16,13 +16,14 @@ type blockProcessor struct {
 	requestHandler   process.RequestHandler
 	shardCoordinator sharding.Coordinator
 
-	blockTracker                  blockTrackerHandler
-	crossNotarizer                blockNotarizerHandler
-	selfNotarizer                 blockNotarizerHandler
-	crossNotarizedHeadersNotifier blockNotifierHandler
-	selfNotarizedHeadersNotifier  blockNotifierHandler
-	finalMetachainHeadersNotifier blockNotifierHandler
-	rounder                       process.Rounder
+	blockTracker                          blockTrackerHandler
+	crossNotarizer                        blockNotarizerHandler
+	selfNotarizer                         blockNotarizerHandler
+	crossNotarizedHeadersNotifier         blockNotifierHandler
+	selfNotarizedFromCrossHeadersNotifier blockNotifierHandler
+	selfNotarizedHeadersNotifier          blockNotifierHandler
+	finalMetachainHeadersNotifier         blockNotifierHandler
+	rounder                               process.Rounder
 
 	blockFinality uint64
 }
@@ -35,16 +36,17 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 	}
 
 	bp := blockProcessor{
-		headerValidator:               arguments.HeaderValidator,
-		requestHandler:                arguments.RequestHandler,
-		shardCoordinator:              arguments.ShardCoordinator,
-		blockTracker:                  arguments.BlockTracker,
-		crossNotarizer:                arguments.CrossNotarizer,
-		selfNotarizer:                 arguments.SelfNotarizer,
-		crossNotarizedHeadersNotifier: arguments.CrossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier:  arguments.SelfNotarizedHeadersNotifier,
-		finalMetachainHeadersNotifier: arguments.FinalMetachainHeadersNotifier,
-		rounder:                       arguments.Rounder,
+		headerValidator:                       arguments.HeaderValidator,
+		requestHandler:                        arguments.RequestHandler,
+		shardCoordinator:                      arguments.ShardCoordinator,
+		blockTracker:                          arguments.BlockTracker,
+		crossNotarizer:                        arguments.CrossNotarizer,
+		selfNotarizer:                         arguments.SelfNotarizer,
+		crossNotarizedHeadersNotifier:         arguments.CrossNotarizedHeadersNotifier,
+		selfNotarizedFromCrossHeadersNotifier: arguments.SelfNotarizedFromCrossHeadersNotifier,
+		selfNotarizedHeadersNotifier:          arguments.SelfNotarizedHeadersNotifier,
+		finalMetachainHeadersNotifier:         arguments.FinalMetachainHeadersNotifier,
+		rounder:                               arguments.Rounder,
 	}
 
 	bp.blockFinality = process.BlockFinality
@@ -119,13 +121,13 @@ func (bp *blockProcessor) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
 		bp.crossNotarizedHeadersNotifier.CallHandlers(shardID, crossNotarizedHeaders, crossNotarizedHeadersHashes)
 	}
 
-	if bp.selfNotarizedHeadersNotifier.GetNumRegisteredHandlers() == 0 {
+	if bp.selfNotarizedFromCrossHeadersNotifier.GetNumRegisteredHandlers() == 0 {
 		return
 	}
 
 	selfNotarizedHeaders, selfNotarizedHeadersHashes := bp.computeSelfNotarizedHeaders(crossNotarizedHeaders)
 	if len(selfNotarizedHeaders) > 0 {
-		bp.selfNotarizedHeadersNotifier.CallHandlers(shardID, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		bp.selfNotarizedFromCrossHeadersNotifier.CallHandlers(shardID, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 	}
 }
 
@@ -467,6 +469,9 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 	}
 	if check.IfNil(arguments.CrossNotarizedHeadersNotifier) {
 		return ErrNilCrossNotarizedHeadersNotifier
+	}
+	if check.IfNil(arguments.SelfNotarizedFromCrossHeadersNotifier) {
+		return ErrNilSelfNotarizedFromCrossHeadersNotifier
 	}
 	if check.IfNil(arguments.SelfNotarizedHeadersNotifier) {
 		return ErrNilSelfNotarizedHeadersNotifier
