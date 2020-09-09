@@ -337,7 +337,9 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 
 	e.resolverContainer.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
 		errNotCritical = resolver.SetResolverDebugHandler(debugger)
-		log.Warn("error setting debugger", "resolver", key, "error", errNotCritical)
+		if errNotCritical != nil {
+			log.Warn("error setting debugger", "resolver", key, "error", errNotCritical)
+		}
 
 		return true
 	})
@@ -458,7 +460,9 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 
 	e.interceptorsContainer.Iterate(func(key string, interceptor process.Interceptor) bool {
 		errNotCritical = interceptor.SetInterceptedDebugHandler(debugger)
-		log.Warn("error setting debugger", "interceptor", key, "error", errNotCritical)
+		if errNotCritical != nil {
+			log.Warn("error setting debugger", "interceptor", key, "error", errNotCritical)
+		}
 
 		return true
 	})
