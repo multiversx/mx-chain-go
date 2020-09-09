@@ -67,7 +67,7 @@ func NewShardForkDetector(
 		baseForkDetector: bfd,
 	}
 
-	sfd.blockTracker.RegisterSelfNotarizedHeadersHandler(sfd.ReceivedSelfNotarizedHeaders)
+	sfd.blockTracker.RegisterSelfNotarizedFromCrossHeadersHandler(sfd.ReceivedSelfNotarizedFromCrossHeaders)
 
 	bfd.forkDetector = &sfd
 
@@ -104,9 +104,9 @@ func (sfd *shardForkDetector) doJobOnBHProcessed(
 	sfd.removePastOrInvalidRecords()
 }
 
-// ReceivedSelfNotarizedHeaders is a registered call handler through which fork detector is notified when metachain
-// notarized new headers from self shard
-func (sfd *shardForkDetector) ReceivedSelfNotarizedHeaders(
+// ReceivedSelfNotarizedFromCrossHeaders is a registered call handler through which fork detector is notified
+// when metachain notarized new headers from self shard
+func (sfd *shardForkDetector) ReceivedSelfNotarizedFromCrossHeaders(
 	shardID uint32,
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
