@@ -650,7 +650,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if r.isNodeJailedOrWithBadRating(registrationData, args.Arguments[0]) {
-		r.eei.AddReturnMessage("cannot unbond node which is jailed or with bad rating " + encodedBlsKey)
+		r.eei.AddReturnMessage("cannot unBond node which is jailed or with bad rating " + encodedBlsKey)
 		return vmcommon.UserError
 	}
 	if registrationData.Waiting {
@@ -665,11 +665,11 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	}
 
 	if !r.canUnBond() {
-		r.eei.AddReturnMessage("unbonding currently unavailable: number of total validators in the network is at minimum")
+		r.eei.AddReturnMessage("unBond is currently unavailable: number of total validators in the network is at minimum")
 		return vmcommon.UserError
 	}
 	if r.eei.IsValidator(args.Arguments[0]) {
-		r.eei.AddReturnMessage("unbonding is not possible: the node with key " + encodedBlsKey + " is still a validator")
+		r.eei.AddReturnMessage("unBond is not possible: the node with key " + encodedBlsKey + " is still a validator")
 		return vmcommon.UserError
 	}
 
