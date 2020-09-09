@@ -591,6 +591,15 @@ func createHardForkExporter(
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
 			Rounder:                  &mock.RounderMock{},
 			GenesisNodesSetupHandler: &mock.NodesSetupStub{},
+			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
+				Enabled:                    true,
+				EnablePrint:                true,
+				CacheSize:                  10000,
+				IntervalAutoPrintInSeconds: 20,
+				NumRequestsThreshold:       3,
+				NumResolveFailureThreshold: 3,
+				DebugLineExpiration:        3,
+			},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)
