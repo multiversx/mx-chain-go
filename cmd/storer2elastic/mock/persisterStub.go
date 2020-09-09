@@ -43,15 +43,8 @@ func (p *persisterMock) Get(key []byte) ([]byte, error) {
 
 // Has -
 func (p *persisterMock) Has(key []byte) error {
-	p.mutValues.RLock()
-	_, ok := p.values[string(key)]
-	p.mutValues.RUnlock()
-
-	if !ok {
-		return errKeyNotFound
-	}
-
-	return nil
+	_, err := p.Get(key)
+	return err
 }
 
 // Init -

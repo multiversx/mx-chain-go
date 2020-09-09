@@ -126,7 +126,7 @@ func TestDataReplayer_Range_EpochStartMetaBlockFoundForEpochStartKeyShouldWork(t
 
 	shard0HdrHash := []byte("sh0Hdr")
 	txMbHash := []byte("txMbHash")
-	rwdTxMbHash := []byte("txMbHash")
+	rwdTxMbHash := []byte("rwdTxMbHash")
 	uTxMbHash := []byte("uTxMbHash")
 	txHash := []byte("txHash")
 	rwdTxHash := []byte("rwdTx")
@@ -179,28 +179,10 @@ func TestDataReplayer_Range_EpochStartMetaBlockFoundForEpochStartKeyShouldWork(t
 	args := getDataReplayArgs()
 	args.DatabaseReader = &mock.DatabaseReaderStub{
 		GetDatabaseInfoCalled: func() ([]*databasereader.DatabaseInfo, error) {
-			return []*databasereader.DatabaseInfo{
-				{
-					Epoch: 0,
-					Shard: core.MetachainShardId,
-				},
-				{
-					Epoch: 0,
-					Shard: 0,
-				},
-			}, nil
+			return getDbInfoMetaAndOneShard(), nil
 		},
 		GetStaticDatabaseInfoCalled: func() ([]*databasereader.DatabaseInfo, error) {
-			return []*databasereader.DatabaseInfo{
-				{
-					Epoch: 0,
-					Shard: core.MetachainShardId,
-				},
-				{
-					Epoch: 0,
-					Shard: 0,
-				},
-			}, nil
+			return getDbInfoMetaAndOneShard(), nil
 		},
 		GetHeadersCalled: nil,
 		LoadPersisterCalled: func(dbInfo *databasereader.DatabaseInfo, unit string) (storage.Persister, error) {
