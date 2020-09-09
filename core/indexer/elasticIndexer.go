@@ -376,15 +376,32 @@ func (ei *elasticIndexer) RemoveHeader(header data.HeaderHandler) error {
 }
 
 // RemoveMiniblocks will remove all miniblocks that are in header from elasticsearch server
-func (ei *elasticIndexer) RemoveMiniblocks(header data.HeaderHandler) error {
-	miniblocksHashes := header.GetMiniBlockHeadersHashes()
-	if len(miniblocksHashes) == 0 {
+func (ei *elasticIndexer) RemoveMiniblocks(header data.HeaderHandler, body *block.Body) error {
+	if body == nil || len(header.GetMiniBlockHeadersHashes()) == 0 {
 		return nil
 	}
 
 	encodedMiniblocksHashes := make([]string, 0)
-	for _, mbHash := range miniblocksHashes {
-		encodedMiniblocksHashes = append(encodedMiniblocksHashes, hex.EncodeToString(mbHash))
+	selfShardID := header.GetShardID()
+	for _, miniblock := range body.MiniBlocks {
+		if miniblock.Type == block.PeerBlock {
+			continue
+		}
+
+		isDstMe := selfShardID == miniblock.ReceiverShardID
+		isCrossShard := miniblock.ReceiverShardID != miniblock.SenderShardID
+		if !(isDstMe && isCrossShard) {
+			continue
+		}
+
+		miniblockHash, err := core.CalculateHash(ei.marshalizer, ei.hasher, miniblock)
+		if err != nil {
+			log.Debug("indexer.RemoveMiniblocks cannot calculate miniblock hash",
+				"error", err.Error())
+			continue
+		}
+		encodedMiniblocksHashes = append(encodedMiniblocksHashes, hex.EncodeToString(miniblockHash))
+
 	}
 
 	return ei.elasticClient.DoBulkRemove(miniblocksIndex, encodedMiniblocksHashes)

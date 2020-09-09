@@ -20,7 +20,7 @@ func (ni *NilIndexer) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[
 }
 
 // RevertIndexedBlock will do nothing
-func (ni *NilIndexer) RevertIndexedBlock(_ data.HeaderHandler) {
+func (ni *NilIndexer) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // SetTxLogsProcessor will do nothing

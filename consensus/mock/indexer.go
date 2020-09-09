@@ -19,7 +19,7 @@ func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map
 }
 
 // RevertIndexedBlock -
-func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler) {
+func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // SetTxLogsProcessor will do nothing

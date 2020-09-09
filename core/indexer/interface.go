@@ -16,7 +16,7 @@ import (
 type Indexer interface {
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string)
-	RevertIndexedBlock(header data.HeaderHandler)
+	RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler)
 	SaveRoundsInfos(roundsInfos []RoundInfo)
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
@@ -42,7 +42,7 @@ type ElasticIndexer interface {
 	SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark) error
 	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int) error
 	RemoveHeader(header data.HeaderHandler) error
-	RemoveMiniblocks(header data.HeaderHandler) error
+	RemoveMiniblocks(header data.HeaderHandler, body *block.Body) error
 	SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error)
 	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error
 	SaveValidatorsRating(index string, validatorsRatingInfo []ValidatorRatingInfo) error

@@ -27,6 +27,11 @@ type workItem struct {
 	Type WorkItemType
 }
 
+type removeBlockData struct {
+	bodyHandler   data.BodyHandler
+	headerHandler data.HeaderHandler
+}
+
 type saveBlockData struct {
 	bodyHandler            data.BodyHandler
 	headerHandler          data.HeaderHandler

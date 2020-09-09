@@ -6,7 +6,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/elastic/go-elasticsearch/v7"
@@ -161,13 +161,13 @@ func (d *dataDispatcher) doWork() {
 }
 
 func (d *dataDispatcher) removeBlock(item *workItem) {
-	header, ok := item.Data.(data.HeaderHandler)
+	removeBlkData, ok := item.Data.(*removeBlockData)
 	if !ok {
 		d.workQueue.Done()
 		return
 	}
 
-	err := d.elasticIndexer.RemoveHeader(header)
+	err := d.elasticIndexer.RemoveHeader(removeBlkData.headerHandler)
 	if err != nil && err == ErrBackOff {
 		log.Warn("dataDispatcher.removeBlock", "could not remove header, received back off:", err.Error())
 		d.workQueue.GotBackOff()
@@ -179,7 +179,9 @@ func (d *dataDispatcher) removeBlock(item *workItem) {
 		return
 	}
 
-	err = d.elasticIndexer.RemoveMiniblocks(header)
+	body, ok := removeBlkData.bodyHandler.(*block.Body)
+
+	err = d.elasticIndexer.RemoveMiniblocks(removeBlkData.headerHandler, body)
 	if err != nil && err == ErrBackOff {
 		log.Warn("dataDispatcher.removeBlock", "could not remove miniblocks, received back off:", err.Error())
 		d.workQueue.GotBackOff()

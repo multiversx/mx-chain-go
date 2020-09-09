@@ -684,7 +684,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			"nonce", boot.forkDetector.GetHighestFinalBlockNonce(),
 		)
 
-		err = boot.rollBackOneBlock(
+		currBody, err := boot.rollBackOneBlock(
 			currHeaderHash,
 			currHeader,
 			prevHeaderHash,
@@ -705,7 +705,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
-		boot.indexer.RevertIndexedBlock(currHeader)
+		go boot.indexer.RevertIndexedBlock(currHeader, currBody)
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {
@@ -729,7 +729,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	currHeader data.HeaderHandler,
 	prevHeaderHash []byte,
 	prevHeader data.HeaderHandler,
-) error {
+) (data.BodyHandler, error) {
 
 	var err error
 
@@ -742,18 +742,18 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	if currHeader.GetNonce() > 1 {
 		err = boot.setCurrentBlockInfo(prevHeaderHash, prevHeader)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		err = boot.setCurrentBlockInfo(nil, nil)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	err = boot.blockProcessor.RevertStateToBlock(prevHeader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	boot.blockProcessor.PruneStateOnRollback(currHeader, prevHeader)
 
@@ -764,12 +764,12 @@ func (boot *baseBootstrap) rollBackOneBlock(
 
 	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	boot.cleanCachesAndStorageOnRollback(currHeader)
 
-	return nil
+	return currBlockBody, nil
 }
 
 func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, error) {

@@ -89,8 +89,11 @@ func (di *dataIndexer) StopIndexing() error {
 }
 
 // RevertIndexedBlock -
-func (di *dataIndexer) RevertIndexedBlock(header data.HeaderHandler) {
-	wi := NewWorkItem(WorkTypeRemoveBlock, &header)
+func (di *dataIndexer) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler) {
+	wi := NewWorkItem(WorkTypeRemoveBlock, &removeBlockData{
+		bodyHandler:   body,
+		headerHandler: header,
+	})
 	di.dispatcher.Add(wi)
 }
 
