@@ -1080,6 +1080,8 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.AddSelfNotarizedHeader(shardID, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 	}
 
+	go mp.historyRepo.OnNotarizedBlocks(mp.shardCoordinator.SelfId(), []data.HeaderHandler{currentHeader}, [][]byte{currentHeaderHash})
+
 	log.Debug("highest final meta block",
 		"nonce", mp.forkDetector.GetHighestFinalBlockNonce(),
 	)
@@ -1101,7 +1103,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.tpsBenchmark.Update(lastMetaBlock)
 
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
-	go mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
+	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce)
