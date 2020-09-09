@@ -165,7 +165,7 @@ func (s *stakingAuctionSC) addToUnJailFunds(value *big.Int) {
 
 func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) == 0 {
-		s.eei.AddReturnMessage("invalid number of arguments: expected even number")
+		s.eei.AddReturnMessage("invalid number of arguments: expected at least 1")
 		return vmcommon.UserError
 	}
 

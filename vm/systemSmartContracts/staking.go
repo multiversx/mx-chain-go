@@ -455,7 +455,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 		r.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
 		return vmcommon.UserError
 	}
-	if !r.isActionAllowed(registrationData, args.Arguments[0]) {
+	if r.isNodeJailedOrWithBadRating(registrationData, args.Arguments[0]) {
 		r.eei.AddReturnMessage("cannot stake node which is jailed or with bad rating")
 		return vmcommon.UserError
 	}
@@ -527,7 +527,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		r.eei.AddReturnMessage("unStake possible only from staker caller")
 		return vmcommon.UserError
 	}
-	if !r.isActionAllowed(registrationData, args.Arguments[0]) {
+	if r.isNodeJailedOrWithBadRating(registrationData, args.Arguments[0]) {
 		r.eei.AddReturnMessage("cannot unStake node which is jailed or with bad rating")
 		return vmcommon.UserError
 	}
@@ -649,8 +649,8 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s which is staked", encodedBlsKey))
 		return vmcommon.UserError
 	}
-	if !r.isActionAllowed(registrationData, args.Arguments[0]) {
-		r.eei.AddReturnMessage("cannot stake node which is jailed or with bad rating " + encodedBlsKey)
+	if r.isNodeJailedOrWithBadRating(registrationData, args.Arguments[0]) {
+		r.eei.AddReturnMessage("cannot unbond node which is jailed or with bad rating " + encodedBlsKey)
 		return vmcommon.UserError
 	}
 	if registrationData.Waiting {
@@ -1061,17 +1061,8 @@ func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) isActionAllowed(registrationData *StakedData, blsKey []byte) bool {
-	if registrationData.Jailed {
-		return false
-	}
-	if r.eei.CanUnJail(blsKey) {
-		return false
-	}
-	if r.eei.IsBadRating(blsKey) {
-		return false
-	}
-	return true
+func (r *stakingSC) isNodeJailedOrWithBadRating(registrationData *StakedData, blsKey []byte) bool {
+	return registrationData.Jailed || r.eei.CanUnJail(blsKey) || r.eei.IsBadRating(blsKey)
 }
 
 func (r *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
