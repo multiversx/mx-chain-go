@@ -35,16 +35,17 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 	}
 
 	argBlockProcessor := ArgBlockProcessor{
-		HeaderValidator:               arguments.HeaderValidator,
-		RequestHandler:                arguments.RequestHandler,
-		ShardCoordinator:              arguments.ShardCoordinator,
-		BlockTracker:                  &sbt,
-		CrossNotarizer:                bbt.crossNotarizer,
-		SelfNotarizer:                 bbt.selfNotarizer,
-		CrossNotarizedHeadersNotifier: bbt.crossNotarizedHeadersNotifier,
-		SelfNotarizedHeadersNotifier:  bbt.selfNotarizedHeadersNotifier,
-		FinalMetachainHeadersNotifier: bbt.finalMetachainHeadersNotifier,
-		Rounder:                       arguments.Rounder,
+		HeaderValidator:                       arguments.HeaderValidator,
+		RequestHandler:                        arguments.RequestHandler,
+		ShardCoordinator:                      arguments.ShardCoordinator,
+		BlockTracker:                          &sbt,
+		CrossNotarizer:                        bbt.crossNotarizer,
+		SelfNotarizer:                         bbt.selfNotarizer,
+		CrossNotarizedHeadersNotifier:         bbt.crossNotarizedHeadersNotifier,
+		SelfNotarizedFromCrossHeadersNotifier: bbt.selfNotarizedFromCrossHeadersNotifier,
+		SelfNotarizedHeadersNotifier:          bbt.selfNotarizedHeadersNotifier,
+		FinalMetachainHeadersNotifier:         bbt.finalMetachainHeadersNotifier,
+		Rounder:                               arguments.Rounder,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)
