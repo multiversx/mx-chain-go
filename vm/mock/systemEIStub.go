@@ -30,6 +30,7 @@ type SystemEIStub struct {
 	SetStorageForAddressCalled      func(address []byte, key []byte, value []byte)
 	CanUnJailCalled                 func(blsKey []byte) bool
 	IsBadRatingCalled               func(blsKey []byte) bool
+	ReturnMessage                   string
 }
 
 // CanUnJail -
@@ -155,6 +156,8 @@ func (s *SystemEIStub) SetStorage(key []byte, value []byte) {
 func (s *SystemEIStub) AddReturnMessage(msg string) {
 	if s.AddReturnMessageCalled != nil {
 		s.AddReturnMessageCalled(msg)
+	} else {
+		s.ReturnMessage = msg
 	}
 }
 

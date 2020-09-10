@@ -70,10 +70,16 @@ func NewStakingAuctionSmartContract(
 		return nil, vm.ErrNilAuctionSmartContractAddress
 	}
 	if args.NumOfNodesToSelect < 1 {
-		return nil, vm.ErrInvalidMinNumberOfNodes
+		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidMinNumberOfNodes, args.NumOfNodesToSelect)
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
+	}
+	if check.IfNil(args.SigVerifier) {
+		return nil, vm.ErrNilMessageSignVerifier
+	}
+	if args.GenesisTotalSupply == nil || args.GenesisTotalSupply.Cmp(zero) <= 0 {
+		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidGenesisTotalSupply, args.GenesisTotalSupply)
 	}
 
 	baseConfig := AuctionConfig{
@@ -84,19 +90,19 @@ func NewStakingAuctionSmartContract(
 	ok := true
 	baseConfig.UnJailPrice, ok = big.NewInt(0).SetString(args.StakingSCConfig.UnJailValue, conversionBase)
 	if !ok || baseConfig.UnJailPrice.Cmp(zero) <= 0 {
-		return nil, vm.ErrInvalidUnJailCost
+		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidUnJailCost, args.StakingSCConfig.UnJailValue)
 	}
 	baseConfig.MinStakeValue, ok = big.NewInt(0).SetString(args.StakingSCConfig.MinStakeValue, conversionBase)
 	if !ok || baseConfig.MinStakeValue.Cmp(zero) <= 0 {
-		return nil, vm.ErrNegativeInitialStakeValue
+		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStakeValue, args.StakingSCConfig.MinStakeValue)
 	}
 	baseConfig.NodePrice, ok = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
-	if !ok || baseConfig.NodePrice.Cmp(zero) < 0 {
-		return nil, vm.ErrNegativeInitialStakeValue
+	if !ok || baseConfig.NodePrice.Cmp(zero) <= 0 {
+		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidNodePrice, args.StakingSCConfig.GenesisNodePrice)
 	}
 	baseConfig.MinStep, ok = big.NewInt(0).SetString(args.StakingSCConfig.MinStepValue, conversionBase)
-	if !ok || baseConfig.NodePrice.Cmp(zero) < 0 {
-		return nil, vm.ErrNegativeInitialStakeValue
+	if !ok || baseConfig.MinStep.Cmp(zero) <= 0 {
+		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStepValue, args.StakingSCConfig.MinStepValue)
 	}
 
 	reg := &stakingAuctionSC{
@@ -180,7 +186,7 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnJail * uint64(numBLSKeys))
 	if err != nil {
-		s.eei.AddReturnMessage("insufficient gas limit")
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
 
@@ -249,7 +255,7 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 
 	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.ChangeRewardAddress * uint64(len(registrationData.BlsPubKeys)))
 	if err != nil {
-		s.eei.AddReturnMessage("insufficient gas limit")
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
 
@@ -300,7 +306,7 @@ func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput)
 
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.ChangeValidatorKeys * numNodesToChange)
 	if err != nil {
-		s.eei.AddReturnMessage("insufficient gas limit")
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
 
@@ -380,7 +386,7 @@ func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.Return
 
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Get)
 	if err != nil {
-		s.eei.AddReturnMessage("insufficient gas limit")
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
 
@@ -412,11 +418,43 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 		UnJailPrice:   big.NewInt(0).SetBytes(args.Arguments[5]),
 	}
 
+	if auctionConfig.MinStakeValue.Cmp(zero) <= 0 {
+		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStakeValue, auctionConfig.MinStakeValue).Error()
+		s.eei.AddReturnMessage(retMessage)
+		return vmcommon.UserError
+	}
+	if auctionConfig.NumNodes < 1 {
+		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidMinNumberOfNodes, auctionConfig.NumNodes).Error()
+		s.eei.AddReturnMessage(retMessage)
+		return vmcommon.UserError
+	}
+	if auctionConfig.TotalSupply.Cmp(zero) <= 0 {
+		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidGenesisTotalSupply, auctionConfig.TotalSupply).Error()
+		s.eei.AddReturnMessage(retMessage)
+		return vmcommon.UserError
+	}
+	if auctionConfig.MinStep.Cmp(zero) <= 0 {
+		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStepValue, auctionConfig.MinStep).Error()
+		s.eei.AddReturnMessage(retMessage)
+		return vmcommon.UserError
+	}
+	if auctionConfig.NodePrice.Cmp(zero) <= 0 {
+		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidNodePrice, auctionConfig.NodePrice).Error()
+		s.eei.AddReturnMessage(retMessage)
+		return vmcommon.UserError
+	}
+	if auctionConfig.UnJailPrice.Cmp(zero) <= 0 {
+		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidUnJailCost, auctionConfig.UnJailPrice).Error()
+		s.eei.AddReturnMessage(retMessage)
+		return vmcommon.UserError
+	}
+
 	configData, err := s.marshalizer.Marshal(auctionConfig)
 	if err != nil {
 		s.eei.AddReturnMessage("setConfig marshal auctionConfig error")
 		return vmcommon.UserError
 	}
+	// TODO: check if updating older epochs should be allowed
 	epochBytes := args.Arguments[6]
 	s.eei.SetStorage(epochBytes, configData)
 
@@ -610,13 +648,13 @@ func (s *stakingAuctionSC) isFunctionEnabled(nonce uint64) bool {
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Stake)
 	if err != nil {
-		s.eei.AddReturnMessage("insufficient gas limit")
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
 
 	isStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
 	if !isStakeEnabled {
-		s.eei.AddReturnMessage("stake is not enabled")
+		s.eei.AddReturnMessage(vm.StakeNotEnabled)
 		return vmcommon.UserError
 	}
 
@@ -656,7 +694,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	err = s.eei.UseGas((maxNodesToRun - 1) * s.gasCost.MetaChainSystemSCsCost.Stake)
 	if err != nil {
-		s.eei.AddReturnMessage("insufficient gas limit")
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
 
@@ -848,7 +886,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 
 	isUnStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
 	if !isUnStakeEnabled {
-		s.eei.AddReturnMessage("unStake is not enabled")
+		s.eei.AddReturnMessage(vm.UnStakeNotEnabled)
 		return vmcommon.UserError
 	}
 
@@ -860,7 +898,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 
 	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnStake * uint64(len(args.Arguments)))
 	if err != nil {
-		s.eei.AddReturnMessage("insufficient gas limit")
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
 
@@ -936,7 +974,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	isStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
 	if !isStakeEnabled {
-		s.eei.AddReturnMessage("unBond is not enabled")
+		s.eei.AddReturnMessage(vm.UnBondNotEnabled)
 		return vmcommon.UserError
 	}
 
@@ -955,7 +993,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnBond * uint64(len(args.Arguments)))
 	if err != nil {
-		s.eei.AddReturnMessage("insufficient gas limit")
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
 
@@ -1054,7 +1092,7 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Claim)
 	if err != nil {
-		s.eei.AddReturnMessage("insufficient gas limit")
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
 
@@ -1277,7 +1315,7 @@ func (s *stakingAuctionSC) getTotalStaked(args *vmcommon.ContractCallInput) vmco
 	}
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Get)
 	if err != nil {
-		s.eei.AddReturnMessage("insufficient gas limit")
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
 

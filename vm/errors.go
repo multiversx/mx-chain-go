@@ -41,11 +41,17 @@ var ErrNilOrEmptyKey = errors.New("nil or empty key")
 // ErrNilEconomicsData signals that nil economics data has been provided
 var ErrNilEconomicsData = errors.New("nil economics data")
 
-// ErrNegativeInitialStakeValue signals that a negative initial stake value was provided
-var ErrNegativeInitialStakeValue = errors.New("initial stake value is negative")
+// ErrInvalidMinStakeValue signals that an invalid min stake value was provided
+var ErrInvalidMinStakeValue = errors.New("invalid min stake value")
+
+// ErrInvalidNodePrice signals that an invalid node price was provided
+var ErrInvalidNodePrice = errors.New("invalid node price")
 
 // ErrNotEnoughQualifiedNodes signals that there are insufficient number of qualified nodes
 var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
+
+// ErrInvalidMinStepValue signals that an invalid min step value was provided
+var ErrInvalidMinStepValue = errors.New("invalid min step value")
 
 // ErrBLSPublicKeyMissmatch signals that public keys do not match
 var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")
@@ -139,6 +145,9 @@ var ErrElementNotFound = errors.New("element was not found")
 
 // ErrInvalidUnJailCost signals that provided unjail cost is invalid
 var ErrInvalidUnJailCost = errors.New("invalid unjail cost")
+
+// ErrInvalidGenesisTotalSupply signals that provided genesis total supply is invalid
+var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply cost")
 
 // ErrNegativeWaitingNodesPercentage signals that negative waiting nodes percentage was provided
 var ErrNegativeWaitingNodesPercentage = errors.New("negative waiting nodes percentage")

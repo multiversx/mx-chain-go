@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -71,26 +72,88 @@ func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint6
 	return data
 }
 
-func TestNewStakingAuctionSmartContract_NilStakeValue(t *testing.T) {
+func TestNewStakingAuctionSmartContract_InvalidUnJailValue(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
-	arguments.StakingSCConfig.GenesisNodePrice = ""
 
+	arguments.StakingSCConfig.UnJailValue = ""
 	asc, err := NewStakingAuctionSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNegativeInitialStakeValue, err)
+	require.True(t, errors.Is(err, vm.ErrInvalidUnJailCost))
+
+	arguments.StakingSCConfig.UnJailValue = "0"
+	asc, err = NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidUnJailCost))
+
+	arguments.StakingSCConfig.UnJailValue = "-5"
+	asc, err = NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidUnJailCost))
 }
 
-func TestNewStakingAuctionSmartContract_NegativeInitialStakeValue(t *testing.T) {
+func TestNewStakingAuctionSmartContract_InvalidMinStakeValue(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsForAuction()
-	arguments.StakingSCConfig.MinStepValue = ""
 
+	arguments.StakingSCConfig.MinStakeValue = ""
 	asc, err := NewStakingAuctionSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNegativeInitialStakeValue, err)
+	require.True(t, errors.Is(err, vm.ErrInvalidMinStakeValue))
+
+	arguments.StakingSCConfig.MinStakeValue = "0"
+	asc, err = NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidMinStakeValue))
+
+	arguments.StakingSCConfig.MinStakeValue = "-5"
+	asc, err = NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidMinStakeValue))
+}
+
+func TestNewStakingAuctionSmartContract_InvalidGenesisNodePrice(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForAuction()
+
+	arguments.StakingSCConfig.GenesisNodePrice = ""
+	asc, err := NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidNodePrice))
+
+	arguments.StakingSCConfig.GenesisNodePrice = "0"
+	asc, err = NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidNodePrice))
+
+	arguments.StakingSCConfig.GenesisNodePrice = "-5"
+	asc, err = NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidNodePrice))
+}
+
+func TestNewStakingAuctionSmartContract_InvalidMinStepValue(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForAuction()
+
+	arguments.StakingSCConfig.MinStepValue = ""
+	asc, err := NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidMinStepValue))
+
+	arguments.StakingSCConfig.MinStepValue = "0"
+	asc, err = NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidMinStepValue))
+
+	arguments.StakingSCConfig.MinStepValue = "-5"
+	asc, err = NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidMinStepValue))
 }
 
 func TestNewStakingAuctionSmartContract_NilSystemEnvironmentInterface(t *testing.T) {
@@ -124,6 +187,62 @@ func TestNewStakingAuctionSmartContract_NilAuctionSmartContractAddress(t *testin
 	asc, err := NewStakingAuctionSmartContract(arguments)
 	require.Nil(t, asc)
 	require.Equal(t, vm.ErrNilAuctionSmartContractAddress, err)
+}
+
+func TestNewStakingAuctionSmartContract_NilSigVerifier(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForAuction()
+	arguments.SigVerifier = nil
+
+	asc, err := NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.Equal(t, vm.ErrNilMessageSignVerifier, err)
+}
+
+func TestNewStakingAuctionSmartContract_InvalidNumNodesToSelect(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForAuction()
+	arguments.NumOfNodesToSelect = 0
+
+	asc, err := NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidMinNumberOfNodes))
+}
+
+func TestNewStakingAuctionSmartContract_NilMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForAuction()
+	arguments.Marshalizer = nil
+
+	asc, err := NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.Equal(t, vm.ErrNilMarshalizer, err)
+}
+
+func TestNewStakingAuctionSmartContract_InvalidGenesisTotalSupply(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForAuction()
+	arguments.GenesisTotalSupply = nil
+
+	asc, err := NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidGenesisTotalSupply))
+
+	arguments.GenesisTotalSupply = big.NewInt(0)
+
+	asc, err = NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidGenesisTotalSupply))
+
+	arguments.GenesisTotalSupply = big.NewInt(-2)
+
+	asc, err = NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrInvalidGenesisTotalSupply))
 }
 
 func TestAuctionSC_calculateNodePrice_Case1(t *testing.T) {
@@ -988,6 +1107,31 @@ func TestAuctionStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) 
 	assert.Equal(t, vmcommon.UserError, retCode)
 }
 
+func TestAuctionStakingSC_ExecuteStakeOutOfGasShouldErr(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return 2
+		},
+	}
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
+	eei.SetSCAddress([]byte("addr"))
+
+	args := createMockArgumentsForAuction()
+	args.Eei = eei
+	args.GasCost.MetaChainSystemSCsCost.Stake = 10
+	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.GasProvided = 5
+	arguments.Function = "stake"
+
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.OutOfGas, retCode)
+
+	assert.Equal(t, vm.InsufficientGasLimit, eei.returnMessage)
+}
+
 func TestAuctionStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -1370,14 +1514,17 @@ func TestAuctionStakingSC_ExecuteStakeUnStakeReturnsErrAsNotEnabled(t *testing.T
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, vm.UnBondNotEnabled, eei.ReturnMessage)
 
 	arguments.Function = "unStake"
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, vm.UnStakeNotEnabled, eei.ReturnMessage)
 
 	arguments.Function = "stake"
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, vm.StakeNotEnabled, eei.ReturnMessage)
 }
 
 func TestAuctionStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
@@ -1755,6 +1902,74 @@ func TestAuctionStakingSC_SetConfig(t *testing.T) {
 	require.Equal(t, nodPrice, auctionConfig.NodePrice)
 	require.Equal(t, unjailPrice, auctionConfig.UnJailPrice)
 	require.Equal(t, minStakeValue, auctionConfig.MinStakeValue)
+}
+
+func TestAuctionStakingSC_SetConfig_InvalidParameters(t *testing.T) {
+	t.Parallel()
+
+	ownerAddr := []byte("ownerAddress")
+	minStakeValue := big.NewInt(1000)
+	unboundPeriod := uint64(10)
+	blockChainHook := &mock.BlockChainHookStub{}
+	args := createMockArgumentsForAuction()
+	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
+	args.Eei = eei
+
+	sc, _ := NewStakingAuctionSmartContract(args)
+
+	// call setConfig should return error -> wrong owner address
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "setConfig"
+
+	// call auction smart contract init
+	arguments.Function = core.SCDeployInitFunctionName
+	arguments.CallerAddr = ownerAddr
+	_ = sc.Execute(arguments)
+
+	numNodes := big.NewInt(10)
+	totalSupply := big.NewInt(10000000)
+	minStep := big.NewInt(100)
+	nodPrice := big.NewInt(20000)
+	epoch := big.NewInt(1)
+	unjailPrice := big.NewInt(100)
+	zero := big.NewInt(0)
+	arguments.Function = "setConfig"
+
+	arguments.Arguments = [][]byte{zero.Bytes(), numNodes.Bytes(),
+		totalSupply.Bytes(), minStep.Bytes(), nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
+	retCode := sc.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidMinStakeValue.Error()))
+
+	arguments.Arguments = [][]byte{minStakeValue.Bytes(), zero.Bytes(),
+		totalSupply.Bytes(), minStep.Bytes(), nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
+	retCode = sc.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidMinNumberOfNodes.Error()))
+
+	arguments.Arguments = [][]byte{minStakeValue.Bytes(), numNodes.Bytes(),
+		zero.Bytes(), minStep.Bytes(), nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
+	retCode = sc.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidGenesisTotalSupply.Error()))
+
+	arguments.Arguments = [][]byte{minStakeValue.Bytes(), numNodes.Bytes(),
+		totalSupply.Bytes(), zero.Bytes(), nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
+	retCode = sc.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidMinStepValue.Error()))
+
+	arguments.Arguments = [][]byte{minStakeValue.Bytes(), numNodes.Bytes(),
+		totalSupply.Bytes(), minStep.Bytes(), zero.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
+	retCode = sc.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNodePrice.Error()))
+
+	arguments.Arguments = [][]byte{minStakeValue.Bytes(), numNodes.Bytes(),
+		totalSupply.Bytes(), minStep.Bytes(), nodPrice.Bytes(), zero.Bytes(), epoch.Bytes()}
+	retCode = sc.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidUnJailCost.Error()))
 }
 
 func TestAuctionStakingSC_ChangeRewardAddress(t *testing.T) {
