@@ -19,7 +19,7 @@ type span struct {
 // sweeping (clean-up) is triggered each time a new item is added or a key is present in the time cache
 // This data structure is concurrent safe.
 type TimeCache struct {
-	mut         sync.Mutex
+	mut         sync.RWMutex
 	data        map[string]*span
 	defaultSpan time.Duration
 }
@@ -103,12 +103,20 @@ func (tc *TimeCache) Sweep() {
 
 // Has returns if the key is still found in the time cache
 func (tc *TimeCache) Has(key string) bool {
-	tc.mut.Lock()
-	defer tc.mut.Unlock()
+	tc.mut.RLock()
+	defer tc.mut.RUnlock()
 
 	_, ok := tc.data[key]
 
 	return ok
+}
+
+// Len returns the number of elements which are still stored in the time cache
+func (tc *TimeCache) Len() int {
+	tc.mut.RLock()
+	defer tc.mut.RUnlock()
+
+	return len(tc.data)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
