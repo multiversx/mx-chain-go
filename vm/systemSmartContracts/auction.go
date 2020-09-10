@@ -979,10 +979,6 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		}
 
 		auctionConfig := s.getConfig(nodeData.UnStakedEpoch)
-		if nodeData.Waiting {
-			registrationData.NumRegistered -= 1
-		}
-
 		unBondedKeys = append(unBondedKeys, blsKey)
 		totalUnBond.Add(totalUnBond, auctionConfig.NodePrice)
 		totalSlashed.Add(totalSlashed, nodeData.SlashValue)
