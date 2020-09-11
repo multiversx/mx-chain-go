@@ -15,7 +15,6 @@ message Heartbeat {
     string  Identity        = 7;
     bytes   Pid             = 8;
     uint64  Nonce           = 9;
-    uint64  NumInstances    = 10;
 }
 
 // HeartbeatDTO is the struct used for handling DB operations for heartbeatMessageInfo struct
