@@ -705,7 +705,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
-		go boot.indexer.RevertIndexedBlock(currHeader, currBody)
+		boot.indexer.RevertIndexedBlock(currHeader, currBody)
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {

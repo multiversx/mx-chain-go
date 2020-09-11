@@ -10,14 +10,12 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 type object = map[string]interface{}
@@ -25,32 +23,6 @@ type object = map[string]interface{}
 type commonProcessor struct {
 	addressPubkeyConverter   core.PubkeyConverter
 	validatorPubkeyConverter core.PubkeyConverter
-}
-
-func checkDataIndexerParams(arguments DataIndexerArgs) error {
-	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", ErrNilPubkeyConverter)
-	}
-	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", ErrNilPubkeyConverter)
-	}
-	if arguments.Url == "" {
-		return core.ErrNilUrl
-	}
-	if check.IfNil(arguments.Marshalizer) {
-		return core.ErrNilMarshalizer
-	}
-	if check.IfNil(arguments.Hasher) {
-		return core.ErrNilHasher
-	}
-	if check.IfNil(arguments.NodesCoordinator) {
-		return core.ErrNilNodesCoordinator
-	}
-	if arguments.EpochStartNotifier == nil {
-		return core.ErrNilEpochStartNotifier
-	}
-
-	return nil
 }
 
 func prepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) bytes.Buffer {
@@ -378,25 +350,6 @@ func prepareTxUpdate(tx *Transaction) ([]byte, []byte) {
 
 func isCrossShardDstMe(tx *Transaction, selfShardID uint32) bool {
 	return tx.SenderShard != tx.ReceiverShard && tx.ReceiverShard == selfShardID
-}
-
-func computeSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.TransactionHandler) int {
-	if len(txs) == 0 {
-		return 0
-	}
-
-	txsSize := 0
-	for _, tx := range txs {
-		txBytes, err := marshalizer.Marshal(tx)
-		if err != nil {
-			log.Debug("indexer: marshal transaction", "error", err)
-			continue
-		}
-
-		txsSize += len(txBytes)
-	}
-
-	return txsSize
 }
 
 func getDecodedResponseMultiGet(response object) map[string]bool {

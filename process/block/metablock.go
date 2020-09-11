@@ -520,7 +520,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	go mp.indexer.UpdateTPS(mp.tpsBenchmark)
+	mp.indexer.UpdateTPS(mp.tpsBenchmark)
 
 	txPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	scPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
@@ -562,7 +562,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	go mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
+	mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
 
 	indexRoundInfo(mp.indexer, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 

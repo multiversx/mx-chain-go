@@ -18,7 +18,8 @@ type elasticClient struct {
 	es             *elasticsearch.Client
 }
 
-func newElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
+// NewElasticClient will create a new instance of elasticClient
+func NewElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
 	if len(cfg.Addresses) == 0 {
 		return nil, ErrNoElasticUrlProvided
 	}
@@ -190,7 +191,7 @@ func (ec *elasticClient) PolicyExists(policy string) bool {
 		Header:     res.Header,
 	}
 
-	existsRes := &kibanaExistsResponse{}
+	existsRes := &kibanaResponse{}
 	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
 	if err != nil {
 		log.Warn("elasticClient.PolicyExists", "error returned by kibana api", err.Error())
@@ -266,7 +267,7 @@ func (ec *elasticClient) createPolicy(policyName string, policy *bytes.Buffer) e
 		Header:     res.Header,
 	}
 
-	existsRes := &kibanaExistsResponse{}
+	existsRes := &kibanaResponse{}
 	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
 	if err != nil {
 		return err

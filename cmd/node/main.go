@@ -31,6 +31,7 @@ import (
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
@@ -1184,7 +1185,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	elasticIndexer, err := createElasticIndexer(
 		ctx,
-		log,
 		externalConfig.ElasticSearchConnector,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
@@ -1648,7 +1648,7 @@ func indexValidatorsListIfNeeded(
 	}
 
 	if len(validatorsPubKeys) > 0 {
-		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
 	}
 }
 
@@ -1955,7 +1955,6 @@ func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (ui
 // authentication for the server is using the username and password
 func createElasticIndexer(
 	ctx *cli.Context,
-	log logger.Logger,
 	elasticSearchConfig config.ElasticSearchConfig,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
@@ -1966,33 +1965,34 @@ func createElasticIndexer(
 	shardID uint32,
 ) (indexer.Indexer, error) {
 
-	if !elasticSearchConfig.Enabled {
-		log.Debug("elastic search indexing not enabled, will create a NilIndexer")
-		return indexer.NewNilIndexer(), nil
-	}
-
-	log.Debug("elastic search indexing enabled, will create an ElasticIndexer")
 	indexTemplates, indexPolicies := indexer.GetElasticTemplatesAndPolicies()
-	arguments := indexer.DataIndexerArgs{
-		Url:         elasticSearchConfig.URL,
-		UserName:    elasticSearchConfig.Username,
-		Password:    elasticSearchConfig.Password,
-		Marshalizer: marshalizer,
-		Hasher:      hasher,
+	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
+		Enabled:                  elasticSearchConfig.Enabled,
+		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
+		ShardID:                  shardID,
+		Url:                      elasticSearchConfig.URL,
+		UserName:                 elasticSearchConfig.Username,
+		Password:                 elasticSearchConfig.Password,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		EpochStartNotifier:       startNotifier,
+		NodesCoordinator:         nodesCoordinator,
+		AddressPubkeyConverter:   addressPubkeyConverter,
+		ValidatorPubkeyConverter: validatorPubkeyConverter,
+		IndexTemplates:           indexTemplates,
+		IndexPolicies:            indexPolicies,
 		Options: &indexer.Options{
 			TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name),
 			UseKibana:         elasticSearchConfig.UseKibana,
 		},
-		NodesCoordinator:         nodesCoordinator,
-		EpochStartNotifier:       startNotifier,
-		AddressPubkeyConverter:   addressPubkeyConverter,
-		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		ShardID:                  shardID,
-		IndexTemplates:           indexTemplates,
-		IndexPolicies:            indexPolicies,
 	}
 
-	return indexer.NewDataIndexer(arguments)
+	dataIndexerFactory, err := indexerFactory.NewIndexerFactory(indexerFactoryArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	return dataIndexerFactory.Create()
 }
 func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
 	if shardCoordinator.SelfId() == core.MetachainShardId {

@@ -5,8 +5,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
-	"net/http"
-	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
@@ -14,6 +12,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -21,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,45 +42,13 @@ func newTestMetaBlock() *dataBlock.MetaBlock {
 
 func NewDataIndexerArguments() DataIndexerArgs {
 	return DataIndexerArgs{
-		Url:                      "Url",
-		UserName:                 "user",
-		Password:                 "password",
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
-		Options:                  &Options{},
-		NodesCoordinator:         &mock.NodesCoordinatorMock{},
-		EpochStartNotifier:       &mock.EpochStartNotifierStub{},
-		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
-		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+		Marshalizer:        &mock.MarshalizerMock{},
+		Options:            &Options{},
+		NodesCoordinator:   &mock.NodesCoordinatorMock{},
+		EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		DataDispatcher:     &mock.DispatcherMock{},
+		ElasticProcessor:   &mock.ElasticProcessorMock{},
 	}
-}
-
-func TestDataIndexer_NewIndexerWithNilUrlShouldError(t *testing.T) {
-
-	arguments := NewDataIndexerArguments()
-	arguments.Url = ""
-	ei, err := NewDataIndexer(arguments)
-
-	require.Nil(t, ei)
-	require.Equal(t, core.ErrNilUrl, err)
-}
-
-func TestDataIndexer_NewIndexerWithNilMarsharlizerShouldError(t *testing.T) {
-	arguments := NewDataIndexerArguments()
-	arguments.Marshalizer = nil
-	ei, err := NewDataIndexer(arguments)
-
-	require.Nil(t, ei)
-	require.Equal(t, core.ErrNilMarshalizer, err)
-}
-
-func TestDataIndexer_NewIndexerWithNilHasherShouldError(t *testing.T) {
-	arguments := NewDataIndexerArguments()
-	arguments.Hasher = nil
-	ei, err := NewDataIndexer(arguments)
-
-	require.Nil(t, ei)
-	require.Equal(t, core.ErrNilHasher, err)
 }
 
 func TestDataIndexer_NewIndexerWithNilNodesCoordinatorShouldErr(t *testing.T) {
@@ -102,42 +70,25 @@ func TestDataIndexer_NewIndexerWithNilEpochStartNotifierShouldErr(t *testing.T) 
 }
 
 func TestDataIndexer_NewIndexerWithCorrectParamsShouldWork(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/blocks" {
-			w.WriteHeader(http.StatusOK)
-		}
-		if r.URL.Path == "/transactions" {
-			w.WriteHeader(http.StatusOK)
-		}
-		if r.URL.Path == "/tps" {
-			w.WriteHeader(http.StatusOK)
-		}
-	}))
-
 	arguments := NewDataIndexerArguments()
-	arguments.Url = ts.URL
+
 	ei, err := NewDataIndexer(arguments)
+
 	require.Nil(t, err)
 	require.False(t, check.IfNil(ei))
 	require.False(t, ei.IsNilIndexer())
 }
 
-func TestNewDataIndexerIncorrectUrl(t *testing.T) {
-	url := string([]byte{1, 2, 3})
-
-	arguments := NewDataIndexerArguments()
-	arguments.Url = url
-	ind, err := NewDataIndexer(arguments)
-	require.Nil(t, ind)
-	require.NotNil(t, err)
-}
-
 func TestDataIndexer_UpdateTPS(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	t.Parallel()
 
+	called := false
 	arguments := NewDataIndexerArguments()
-	arguments.Url = ts.URL
-
+	arguments.DataDispatcher = &mock.DispatcherMock{
+		AddCalled: func(item workItems.WorkItemHandler) {
+			called = true
+		},
+	}
 	ei, err := NewDataIndexer(arguments)
 	require.Nil(t, err)
 	_ = ei.StopIndexing()
@@ -146,17 +97,14 @@ func TestDataIndexer_UpdateTPS(t *testing.T) {
 	tpsBench.Update(newTestMetaBlock())
 
 	ei.UpdateTPS(&tpsBench)
-	require.Equal(t, 1, ei.GetQueueLength())
+	require.True(t, called)
 }
 
 func TestDataIndexer_UpdateTPSNil(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-
 	output := &bytes.Buffer{}
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	arguments := NewDataIndexerArguments()
-	arguments.Url = ts.URL
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
@@ -172,36 +120,50 @@ func TestDataIndexer_UpdateTPSNil(t *testing.T) {
 }
 
 func TestDataIndexer_SaveBlock(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	t.Parallel()
 
+	called := false
 	arguments := NewDataIndexerArguments()
-	arguments.Url = ts.URL
+	arguments.DataDispatcher = &mock.DispatcherMock{
+		AddCalled: func(item workItems.WorkItemHandler) {
+			called = true
+		},
+	}
 	ei, _ := NewDataIndexer(arguments)
-	_ = ei.StopIndexing()
 
 	ei.SaveBlock(&dataBlock.Body{MiniBlocks: []*dataBlock.MiniBlock{}}, nil, nil, nil, nil)
-	require.Equal(t, 1, ei.GetQueueLength())
+	require.True(t, called)
 }
 
 func TestDataIndexer_SaveRoundInfo(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	t.Parallel()
 
+	called := false
 	arguments := NewDataIndexerArguments()
+	arguments.DataDispatcher = &mock.DispatcherMock{
+		AddCalled: func(item workItems.WorkItemHandler) {
+			called = true
+		},
+	}
+
 	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
-	arguments.Url = ts.URL
 	ei, _ := NewDataIndexer(arguments)
 	_ = ei.StopIndexing()
 
-	ei.SaveRoundsInfos([]RoundInfo{})
-	require.Equal(t, 1, ei.GetQueueLength())
+	ei.SaveRoundsInfo([]workItems.RoundInfo{})
+	require.True(t, called)
 }
 
 func TestDataIndexer_SaveValidatorsPubKeys(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	t.Parallel()
 
+	called := false
 	arguments := NewDataIndexerArguments()
-	arguments.Url = ts.URL
-	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
+	arguments.DataDispatcher = &mock.DispatcherMock{
+		AddCalled: func(item workItems.WorkItemHandler) {
+			called = true
+		},
+	}
 	ei, _ := NewDataIndexer(arguments)
 
 	valPubKey := make(map[uint32][][]byte)
@@ -211,19 +173,16 @@ func TestDataIndexer_SaveValidatorsPubKeys(t *testing.T) {
 	epoch := uint32(0)
 
 	ei.SaveValidatorsPubKeys(valPubKey, epoch)
-	require.Equal(t, 1, ei.GetQueueLength())
+	require.True(t, called)
 }
 
 func TestDataIndexer_EpochChange(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-
 	getEligibleValidatorsCalled := false
 
 	output := &bytes.Buffer{}
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	arguments := NewDataIndexerArguments()
-	arguments.Url = ts.URL
 	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
 	arguments.ShardID = core.MetachainShardId
 	epochChangeNotifier := &mock.EpochStartNotifierStub{}
@@ -254,13 +213,10 @@ func TestDataIndexer_EpochChange(t *testing.T) {
 }
 
 func TestDataIndexer_EpochChangeValidators(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-
 	output := &bytes.Buffer{}
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	arguments := NewDataIndexerArguments()
-	arguments.Url = ts.URL
 	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
 	arguments.ShardID = core.MetachainShardId
 	epochChangeNotifier := &mock.EpochStartNotifierStub{}
@@ -322,19 +278,34 @@ func TestDataIndexer(t *testing.T) {
 func testCreateIndexer(t *testing.T) {
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 
-	dataIndexer, err := NewDataIndexer(DataIndexerArgs{
-		Url:            "https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/",
-		IndexTemplates: indexTemplates,
-		IndexPolicies:  indexPolicies,
-		Options: &Options{
-			TxIndexingEnabled: true,
-		},
+	dispatcher, _ := NewDataDispatcher(100)
+	dbClient, _ := NewElasticClient(elasticsearch.Config{
+		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Username:  "",
+		Password:  "",
+	})
+
+	elasticIndexer, _ := NewElasticProcessor(ElasticProcessorArgs{
+		IndexTemplates:           indexTemplates,
+		IndexPolicies:            indexPolicies,
 		Marshalizer:              &marshal.JsonMarshalizer{},
 		Hasher:                   &sha256.Sha256{},
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
-		NodesCoordinator:         &mock.NodesCoordinatorMock{},
-		EpochStartNotifier:       &mock.EpochStartNotifierStub{},
+		Options: &Options{
+			TxIndexingEnabled: true,
+		},
+		DBClient: dbClient,
+	})
+
+	dataIndexer, err := NewDataIndexer(DataIndexerArgs{
+		Options: &Options{
+			TxIndexingEnabled: true,
+		},
+		Marshalizer:        &marshal.JsonMarshalizer{},
+		EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		DataDispatcher:     dispatcher,
+		ElasticProcessor:   elasticIndexer,
 	})
 	if err != nil {
 		fmt.Println(err)
@@ -373,12 +344,10 @@ func testCreateIndexer(t *testing.T) {
 		body.MiniBlocks[0].ReceiverShardID = 2
 		body.MiniBlocks[0].SenderShardID = 1
 
-		go dataIndexer.SaveBlock(body, header, txsPool, signers, []string{"aaaaa", "bbbb"})
+		dataIndexer.SaveBlock(body, header, txsPool, signers, []string{"aaaaa", "bbbb"})
 	}
 
-	for dataIndexer.GetQueueLength() != 0 {
-		time.Sleep(time.Second)
-	}
+	time.Sleep(100 * time.Second)
 }
 
 func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transaction, []string) {

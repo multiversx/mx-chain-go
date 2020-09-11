@@ -87,7 +87,7 @@ func errIsAlreadyExists(response map[string]interface{}) bool {
 }
 
 func kibanaResponseErrorHandler(res *esapi.Response) error {
-	errorRes := &kibanaErrorResponse{}
+	errorRes := &kibanaResponse{}
 	decodeErr := loadResponseBody(res.Body, errorRes)
 	if decodeErr != nil {
 		return decodeErr

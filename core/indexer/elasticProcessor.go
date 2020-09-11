@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -14,16 +15,16 @@ import (
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
-type elasticIndexer struct {
+type elasticProcessor struct {
 	*txDatabaseProcessor
 
-	elasticClient databaseClientHandler
+	elasticClient DatabaseClientHandler
 	parser        *dataParser
 }
 
-// NewElasticIndexer creates an elasticsearch es and handles saving
-func NewElasticIndexer(arguments ElasticIndexerArgs) (ElasticIndexer, error) {
-	ei := &elasticIndexer{
+// NewElasticProcessor creates an elasticsearch es and handles saving
+func NewElasticProcessor(arguments ElasticProcessorArgs) (ElasticProcessor, error) {
+	ei := &elasticProcessor{
 		elasticClient: arguments.DBClient,
 		parser: &dataParser{
 			hasher:      arguments.Hasher,
@@ -53,7 +54,7 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (ElasticIndexer, error) {
 	return ei, nil
 }
 
-func (ei *elasticIndexer) initWithKibana(indexTemplates, indexPolicies map[string]*bytes.Buffer) error {
+func (ei *elasticProcessor) initWithKibana(indexTemplates, indexPolicies map[string]*bytes.Buffer) error {
 	err := ei.createOpenDistroTemplates(indexTemplates)
 	if err != nil {
 		return err
@@ -82,7 +83,7 @@ func (ei *elasticIndexer) initWithKibana(indexTemplates, indexPolicies map[strin
 	return nil
 }
 
-func (ei *elasticIndexer) initNoKibana(indexTemplates map[string]*bytes.Buffer) error {
+func (ei *elasticProcessor) initNoKibana(indexTemplates map[string]*bytes.Buffer) error {
 	err := ei.createOpenDistroTemplates(indexTemplates)
 	if err != nil {
 		return err
@@ -91,67 +92,23 @@ func (ei *elasticIndexer) initNoKibana(indexTemplates map[string]*bytes.Buffer) 
 	return ei.createIndexes()
 }
 
-func (ei *elasticIndexer) createIndexPolicies(indexPolicies map[string]*bytes.Buffer) error {
-	txp := getTemplateByName(txPolicy, indexPolicies)
-	if txp != nil {
-		err := ei.elasticClient.CheckAndCreatePolicy(txPolicy, txp)
-		if err != nil {
-			return err
-		}
-	}
+func (ei *elasticProcessor) createIndexPolicies(indexPolicies map[string]*bytes.Buffer) error {
 
-	blockp := getTemplateByName(blockPolicy, indexPolicies)
-	if blockp != nil {
-		err := ei.elasticClient.CheckAndCreatePolicy(blockPolicy, blockp)
-		if err != nil {
-			return err
-		}
-	}
-
-	roundsp := getTemplateByName(roundPolicy, indexPolicies)
-	if blockp != nil {
-		err := ei.elasticClient.CheckAndCreatePolicy(roundPolicy, roundsp)
-		if err != nil {
-			return err
-		}
-	}
-
-	validatorsp := getTemplateByName(validatorsPolicy, indexPolicies)
-	if blockp != nil {
-		err := ei.elasticClient.CheckAndCreatePolicy(validatorsPolicy, validatorsp)
-		if err != nil {
-			return err
-		}
-	}
-
-	ratingp := getTemplateByName(ratingPolicy, indexPolicies)
-	if blockp != nil {
-		err := ei.elasticClient.CheckAndCreatePolicy(ratingPolicy, ratingp)
-		if err != nil {
-			return err
-		}
-	}
-
-	tpsp := getTemplateByName(tpsPolicy, indexPolicies)
-	if blockp != nil {
-		err := ei.elasticClient.CheckAndCreatePolicy(tpsPolicy, tpsp)
-		if err != nil {
-			return err
-		}
-	}
-
-	miniblocksp := getTemplateByName(miniblocksPolicy, indexPolicies)
-	if blockp != nil {
-		err := ei.elasticClient.CheckAndCreatePolicy(miniblocksPolicy, miniblocksp)
-		if err != nil {
-			return err
+	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy}
+	for _, indexPolicyName := range indexesPolicies {
+		indexPolicy := getTemplateByName(indexPolicyName, indexPolicies)
+		if indexPolicy != nil {
+			err := ei.elasticClient.CheckAndCreatePolicy(indexPolicyName, indexPolicy)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-func (ei *elasticIndexer) createOpenDistroTemplates(indexTemplates map[string]*bytes.Buffer) error {
+func (ei *elasticProcessor) createOpenDistroTemplates(indexTemplates map[string]*bytes.Buffer) error {
 	opendistroTemplate := getTemplateByName("opendistro", indexTemplates)
 	if opendistroTemplate != nil {
 		err := ei.elasticClient.CheckAndCreateTemplate("opendistro", opendistroTemplate)
@@ -163,58 +120,37 @@ func (ei *elasticIndexer) createOpenDistroTemplates(indexTemplates map[string]*b
 	return nil
 }
 
-func (ei *elasticIndexer) createIndexTemplates(indexTemplates map[string]*bytes.Buffer) error {
-	txTemplate := getTemplateByName(txIndex, indexTemplates)
-	if txTemplate != nil {
-		err := ei.elasticClient.CheckAndCreateTemplate(txIndex, txTemplate)
+func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*bytes.Buffer) error {
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
+	for _, index := range indexes {
+		indexTemplate := getTemplateByName(index, indexTemplates)
+		if indexTemplate != nil {
+			err := ei.elasticClient.CheckAndCreateTemplate(index, indexTemplate)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (ei *elasticProcessor) createIndexes() error {
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
+	for _, index := range indexes {
+		indexName := fmt.Sprintf("%s-000001", index)
+		err := ei.elasticClient.CheckAndCreateIndex(indexName)
 		if err != nil {
 			return err
 		}
 	}
+	return nil
+}
 
-	blocksTemplate := getTemplateByName(blockIndex, indexTemplates)
-	if blocksTemplate != nil {
-		err := ei.elasticClient.CheckAndCreateTemplate(blockIndex, blocksTemplate)
-		if err != nil {
-			return err
-		}
-	}
-
-	miniblocksTemplate := getTemplateByName(miniblocksIndex, indexTemplates)
-	if miniblocksTemplate != nil {
-		err := ei.elasticClient.CheckAndCreateTemplate(miniblocksIndex, miniblocksTemplate)
-		if err != nil {
-			return err
-		}
-	}
-
-	tpsTemplate := getTemplateByName(tpsIndex, indexTemplates)
-	if tpsTemplate != nil {
-		err := ei.elasticClient.CheckAndCreateTemplate(tpsIndex, tpsTemplate)
-		if err != nil {
-			return err
-		}
-	}
-
-	ratingTemplate := getTemplateByName(ratingIndex, indexTemplates)
-	if ratingTemplate != nil {
-		err := ei.elasticClient.CheckAndCreateTemplate(ratingIndex, ratingTemplate)
-		if err != nil {
-			return err
-		}
-	}
-
-	roundsTemplate := getTemplateByName(roundIndex, indexTemplates)
-	if ratingTemplate != nil {
-		err := ei.elasticClient.CheckAndCreateTemplate(roundIndex, roundsTemplate)
-		if err != nil {
-			return err
-		}
-	}
-
-	validatorsTemplate := getTemplateByName(validatorsIndex, indexTemplates)
-	if ratingTemplate != nil {
-		err := ei.elasticClient.CheckAndCreateTemplate(validatorsIndex, validatorsTemplate)
+func (ei *elasticProcessor) setInitialAliases() error {
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
+	for _, index := range indexes {
+		indexName := fmt.Sprintf("%s-000001", index)
+		err := ei.elasticClient.CheckAndCreateAlias(index, indexName)
 		if err != nil {
 			return err
 		}
@@ -223,99 +159,7 @@ func (ei *elasticIndexer) createIndexTemplates(indexTemplates map[string]*bytes.
 	return nil
 }
 
-func (ei *elasticIndexer) createIndexes() error {
-	firstTxIndexName := fmt.Sprintf("%s-000001", txIndex)
-	err := ei.elasticClient.CheckAndCreateIndex(firstTxIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstBlocksIndexName := fmt.Sprintf("%s-000001", blockIndex)
-	err = ei.elasticClient.CheckAndCreateIndex(firstBlocksIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstMiniBlocksIndexName := fmt.Sprintf("%s-000001", miniblocksIndex)
-	err = ei.elasticClient.CheckAndCreateIndex(firstMiniBlocksIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstTpsIndexName := fmt.Sprintf("%s-000001", tpsIndex)
-	err = ei.elasticClient.CheckAndCreateIndex(firstTpsIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstRatingIndexName := fmt.Sprintf("%s-000001", ratingIndex)
-	err = ei.elasticClient.CheckAndCreateIndex(firstRatingIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstRoundsIndexName := fmt.Sprintf("%s-000001", roundIndex)
-	err = ei.elasticClient.CheckAndCreateIndex(firstRoundsIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstValidatorsIndexName := fmt.Sprintf("%s-000001", validatorsIndex)
-	err = ei.elasticClient.CheckAndCreateIndex(firstValidatorsIndexName)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (ei *elasticIndexer) setInitialAliases() error {
-	firstTxIndexName := fmt.Sprintf("%s-000001", txIndex)
-	err := ei.elasticClient.CheckAndCreateAlias(txIndex, firstTxIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstBlocksIndexName := fmt.Sprintf("%s-000001", blockIndex)
-	err = ei.elasticClient.CheckAndCreateAlias(blockIndex, firstBlocksIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstMiniBlocksIndexName := fmt.Sprintf("%s-000001", miniblocksIndex)
-	err = ei.elasticClient.CheckAndCreateAlias(miniblocksIndex, firstMiniBlocksIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstTpsIndexName := fmt.Sprintf("%s-000001", tpsIndex)
-	err = ei.elasticClient.CheckAndCreateAlias(tpsIndex, firstTpsIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstRatingIndexName := fmt.Sprintf("%s-000001", ratingIndex)
-	err = ei.elasticClient.CheckAndCreateAlias(ratingIndex, firstRatingIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstRoundsIndexName := fmt.Sprintf("%s-000001", roundIndex)
-	err = ei.elasticClient.CheckAndCreateAlias(roundIndex, firstRoundsIndexName)
-	if err != nil {
-		return err
-	}
-
-	firstValidatorsIndexName := fmt.Sprintf("%s-000001", validatorsIndex)
-	err = ei.elasticClient.CheckAndCreateAlias(validatorsIndex, firstValidatorsIndexName)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (ei *elasticIndexer) foundedObjMap(hashes []string, index string) (map[string]bool, error) {
+func (ei *elasticProcessor) foundedObjMap(hashes []string, index string) (map[string]bool, error) {
 	if len(hashes) == 0 {
 		return make(map[string]bool), nil
 	}
@@ -333,12 +177,12 @@ func getTemplateByName(templateName string, templateList map[string]*bytes.Buffe
 		return template
 	}
 
-	log.Debug("elasticIndexer.getTemplateByName", "could not find template", templateName)
+	log.Debug("elasticProcessor.getTemplateByName", "could not find template", templateName)
 	return nil
 }
 
 // SaveHeader will prepare and save information about a header in elasticsearch server
-func (ei *elasticIndexer) SaveHeader(
+func (ei *elasticProcessor) SaveHeader(
 	header data.HeaderHandler,
 	signersIndexes []uint64,
 	body *block.Body,
@@ -366,7 +210,7 @@ func (ei *elasticIndexer) SaveHeader(
 }
 
 // RemoveHeader will remove a block from elasticsearch server
-func (ei *elasticIndexer) RemoveHeader(header data.HeaderHandler) error {
+func (ei *elasticProcessor) RemoveHeader(header data.HeaderHandler) error {
 	headerHash, err := core.CalculateHash(ei.marshalizer, ei.hasher, header)
 	if err != nil {
 		return err
@@ -376,7 +220,7 @@ func (ei *elasticIndexer) RemoveHeader(header data.HeaderHandler) error {
 }
 
 // RemoveMiniblocks will remove all miniblocks that are in header from elasticsearch server
-func (ei *elasticIndexer) RemoveMiniblocks(header data.HeaderHandler, body *block.Body) error {
+func (ei *elasticProcessor) RemoveMiniblocks(header data.HeaderHandler, body *block.Body) error {
 	if body == nil || len(header.GetMiniBlockHeadersHashes()) == 0 {
 		return nil
 	}
@@ -408,12 +252,12 @@ func (ei *elasticIndexer) RemoveMiniblocks(header data.HeaderHandler, body *bloc
 }
 
 // SetTxLogsProcessor will set tx logs processor
-func (ei *elasticIndexer) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
+func (ei *elasticProcessor) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
 	ei.txLogsProcessor = txLogsProc
 }
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
-func (ei *elasticIndexer) SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error) {
+func (ei *elasticProcessor) SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error) {
 	miniblocks := ei.parser.getMiniblocks(header, body)
 	if miniblocks == nil {
 		log.Warn("indexer: could not index miniblocks")
@@ -428,7 +272,7 @@ func (ei *elasticIndexer) SaveMiniblocks(header data.HeaderHandler, body *block.
 }
 
 // SaveTransactions will prepare and save information about a transactions in elasticsearch server
-func (ei *elasticIndexer) SaveTransactions(
+func (ei *elasticProcessor) SaveTransactions(
 	body *block.Body,
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
@@ -451,7 +295,7 @@ func (ei *elasticIndexer) SaveTransactions(
 }
 
 // SaveShardStatistics will prepare and save information about a shard statistics in elasticsearch server
-func (ei *elasticIndexer) SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark) error {
+func (ei *elasticProcessor) SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark) error {
 	buff := prepareGeneralInfo(tpsBenchmark)
 
 	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
@@ -475,7 +319,7 @@ func (ei *elasticIndexer) SaveShardStatistics(tpsBenchmark statistics.TPSBenchma
 }
 
 // SaveValidatorsRating will save validators rating
-func (ei *elasticIndexer) SaveValidatorsRating(index string, validatorsRatingInfo []ValidatorRatingInfo) error {
+func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingInfo []workItems.ValidatorRatingInfo) error {
 	var buff bytes.Buffer
 
 	infosRating := ValidatorsRatingInfo{ValidatorsInfos: validatorsRatingInfo}
@@ -503,7 +347,7 @@ func (ei *elasticIndexer) SaveValidatorsRating(index string, validatorsRatingInf
 }
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
-func (ei *elasticIndexer) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error {
+func (ei *elasticProcessor) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error {
 	var buff bytes.Buffer
 
 	shardValPubKeys := ValidatorsPublicKeys{
@@ -536,8 +380,8 @@ func (ei *elasticIndexer) SaveShardValidatorsPubKeys(shardID, epoch uint32, shar
 	return ei.elasticClient.DoRequest(req)
 }
 
-// SaveRoundsInfos will prepare and save information about a slice of rounds in elasticsearch server
-func (ei *elasticIndexer) SaveRoundsInfos(infos []RoundInfo) error {
+// SaveRoundsInfo will prepare and save information about a slice of rounds in elasticsearch server
+func (ei *elasticProcessor) SaveRoundsInfo(infos []workItems.RoundInfo) error {
 	var buff bytes.Buffer
 
 	for _, info := range infos {

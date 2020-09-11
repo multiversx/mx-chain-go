@@ -579,8 +579,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	// TODO  instead of creating a goroutine make a method that blocks processing if queue is full
-	go sp.indexer.SaveBlock(body, header, txPool, signersIndexes, nil)
+	sp.indexer.SaveBlock(body, header, txPool, signersIndexes, nil)
 
 	indexRoundInfo(sp.indexer, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
 }

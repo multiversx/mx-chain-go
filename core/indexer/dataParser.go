@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -52,6 +53,11 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 		miniblocksHashes = append(miniblocksHashes, encodedMbHash)
 	}
 
+	leaderIndex := uint64(0)
+	if len(signersIndexes) > 0 {
+		leaderIndex = signersIndexes[0]
+	}
+
 	headerHash := dp.hasher.Compute(string(headerBytes))
 	elasticBlock := Block{
 		Nonce:                 header.GetNonce(),
@@ -61,7 +67,7 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 		Hash:                  hex.EncodeToString(headerHash),
 		MiniBlocksHashes:      miniblocksHashes,
 		NotarizedBlocksHashes: notarizedHeadersHashes,
-		Proposer:              signersIndexes[0],
+		Proposer:              leaderIndex,
 		Validators:            signersIndexes,
 		PubKeyBitmap:          hex.EncodeToString(header.GetPubKeysBitmap()),
 		Size:                  int64(blockSizeInBytes),
@@ -125,7 +131,7 @@ func (dp *dataParser) getMiniblocks(header data.HeaderHandler, body *block.Body)
 	return miniblocks
 }
 
-func serializeRoundInfo(info RoundInfo) ([]byte, []byte) {
+func serializeRoundInfo(info workItems.RoundInfo) ([]byte, []byte) {
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%d_%d", "_type" : "%s" } }%s`,
 		info.ShardId, info.Index, "_doc", "\n"))
 
@@ -142,11 +148,12 @@ func serializeRoundInfo(info RoundInfo) ([]byte, []byte) {
 
 func computeBlockSearchOrder(header data.HeaderHandler) uint32 {
 	shardIdentifier := createShardIdentifier(header.GetShardID())
-	stringOrder := fmt.Sprintf("%d%d", shardIdentifier, header.GetNonce())
+	stringOrder := fmt.Sprintf("1%02d%d", shardIdentifier, header.GetNonce())
 
 	order, err := strconv.ParseUint(stringOrder, 10, 32)
 	if err != nil {
-		log.Debug("elasticsearchDatabase.computeBlockSearchOrder", "could not set uint32 search order", err.Error())
+		log.Debug("elasticsearchDatabase.computeBlockSearchOrder",
+			"could not set uint32 search order", err.Error())
 		return 0
 	}
 

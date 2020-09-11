@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	bootstrapDisabled "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -56,8 +57,9 @@ func NewConnectorFactory(args ConnectorFactoryArgs) (*elasticSearchConnectorFact
 
 // Create will create and return a new indexer database handler
 func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
-	indexerArgs := indexer.DataIndexerArgs{
+	indexerFactoryArgs := &factory.ArgsIndexerFactory{
 		Url:                      escf.elasticConfig.URL,
+		IndexerCacheSize:         100,
 		UserName:                 escf.elasticConfig.Username,
 		Password:                 escf.elasticConfig.Password,
 		Marshalizer:              escf.marshalizer,
@@ -66,10 +68,18 @@ func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
 		ValidatorPubkeyConverter: escf.validatorPubKeyConverter,
 		NodesCoordinator:         disabled.NewNodesCoordinator(),
 		EpochStartNotifier:       &bootstrapDisabled.EpochStartNotifier{},
-		Options:                  &indexer.Options{TxIndexingEnabled: true},
+		Options: &indexer.Options{
+			TxIndexingEnabled: true,
+			UseKibana:         false,
+		},
 	}
 
-	return indexer.NewDataIndexer(indexerArgs)
+	indexerFactory, err := factory.NewIndexerFactory(indexerFactoryArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	return indexerFactory.Create()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

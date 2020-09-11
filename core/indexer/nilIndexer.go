@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -27,8 +28,8 @@ func (ni *NilIndexer) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandle
 func (ni *NilIndexer) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
 
-// SaveRoundsInfos will do nothing
-func (ni *NilIndexer) SaveRoundsInfos(_ []RoundInfo) {
+// SaveRoundsInfo will do nothing
+func (ni *NilIndexer) SaveRoundsInfo(_ []workItems.RoundInfo) {
 }
 
 // UpdateTPS will do nothing
@@ -36,7 +37,7 @@ func (ni *NilIndexer) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveValidatorsRating --
-func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []ValidatorRatingInfo) {
+func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []workItems.ValidatorRatingInfo) {
 }
 
 // SaveValidatorsPubKeys will do nothing
