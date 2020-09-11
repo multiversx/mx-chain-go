@@ -893,8 +893,6 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 			s.eei.Finish([]byte{failed})
 			continue
 		}
-
-		registrationData.NumRegistered -= 1
 	}
 
 	err = s.saveRegistrationData(args.CallerAddr, registrationData)
@@ -978,6 +976,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 			continue
 		}
 
+		registrationData.NumRegistered -= 1
 		auctionConfig := s.getConfig(nodeData.UnStakedEpoch)
 		unBondedKeys = append(unBondedKeys, blsKey)
 		totalUnBond.Add(totalUnBond, auctionConfig.NodePrice)
