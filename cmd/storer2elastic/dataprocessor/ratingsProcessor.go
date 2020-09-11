@@ -215,6 +215,11 @@ func (rp *ratingsProcessor) getGenesisRating() map[uint32][]workItems.ValidatorR
 	return ratingsForGenesis
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (rp *ratingsProcessor) IsInterfaceNil() bool {
+	return rp == nil
+}
+
 func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccountHandler, error) {
 	peerAccount := state.NewEmptyPeerAccount()
 	err := marshalizer.Unmarshal(peerAccount, pa)

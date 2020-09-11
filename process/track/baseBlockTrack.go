@@ -37,14 +37,15 @@ type baseBlockTrack struct {
 	headersPool      dataRetriever.HeadersPool
 	store            dataRetriever.StorageService
 
-	blockProcessor                blockProcessorHandler
-	crossNotarizer                blockNotarizerHandler
-	selfNotarizer                 blockNotarizerHandler
-	crossNotarizedHeadersNotifier blockNotifierHandler
-	selfNotarizedHeadersNotifier  blockNotifierHandler
-	finalMetachainHeadersNotifier blockNotifierHandler
-	blockBalancer                 blockBalancerHandler
-	whitelistHandler              process.WhiteListHandler
+	blockProcessor                        blockProcessorHandler
+	crossNotarizer                        blockNotarizerHandler
+	selfNotarizer                         blockNotarizerHandler
+	crossNotarizedHeadersNotifier         blockNotifierHandler
+	selfNotarizedFromCrossHeadersNotifier blockNotifierHandler
+	selfNotarizedHeadersNotifier          blockNotifierHandler
+	finalMetachainHeadersNotifier         blockNotifierHandler
+	blockBalancer                         blockBalancerHandler
+	whitelistHandler                      process.WhiteListHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -74,6 +75,11 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		return nil, err
 	}
 
+	selfNotarizedFromCrossHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
 	selfNotarizedHeadersNotifier, err := NewBlockNotifier()
 	if err != nil {
 		return nil, err
@@ -90,21 +96,22 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 	}
 
 	bbt := &baseBlockTrack{
-		hasher:                        arguments.Hasher,
-		headerValidator:               arguments.HeaderValidator,
-		marshalizer:                   arguments.Marshalizer,
-		rounder:                       arguments.Rounder,
-		shardCoordinator:              arguments.ShardCoordinator,
-		headersPool:                   arguments.PoolsHolder.Headers(),
-		store:                         arguments.Store,
-		crossNotarizer:                crossNotarizer,
-		selfNotarizer:                 selfNotarizer,
-		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
-		finalMetachainHeadersNotifier: finalMetachainHeadersNotifier,
-		blockBalancer:                 blockBalancerInstance,
-		maxNumHeadersToKeepPerShard:   maxNumHeadersToKeepPerShard,
-		whitelistHandler:              arguments.WhitelistHandler,
+		hasher:                                arguments.Hasher,
+		headerValidator:                       arguments.HeaderValidator,
+		marshalizer:                           arguments.Marshalizer,
+		rounder:                               arguments.Rounder,
+		shardCoordinator:                      arguments.ShardCoordinator,
+		headersPool:                           arguments.PoolsHolder.Headers(),
+		store:                                 arguments.Store,
+		crossNotarizer:                        crossNotarizer,
+		selfNotarizer:                         selfNotarizer,
+		crossNotarizedHeadersNotifier:         crossNotarizedHeadersNotifier,
+		selfNotarizedFromCrossHeadersNotifier: selfNotarizedFromCrossHeadersNotifier,
+		selfNotarizedHeadersNotifier:          selfNotarizedHeadersNotifier,
+		finalMetachainHeadersNotifier:         finalMetachainHeadersNotifier,
+		blockBalancer:                         blockBalancerInstance,
+		maxNumHeadersToKeepPerShard:           maxNumHeadersToKeepPerShard,
+		whitelistHandler:                      arguments.WhitelistHandler,
 	}
 
 	return bbt, nil
@@ -629,6 +636,14 @@ func (bbt *baseBlockTrack) RegisterCrossNotarizedHeadersHandler(
 	handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte),
 ) {
 	bbt.crossNotarizedHeadersNotifier.RegisterHandler(handler)
+}
+
+// RegisterSelfNotarizedFromCrossHeadersHandler registers a new handler to be called when self notarized header,
+// extracted from cross headers, is changed
+func (bbt *baseBlockTrack) RegisterSelfNotarizedFromCrossHeadersHandler(
+	handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte),
+) {
+	bbt.selfNotarizedFromCrossHeadersNotifier.RegisterHandler(handler)
 }
 
 // RegisterSelfNotarizedHeadersHandler registers a new handler to be called when self notarized header is changed

@@ -207,6 +207,10 @@ func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(lastNotarizedHead
 	bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce, latestValidHeader, highestRoundInReceivedHeaders)
 }
 
+func (bp *blockProcessor) ShouldProcessReceivedHeader(headerHandler data.HeaderHandler) bool {
+	return bp.shouldProcessReceivedHeader(headerHandler)
+}
+
 // miniBlockTrack
 
 func (mbt *miniBlockTrack) ReceivedMiniBlock(key []byte, value interface{}) {

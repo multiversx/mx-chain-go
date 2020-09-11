@@ -43,3 +43,9 @@ type TPSBenchmarkUpdaterHandler interface {
 	IndexTPSForMetaBlock(metaBlock *block.MetaBlock)
 	IsInterfaceNil() bool
 }
+
+// RatingProcessorHandler defines the actions that a rating processor has to do
+type RatingProcessorHandler interface {
+	IndexRatingsForEpochStartMetaBlock(metaBlock *block.MetaBlock) error
+	IsInterfaceNil() bool
+}
