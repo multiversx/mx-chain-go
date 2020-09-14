@@ -872,13 +872,6 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 	}
 
 	for _, blsKey := range blsKeys {
-		if registrationData.NumRegistered == 0 {
-			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s as it is not staked", hex.EncodeToString(blsKey)))
-			s.eei.Finish(blsKey)
-			s.eei.Finish([]byte{failed})
-			continue
-		}
-
 		vmOutput, err := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
 		if err != nil {
 			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s: %s", hex.EncodeToString(blsKey), err.Error()))
