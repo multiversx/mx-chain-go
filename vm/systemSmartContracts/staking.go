@@ -725,6 +725,10 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
+	if args.CallValue.Cmp(zero) != 0 {
+		r.eei.AddReturnMessage("transaction value must be zero")
+		return vmcommon.UserError
+	}
 
 	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
 	if err != nil {
