@@ -2,6 +2,7 @@ package facade
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/vm"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -336,8 +338,13 @@ func (nf *nodeFacade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie
-func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-	return nf.apiResolver.ExecuteSCQuery(query)
+func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
+	vmOutput, err := nf.apiResolver.ExecuteSCQuery(query)
+	if err != nil {
+		return nil, err
+	}
+
+	return nf.convertVmOutputToApiResponse(vmOutput), nil
 }
 
 // PprofEnabled returns if profiling mode should be active or not on the application
@@ -409,6 +416,65 @@ func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
 func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 	return nf.peerState.GetNumCheckpoints()
+}
+
+func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
+	outputAccounts := make(map[string]*vm.OutputAccountApi)
+	for key, acc := range input.OutputAccounts {
+		outPutAddress, err := nf.node.EncodeAddressPubkey(acc.Address)
+		if err != nil {
+			log.Warn("cannot encode address", "error", err)
+			outPutAddress = ""
+		}
+
+		storageUpdates := make(map[string]*vm.StorageUpdateApi)
+		for updateKey, updateVal := range acc.StorageUpdates {
+			storageUpdates[hex.EncodeToString([]byte(updateKey))] = &vm.StorageUpdateApi{
+				Offset: updateVal.Offset,
+				Data:   updateVal.Data,
+			}
+		}
+		outputAccounts[hex.EncodeToString([]byte(key))] = &vm.OutputAccountApi{
+			Address:        outPutAddress,
+			Nonce:          acc.Nonce,
+			Balance:        acc.Balance,
+			BalanceDelta:   acc.BalanceDelta,
+			StorageUpdates: storageUpdates,
+			Code:           acc.Code,
+			CodeMetadata:   acc.CodeMetadata,
+			Data:           acc.Data,
+			GasLimit:       acc.GasLimit,
+			CallType:       acc.CallType,
+		}
+	}
+
+	logs := make([]*vm.LogEntryApi, 0, len(input.Logs))
+	for i := 0; i < len(input.Logs); i++ {
+		originalLog := input.Logs[i]
+		logAddress, err := nf.node.EncodeAddressPubkey(originalLog.Address)
+		if err != nil {
+			log.Warn("cannot encode address", "error", err)
+			logAddress = ""
+		}
+
+		logs[i] = &vm.LogEntryApi{
+			Identifier: originalLog.Identifier,
+			Address:    logAddress,
+			Topics:     originalLog.Topics,
+			Data:       originalLog.Data,
+		}
+	}
+	return &vm.VMOutputApi{
+		ReturnData:      input.ReturnData,
+		ReturnCode:      input.ReturnCode.String(),
+		ReturnMessage:   input.ReturnMessage,
+		GasRemaining:    input.GasRemaining,
+		GasRefund:       input.GasRefund,
+		OutputAccounts:  outputAccounts,
+		DeletedAccounts: input.DeletedAccounts,
+		TouchedAccounts: input.TouchedAccounts,
+		Logs:            logs,
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
