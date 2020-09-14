@@ -200,7 +200,11 @@ func (vs *validatorStatistics) saveUpdatesForList(
 			return err
 		}
 
-		peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index))
+		if peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
+			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
+		} else {
+			peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index))
+		}
 
 		err = vs.peerAdapter.SaveAccount(peerAcc)
 		if err != nil {

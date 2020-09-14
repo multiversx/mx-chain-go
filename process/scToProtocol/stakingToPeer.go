@@ -238,6 +238,11 @@ func (stp *stakingToPeer) updatePeerState(
 		if isNewValidator {
 			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.UnJailedNonce))
 		}
+
+		if account.GetList() == string(core.JailedList) {
+			account.SetListAndIndex(account.GetShardId(), string(core.InactiveList), uint32(stakingData.UnJailedNonce))
+			account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
+		}
 	}
 
 	if stakingData.JailedNonce == nonce && account.GetList() != string(core.InactiveList) {
