@@ -365,7 +365,7 @@ func (s *systemSCProcessor) getSortedJailedNodes(validatorInfos map[uint32][]*st
 	}
 
 	sort.Slice(jailedValidators, func(i, j int) bool {
-		if jailedValidators[i].TempRating == jailedValidators[i].TempRating {
+		if jailedValidators[i].TempRating == jailedValidators[j].TempRating {
 			if jailedValidators[i].Index == jailedValidators[j].Index {
 				return bytes.Compare(jailedValidators[i].PublicKey, jailedValidators[j].PublicKey) < 0
 			}
