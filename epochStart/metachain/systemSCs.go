@@ -146,7 +146,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 	jailedValidator *state.ValidatorInfo,
 	vmOutput *vmcommon.VMOutput,
-	epoch uint32,
+	_ uint32,
 ) ([]byte, error) {
 	stakingSCOutput, ok := vmOutput.OutputAccounts[string(s.stakingSCAddress)]
 	if !ok {
@@ -217,7 +217,6 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	jailedAccount.SetListAndIndex(jailedValidator.ShardId, string(core.JailedList), jailedValidator.Index)
-	jailedAccount.SetUnStakedEpoch(epoch)
 	jailedAccount.ResetAtNewEpoch()
 	err = s.peerAccountsDB.SaveAccount(jailedAccount)
 	if err != nil {
