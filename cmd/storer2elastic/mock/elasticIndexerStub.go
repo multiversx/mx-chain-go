@@ -31,8 +31,8 @@ func (e *ElasticIndexerStub) SaveBlock(body data.BodyHandler, header data.Header
 	}
 }
 
-// SaveRoundsInfos -
-func (e *ElasticIndexerStub) SaveRoundsInfos(roundsInfos []workItems.RoundInfo) {
+// SaveRoundsInfo -
+func (e *ElasticIndexerStub) SaveRoundsInfo(roundsInfos []workItems.RoundInfo) {
 	if e.SaveRoundsInfosCalled != nil {
 		e.SaveRoundsInfosCalled(roundsInfos)
 	}
@@ -57,6 +57,15 @@ func (e *ElasticIndexerStub) SaveValidatorsRating(indexID string, infoRating []w
 	if e.SaveValidatorsRatingCalled != nil {
 		e.SaveValidatorsRatingCalled(indexID, infoRating)
 	}
+}
+
+// StopIndexing -
+func (e *ElasticIndexerStub) StopIndexing() error {
+	return nil
+}
+
+// RevertIndexedBlock -
+func (e *ElasticIndexerStub) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // IsInterfaceNil -
