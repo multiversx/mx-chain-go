@@ -10,6 +10,7 @@ import (
 type DatabaseWriterStub struct {
 	DoRequestCalled     func(req *esapi.IndexRequest) error
 	DoBulkRequestCalled func(buff *bytes.Buffer, index string) error
+	DoBulkRemoveCalled  func(index string, hashes []string) error
 }
 
 // DoRequest --
@@ -34,7 +35,11 @@ func (dwm *DatabaseWriterStub) DoMultiGet(_ map[string]interface{}, _ string) (m
 }
 
 // DoBulkRemove -
-func (dwm *DatabaseWriterStub) DoBulkRemove(_ string, _ []string) error {
+func (dwm *DatabaseWriterStub) DoBulkRemove(index string, hashes []string) error {
+	if dwm.DoBulkRemoveCalled != nil {
+		return dwm.DoBulkRemoveCalled(index, hashes)
+	}
+
 	return nil
 }
 

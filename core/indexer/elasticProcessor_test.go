@@ -42,12 +42,14 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 	}
 }
 
-func createMockElasticsearchDatabaseArgs() ElasticProcessorArgs {
+func createMockElasticProcessorArgs() ElasticProcessorArgs {
 	return ElasticProcessorArgs{
 		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
 		Hasher:                   &mock.HasherMock{},
 		Marshalizer:              &mock.MarshalizerMock{},
+		DBClient:                 &mock.DatabaseWriterStub{},
+		Options:                  &Options{},
 	}
 }
 
@@ -97,11 +99,88 @@ func newTestBlockBody() *dataBlock.Body {
 	}
 }
 
+func TestNewElasticProcessorWithKibana(t *testing.T) {
+	t.Parallel()
+
+	args := createMockElasticProcessorArgs()
+	args.Options = &Options{
+		UseKibana: true,
+	}
+	args.DBClient = &mock.DatabaseWriterStub{}
+
+	elasticProcessor, err := NewElasticProcessor(args)
+	require.NoError(t, err)
+	require.NotNil(t, elasticProcessor)
+}
+
+func TestElasticProcessor_RemoveHeader(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	args := createMockElasticProcessorArgs()
+	args.DBClient = &mock.DatabaseWriterStub{
+		DoBulkRemoveCalled: func(index string, hashes []string) error {
+			called = true
+			return nil
+		},
+	}
+
+	elasticProcessor, err := NewElasticProcessor(args)
+	require.NoError(t, err)
+
+	err = elasticProcessor.RemoveHeader(&dataBlock.Header{})
+	require.Nil(t, err)
+	require.True(t, called)
+}
+
+func TestElasticProcessor_RemoveMiniblocks(t *testing.T) {
+	t.Parallel()
+
+	called := false
+
+	mb1 := &dataBlock.MiniBlock{Type: dataBlock.PeerBlock}
+	mb2 := &dataBlock.MiniBlock{ReceiverShardID: 0, SenderShardID: 1} // should be removed
+	mb3 := &dataBlock.MiniBlock{ReceiverShardID: 1, SenderShardID: 1} // should be removed
+	mb4 := &dataBlock.MiniBlock{ReceiverShardID: 1, SenderShardID: 0} // should NOT be removed
+
+	args := createMockElasticProcessorArgs()
+
+	mbHash2, _ := core.CalculateHash(args.Marshalizer, args.Hasher, mb2)
+	mbHash3, _ := core.CalculateHash(args.Marshalizer, args.Hasher, mb3)
+
+	args.DBClient = &mock.DatabaseWriterStub{
+		DoBulkRemoveCalled: func(index string, hashes []string) error {
+			called = true
+			require.Equal(t, hashes[0], hex.EncodeToString(mbHash2))
+			require.Equal(t, hashes[1], hex.EncodeToString(mbHash3))
+			return nil
+		},
+	}
+
+	elasticProcessor, err := NewElasticProcessor(args)
+	require.NoError(t, err)
+
+	header := &dataBlock.Header{
+		ShardID: 1,
+		MiniBlockHeaders: []dataBlock.MiniBlockHeader{
+			{Hash: []byte("hash1")}, {Hash: []byte("hash2")}, {Hash: []byte("hash3")}, {Hash: []byte("hash4")},
+		},
+	}
+	body := &dataBlock.Body{
+		MiniBlocks: dataBlock.MiniBlockSlice{
+			mb1, mb2, mb3, mb4,
+		},
+	}
+	err = elasticProcessor.RemoveMiniblocks(header, body)
+	require.Nil(t, err)
+	require.True(t, called)
+}
+
 func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 	localErr := errors.New("localErr")
 	header := &dataBlock.Header{Nonce: 1}
 	signerIndexes := []uint64{0, 1}
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			return localErr
@@ -124,7 +203,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 		},
 	}
 
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 
 	mbHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, miniBlock)
 	hexEncodedHash := hex.EncodeToString(mbHash)
@@ -151,7 +230,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 
 func TestElasticseachSaveTransactions(t *testing.T) {
 	localErr := errors.New("localErr")
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			return localErr
@@ -172,7 +251,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 	epoch := uint32(0)
 	valPubKeys := [][]byte{[]byte("key1"), []byte("key2")}
 	localErr := errors.New("localErr")
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			return localErr
@@ -188,7 +267,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
 	shardID := uint32(0)
 	epoch := uint32(0)
 	valPubKeys := [][]byte{[]byte("key1"), []byte("key2")}
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			require.Equal(t, fmt.Sprintf("%d_%d", shardID, epoch), req.DocumentID)
@@ -210,7 +289,7 @@ func TestElasticsearch_saveShardStatistics_reqError(t *testing.T) {
 	tpsBenchmark.UpdateWithShardStats(metaBlock)
 
 	localError := errors.New("local err")
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			return localError
@@ -231,7 +310,7 @@ func TestElasticsearch_saveShardStatistics(t *testing.T) {
 	}
 	tpsBenchmark.UpdateWithShardStats(metaBlock)
 
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			require.Equal(t, tpsIndex, index)
@@ -248,7 +327,7 @@ func TestElasticsearch_saveRoundInfo(t *testing.T) {
 	roundInfo := workItems.RoundInfo{
 		Index: 1, ShardId: 0, BlockWasProposed: true,
 	}
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			require.Equal(t, strconv.FormatUint(uint64(roundInfo.ShardId), 10)+"_"+strconv.FormatUint(roundInfo.Index, 10), req.DocumentID)
@@ -264,7 +343,7 @@ func TestElasticsearch_saveRoundInfo(t *testing.T) {
 func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 	roundInfo := workItems.RoundInfo{}
 	localError := errors.New("local err")
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			return localError

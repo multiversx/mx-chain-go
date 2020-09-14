@@ -31,6 +31,10 @@ type dataDispatcher struct {
 // NewDataDispatcher creates a new dataDispatcher instance, capable of selecting the correct es that will
 //  handle saving different types
 func NewDataDispatcher(cacheSize int) (*dataDispatcher, error) {
+	if cacheSize <= 0 {
+		return nil, ErrInvalidCacheSize
+	}
+
 	dd := &dataDispatcher{
 		chanWorkItems: make(chan workItems.WorkItemHandler, cacheSize),
 	}
@@ -76,10 +80,13 @@ func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler) {
 	for {
 		err := wi.Save()
 		if err != nil && err == ErrBackOff {
-			log.Warn("dataDispatcher.doWork", "could not index item",
-				"received back off:", err.Error())
+			log.Warn("dataDispatcher.doWork could not index item",
+				"received back off", err.Error())
+
 			d.increaseBackOffTime()
 			time.Sleep(d.backOffTime)
+
+			continue
 		}
 		if err != nil {
 			log.Warn("dataDispatcher.doWork", "removing item from queue", err.Error())

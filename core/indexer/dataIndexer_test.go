@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"math/big"
 	"sync"
 	"testing"
@@ -58,6 +60,33 @@ func TestDataIndexer_NewIndexerWithNilNodesCoordinatorShouldErr(t *testing.T) {
 
 	require.Nil(t, ei)
 	require.Equal(t, core.ErrNilNodesCoordinator, err)
+}
+
+func TestDataIndexer_NewIndexerWithNilDataDispatcherShouldErr(t *testing.T) {
+	arguments := NewDataIndexerArguments()
+	arguments.DataDispatcher = nil
+	ei, err := NewDataIndexer(arguments)
+
+	require.Nil(t, ei)
+	require.Equal(t, ErrNilDataDispatcher, err)
+}
+
+func TestDataIndexer_NewIndexerWithNilElasticProcessorShouldErr(t *testing.T) {
+	arguments := NewDataIndexerArguments()
+	arguments.ElasticProcessor = nil
+	ei, err := NewDataIndexer(arguments)
+
+	require.Nil(t, ei)
+	require.Equal(t, ErrNilElasticProcessor, err)
+}
+
+func TestDataIndexer_NewIndexerWithNilMarshalizerShouldErr(t *testing.T) {
+	arguments := NewDataIndexerArguments()
+	arguments.Marshalizer = nil
+	ei, err := NewDataIndexer(arguments)
+
+	require.Nil(t, ei)
+	require.Equal(t, core.ErrNilMarshalizer, err)
 }
 
 func TestDataIndexer_NewIndexerWithNilEpochStartNotifierShouldErr(t *testing.T) {
@@ -173,6 +202,56 @@ func TestDataIndexer_SaveValidatorsPubKeys(t *testing.T) {
 	epoch := uint32(0)
 
 	ei.SaveValidatorsPubKeys(valPubKey, epoch)
+	require.True(t, called)
+}
+
+func TestDataIndexer_SaveValidatorsRating(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	arguments := NewDataIndexerArguments()
+	arguments.DataDispatcher = &mock.DispatcherMock{
+		AddCalled: func(item workItems.WorkItemHandler) {
+			called = true
+		},
+	}
+	ei, _ := NewDataIndexer(arguments)
+
+	ei.SaveValidatorsRating("ID", []workItems.ValidatorRatingInfo{
+		{Rating: 1}, {Rating: 2},
+	})
+	require.True(t, called)
+}
+
+func TestDataIndexer_RevertIndexedBlock(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	arguments := NewDataIndexerArguments()
+	arguments.DataDispatcher = &mock.DispatcherMock{
+		AddCalled: func(item workItems.WorkItemHandler) {
+			called = true
+		},
+	}
+	ei, _ := NewDataIndexer(arguments)
+
+	ei.RevertIndexedBlock(&dataBlock.Header{}, &dataBlock.Body{})
+	require.True(t, called)
+}
+
+func TestDataIndexer_SetTxLogsProcessor(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	arguments := NewDataIndexerArguments()
+	arguments.ElasticProcessor = &mock.ElasticProcessorMock{
+		SetTxLogsProcessorCalled: func(txLogsProc process.TransactionLogProcessorDatabase) {
+			called = true
+		},
+	}
+	ei, _ := NewDataIndexer(arguments)
+
+	ei.SetTxLogsProcessor(disabled.NewNilTxLogsProcessor())
 	require.True(t, called)
 }
 

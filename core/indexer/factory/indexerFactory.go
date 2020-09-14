@@ -2,7 +2,6 @@ package factory
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -143,11 +142,14 @@ func (dif *dataIndexerFactory) IsInterfaceNil() bool {
 }
 
 func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
+	if arguments.IndexerCacheSize <= 0 {
+		return indexer.ErrInvalidCacheSize
+	}
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", indexer.ErrNilPubkeyConverter)
+		return indexer.ErrNilPubkeyConverter
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", indexer.ErrNilPubkeyConverter)
+		return indexer.ErrNilPubkeyConverter
 	}
 	if arguments.Url == "" {
 		return core.ErrNilUrl

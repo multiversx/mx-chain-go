@@ -21,3 +21,6 @@ var ErrNilDataDispatcher = errors.New("nil data dispatcher")
 
 // ErrNilElasticProcessor signals that an operation has been attempted to or with a nil elastic processor implementation
 var ErrNilElasticProcessor = errors.New("nil elastic processor")
+
+// ErrInvalidCacheSize signals that and invalid indexer cache size was provided
+var ErrInvalidCacheSize = errors.New("invalid indexer cache size")

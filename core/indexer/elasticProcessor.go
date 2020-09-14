@@ -234,7 +234,7 @@ func (ei *elasticProcessor) RemoveMiniblocks(header data.HeaderHandler, body *bl
 
 		isDstMe := selfShardID == miniblock.ReceiverShardID
 		isCrossShard := miniblock.ReceiverShardID != miniblock.SenderShardID
-		if !(isDstMe && isCrossShard) {
+		if isDstMe && isCrossShard {
 			continue
 		}
 
