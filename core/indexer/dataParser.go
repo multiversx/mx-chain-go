@@ -101,7 +101,8 @@ func (dp *dataParser) getMiniblocks(header data.HeaderHandler, body *block.Body)
 	for _, miniblock := range body.MiniBlocks {
 		mbHash, errComputeHash := core.CalculateHash(dp.marshalizer, dp.hasher, miniblock)
 		if errComputeHash != nil {
-			log.Warn("internal error computing hash", "error", errComputeHash)
+			log.Warn("indexer: internal error computing hash",
+				"error", errComputeHash)
 
 			continue
 		}

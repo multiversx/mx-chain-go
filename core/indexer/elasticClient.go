@@ -109,14 +109,16 @@ func (ec *elasticClient) DoMultiGet(obj object, index string) (object, error) {
 		ec.es.Mget.WithIndex(index),
 	)
 	if err != nil {
-		log.Warn("elasticClient.DoMultiGet", "cannot do multi get no response", err.Error())
+		log.Warn("elasticClient.DoMultiGet",
+			"cannot do multi get no response", err.Error())
 		return nil, err
 	}
 
 	var decodedBody object
 	err = parseResponse(res, &decodedBody, elasticDefaultErrorResponseHandler)
 	if err != nil {
-		log.Warn("elasticClient.DoMultiGet", "error parsing response", err.Error())
+		log.Warn("elasticClient.DoMultiGet",
+			"error parsing response", err.Error())
 		return nil, err
 	}
 
@@ -138,14 +140,16 @@ func (ec *elasticClient) DoBulkRemove(index string, hashes []string) error {
 	)
 
 	if err != nil {
-		log.Warn("elasticClient.DoMultiGet", "cannot do multi get no response", err.Error())
+		log.Warn("elasticClient.DoBulkRemove",
+			"cannot do bulk remove", err.Error())
 		return err
 	}
 
 	var decodedBody object
 	err = parseResponse(res, &decodedBody, elasticDefaultErrorResponseHandler)
 	if err != nil {
-		log.Warn("elasticClient.DoMultiGet", "error parsing response", err.Error())
+		log.Warn("elasticClient.DoBulkRemove",
+			"error parsing response", err.Error())
 		return err
 	}
 
@@ -175,13 +179,15 @@ func (ec *elasticClient) PolicyExists(policy string) bool {
 
 	req, err := newRequest(http.MethodGet, policyRoute, nil)
 	if err != nil {
-		log.Warn("elasticClient.PolicyExists", "could not create request object", err.Error())
+		log.Warn("elasticClient.PolicyExists",
+			"could not create request object", err.Error())
 		return false
 	}
 
 	res, err := ec.es.Transport.Perform(req)
 	if err != nil {
-		log.Warn("elasticClient.PolicyExists", "error performing request", err.Error())
+		log.Warn("elasticClient.PolicyExists",
+			"error performing request", err.Error())
 		return false
 	}
 
@@ -194,7 +200,8 @@ func (ec *elasticClient) PolicyExists(policy string) bool {
 	existsRes := &kibanaResponse{}
 	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
 	if err != nil {
-		log.Warn("elasticClient.PolicyExists", "error returned by kibana api", err.Error())
+		log.Warn("elasticClient.PolicyExists",
+			"error returned by kibana api", err.Error())
 		return false
 	}
 
@@ -211,13 +218,15 @@ func (ec *elasticClient) aliasExists(alias string) bool {
 
 	req, err := newRequest(http.MethodHead, aliasRoute, nil)
 	if err != nil {
-		log.Warn("elasticClient.AliasExists", "could not create request object", err.Error())
+		log.Warn("elasticClient.AliasExists",
+			"could not create request object", err.Error())
 		return false
 	}
 
 	res, err := ec.es.Transport.Perform(req)
 	if err != nil {
-		log.Warn("elasticClient.AliasExists", "error performing request", err.Error())
+		log.Warn("elasticClient.AliasExists",
+			"error performing request", err.Error())
 		return false
 	}
 

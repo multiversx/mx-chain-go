@@ -259,10 +259,6 @@ func (ei *elasticProcessor) SetTxLogsProcessor(txLogsProc process.TransactionLog
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
 func (ei *elasticProcessor) SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error) {
 	miniblocks := ei.parser.getMiniblocks(header, body)
-	if miniblocks == nil {
-		log.Warn("indexer: could not index miniblocks")
-		return make(map[string]bool), nil
-	}
 	if len(miniblocks) == 0 {
 		return make(map[string]bool), nil
 	}
