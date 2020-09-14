@@ -238,6 +238,8 @@ func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 		if err != nil {
 			log.Debug("SendHeartbeat", "error", err.Error())
 		}
+
+		hbh.monitor.Cleanup()
 	}
 }
 

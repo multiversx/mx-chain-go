@@ -580,6 +580,7 @@ type TimeCacher interface {
 	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
+	Len() int
 	IsInterfaceNil() bool
 }
 
