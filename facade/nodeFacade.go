@@ -421,10 +421,10 @@ func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
 	outputAccounts := make(map[string]*vm.OutputAccountApi)
 	for key, acc := range input.OutputAccounts {
-		outPutAddress, err := nf.node.EncodeAddressPubkey(acc.Address)
+		outputAddress, err := nf.node.EncodeAddressPubkey(acc.Address)
 		if err != nil {
 			log.Warn("cannot encode address", "error", err)
-			outPutAddress = ""
+			outputAddress = ""
 		}
 
 		storageUpdates := make(map[string]*vm.StorageUpdateApi)
@@ -435,7 +435,7 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 			}
 		}
 		outputAccounts[hex.EncodeToString([]byte(key))] = &vm.OutputAccountApi{
-			Address:        outPutAddress,
+			Address:        outputAddress,
 			Nonce:          acc.Nonce,
 			Balance:        acc.Balance,
 			BalanceDelta:   acc.BalanceDelta,
