@@ -8,6 +8,7 @@ type TimeCacheStub struct {
 	UpsertCalled func(key string, span time.Duration) error
 	HasCalled    func(key string) bool
 	SweepCalled  func()
+	LenCalled    func() int
 }
 
 // Upsert -
@@ -44,6 +45,15 @@ func (tcs *TimeCacheStub) Sweep() {
 	}
 
 	tcs.SweepCalled()
+}
+
+// Len -
+func (tcs *TimeCacheStub) Len() int {
+	if tcs.LenCalled == nil {
+		return 0
+	}
+
+	return tcs.LenCalled()
 }
 
 // IsInterfaceNil -
