@@ -22,10 +22,6 @@ import (
 )
 
 const (
-	txStatusSuccess     = "Success"
-	txStatusPending     = "Pending"
-	txStatusInvalid     = "Invalid"
-	txStatusNotExecuted = "Not Executed"
 	// A smart contract action (deploy, call, ...) should have minimum 2 smart contract results
 	// exception to this rule are smart contract calls to ESDT contract
 	minimumNumberOfSmartContractResults = 2
@@ -113,7 +109,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 				continue
 			}
 
-			transactions[hash].Status = txStatusNotExecuted
+			transactions[hash].Status = transaction.TxStatusUnsuccessful.String()
 		}
 	}
 
@@ -216,9 +212,9 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			continue
 		}
 
-		mbTxStatus := txStatusPending
+		mbTxStatus := transaction.TxStatusPending.String()
 		if selfShardID == mb.ReceiverShardID {
-			mbTxStatus = txStatusSuccess
+			mbTxStatus = transaction.TxStatusSuccessful.String()
 		}
 
 		switch mb.Type {
@@ -232,7 +228,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 		case block.InvalidBlock:
 			txs := getTransactions(txPool, mb.TxHashes)
 			for hash, tx := range txs {
-				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, txStatusInvalid)
+				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, transaction.TxStatusInvalid.String())
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}
@@ -270,7 +266,7 @@ func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[strin
 }
 
 func (tdp *txDatabaseProcessor) createShardIdentifier(shardId uint32) uint32 {
-	shardIdentifier := shardId+2
+	shardIdentifier := shardId + 2
 	if shardId == core.MetachainShardId {
 		shardIdentifier = 1
 	}
