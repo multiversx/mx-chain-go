@@ -12,11 +12,13 @@ import (
 )
 
 func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+
 	return &ArgsIndexerFactory{
 		Enabled:                  true,
 		IndexerCacheSize:         100,
 		ShardID:                  0,
-		Url:                      "test-url",
+		Url:                      ts.URL,
 		UserName:                 "",
 		Password:                 "",
 		Marshalizer:              &mock.MarshalizerMock{},
@@ -122,8 +124,11 @@ func TestNewIndexerFactory(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewIndexerFactory(tt.argsFunc())
-			require.Equal(t, err, tt.exError)
+			if tt.exError == nil {
+				print("a")
+			}
+			_, err := NewIndexer(tt.argsFunc())
+			require.Equal(t, tt.exError, err)
 		})
 	}
 }
@@ -133,10 +138,7 @@ func TestIndexerFactoryCreate_NilIndexer(t *testing.T) {
 
 	args := createMockIndexerFactoryArgs()
 	args.Enabled = false
-	indexerFactory, err := NewIndexerFactory(args)
-	require.NoError(t, err)
-
-	nilIndexer, err := indexerFactory.Create()
+	nilIndexer, err := NewIndexer(args)
 	require.NoError(t, err)
 
 	_, ok := nilIndexer.(*indexer.NilIndexer)
@@ -150,13 +152,10 @@ func TestIndexerFactoryCreate_ElasticIndexer(t *testing.T) {
 	args := createMockIndexerFactoryArgs()
 	args.Url = ts.URL
 
-	indexerFactory, err := NewIndexerFactory(args)
+	elasticIndexer, err := NewIndexer(args)
 	require.NoError(t, err)
 
-	elasticIndexer, err := indexerFactory.Create()
-	require.NoError(t, err)
-
-	err = elasticIndexer.StopIndexing()
+	err = elasticIndexer.Close()
 	require.NoError(t, err)
 	require.False(t, elasticIndexer.IsNilIndexer())
 

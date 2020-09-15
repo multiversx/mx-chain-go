@@ -36,7 +36,7 @@ func TestDataDispatcher_StartIndexDataClose(t *testing.T) {
 	called := false
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	elasticProcessor := &mock.ElasticProcessorMock{
+	elasticProcessor := &mock.ElasticProcessorStub{
 		SaveRoundsInfoCalled: func(infos []workItems.RoundInfo) error {
 			called = true
 			wg.Done()
@@ -62,7 +62,7 @@ func TestDataDispatcher_Add(t *testing.T) {
 	calledCount := 0
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	elasticProcessor := &mock.ElasticProcessorMock{
+	elasticProcessor := &mock.ElasticProcessorStub{
 		SaveRoundsInfoCalled: func(infos []workItems.RoundInfo) error {
 			if calledCount <= 1 {
 				calledCount++

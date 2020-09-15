@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"math/big"
 	"sync"
 	"testing"
@@ -14,6 +12,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -21,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/stretchr/testify/assert"
@@ -244,7 +244,7 @@ func TestDataIndexer_SetTxLogsProcessor(t *testing.T) {
 
 	called := false
 	arguments := NewDataIndexerArguments()
-	arguments.ElasticProcessor = &mock.ElasticProcessorMock{
+	arguments.ElasticProcessor = &mock.ElasticProcessorStub{
 		SetTxLogsProcessorCalled: func(txLogsProc process.TransactionLogProcessorDatabase) {
 			called = true
 		},
