@@ -98,7 +98,7 @@ func (ec *elasticClient) DoBulkRequest(buff *bytes.Buffer, index string) error {
 }
 
 // DoMultiGet wil do a multi get request to elaticsearch server
-func (ec *elasticClient) DoMultiGet(obj object, index string) (object, error) {
+func (ec *elasticClient) DoMultiGet(obj objectsMap, index string) (objectsMap, error) {
 	body, err := encode(obj)
 	if err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func (ec *elasticClient) DoMultiGet(obj object, index string) (object, error) {
 		return nil, err
 	}
 
-	var decodedBody object
+	var decodedBody objectsMap
 	err = parseResponse(res, &decodedBody, elasticDefaultErrorResponseHandler)
 	if err != nil {
 		log.Warn("elasticClient.DoMultiGet",
@@ -145,7 +145,7 @@ func (ec *elasticClient) DoBulkRemove(index string, hashes []string) error {
 		return err
 	}
 
-	var decodedBody object
+	var decodedBody objectsMap
 	err = parseResponse(res, &decodedBody, elasticDefaultErrorResponseHandler)
 	if err != nil {
 		log.Warn("elasticClient.DoBulkRemove",
@@ -180,7 +180,7 @@ func (ec *elasticClient) PolicyExists(policy string) bool {
 	req, err := newRequest(http.MethodGet, policyRoute, nil)
 	if err != nil {
 		log.Warn("elasticClient.PolicyExists",
-			"could not create request object", err.Error())
+			"could not create request objectsMap", err.Error())
 		return false
 	}
 
@@ -219,7 +219,7 @@ func (ec *elasticClient) aliasExists(alias string) bool {
 	req, err := newRequest(http.MethodHead, aliasRoute, nil)
 	if err != nil {
 		log.Warn("elasticClient.AliasExists",
-			"could not create request object", err.Error())
+			"could not create request objectsMap", err.Error())
 		return false
 	}
 

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 )
 
@@ -69,6 +70,11 @@ func (d *dataDispatcher) Close() error {
 
 // Add will add a new item in queue
 func (d *dataDispatcher) Add(item workItems.WorkItemHandler) {
+	if check.IfNil(item) {
+		log.Warn("dataDispatcher.Add nil item: will do nothing")
+		return
+	}
+
 	d.chanWorkItems <- item
 }
 

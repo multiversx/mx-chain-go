@@ -27,7 +27,7 @@ type Indexer interface {
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRating(indexID string, infoRating []workItems.ValidatorRatingInfo)
-	StopIndexing() error
+	Close() error
 	IsInterfaceNil() bool
 	IsNilIndexer() bool
 }
@@ -58,7 +58,7 @@ type DatabaseClientHandler interface {
 	DoRequest(req *esapi.IndexRequest) error
 	DoBulkRequest(buff *bytes.Buffer, index string) error
 	DoBulkRemove(index string, hashes []string) error
-	DoMultiGet(query object, index string) (object, error)
+	DoMultiGet(query objectsMap, index string) (objectsMap, error)
 
 	CheckAndCreateIndex(index string) error
 	CheckAndCreateAlias(alias string, indexName string) error

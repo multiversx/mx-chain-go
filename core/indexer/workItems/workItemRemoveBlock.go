@@ -24,6 +24,11 @@ func NewItemRemoveBlock(
 	}
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (wirb *itemRemoveBlock) IsInterfaceNil() bool {
+	return wirb == nil
+}
+
 // Save wil remove block and miniblocks from elasticsearch database
 func (wirb *itemRemoveBlock) Save() error {
 	err := wirb.indexer.RemoveHeader(wirb.headerHandler)

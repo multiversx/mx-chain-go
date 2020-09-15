@@ -25,3 +25,8 @@ func (wit *itemTpsBenchmark) Save() error {
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (wit *itemTpsBenchmark) IsInterfaceNil() bool {
+	return wit == nil
+}

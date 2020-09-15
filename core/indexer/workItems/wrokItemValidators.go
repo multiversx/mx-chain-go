@@ -34,3 +34,8 @@ func (wiv *itemValidators) Save() error {
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (wiv *itemValidators) IsInterfaceNil() bool {
+	return wiv == nil
+}

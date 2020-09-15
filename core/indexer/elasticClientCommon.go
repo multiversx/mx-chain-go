@@ -74,16 +74,25 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 
 func errIsAlreadyExists(response map[string]interface{}) bool {
 	alreadyExistsMessage := "resource_already_exists_exception"
+	errKey := "error"
+	typeKey := "type"
 
-	if errMapI, ok := response["error"]; ok {
-		if errMap, ok := errMapI.(map[string]interface{}); ok {
-			if existsString, ok := errMap["type"].(string); ok {
-				return existsString == alreadyExistsMessage
-			}
-		}
+	errMapI, ok := response[errKey]
+	if !ok {
+		return false
 	}
 
-	return false
+	errMap, ok := errMapI.(map[string]interface{})
+	if !ok {
+		return false
+	}
+
+	existsString, ok := errMap[typeKey].(string)
+	if !ok {
+		return false
+	}
+
+	return existsString == alreadyExistsMessage
 }
 
 func kibanaResponseErrorHandler(res *esapi.Response) error {
@@ -118,7 +127,7 @@ func newRequest(method, path string, body *bytes.Buffer) (*http.Request, error) 
 }
 
 /**
- * parseResponse will check and load the elastic/kibana api response into the destination object. Custom errorHandler
+ * parseResponse will check and load the elastic/kibana api response into the destination objectsMap. Custom errorHandler
  *  can be passed for special requests that want to handle StatusCode != 200. Every responseErrorHandler
  *  implementation should call loadResponseBody or consume the response body in order to be able to
  *  reuse persistent TCP connections: https://github.com/elastic/go-elasticsearch#usage

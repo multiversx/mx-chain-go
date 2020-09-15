@@ -27,8 +27,8 @@ func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatab
 
 }
 
-// StopIndexing will do nothing
-func (im *IndexerMock) StopIndexing() error {
+// Close will do nothing
+func (im *IndexerMock) Close() error {
 	return nil
 }
 

@@ -26,16 +26,16 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 	body *block.Body,
 	notarizedHeadersHashes []string,
 	sizeTxs int,
-) ([]byte, []byte) {
+) ([]byte, []byte, error) {
 	headerBytes, err := dp.marshalizer.Marshal(header)
 	if err != nil {
 		log.Debug("indexer: marshal header", "error", err)
-		return nil, nil
+		return nil, nil, err
 	}
 	bodyBytes, err := dp.marshalizer.Marshal(body)
 	if err != nil {
 		log.Debug("indexer: marshal body", "error", err)
-		return nil, nil
+		return nil, nil, err
 	}
 
 	blockSizeInBytes := len(headerBytes) + len(bodyBytes)
@@ -82,10 +82,10 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 	serializedBlock, err := json.Marshal(elasticBlock)
 	if err != nil {
 		log.Debug("indexer: marshal", "error", "could not marshal elastic header")
-		return nil, nil
+		return nil, nil, err
 	}
 
-	return serializedBlock, headerHash
+	return serializedBlock, headerHash, nil
 }
 
 func (dp *dataParser) getMiniblocks(header data.HeaderHandler, body *block.Body) []*Miniblock {
@@ -138,7 +138,8 @@ func serializeRoundInfo(info workItems.RoundInfo) ([]byte, []byte) {
 
 	serializedInfo, err := json.Marshal(info)
 	if err != nil {
-		log.Debug("indexer: could not serialize round info, will skip indexing this round info")
+		log.Warn("indexer: could not serialize round info, will skip indexing this round info",
+			"error", err.Error())
 		return nil, nil
 	}
 	// append a newline foreach element in the bulk we create

@@ -82,6 +82,11 @@ func (wib *itemBlock) Save() error {
 	return nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (wib *itemBlock) IsInterfaceNil() bool {
+	return wib == nil
+}
+
 func computeSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.TransactionHandler) int {
 	if len(txs) == 0 {
 		return 0

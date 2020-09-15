@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-// ElasticProcessorMock -
-type ElasticProcessorMock struct {
+// ElasticProcessorStub -
+type ElasticProcessorStub struct {
 	SaveShardStatisticsCalled        func(tpsBenchmark statistics.TPSBenchmark) error
 	SaveHeaderCalled                 func(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int) error
 	RemoveHeaderCalled               func(header data.HeaderHandler) error
@@ -23,7 +23,7 @@ type ElasticProcessorMock struct {
 }
 
 // SaveShardStatistics -
-func (eim *ElasticProcessorMock) SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark) error {
+func (eim *ElasticProcessorStub) SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark) error {
 	if eim.SaveShardStatisticsCalled != nil {
 		return eim.SaveShardStatisticsCalled(tpsBenchmark)
 	}
@@ -31,7 +31,7 @@ func (eim *ElasticProcessorMock) SaveShardStatistics(tpsBenchmark statistics.TPS
 }
 
 // SaveHeader -
-func (eim *ElasticProcessorMock) SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int) error {
+func (eim *ElasticProcessorStub) SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int) error {
 	if eim.SaveHeaderCalled != nil {
 		return eim.SaveHeaderCalled(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
 	}
@@ -39,7 +39,7 @@ func (eim *ElasticProcessorMock) SaveHeader(header data.HeaderHandler, signersIn
 }
 
 // RemoveHeader -
-func (eim *ElasticProcessorMock) RemoveHeader(header data.HeaderHandler) error {
+func (eim *ElasticProcessorStub) RemoveHeader(header data.HeaderHandler) error {
 	if eim.RemoveHeaderCalled != nil {
 		return eim.RemoveHeaderCalled(header)
 	}
@@ -47,7 +47,7 @@ func (eim *ElasticProcessorMock) RemoveHeader(header data.HeaderHandler) error {
 }
 
 // RemoveMiniblocks -
-func (eim *ElasticProcessorMock) RemoveMiniblocks(header data.HeaderHandler, body *block.Body) error {
+func (eim *ElasticProcessorStub) RemoveMiniblocks(header data.HeaderHandler, body *block.Body) error {
 	if eim.RemoveMiniblocksCalled != nil {
 		return eim.RemoveMiniblocksCalled(header, body)
 	}
@@ -55,7 +55,7 @@ func (eim *ElasticProcessorMock) RemoveMiniblocks(header data.HeaderHandler, bod
 }
 
 // SaveMiniblocks -
-func (eim *ElasticProcessorMock) SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error) {
+func (eim *ElasticProcessorStub) SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error) {
 	if eim.SaveMiniblocksCalled != nil {
 		return eim.SaveMiniblocksCalled(header, body)
 	}
@@ -63,7 +63,7 @@ func (eim *ElasticProcessorMock) SaveMiniblocks(header data.HeaderHandler, body 
 }
 
 // SaveTransactions -
-func (eim *ElasticProcessorMock) SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error {
+func (eim *ElasticProcessorStub) SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error {
 	if eim.SaveTransactionsCalled != nil {
 		return eim.SaveTransactionsCalled(body, header, txPool, selfShardID, mbsInDb)
 	}
@@ -71,7 +71,7 @@ func (eim *ElasticProcessorMock) SaveTransactions(body *block.Body, header data.
 }
 
 // SaveValidatorsRating -
-func (eim *ElasticProcessorMock) SaveValidatorsRating(index string, validatorsRatingInfo []workItems.ValidatorRatingInfo) error {
+func (eim *ElasticProcessorStub) SaveValidatorsRating(index string, validatorsRatingInfo []workItems.ValidatorRatingInfo) error {
 	if eim.SaveValidatorsRatingCalled != nil {
 		return eim.SaveValidatorsRatingCalled(index, validatorsRatingInfo)
 	}
@@ -79,7 +79,7 @@ func (eim *ElasticProcessorMock) SaveValidatorsRating(index string, validatorsRa
 }
 
 // SaveRoundsInfo -
-func (eim *ElasticProcessorMock) SaveRoundsInfo(info []workItems.RoundInfo) error {
+func (eim *ElasticProcessorStub) SaveRoundsInfo(info []workItems.RoundInfo) error {
 	if eim.SaveRoundsInfoCalled != nil {
 		return eim.SaveRoundsInfoCalled(info)
 	}
@@ -87,7 +87,7 @@ func (eim *ElasticProcessorMock) SaveRoundsInfo(info []workItems.RoundInfo) erro
 }
 
 // SaveShardValidatorsPubKeys -
-func (eim *ElasticProcessorMock) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error {
+func (eim *ElasticProcessorStub) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error {
 	if eim.SaveShardValidatorsPubKeysCalled != nil {
 		return eim.SaveShardValidatorsPubKeysCalled(shardID, epoch, shardValidatorsPubKeys)
 	}
@@ -95,7 +95,7 @@ func (eim *ElasticProcessorMock) SaveShardValidatorsPubKeys(shardID, epoch uint3
 }
 
 // SetTxLogsProcessor -
-func (eim *ElasticProcessorMock) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
+func (eim *ElasticProcessorStub) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
 	if eim.SetTxLogsProcessorCalled != nil {
 		eim.SetTxLogsProcessorCalled(txLogsProc)
 	}

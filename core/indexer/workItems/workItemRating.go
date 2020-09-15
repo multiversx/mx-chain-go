@@ -21,6 +21,11 @@ func NewItemRating(indexer saveRatingIndexer, indexID string, infoRating []Valid
 	}
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
+func (wir *itemRating) IsInterfaceNil() bool {
+	return wir == nil
+}
+
 // Save will save validators rating in elasticsearch database
 func (wir *itemRating) Save() error {
 	err := wir.indexer.SaveValidatorsRating(wir.indexID, wir.infoRating)

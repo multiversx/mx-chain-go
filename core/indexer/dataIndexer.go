@@ -23,7 +23,7 @@ type dataIndexer struct {
 }
 
 // NewDataIndexer will create a new data indexer
-func NewDataIndexer(arguments DataIndexerArgs) (Indexer, error) {
+func NewDataIndexer(arguments ArgDataIndexer) (Indexer, error) {
 	err := checkIndexerArgs(arguments)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func NewDataIndexer(arguments DataIndexerArgs) (Indexer, error) {
 	return dataIndexer, nil
 }
 
-func checkIndexerArgs(arguments DataIndexerArgs) error {
+func checkIndexerArgs(arguments ArgDataIndexer) error {
 	if arguments.DataDispatcher == nil {
 		return ErrNilDataDispatcher
 	}
@@ -104,8 +104,8 @@ func (di *dataIndexer) SaveBlock(
 	di.dispatcher.Add(wi)
 }
 
-// StopIndexing will stop goroutine that index data in database
-func (di *dataIndexer) StopIndexing() error {
+// Close will stop goroutine that index data in database
+func (di *dataIndexer) Close() error {
 	return di.dispatcher.Close()
 }
 

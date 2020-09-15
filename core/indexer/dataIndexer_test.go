@@ -40,14 +40,14 @@ func newTestMetaBlock() *dataBlock.MetaBlock {
 	}
 }
 
-func NewDataIndexerArguments() DataIndexerArgs {
-	return DataIndexerArgs{
+func NewDataIndexerArguments() ArgDataIndexer {
+	return ArgDataIndexer{
 		Marshalizer:        &mock.MarshalizerMock{},
 		Options:            &Options{},
 		NodesCoordinator:   &mock.NodesCoordinatorMock{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		DataDispatcher:     &mock.DispatcherMock{},
-		ElasticProcessor:   &mock.ElasticProcessorMock{},
+		ElasticProcessor:   &mock.ElasticProcessorStub{},
 	}
 }
 
@@ -91,7 +91,7 @@ func TestDataIndexer_UpdateTPS(t *testing.T) {
 	}
 	ei, err := NewDataIndexer(arguments)
 	require.Nil(t, err)
-	_ = ei.StopIndexing()
+	_ = ei.Close()
 
 	tpsBench := testscommon.TpsBenchmarkMock{}
 	tpsBench.Update(newTestMetaBlock())
@@ -113,7 +113,7 @@ func TestDataIndexer_UpdateTPSNil(t *testing.T) {
 
 	ei, err := NewDataIndexer(arguments)
 	require.Nil(t, err)
-	_ = ei.StopIndexing()
+	_ = ei.Close()
 
 	ei.UpdateTPS(nil)
 	require.NotEmpty(t, output.String())
@@ -148,7 +148,7 @@ func TestDataIndexer_SaveRoundInfo(t *testing.T) {
 
 	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
 	ei, _ := NewDataIndexer(arguments)
-	_ = ei.StopIndexing()
+	_ = ei.Close()
 
 	ei.SaveRoundsInfo([]workItems.RoundInfo{})
 	require.True(t, called)
@@ -285,7 +285,7 @@ func testCreateIndexer(t *testing.T) {
 		Password:  "",
 	})
 
-	elasticIndexer, _ := NewElasticProcessor(ElasticProcessorArgs{
+	elasticIndexer, _ := NewElasticProcessor(ArgElasticProcessor{
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 		Marshalizer:              &marshal.JsonMarshalizer{},
@@ -298,7 +298,7 @@ func testCreateIndexer(t *testing.T) {
 		DBClient: dbClient,
 	})
 
-	dataIndexer, err := NewDataIndexer(DataIndexerArgs{
+	dataIndexer, err := NewDataIndexer(ArgDataIndexer{
 		Options: &Options{
 			TxIndexingEnabled: true,
 		},

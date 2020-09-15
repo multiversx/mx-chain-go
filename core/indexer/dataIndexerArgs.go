@@ -9,8 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-//DataIndexerArgs is struct that is used to store all components that are needed to create a indexer
-type DataIndexerArgs struct {
+//ArgDataIndexer is struct that is used to store all components that are needed to create a indexer
+type ArgDataIndexer struct {
 	TxIndexingEnabled  bool
 	ShardID            uint32
 	Marshalizer        marshal.Marshalizer
@@ -21,8 +21,8 @@ type DataIndexerArgs struct {
 	ElasticProcessor   ElasticProcessor
 }
 
-//ElasticProcessorArgs is struct that is used to store all components that are needed to an elastic indexer
-type ElasticProcessorArgs struct {
+//ArgElasticProcessor is struct that is used to store all components that are needed to an elastic indexer
+type ArgElasticProcessor struct {
 	IndexTemplates           map[string]*bytes.Buffer
 	IndexPolicies            map[string]*bytes.Buffer
 	Marshalizer              marshal.Marshalizer
