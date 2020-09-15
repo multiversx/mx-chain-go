@@ -31,6 +31,11 @@ func (tc *TimeCache) Has(_ string) bool {
 	return false
 }
 
+// Len does nothing
+func (tc *TimeCache) Len() int {
+	return 0
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tc *TimeCache) IsInterfaceNil() bool {
 	return tc == nil

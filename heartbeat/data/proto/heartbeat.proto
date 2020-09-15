@@ -35,6 +35,7 @@ message HeartbeatDTO {
     int64   LastUptimeDowntime           = 14;
     int64   GenesisTime                  = 15;
     uint64  Nonce                        = 16;
+    uint64  NumInstances                 = 17;
 }
 
 message DbTimeStamp {
