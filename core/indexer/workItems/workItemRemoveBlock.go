@@ -33,19 +33,19 @@ func (wirb *itemRemoveBlock) IsInterfaceNil() bool {
 func (wirb *itemRemoveBlock) Save() error {
 	err := wirb.indexer.RemoveHeader(wirb.headerHandler)
 	if err != nil {
-		log.Warn("itemRemoveBlock.Save could not remove block", err.Error())
+		log.Warn("itemRemoveBlock.Save", "could not remove block", err.Error())
 		return err
 	}
 
 	body, ok := wirb.bodyHandler.(*block.Body)
 	if !ok {
-		log.Warn("itemRemoveBlock.Save body", ErrBodyTypeAssertion.Error())
+		log.Warn("itemRemoveBlock.Save", "body", ErrBodyTypeAssertion.Error())
 		return ErrBodyTypeAssertion
 	}
 
 	err = wirb.indexer.RemoveMiniblocks(wirb.headerHandler, body)
 	if err != nil {
-		log.Warn("itemRemoveBlock.Save could not remove miniblocks", err.Error())
+		log.Warn("itemRemoveBlock.Save", "could not remove miniblocks", err.Error())
 		return err
 	}
 

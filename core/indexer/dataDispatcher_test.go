@@ -27,8 +27,6 @@ func TestNewDataDispatcher(t *testing.T) {
 }
 
 func TestDataDispatcher_StartIndexDataClose(t *testing.T) {
-	t.Parallel()
-
 	dispatcher, err := NewDataDispatcher(100)
 	require.NoError(t, err)
 	dispatcher.StartIndexData()
@@ -53,8 +51,6 @@ func TestDataDispatcher_StartIndexDataClose(t *testing.T) {
 }
 
 func TestDataDispatcher_Add(t *testing.T) {
-	t.Parallel()
-
 	dispatcher, err := NewDataDispatcher(100)
 	require.NoError(t, err)
 	dispatcher.StartIndexData()

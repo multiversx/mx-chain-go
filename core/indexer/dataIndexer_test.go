@@ -149,9 +149,8 @@ func TestDataIndexer_UpdateTPSNil(t *testing.T) {
 }
 
 func TestDataIndexer_SaveBlock(t *testing.T) {
-	t.Parallel()
-
 	called := false
+
 	arguments := NewDataIndexerArguments()
 	arguments.DataDispatcher = &mock.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
@@ -165,9 +164,8 @@ func TestDataIndexer_SaveBlock(t *testing.T) {
 }
 
 func TestDataIndexer_SaveRoundInfo(t *testing.T) {
-	t.Parallel()
-
 	called := false
+
 	arguments := NewDataIndexerArguments()
 	arguments.DataDispatcher = &mock.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
@@ -184,9 +182,8 @@ func TestDataIndexer_SaveRoundInfo(t *testing.T) {
 }
 
 func TestDataIndexer_SaveValidatorsPubKeys(t *testing.T) {
-	t.Parallel()
-
 	called := false
+
 	arguments := NewDataIndexerArguments()
 	arguments.DataDispatcher = &mock.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
@@ -206,9 +203,8 @@ func TestDataIndexer_SaveValidatorsPubKeys(t *testing.T) {
 }
 
 func TestDataIndexer_SaveValidatorsRating(t *testing.T) {
-	t.Parallel()
-
 	called := false
+
 	arguments := NewDataIndexerArguments()
 	arguments.DataDispatcher = &mock.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
@@ -224,9 +220,8 @@ func TestDataIndexer_SaveValidatorsRating(t *testing.T) {
 }
 
 func TestDataIndexer_RevertIndexedBlock(t *testing.T) {
-	t.Parallel()
-
 	called := false
+
 	arguments := NewDataIndexerArguments()
 	arguments.DataDispatcher = &mock.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
@@ -240,9 +235,8 @@ func TestDataIndexer_RevertIndexedBlock(t *testing.T) {
 }
 
 func TestDataIndexer_SetTxLogsProcessor(t *testing.T) {
-	t.Parallel()
-
 	called := false
+
 	arguments := NewDataIndexerArguments()
 	arguments.ElasticProcessor = &mock.ElasticProcessorStub{
 		SetTxLogsProcessorCalled: func(txLogsProc process.TransactionLogProcessorDatabase) {

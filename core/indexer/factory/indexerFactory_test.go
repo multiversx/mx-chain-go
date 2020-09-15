@@ -34,8 +34,6 @@ func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
 }
 
 func TestNewIndexerFactory(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name     string
 		argsFunc func() *ArgsIndexerFactory
@@ -146,8 +144,6 @@ func TestIndexerFactoryCreate_NilIndexer(t *testing.T) {
 }
 
 func TestIndexerFactoryCreate_ElasticIndexer(t *testing.T) {
-	t.Parallel()
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	args := createMockIndexerFactoryArgs()
 	args.Url = ts.URL
@@ -159,4 +155,6 @@ func TestIndexerFactoryCreate_ElasticIndexer(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, elasticIndexer.IsNilIndexer())
 
+	err = elasticIndexer.Close()
+	require.NoError(t, err)
 }

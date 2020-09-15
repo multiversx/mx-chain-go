@@ -114,9 +114,8 @@ func TestNewElasticProcessorWithKibana(t *testing.T) {
 }
 
 func TestElasticProcessor_RemoveHeader(t *testing.T) {
-	t.Parallel()
-
 	called := false
+
 	args := createMockElasticProcessorArgs()
 	args.DBClient = &mock.DatabaseWriterStub{
 		DoBulkRemoveCalled: func(index string, hashes []string) error {
@@ -134,8 +133,6 @@ func TestElasticProcessor_RemoveHeader(t *testing.T) {
 }
 
 func TestElasticProcessor_RemoveMiniblocks(t *testing.T) {
-	t.Parallel()
-
 	called := false
 
 	mb1 := &dataBlock.MiniBlock{Type: dataBlock.PeerBlock}
@@ -244,6 +241,51 @@ func TestElasticseachSaveTransactions(t *testing.T) {
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 	err := elasticDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
 	require.Equal(t, localErr, err)
+}
+
+func TestElasticProcessor_SaveValidatorsRating(t *testing.T) {
+	docID := "0_1"
+	localErr := errors.New("localErr")
+
+	arguments := createMockElasticProcessorArgs()
+	arguments.DBClient = &mock.DatabaseWriterStub{
+		DoRequestCalled: func(req *esapi.IndexRequest) error {
+			require.Equal(t, docID, req.DocumentID)
+
+			return localErr
+		},
+	}
+
+	elasticProcessor, _ := NewElasticProcessor(arguments)
+
+	err := elasticProcessor.SaveValidatorsRating(docID, []workItems.ValidatorRatingInfo{
+		{PublicKey: "blablabla", Rating: 100},
+	})
+	require.Equal(t, localErr, err)
+}
+
+func TestElasticProcessor_SaveMiniblocks(t *testing.T) {
+	localErr := errors.New("localErr")
+
+	arguments := createMockElasticProcessorArgs()
+	arguments.DBClient = &mock.DatabaseWriterStub{
+		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
+			return localErr
+		},
+		DoMultiGetCalled: func(query map[string]interface{}, index string) (map[string]interface{}, error) {
+			return nil, nil
+		},
+	}
+
+	elasticProcessor, _ := NewElasticProcessor(arguments)
+
+	header := &dataBlock.Header{}
+	body := &dataBlock.Body{MiniBlocks: dataBlock.MiniBlockSlice{
+		{SenderShardID: 0, ReceiverShardID: 1},
+	}}
+	mbsInDB, err := elasticProcessor.SaveMiniblocks(header, body)
+	require.Equal(t, localErr, err)
+	require.Equal(t, 0, len(mbsInDB))
 }
 
 func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
