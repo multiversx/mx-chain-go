@@ -148,18 +148,18 @@ func serializeRoundInfo(info workItems.RoundInfo) ([]byte, []byte) {
 	return serializedInfo, meta
 }
 
-func computeBlockSearchOrder(header data.HeaderHandler) uint32 {
+func computeBlockSearchOrder(header data.HeaderHandler) uint64 {
 	shardIdentifier := createShardIdentifier(header.GetShardID())
 	stringOrder := fmt.Sprintf("1%02d%d", shardIdentifier, header.GetNonce())
 
-	order, err := strconv.ParseUint(stringOrder, 10, 32)
+	order, err := strconv.ParseUint(stringOrder, 10, 64)
 	if err != nil {
 		log.Debug("elasticsearchDatabase.computeBlockSearchOrder",
 			"could not set uint32 search order", err.Error())
 		return 0
 	}
 
-	return uint32(order)
+	return order
 }
 
 func createShardIdentifier(shardID uint32) uint32 {

@@ -2,5 +2,5 @@ package workItems
 
 import "errors"
 
-// ErrBodyTypeAssertion signals that we could not create an elasticsearch index
+// ErrBodyTypeAssertion signals that body type assertion failed
 var ErrBodyTypeAssertion = errors.New("elasticsearch - body type assertion failed")

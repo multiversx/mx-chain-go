@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -47,19 +48,19 @@ func NewDataIndexer(arguments ArgDataIndexer) (Indexer, error) {
 }
 
 func checkIndexerArgs(arguments ArgDataIndexer) error {
-	if arguments.DataDispatcher == nil {
+	if check.IfNil(arguments.DataDispatcher) {
 		return ErrNilDataDispatcher
 	}
-	if arguments.ElasticProcessor == nil {
+	if check.IfNil(arguments.ElasticProcessor) {
 		return ErrNilElasticProcessor
 	}
-	if arguments.NodesCoordinator == nil {
+	if check.IfNil(arguments.NodesCoordinator) {
 		return core.ErrNilNodesCoordinator
 	}
-	if arguments.EpochStartNotifier == nil {
+	if check.IfNil(arguments.EpochStartNotifier) {
 		return core.ErrNilEpochStartNotifier
 	}
-	if arguments.Marshalizer == nil {
+	if check.IfNil(arguments.Marshalizer) {
 		return core.ErrNilMarshalizer
 	}
 
@@ -109,7 +110,7 @@ func (di *dataIndexer) Close() error {
 	return di.dispatcher.Close()
 }
 
-// RevertIndexedBlock -
+// RevertIndexedBlock will remove from database block and miniblocks
 func (di *dataIndexer) RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler) {
 	wi := workItems.NewItemRemoveBlock(
 		di.elasticProcessor,
@@ -119,13 +120,13 @@ func (di *dataIndexer) RevertIndexedBlock(header data.HeaderHandler, body data.B
 	di.dispatcher.Add(wi)
 }
 
-// SaveRoundsInfo will save data about a slice of rounds on elasticsearch
+// SaveRoundsInfo will save data about a slice of rounds in elasticsearch
 func (di *dataIndexer) SaveRoundsInfo(roundsInfo []workItems.RoundInfo) {
 	wi := workItems.NewItemRounds(di.elasticProcessor, roundsInfo)
 	di.dispatcher.Add(wi)
 }
 
-// SaveValidatorsRating will send all validators rating info to elasticsearch
+// SaveValidatorsRating will save all validators rating info to elasticsearch
 func (di *dataIndexer) SaveValidatorsRating(indexID string, validatorsRatingInfo []workItems.ValidatorRatingInfo) {
 	wi := workItems.NewItemRating(
 		di.elasticProcessor,
@@ -135,7 +136,7 @@ func (di *dataIndexer) SaveValidatorsRating(indexID string, validatorsRatingInfo
 	di.dispatcher.Add(wi)
 }
 
-// SaveValidatorsPubKeys will send all validators public keys to elasticsearch
+// SaveValidatorsPubKeys will save all validators public keys to elasticsearch
 func (di *dataIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
 	wi := workItems.NewItemValidators(
 		di.elasticProcessor,

@@ -17,7 +17,7 @@ func exists(res *esapi.Response, err error) bool {
 			_, _ = io.Copy(ioutil.Discard, res.Body)
 			err = res.Body.Close()
 			if err != nil {
-				log.Warn("elasticClient.IndexExists", "could not close body: ", err.Error())
+				log.Warn("elasticClient.exists", "could not close body: ", err.Error())
 			}
 		}
 	}()
@@ -66,9 +66,9 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 	}
 
 	log.Warn("elasticClient.parseResponse",
-		"error returned by elastic API:", res.StatusCode)
-	log.Warn("elasticClient.parseResponse",
-		"error returned by elastic API:", res.Body)
+		"error returned by elastic API:", res.StatusCode,
+		"body:", res.Body)
+
 	return ErrBackOff
 }
 

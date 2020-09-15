@@ -32,11 +32,12 @@ type Indexer interface {
 	IsNilIndexer() bool
 }
 
-// DispatcherHandler is an interface for the data dispatcher data is used to index data in database
+// DispatcherHandler defines the interface for the dispatcher that will manage when items are saved in elasticsearch database
 type DispatcherHandler interface {
 	StartIndexData()
 	Close() error
 	Add(item workItems.WorkItemHandler)
+	IsInterfaceNil() bool
 }
 
 // ElasticProcessor defines the interface for the elastic search indexer
@@ -51,6 +52,7 @@ type ElasticProcessor interface {
 	SaveRoundsInfo(infos []workItems.RoundInfo) error
 	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
+	IsInterfaceNil() bool
 }
 
 // DatabaseClientHandler is an interface that do requests to elasticsearch server
@@ -61,7 +63,9 @@ type DatabaseClientHandler interface {
 	DoMultiGet(query objectsMap, index string) (objectsMap, error)
 
 	CheckAndCreateIndex(index string) error
-	CheckAndCreateAlias(alias string, indexName string) error
+	CheckAndCreateAlias(alias string, index string) error
 	CheckAndCreateTemplate(templateName string, template *bytes.Buffer) error
 	CheckAndCreatePolicy(policyName string, policy *bytes.Buffer) error
+
+	IsInterfaceNil() bool
 }

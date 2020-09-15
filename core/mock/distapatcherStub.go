@@ -30,3 +30,8 @@ func (dm *DispatcherMock) Add(item workItems.WorkItemHandler) {
 		dm.AddCalled(item)
 	}
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (dm *DispatcherMock) IsInterfaceNil() bool {
+	return dm == nil
+}

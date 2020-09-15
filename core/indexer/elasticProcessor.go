@@ -75,7 +75,7 @@ func (ei *elasticProcessor) initWithKibana(indexTemplates, indexPolicies map[str
 		return err
 	}
 
-	err = ei.setInitialAliases()
+	err = ei.createAliases()
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (ei *elasticProcessor) createIndexes() error {
 	return nil
 }
 
-func (ei *elasticProcessor) setInitialAliases() error {
+func (ei *elasticProcessor) createAliases() error {
 	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
@@ -399,4 +399,9 @@ func (ei *elasticProcessor) SaveRoundsInfo(infos []workItems.RoundInfo) error {
 	}
 
 	return ei.elasticClient.DoBulkRequest(&buff, roundIndex)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ei *elasticProcessor) IsInterfaceNil() bool {
+	return ei == nil
 }

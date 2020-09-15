@@ -89,7 +89,7 @@ func (ec *elasticClient) DoBulkRequest(buff *bytes.Buffer, index string) error {
 
 	res, err := ec.es.Bulk(reader, ec.es.Bulk.WithIndex(index))
 	if err != nil {
-		log.Warn("elasticClient.DoMultiGet",
+		log.Warn("elasticClient.DoBulkRequest",
 			"indexer do bulk request no response", err.Error())
 		return err
 	}
@@ -307,4 +307,9 @@ func (ec *elasticClient) createAlias(alias string, index string) error {
 	}
 
 	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ec *elasticClient) IsInterfaceNil() bool {
+	return ec == nil
 }

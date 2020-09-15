@@ -29,24 +29,23 @@ func (wirb *itemRemoveBlock) IsInterfaceNil() bool {
 	return wirb == nil
 }
 
-// Save wil remove block and miniblocks from elasticsearch database
+// Save wil remove a block and miniblocks from elasticsearch database
 func (wirb *itemRemoveBlock) Save() error {
 	err := wirb.indexer.RemoveHeader(wirb.headerHandler)
 	if err != nil {
-		log.Warn("itemRemoveBlock.Save", "cold not remove block", err.Error())
+		log.Warn("itemRemoveBlock.Save could not remove block", err.Error())
 		return err
 	}
 
 	body, ok := wirb.bodyHandler.(*block.Body)
 	if !ok {
-		log.Warn("itemRemoveBlock.Save", "body", ErrBodyTypeAssertion.Error())
+		log.Warn("itemRemoveBlock.Save body", ErrBodyTypeAssertion.Error())
 		return ErrBodyTypeAssertion
 	}
 
 	err = wirb.indexer.RemoveMiniblocks(wirb.headerHandler, body)
 	if err != nil {
-		log.Warn("itemRemoveBlock.Save", "could not remove miniblocks", err.Error())
-		//d.workQueue.GotBackOff()
+		log.Warn("itemRemoveBlock.Save could not remove miniblocks", err.Error())
 		return err
 	}
 

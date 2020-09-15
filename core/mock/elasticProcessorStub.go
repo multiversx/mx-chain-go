@@ -100,3 +100,8 @@ func (eim *ElasticProcessorStub) SetTxLogsProcessor(txLogsProc process.Transacti
 		eim.SetTxLogsProcessorCalled(txLogsProc)
 	}
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (eim *ElasticProcessorStub) IsInterfaceNil() bool {
+	return eim == nil
+}

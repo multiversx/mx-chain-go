@@ -117,7 +117,7 @@ func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
 	if check.IfNil(arguments.NodesCoordinator) {
 		return core.ErrNilNodesCoordinator
 	}
-	if arguments.EpochStartNotifier == nil {
+	if check.IfNil(arguments.EpochStartNotifier) {
 		return core.ErrNilEpochStartNotifier
 	}
 
