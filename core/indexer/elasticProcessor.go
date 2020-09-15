@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -24,6 +25,11 @@ type elasticProcessor struct {
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
 func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error) {
+	err := checkArgElasticProcessor(arguments)
+	if err != nil {
+		return nil, err
+	}
+
 	ei := &elasticProcessor{
 		elasticClient: arguments.DBClient,
 		parser: &dataParser{
@@ -52,6 +58,29 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 	}
 
 	return ei, nil
+}
+
+func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
+	if check.IfNil(arguments.DBClient) {
+		return ErrNilDatabaseClient
+	}
+	if check.IfNil(arguments.Marshalizer) {
+		return core.ErrNilMarshalizer
+	}
+	if check.IfNil(arguments.Hasher) {
+		return core.ErrNilHasher
+	}
+	if check.IfNil(arguments.AddressPubkeyConverter) {
+		return ErrNilPubkeyConverter
+	}
+	if check.IfNil(arguments.ValidatorPubkeyConverter) {
+		return ErrNilPubkeyConverter
+	}
+	if arguments.Options == nil {
+		return ErrNilOptions
+	}
+
+	return nil
 }
 
 func (ei *elasticProcessor) initWithKibana(indexTemplates, indexPolicies map[string]*bytes.Buffer) error {

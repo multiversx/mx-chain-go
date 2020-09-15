@@ -32,6 +32,10 @@ type dataDispatcher struct {
 // NewDataDispatcher creates a new dataDispatcher instance, capable of selecting the correct that will save
 // sequentially data in elasticsearch database
 func NewDataDispatcher(cacheSize int) (*dataDispatcher, error) {
+	if cacheSize < 0 {
+		return nil, ErrNegativeCacheSize
+	}
+
 	dd := &dataDispatcher{
 		chanWorkItems: make(chan workItems.WorkItemHandler, cacheSize),
 	}
