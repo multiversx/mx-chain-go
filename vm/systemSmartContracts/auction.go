@@ -668,7 +668,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	registrationData.TotalStakeValue.Add(registrationData.TotalStakeValue, args.CallValue)
 	if registrationData.TotalStakeValue.Cmp(auctionConfig.NodePrice) < 0 {
 		s.eei.AddReturnMessage(
-			fmt.Sprintf("insufficient stake value expected %s, got %s",
+			fmt.Sprintf("insufficient stake value: expected %s, got %s",
 				auctionConfig.NodePrice.String(),
 				registrationData.TotalStakeValue.String(),
 			),
@@ -703,9 +703,11 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		registrationData.RewardAddress = args.CallerAddr
 	}
 
+	//TODO: verify if the next two lines are correct
 	registrationData.MaxStakePerNode = big.NewInt(0).Set(registrationData.TotalStakeValue)
 	registrationData.Epoch = s.eei.BlockChainHook().CurrentEpoch()
 
+	//TODO: registrationData.BLSKeys is changed inside, but can return nil, nil
 	blsKeys, err := s.registerBLSKeys(registrationData, args.CallerAddr, args.Arguments)
 	if err != nil {
 		s.eei.AddReturnMessage("cannot register bls key: error " + err.Error())
@@ -729,7 +731,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 				}
 				continue
 			}
-
+			//TODO: check this: too late to check maxStakePerNode
 			maxStakePerNode, ok := big.NewInt(0).SetString(string(args.Arguments[i]), conversionBase)
 			if !ok {
 				continue
@@ -739,7 +741,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	currentNonce := s.eei.BlockChainHook().CurrentNonce()
-	if currentNonce == 0 || !s.isFunctionEnabled(s.enableAuctionNonce) {
+	if currentNonce == 0 || s.isFunctionEnabled(s.enableAuctionNonce) {
 		s.activateStakingFor(
 			blsKeys,
 			numQualified.Uint64(),
@@ -767,7 +769,8 @@ func (s *stakingAuctionSC) activateStakingFor(
 ) {
 	numRegistered := uint64(registrationData.NumRegistered)
 	for i := uint64(0); numRegistered < numQualified && i < uint64(len(blsKeys)); i++ {
-		stakedData, err := s.getStakedData(blsKeys[i])
+		currentBLSKey := blsKeys[i]
+		stakedData, err := s.getStakedData(currentBLSKey)
 		if err != nil {
 			continue
 		}
@@ -776,23 +779,23 @@ func (s *stakingAuctionSC) activateStakingFor(
 			continue
 		}
 
-		vmOutput, err := s.executeOnStakingSC([]byte("stake@" + hex.EncodeToString(blsKeys[i]) + "@" + hex.EncodeToString(rewardAddress)))
+		vmOutput, err := s.executeOnStakingSC([]byte("stake@" + hex.EncodeToString(currentBLSKey) + "@" + hex.EncodeToString(rewardAddress)))
 		if err != nil {
-			s.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(blsKeys[i]), err.Error()))
-			s.eei.Finish(blsKeys[i])
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(currentBLSKey), err.Error()))
+			s.eei.Finish(currentBLSKey)
 			s.eei.Finish([]byte{failed})
 			continue
-		}
 
+		}
 		if vmOutput.ReturnCode != vmcommon.Ok {
-			s.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(blsKeys[i]), vmOutput.ReturnCode.String()))
-			s.eei.Finish(blsKeys[i])
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(currentBLSKey), vmOutput.ReturnCode.String()))
+			s.eei.Finish(currentBLSKey)
 			s.eei.Finish([]byte{failed})
 			continue
 		}
 
 		if len(vmOutput.ReturnData) > 0 && bytes.Equal(vmOutput.ReturnData[0], []byte{waiting}) {
-			s.eei.Finish(blsKeys[i])
+			s.eei.Finish(currentBLSKey)
 			s.eei.Finish([]byte{waiting})
 		}
 
