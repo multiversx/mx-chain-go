@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arguments ElasticProcessorArgs) *elasticProcessor {
+func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arguments ArgElasticProcessor) *elasticProcessor {
 	return &elasticProcessor{
 		txDatabaseProcessor: newTxDatabaseProcessor(
 			arguments.Hasher,
@@ -42,8 +42,8 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 	}
 }
 
-func createMockElasticProcessorArgs() ElasticProcessorArgs {
-	return ElasticProcessorArgs{
+func createMockElasticProcessorArgs() ArgElasticProcessor {
+	return ArgElasticProcessor{
 		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
 		Hasher:                   &mock.HasherMock{},
@@ -364,7 +364,7 @@ func TestUpdateMiniBlock(t *testing.T) {
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticProcessorArgs{
+	args := ArgElasticProcessor{
 		DBClient:       dbClient,
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &mock.HasherMock{},
@@ -402,7 +402,7 @@ func TestSaveRoundsInfo(t *testing.T) {
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticProcessorArgs{
+	args := ArgElasticProcessor{
 		DBClient:       dbClient,
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &mock.HasherMock{},
@@ -433,7 +433,7 @@ func TestUpdateTransaction(t *testing.T) {
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticProcessorArgs{
+	args := ArgElasticProcessor{
 		DBClient:       dbClient,
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &mock.HasherMock{},
@@ -545,7 +545,7 @@ func TestGetMultiple(t *testing.T) {
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticProcessorArgs{
+	args := ArgElasticProcessor{
 		DBClient:       dbClient,
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &mock.HasherMock{},
@@ -561,7 +561,7 @@ func TestGetMultiple(t *testing.T) {
 	}
 
 	es := esDatabase.(*elasticProcessor)
-	response, _ := es.foundedObjMap(hashes, "transactions")
+	response, _ := es.getExistingObjMap(hashes, "transactions")
 	fmt.Println(response)
 }
 
@@ -573,7 +573,7 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticProcessorArgs{
+	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &mock.HasherMock{},
@@ -634,7 +634,7 @@ func TestDoBulkRequestLimit(t *testing.T) {
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticProcessorArgs{
+	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &mock.HasherMock{},

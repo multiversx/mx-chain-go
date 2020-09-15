@@ -36,3 +36,8 @@ func (wir *itemRounds) Save() error {
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (wir *itemRounds) IsInterfaceNil() bool {
+	return wir == nil
+}

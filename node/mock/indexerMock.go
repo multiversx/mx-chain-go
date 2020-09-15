@@ -18,8 +18,8 @@ func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map
 	panic("implement me")
 }
 
-// StopIndexing will do nothing
-func (im *IndexerMock) StopIndexing() error {
+// Close will do nothing
+func (im *IndexerMock) Close() error {
 	return nil
 }
 

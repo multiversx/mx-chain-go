@@ -74,12 +74,7 @@ func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
 		},
 	}
 
-	indexerFactory, err := factory.NewIndexerFactory(indexerFactoryArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	return indexerFactory.Create()
+	return factory.NewIndexer(indexerFactoryArgs)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

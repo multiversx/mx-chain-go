@@ -23,7 +23,7 @@ type elasticProcessor struct {
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
-func NewElasticProcessor(arguments ElasticProcessorArgs) (ElasticProcessor, error) {
+func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error) {
 	ei := &elasticProcessor{
 		elasticClient: arguments.DBClient,
 		parser: &dataParser{
@@ -75,7 +75,7 @@ func (ei *elasticProcessor) initWithKibana(indexTemplates, indexPolicies map[str
 		return err
 	}
 
-	err = ei.setInitialAliases()
+	err = ei.createAliases()
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (ei *elasticProcessor) createIndexes() error {
 	return nil
 }
 
-func (ei *elasticProcessor) setInitialAliases() error {
+func (ei *elasticProcessor) createAliases() error {
 	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
@@ -159,7 +159,7 @@ func (ei *elasticProcessor) setInitialAliases() error {
 	return nil
 }
 
-func (ei *elasticProcessor) foundedObjMap(hashes []string, index string) (map[string]bool, error) {
+func (ei *elasticProcessor) getExistingObjMap(hashes []string, index string) (map[string]bool, error) {
 	if len(hashes) == 0 {
 		return make(map[string]bool), nil
 	}
@@ -191,10 +191,13 @@ func (ei *elasticProcessor) SaveHeader(
 ) error {
 	var buff bytes.Buffer
 
-	serializedBlock, headerHash := ei.parser.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
+	serializedBlock, headerHash, err := ei.parser.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
+	if err != nil {
+		return err
+	}
 
 	buff.Grow(len(serializedBlock))
-	_, err := buff.Write(serializedBlock)
+	_, err = buff.Write(serializedBlock)
 	if err != nil {
 		return err
 	}
@@ -263,7 +266,7 @@ func (ei *elasticProcessor) SaveMiniblocks(header data.HeaderHandler, body *bloc
 		return make(map[string]bool), nil
 	}
 
-	buff, mbHashDb := serializeBulkMiniBlocks(header.GetShardID(), miniblocks, ei.foundedObjMap)
+	buff, mbHashDb := serializeBulkMiniBlocks(header.GetShardID(), miniblocks, ei.getExistingObjMap)
 	return mbHashDb, ei.elasticClient.DoBulkRequest(&buff, miniblocksIndex)
 }
 
@@ -276,7 +279,7 @@ func (ei *elasticProcessor) SaveTransactions(
 	mbsInDb map[string]bool,
 ) error {
 	txs := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
-	buffSlice := serializeTransactions(txs, selfShardID, ei.foundedObjMap, mbsInDb)
+	buffSlice := serializeTransactions(txs, selfShardID, ei.getExistingObjMap, mbsInDb)
 
 	for idx := range buffSlice {
 		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], txIndex)
@@ -396,4 +399,9 @@ func (ei *elasticProcessor) SaveRoundsInfo(infos []workItems.RoundInfo) error {
 	}
 
 	return ei.elasticClient.DoBulkRequest(&buff, roundIndex)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ei *elasticProcessor) IsInterfaceNil() bool {
+	return ei == nil
 }

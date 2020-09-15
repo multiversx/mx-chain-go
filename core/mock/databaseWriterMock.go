@@ -62,3 +62,8 @@ func (dwm *DatabaseWriterStub) CheckAndCreateTemplate(_ string, _ *bytes.Buffer)
 func (dwm *DatabaseWriterStub) CheckAndCreatePolicy(_ string, _ *bytes.Buffer) error {
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (dwm *DatabaseWriterStub) IsInterfaceNil() bool {
+	return dwm == nil
+}

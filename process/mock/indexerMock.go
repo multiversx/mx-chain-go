@@ -23,8 +23,8 @@ func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandle
 func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
 
-// StopIndexing will do nothing
-func (im *IndexerMock) StopIndexing() error {
+// Close will do nothing
+func (im *IndexerMock) Close() error {
 	return nil
 }
 

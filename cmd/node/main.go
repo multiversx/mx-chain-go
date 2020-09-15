@@ -323,13 +323,6 @@ VERSION:
 		Usage: "This flag specifies the round `index` from which node should bootstrap from storage.",
 		Value: math.MaxUint64,
 	}
-	// enableTxIndexing enables transaction indexing. There can be cases when it's too expensive to index all transactions
-	//  so we provide the command line option to disable this behaviour
-	enableTxIndexing = cli.BoolTFlag{
-		Name: "tx-indexing",
-		Usage: "Boolean option for enabling transactions indexing. There can be cases when it's too expensive to " +
-			"index all transactions so this flag will disable this.",
-	}
 
 	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
@@ -439,7 +432,6 @@ func main() {
 		logWithLoggerName,
 		useLogView,
 		bootstrapRoundIndex,
-		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
 		keepOldEpochsData,
@@ -1184,7 +1176,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	elasticIndexer, err := createElasticIndexer(
-		ctx,
 		externalConfig.ElasticSearchConnector,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
@@ -1954,7 +1945,6 @@ func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (ui
 // createElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
 func createElasticIndexer(
-	ctx *cli.Context,
 	elasticSearchConfig config.ElasticSearchConfig,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
@@ -1982,17 +1972,12 @@ func createElasticIndexer(
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 		Options: &indexer.Options{
-			TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name),
+			TxIndexingEnabled: elasticSearchConfig.TxIndexingEnabled,
 			UseKibana:         elasticSearchConfig.UseKibana,
 		},
 	}
 
-	dataIndexerFactory, err := indexerFactory.NewIndexerFactory(indexerFactoryArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	return dataIndexerFactory.Create()
+	return indexerFactory.NewIndexer(indexerFactoryArgs)
 }
 func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
 	if shardCoordinator.SelfId() == core.MetachainShardId {

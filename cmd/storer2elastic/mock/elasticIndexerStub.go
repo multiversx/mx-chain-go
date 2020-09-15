@@ -59,8 +59,8 @@ func (e *ElasticIndexerStub) SaveValidatorsRating(indexID string, infoRating []w
 	}
 }
 
-// StopIndexing -
-func (e *ElasticIndexerStub) StopIndexing() error {
+// Close -
+func (e *ElasticIndexerStub) Close() error {
 	return nil
 }
 

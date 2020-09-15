@@ -44,14 +44,9 @@ func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []workItems.ValidatorRati
 func (ni *NilIndexer) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 }
 
-// StopIndexing will do nothing
-func (ni *NilIndexer) StopIndexing() error {
+// Close will do nothing
+func (ni *NilIndexer) Close() error {
 	return nil
-}
-
-// GetQueueLength -
-func (ni *NilIndexer) GetQueueLength() int {
-	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
-type object = map[string]interface{}
+type objectsMap = map[string]interface{}
 
 type commonProcessor struct {
 	addressPubkeyConverter   core.PubkeyConverter
@@ -352,7 +352,7 @@ func isCrossShardDstMe(tx *Transaction, selfShardID uint32) bool {
 	return tx.SenderShard != tx.ReceiverShard && tx.ReceiverShard == selfShardID
 }
 
-func getDecodedResponseMultiGet(response object) map[string]bool {
+func getDecodedResponseMultiGet(response objectsMap) map[string]bool {
 	founded := make(map[string]bool)
 	interfaceSlice, ok := response["docs"].([]interface{})
 	if !ok {
@@ -360,7 +360,7 @@ func getDecodedResponseMultiGet(response object) map[string]bool {
 	}
 
 	for _, element := range interfaceSlice {
-		obj := element.(object)
+		obj := element.(objectsMap)
 		_, ok = obj["error"]
 		if ok {
 			continue
@@ -376,22 +376,15 @@ func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*byt
 	indexTemplates := make(map[string]*bytes.Buffer)
 	indexPolicies := make(map[string]*bytes.Buffer)
 
-	indexTemplates["opendistro"] = getTemplateByIndex("opendistro")
-	indexTemplates[txIndex] = getTemplateByIndex(txIndex)
-	indexTemplates[blockIndex] = getTemplateByIndex(blockIndex)
-	indexTemplates[miniblocksIndex] = getTemplateByIndex(miniblocksIndex)
-	indexTemplates[tpsIndex] = getTemplateByIndex(tpsIndex)
-	indexTemplates[validatorsIndex] = getTemplateByIndex(validatorsIndex)
-	indexTemplates[roundIndex] = getTemplateByIndex(roundIndex)
-	indexTemplates[ratingIndex] = getTemplateByIndex(ratingIndex)
+	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
+	for _, index := range indexes {
+		indexTemplates[index] = getTemplateByIndex(index)
+	}
 
-	indexPolicies[txPolicy] = getPolicyByIndex(txIndex)
-	indexPolicies[blockPolicy] = getPolicyByIndex(blockIndex)
-	indexPolicies[miniblocksPolicy] = getPolicyByIndex(miniblocksIndex)
-	indexPolicies[tpsPolicy] = getPolicyByIndex(tpsIndex)
-	indexPolicies[validatorsPolicy] = getPolicyByIndex(validatorsIndex)
-	indexPolicies[roundPolicy] = getPolicyByIndex(roundIndex)
-	indexPolicies[ratingPolicy] = getPolicyByIndex(ratingIndex)
+	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy}
+	for _, indexPolicy := range indexesPolicies {
+		indexPolicies[indexPolicy] = getPolicyByIndex(indexPolicy)
+	}
 
 	return indexTemplates, indexPolicies
 }

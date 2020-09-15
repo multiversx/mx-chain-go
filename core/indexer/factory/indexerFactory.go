@@ -32,75 +32,36 @@ type ArgsIndexerFactory struct {
 	Options                  *indexer.Options
 }
 
-type dataIndexerFactory struct {
-	enabled                  bool
-	indexerCacheSize         int
-	shardID                  uint32
-	url                      string
-	userName                 string
-	password                 string
-	marshalizer              marshal.Marshalizer
-	hasher                   hashing.Hasher
-	epochStartNotifier       sharding.EpochStartEventNotifier
-	nodesCoordinator         sharding.NodesCoordinator
-	addressPubkeyConverter   core.PubkeyConverter
-	validatorPubkeyConverter core.PubkeyConverter
-	indexTemplates           map[string]*bytes.Buffer
-	indexPolicies            map[string]*bytes.Buffer
-	options                  *indexer.Options
-}
-
-// NewIndexerFactory will create a new instance of dataIndexerFactory
-func NewIndexerFactory(args *ArgsIndexerFactory) (indexer.DataIndexerFactory, error) {
+// NewIndexer will create a new instance of Indexer
+func NewIndexer(args *ArgsIndexerFactory) (indexer.Indexer, error) {
 	err := checkDataIndexerParams(args)
 	if err != nil {
 		return nil, err
 	}
 
-	return &dataIndexerFactory{
-		enabled:                  args.Enabled,
-		indexerCacheSize:         args.IndexerCacheSize,
-		shardID:                  args.ShardID,
-		url:                      args.Url,
-		userName:                 args.UserName,
-		password:                 args.Password,
-		marshalizer:              args.Marshalizer,
-		hasher:                   args.Hasher,
-		epochStartNotifier:       args.EpochStartNotifier,
-		nodesCoordinator:         args.NodesCoordinator,
-		addressPubkeyConverter:   args.AddressPubkeyConverter,
-		validatorPubkeyConverter: args.ValidatorPubkeyConverter,
-		indexTemplates:           args.IndexTemplates,
-		indexPolicies:            args.IndexPolicies,
-		options:                  args.Options,
-	}, nil
-}
-
-// Create creates instances of HistoryRepository
-func (dif *dataIndexerFactory) Create() (indexer.Indexer, error) {
-	if !dif.enabled {
+	if !args.Enabled {
 		return indexer.NewNilIndexer(), nil
 	}
 
-	elasticProcessor, err := dif.createElasticProcessor()
+	elasticProcessor, err := createElasticProcessor(args)
 	if err != nil {
 		return nil, err
 	}
 
-	dispatcher, err := indexer.NewDataDispatcher(dif.indexerCacheSize)
+	dispatcher, err := indexer.NewDataDispatcher(args.IndexerCacheSize)
 	if err != nil {
 		return nil, err
 	}
 
 	dispatcher.StartIndexData()
 
-	arguments := indexer.DataIndexerArgs{
-		TxIndexingEnabled:  dif.options.TxIndexingEnabled,
-		Marshalizer:        dif.marshalizer,
-		Options:            dif.options,
-		NodesCoordinator:   dif.nodesCoordinator,
-		EpochStartNotifier: dif.epochStartNotifier,
-		ShardID:            dif.shardID,
+	arguments := indexer.ArgDataIndexer{
+		TxIndexingEnabled:  args.Options.TxIndexingEnabled,
+		Marshalizer:        args.Marshalizer,
+		Options:            args.Options,
+		NodesCoordinator:   args.NodesCoordinator,
+		EpochStartNotifier: args.EpochStartNotifier,
+		ShardID:            args.ShardID,
 		ElasticProcessor:   elasticProcessor,
 		DataDispatcher:     dispatcher,
 	}
@@ -108,37 +69,32 @@ func (dif *dataIndexerFactory) Create() (indexer.Indexer, error) {
 	return indexer.NewDataIndexer(arguments)
 }
 
-func (dif *dataIndexerFactory) createDatabaseClient() (indexer.DatabaseClientHandler, error) {
+func createDatabaseClient(url, userName, password string) (indexer.DatabaseClientHandler, error) {
 	return indexer.NewElasticClient(elasticsearch.Config{
-		Addresses: []string{dif.url},
-		Username:  dif.userName,
-		Password:  dif.password,
+		Addresses: []string{url},
+		Username:  userName,
+		Password:  password,
 	})
 }
 
-func (dif *dataIndexerFactory) createElasticProcessor() (indexer.ElasticProcessor, error) {
-	databaseClient, err := dif.createDatabaseClient()
+func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor, error) {
+	databaseClient, err := createDatabaseClient(args.Url, args.UserName, args.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	esIndexerArgs := indexer.ElasticProcessorArgs{
-		IndexTemplates:           dif.indexTemplates,
-		IndexPolicies:            dif.indexPolicies,
-		Marshalizer:              dif.marshalizer,
-		Hasher:                   dif.hasher,
-		AddressPubkeyConverter:   dif.addressPubkeyConverter,
-		ValidatorPubkeyConverter: dif.validatorPubkeyConverter,
-		Options:                  dif.options,
+	esIndexerArgs := indexer.ArgElasticProcessor{
+		IndexTemplates:           args.IndexTemplates,
+		IndexPolicies:            args.IndexPolicies,
+		Marshalizer:              args.Marshalizer,
+		Hasher:                   args.Hasher,
+		AddressPubkeyConverter:   args.AddressPubkeyConverter,
+		ValidatorPubkeyConverter: args.ValidatorPubkeyConverter,
+		Options:                  args.Options,
 		DBClient:                 databaseClient,
 	}
 
 	return indexer.NewElasticProcessor(esIndexerArgs)
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (dif *dataIndexerFactory) IsInterfaceNil() bool {
-	return dif == nil
 }
 
 func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
@@ -163,7 +119,7 @@ func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
 	if check.IfNil(arguments.NodesCoordinator) {
 		return core.ErrNilNodesCoordinator
 	}
-	if arguments.EpochStartNotifier == nil {
+	if check.IfNil(arguments.EpochStartNotifier) {
 		return core.ErrNilEpochStartNotifier
 	}
 

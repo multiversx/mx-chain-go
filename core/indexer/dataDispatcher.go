@@ -5,6 +5,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 )
 
@@ -28,8 +29,8 @@ type dataDispatcher struct {
 	cancelFunc    func()
 }
 
-// NewDataDispatcher creates a new dataDispatcher instance, capable of selecting the correct es that will
-//  handle saving different types
+// NewDataDispatcher creates a new dataDispatcher instance, capable of selecting the correct that will save
+// sequentially data in elasticsearch database
 func NewDataDispatcher(cacheSize int) (*dataDispatcher, error) {
 	if cacheSize <= 0 {
 		return nil, ErrInvalidCacheSize
@@ -73,15 +74,20 @@ func (d *dataDispatcher) Close() error {
 
 // Add will add a new item in queue
 func (d *dataDispatcher) Add(item workItems.WorkItemHandler) {
+	if check.IfNil(item) {
+		log.Warn("dataDispatcher.Add nil item: will do nothing")
+		return
+	}
+
 	d.chanWorkItems <- item
 }
 
 func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler) {
 	for {
 		err := wi.Save()
-		if err != nil && err == ErrBackOff {
+		if err == ErrBackOff {
 			log.Warn("dataDispatcher.doWork could not index item",
-				"received back off", err.Error())
+				"received back off:", err.Error())
 
 			d.increaseBackOffTime()
 			time.Sleep(d.backOffTime)
@@ -109,4 +115,9 @@ func (d *dataDispatcher) increaseBackOffTime() {
 	}
 
 	d.backOffTime += d.backOffTime / 5
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (d *dataDispatcher) IsInterfaceNil() bool {
+	return d == nil
 }

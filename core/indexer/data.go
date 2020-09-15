@@ -87,7 +87,7 @@ type Block struct {
 	PrevHash              string        `json:"prevHash"`
 	ShardID               uint32        `json:"shardId"`
 	TxCount               uint32        `json:"txCount"`
-	SearchOrder           uint32        `json:"searchOrder"`
+	SearchOrder           uint64        `json:"searchOrder"`
 }
 
 //ValidatorsPublicKeys is a structure containing fields for validators public keys

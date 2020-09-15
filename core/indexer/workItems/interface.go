@@ -9,6 +9,7 @@ import (
 // WorkItemHandler defines the interface for item that needs to be saved in elasticsearch database
 type WorkItemHandler interface {
 	Save() error
+	IsInterfaceNil() bool
 }
 
 type saveBlockIndexer interface {
