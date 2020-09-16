@@ -740,8 +740,8 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		}
 	}
 
-	currentNonce := s.eei.BlockChainHook().CurrentNonce()
-	if currentNonce == 0 || s.isFunctionEnabled(s.enableAuctionNonce) {
+	//TODO: check if this is the intended use
+	if s.isFunctionEnabled(s.enableAuctionNonce) {
 		s.activateStakingFor(
 			blsKeys,
 			numQualified.Uint64(),

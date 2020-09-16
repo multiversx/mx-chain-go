@@ -1043,7 +1043,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndRestake(t *testin
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 1000
-	argsStaking.StakingSCConfig.AuctionEnableNonce = 100000000
+	argsStaking.StakingSCConfig.AuctionEnableNonce = 1
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
