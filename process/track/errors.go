@@ -16,6 +16,9 @@ var ErrNilSelfNotarizer = errors.New("nil self notarizer")
 // ErrNilCrossNotarizedHeadersNotifier signals that a nil block notifier handler has been provided
 var ErrNilCrossNotarizedHeadersNotifier = errors.New("nil cross notarized header notifier")
 
+// ErrNilSelfNotarizedFromCrossHeadersNotifier signals that a nil block notifier handler has been provided
+var ErrNilSelfNotarizedFromCrossHeadersNotifier = errors.New("nil self notarized from cross header notifier")
+
 // ErrNilSelfNotarizedHeadersNotifier signals that a nil block notifier handler has been provided
 var ErrNilSelfNotarizedHeadersNotifier = errors.New("nil self notarized header notifier")
 

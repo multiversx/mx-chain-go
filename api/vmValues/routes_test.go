@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-contrib/cors"
@@ -46,8 +47,8 @@ func TestGetHex_ShouldWork(t *testing.T) {
 	valueBuff, _ := hex.DecodeString("DEADBEEF")
 
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
-			return &vmcommon.VMOutput{
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
+			return &vm.VMOutputApi{
 				ReturnData: [][]byte{valueBuff},
 			}, nil
 		},
@@ -73,8 +74,8 @@ func TestGetString_ShouldWork(t *testing.T) {
 	valueBuff := "DEADBEEF"
 
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
-			return &vmcommon.VMOutput{
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
+			return &vm.VMOutputApi{
 				ReturnData: [][]byte{[]byte(valueBuff)},
 			}, nil
 		},
@@ -100,10 +101,10 @@ func TestGetInt_ShouldWork(t *testing.T) {
 	value := "1234567"
 
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 			returnData := big.NewInt(0)
 			returnData.SetString(value, 10)
-			return &vmcommon.VMOutput{
+			return &vm.VMOutputApi{
 				ReturnData: [][]byte{returnData.Bytes()},
 			}, nil
 		},
@@ -127,9 +128,9 @@ func TestQuery_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 
-			return &vmcommon.VMOutput{
+			return &vm.VMOutputApi{
 				ReturnData: [][]byte{big.NewInt(42).Bytes()},
 			}, nil
 		},
@@ -166,7 +167,7 @@ func TestAllRoutes_FacadeErrorsShouldErr(t *testing.T) {
 
 	errExpected := errors.New("some random error")
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
 			return nil, errExpected
 		},
 	}
@@ -185,8 +186,8 @@ func TestAllRoutes_WhenBadAddressShouldErr(t *testing.T) {
 
 	errExpected := errors.New("not a valid address")
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
-			return &vmcommon.VMOutput{}, nil
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
+			return &vm.VMOutputApi{}, nil
 		},
 	}
 
@@ -204,8 +205,8 @@ func TestAllRoutes_WhenBadArgumentsShouldErr(t *testing.T) {
 
 	errExpected := errors.New("not a valid hex string")
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
-			return &vmcommon.VMOutput{}, nil
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
+			return &vm.VMOutputApi{}, nil
 		},
 	}
 
@@ -223,8 +224,8 @@ func TestAllRoutes_WhenNoVMReturnDataShouldErr(t *testing.T) {
 
 	errExpected := errors.New("no return data")
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
-			return &vmcommon.VMOutput{}, nil
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
+			return &vm.VMOutputApi{}, nil
 		},
 	}
 
@@ -241,8 +242,8 @@ func TestAllRoutes_WhenBadJsonShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.Facade{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
-			return &vmcommon.VMOutput{}, nil
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vm.VMOutputApi, e error) {
+			return &vm.VMOutputApi{}, nil
 		},
 	}
 

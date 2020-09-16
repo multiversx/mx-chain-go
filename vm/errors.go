@@ -160,3 +160,6 @@ var ErrBLSPublicKeyAlreadyJailed = errors.New("bls public key already jailed")
 
 // ErrInvalidEndOfEpochAccessAddress signals that end of epoch access address is invalid
 var ErrInvalidEndOfEpochAccessAddress = errors.New("invalid end of epoch access address")
+
+// ErrNilChanceComputer signals that nil chance computer has been provided
+var ErrNilChanceComputer = errors.New("nil chance computer")

@@ -26,7 +26,7 @@ func createEligibleList(size int) []string {
 	for i := 0; i < size; i++ {
 		var value string
 		for j := 0; j < PublicKeySize; j++ {
-			value += string(i + 65)
+			value += string([]byte{byte(i + 65)})
 		}
 
 		eligibleList = append(eligibleList, value)

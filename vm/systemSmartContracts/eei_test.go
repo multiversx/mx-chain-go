@@ -17,7 +17,12 @@ import (
 func TestNewVMContext_NilBlockChainHook(t *testing.T) {
 	t.Parallel()
 
-	vmContext, err := NewVMContext(nil, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	vmContext, err := NewVMContext(
+		nil,
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	assert.Nil(t, vmContext)
 	assert.Equal(t, vm.ErrNilBlockchainHook, err)
@@ -26,7 +31,12 @@ func TestNewVMContext_NilBlockChainHook(t *testing.T) {
 func TestNewVMContext_NilCryptoHook(t *testing.T) {
 	t.Parallel()
 
-	vmContext, err := NewVMContext(&mock.BlockChainHookStub{}, nil, &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	vmContext, err := NewVMContext(
+		&mock.BlockChainHookStub{},
+		nil,
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	assert.Nil(t, vmContext)
 	assert.Equal(t, vm.ErrNilCryptoHook, err)
@@ -35,8 +45,12 @@ func TestNewVMContext_NilCryptoHook(t *testing.T) {
 func TestNewVMContext(t *testing.T) {
 	t.Parallel()
 
-	vmContext, err := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
-
+	vmContext, err := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 	assert.NotNil(t, vmContext)
 	assert.Nil(t, err)
 }
@@ -44,7 +58,12 @@ func TestNewVMContext(t *testing.T) {
 func TestVmContext_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	vmContext, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 	assert.False(t, vmContext.IsInterfaceNil())
 
 	vmContext = nil
@@ -54,7 +73,12 @@ func TestVmContext_IsInterfaceNil(t *testing.T) {
 func TestVmContext_CleanCache(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	vmContext, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	vmContext.CleanCache()
 
@@ -78,7 +102,12 @@ func TestVmContext_GetBalance(t *testing.T) {
 	},
 	}
 
-	vmContext, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	vmContext, _ := NewVMContext(
+		blockChainHook,
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	res := vmContext.GetBalance(addr)
 	assert.Equal(t, res.Uint64(), balance.Uint64())
@@ -87,7 +116,12 @@ func TestVmContext_GetBalance(t *testing.T) {
 func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	vmContext, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	vmOutput := vmContext.CreateVMOutput()
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
@@ -103,7 +137,12 @@ func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
 func TestVmContext_SetStorage(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	vmContext, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	addr := "smartcontract"
 	vmContext.SetSCAddress([]byte(addr))
@@ -124,7 +163,12 @@ func TestVmContext_SetStorage(t *testing.T) {
 func TestVmContext_Transfer(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{})
+	vmContext, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	destination := []byte("dest")
 	sender := []byte("sender")

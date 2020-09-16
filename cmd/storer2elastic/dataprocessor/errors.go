@@ -20,6 +20,9 @@ var ErrNilHasher = errors.New("nil hasher")
 // ErrNilTPSBenchmarkUpdater signals that a nil tps benchmark updater has been provided
 var ErrNilTPSBenchmarkUpdater = errors.New("nil tps benchmark updater")
 
+// ErrNilRatingProcessor signals that a nil rating processor has been provided
+var ErrNilRatingProcessor = errors.New("nil rating processor")
+
 // ErrNilUint64ByteSliceConverter signals that a nil uint64 byte slice converter has been provided
 var ErrNilUint64ByteSliceConverter = errors.New("nil uint64 byte slice converter")
 
@@ -46,3 +49,6 @@ var ErrNilPubKeyConverter = errors.New("nil public key converter")
 
 // ErrOsSignalIntercepted is returned when a signal from the OS is received
 var ErrOsSignalIntercepted = errors.New("os signal intercepted")
+
+// ErrNilHandlerFunc signals that a nil handler function for raning has been provided
+var ErrNilHandlerFunc = errors.New("nil handler function for ranging")

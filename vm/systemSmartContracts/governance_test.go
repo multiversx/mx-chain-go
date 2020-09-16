@@ -521,7 +521,12 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 		},
 	}
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
+	eei, _ := NewVMContext(
+		blockChainHook,
+		hooks.NewVMCryptoHook(),
+		atArgParser,
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	args := createMockGovernanceArgs()
 

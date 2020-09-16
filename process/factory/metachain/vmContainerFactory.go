@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVMFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 	systemVMProcess "github.com/ElrondNetwork/elrond-go/vm/process"
@@ -22,6 +23,7 @@ import (
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 type vmContainerFactory struct {
+	chanceComputer      sharding.ChanceComputer
 	validatorAccountsDB state.AccountsAdapter
 	blockChainHookImpl  *hooks.BlockChainHookImpl
 	cryptoHook          vmcommon.CryptoHook
@@ -46,6 +48,7 @@ func NewVMContainerFactory(
 	marshalizer marshal.Marshalizer,
 	systemSCConfig *config.SystemSmartContractsConfig,
 	validatorAccountsDB state.AccountsAdapter,
+	chanceComputer sharding.ChanceComputer,
 ) (*vmContainerFactory, error) {
 	if economics == nil {
 		return nil, process.ErrNilEconomicsData
@@ -68,6 +71,9 @@ func NewVMContainerFactory(
 	if check.IfNil(validatorAccountsDB) {
 		return nil, vm.ErrNilValidatorAccountsDB
 	}
+	if check.IfNil(chanceComputer) {
+		return nil, vm.ErrNilChanceComputer
+	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
 	if err != nil {
@@ -86,6 +92,7 @@ func NewVMContainerFactory(
 		marshalizer:         marshalizer,
 		systemSCConfig:      systemSCConfig,
 		validatorAccountsDB: validatorAccountsDB,
+		chanceComputer:      chanceComputer,
 	}, nil
 }
 
@@ -113,6 +120,7 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		vmf.cryptoHook,
 		atArgumentParser,
 		vmf.validatorAccountsDB,
+		vmf.chanceComputer,
 	)
 	if err != nil {
 		return nil, err

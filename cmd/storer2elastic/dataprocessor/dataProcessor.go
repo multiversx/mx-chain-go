@@ -38,7 +38,7 @@ type ArgsDataProcessor struct {
 	Marshalizer         marshal.Marshalizer
 	Hasher              hashing.Hasher
 	TPSBenchmarkUpdater TPSBenchmarkUpdaterHandler
-	RatingsProcessor    *ratingsProcessor
+	RatingsProcessor    RatingProcessorHandler
 	RatingConfig        config.RatingsConfig
 	StartingEpoch       uint32
 }
@@ -54,7 +54,7 @@ type dataProcessor struct {
 	hasher              hashing.Hasher
 	nodesCoordinators   map[uint32]NodesCoordinator
 	tpsBenchmarkUpdater TPSBenchmarkUpdaterHandler
-	ratingsProcessor    *ratingsProcessor
+	ratingsProcessor    RatingProcessorHandler
 	startingEpoch       uint32
 }
 
@@ -80,6 +80,9 @@ func NewDataProcessor(args ArgsDataProcessor) (*dataProcessor, error) {
 	}
 	if check.IfNil(args.TPSBenchmarkUpdater) {
 		return nil, ErrNilTPSBenchmarkUpdater
+	}
+	if check.IfNil(args.RatingsProcessor) {
+		return nil, ErrNilRatingProcessor
 	}
 
 	dp := &dataProcessor{
