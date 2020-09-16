@@ -252,7 +252,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 		Staked:        true,
 		UnStakedNonce: 0,
 		RewardAddress: []byte{100},
-		StakeValue:    big.NewInt(0),
+		StakeValue:    big.NewInt(100),
 		JailedRound:   math.MaxUint64,
 		UnStakedEpoch: core.DefaultUnstakedEpoch,
 		SlashValue:    big.NewInt(0),
