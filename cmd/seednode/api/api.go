@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -15,13 +14,13 @@ import (
 var log = logger.GetOrCreate("seednode/api")
 
 // Start will boot up the api and appropriate routes, handlers and validators
-func Start(port int, marshalizer marshal.Marshalizer) error {
+func Start(restApiInterface string, marshalizer marshal.Marshalizer) error {
 	ws := gin.Default()
 	ws.Use(cors.Default())
 
 	registerRoutes(ws, marshalizer)
 
-	return ws.Run(fmt.Sprintf(":%d", port))
+	return ws.Run(restApiInterface)
 }
 
 func registerRoutes(ws *gin.Engine, marshalizer marshal.Marshalizer) {
