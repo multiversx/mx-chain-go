@@ -28,6 +28,24 @@ type SystemEIStub struct {
 	ExecuteOnDestContextCalled      func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
 	GetStorageFromAddressCalled     func(address []byte, key []byte) []byte
 	SetStorageForAddressCalled      func(address []byte, key []byte, value []byte)
+	CanUnJailCalled                 func(blsKey []byte) bool
+	IsBadRatingCalled               func(blsKey []byte) bool
+}
+
+// CanUnJail -
+func (s *SystemEIStub) CanUnJail(blsKey []byte) bool {
+	if s.CanUnJailCalled != nil {
+		return s.CanUnJailCalled(blsKey)
+	}
+	return false
+}
+
+// IsBadRating -
+func (s *SystemEIStub) IsBadRating(blsKey []byte) bool {
+	if s.IsBadRatingCalled != nil {
+		return s.IsBadRatingCalled(blsKey)
+	}
+	return false
 }
 
 // IsValidator -

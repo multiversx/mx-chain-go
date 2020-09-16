@@ -74,6 +74,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 			},
 		},
 		&mock.AccountsStub{},
+		&mock.RaterMock{},
 	)
 
 	assert.NotNil(t, vmf)
@@ -152,6 +153,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			},
 		},
 		&mock.AccountsStub{},
+		&mock.RaterMock{},
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)

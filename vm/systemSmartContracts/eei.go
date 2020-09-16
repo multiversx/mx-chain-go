@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -16,6 +17,7 @@ type vmContext struct {
 	validatorAccountsDB state.AccountsAdapter
 	systemContracts     vm.SystemSCContainer
 	inputParser         vm.ArgumentsParser
+	chanceComputer      sharding.ChanceComputer
 	scAddress           []byte
 
 	storageUpdate  map[string]map[string][]byte
@@ -32,6 +34,7 @@ func NewVMContext(
 	cryptoHook vmcommon.CryptoHook,
 	inputParser vm.ArgumentsParser,
 	validatorAccountsDB state.AccountsAdapter,
+	chanceComputer sharding.ChanceComputer,
 ) (*vmContext, error) {
 	if check.IfNilReflect(blockChainHook) {
 		return nil, vm.ErrNilBlockchainHook
@@ -45,12 +48,16 @@ func NewVMContext(
 	if check.IfNil(validatorAccountsDB) {
 		return nil, vm.ErrNilValidatorAccountsDB
 	}
+	if check.IfNil(chanceComputer) {
+		return nil, vm.ErrNilChanceComputer
+	}
 
 	vmc := &vmContext{
 		blockChainHook:      blockChainHook,
 		cryptoHook:          cryptoHook,
 		inputParser:         inputParser,
 		validatorAccountsDB: validatorAccountsDB,
+		chanceComputer:      chanceComputer,
 	}
 	vmc.CleanCache()
 
@@ -429,6 +436,48 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 	isValidator := validatorAccount.GetList() == string(core.EligibleList) ||
 		validatorAccount.GetList() == string(core.WaitingList)
 	return isValidator
+}
+
+// CanUnJail returns true if the validator is jailed in the validator statistics
+func (host *vmContext) CanUnJail(blsKey []byte) bool {
+	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
+	if err != nil {
+		return false
+	}
+
+	validatorAccount, ok := acc.(state.PeerAccountHandler)
+	if !ok {
+		return false
+	}
+
+	isJailed := validatorAccount.GetList() == string(core.JailedList)
+	if isJailed {
+		return true
+	}
+
+	if validatorAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
+		if validatorAccount.GetList() == string(core.InactiveList) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsBadRating returns true if the validators temp rating is under jailed limit
+func (host *vmContext) IsBadRating(blsKey []byte) bool {
+	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
+	if err != nil {
+		return false
+	}
+
+	validatorAccount, ok := acc.(state.PeerAccountHandler)
+	if !ok {
+		return false
+	}
+
+	minChance := host.chanceComputer.GetChance(0)
+	return host.chanceComputer.GetChance(validatorAccount.GetTempRating()) < minChance
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

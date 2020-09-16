@@ -196,7 +196,7 @@ func TestBranchNode_setRootHash(t *testing.T) {
 
 	maxIterations := 10000
 	for i := 0; i < maxIterations; i++ {
-		val := hsh.Compute(string(i))
+		val := hsh.Compute(fmt.Sprint(i))
 		_ = tr1.Update(val, val)
 		_ = tr2.Update(val, val)
 	}
