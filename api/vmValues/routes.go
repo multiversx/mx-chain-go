@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/data/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-gonic/gin"
@@ -23,7 +24,7 @@ const (
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
-	ExecuteSCQuery(*process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	IsInterfaceNil() bool
 }
@@ -88,7 +89,7 @@ func executeQuery(context *gin.Context) {
 	returnOkResponse(context, vmOutput)
 }
 
-func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
+func doExecuteQuery(context *gin.Context) (*vm.VMOutputApi, error) {
 	efObj, ok := context.Get("facade")
 	if !ok {
 		return nil, errors.ErrNilAppContext

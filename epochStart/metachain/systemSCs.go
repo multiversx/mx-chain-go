@@ -40,6 +40,29 @@ type systemSCProcessor struct {
 	validatorInfoCreator    epochStart.ValidatorInfoCreator
 	endOfEpochCallerAddress []byte
 	stakingSCAddress        []byte
+
+	mapNumSwitchedPerShard   map[uint32]uint32
+	mapNumSwitchablePerShard map[uint32]uint32
+}
+
+type validatorList []*state.ValidatorInfo
+
+// Len will return the length of the validatorList
+func (v validatorList) Len() int { return len(v) }
+
+// Swap will interchange the objects on input indexes
+func (v validatorList) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
+
+// Less will return true if object on index i should appear before object in index j
+// Sorting of validators should be by index and public key
+func (v validatorList) Less(i, j int) bool {
+	if v[i].TempRating == v[j].TempRating {
+		if v[i].Index == v[j].Index {
+			return bytes.Compare(v[i].PublicKey, v[j].PublicKey) < 0
+		}
+		return v[i].Index < v[j].Index
+	}
+	return v[i].TempRating < v[j].TempRating
 }
 
 // NewSystemSCProcessor creates the end of epoch system smart contract processor
@@ -70,33 +93,51 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	}
 
 	return &systemSCProcessor{
-		systemVM:                args.SystemVM,
-		userAccountsDB:          args.UserAccountsDB,
-		peerAccountsDB:          args.PeerAccountsDB,
-		marshalizer:             args.Marshalizer,
-		startRating:             args.StartRating,
-		validatorInfoCreator:    args.ValidatorInfoCreator,
-		endOfEpochCallerAddress: args.EndOfEpochCallerAddress,
-		stakingSCAddress:        args.StakingSCAddress,
-		chanceComputer:          args.ChanceComputer,
+		systemVM:                 args.SystemVM,
+		userAccountsDB:           args.UserAccountsDB,
+		peerAccountsDB:           args.PeerAccountsDB,
+		marshalizer:              args.Marshalizer,
+		startRating:              args.StartRating,
+		validatorInfoCreator:     args.ValidatorInfoCreator,
+		endOfEpochCallerAddress:  args.EndOfEpochCallerAddress,
+		stakingSCAddress:         args.StakingSCAddress,
+		chanceComputer:           args.ChanceComputer,
+		mapNumSwitchedPerShard:   make(map[uint32]uint32),
+		mapNumSwitchablePerShard: make(map[uint32]uint32),
 	}, nil
 }
 
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
-func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error {
-	err := s.swapJailedWithWaiting(validatorInfos, epoch)
+func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+	err := s.computeNumWaitingPerShard(validatorInfos)
 	if err != nil {
 		return err
+	}
+
+	err = s.swapJailedWithWaiting(validatorInfos)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) computeNumWaitingPerShard(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+	for shardID, validatorInfoList := range validatorInfos {
+		totalInWaiting := uint32(0)
+		for _, validatorInfo := range validatorInfoList {
+			switch validatorInfo.List {
+			case string(core.WaitingList):
+				totalInWaiting++
+			}
+		}
+		s.mapNumSwitchablePerShard[shardID] = totalInWaiting
+		s.mapNumSwitchedPerShard[shardID] = 0
 	}
 	return nil
 }
 
-func (s *systemSCProcessor) auctionSelection() error {
-
-	return nil
-}
-
-func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error {
+func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*state.ValidatorInfo) error {
 	jailedValidators := s.getSortedJailedNodes(validatorInfos)
 
 	log.Debug("number of jailed validators", "num", len(jailedValidators))
@@ -104,6 +145,12 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 	newValidators := make(map[string]struct{})
 	for _, jailedValidator := range jailedValidators {
 		if _, ok := newValidators[string(jailedValidator.PublicKey)]; ok {
+			continue
+		}
+		if isValidator(jailedValidator) && s.mapNumSwitchablePerShard[jailedValidator.ShardId] <= s.mapNumSwitchedPerShard[jailedValidator.ShardId] {
+			log.Debug("cannot switch in this epoch anymore for this shard as switched num waiting",
+				"shardID", jailedValidator.ShardId,
+				"numSwitched", s.mapNumSwitchedPerShard[jailedValidator.ShardId])
 			continue
 		}
 
@@ -129,7 +176,7 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 			continue
 		}
 
-		newValidator, err := s.stakingToValidatorStatistics(validatorInfos, jailedValidator, vmOutput, epoch)
+		newValidator, err := s.stakingToValidatorStatistics(validatorInfos, jailedValidator, vmOutput)
 		if err != nil {
 			return err
 		}
@@ -146,7 +193,6 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 	jailedValidator *state.ValidatorInfo,
 	vmOutput *vmcommon.VMOutput,
-	epoch uint32,
 ) ([]byte, error) {
 	stakingSCOutput, ok := vmOutput.OutputAccounts[string(s.stakingSCAddress)]
 	if !ok {
@@ -217,17 +263,24 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	jailedAccount.SetListAndIndex(jailedValidator.ShardId, string(core.JailedList), jailedValidator.Index)
-	jailedAccount.SetUnStakedEpoch(epoch)
 	jailedAccount.ResetAtNewEpoch()
 	err = s.peerAccountsDB.SaveAccount(jailedAccount)
 	if err != nil {
 		return nil, err
 	}
 
+	if isValidator(jailedValidator) {
+		s.mapNumSwitchedPerShard[jailedValidator.ShardId]++
+	}
+
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
 	switchJailedWithNewValidatorInMap(validatorInfos, jailedValidator, newValidatorInfo)
 
 	return blsPubKey, nil
+}
+
+func isValidator(validator *state.ValidatorInfo) bool {
+	return validator.List == string(core.WaitingList) || validator.List == string(core.EligibleList)
 }
 
 func deleteNewValidatorIfExistsFromMap(
@@ -300,24 +353,24 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 }
 
 func (s *systemSCProcessor) getSortedJailedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) []*state.ValidatorInfo {
-	jailedValidators := make([]*state.ValidatorInfo, 0)
+	newJailedValidators := make([]*state.ValidatorInfo, 0)
+	oldJailedValidators := make([]*state.ValidatorInfo, 0)
+
 	minChance := s.chanceComputer.GetChance(0)
 	for _, listValidators := range validatorInfos {
 		for _, validatorInfo := range listValidators {
-			if s.chanceComputer.GetChance(validatorInfo.TempRating) < minChance {
-				jailedValidators = append(jailedValidators, validatorInfo)
+			if validatorInfo.List == string(core.JailedList) {
+				oldJailedValidators = append(oldJailedValidators, validatorInfo)
+			} else if s.chanceComputer.GetChance(validatorInfo.TempRating) < minChance {
+				newJailedValidators = append(newJailedValidators, validatorInfo)
 			}
 		}
 	}
 
-	sort.Slice(jailedValidators, func(i, j int) bool {
-		if jailedValidators[i].TempRating == jailedValidators[i].TempRating {
-			return jailedValidators[i].Index < jailedValidators[j].Index
-		}
-		return jailedValidators[i].TempRating < jailedValidators[j].TempRating
-	})
+	sort.Sort(validatorList(oldJailedValidators))
+	sort.Sort(validatorList(newJailedValidators))
 
-	return jailedValidators
+	return append(oldJailedValidators, newJailedValidators...)
 }
 
 func (s *systemSCProcessor) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {

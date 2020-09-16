@@ -910,13 +910,6 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 	}
 
 	for _, blsKey := range blsKeys {
-		if registrationData.NumRegistered == 0 {
-			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s as it is not staked", hex.EncodeToString(blsKey)))
-			s.eei.Finish(blsKey)
-			s.eei.Finish([]byte{failed})
-			continue
-		}
-
 		vmOutput, err := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
 		if err != nil {
 			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s: %s", hex.EncodeToString(blsKey), err.Error()))
@@ -931,8 +924,6 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 			s.eei.Finish([]byte{failed})
 			continue
 		}
-
-		registrationData.NumRegistered -= 1
 	}
 
 	err = s.saveRegistrationData(args.CallerAddr, registrationData)
@@ -1016,11 +1007,8 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 			continue
 		}
 
+		registrationData.NumRegistered -= 1
 		auctionConfig := s.getConfig(nodeData.UnStakedEpoch)
-		if nodeData.Waiting {
-			registrationData.NumRegistered -= 1
-		}
-
 		unBondedKeys = append(unBondedKeys, blsKey)
 		totalUnBond.Add(totalUnBond, auctionConfig.NodePrice)
 		totalSlashed.Add(totalSlashed, nodeData.SlashValue)

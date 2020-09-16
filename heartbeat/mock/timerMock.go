@@ -9,6 +9,7 @@ import (
 type TimerMock struct {
 	secondsMutex *sync.RWMutex
 	seconds      int64
+	NowCalled    func() time.Time
 }
 
 // NewTimerMock -
@@ -21,6 +22,10 @@ func NewTimerMock() *TimerMock {
 
 // Now -
 func (tm *TimerMock) Now() time.Time {
+	if tm.NowCalled != nil {
+		return tm.NowCalled()
+	}
+
 	tm.secondsMutex.RLock()
 	currentSeconds := time.Unix(tm.seconds, 0)
 	tm.secondsMutex.RUnlock()
