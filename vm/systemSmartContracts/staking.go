@@ -39,6 +39,7 @@ type stakingSC struct {
 	maxNumNodes              uint64
 	marshalizer              marshal.Marshalizer
 	stakeEnableNonce         uint64
+	stakeValue               *big.Int
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
@@ -99,6 +100,12 @@ func NewStakingSmartContract(
 		marshalizer:              args.Marshalizer,
 		endOfEpochAccessAddr:     args.EndOfEpochAccessAddr,
 		stakeEnableNonce:         args.StakingSCConfig.StakeEnableNonce,
+	}
+
+	conversionOk := true
+	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
+	if !conversionOk || reg.stakeValue.Cmp(zero) < 0 {
+		return nil, vm.ErrNegativeInitialStakeValue
 	}
 
 	return reg, nil
@@ -470,6 +477,11 @@ func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		MaxNumNodes: int64(r.maxNumNodes),
 	}
 	r.setConfig(stakeConfig)
+
+	epoch := r.eei.BlockChainHook().CurrentEpoch()
+	epochData := fmt.Sprintf("epoch_%d", epoch)
+
+	r.eei.SetStorage([]byte(epochData), r.stakeValue.Bytes())
 
 	return vmcommon.Ok
 }
