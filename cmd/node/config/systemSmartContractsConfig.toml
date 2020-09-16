@@ -4,12 +4,12 @@
     UnBondPeriod = 40
     MinStepValue = "100000000000000000000"
     AuctionEnableNonce = 100000000000
-    StakeEnableNonce = 0
+    StakeEnableNonce = 10
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
-    MaxNumberOfNodesForStake = 2169
-    NodesToSelectInAuction = 2169
+    MaxNumberOfNodesForStake = 36
+    NodesToSelectInAuction = 36
     UnJailValue = "2500000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = false #TODO set to true before mainnet
 
