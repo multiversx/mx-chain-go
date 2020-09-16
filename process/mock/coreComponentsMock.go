@@ -17,6 +17,7 @@ type CoreComponentsMock struct {
 	AddrPubKeyConv              core.PubkeyConverter
 	ValPubKeyConv               core.PubkeyConverter
 	PathHdl                     storage.PathManagerHandler
+	StatusHandlerCalled         func() core.AppStatusHandler
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
 }
@@ -76,6 +77,14 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 		return ccm.MinTransactionVersionCalled()
 	}
 	return 1
+}
+
+// StatusHandler -
+func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
+	if ccm.StatusHandlerCalled != nil {
+		return ccm.StatusHandlerCalled()
+	}
+	return nil
 }
 
 // IsInterfaceNil -

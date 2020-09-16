@@ -118,8 +118,6 @@ type WorkerHandler interface {
 	DisplayStatistics()
 	//ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
-	//SetAppStatusHandler sets the status handler object used to collect useful metrics about consensus state machine
-	SetAppStatusHandler(ash core.AppStatusHandler) error
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

@@ -133,7 +133,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
-	blockChain := blockchain.NewMetaChain()
+	blockChain, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         userAccountsDB,
 		PubkeyConv:       &mock.PubkeyConverterMock{},

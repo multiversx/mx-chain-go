@@ -56,7 +56,7 @@ func initBasicTestData() (*testscommon.PoolsHolderMock, data.ChainHandler, []byt
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Round:    1,
@@ -98,7 +98,7 @@ func initBlockHeader(prevHash []byte, prevRandSeed []byte, rootHash []byte, mbHd
 
 func CreateCoreComponentsMultiShard() (*mock.CoreComponentsMock, *mock.DataComponentsMock) {
 	coreComponents, dataComponents := createComponentHolderMocks()
-	dataComponents.BlockChain = blockchain.NewBlockChain()
+	dataComponents.BlockChain, _ = blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = dataComponents.BlockChain.SetGenesisHeader(&block.Header{Nonce: 0})
 	dataComponents.DataPool = initDataPool([]byte("tx_hash1"))
 
@@ -571,7 +571,7 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 	t.Parallel()
 
 	randSeed := []byte("rand seed")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -612,7 +612,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -772,7 +772,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -860,7 +860,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -940,7 +940,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	randSeed := []byte("rand seed")
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -1103,7 +1103,7 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 	tdp := initDataPool(txHash)
 
 	randSeed := []byte("rand seed")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    1,
@@ -1247,7 +1247,7 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
 	randSeed := []byte("rand seed")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    1,
@@ -1610,11 +1610,10 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	store := initStore()
 	store.AddStorer(dataRetriever.BlockHeaderUnit, hdrUnit)
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
+	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
 	dataComponents.DataPool = tdp
 	dataComponents.Storage = store
@@ -1687,11 +1686,10 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	store := initStore()
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
+	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
 	dataComponents.DataPool = tdp
 	dataComponents.Storage = store

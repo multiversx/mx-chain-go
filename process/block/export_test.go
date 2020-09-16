@@ -116,6 +116,7 @@ func NewShardProcessorEmptyWith3shards(
 			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 			EpochNotifier:           &mock.EpochNotifierStub{},
+			AppStatusHandler:        &mock.AppStatusHandlerStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

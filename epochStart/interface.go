@@ -2,10 +2,10 @@ package epochStart
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
@@ -28,7 +28,6 @@ type TriggerHandler interface {
 	RevertStateToBlock(header data.HeaderHandler) error
 	SetCurrentEpochStartRound(round uint64)
 	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
-	SetAppStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 

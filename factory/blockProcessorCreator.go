@@ -337,6 +337,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		HistoryRepository:       pcf.historyRepo,
 		EpochNotifier:           pcf.epochNotifier,
 		HeaderIntegrityVerifier: pcf.headerIntegrityVerifier,
+		AppStatusHandler:        pcf.coreData.StatusHandler(),
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -345,11 +346,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockProcessor, err := block.NewShardProcessor(arguments)
 	if err != nil {
 		return nil, errors.New("could not create block statisticsProcessor: " + err.Error())
-	}
-
-	err = blockProcessor.SetAppStatusHandler(pcf.coreData.StatusHandler())
-	if err != nil {
-		return nil, err
 	}
 
 	return blockProcessor, nil
@@ -667,6 +663,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		HistoryRepository:       pcf.historyRepo,
 		EpochNotifier:           pcf.epochNotifier,
 		HeaderIntegrityVerifier: pcf.headerIntegrityVerifier,
+		AppStatusHandler:        pcf.coreData.StatusHandler(),
 	}
 	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
 	if err != nil {
@@ -704,11 +701,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	metaProcessor, err := block.NewMetaProcessor(arguments)
 	if err != nil {
 		return nil, errors.New("could not create block processor: " + err.Error())
-	}
-
-	err = metaProcessor.SetAppStatusHandler(pcf.coreData.StatusHandler())
-	if err != nil {
-		return nil, err
 	}
 
 	return metaProcessor, nil

@@ -582,14 +582,11 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 			Finality:             process.BlockFinality,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
 			Rounder:              pcf.rounder,
+			AppStatusHandler:     pcf.coreData.StatusHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
 			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
-		}
-		err = epochStartTrigger.SetAppStatusHandler(pcf.coreData.StatusHandler())
-		if err != nil {
-			return nil, err
 		}
 
 		return epochStartTrigger, nil
@@ -605,14 +602,11 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 			Storage:            pcf.data.StorageService(),
 			Marshalizer:        pcf.coreData.InternalMarshalizer(),
 			Hasher:             pcf.coreData.Hasher(),
+			AppStatusHandler:   pcf.coreData.StatusHandler(),
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
 			return nil, errors.New("error creating new start of epoch trigger" + err.Error())
-		}
-		err = epochStartTrigger.SetAppStatusHandler(pcf.coreData.StatusHandler())
-		if err != nil {
-			return nil, err
 		}
 
 		return epochStartTrigger, nil

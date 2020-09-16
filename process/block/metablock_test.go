@@ -98,6 +98,7 @@ func createMockMetaArguments(
 			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 			EpochNotifier:           &mock.EpochNotifierStub{},
+			AppStatusHandler:        &mock.AppStatusHandlerStub{},
 		},
 		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
@@ -535,7 +536,7 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	blkc := blockchain.NewMetaChain()
+	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.MetaBlock{
 			Round: 1,
@@ -561,7 +562,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	blkc := blockchain.NewMetaChain()
+	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.MetaBlock{
 			Round: 1,
@@ -589,7 +590,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState(t *testing.T) {
 	t.Parallel()
 
-	blkc := blockchain.NewMetaChain()
+	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.MetaBlock{
 			Nonce:                  0,
@@ -720,7 +721,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	}
 	store := initStore()
 	store.AddStorer(dataRetriever.MetaBlockUnit, hdrUnit)
-	blkc := blockchain.NewMetaChain()
+	blkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 
 	coreComponents, dataComponents := createMockComponentHolders()
@@ -1883,7 +1884,7 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	coreComponents, dataComponents := createMockComponentHolders()
 	dataComponents.DataPool = pool
 	dataComponents.Storage = initStore()
-	dataComponents.BlockChain = blockchain.NewMetaChain()
+	dataComponents.BlockChain, _ = blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 	_ = dataComponents.Blockchain().SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	_ = dataComponents.Blockchain().SetCurrentBlockHeader(&block.MetaBlock{Nonce: 1})
 	arguments := createMockMetaArguments(coreComponents, dataComponents)

@@ -105,16 +105,6 @@ func checkForNils(
 	return nil
 }
 
-// SetAppStatusHandler method is used to set appStatusHandler
-func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return process.ErrNilAppStatusHandler
-	}
-
-	bp.appStatusHandler = ash
-	return nil
-}
-
 // checkBlockValidity method checks if the given block is valid
 func (bp *baseProcessor) checkBlockValidity(
 	headerHandler data.HeaderHandler,
@@ -430,6 +420,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.EpochNotifier) {
 		return process.ErrNilEpochNotifier
+	}
+	if check.IfNil(arguments.AppStatusHandler) {
+		return process.ErrNilAppStatusHandler
 	}
 
 	return nil

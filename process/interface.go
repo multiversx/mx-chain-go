@@ -956,6 +956,7 @@ type CoreComponentsHolder interface {
 	PathHandler() storage.PathManagerHandler
 	ChainID() string
 	MinTransactionVersion() uint32
+	StatusHandler() core.AppStatusHandler
 	IsInterfaceNil() bool
 }
 

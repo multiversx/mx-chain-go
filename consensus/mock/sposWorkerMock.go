@@ -89,15 +89,6 @@ func (sposWorkerMock *SposWorkerMock) ReceivedHeader(headerHandler data.HeaderHa
 	}
 }
 
-// SetAppStatusHandler -
-func (sposWorkerMock *SposWorkerMock) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if sposWorkerMock.SetAppStatusHandlerCalled != nil {
-		return sposWorkerMock.SetAppStatusHandlerCalled(ash)
-	}
-
-	return nil
-}
-
 // Close -
 func (sposWorkerMock *SposWorkerMock) Close() error {
 	return nil

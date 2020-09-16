@@ -132,7 +132,7 @@ func displayAndStartNodes(nodes []*testNode) {
 }
 
 func createTestBlockChain() data.ChainHandler {
-	blockChain := blockchain.NewBlockChain()
+	blockChain, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blockChain.SetGenesisHeader(&dataBlock.Header{})
 
 	return blockChain
@@ -326,10 +326,11 @@ func createConsensusOnlyNode(
 			MinRoundsBetweenEpochs: 1,
 			RoundsPerEpoch:         3,
 		},
-		Epoch:       0,
-		Storage:     createTestStore(),
-		Marshalizer: testMarshalizer,
-		Hasher:      testHasher,
+		Epoch:            0,
+		Storage:          createTestStore(),
+		Marshalizer:      testMarshalizer,
+		Hasher:           testHasher,
+		AppStatusHandler: &testscommon.AppStatusHandlerStub{},
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 

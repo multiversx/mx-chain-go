@@ -175,6 +175,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
 		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
+		AppStatusHandler:         ccf.coreComponents.StatusHandler(),
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)

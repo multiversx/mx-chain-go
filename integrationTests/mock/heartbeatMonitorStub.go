@@ -8,17 +8,8 @@ import (
 
 // HeartbeatMonitorStub -
 type HeartbeatMonitorStub struct {
-	SetAppStatusHandlerCalled    func(ash core.AppStatusHandler) error
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	GetHeartbeatsCalled          func() []heartbeatData.PubKeyHeartbeat
-}
-
-// SetAppStatusHandler -
-func (hbms *HeartbeatMonitorStub) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if hbms.SetAppStatusHandlerCalled != nil {
-		return hbms.SetAppStatusHandlerCalled(ash)
-	}
-	return nil
 }
 
 // ProcessReceivedMessage -

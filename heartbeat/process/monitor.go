@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var log = logger.GetOrCreate("heartbeat/process")
@@ -35,6 +34,7 @@ type ArgHeartbeatMonitor struct {
 	ValidatorPubkeyConverter           core.PubkeyConverter
 	HeartbeatRefreshIntervalInSec      uint32
 	HideInactiveValidatorIntervalInSec uint32
+	AppStatusHandler                   core.AppStatusHandler
 }
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
@@ -89,6 +89,9 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.ValidatorPubkeyConverter) {
 		return nil, heartbeat.ErrNilPubkeyConverter
 	}
+	if check.IfNil(arg.AppStatusHandler) {
+		return nil, heartbeat.ErrNilAppStatusHandler
+	}
 	if arg.HeartbeatRefreshIntervalInSec == 0 {
 		return nil, heartbeat.ErrZeroHeartbeatRefreshIntervalInSec
 	}
@@ -101,7 +104,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		heartbeatMessages:                  make(map[string]*heartbeatMessageInfo),
 		peerTypeProvider:                   arg.PeerTypeProvider,
 		maxDurationPeerUnresponsive:        arg.MaxDurationPeerUnresponsive,
-		appStatusHandler:                   &statusHandler.NilStatusHandler{},
+		appStatusHandler:                   arg.AppStatusHandler,
 		genesisTime:                        arg.GenesisTime,
 		messageHandler:                     arg.MessageHandler,
 		storer:                             arg.Storer,
@@ -230,18 +233,6 @@ func (m *Monitor) loadHeartbeatsFromStorer(pubKey string) (*heartbeatMessageInfo
 	receivedHbmi.genesisTime = m.genesisTime
 
 	return receivedHbmi, nil
-}
-
-// SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
-func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return heartbeat.ErrNilAppStatusHandler
-	}
-
-	m.mutAppStatusHandler.Lock()
-	m.appStatusHandler = ash
-	m.mutAppStatusHandler.Unlock()
-	return nil
 }
 
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called

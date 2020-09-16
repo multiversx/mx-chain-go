@@ -21,6 +21,7 @@ type CoreComponentsMock struct {
 	PathHdl                     storage.PathManagerHandler
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
+	StatusHandlerCalled         func() core.AppStatusHandler
 	mutCore                     sync.RWMutex
 }
 
@@ -85,6 +86,14 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 		return ccm.MinTransactionVersionCalled()
 	}
 	return 1
+}
+
+// StatusHandler -
+func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
+	if ccm.StatusHandlerCalled != nil {
+		return ccm.StatusHandlerCalled()
+	}
+	return nil
 }
 
 // IsInterfaceNil -

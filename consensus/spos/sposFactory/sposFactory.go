@@ -34,12 +34,8 @@ func GetSubroundsFactory(
 			worker,
 			chainID,
 			currentPid,
+			appStatusHandler,
 		)
-		if err != nil {
-			return nil, err
-		}
-
-		err = subRoundFactoryBls.SetAppStatusHandler(appStatusHandler)
 		if err != nil {
 			return nil, err
 		}

@@ -2,6 +2,7 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -56,6 +57,7 @@ type ArgBaseProcessor struct {
 	HistoryRepository       dblookupext.HistoryRepository
 	EpochNotifier           process.EpochNotifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	AppStatusHandler        core.AppStatusHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

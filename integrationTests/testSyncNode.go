@@ -195,6 +195,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		HistoryRepository:       tpn.HistoryRepository,
 		EpochNotifier:           tpn.EpochNotifier,
 		HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
+		AppStatusHandler:        &mock.AppStatusHandlerStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

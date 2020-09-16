@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 type subroundEndRound struct {
@@ -23,22 +22,13 @@ type subroundEndRound struct {
 	mutProcessingEndRound         sync.Mutex
 }
 
-// SetAppStatusHandler method set appStatusHandler
-func (sr *subroundEndRound) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
-		return spos.ErrNilAppStatusHandler
-	}
-
-	sr.appStatusHandler = ash
-	return nil
-}
-
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
 	processingThresholdPercentage int,
 	displayStatistics func(),
+	appStatusHandler core.AppStatusHandler,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
@@ -51,7 +41,7 @@ func NewSubroundEndRound(
 		baseSubround,
 		processingThresholdPercentage,
 		displayStatistics,
-		statusHandler.NewNilStatusHandler(),
+		appStatusHandler,
 		sync.Mutex{},
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob

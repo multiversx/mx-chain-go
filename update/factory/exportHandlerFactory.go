@@ -251,6 +251,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Finality:             process.BlockFinality,
 		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
 		Rounder:              e.rounder,
+		AppStatusHandler:     e.CoreComponents.StatusHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {

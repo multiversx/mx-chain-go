@@ -399,7 +399,7 @@ func getAccountFactory(accountType Type) state.AccountFactory {
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
 func CreateShardChain() data.ChainHandler {
-	blockChain := blockchain.NewBlockChain()
+	blockChain, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blockChain.SetGenesisHeader(&dataBlock.Header{})
 	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GetGenesisHeader())
 
@@ -410,7 +410,7 @@ func CreateShardChain() data.ChainHandler {
 
 // CreateMetaChain creates a blockchain implementation used by the meta nodes
 func CreateMetaChain() data.ChainHandler {
-	metaChain := blockchain.NewMetaChain()
+	metaChain, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 	_ = metaChain.SetGenesisHeader(&dataBlock.MetaBlock{})
 	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GetGenesisHeader())
 	metaChain.SetGenesisHeaderHash(genesisHeaderHash)
@@ -707,7 +707,7 @@ func CreateGenesisMetaBlock(
 
 		newDataPool := testscommon.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
-		newBlkc := blockchain.NewMetaChain()
+		newBlkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 		trieStorage, _ := CreateTrieStorageManager()
 		newAccounts, _ := CreateAccountsDB(UserAccount, trieStorage)
 

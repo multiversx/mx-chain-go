@@ -194,6 +194,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		ValidatorPubkeyConverter:           hcf.coreComponents.ValidatorPubKeyConverter(),
 		HeartbeatRefreshIntervalInSec:      hcf.config.Heartbeat.HeartbeatRefreshIntervalInSec,
 		HideInactiveValidatorIntervalInSec: hcf.config.Heartbeat.HideInactiveValidatorIntervalInSec,
+		AppStatusHandler:                   hcf.coreComponents.StatusHandler(),
 	}
 	hbc.monitor, err = heartbeatProcess.NewMonitor(argMonitor)
 	if err != nil {
@@ -201,11 +202,6 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 	}
 
 	log.Debug("heartbeat's monitor component has been instantiated")
-
-	err = hbc.monitor.SetAppStatusHandler(hcf.coreComponents.StatusHandler())
-	if err != nil {
-		return nil, err
-	}
 
 	err = hcf.networkComponents.NetworkMessenger().RegisterMessageProcessor(
 		core.HeartbeatTopic, hbc.monitor,

@@ -117,23 +117,17 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 
 func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandler, error) {
 	if dcf.shardCoordinator.SelfId() < dcf.shardCoordinator.NumberOfShards() {
-		blockChain := blockchain.NewBlockChain()
-
-		err := blockChain.SetAppStatusHandler(dcf.core.StatusHandler())
+		blockChain, err := blockchain.NewBlockChain(dcf.core.StatusHandler())
 		if err != nil {
 			return nil, err
 		}
-
 		return blockChain, nil
 	}
 	if dcf.shardCoordinator.SelfId() == core.MetachainShardId {
-		blockChain := blockchain.NewMetaChain()
-
-		err := blockChain.SetAppStatusHandler(dcf.core.StatusHandler())
+		blockChain, err := blockchain.NewMetaChain(dcf.core.StatusHandler())
 		if err != nil {
 			return nil, err
 		}
-
 		return blockChain, nil
 	}
 	return nil, errors.ErrBlockchainCreation

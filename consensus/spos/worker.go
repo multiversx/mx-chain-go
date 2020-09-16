@@ -21,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ closing.Closer = (*Worker)(nil)
@@ -98,6 +97,7 @@ type WorkerArgs struct {
 	PoolAdder                PoolAdder
 	SignatureSize            int
 	PublicKeySize            int
+	AppStatusHandler         core.AppStatusHandler
 }
 
 // NewWorker creates a new Worker object
@@ -124,7 +124,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		headerSigVerifier:        args.HeaderSigVerifier,
 		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
 		chainID:                  args.ChainID,
-		appStatusHandler:         statusHandler.NewNilStatusHandler(),
+		appStatusHandler:         args.AppStatusHandler,
 		networkShardingCollector: args.NetworkShardingCollector,
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
@@ -217,6 +217,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.PoolAdder) {
 		return ErrNilPoolAdder
+	}
+	if check.IfNil(args.AppStatusHandler) {
+		return ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -612,16 +615,6 @@ func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Lock()
 	wrk.executeStoredMessages()
 	wrk.mutReceivedMessages.Unlock()
-}
-
-// SetAppStatusHandler sets the status metric handler
-func (wrk *Worker) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return ErrNilAppStatusHandler
-	}
-	wrk.appStatusHandler = ash
-
-	return nil
 }
 
 // Close will close the endless running go routine

@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -307,7 +308,11 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		return nil, fmt.Errorf("'%w' while creating new argument for metachain", err)
 	}
 
-	chain := blockchain.NewMetaChain()
+	chain, err := blockchain.NewMetaChain(&statusHandler.NilStatusHandler{})
+	if err != nil {
+		return nil, fmt.Errorf("'%w' while generating genesis block for metachain", err)
+	}
+
 	newArgument.Data.SetBlockchain(chain)
 	var scResults [][]byte
 	genesisBlock, scResults, err = gbc.metaCreatorHandler(newArgument, nodesListSplitter, selfShardId)

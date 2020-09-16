@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
@@ -95,7 +94,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		nodesCoordinator:        arguments.NodesCoordinator,
 		uint64Converter:         arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:          arguments.RequestHandler,
-		appStatusHandler:        statusHandler.NewNilStatusHandler(),
+		appStatusHandler:        arguments.AppStatusHandler,
 		blockChainHook:          arguments.BlockChainHook,
 		txCoordinator:           arguments.TxCoordinator,
 		epochStartTrigger:       arguments.EpochStartTrigger,

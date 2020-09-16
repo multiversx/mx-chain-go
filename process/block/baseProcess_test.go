@@ -271,7 +271,7 @@ func (wr *wrongBody) IsInterfaceNil() bool {
 }
 
 func createComponentHolderMocks() (*mock.CoreComponentsMock, *mock.DataComponentsMock) {
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 
 	coreComponents := &mock.CoreComponentsMock{
@@ -333,6 +333,7 @@ func CreateMockArguments(
 			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 			EpochNotifier:           &mock.EpochNotifierStub{},
+			AppStatusHandler:        &mock.AppStatusHandlerStub{},
 		},
 	}
 
@@ -413,30 +414,6 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	assert.True(t, bp.VerifyStateRoot(rootHash))
-}
-
-//------- SetAppStatusHandler
-func TestBaseProcessor_SetAppStatusHandlerNilHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents)
-	bp, _ := blproc.NewShardProcessor(arguments)
-
-	err := bp.SetAppStatusHandler(nil)
-	assert.Equal(t, process.ErrNilAppStatusHandler, err)
-}
-
-func TestBaseProcessor_SetAppStatusHandlerOkHandlerShouldWork(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents := createComponentHolderMocks()
-	arguments := CreateMockArguments(coreComponents, dataComponents)
-	bp, _ := blproc.NewShardProcessor(arguments)
-
-	ash := &mock.AppStatusHandlerStub{}
-	err := bp.SetAppStatusHandler(ash)
-	assert.Nil(t, err)
 }
 
 //------- RevertState

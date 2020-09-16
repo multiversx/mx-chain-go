@@ -17,7 +17,7 @@ import (
 func TestCheckConsensusMessageValidity_WrongChainID(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{ChainID: wrongChainID}
@@ -28,7 +28,7 @@ func TestCheckConsensusMessageValidity_WrongChainID(t *testing.T) {
 func TestCheckMessageWithFinalInfoValidity_InvalidMessage(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{Body: []byte("body")}
@@ -39,7 +39,7 @@ func TestCheckMessageWithFinalInfoValidity_InvalidMessage(t *testing.T) {
 func TestCheckMessageWithFinalInfoValidity_InvalidPubKeyBitmap(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{PubKeysBitmap: []byte("0")}
@@ -50,7 +50,7 @@ func TestCheckMessageWithFinalInfoValidity_InvalidPubKeyBitmap(t *testing.T) {
 func TestCheckMessageWithFinalInfoValidity_InvalidAggregateSignatureSize(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{PubKeysBitmap: []byte("01"), AggregateSignature: []byte("0")}
@@ -61,7 +61,7 @@ func TestCheckMessageWithFinalInfoValidity_InvalidAggregateSignatureSize(t *test
 func TestCheckMessageWithFinalInfoValidity_InvalidLeaderSignatureSize(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	sig := make([]byte, SignatureSize)
@@ -74,7 +74,7 @@ func TestCheckMessageWithFinalInfoValidity_InvalidLeaderSignatureSize(t *testing
 func TestCheckMessageWithFinalInfoValidity_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	sig := make([]byte, SignatureSize)
@@ -87,7 +87,7 @@ func TestCheckMessageWithFinalInfoValidity_ShouldWork(t *testing.T) {
 func TestCheckMessageWithSignatureValidity_InvalidMessage(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{Body: []byte("body")}
@@ -98,7 +98,7 @@ func TestCheckMessageWithSignatureValidity_InvalidMessage(t *testing.T) {
 func TestCheckMessageWithSignatureValidity_InvalidSignatureShareSize(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{SignatureShare: []byte("0")}
@@ -109,7 +109,7 @@ func TestCheckMessageWithSignatureValidity_InvalidSignatureShareSize(t *testing.
 func TestCheckMessageWithSignatureShareValidity_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	sig := make([]byte, SignatureSize)
@@ -122,7 +122,7 @@ func TestCheckMessageWithSignatureShareValidity_ShouldWork(t *testing.T) {
 func TestCheckMessageWithBlockHeaderValidity_InvalidMessage(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{SignatureShare: []byte("0")}
@@ -133,7 +133,7 @@ func TestCheckMessageWithBlockHeaderValidity_InvalidMessage(t *testing.T) {
 func TestCheckMessageWithBlockHeaderValidity_InvalidHeaderSize(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{}
@@ -144,7 +144,7 @@ func TestCheckMessageWithBlockHeaderValidity_InvalidHeaderSize(t *testing.T) {
 func TestCheckMessageWithBlockHeaderValidity_HeaderTooBig(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	headerBytes := make([]byte, core.MegabyteSize+1)
@@ -157,7 +157,7 @@ func TestCheckMessageWithBlockHeaderValidity_HeaderTooBig(t *testing.T) {
 func TestCheckMessageWithBlockHeaderValidity_HeaderSizeZero(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	headerBytes := make([]byte, 0)
@@ -169,7 +169,7 @@ func TestCheckMessageWithBlockHeaderValidity_HeaderSizeZero(t *testing.T) {
 func TestCheckMessageWithBlockHeaderValidity_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{Header: []byte("header")}
@@ -180,7 +180,7 @@ func TestCheckMessageWithBlockHeaderValidity_ShouldWork(t *testing.T) {
 func TestCheckMessageWithBlockBodyValidity_InvalidMessage(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	headerBytes := make([]byte, 100)
@@ -193,7 +193,7 @@ func TestCheckMessageWithBlockBodyValidity_InvalidMessage(t *testing.T) {
 func TestCheckMessageWithBlockBodyValidity_InvalidBodySize(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	bodyBytes := make([]byte, core.MegabyteSize+1)
@@ -206,7 +206,7 @@ func TestCheckMessageWithBlockBodyValidity_InvalidBodySize(t *testing.T) {
 func TestCheckMessageWithBlockBodyValidity_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	bodyBytes := make([]byte, 100)
@@ -219,7 +219,7 @@ func TestCheckMessageWithBlockBodyValidity_ShouldWork(t *testing.T) {
 func TestCheckMessageWithBlockBodyAndHeaderValidity_InvalidMessage(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{SignatureShare: []byte("0")}
@@ -230,7 +230,7 @@ func TestCheckMessageWithBlockBodyAndHeaderValidity_InvalidMessage(t *testing.T)
 func TestCheckMessageWithBlockBodyAndHeaderValidity_InvalidBodySize(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	bodyBytes := make([]byte, core.MegabyteSize+1)
@@ -243,7 +243,7 @@ func TestCheckMessageWithBlockBodyAndHeaderValidity_InvalidBodySize(t *testing.T
 func TestCheckMessageWithBlockBodyAndHeaderValidity_InvalidHeaderSize(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	headerBytes := make([]byte, core.MegabyteSize+1)
@@ -256,7 +256,7 @@ func TestCheckMessageWithBlockBodyAndHeaderValidity_InvalidHeaderSize(t *testing
 func TestCheckMessageWithBlockBodyAndHeaderValidity_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	headerBytes := make([]byte, 100)
@@ -269,7 +269,7 @@ func TestCheckMessageWithBlockBodyAndHeaderValidity_ShouldWork(t *testing.T) {
 func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockBodyAndHeaderInvalid(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBodyAndHeader), SignatureShare: []byte("1")}
@@ -280,7 +280,7 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockBodyAndHead
 func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockBodyInvalid(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), SignatureShare: []byte("1")}
@@ -291,7 +291,7 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockBodyInvalid
 func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockHeaderInvalid(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockHeader), SignatureShare: []byte("1")}
@@ -302,7 +302,7 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockHeaderInval
 func TestCheckConsensusMessageValidityForMessageType_MessageWithSignatureInvalid(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{MsgType: int64(bls.MtSignature), Header: []byte("1")}
@@ -313,7 +313,7 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithSignatureInvalid
 func TestCheckConsensusMessageValidityForMessageType_MessageWithFinalInfoInvalid(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockHeaderFinalInfo), Header: []byte("1")}
@@ -324,7 +324,7 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithFinalInfoInvalid
 func TestCheckConsensusMessageValidityForMessageType_MessageUnknownInvalid(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{MsgType: int64(bls.MtUnknown), Header: []byte("1")}
@@ -335,7 +335,7 @@ func TestCheckConsensusMessageValidityForMessageType_MessageUnknownInvalid(t *te
 func TestIsBlockHeaderHashSizeValid_NotValid(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockBody), BlockHeaderHash: []byte("hash")}
@@ -346,7 +346,7 @@ func TestIsBlockHeaderHashSizeValid_NotValid(t *testing.T) {
 func TestIsBlockHeaderHashSizeValid(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	headerHash := make([]byte, workerArgs.Hasher.Size())
@@ -359,7 +359,7 @@ func TestIsBlockHeaderHashSizeValid(t *testing.T) {
 func TestCheckConsensusMessageValidity_InvalidMessage(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	cnsMsg := &consensus.Message{ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader), SignatureShare: []byte("1")}
@@ -370,7 +370,7 @@ func TestCheckConsensusMessageValidity_InvalidMessage(t *testing.T) {
 func TestCheckConsensusMessageValidity_InvalidHeaderHashSize(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	headerBytes := make([]byte, 100)
@@ -383,7 +383,7 @@ func TestCheckConsensusMessageValidity_InvalidHeaderHashSize(t *testing.T) {
 func TestCheckConsensusMessageValidity_InvalidPublicKeySize(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	headerBytes := make([]byte, 100)
@@ -398,7 +398,7 @@ func TestCheckConsensusMessageValidity_InvalidPublicKeySize(t *testing.T) {
 func TestCheckConsensusMessageValidity_InvalidSignatureSize(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	headerBytes := make([]byte, 100)
@@ -418,7 +418,7 @@ func TestCheckConsensusMessageValidity_InvalidSignatureSize(t *testing.T) {
 func TestCheckConsensusMessageValidity_NodeIsNotEligible(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	headerBytes := make([]byte, 100)
@@ -441,7 +441,7 @@ func TestCheckConsensusMessageValidity_NodeIsNotEligible(t *testing.T) {
 func TestCheckConsensusMessageValidity_ErrMessageForFutureRound(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	headerBytes := make([]byte, 100)
@@ -463,7 +463,7 @@ func TestCheckConsensusMessageValidity_ErrMessageForFutureRound(t *testing.T) {
 func TestCheckConsensusMessageValidity_ErrMessageForPastRound(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	workerArgs.ConsensusState.RoundIndex = 100
 	wrk, _ := spos.NewWorker(workerArgs)
 
@@ -492,7 +492,7 @@ func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
 			return localErr
 		},
 	}
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	workerArgs.PeerSignatureHandler = &mock.PeerSignatureHandler{
 		Signer: signer,
 	}
@@ -518,7 +518,7 @@ func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
 func TestCheckConsensusMessageValidity_Ok(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerMock{})
 	workerArgs.ConsensusState.RoundIndex = 10
 	wrk, _ := spos.NewWorker(workerArgs)
 

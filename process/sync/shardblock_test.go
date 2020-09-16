@@ -443,10 +443,10 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	store.AddStorer(dataRetriever.MiniBlockUnit, blockBodyUnit)
 	args.Store = store
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
+
 	_ = blkc.SetGenesisHeader(&block.Header{})
 	_ = blkc.SetCurrentBlockHeader(&hdr)
 	args.ChainHandler = blkc
@@ -1605,8 +1605,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	requestedHash = append(requestedHash, mbh)
 	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	args.ChainHandler = blkc
@@ -1643,8 +1642,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 		},
 	}
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	args.ChainHandler = blkc
@@ -1667,10 +1665,10 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	requestedHash = append(requestedHash, mbh)
 	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
+
 	args.ChainHandler = blkc
 	args.Store = createFullStore()
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
