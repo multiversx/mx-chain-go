@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "dblookupext";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// MiniblockMetadata is used to store information about a history transaction
+message MiniblockMetadata {
+    uint32 SourceShardID        = 1;
+    uint32 DestinationShardID   = 2;
+    uint64 Round                = 3;
+    uint64 HeaderNonce          = 4;
+    bytes  HeaderHash           = 5;
+    bytes  MiniblockHash        = 6;
+    bytes  DeprecatedStatus     = 7 [deprecated=true]; 
+    uint32 Epoch                = 8;
+    uint64 NotarizedAtSourceInMetaNonce         = 9;
+    uint64 NotarizedAtDestinationInMetaNonce    = 10;
+    bytes NotarizedAtSourceInMetaHash           = 11;
+    bytes NotarizedAtDestinationInMetaHash      = 12;
+    int32 Type                                  = 13;
+}
+

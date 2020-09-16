@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMetaBlock_GetEpoch(t *testing.T) {
@@ -268,4 +269,80 @@ func TestMetaBlock_GetMiniBlockHeadersWithDst(t *testing.T) {
 	assert.Equal(t, 0, len(mbDst0))
 	mbDst1 := metaHdr.GetMiniBlockHeadersWithDst(1)
 	assert.Equal(t, len(shardMBHeader), len(mbDst1))
+}
+
+func TestMetaBlock_GetOrderedCrossMiniblocksWithDstShouldWork(t *testing.T) {
+	t.Parallel()
+
+	metaHdr := &block.MetaBlock{Round: 6}
+	metaHdr.ShardInfo = make([]block.ShardData, 0)
+
+	shardMBHeader1 := make([]block.MiniBlockHeader, 0)
+	shMBHdr1 := block.MiniBlockHeader{SenderShardID: 0, ReceiverShardID: 1, Hash: []byte("hash1")}
+	shardMBHeader1 = append(shardMBHeader1, shMBHdr1)
+	shData1 := block.ShardData{Round: 11, ShardID: 0, HeaderHash: []byte("sh1"), ShardMiniBlockHeaders: shardMBHeader1}
+
+	shardMBHeader2 := make([]block.MiniBlockHeader, 0)
+	shMBHdr2 := block.MiniBlockHeader{SenderShardID: 0, ReceiverShardID: 1, Hash: []byte("hash2")}
+	shardMBHeader2 = append(shardMBHeader2, shMBHdr2)
+	shData2 := block.ShardData{Round: 9, ShardID: 0, HeaderHash: []byte("sh2"), ShardMiniBlockHeaders: shardMBHeader2}
+
+	shardMBHeader3 := make([]block.MiniBlockHeader, 0)
+	shMBHdr3 := block.MiniBlockHeader{SenderShardID: 2, ReceiverShardID: 1, Hash: []byte("hash3")}
+	shardMBHeader3 = append(shardMBHeader3, shMBHdr3)
+	shData3 := block.ShardData{Round: 10, ShardID: 2, HeaderHash: []byte("sh3"), ShardMiniBlockHeaders: shardMBHeader3}
+
+	shardMBHeader4 := make([]block.MiniBlockHeader, 0)
+	shMBHdr4 := block.MiniBlockHeader{SenderShardID: 2, ReceiverShardID: 1, Hash: []byte("hash4")}
+	shardMBHeader4 = append(shardMBHeader4, shMBHdr4)
+	shData4 := block.ShardData{Round: 8, ShardID: 2, HeaderHash: []byte("sh4"), ShardMiniBlockHeaders: shardMBHeader4}
+
+	shardMBHeader5 := make([]block.MiniBlockHeader, 0)
+	shMBHdr5 := block.MiniBlockHeader{SenderShardID: 1, ReceiverShardID: 2, Hash: []byte("hash5")}
+	shardMBHeader5 = append(shardMBHeader5, shMBHdr5)
+	shData5 := block.ShardData{Round: 7, ShardID: 1, HeaderHash: []byte("sh5"), ShardMiniBlockHeaders: shardMBHeader5}
+
+	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shData1, shData2, shData3, shData4, shData5)
+
+	metaHdr.MiniBlockHeaders = append(metaHdr.MiniBlockHeaders, block.MiniBlockHeader{
+		Hash:            []byte("hash6"),
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: 1,
+	})
+
+	metaHdr.MiniBlockHeaders = append(metaHdr.MiniBlockHeaders, block.MiniBlockHeader{
+		Hash:            []byte("hash7"),
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: core.AllShardId,
+	})
+
+	metaHdr.MiniBlockHeaders = append(metaHdr.MiniBlockHeaders, block.MiniBlockHeader{
+		Hash:            []byte("hash8"),
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: 2,
+	})
+
+	miniBlocksInfo := metaHdr.GetOrderedCrossMiniblocksWithDst(1)
+	require.Equal(t, 6, len(miniBlocksInfo))
+	assert.Equal(t, miniBlocksInfo[0].Hash, []byte("hash6"))
+	assert.Equal(t, miniBlocksInfo[0].Round, uint64(6))
+	assert.Equal(t, miniBlocksInfo[1].Hash, []byte("hash7"))
+	assert.Equal(t, miniBlocksInfo[1].Round, uint64(6))
+	assert.Equal(t, miniBlocksInfo[2].Hash, []byte("hash4"))
+	assert.Equal(t, miniBlocksInfo[2].Round, uint64(8))
+	assert.Equal(t, miniBlocksInfo[3].Hash, []byte("hash2"))
+	assert.Equal(t, miniBlocksInfo[3].Round, uint64(9))
+	assert.Equal(t, miniBlocksInfo[4].Hash, []byte("hash3"))
+	assert.Equal(t, miniBlocksInfo[4].Round, uint64(10))
+	assert.Equal(t, miniBlocksInfo[5].Hash, []byte("hash1"))
+	assert.Equal(t, miniBlocksInfo[5].Round, uint64(11))
+
+	miniBlocksInfo = metaHdr.GetOrderedCrossMiniblocksWithDst(2)
+	require.Equal(t, 3, len(miniBlocksInfo))
+	assert.Equal(t, miniBlocksInfo[0].Hash, []byte("hash7"))
+	assert.Equal(t, miniBlocksInfo[0].Round, uint64(6))
+	assert.Equal(t, miniBlocksInfo[1].Hash, []byte("hash8"))
+	assert.Equal(t, miniBlocksInfo[1].Round, uint64(6))
+	assert.Equal(t, miniBlocksInfo[2].Hash, []byte("hash5"))
+	assert.Equal(t, miniBlocksInfo[2].Round, uint64(7))
 }

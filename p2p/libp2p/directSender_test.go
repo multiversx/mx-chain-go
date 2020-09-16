@@ -302,7 +302,7 @@ func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing
 
 	err := ds.Send("topic", messageTooLarge, core.PeerID(cs.RemotePeer()))
 
-	assert.Equal(t, p2p.ErrMessageTooLarge, err)
+	assert.True(t, errors.Is(err, p2p.ErrMessageTooLarge))
 }
 
 func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *testing.T) {
@@ -381,8 +381,6 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 		blankMessageHandler,
 	)
 
-	generatedCounter := ds.Counter()
-
 	id, sk := createLibP2PCredentialsDirectSender()
 	remotePeer := peer.ID("remote peer")
 
@@ -425,7 +423,6 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 	assert.Nil(t, err)
 	assert.Equal(t, receivedMsg.Data, data)
 	assert.Equal(t, receivedMsg.TopicIDs[0], topic)
-	assert.Equal(t, receivedMsg.Seqno, ds.NextSeqno(&generatedCounter))
 }
 
 func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *testing.T) {
@@ -443,8 +440,6 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 		hs,
 		blankMessageHandler,
 	)
-
-	generatedCounter := ds.Counter()
 
 	id, sk := createLibP2PCredentialsDirectSender()
 	remotePeer := peer.ID("remote peer")
@@ -495,7 +490,6 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 	assert.Nil(t, err)
 	assert.Equal(t, receivedMsg.Data, data)
 	assert.Equal(t, receivedMsg.TopicIDs[0], topic)
-	assert.Equal(t, receivedMsg.Seqno, ds.NextSeqno(&generatedCounter))
 }
 
 //------- received mesages tests

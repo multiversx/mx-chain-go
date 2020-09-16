@@ -61,6 +61,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		return nil, err
 	}
 
+	query = prepareScQuery(query)
 	vmInput := service.createVMCallInput(query, gasPrice)
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
@@ -75,10 +76,21 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	return vmOutput, nil
 }
 
+func prepareScQuery(query *process.SCQuery) *process.SCQuery {
+	if query.CallerAddr == nil {
+		query.CallerAddr = query.ScAddress
+	}
+	if query.CallValue == nil {
+		query.CallValue = big.NewInt(0)
+	}
+
+	return query
+}
+
 func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPrice uint64) *vmcommon.ContractCallInput {
 	vmInput := vmcommon.VMInput{
-		CallerAddr:  query.ScAddress,
-		CallValue:   big.NewInt(0),
+		CallerAddr:  query.CallerAddr,
+		CallValue:   query.CallValue,
 		GasPrice:    gasPrice,
 		GasProvided: service.economicsFee.MaxGasLimitPerBlock(0),
 		Arguments:   query.Arguments,

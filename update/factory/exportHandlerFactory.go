@@ -64,7 +64,7 @@ type ArgsExporter struct {
 	KeyGen                   crypto.KeyGenerator
 	BlockSigner              crypto.SingleSigner
 	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
+	HeaderIntegrityVerifier  process.HeaderIntegrityVerifier
 	ValidityAttester         process.ValidityAttester
 	InputAntifloodHandler    process.P2PAntifloodHandler
 	OutputAntifloodHandler   process.P2PAntifloodHandler
@@ -105,7 +105,7 @@ type exportHandlerFactory struct {
 	addressPubKeyConverter   core.PubkeyConverter
 	validatorPubKeyConverter core.PubkeyConverter
 	headerSigVerifier        process.InterceptedHeaderSigVerifier
-	headerIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
+	headerIntegrityVerifier  process.HeaderIntegrityVerifier
 	validityAttester         process.ValidityAttester
 	resolverContainer        dataRetriever.ResolversContainer
 	inputAntifloodHandler    process.P2PAntifloodHandler

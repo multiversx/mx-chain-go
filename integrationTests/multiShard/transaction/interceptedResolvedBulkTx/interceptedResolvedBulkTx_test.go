@@ -215,7 +215,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	}
 
 	numOfShards := 6
-	nodesPerShard := 3
+	nodesPerShard := 1
 	numMetachainNodes := 0
 	firstSkInShard := uint32(4)
 

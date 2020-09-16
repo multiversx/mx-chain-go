@@ -95,6 +95,10 @@ func (s *TpsBenchmarkMock) ShardStatistic(shardID uint32) statistics.ShardStatis
 
 // Update receives a metablock and updates all fields accordingly for each shard available in the meta block
 func (s *TpsBenchmarkMock) Update(mb data.HeaderHandler) {
+	if mb == nil {
+		return
+	}
+
 	s.blockNumber = mb.GetNonce()
 	s.roundNumber = mb.GetRound()
 	s.lastBlockTxCount = mb.GetTxCount()

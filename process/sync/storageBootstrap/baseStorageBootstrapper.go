@@ -1,6 +1,8 @@
 package storageBootstrap
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -136,6 +138,15 @@ func (st *storageBootstrapper) loadBlocks() error {
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 
+	log.Debug("storageBootstrapper.loadBlocks",
+		"LastHeader", st.displayBoostrapHeaderInfo(headerInfo.LastHeader),
+		"LastCrossNotarizedHeaders", st.displayBootstrapHeaders(headerInfo.LastCrossNotarizedHeaders),
+		"LastSelfNotarizedHeaders", st.displayBootstrapHeaders(headerInfo.LastSelfNotarizedHeaders),
+		"HighestFinalBlockNonce", headerInfo.HighestFinalBlockNonce,
+		"NodesCoordinatorConfigKey", headerInfo.NodesCoordinatorConfigKey,
+		"EpochStartTriggerConfigKey", headerInfo.EpochStartTriggerConfigKey,
+	)
+
 	st.bootstrapper.applyNumPendingMiniBlocks(headerInfo.PendingMiniBlocks)
 
 	processedMiniBlocks := processedMb.NewProcessedMiniBlocks()
@@ -159,6 +170,21 @@ func (st *storageBootstrapper) loadBlocks() error {
 	st.highestNonce = headerInfo.LastHeader.Nonce
 
 	return nil
+}
+
+func (st *storageBootstrapper) displayBootstrapHeaders(hdrs []bootstrapStorage.BootstrapHeaderInfo) string {
+	str := "["
+	for _, h := range hdrs {
+		str += st.displayBoostrapHeaderInfo(h)
+	}
+
+	str += "]"
+	return str
+}
+
+func (st *storageBootstrapper) displayBoostrapHeaderInfo(hinfo bootstrapStorage.BootstrapHeaderInfo) string {
+	return fmt.Sprintf("shard %d, nonce %d, epoch %d, hash %s",
+		hinfo.ShardId, hinfo.Nonce, hinfo.Epoch, logger.DisplayByteSlice(hinfo.Hash))
 }
 
 func (st *storageBootstrapper) cleanupStorageForHigherNonceIfExist() {
@@ -281,7 +307,8 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 
 		err = st.bootstrapper.applyCrossNotarizedHeaders(bootInfos[i].LastCrossNotarizedHeaders)
 		if err != nil {
-			log.Warn("cannot apply cross notarized headers", "error", err.Error())
+			log.Debug("cannot apply cross notarized headers", "error", err.Error())
+			return err
 		}
 
 		var selfNotarizedHeaders []data.HeaderHandler
@@ -320,6 +347,10 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		}
 
 		st.blockTracker.AddTrackedHeader(header, bootInfos[i].LastHeader.Hash)
+	}
+
+	if len(bootInfos) == 1 {
+		st.forkDetector.SetFinalToLastCheckpoint()
 	}
 
 	err = st.nodesCoordinator.LoadState(bootInfos[0].NodesCoordinatorConfigKey)

@@ -9,14 +9,20 @@ import (
 
 const MaxSizeInBytes = maxSizeInBytes
 
-// GetMessages -
-func (m *Monitor) GetMessages() map[string]*heartbeatMessageInfo {
-	return m.heartbeatMessages
+// GetNumHearbeatMessages -
+func (m *Monitor) GetNumHearbeatMessages() int {
+	m.mutHeartbeatMessages.RLock()
+	defer m.mutHeartbeatMessages.RUnlock()
+
+	return len(m.heartbeatMessages)
 }
 
-// SetMessages -
-func (m *Monitor) SetMessages(messages map[string]*heartbeatMessageInfo) {
-	m.heartbeatMessages = messages
+// AddHeartbeatMessage -
+func (m *Monitor) AddHeartbeatMessage(pk string, hbmi *heartbeatMessageInfo) {
+	m.mutHeartbeatMessages.Lock()
+	defer m.mutHeartbeatMessages.Unlock()
+
+	m.heartbeatMessages[pk] = hbmi
 }
 
 // GetHeartbeatMessageInfo -
@@ -103,7 +109,30 @@ func GetMaxSizeInBytes() int {
 	return maxSizeInBytes
 }
 
+// GetNonce -
+func (hbmi *heartbeatMessageInfo) GetNonce() uint64 {
+	return hbmi.nonce
+}
+
 // RefreshHeartbeatMessageInfo -
 func (m *Monitor) RefreshHeartbeatMessageInfo() {
 	m.refreshHeartbeatMessageInfo()
+}
+
+// AddDoubleSignerPeers -
+func (m *Monitor) AddDoubleSignerPeers(hb *data.Heartbeat) {
+	m.addDoubleSignerPeers(hb)
+}
+
+// GetNumDoubleSignerPeers -
+func (m *Monitor) GetNumDoubleSignerPeers() int {
+	m.mutHeartbeatMessages.RLock()
+	defer m.mutHeartbeatMessages.RUnlock()
+
+	return len(m.doubleSignerPeers)
+}
+
+// GetNumInstancesOfPublicKey -
+func (m *Monitor) GetNumInstancesOfPublicKey(pubKeyStr string) uint64 {
+	return m.getNumInstancesOfPublicKey(pubKeyStr)
 }

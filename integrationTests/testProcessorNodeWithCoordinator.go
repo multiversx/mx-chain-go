@@ -198,7 +198,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		Messenger:               messenger,
 		NodesCoordinator:        nodesCoordinator,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		HeaderIntegrityVerifier: CreateHeaderIntegrityVerifier(),
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
 	}

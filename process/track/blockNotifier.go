@@ -43,6 +43,14 @@ func (bn *blockNotifier) RegisterHandler(handler func(shardID uint32, headers []
 	bn.mutNotarizedHeadersHandlers.Unlock()
 }
 
+// GetNumRegisteredHandlers gets the total number of registered handlers
+func (bn *blockNotifier) GetNumRegisteredHandlers() int {
+	bn.mutNotarizedHeadersHandlers.RLock()
+	defer bn.mutNotarizedHeadersHandlers.RUnlock()
+
+	return len(bn.notarizedHeadersHandlers)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bn *blockNotifier) IsInterfaceNil() bool {
 	return bn == nil

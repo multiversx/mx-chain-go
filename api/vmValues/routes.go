@@ -3,11 +3,13 @@ package vmValues
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/data/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-gonic/gin"
@@ -22,16 +24,18 @@ const (
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
-	ExecuteSCQuery(*process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
 // VMValueRequest represents the structure on which user input for generating a new transaction will validate against
 type VMValueRequest struct {
-	ScAddress string   `form:"scAddress" json:"scAddress"`
-	FuncName  string   `form:"funcName" json:"funcName"`
-	Args      []string `form:"args"  json:"args"`
+	ScAddress  string   `form:"scAddress" json:"scAddress"`
+	FuncName   string   `form:"funcName" json:"funcName"`
+	CallerAddr string   `form:"caller" json:"caller"`
+	CallValue  string   `form:"value" json:"value"`
+	Args       []string `form:"args"  json:"args"`
 }
 
 // Routes defines address related routes
@@ -85,7 +89,7 @@ func executeQuery(context *gin.Context) {
 	returnOkResponse(context, vmOutput)
 }
 
-func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
+func doExecuteQuery(context *gin.Context) (*vm.VMOutputApi, error) {
 	efObj, ok := context.Get("facade")
 	if !ok {
 		return nil, errors.ErrNilAppContext
@@ -107,12 +111,7 @@ func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, err
 	}
 
-	vmOutput, err := ef.ExecuteSCQuery(command)
-	if err != nil {
-		return nil, err
-	}
-
-	return vmOutput, nil
+	return ef.ExecuteSCQuery(command)
 }
 
 func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery, error) {
@@ -132,11 +131,30 @@ func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery,
 		arguments[i] = append(arguments[i], argBytes...)
 	}
 
-	return &process.SCQuery{
+	scQuery := &process.SCQuery{
 		ScAddress: decodedAddress,
 		FuncName:  request.FuncName,
 		Arguments: arguments,
-	}, nil
+	}
+
+	if len(request.CallerAddr) > 0 {
+		callerAddress, errDecodeCaller := fh.DecodeAddressPubkey(request.CallerAddr)
+		if errDecodeCaller != nil {
+			return nil, errDecodeCaller
+		}
+
+		scQuery.CallerAddr = callerAddress
+	}
+
+	if len(request.CallValue) > 0 {
+		callValue, ok := big.NewInt(0).SetString(request.CallValue, 10)
+		if !ok {
+			return nil, fmt.Errorf("non numeric call value provided: %s", request.CallValue)
+		}
+		scQuery.CallValue = callValue
+	}
+
+	return scQuery, nil
 }
 
 func returnBadRequest(context *gin.Context, errScope string, err error) {

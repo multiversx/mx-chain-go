@@ -8,6 +8,7 @@ import (
 // IntermediateTransactionHandlerMock -
 type IntermediateTransactionHandlerMock struct {
 	AddIntermediateTransactionsCalled        func(txs []data.TransactionHandler) error
+	GetNumOfCrossInterMbsAndTxsCalled        func() (int, int)
 	CreateAllInterMiniBlocksCalled           func() []*block.MiniBlock
 	VerifyInterMiniBlocksCalled              func(body *block.Body) error
 	SaveCurrentIntermediateTxToStorageCalled func() error
@@ -15,6 +16,7 @@ type IntermediateTransactionHandlerMock struct {
 	CreateMarshalizedDataCalled              func(txHashes [][]byte) ([][]byte, error)
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
 	RemoveProcessedResultsForCalled          func(txHashes [][]byte)
+	GetCreatedInShardMiniBlockCalled         func() *block.MiniBlock
 	intermediateTransactions                 []data.TransactionHandler
 }
 
@@ -45,6 +47,14 @@ func (ith *IntermediateTransactionHandlerMock) AddIntermediateTransactions(txs [
 // GetIntermediateTransactions -
 func (ith *IntermediateTransactionHandlerMock) GetIntermediateTransactions() []data.TransactionHandler {
 	return ith.intermediateTransactions
+}
+
+// GetNumOfCrossInterMbsAndTxs -
+func (ith *IntermediateTransactionHandlerMock) GetNumOfCrossInterMbsAndTxs() (int, int) {
+	if ith.GetNumOfCrossInterMbsAndTxsCalled == nil {
+		return 0, 0
+	}
+	return ith.GetNumOfCrossInterMbsAndTxsCalled()
 }
 
 // CreateAllInterMiniBlocks -
@@ -88,6 +98,9 @@ func (ith *IntermediateTransactionHandlerMock) GetAllCurrentFinishedTxs() map[st
 
 // GetCreatedInShardMiniBlock -
 func (ith *IntermediateTransactionHandlerMock) GetCreatedInShardMiniBlock() *block.MiniBlock {
+	if ith.GetCreatedInShardMiniBlockCalled != nil {
+		return ith.GetCreatedInShardMiniBlockCalled()
+	}
 	return &block.MiniBlock{}
 }
 

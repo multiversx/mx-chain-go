@@ -39,6 +39,8 @@ func (ut UnitType) String() string {
 		return "BootstrapUnit"
 	case StatusMetricsUnit:
 		return "StatusMetricsUnit"
+	case ReceiptsUnit:
+		return "ReceiptsUnit"
 	}
 
 	if ut < ShardHdrNonceHashDataUnit {
@@ -73,10 +75,14 @@ const (
 	StatusMetricsUnit UnitType = 10
 	// TxLogsUnit is the transactions logs storage unit identifier
 	TxLogsUnit UnitType = 11
-	// TransactionHistoryUnit is the transactions history storage unit identifier
-	TransactionHistoryUnit UnitType = 12
+	// MiniblocksMetadataUnit is the miniblocks metadata storage unit identifier
+	MiniblocksMetadataUnit UnitType = 12
 	// EpochByHashUnit is the epoch by hash storage unit identifier
 	EpochByHashUnit UnitType = 13
+	// MiniblocksHashByTxHashUnit is the miniblocks hash by tx hash storage unit identifier
+	MiniblockHashByTxHashUnit UnitType = 14
+	// ReceiptsUnit is the receipts storage unit identifier
+	ReceiptsUnit UnitType = 15
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -171,6 +177,13 @@ type EpochHandler interface {
 	IsInterfaceNil() bool
 }
 
+// ManualEpochStartNotifier can manually notify an epoch change
+type ManualEpochStartNotifier interface {
+	NewEpoch(epoch uint32)
+	CurrentEpoch() uint32
+	IsInterfaceNil() bool
+}
+
 // EpochProviderByNonce defines the functionality needed for calculating an epoch based on nonce
 type EpochProviderByNonce interface {
 	EpochForNonce(nonce uint64) (uint32, error)
@@ -181,6 +194,7 @@ type EpochProviderByNonce interface {
 type MessageHandler interface {
 	ConnectedPeersOnTopic(topic string) []core.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
+	ID() core.PeerID
 	IsInterfaceNil() bool
 }
 

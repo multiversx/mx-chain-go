@@ -134,6 +134,11 @@ func (u *Unit) Put(key, data []byte) error {
 	return err
 }
 
+// PutInEpoch will call the Put method as this storer doesn't handle epochs
+func (u *Unit) PutInEpoch(key, data []byte, _ uint32) error {
+	return u.Put(key, data)
+}
+
 // Close will close unit
 func (u *Unit) Close() error {
 	err := u.persister.Close()

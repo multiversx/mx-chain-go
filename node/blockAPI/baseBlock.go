@@ -6,7 +6,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/fullHistory"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -15,22 +15,23 @@ import (
 )
 
 type baseAPIBockProcessor struct {
-	isFullHistoryNode        bool
+	hasDbLookupExtensions    bool
 	selfShardID              uint32
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	historyRepo              fullHistory.HistoryRepository
-	unmarshalTx              func(txBytes []byte, txType string) (*transaction.ApiTransactionResult, error)
+	historyRepo              dblookupext.HistoryRepository
+	unmarshalTx              func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
 
 func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epoch uint32) []*transaction.ApiTransactionResult {
-	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, mbHeader.Hash, epoch)
+	miniblockHash := mbHeader.Hash
+	mbBytes, err := bap.getFromStorerWithEpoch(dataRetriever.MiniBlockUnit, miniblockHash, epoch)
 	if err != nil {
 		log.Warn("cannot get miniblock from storage",
-			"hash", hex.EncodeToString(mbHeader.Hash),
+			"hash", hex.EncodeToString(miniblockHash),
 			"error", err.Error())
 		return nil
 	}
@@ -39,18 +40,20 @@ func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epo
 	err = bap.marshalizer.Unmarshal(miniBlock, mbBytes)
 	if err != nil {
 		log.Warn("cannot unmarshal miniblock",
-			"hash", hex.EncodeToString(mbHeader.Hash),
+			"hash", hex.EncodeToString(miniblockHash),
 			"error", err.Error())
 		return nil
 	}
 
 	switch miniBlock.Type {
 	case block.TxBlock:
-		return bap.getTxsFromMiniblock(miniBlock, epoch, "normal", dataRetriever.TransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeNormal, dataRetriever.TransactionUnit)
 	case block.RewardsBlock:
-		return bap.getTxsFromMiniblock(miniBlock, epoch, "reward", dataRetriever.RewardTransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeReward, dataRetriever.RewardTransactionUnit)
 	case block.SmartContractResultBlock:
-		return bap.getTxsFromMiniblock(miniBlock, epoch, "unsigned", dataRetriever.UnsignedTransactionUnit)
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeUnsigned, dataRetriever.UnsignedTransactionUnit)
+	case block.InvalidBlock:
+		return bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeInvalid, dataRetriever.TransactionUnit)
 	default:
 		return nil
 	}
@@ -58,8 +61,9 @@ func (bap *baseAPIBockProcessor) getTxsByMb(mbHeader *block.MiniBlockHeader, epo
 
 func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 	miniblock *block.MiniBlock,
+	miniblockHash []byte,
 	epoch uint32,
-	txType string,
+	txType transaction.TxType,
 	unit dataRetriever.UnitType,
 ) []*transaction.ApiTransactionResult {
 	storer := bap.store.GetStorer(unit)
@@ -83,6 +87,19 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 			continue
 		}
 		tx.Hash = hex.EncodeToString([]byte(txHash))
+		tx.MiniBlockType = miniblock.Type.String()
+		tx.MiniBlockHash = hex.EncodeToString([]byte(miniblockHash))
+		tx.SourceShard = miniblock.SenderShardID
+		tx.DestinationShard = miniblock.ReceiverShardID
+
+		tx.Status = (&transaction.StatusComputer{
+			MiniblockType:    miniblock.Type,
+			SourceShard:      tx.SourceShard,
+			DestinationShard: tx.DestinationShard,
+			Receiver:         tx.Tx.GetRcvAddr(),
+			TransactionData:  tx.Data,
+			SelfShard:        bap.selfShardID,
+		}).ComputeStatusWhenInStorageKnowingMiniblock()
 
 		txs = append(txs, tx)
 	}
@@ -92,11 +109,11 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 }
 
 func (bap *baseAPIBockProcessor) getFromStorer(unit dataRetriever.UnitType, key []byte) ([]byte, error) {
-	if !bap.isFullHistoryNode {
+	if !bap.hasDbLookupExtensions {
 		return bap.store.Get(unit, key)
 	}
 
-	epoch, err := bap.historyRepo.GetEpochForHash(key)
+	epoch, err := bap.historyRepo.GetEpochByHash(key)
 	if err != nil {
 		return nil, err
 	}

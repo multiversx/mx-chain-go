@@ -8,14 +8,16 @@ import (
 	"sync"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 )
 
 var log = logger.GetOrCreate("heartbeat/process")
@@ -45,6 +47,7 @@ type Monitor struct {
 	mutHeartbeatMessages               sync.RWMutex
 	mutAppStatusHandler                sync.Mutex
 	heartbeatMessages                  map[string]*heartbeatMessageInfo
+	doubleSignerPeers                  map[string]process.TimeCacher
 	pubKeysMap                         map[uint32][]string
 	mutFullPeersSlice                  sync.RWMutex
 	fullPeersSlice                     [][]byte
@@ -111,6 +114,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		validatorPubkeyConverter:           arg.ValidatorPubkeyConverter,
 		heartbeatRefreshIntervalInSec:      arg.HeartbeatRefreshIntervalInSec,
 		hideInactiveValidatorIntervalInSec: arg.HideInactiveValidatorIntervalInSec,
+		doubleSignerPeers:                  make(map[string]process.TimeCacher),
 	}
 
 	err := mon.storer.UpdateGenesisTime(arg.GenesisTime)
@@ -305,6 +309,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 func (m *Monitor) addHeartbeatMessageToMap(hb *data.Heartbeat) {
 	pubKeyStr := string(hb.Pubkey)
 	m.mutHeartbeatMessages.Lock()
+	m.addDoubleSignerPeers(hb)
 	hbmi, ok := m.heartbeatMessages[pubKeyStr]
 	if hbmi == nil || !ok {
 		var err error
@@ -317,11 +322,21 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *data.Heartbeat) {
 		}
 		m.heartbeatMessages[pubKeyStr] = hbmi
 	}
+	numInstances := m.getNumInstancesOfPublicKey(pubKeyStr)
 	m.mutHeartbeatMessages.Unlock()
 
 	peerType, computedShardID := m.computePeerTypeAndShardID(hb.Pubkey)
 
-	hbmi.HeartbeatReceived(computedShardID, hb.ShardID, hb.VersionNumber, hb.NodeDisplayName, hb.Identity, peerType)
+	hbmi.HeartbeatReceived(
+		computedShardID,
+		hb.ShardID,
+		hb.VersionNumber,
+		hb.NodeDisplayName,
+		hb.Identity,
+		peerType,
+		hb.Nonce,
+		numInstances,
+	)
 	hbDTO := m.convertToExportedStruct(hbmi)
 
 	err := m.storer.SavePubkeyData(hb.Pubkey, &hbDTO)
@@ -430,14 +445,11 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
+	m.Cleanup()
+
 	m.mutHeartbeatMessages.Lock()
 	status := make([]data.PubKeyHeartbeat, 0, len(m.heartbeatMessages))
 	for k, v := range m.heartbeatMessages {
-		if m.shouldSkipValidator(v) {
-			delete(m.heartbeatMessages, k)
-			continue
-		}
-
 		tmp := data.PubKeyHeartbeat{
 			PublicKey: m.validatorPubkeyConverter.Encode([]byte(k)),
 			TimeStamp: v.timeStamp,
@@ -453,6 +465,8 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 			NodeDisplayName: v.nodeDisplayName,
 			Identity:        v.identity,
 			PeerType:        v.peerType,
+			Nonce:           v.nonce,
+			NumInstances:    v.numInstances,
 		}
 		status = append(status, tmp)
 	}
@@ -495,6 +509,8 @@ func (m *Monitor) convertToExportedStruct(v *heartbeatMessageInfo) data.Heartbea
 		NodeDisplayName: v.nodeDisplayName,
 		Identity:        v.identity,
 		PeerType:        v.peerType,
+		Nonce:           v.nonce,
+		NumInstances:    v.numInstances,
 	}
 
 	ret.TimeStamp = v.timeStamp.UnixNano()
@@ -517,6 +533,8 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 		nodeDisplayName:             hbDTO.NodeDisplayName,
 		identity:                    hbDTO.Identity,
 		peerType:                    hbDTO.PeerType,
+		nonce:                       hbDTO.Nonce,
+		numInstances:                hbDTO.NumInstances,
 	}
 
 	hbmi.maxInactiveTime = time.Duration(hbDTO.MaxInactiveTime)
@@ -544,4 +562,38 @@ func (m *Monitor) startValidatorProcessing() {
 func (m *Monitor) refreshHeartbeatMessageInfo() {
 	m.computeAllHeartbeatMessages()
 	m.computeInactiveHeartbeatMessages()
+}
+
+func (m *Monitor) addDoubleSignerPeers(hb *data.Heartbeat) {
+	pubKeyStr := string(hb.Pubkey)
+	tc, ok := m.doubleSignerPeers[pubKeyStr]
+	if !ok {
+		tc = timecache.NewTimeCache(m.maxDurationPeerUnresponsive)
+		tc.Add(string(hb.Pid))
+		m.doubleSignerPeers[pubKeyStr] = tc
+		return
+	}
+
+	tc.Sweep()
+	tc.Add(string(hb.Pid))
+}
+
+func (m *Monitor) getNumInstancesOfPublicKey(pubKeyStr string) uint64 {
+	tc, ok := m.doubleSignerPeers[pubKeyStr]
+	if !ok {
+		return 0
+	}
+
+	return uint64(tc.Len())
+}
+
+func (m *Monitor) Cleanup() {
+	m.mutHeartbeatMessages.Lock()
+	for k, v := range m.heartbeatMessages {
+		if m.shouldSkipValidator(v) {
+			delete(m.heartbeatMessages, k)
+			delete(m.doubleSignerPeers, k)
+		}
+	}
+	m.mutHeartbeatMessages.Unlock()
 }

@@ -3,7 +3,6 @@ package storage
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
@@ -94,6 +93,7 @@ type BloomFilter interface {
 // represented by a cache and second layer by a persitent storage (DB-like)
 type Storer interface {
 	Put(key, data []byte) error
+	PutInEpoch(key, data []byte, epoch uint32) error
 	Get(key []byte) ([]byte, error)
 	Has(key []byte) error
 	SearchFirst(key []byte) ([]byte, error)
@@ -117,8 +117,6 @@ type StorerWithPutInEpoch interface {
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)
-	UnregisterHandler(handler epochStart.ActionHandler)
-	NotifyAll(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 

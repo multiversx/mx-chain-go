@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"reflect"
 	"sync"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -166,6 +168,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
 	return store
 }
 
@@ -1001,6 +1004,67 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 	assert.Equal(t, 1, len(mbs))
 	assert.Equal(t, uint32(1), txs)
 	assert.True(t, finalized)
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSkippedShard(t *testing.T) {
+	t.Parallel()
+
+	mbPool := testscommon.NewPoolsHolderMock().MiniBlocks()
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mbPool,
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+
+	tc.txPreProcessors[block.TxBlock] = &mock.PreProcessorMock{
+		RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+			return 0
+		},
+	}
+
+	haveTime := func() bool {
+		return true
+	}
+
+	metaBlock := &block.MetaBlock{}
+	metaBlock.ShardInfo = make([]block.ShardData, 0)
+	shardMbs := make([]block.MiniBlockHeader, 0)
+	shardMbs = append(shardMbs, block.MiniBlockHeader{Hash: []byte("mb0"), SenderShardID: 1, ReceiverShardID: 0, TxCount: 1})
+	shardMbs = append(shardMbs, block.MiniBlockHeader{Hash: []byte("mb1"), SenderShardID: 1, ReceiverShardID: 0, TxCount: 1})
+	shardMbs = append(shardMbs, block.MiniBlockHeader{Hash: []byte("mb2"), SenderShardID: 1, ReceiverShardID: 0, TxCount: 1})
+	shardData := block.ShardData{ShardID: 1, HeaderHash: []byte("header0"), TxCount: 3, ShardMiniBlockHeaders: shardMbs}
+
+	metaBlock.ShardInfo = append(metaBlock.ShardInfo, shardData)
+
+	for i := 0; i < len(metaBlock.ShardInfo); i++ {
+		for j := 0; j < len(metaBlock.ShardInfo[i].ShardMiniBlockHeaders); j++ {
+			mbHdr := metaBlock.ShardInfo[i].ShardMiniBlockHeaders[j]
+			if bytes.Equal(mbHdr.Hash, []byte("mb1")) {
+				continue
+			}
+
+			hash := fmt.Sprintf("tx_hash_from_%s", mbHdr.Hash)
+			mb := block.MiniBlock{SenderShardID: mbHdr.SenderShardID, ReceiverShardID: mbHdr.ReceiverShardID, Type: block.TxBlock, TxHashes: [][]byte{[]byte(hash)}}
+			mbPool.Put(mbHdr.Hash, &mb, mb.Size())
+		}
+	}
+
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaBlock, nil, haveTime)
+	assert.Nil(t, err)
+	require.Equal(t, 1, len(mbs))
+	assert.Equal(t, uint32(1), txs)
+	assert.False(t, finalized)
+	require.Equal(t, 1, len(mbs[0].TxHashes))
+	assert.Equal(t, []byte("tx_hash_from_mb0"), mbs[0].TxHashes[0])
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreProcessor(t *testing.T) {
@@ -2536,4 +2600,188 @@ func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *tes
 	lastKey := tc.keysTxPreProcs[preProcLen-1]
 
 	assert.Equal(t, block.RewardsBlock, lastKey)
+}
+
+func TestTransactionCoordinator_CreateMarshalizedReceiptsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tc, _ := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+
+	mb1 := &block.MiniBlock{
+		Type: block.SmartContractResultBlock,
+	}
+	mb2 := &block.MiniBlock{
+		Type: block.ReceiptBlock,
+	}
+
+	mbsBatch := &batch.Batch{}
+	marshalizedMb1, _ := tc.marshalizer.Marshal(mb1)
+	marshalizedMb2, _ := tc.marshalizer.Marshal(mb2)
+	mbsBatch.Data = append(mbsBatch.Data, marshalizedMb1)
+	mbsBatch.Data = append(mbsBatch.Data, marshalizedMb2)
+	expectedMarshalizedReceipts, _ := tc.marshalizer.Marshal(mbsBatch)
+
+	tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
+	tc.keysInterimProcs = append(tc.keysInterimProcs, block.ReceiptBlock)
+
+	tc.interimProcessors[block.SmartContractResultBlock] = &mock.IntermediateTransactionHandlerMock{
+		GetCreatedInShardMiniBlockCalled: func() *block.MiniBlock {
+			return mb1
+		},
+	}
+	tc.interimProcessors[block.ReceiptBlock] = &mock.IntermediateTransactionHandlerMock{
+		GetCreatedInShardMiniBlockCalled: func() *block.MiniBlock {
+			return mb2
+		},
+	}
+
+	marshalizedReceipts, err := tc.CreateMarshalizedReceipts()
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedMarshalizedReceipts, marshalizedReceipts)
+}
+
+func TestTransactionCoordinator_GetNumOfCrossInterMbsAndTxsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tc, _ := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+
+	tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
+	tc.keysInterimProcs = append(tc.keysInterimProcs, block.ReceiptBlock)
+
+	tc.interimProcessors[block.SmartContractResultBlock] = &mock.IntermediateTransactionHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: func() (int, int) {
+			return 2, 2
+		},
+	}
+	tc.interimProcessors[block.ReceiptBlock] = &mock.IntermediateTransactionHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: func() (int, int) {
+			return 3, 8
+		},
+	}
+
+	numMbs, numTxs := tc.getNumOfCrossInterMbsAndTxs()
+
+	assert.Equal(t, 5, numMbs)
+	assert.Equal(t, 10, numTxs)
+}
+
+func TestTransactionCoordinator_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tc, _ := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		testscommon.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{
+			IsMaxBlockSizeWithoutThrottleReachedCalled: func(i int, i2 int) bool {
+				if i+i2 > 4 {
+					return true
+				}
+				return false
+			},
+		},
+		&mock.BalanceComputationStub{},
+	)
+
+	tc.keysTxPreProcs = append(tc.keysTxPreProcs, block.TxBlock)
+
+	body := &block.Body{
+		MiniBlocks: make([]*block.MiniBlock, 0),
+	}
+
+	mb1 := &block.MiniBlock{
+		Type:            block.TxBlock,
+		ReceiverShardID: 0,
+		TxHashes:        [][]byte{[]byte("txHash1")},
+	}
+	mb2 := &block.MiniBlock{
+		Type:            block.TxBlock,
+		ReceiverShardID: 1,
+		TxHashes:        [][]byte{[]byte("txHash2")},
+	}
+	body.MiniBlocks = append(body.MiniBlocks, mb1)
+	body.MiniBlocks = append(body.MiniBlocks, mb2)
+
+	tc.txPreProcessors[block.TxBlock] = &mock.PreProcessorMock{
+		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
+			allTxs := make(map[string]data.TransactionHandler)
+			allTxs["txHash2"] = &transaction.Transaction{
+				RcvAddr: make([]byte, 0),
+			}
+			return allTxs
+		},
+	}
+	assert.False(t, tc.isMaxBlockSizeReached(body))
+
+	tc.txPreProcessors[block.TxBlock] = &mock.PreProcessorMock{
+		GetAllCurrentUsedTxsCalled: func() map[string]data.TransactionHandler {
+			allTxs := make(map[string]data.TransactionHandler)
+			allTxs["txHash2"] = &transaction.Transaction{
+				RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1),
+			}
+			return allTxs
+		},
+	}
+	assert.True(t, tc.isMaxBlockSizeReached(body))
+}
+
+func TestTransactionCoordinator_GetNumOfCrossShardScCallsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	mb := &block.MiniBlock{
+		Type:     block.TxBlock,
+		TxHashes: [][]byte{[]byte("txHash1")},
+	}
+
+	allTxs := make(map[string]data.TransactionHandler)
+
+	mb.ReceiverShardID = 0
+	assert.Equal(t, 0, getNumOfCrossShardScCalls(mb, allTxs, 0))
+
+	mb.ReceiverShardID = 1
+	assert.Equal(t, 1, getNumOfCrossShardScCalls(mb, allTxs, 0))
+
+	allTxs["txHash1"] = &transaction.Transaction{
+		RcvAddr: make([]byte, 0),
+	}
+	assert.Equal(t, 0, getNumOfCrossShardScCalls(mb, allTxs, 0))
+
+	allTxs["txHash1"] = &transaction.Transaction{
+		RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1),
+	}
+	assert.Equal(t, 1, getNumOfCrossShardScCalls(mb, allTxs, 0))
 }

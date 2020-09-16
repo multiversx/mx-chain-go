@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"math/big"
 	"testing"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -649,7 +649,7 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
 		{
-			RewardAddress:              factory.StakingSCAddress,
+			RewardAddress:              vm.StakingSCAddress,
 			ShardId:                    0,
 			AccumulatedFees:            big.NewInt(100),
 			NumSelectedInSuccessBlocks: 1,

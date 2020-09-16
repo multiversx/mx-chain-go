@@ -17,9 +17,11 @@ import (
 
 const (
 	sendTransactionEndpoint          = "/transaction/send"
+	simulateTransactionEndpoint      = "/transaction/simulate"
 	sendMultipleTransactionsEndpoint = "/transaction/send-multiple"
 	getTransactionEndpoint           = "/transaction/:hash"
 	sendTransactionPath              = "/send"
+	simulateTransactionPath          = "/simulate"
 	costPath                         = "/cost"
 	sendMultiplePath                 = "/send-multiple"
 	getTransactionPath               = "/:txhash"
@@ -31,6 +33,7 @@ type FacadeHandler interface {
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
+	SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
@@ -85,6 +88,12 @@ func Routes(router *wrapper.RouterWrapper) {
 		middleware.CreateEndpointThrottler(sendTransactionEndpoint),
 		SendTransaction,
 	)
+	router.RegisterHandler(
+		http.MethodPost,
+		simulateTransactionPath,
+		middleware.CreateEndpointThrottler(simulateTransactionEndpoint),
+		SimulateTransaction,
+	)
 	router.RegisterHandler(http.MethodPost, costPath, ComputeTransactionGasLimit)
 	router.RegisterHandler(
 		http.MethodPost,
@@ -128,6 +137,88 @@ func getFacade(c *gin.Context) (FacadeHandler, bool) {
 	}
 
 	return facade, true
+}
+
+// SimulateTransaction will receive a transaction from the client and will simulate it's execution and return the results
+func SimulateTransaction(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	var gtx = SendTxRequest{}
+	err := c.ShouldBindJSON(&gtx)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	tx, txHash, err := facade.CreateTransaction(
+		gtx.Nonce,
+		gtx.Value,
+		gtx.Receiver,
+		gtx.Sender,
+		gtx.GasPrice,
+		gtx.GasLimit,
+		gtx.Data,
+		gtx.Signature,
+		gtx.ChainID,
+		gtx.Version,
+	)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	err = facade.ValidateTransaction(tx)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	executionResults, err := facade.SimulateTransactionExecution(tx)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	executionResults.Hash = hex.EncodeToString(txHash)
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"result": executionResults},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
 }
 
 // SendTransaction will receive a transaction from the client and propagate it for processing
@@ -318,7 +409,7 @@ func GetTransaction(c *gin.Context) {
 			http.StatusInternalServerError,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: errors.ErrGetTransaction.Error(),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetTransaction.Error(), err.Error()),
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)

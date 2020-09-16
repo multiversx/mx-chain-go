@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -142,9 +143,9 @@ func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
 }
 
 // NextSeqno returns the next uint64 found in *counter as byte slice
-func (ds *directSender) NextSeqno(counter *uint64) []byte {
+func (ds *directSender) NextSeqno() []byte {
 	seqno := make([]byte, 8)
-	newVal := atomic.AddUint64(counter, 1)
+	newVal := atomic.AddUint64(&ds.counter, 1)
 	binary.BigEndian.PutUint64(seqno, newVal)
 	return seqno
 }
@@ -152,7 +153,7 @@ func (ds *directSender) NextSeqno(counter *uint64) []byte {
 // Send will send a direct message to the connected peer
 func (ds *directSender) Send(topic string, buff []byte, peer core.PeerID) error {
 	if len(buff) >= maxSendBuffSize {
-		return p2p.ErrMessageTooLarge
+		return fmt.Errorf("%w, to be sent: %d, maximum: %d", p2p.ErrMessageTooLarge, len(buff), maxSendBuffSize)
 	}
 
 	mut := ds.mutexForPeer.Get(string(peer))
@@ -237,7 +238,7 @@ func (ds *directSender) getOrCreateStream(conn network.Conn) (network.Stream, er
 }
 
 func (ds *directSender) createMessage(topic string, buff []byte, conn network.Conn) *pubsubPb.Message {
-	seqno := ds.NextSeqno(&ds.counter)
+	seqno := ds.NextSeqno()
 	mes := pubsubPb.Message{}
 	mes.Data = buff
 	mes.TopicIDs = []string{topic}

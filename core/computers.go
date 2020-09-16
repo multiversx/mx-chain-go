@@ -94,3 +94,8 @@ func GetPercentageOfValue(value *big.Int, percentage float64) *big.Int {
 
 	return result
 }
+
+// SafeMul returns multiplication results of two uint64 values into a big int
+func SafeMul(a uint64, b uint64) *big.Int {
+	return big.NewInt(0).Mul(big.NewInt(0).SetUint64(a), big.NewInt(0).SetUint64(b))
+}

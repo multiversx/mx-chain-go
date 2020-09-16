@@ -214,6 +214,16 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(_ uint32) map[string]ui
 	panic("implement me")
 }
 
+// GetOrderedCrossMiniblocksWithDst -
+func (hhs *HeaderHandlerStub) GetOrderedCrossMiniblocksWithDst(destId uint32) []*data.MiniBlockInfo {
+	panic("implement me")
+}
+
+// GetMiniBlockHeadersHashes -
+func (hhs *HeaderHandlerStub) GetMiniBlockHeadersHashes() [][]byte {
+	panic("implement me")
+}
+
 // GetValidatorStatsRootHash -
 func (hhs *HeaderHandlerStub) GetValidatorStatsRootHash() []byte {
 	panic("implement me")

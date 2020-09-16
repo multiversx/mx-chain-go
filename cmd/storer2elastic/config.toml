@@ -1,0 +1,8 @@
+[general]
+    dbPath = "db"
+    nodeConfigPath = "../node/config/config.toml"
+
+[elasticSearch]
+    url        = "http://localhost:9200"
+    username   = "basic_auth_username"
+    password   = "basic_auth_password"

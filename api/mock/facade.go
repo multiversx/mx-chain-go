@@ -8,11 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/vm"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // Facade is the mock implementation of a node router handler
@@ -29,7 +29,7 @@ type Facade struct {
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler              func(tx *transaction.Transaction) error
 	SendBulkTransactionsHandler             func(txs []*transaction.Transaction) (uint64, error)
-	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vm.VMOutputApi, error)
 	StatusMetricsHandler                    func() external.StatusMetricsHandler
 	ValidatorStatisticsHandler              func() (map[string]*state.ValidatorApiResponse, error)
 	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (uint64, error)
@@ -38,8 +38,19 @@ type Facade struct {
 	GetValueForKeyCalled                    func(address string, key string) (string, error)
 	GetPeerInfoCalled                       func(pid string) ([]core.QueryP2PPeerInfo, error)
 	GetThrottlerForEndpointCalled           func(endpoint string) (core.Throttler, bool)
+	GetUsernameCalled                       func(address string) (string, error)
+	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetNumCheckpointsFromAccountStateCalled func() uint32
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
+}
+
+// GetUsername -
+func (f *Facade) GetUsername(address string) (string, error) {
+	if f.GetUsernameCalled != nil {
+		return f.GetUsernameCalled(address)
+	}
+
+	return "", nil
 }
 
 // GetThrottlerForEndpoint -
@@ -119,6 +130,11 @@ func (f *Facade) GetTransaction(hash string) (*transaction.ApiTransactionResult,
 	return f.GetTransactionHandler(hash)
 }
 
+// SimulateTransactionExecution is the mock implementation of a handler's SimulateTransactionExecution method
+func (f *Facade) SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+	return f.SimulateTransactionExecutionHandler(tx)
+}
+
 // SendBulkTransactions is the mock implementation of a handler's SendBulkTransactions method
 func (f *Facade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	return f.SendBulkTransactionsHandler(txs)
@@ -135,7 +151,7 @@ func (f *Facade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiRespons
 }
 
 // ExecuteSCQuery is a mock implementation.
-func (f *Facade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (f *Facade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
 	return f.ExecuteSCQueryHandler(query)
 }
 

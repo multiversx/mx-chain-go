@@ -16,6 +16,15 @@ type ValidatorStatisticsProcessorStub struct {
 	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
 	ProcessCalled                            func(validatorInfo data.ShardValidatorInfoHandler) error
 	CommitCalled                             func() ([]byte, error)
+	PeerAccountToValidatorInfoCalled         func(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
+}
+
+// PeerAccountToValidatorInfo -
+func (vsp *ValidatorStatisticsProcessorStub) PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
+	if vsp.PeerAccountToValidatorInfoCalled != nil {
+		return vsp.PeerAccountToValidatorInfoCalled(peerAccount)
+	}
+	return nil
 }
 
 // Process -
@@ -94,7 +103,7 @@ func (vsp *ValidatorStatisticsProcessorStub) LastFinalizedRootHash() []byte {
 }
 
 // GetPeerAccount -
-func (vsp *ValidatorStatisticsProcessorStub) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+func (vsp *ValidatorStatisticsProcessorStub) GetExistingPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	if vsp.GetPeerAccountCalled != nil {
 		return vsp.GetPeerAccountCalled(address)
 	}

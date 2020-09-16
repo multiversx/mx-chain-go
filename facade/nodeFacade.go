@@ -2,6 +2,7 @@ package facade
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/vm"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -56,6 +58,7 @@ type resetHandler interface {
 type ArgNodeFacade struct {
 	Node                   NodeHandler
 	ApiResolver            ApiResolver
+	TxSimulatorProcessor   TransactionSimulatorProcessor
 	RestAPIServerDebugMode bool
 	WsAntifloodConfig      config.WebServerAntifloodConfig
 	FacadeConfig           config.FacadeConfig
@@ -70,6 +73,7 @@ type nodeFacade struct {
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
 	tpsBenchmark           *statistics.TpsBenchmark
+	txSimulatorProc        TransactionSimulatorProcessor
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
 	endpointsThrottlers    map[string]core.Throttler
@@ -88,6 +92,9 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	}
 	if check.IfNil(arg.ApiResolver) {
 		return nil, ErrNilApiResolver
+	}
+	if check.IfNil(arg.TxSimulatorProcessor) {
+		return nil, ErrErrNilTransactionSimulatorProcessor
 	}
 	if len(arg.ApiRoutesConfig.APIPackages) == 0 {
 		return nil, ErrNoApiRoutesConfig
@@ -114,6 +121,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		node:                   arg.Node,
 		apiResolver:            arg.ApiResolver,
 		restAPIServerDebugMode: arg.RestAPIServerDebugMode,
+		txSimulatorProc:        arg.TxSimulatorProcessor,
 		wsAntifloodConfig:      arg.WsAntifloodConfig,
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
@@ -251,6 +259,11 @@ func (nf *nodeFacade) GetBalance(address string) (*big.Int, error) {
 	return nf.node.GetBalance(address)
 }
 
+// GetUsername gets the username for a specified address
+func (nf *nodeFacade) GetUsername(address string) (string, error) {
+	return nf.node.GetUsername(address)
+}
+
 // GetValueForKey gets the value for a key in a given address
 func (nf *nodeFacade) GetValueForKey(address string, key string) (string, error) {
 	return nf.node.GetValueForKey(address, key)
@@ -288,6 +301,11 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 	return nf.node.SendBulkTransactions(txs)
 }
 
+// SimulateTransactionExecution will simulate a transaction's execution and will return the results
+func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
+	return nf.txSimulatorProc.ProcessTx(tx)
+}
+
 // GetTransaction gets the transaction with a specified hash
 func (nf *nodeFacade) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
 	return nf.node.GetTransaction(hash)
@@ -320,8 +338,13 @@ func (nf *nodeFacade) StatusMetrics() external.StatusMetricsHandler {
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie
-func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-	return nf.apiResolver.ExecuteSCQuery(query)
+func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
+	vmOutput, err := nf.apiResolver.ExecuteSCQuery(query)
+	if err != nil {
+		return nil, err
+	}
+
+	return nf.convertVmOutputToApiResponse(vmOutput), nil
 }
 
 // PprofEnabled returns if profiling mode should be active or not on the application
@@ -393,6 +416,65 @@ func (nf *nodeFacade) GetNumCheckpointsFromAccountState() uint32 {
 // GetNumCheckpointsFromPeerState returns the number of checkpoints of the peer state
 func (nf *nodeFacade) GetNumCheckpointsFromPeerState() uint32 {
 	return nf.peerState.GetNumCheckpoints()
+}
+
+func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
+	outputAccounts := make(map[string]*vm.OutputAccountApi)
+	for key, acc := range input.OutputAccounts {
+		outputAddress, err := nf.node.EncodeAddressPubkey(acc.Address)
+		if err != nil {
+			log.Warn("cannot encode address", "error", err)
+			outputAddress = ""
+		}
+
+		storageUpdates := make(map[string]*vm.StorageUpdateApi)
+		for updateKey, updateVal := range acc.StorageUpdates {
+			storageUpdates[hex.EncodeToString([]byte(updateKey))] = &vm.StorageUpdateApi{
+				Offset: updateVal.Offset,
+				Data:   updateVal.Data,
+			}
+		}
+		outputAccounts[hex.EncodeToString([]byte(key))] = &vm.OutputAccountApi{
+			Address:        outputAddress,
+			Nonce:          acc.Nonce,
+			Balance:        acc.Balance,
+			BalanceDelta:   acc.BalanceDelta,
+			StorageUpdates: storageUpdates,
+			Code:           acc.Code,
+			CodeMetadata:   acc.CodeMetadata,
+			Data:           acc.Data,
+			GasLimit:       acc.GasLimit,
+			CallType:       acc.CallType,
+		}
+	}
+
+	logs := make([]*vm.LogEntryApi, 0, len(input.Logs))
+	for i := 0; i < len(input.Logs); i++ {
+		originalLog := input.Logs[i]
+		logAddress, err := nf.node.EncodeAddressPubkey(originalLog.Address)
+		if err != nil {
+			log.Warn("cannot encode address", "error", err)
+			logAddress = ""
+		}
+
+		logs[i] = &vm.LogEntryApi{
+			Identifier: originalLog.Identifier,
+			Address:    logAddress,
+			Topics:     originalLog.Topics,
+			Data:       originalLog.Data,
+		}
+	}
+	return &vm.VMOutputApi{
+		ReturnData:      input.ReturnData,
+		ReturnCode:      input.ReturnCode.String(),
+		ReturnMessage:   input.ReturnMessage,
+		GasRemaining:    input.GasRemaining,
+		GasRefund:       input.GasRefund,
+		OutputAccounts:  outputAccounts,
+		DeletedAccounts: input.DeletedAccounts,
+		TouchedAccounts: input.TouchedAccounts,
+		Logs:            logs,
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
