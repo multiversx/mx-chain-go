@@ -38,6 +38,7 @@ type stakingSC struct {
 	minNumNodes              uint64
 	maxNumNodes              uint64
 	marshalizer              marshal.Marshalizer
+	stakeEnableNonce         uint64
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
@@ -97,6 +98,7 @@ func NewStakingSmartContract(
 		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:              args.Marshalizer,
 		endOfEpochAccessAddr:     args.EndOfEpochAccessAddr,
+		stakeEnableNonce:         args.StakingSCConfig.StakeEnableNonce,
 	}
 
 	return reg, nil
@@ -334,8 +336,8 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
-	registrationData := &StakedData{
+func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2, error) {
+	registrationData := &StakedDataV2{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
@@ -366,8 +368,40 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
 	return registrationData, nil
 }
 
-func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedData) error {
+func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedDataV2) error {
+	if r.eei.BlockChainHook().CurrentNonce() < r.stakeEnableNonce {
+		return r.saveAsStakingDataV1(key, stakedData)
+	}
+
 	data, err := r.marshalizer.Marshal(stakedData)
+	if err != nil {
+		log.Debug("marshal error on staking SC stake function ",
+			"error", err.Error(),
+		)
+		return err
+	}
+
+	r.eei.SetStorage(key, data)
+	return nil
+}
+
+func (r *stakingSC) saveAsStakingDataV1(key []byte, stakedData *StakedDataV2) error {
+	stakedDataV1 := &StakedDataV1{
+		RegisterNonce: stakedData.RegisterNonce,
+		StakedNonce:   stakedData.StakedNonce,
+		Staked:        stakedData.Staked,
+		UnStakedNonce: stakedData.UnStakedNonce,
+		UnStakedEpoch: stakedData.UnStakedEpoch,
+		RewardAddress: stakedData.RewardAddress,
+		StakeValue:    stakedData.StakeValue,
+		JailedRound:   stakedData.JailedRound,
+		JailedNonce:   stakedData.JailedNonce,
+		UnJailedNonce: stakedData.UnJailedNonce,
+		Jailed:        stakedData.Jailed,
+		Waiting:       stakedData.Waiting,
+	}
+
+	data, err := r.marshalizer.Marshal(stakedDataV1)
 	if err != nil {
 		log.Debug("marshal error on staking SC stake function ",
 			"error", err.Error(),
@@ -477,7 +511,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedData, addFirst bool) error {
+func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2, addFirst bool) error {
 	if registrationData.Staked {
 		return nil
 	}
@@ -1065,7 +1099,7 @@ func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) isNodeJailedOrWithBadRating(registrationData *StakedData, blsKey []byte) bool {
+func (r *stakingSC) isNodeJailedOrWithBadRating(registrationData *StakedDataV2, blsKey []byte) bool {
 	return registrationData.Jailed || r.eei.CanUnJail(blsKey) || r.eei.IsBadRating(blsKey)
 }
 
@@ -1172,7 +1206,7 @@ func (r *stakingSC) getRewardAddress(args *vmcommon.ContractCallInput) vmcommon.
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) getStakedDataIfExists(args *vmcommon.ContractCallInput) (*StakedData, vmcommon.ReturnCode) {
+func (r *stakingSC) getStakedDataIfExists(args *vmcommon.ContractCallInput) (*StakedDataV2, vmcommon.ReturnCode) {
 	err := r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Get)
 	if err != nil {
 		r.eei.AddReturnMessage("insufficient gas")
