@@ -11,6 +11,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/cmd/seednode/api"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -48,6 +49,12 @@ VERSION:
 		Usage: "The `[p2p port]` number on which the application will start. Can use single values such as " +
 			"`0, 10230, 15670` or range of ports such as `5000-10000`",
 		Value: "10000",
+	}
+	restApiPortFlag = cli.IntFlag{
+		Name: "rest-api-port",
+		Usage: "This flag specifies the Rest API port the seednode will run on. It will be used for fetching logs using" +
+			"the logveiwer application. If set to 0, the API service won't be enabled",
+		Value: 8080,
 	}
 	// p2pSeed defines a flag to be used as a seed when generating P2P credentials. Useful for seed nodes.
 	p2pSeed = cli.StringFlag{
@@ -88,6 +95,7 @@ func main() {
 	app.Usage = "This is the entry point for starting a new seed node - the app will help bootnodes connect to the network"
 	app.Flags = []cli.Flag{
 		port,
+		restApiPortFlag,
 		p2pSeed,
 		logLevel,
 		logSaveFile,
@@ -145,6 +153,16 @@ func startNode(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	restApiPort := ctx.GlobalInt(restApiPortFlag.Name)
+	if restApiPort > 0 {
+		go func() {
+			err = api.Start(restApiPort, internalMarshalizer)
+			if err != nil {
+				log.LogIfError(err)
+			}
+		}()
 	}
 
 	log.Info("starting seednode...")
